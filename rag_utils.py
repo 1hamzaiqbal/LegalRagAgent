@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import pandas as pd
 from typing import List, Dict, Any
 from langchain_community.vectorstores import Chroma
@@ -73,6 +74,24 @@ def retrieve_documents(query: str, k: int = 5) -> List[Document]:
     """Retrieves top k documents for a given query."""
     retriever = get_retriever(k=k)
     return retriever.invoke(query)
+
+
+def compute_confidence(query: str, docs: List[Document]) -> float:
+    """Compute confidence as mean cosine similarity between query and doc embeddings."""
+    if not docs:
+        return 0.0
+
+    embeddings = get_embeddings()
+    query_emb = np.array(embeddings.embed_query(query))
+    doc_texts = [doc.page_content for doc in docs]
+    doc_embs = np.array(embeddings.embed_documents(doc_texts))
+
+    # Cosine similarity between query and each doc
+    query_norm = query_emb / (np.linalg.norm(query_emb) + 1e-10)
+    doc_norms = doc_embs / (np.linalg.norm(doc_embs, axis=1, keepdims=True) + 1e-10)
+    similarities = doc_norms @ query_norm
+
+    return float(np.mean(similarities))
 
 if __name__ == "__main__":
     # Test loading validation set
