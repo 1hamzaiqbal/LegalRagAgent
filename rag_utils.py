@@ -32,47 +32,63 @@ def get_vectorstore() -> Chroma:
         )
     return _vectorstore_instance
 
-def load_passages_to_chroma(passages_csv_path: str):
-    """Loads passages from a CSV into ChromaDB if it doesn't already exist."""
+def load_passages_to_chroma(passages_csv_path: str, max_passages: int = 0):
+    """Loads passages from a CSV into ChromaDB if not already loaded.
+
+    Args:
+        passages_csv_path: Path to the passages CSV (columns: idx, text, source, ...).
+        max_passages: Max passages to load (0 = all). Useful for quick testing.
+    """
     print(f"Loading passages from {passages_csv_path}...")
     df = pd.read_csv(passages_csv_path)
-    
-    # For quick evaluation/demonstration, only load the first 1000 passages.
-    df = df.head(1000)
-    
+
+    if max_passages > 0:
+        df = df.head(max_passages)
+
     # Expected columns: idx, text (and others we can store in metadata)
     documents = []
     for _, row in df.iterrows():
-        # Ensure 'idx' and 'text' exist
         if 'idx' not in row or 'text' not in row or pd.isna(row['text']):
             continue
-            
+
         metadata = {
             "faiss_id": str(row.get('faiss_id', '')),
             "idx": str(row['idx']),
             "source": str(row.get('source', ''))
         }
-        
+
         doc = Document(page_content=str(row['text']), metadata=metadata)
         documents.append(doc)
-        
+
     print(f"Prepared {len(documents)} documents. Initializing vectorstore...")
     vectorstore = get_vectorstore()
-    
+
     # Check if we already have documents
     existing_count = vectorstore._collection.count()
-    if existing_count > 0:
-        print(f"Vectorstore already contains {existing_count} documents. Skipping injection to save time.")
+    if existing_count >= len(documents):
+        print(f"Vectorstore already contains {existing_count} documents (>= {len(documents)}). Skipping.")
         return vectorstore
-        
-    # Add in batches to avoid overwhelming memory/Chroma
-    batch_size = 5000
-    for i in range(0, len(documents), batch_size):
+
+    if existing_count > 0:
+        print(f"Vectorstore has {existing_count} docs but need {len(documents)}. Clearing and reloading...")
+        ids = vectorstore._collection.get()["ids"]
+        if ids:
+            # Delete in batches to avoid memory issues
+            for i in range(0, len(ids), 5000):
+                vectorstore._collection.delete(ids=ids[i:i+5000])
+        print("Cleared existing collection.")
+
+    # Add in batches
+    batch_size = 500
+    total = len(documents)
+    for i in range(0, total, batch_size):
         batch = documents[i:i+batch_size]
-        print(f"Adding batch {i} to {i+len(batch)}...")
         vectorstore.add_documents(batch)
-        
-    print("Finished loading documents into ChromaDB.")
+        done = min(i + batch_size, total)
+        if done % 5000 == 0 or done == total:
+            print(f"  Progress: {done}/{total} ({done/total*100:.1f}%)")
+
+    print(f"Finished loading {total} documents into ChromaDB.")
     return vectorstore
 
 def get_retriever(k: int = 5):
@@ -80,10 +96,73 @@ def get_retriever(k: int = 5):
     vectorstore = get_vectorstore()
     return vectorstore.as_retriever(search_kwargs={"k": k})
 
+
 def retrieve_documents(query: str, k: int = 5) -> List[Document]:
-    """Retrieves top k documents for a given query."""
-    retriever = get_retriever(k=k)
-    return retriever.invoke(query)
+    """Hybrid retrieval: fetch from MBE/wex (study material) and caselaw separately,
+    then merge by score. This prevents caselaw volume from drowning out concise
+    MBE passages that are often more directly on-point for bar exam questions.
+
+    Strategy: retrieve k from each source pool, merge, deduplicate, return top k.
+    """
+    vectorstore = get_vectorstore()
+    total_docs = vectorstore._collection.count()
+
+    # If corpus is small (<5K), no source imbalance — use simple retrieval
+    if total_docs < 5000:
+        retriever = get_retriever(k=k)
+        return retriever.invoke(query)
+
+    # Hybrid: retrieve from study material and caselaw separately
+    try:
+        study_docs = vectorstore.similarity_search_with_relevance_scores(
+            query, k=k, filter={"source": {"$in": ["mbe", "wex"]}}
+        )
+    except Exception:
+        study_docs = []
+
+    try:
+        case_docs = vectorstore.similarity_search_with_relevance_scores(
+            query, k=k, filter={"source": "caselaw"}
+        )
+    except Exception:
+        case_docs = []
+
+    # Interleave: guarantee at least ceil(k/2) study material slots,
+    # fill remainder with caselaw. This prevents caselaw volume from
+    # drowning out the concise MBE/wex passages.
+    study_k = (k + 1) // 2  # e.g., 3 out of 5
+    case_k = k - study_k     # e.g., 2 out of 5
+
+    result = []
+    seen = set()
+
+    # Take top study material passages
+    for doc, score in sorted(study_docs, key=lambda x: x[1], reverse=True)[:study_k]:
+        idx = doc.metadata.get("idx", "")
+        if idx not in seen:
+            seen.add(idx)
+            result.append(doc)
+
+    # Fill remaining slots with caselaw
+    for doc, score in sorted(case_docs, key=lambda x: x[1], reverse=True):
+        if len(result) >= k:
+            break
+        idx = doc.metadata.get("idx", "")
+        if idx not in seen:
+            seen.add(idx)
+            result.append(doc)
+
+    # If we still need more (study pool was small), backfill from either pool
+    if len(result) < k:
+        for doc, score in sorted(study_docs + case_docs, key=lambda x: x[1], reverse=True):
+            if len(result) >= k:
+                break
+            idx = doc.metadata.get("idx", "")
+            if idx not in seen:
+                seen.add(idx)
+                result.append(doc)
+
+    return result
 
 
 def compute_confidence(query: str, docs: List[Document]) -> float:
