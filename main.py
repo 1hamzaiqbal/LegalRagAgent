@@ -12,7 +12,7 @@ from langgraph.graph import StateGraph, END
 from pydantic import BaseModel, Field
 
 from llm_config import get_llm
-from rag_utils import retrieve_documents, compute_confidence, check_memory, write_to_memory
+from rag_utils import retrieve_documents, retrieve_documents_multi_query, compute_confidence, check_memory, write_to_memory
 
 # ---------------------------------------------------------------------------
 # 1. Core Data Models
@@ -31,7 +31,6 @@ class PlanStep(BaseModel):
 class AgentState(TypedDict):
     global_objective: str
     planning_table: List[PlanStep]
-    contingency_plan: str
     query_type: str            # "simple" or "multi_hop"
     final_cited_answer: str    # aggregated output
     accumulated_context: List[Dict[str, Any]]  # step summaries for replanner
@@ -228,30 +227,32 @@ def skill_plan_synthesis(objective: str, query_type: str) -> List[Dict]:
     }]
 
 
-def skill_query_rewrite(question: str) -> str:
-    """Rewrite a question into an optimized retrieval query."""
+def skill_query_rewrite(question: str) -> Dict[str, Any]:
+    """Rewrite a question into a primary query + alternative queries for multi-query retrieval.
+
+    Returns {"primary": str, "alternatives": List[str]}.
+    Falls back to treating the raw output as primary with no alternatives.
+    """
     instructions = load_skill_instructions("query_rewrite")
-    return _llm_call(instructions, f"Question: {question}", label="query_rewrite").strip()
+    raw = _llm_call(instructions, f"Question: {question}", label="query_rewrite").strip()
+    parsed = _parse_json(raw)
+    if parsed and isinstance(parsed, dict) and "primary" in parsed:
+        return {
+            "primary": parsed["primary"],
+            "alternatives": parsed.get("alternatives", []),
+        }
+    # Fallback: treat entire output as primary (handles old plain-text format)
+    return {"primary": raw, "alternatives": []}
 
 
-def skill_synthesize_answer(question: str, evidence: List[str]) -> str:
-    """Synthesize an answer from retrieved evidence."""
-    instructions = load_skill_instructions("synthesize_answer")
+def skill_synthesize_and_cite(question: str, evidence: List[str]) -> str:
+    """Synthesize an answer from evidence with inline citations in a single pass."""
+    instructions = load_skill_instructions("synthesize_and_cite")
     evidence_text = "\n\n".join(
         f"[Passage {i+1}]: {text}" for i, text in enumerate(evidence)
     )
     user_msg = f"Question: {question}\n\nEvidence:\n{evidence_text}"
-    return _llm_call(instructions, user_msg, label="synthesize").strip()
-
-
-def skill_ground_and_cite(answer: str, evidence: List[str]) -> str:
-    """Ground an answer and add source citations."""
-    instructions = load_skill_instructions("ground_and_cite")
-    evidence_text = "\n\n".join(
-        f"[Passage {i+1}]: {text}" for i, text in enumerate(evidence)
-    )
-    user_msg = f"Answer:\n{answer}\n\nEvidence:\n{evidence_text}"
-    return _llm_call(instructions, user_msg, label="ground_cite").strip()
+    return _llm_call(instructions, user_msg, label="synthesize_and_cite").strip()
 
 
 def skill_adaptive_replan(objective: str, accumulated_context: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -298,8 +299,16 @@ def skill_verify_answer(question: str, answer: str, evidence: List[str]) -> Dict
 # ---------------------------------------------------------------------------
 
 def detect_injection_node(state: AgentState) -> AgentState:
-    """Screen user input for adversarial prompt injection."""
+    """Screen user input for adversarial prompt injection.
+
+    Skippable via SKIP_INJECTION_CHECK=1 env var (saves 1 LLM call for eval/testing).
+    """
     print("\n--- DETECT INJECTION NODE ---")
+    if os.getenv("SKIP_INJECTION_CHECK", "0") == "1":
+        print("Injection check SKIPPED (SKIP_INJECTION_CHECK=1)")
+        state["injection_check"] = {"is_safe": True, "reasoning": "Skipped via SKIP_INJECTION_CHECK"}
+        return state
+
     objective = state["global_objective"]
     result = skill_detect_prompt_injection(objective)
     state["injection_check"] = result
@@ -388,29 +397,30 @@ def executor_node(state: AgentState) -> AgentState:
         if step.status == "pending":
             print(f"Executing step {step.step_id}: {step.question}")
 
-            # 1. Query rewrite
-            optimized_query = skill_query_rewrite(step.question)
-            print(f"  Optimized query: {optimized_query[:80]}...")
+            # 1. Query rewrite (returns primary + alternatives)
+            rewrite_result = skill_query_rewrite(step.question)
+            optimized_query = rewrite_result["primary"]
+            alternatives = rewrite_result.get("alternatives", [])
+            print(f"  Primary query: {optimized_query[:80]}...")
+            if alternatives:
+                print(f"  + {len(alternatives)} alternative queries")
 
-            # 2. Retrieve
-            docs = retrieve_documents(optimized_query, k=5)
+            # 2. Multi-query retrieve
+            all_queries = [optimized_query] + alternatives
+            docs = retrieve_documents_multi_query(all_queries, k=5)
             evidence = [doc.page_content for doc in docs]
             print(f"  Retrieved {len(evidence)} passages")
 
-            # 3. Synthesize
-            answer = skill_synthesize_answer(step.question, evidence)
-            print(f"  Synthesized answer ({len(answer)} chars)")
+            # 3. Synthesize and cite (single pass)
+            cited_answer = skill_synthesize_and_cite(step.question, evidence)
+            print(f"  Synthesized and cited ({len(cited_answer)} chars)")
 
-            # 4. Ground and cite
-            cited_answer = skill_ground_and_cite(answer, evidence)
-            print(f"  Grounded with citations ({len(cited_answer)} chars)")
-
-            # 5. Compute confidence
+            # 4. Compute confidence
             confidence = compute_confidence(optimized_query, docs)
             print(f"  Confidence score: {confidence:.3f}")
 
             step.execution = {
-                "answer": answer,
+                "answer": cited_answer,
                 "cited_answer": cited_answer,
                 "optimized_query": optimized_query,
                 "sources": evidence,
@@ -853,7 +863,6 @@ def build_graph() -> Any:
 DEMO_QUERIES = {
     "simple": {
         "objective": "What are the elements of a negligence claim?",
-        "contingency": "If passages lack negligence specifics, broaden to general tort liability.",
     },
     "multi_hop": {
         "objective": (
@@ -862,7 +871,6 @@ DEMO_QUERIES = {
             "the Fifth Amendment at trial. What are the driver's constitutional rights and what "
             "legal standards apply to the search and the testimony?"
         ),
-        "contingency": "If constitutional search passages are sparse, retrieve 4th and 5th Amendment separately.",
     },
     "medium": {
         "objective": (
@@ -870,7 +878,6 @@ DEMO_QUERIES = {
             "similar trademark. What legal standard must the court apply, and what factors "
             "are considered?"
         ),
-        "contingency": "If injunction passages are limited, fall back to general equitable remedies.",
     },
 }
 
@@ -893,7 +900,6 @@ if __name__ == "__main__":
     initial_state = {
         "global_objective": demo["objective"],
         "planning_table": [],
-        "contingency_plan": demo["contingency"],
         "query_type": "",
         "final_cited_answer": "",
         "accumulated_context": [],

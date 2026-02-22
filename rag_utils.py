@@ -218,6 +218,107 @@ def retrieve_documents(query: str, k: int = 5) -> List[Document]:
     return result
 
 
+def retrieve_documents_multi_query(queries: List[str], k: int = 5) -> List[Document]:
+    """Multi-query retrieval: pool candidates from multiple query variants, then rerank.
+
+    For each query, bi-encoder over-retrieves from each source pool (study + caselaw).
+    All candidates are pooled and deduplicated by idx. The cross-encoder reranks the
+    full pool against the PRIMARY query (first in list). Source-aware interleaving
+    preserves diversity (3 study + 2 caselaw).
+
+    Falls back to single-query retrieve_documents if only one query is provided.
+    """
+    if not queries:
+        return []
+    if len(queries) == 1:
+        return retrieve_documents(queries[0], k=k)
+
+    vectorstore = get_vectorstore()
+    total_docs = vectorstore._collection.count()
+
+    # For small corpora, simple pooled retrieval + rerank
+    if total_docs < 5000:
+        all_candidates = []
+        seen_idx = set()
+        fetch_k = k * 3
+        for q in queries:
+            retriever = get_retriever(k=fetch_k)
+            for doc in retriever.invoke(q):
+                idx = doc.metadata.get("idx", "")
+                if idx not in seen_idx:
+                    seen_idx.add(idx)
+                    all_candidates.append(doc)
+        return rerank_with_cross_encoder(queries[0], all_candidates, top_k=k)
+
+    # Over-retrieval factor per query (smaller than single-query since we have multiple)
+    fetch_k = k * 3
+
+    study_candidates = []
+    study_seen = set()
+    case_candidates = []
+    case_seen = set()
+
+    for q in queries:
+        # Study pool (mbe + wex)
+        try:
+            study_results = vectorstore.similarity_search_with_relevance_scores(
+                q, k=fetch_k, filter={"source": {"$in": ["mbe", "wex"]}}
+            )
+            for doc, _ in study_results:
+                idx = doc.metadata.get("idx", "")
+                if idx not in study_seen:
+                    study_seen.add(idx)
+                    study_candidates.append(doc)
+        except Exception:
+            pass
+
+        # Caselaw pool
+        try:
+            case_results = vectorstore.similarity_search_with_relevance_scores(
+                q, k=fetch_k, filter={"source": "caselaw"}
+            )
+            for doc, _ in case_results:
+                idx = doc.metadata.get("idx", "")
+                if idx not in case_seen:
+                    case_seen.add(idx)
+                    case_candidates.append(doc)
+        except Exception:
+            pass
+
+    # Cross-encoder rerank against the PRIMARY query within each pool
+    primary_query = queries[0]
+    study_k = (k + 1) // 2  # e.g., 3 out of 5
+    case_k = k - study_k     # e.g., 2 out of 5
+
+    reranked_study = rerank_with_cross_encoder(primary_query, study_candidates, top_k=study_k)
+    reranked_case = rerank_with_cross_encoder(primary_query, case_candidates, top_k=case_k)
+
+    # Interleave: study material first, then caselaw
+    result = list(reranked_study)
+    seen = {doc.metadata.get("idx", "") for doc in result}
+    for doc in reranked_case:
+        if len(result) >= k:
+            break
+        idx = doc.metadata.get("idx", "")
+        if idx not in seen:
+            seen.add(idx)
+            result.append(doc)
+
+    # Backfill if either pool was too small
+    if len(result) < k:
+        all_candidates = study_candidates + case_candidates
+        all_reranked = rerank_with_cross_encoder(primary_query, all_candidates, top_k=k * 2)
+        for doc in all_reranked:
+            if len(result) >= k:
+                break
+            idx = doc.metadata.get("idx", "")
+            if idx not in seen:
+                seen.add(idx)
+                result.append(doc)
+
+    return result
+
+
 def compute_confidence(query: str, docs: List[Document]) -> float:
     """Compute confidence as mean cosine similarity between query and doc embeddings."""
     if not docs:

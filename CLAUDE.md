@@ -17,11 +17,11 @@ uv run python main.py simple       # Single-concept question (negligence element
 uv run python main.py multi_hop    # Multi-concept constitutional rights scenario
 uv run python main.py medium       # Preliminary injunction standard
 
-# Run batch test across diverse queries
-uv run python batch_test.py
+# Run comprehensive evaluation (retrieval + full pipeline)
+uv run python eval_comprehensive.py
 
-# Run retrieval evaluation (Recall@5, MRR) on bar exam QA dataset
-uv run python eval.py
+# Run retrieval A/B test (bi-encoder vs cross-encoder reranking)
+uv run python eval_reranker.py
 
 # Verify LLM config
 uv run python -c "from llm_config import get_llm; print(get_llm())"
@@ -42,10 +42,10 @@ cp .env.example .env
 
 Nine-node state machine with adaptive replanning, injection detection, answer verification, QA memory, and observability:
 
-1. **detect_injection_node** — Screens input for adversarial prompt injection using `detect_prompt_injection.md` skill. Unsafe inputs are rejected and routed to observability for metrics.
+1. **detect_injection_node** — Screens input for adversarial prompt injection using `detect_prompt_injection.md` skill. Skippable via `SKIP_INJECTION_CHECK=1` env var (saves 1 LLM call for eval/testing). Unsafe inputs are rejected and routed to observability for metrics.
 2. **classifier_node** — Classifies objective as `simple` or `multi_hop` using `classify_and_route.md` skill
 3. **planner_node** — Checks QA memory first (cosine similarity >= 0.92); on cache hit, short-circuits to memory writeback. Otherwise generates initial plan. For `multi_hop`, emits only the first step; replanner handles the rest adaptively.
-4. **executor_node** — For each pending step: rewrites query (`query_rewrite.md`), retrieves from ChromaDB, synthesizes answer (`synthesize_answer.md`), grounds with `[Source N]` citations (`ground_and_cite.md`), computes confidence via cosine similarity
+4. **executor_node** — For each pending step: rewrites query into primary + 2 alternatives (`query_rewrite.md`, JSON output), multi-query retrieves from ChromaDB (`retrieve_documents_multi_query`), synthesizes answer with inline `[Source N]` citations in a single pass (`synthesize_and_cite.md`), computes confidence via cosine similarity
 5. **evaluator_node** — Marks steps completed (confidence >= 0.6) or failed (< 0.6). Accumulates step summaries into `accumulated_context`. Sets explicit failure message if all steps fail.
 6. **replanner_node** — (multi_hop only) Receives objective + accumulated evidence, decides: `next_step` (add new research step), `retry` (rephrase failed step), or `complete` (aggregate final answer).
 7. **verify_answer_node** — Cross-checks final answer against evidence using `verify_answer.md` skill. On first failure, adds a corrective step using the LLM's `suggested_query` (a proper legal question). Second failure terminates cleanly without orphaned steps.
@@ -64,28 +64,18 @@ Graph: `detect_injection → {classifier | observability}`; `classifier → plan
 
 ### Shared State (`AgentState`)
 
-TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `contingency_plan`, `query_type` ("simple"/"multi_hop"), `final_cited_answer`, `accumulated_context` (step summaries for replanner), `iteration_count` (loop guard, max 6), `injection_check` (safety result), `verification_result` (answer verification with `suggested_query`), `verification_retries` (1 corrective retry max), `memory_hit` (QA cache result, threshold 0.92), and `run_metrics` (observability data including parse failures and has_answer).
+TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query_type` ("simple"/"multi_hop"), `final_cited_answer`, `accumulated_context` (step summaries for replanner), `iteration_count` (loop guard, max 6), `injection_check` (safety result), `verification_result` (answer verification with `suggested_query`), `verification_retries` (1 corrective retry max), `memory_hit` (QA cache result, threshold 0.92), and `run_metrics` (observability data including parse failures and has_answer).
 
 ### Skill System (skills/)
 
-8 markdown prompt files cached at first load via `@lru_cache` in `load_skill_instructions()`:
+7 markdown prompt files cached at first load via `@lru_cache` in `load_skill_instructions()`:
 - `classify_and_route.md` — classify query complexity
 - `plan_synthesis.md` — generate research plan
-- `query_rewrite.md` — optimize retrieval queries
-- `synthesize_answer.md` — synthesize grounded answers
-- `ground_and_cite.md` — verify grounding and add citations
+- `query_rewrite.md` — rewrite query into primary + 2 alternatives (JSON output for multi-query retrieval)
+- `synthesize_and_cite.md` — synthesize answer with inline `[Source N]` citations and `## Sources` map in a single pass
 - `adaptive_replan.md` — decide next research step based on accumulated evidence
-- `detect_prompt_injection.md` — screen input for adversarial prompts (fail-open)
+- `detect_prompt_injection.md` — screen input for adversarial prompts (fail-open, skippable via `SKIP_INJECTION_CHECK=1`)
 - `verify_answer.md` — cross-check answer against evidence for unsupported claims, contradictions, and missing info
-
-### External Tool Placeholders (external_tools.py)
-
-`@tool`-decorated stubs for teammate's Playwright-based web lookup API:
-- `web_search(query)` — web search placeholder
-- `web_scrape(url)` — page scraping placeholder
-- `external_api_call(endpoint, payload)` — generic API wrapper placeholder
-- Configured via `EXTERNAL_TOOLS_BASE_URL`, `EXTERNAL_TOOLS_API_KEY` env vars
-- `get_external_tools()` returns all tools for `llm.bind_tools()` binding
 
 ### LLM Config (llm_config.py)
 
@@ -104,6 +94,10 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `conti
   1. **Bi-encoder over-retrieval**: Fetch 4x candidates from MBE/wex and caselaw pools separately (source-filtered)
   2. **Source-aware cross-encoder rerank**: Rerank within each pool, then interleave (3 study + 2 caselaw) to preserve source diversity
   - For small corpora (<5K), falls back to simple retrieval + rerank
+- Multi-query retrieval in `retrieve_documents_multi_query(queries, k=5)`:
+  - Pools bi-encoder candidates from multiple query variants (primary + alternatives) across both source pools
+  - Deduplicates by `idx`, then cross-encoder reranks the full pool against the primary query
+  - Source-aware interleave preserves diversity; bridges terminological gaps (e.g., "cancellation clause" also retrieves "illusory promise")
 - `compute_confidence(query, docs)` returns mean cosine similarity between query and doc embeddings
 - `load_passages_to_chroma(csv_path, max_passages=0)` loads passages with batch progress reporting
 - Singletons: `get_vectorstore()`, `get_memory_store()`, `get_embeddings()`, `get_cross_encoder()` all cached
@@ -113,7 +107,6 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `conti
 
 ### Evaluation
 
-- `eval.py` — Basic retrieval eval (Recall@K, MRR) on validation set
 - `eval_comprehensive.py` — Two-phase eval: Phase 1 retrieval-only (953 QA pairs), Phase 2 full pipeline (26 diverse queries with grading)
 - `eval_reranker.py` — A/B comparison of bi-encoder-only vs cross-encoder reranking on stratified 96-query sample
 - `load_corpus.py` — Load full 220K passage corpus: `uv run python load_corpus.py [count|status]`
