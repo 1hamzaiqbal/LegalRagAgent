@@ -19,6 +19,3 @@ dependencies = [
     "sentence-transformers>=2.0.0",
     "datasets>=4.5.0",
 ]
-
-[project.scripts]
-legal-rag = "main:main"

@@ -3,11 +3,10 @@ import os
 import time
 import numpy as np
 import pandas as pd
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
-from langchain_core.tools import tool
 from sentence_transformers import CrossEncoder
 
 CHROMA_DB_DIR = "./chroma_db"
@@ -52,26 +51,27 @@ def rerank_with_cross_encoder(
     return [doc for doc, _ in scored[:top_k]]
 
 
-_vectorstore_instance = None
+_vectorstore_instances: Dict[str, Chroma] = {}
 
-def get_vectorstore() -> Chroma:
-    """Returns the Chroma vector store singleton."""
-    global _vectorstore_instance
-    if _vectorstore_instance is None:
+def get_vectorstore(collection_name: str = COLLECTION_NAME) -> Chroma:
+    """Returns a Chroma vector store singleton for the given collection."""
+    if collection_name not in _vectorstore_instances:
         embeddings = get_embeddings()
-        _vectorstore_instance = Chroma(
-            collection_name=COLLECTION_NAME,
+        _vectorstore_instances[collection_name] = Chroma(
+            collection_name=collection_name,
             embedding_function=embeddings,
             persist_directory=CHROMA_DB_DIR,
         )
-    return _vectorstore_instance
+    return _vectorstore_instances[collection_name]
 
-def load_passages_to_chroma(passages_csv_path: str, max_passages: int = 0):
+def load_passages_to_chroma(passages_csv_path: str, max_passages: int = 0,
+                            collection_name: str = COLLECTION_NAME):
     """Loads passages from a CSV into ChromaDB if not already loaded.
 
     Args:
         passages_csv_path: Path to the passages CSV (columns: idx, text, source, ...).
         max_passages: Max passages to load (0 = all). Useful for quick testing.
+        collection_name: ChromaDB collection to load into (default: legal_passages).
     """
     print(f"Loading passages from {passages_csv_path}...")
     df = pd.read_csv(passages_csv_path)
@@ -95,7 +95,7 @@ def load_passages_to_chroma(passages_csv_path: str, max_passages: int = 0):
         documents.append(doc)
 
     print(f"Prepared {len(documents)} documents. Initializing vectorstore...")
-    vectorstore = get_vectorstore()
+    vectorstore = get_vectorstore(collection_name)
 
     # Check if we already have documents
     existing_count = vectorstore._collection.count()
@@ -125,13 +125,13 @@ def load_passages_to_chroma(passages_csv_path: str, max_passages: int = 0):
     print(f"Finished loading {total} documents into ChromaDB.")
     return vectorstore
 
-def get_retriever(k: int = 5):
+def get_retriever(k: int = 5, vectorstore: Chroma = None):
     """Returns a retriever interface for the vector store."""
-    vectorstore = get_vectorstore()
-    return vectorstore.as_retriever(search_kwargs={"k": k})
+    vs = vectorstore or get_vectorstore()
+    return vs.as_retriever(search_kwargs={"k": k})
 
 
-def retrieve_documents(query: str, k: int = 5) -> List[Document]:
+def retrieve_documents(query: str, k: int = 5, vectorstore: Chroma = None) -> List[Document]:
     """Two-stage retrieval: hybrid bi-encoder fetch + source-aware cross-encoder rerank.
 
     Stage 1 (bi-encoder): Over-retrieve from MBE/wex and caselaw pools separately.
@@ -141,7 +141,7 @@ def retrieve_documents(query: str, k: int = 5) -> List[Document]:
 
     For small corpora (<5K docs), falls back to simple retrieval + rerank.
     """
-    vectorstore = get_vectorstore()
+    vectorstore = vectorstore or get_vectorstore()
     total_docs = vectorstore._collection.count()
 
     # Over-retrieval factor: fetch 4x candidates per pool for the cross-encoder
@@ -149,7 +149,7 @@ def retrieve_documents(query: str, k: int = 5) -> List[Document]:
 
     # If corpus is small (<5K), no source imbalance — simple retrieval + rerank
     if total_docs < 5000:
-        retriever = get_retriever(k=fetch_k)
+        retriever = get_retriever(k=fetch_k, vectorstore=vectorstore)
         candidates = retriever.invoke(query)
         return rerank_with_cross_encoder(query, candidates, top_k=k)
 
@@ -218,7 +218,8 @@ def retrieve_documents(query: str, k: int = 5) -> List[Document]:
     return result
 
 
-def retrieve_documents_multi_query(queries: List[str], k: int = 5) -> List[Document]:
+def retrieve_documents_multi_query(queries: List[str], k: int = 5,
+                                   vectorstore: Chroma = None) -> List[Document]:
     """Multi-query retrieval: pool candidates from multiple query variants, then rerank.
 
     For each query, bi-encoder over-retrieves from each source pool (study + caselaw).
@@ -231,9 +232,9 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5) -> List[Docum
     if not queries:
         return []
     if len(queries) == 1:
-        return retrieve_documents(queries[0], k=k)
+        return retrieve_documents(queries[0], k=k, vectorstore=vectorstore)
 
-    vectorstore = get_vectorstore()
+    vectorstore = vectorstore or get_vectorstore()
     total_docs = vectorstore._collection.count()
 
     # For small corpora, simple pooled retrieval + rerank
@@ -242,7 +243,7 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5) -> List[Docum
         seen_idx = set()
         fetch_k = k * 3
         for q in queries:
-            retriever = get_retriever(k=fetch_k)
+            retriever = get_retriever(k=fetch_k, vectorstore=vectorstore)
             for doc in retriever.invoke(q):
                 idx = doc.metadata.get("idx", "")
                 if idx not in seen_idx:
@@ -335,27 +336,6 @@ def compute_confidence(query: str, docs: List[Document]) -> float:
     similarities = doc_norms @ query_norm
 
     return float(np.mean(similarities))
-
-@tool
-def retrieve_legal_passages(query: str, k: int = 5) -> str:
-    """Retrieve relevant legal passages from the bar exam corpus.
-
-    Args:
-        query: A legal research query to search for relevant passages.
-        k: Number of passages to retrieve (default 5).
-
-    Returns:
-        Formatted string with numbered passages and their source IDs.
-    """
-    docs = retrieve_documents(query, k=k)
-    if not docs:
-        return "No relevant passages found."
-    parts = []
-    for i, doc in enumerate(docs, 1):
-        source_id = doc.metadata.get("idx", "unknown")
-        parts.append(f"[Passage {i}] (source: {source_id})\n{doc.page_content}")
-    return "\n\n".join(parts)
-
 
 _memory_store_instance = None
 

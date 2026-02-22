@@ -64,7 +64,7 @@ Graph: `detect_injection → {classifier | observability}`; `classifier → plan
 
 ### Shared State (`AgentState`)
 
-TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query_type` ("simple"/"multi_hop"), `final_cited_answer`, `accumulated_context` (step summaries for replanner), `iteration_count` (loop guard, max 6), `injection_check` (safety result), `verification_result` (answer verification with `suggested_query`), `verification_retries` (1 corrective retry max), `memory_hit` (QA cache result, threshold 0.92), and `run_metrics` (observability data including parse failures and has_answer).
+TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query_type` ("simple"/"multi_hop"), `final_cited_answer`, `accumulated_context` (step summaries for replanner), `iteration_count` (loop guard, max 4), `injection_check` (safety result), `verification_result` (answer verification with `suggested_query`), `verification_retries` (1 corrective retry max), `memory_hit` (QA cache result, threshold 0.92), and `run_metrics` (observability data including parse failures and has_answer).
 
 ### Skill System (skills/)
 
@@ -109,7 +109,9 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
 
 - `eval_comprehensive.py` — Two-phase eval: Phase 1 retrieval-only (953 QA pairs), Phase 2 full pipeline (26 diverse queries with grading)
 - `eval_reranker.py` — A/B comparison of bi-encoder-only vs cross-encoder reranking on stratified 96-query sample
+- `eval_musique.py` — MuSiQue multi-hop QA eval: Phase 1 retrieval (Recall@5, MRR by hop count), Phase 2 full pipeline (exact match, F1 token overlap)
 - `load_corpus.py` — Load full 220K passage corpus: `uv run python load_corpus.py [count|status]`
+- `load_corpus_musique.py` — Load MuSiQue paragraphs from HuggingFace into `musique_passages` collection
 
 ## Data Directories (gitignored)
 
@@ -119,3 +121,21 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
 ## Key Dependencies
 
 `langgraph`, `langchain-core`, `langchain-community`, `langchain-huggingface`, `langchain-openai`, `chromadb`, `pandas`, `pydantic`, `tqdm`, `numpy`, `python-dotenv`, `sentence-transformers`
+
+## WSL Setup
+
+```bash
+# Clone + install
+git clone <repo-url> && cd LegalRagAgent
+uv sync
+
+# Copy .env (same API keys work on both machines)
+cp .env.example .env  # then fill in API keys
+
+# Rebuild ChromaDB (not committed to git — ~20min for 220K passages)
+uv run python load_corpus.py
+
+# GPU note: sentence-transformers will auto-detect CUDA for embeddings/reranker.
+# No code changes needed — just ensure torch has CUDA support:
+uv pip install torch --index-url https://download.pytorch.org/whl/cu121
+```

@@ -2,7 +2,7 @@
 
 Two-phase evaluation:
   Phase 1 — Retrieval quality (no LLM): Recall@5, MRR on all in-store QA pairs
-  Phase 2 — Full pipeline (LLM-heavy): 30 real bar exam questions + multi-hop scenarios
+  Phase 2 — Full pipeline (LLM-heavy): 26 diverse queries + multi-hop scenarios
 
 Usage:
   uv run python eval_comprehensive.py              # Both phases
@@ -122,7 +122,7 @@ def phase1_retrieval(k: int = 5):
 # ────────────────────────────────────────────────────────────────────────────
 
 def _select_pipeline_queries():
-    """Select 30 diverse questions from the BarExam QA dataset + multi-hop scenarios."""
+    """Select 26 diverse questions from the BarExam QA dataset + multi-hop scenarios."""
     qa = pd.read_csv("datasets/barexam_qa/qa/qa.csv")
     passages = pd.read_csv("datasets/barexam_qa/barexam_qa_train.csv", nrows=1000)
     passage_ids = set(passages["idx"].tolist())
@@ -279,7 +279,6 @@ def phase2_pipeline(max_queries: int = None):
         initial_state = {
             "global_objective": query["objective"],
             "planning_table": [],
-            "contingency_plan": query.get("contingency", ""),
             "query_type": "",
             "final_cited_answer": "",
             "accumulated_context": [],

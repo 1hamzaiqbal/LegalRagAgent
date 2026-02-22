@@ -12,7 +12,7 @@ from langgraph.graph import StateGraph, END
 from pydantic import BaseModel, Field
 
 from llm_config import get_llm
-from rag_utils import retrieve_documents, retrieve_documents_multi_query, compute_confidence, check_memory, write_to_memory
+from rag_utils import retrieve_documents_multi_query, compute_confidence, check_memory, write_to_memory
 
 # ---------------------------------------------------------------------------
 # 1. Core Data Models
