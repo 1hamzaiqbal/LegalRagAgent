@@ -752,8 +752,8 @@ def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replan
     table = state.get("planning_table", [])
     iteration_count = state.get("iteration_count", 0)
 
-    if iteration_count > 6:
-        print("Iteration limit hit (>6). Routing to VERIFY_ANSWER.")
+    if iteration_count > 4:
+        print("Iteration limit hit (>4). Routing to VERIFY_ANSWER.")
         return "verify_answer_node"
 
     has_pending = any(step.status == "pending" for step in table)
@@ -771,6 +771,12 @@ def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replan
     # All current steps are done
     query_type = state.get("query_type", "simple")
     if query_type == "multi_hop":
+        # Hard cap: 3+ completed steps is enough evidence.
+        completed_count = sum(1 for s in table if s.status == "completed")
+        if completed_count >= 3:
+            print(f"Hard step cap ({completed_count} completed). Routing to VERIFY_ANSWER.")
+            return "verify_answer_node"
+
         # Stagnation check: if 3+ consecutive steps all failed with similar
         # scores, the topic isn't in the corpus — skip replanner.
         recent_failed = [
