@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import sys
+import time
 from typing import Any, Dict, List, Literal, Optional, TypedDict
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -141,23 +142,58 @@ def _log_cache_metrics(response, label: str) -> None:
         logger.info("[%s] Prefix cache: %d/%d prompt tokens (%.0f%%)", label, cached, total, pct)
 
 
+_MAX_RETRIES = 3
+_RETRY_BASE_DELAY = 2  # seconds
+
+
+def _extract_retry_delay(error_str: str) -> float | None:
+    """Extract suggested retry delay from API error message (e.g. 'retryDelay': '17s')."""
+    match = re.search(r"retryDelay['\"]?\s*[:=]\s*['\"]?(\d+(?:\.\d+)?)\s*s", error_str)
+    if match:
+        return float(match.group(1))
+    return None
+
+
 def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
-    """Make an LLM call, log cache metrics, track usage, and return the text response."""
+    """Make an LLM call with retry on rate-limit errors.
+
+    Retries up to _MAX_RETRIES times. Uses the API's suggested retry delay
+    when available, falling back to exponential backoff (2s, 4s, 8s).
+    """
     llm = get_llm()
     messages = [
         SystemMessage(content=system_prompt),
         HumanMessage(content=user_prompt),
     ]
-    response = llm.invoke(messages)
-    if label:
-        _log_cache_metrics(response, label)
 
-    # Track call metrics for observability
-    _llm_call_counter["count"] += 1
-    _llm_call_counter["input_chars"] += len(system_prompt) + len(user_prompt)
-    _llm_call_counter["output_chars"] += len(response.content)
+    last_error = None
+    for attempt in range(_MAX_RETRIES):
+        try:
+            response = llm.invoke(messages)
+            if label:
+                _log_cache_metrics(response, label)
 
-    return response.content
+            # Track call metrics for observability
+            _llm_call_counter["count"] += 1
+            _llm_call_counter["input_chars"] += len(system_prompt) + len(user_prompt)
+            _llm_call_counter["output_chars"] += len(response.content)
+
+            return response.content
+        except Exception as e:
+            last_error = e
+            err_str = str(e).lower()
+            is_rate_limit = "429" in err_str or "rate" in err_str or "too many" in err_str
+            if is_rate_limit and attempt < _MAX_RETRIES - 1:
+                # Use API-suggested delay if available, otherwise exponential backoff
+                api_delay = _extract_retry_delay(str(e))
+                delay = min(api_delay or _RETRY_BASE_DELAY * (2 ** attempt), 60)
+                logger.warning("[%s] Rate limited (attempt %d/%d). Retrying in %.0fs...",
+                               label, attempt + 1, _MAX_RETRIES, delay)
+                time.sleep(delay)
+            else:
+                raise
+
+    raise last_error  # type: ignore[misc]
 
 
 # ---------------------------------------------------------------------------
@@ -394,7 +430,7 @@ def evaluator_node(state: AgentState) -> AgentState:
     for step in table:
         if step.status == "pending" and "confidence_score" in step.execution:
             score = step.execution["confidence_score"]
-            if score >= 0.7:
+            if score >= 0.6:
                 print(f"Step {step.step_id} PASSED (score: {score:.3f}). Marking completed.")
                 step.status = "completed"
                 step.expectation["is_aligned"] = True
@@ -499,6 +535,12 @@ def verify_answer_node(state: AgentState) -> AgentState:
         state["verification_result"] = {"is_verified": True, "issues": [], "reasoning": "No answer produced"}
         return state
 
+    # Don't waste an LLM call verifying a failure message
+    if answer.startswith("Unable to produce") or answer.startswith("Request rejected"):
+        print("Answer is a fallback/rejection message — skipping verification.")
+        state["verification_result"] = {"is_verified": False, "issues": ["Answer is a failure message"], "reasoning": "No real answer to verify"}
+        return state
+
     # Gather all evidence from completed steps
     evidence = []
     for step in table:
@@ -562,6 +604,12 @@ def memory_writeback_node(state: AgentState) -> AgentState:
 
     if not answer:
         print("No answer to cache — skipping write.")
+        return state
+
+    # Don't cache unverified answers — they may contain unsupported claims
+    vr = state.get("verification_result", {})
+    if vr and not vr.get("is_verified", True):
+        print("Answer failed verification — skipping memory write.")
         return state
 
     # Compute average confidence across completed steps
@@ -710,6 +758,22 @@ def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replan
     # All current steps are done
     query_type = state.get("query_type", "simple")
     if query_type == "multi_hop":
+        # Stagnation check: if 3+ consecutive steps all failed with similar
+        # scores, the topic isn't in the corpus — skip replanner.
+        recent_failed = [
+            s.execution.get("confidence_score", 0.0)
+            for s in table
+            if s.status == "failed" and s.execution
+        ]
+        if len(recent_failed) >= 3:
+            last_three = recent_failed[-3:]
+            score_range = max(last_three) - min(last_three)
+            if score_range < 0.1 and max(last_three) < 0.6:
+                print(f"Stagnation detected: last 3 failures scored {last_three} "
+                      f"(range {score_range:.3f}). Topic likely not in corpus.")
+                print("Routing to VERIFY_ANSWER (skipping futile replanning).")
+                return "verify_answer_node"
+
         print("All current steps done (multi_hop). Routing to REPLANNER...")
         return "replanner_node"
 

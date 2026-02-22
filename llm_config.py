@@ -1,6 +1,6 @@
 """LLM configuration — single entry point for all LLM calls.
 
-Works with any OpenAI-compatible API: Groq (default, free), Together, Ollama, OpenAI.
+Works with any OpenAI-compatible API: Cerebras (default), Google AI Studio, Groq, Together, Ollama, OpenAI.
 Configure via env vars: LLM_BASE_URL, LLM_API_KEY, LLM_MODEL
 """
 
@@ -11,9 +11,9 @@ from langchain_openai import ChatOpenAI
 
 load_dotenv()
 
-# Defaults: Groq free tier with llama-3.3-70b-versatile
-DEFAULT_BASE_URL = "https://api.groq.com/openai/v1"
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
+# Defaults: Cerebras (14K requests/day, 1M tokens/day free tier)
+DEFAULT_BASE_URL = "https://api.cerebras.ai/v1"
+DEFAULT_MODEL = "llama-3.3-70b"
 
 
 @functools.lru_cache(maxsize=4)

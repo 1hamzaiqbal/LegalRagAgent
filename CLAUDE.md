@@ -9,28 +9,31 @@ Agentic Legal RAG system built on LangGraph. It uses a classify-plan-execute-eva
 ## Commands
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (uses uv)
+uv sync
 
 # Run the agent with a demo query
-python main.py simple       # Single-concept question (negligence elements)
-python main.py multi_hop    # Multi-concept constitutional rights scenario
-python main.py medium       # Preliminary injunction standard
+uv run python main.py simple       # Single-concept question (negligence elements)
+uv run python main.py multi_hop    # Multi-concept constitutional rights scenario
+uv run python main.py medium       # Preliminary injunction standard
+
+# Run batch test across diverse queries
+uv run python batch_test.py
 
 # Run retrieval evaluation (Recall@5, MRR) on bar exam QA dataset
-python eval.py
+uv run python eval.py
 
 # Verify LLM config
-python -c "from llm_config import get_llm; print(get_llm())"
+uv run python -c "from llm_config import get_llm; print(get_llm())"
 ```
 
 ## Environment Setup
 
-Copy `.env.example` to `.env` and set your API key. Default uses Groq free tier (no credit card needed):
+Copy `.env.example` to `.env` and set your API key. Default uses Cerebras (generous free tier — 14K requests/day, 1M tokens/day):
 
 ```bash
 cp .env.example .env
-# Edit .env with your Groq API key from https://console.groq.com
+# Edit .env with your Cerebras API key from https://cloud.cerebras.ai
 ```
 
 ## Architecture
@@ -43,10 +46,10 @@ Nine-node state machine with adaptive replanning, injection detection, answer ve
 2. **classifier_node** — Classifies objective as `simple` or `multi_hop` using `classify_and_route.md` skill
 3. **planner_node** — Checks QA memory first (cosine similarity >= 0.92); on cache hit, short-circuits to memory writeback. Otherwise generates initial plan. For `multi_hop`, emits only the first step; replanner handles the rest adaptively.
 4. **executor_node** — For each pending step: rewrites query (`query_rewrite.md`), retrieves from ChromaDB, synthesizes answer (`synthesize_answer.md`), grounds with `[Source N]` citations (`ground_and_cite.md`), computes confidence via cosine similarity
-5. **evaluator_node** — Marks steps completed (confidence >= 0.7) or failed (< 0.7). Accumulates step summaries into `accumulated_context`. Sets explicit failure message if all steps fail.
+5. **evaluator_node** — Marks steps completed (confidence >= 0.6) or failed (< 0.6). Accumulates step summaries into `accumulated_context`. Sets explicit failure message if all steps fail.
 6. **replanner_node** — (multi_hop only) Receives objective + accumulated evidence, decides: `next_step` (add new research step), `retry` (rephrase failed step), or `complete` (aggregate final answer).
 7. **verify_answer_node** — Cross-checks final answer against evidence using `verify_answer.md` skill. On first failure, adds a corrective step using the LLM's `suggested_query` (a proper legal question). Second failure terminates cleanly without orphaned steps.
-8. **memory_writeback_node** — Persists successful QA pairs (avg confidence >= 0.7) to ChromaDB `qa_memory` collection (cosine distance) for future cache hits.
+8. **memory_writeback_node** — Persists successful QA pairs (avg confidence >= 0.7, verified) to ChromaDB `qa_memory` collection (cosine distance) for future cache hits. Skips write if verification failed.
 9. **observability_node** — Aggregates and prints run metrics: LLM calls, char usage, parse failures, steps completed/failed, memory hit status, verification retries, has_answer, injection status.
 
 Routing:
@@ -88,8 +91,9 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `conti
 
 - Single `get_llm()` function returning a cached `ChatOpenAI` singleton (`@lru_cache`)
 - Configured via env vars: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`
-- Default: Groq free tier with `llama-3.3-70b-versatile`
-- Supports DeepSeek (`deepseek-chat`) and vLLM with automatic prefix-cache hit logging
+- Default: Cerebras with `llama-3.3-70b` (14K RPD, 1M TPD free tier)
+- Also supports: Google AI Studio, Groq, DeepSeek, vLLM with automatic prefix-cache hit logging
+- Rate limit retry with exponential backoff (3 attempts, 2s/4s/8s delays)
 
 ### RAG / Retrieval (rag_utils.py)
 

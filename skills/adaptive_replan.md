@@ -15,11 +15,13 @@ You receive:
 
 ## Decision Rules
 
-1. **Do NOT re-ask a question that has already been answered** with confidence >= 0.7.
-2. If a step failed (confidence < 0.7), you may retry it with a **rephrased query** using different legal vocabulary.
+1. **Do NOT re-ask a question that has already been answered** with confidence >= 0.6.
+2. If a step failed (confidence < 0.6), you may retry it with a **rephrased query** using different legal vocabulary.
 3. Consider what aspects of the objective remain unanswered by the accumulated evidence.
 4. Cap total useful steps at ~4. If you already have 4+ completed steps, strongly prefer `"complete"`.
 5. Each new question must be **self-contained** — do not reference previous step IDs or assume context.
+6. **STOP retrying when the corpus lacks coverage.** If 3 or more consecutive steps have ALL failed with confidence below 0.6, the topic is likely not in the corpus. Return `"complete"` immediately — further retries will not help. Do NOT keep rephrasing the same question.
+7. When all failed steps have similar confidence scores (within 0.05 of each other), this is a strong signal that rephrasing won't help.
 
 ## Output Format
 
@@ -39,7 +41,7 @@ Return a JSON object with these fields:
 
 - `"next_step"` — There is an unanswered aspect of the objective. Provide `phase`, `question`, `expectation`, and `reasoning`.
 - `"retry"` — A previous step failed and should be retried with different wording. Provide `phase`, `question`, `expectation`, and `reasoning`. Use different legal terminology than the failed attempt.
-- `"complete"` — The accumulated evidence sufficiently addresses the objective. Provide only `reasoning` explaining why no further steps are needed.
+- `"complete"` — The accumulated evidence sufficiently addresses the objective, OR further retrieval is unlikely to improve results (e.g., multiple consecutive failures with similar low scores). Provide only `reasoning`.
 
 ```json
 {

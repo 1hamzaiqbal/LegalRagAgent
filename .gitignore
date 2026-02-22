@@ -2,6 +2,8 @@
 barexam_qa/passages
 barexam_qa/qa
 venv
+.venv
 __pycache__
 chroma_db
 .env
+uv.lock
