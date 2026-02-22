@@ -5,6 +5,7 @@ from typing import List, Dict, Any
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
+from langchain_core.tools import tool
 
 CHROMA_DB_DIR = "./chroma_db"
 COLLECTION_NAME = "legal_passages"
@@ -92,6 +93,27 @@ def compute_confidence(query: str, docs: List[Document]) -> float:
     similarities = doc_norms @ query_norm
 
     return float(np.mean(similarities))
+
+@tool
+def retrieve_legal_passages(query: str, k: int = 5) -> str:
+    """Retrieve relevant legal passages from the bar exam corpus.
+
+    Args:
+        query: A legal research query to search for relevant passages.
+        k: Number of passages to retrieve (default 5).
+
+    Returns:
+        Formatted string with numbered passages and their source IDs.
+    """
+    docs = retrieve_documents(query, k=k)
+    if not docs:
+        return "No relevant passages found."
+    parts = []
+    for i, doc in enumerate(docs, 1):
+        source_id = doc.metadata.get("idx", "unknown")
+        parts.append(f"[Passage {i}] (source: {source_id})\n{doc.page_content}")
+    return "\n\n".join(parts)
+
 
 if __name__ == "__main__":
     # Test loading validation set

@@ -1,4 +1,6 @@
+import functools
 import json
+import logging
 import os
 import re
 import sys
@@ -31,14 +33,17 @@ class AgentState(TypedDict):
     contingency_plan: str
     query_type: str            # "simple" or "multi_hop"
     final_cited_answer: str    # aggregated output
+    accumulated_context: List[Dict[str, Any]]  # step summaries for replanner
+    iteration_count: int       # cycle counter for loop guard
 
 
 # ---------------------------------------------------------------------------
 # 2. Skill Loaders
 # ---------------------------------------------------------------------------
 
+@functools.lru_cache(maxsize=None)
 def load_skill_instructions(skill_name: str) -> str:
-    """Loads markdown instructions from the skills/ directory."""
+    """Loads markdown instructions from the skills/ directory (cached after first read)."""
     skill_path = os.path.join("skills", f"{skill_name}.md")
     try:
         with open(skill_path, "r", encoding="utf-8") as f:
@@ -48,22 +53,82 @@ def load_skill_instructions(skill_name: str) -> str:
 
 
 def _parse_json(text: str) -> Any:
-    """Strip markdown fences and parse JSON. Returns None on failure."""
+    """Forgiving JSON parser that handles common LLM output issues.
+
+    Handles: markdown fences, surrounding prose, trailing commas,
+    single quotes, JS-style comments. Returns None on failure.
+    """
+    # Fast path
+    try:
+        return json.loads(text)
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    # Strip markdown fences
     cleaned = re.sub(r"```(?:json)?\s*", "", text).strip().rstrip("`")
     try:
         return json.loads(cleaned)
-    except json.JSONDecodeError:
-        return None
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    # Extract first JSON object or array from surrounding prose
+    for pattern in [r"(\[[\s\S]*\])", r"(\{[\s\S]*\})"]:
+        match = re.search(pattern, cleaned)
+        if match:
+            candidate = match.group(1)
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                # Fix trailing commas before } or ]
+                fixed = re.sub(r",\s*([}\]])", r"\1", candidate)
+                # Remove JS-style single-line comments
+                fixed = re.sub(r"//.*?$", "", fixed, flags=re.MULTILINE)
+                # Replace single quotes with double quotes (simple heuristic)
+                fixed = fixed.replace("'", '"')
+                try:
+                    return json.loads(fixed)
+                except json.JSONDecodeError:
+                    continue
+
+    return None
 
 
-def _llm_call(system_prompt: str, user_prompt: str) -> str:
-    """Make an LLM call and return the text response."""
+logger = logging.getLogger(__name__)
+
+
+def _log_cache_metrics(response, label: str) -> None:
+    """Log prompt-cache hit metrics when the provider reports them."""
+    # LangChain-normalized path (OpenAI / vLLM)
+    usage = getattr(response, "usage_metadata", None) or {}
+    if isinstance(usage, dict):
+        details = usage.get("input_token_details", {})
+        cached = details.get("cache_read")
+        total = usage.get("input_tokens")
+        if cached is not None and total:
+            pct = cached / total * 100
+            logger.info("[%s] Prefix cache: %d/%d prompt tokens (%.0f%%)", label, cached, total, pct)
+            return
+
+    # Provider-specific path (DeepSeek)
+    meta = getattr(response, "response_metadata", None) or {}
+    token_usage = meta.get("token_usage", {})
+    cached = token_usage.get("prompt_cache_hit_tokens")
+    total = token_usage.get("prompt_tokens")
+    if cached is not None and total:
+        pct = cached / total * 100
+        logger.info("[%s] Prefix cache: %d/%d prompt tokens (%.0f%%)", label, cached, total, pct)
+
+
+def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
+    """Make an LLM call, log cache metrics, and return the text response."""
     llm = get_llm()
     messages = [
         SystemMessage(content=system_prompt),
         HumanMessage(content=user_prompt),
     ]
     response = llm.invoke(messages)
+    if label:
+        _log_cache_metrics(response, label)
     return response.content
 
 
@@ -75,7 +140,7 @@ def skill_classify_and_route(objective: str) -> Dict[str, str]:
     """Classify objective as simple or multi_hop."""
     instructions = load_skill_instructions("classify_and_route")
     user_msg = f"Objective: {objective}"
-    raw = _llm_call(instructions, user_msg)
+    raw = _llm_call(instructions, user_msg, label="classify")
     parsed = _parse_json(raw)
     if parsed and isinstance(parsed, dict) and "query_type" in parsed:
         return parsed
@@ -86,7 +151,7 @@ def skill_plan_synthesis(objective: str, query_type: str) -> List[Dict]:
     """Generate a plan as a list of step dicts."""
     instructions = load_skill_instructions("plan_synthesis")
     user_msg = f"Objective: {objective}\nQuery type: {query_type}"
-    raw = _llm_call(instructions, user_msg)
+    raw = _llm_call(instructions, user_msg, label="plan")
     parsed = _parse_json(raw)
     if parsed and isinstance(parsed, list):
         return parsed
@@ -102,7 +167,7 @@ def skill_plan_synthesis(objective: str, query_type: str) -> List[Dict]:
 def skill_query_rewrite(question: str) -> str:
     """Rewrite a question into an optimized retrieval query."""
     instructions = load_skill_instructions("query_rewrite")
-    return _llm_call(instructions, f"Question: {question}").strip()
+    return _llm_call(instructions, f"Question: {question}", label="query_rewrite").strip()
 
 
 def skill_synthesize_answer(question: str, evidence: List[str]) -> str:
@@ -112,7 +177,7 @@ def skill_synthesize_answer(question: str, evidence: List[str]) -> str:
         f"[Passage {i+1}]: {text}" for i, text in enumerate(evidence)
     )
     user_msg = f"Question: {question}\n\nEvidence:\n{evidence_text}"
-    return _llm_call(instructions, user_msg).strip()
+    return _llm_call(instructions, user_msg, label="synthesize").strip()
 
 
 def skill_ground_and_cite(answer: str, evidence: List[str]) -> str:
@@ -122,7 +187,20 @@ def skill_ground_and_cite(answer: str, evidence: List[str]) -> str:
         f"[Passage {i+1}]: {text}" for i, text in enumerate(evidence)
     )
     user_msg = f"Answer:\n{answer}\n\nEvidence:\n{evidence_text}"
-    return _llm_call(instructions, user_msg).strip()
+    return _llm_call(instructions, user_msg, label="ground_cite").strip()
+
+
+def skill_adaptive_replan(objective: str, accumulated_context: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Decide next action based on accumulated research evidence."""
+    instructions = load_skill_instructions("adaptive_replan")
+    context_summary = json.dumps(accumulated_context, indent=2)
+    user_msg = f"Objective: {objective}\n\nAccumulated context:\n{context_summary}"
+    raw = _llm_call(instructions, user_msg, label="replan")
+    parsed = _parse_json(raw)
+    if parsed and isinstance(parsed, dict) and "action" in parsed:
+        return parsed
+    # Fallback: stop planning
+    return {"action": "complete", "reasoning": "Fallback — could not parse replanner output"}
 
 
 # ---------------------------------------------------------------------------
@@ -142,7 +220,11 @@ def classifier_node(state: AgentState) -> AgentState:
 
 
 def planner_node(state: AgentState) -> AgentState:
-    """Generate a research plan using the LLM."""
+    """Generate a research plan using the LLM.
+
+    For multi_hop queries, only emits the first step — the replanner
+    will adaptively generate subsequent steps based on accumulated evidence.
+    """
     print("\n--- PLANNER NODE ---")
     if not state.get("planning_table"):
         objective = state["global_objective"]
@@ -150,6 +232,12 @@ def planner_node(state: AgentState) -> AgentState:
         print(f"Generating plan for: {objective} (type: {query_type})")
 
         raw_steps = skill_plan_synthesis(objective, query_type)
+
+        # For multi_hop: only take the first step; replanner handles the rest
+        if query_type == "multi_hop" and len(raw_steps) > 1:
+            raw_steps = raw_steps[:1]
+            print("(multi_hop) Truncated to first step — replanner will generate next steps adaptively.")
+
         steps = []
         for s in raw_steps:
             steps.append(PlanStep(
@@ -160,6 +248,8 @@ def planner_node(state: AgentState) -> AgentState:
             ))
 
         state["planning_table"] = steps
+        state["accumulated_context"] = []
+        state["iteration_count"] = 0
         print(f"Generated {len(steps)} plan steps")
     else:
         print("Plan already exists.")
@@ -212,7 +302,7 @@ def executor_node(state: AgentState) -> AgentState:
 
 
 def evaluator_node(state: AgentState) -> AgentState:
-    """Evaluate executed steps and decide whether to continue or inject sub-steps."""
+    """Evaluate executed steps and accumulate evidence for the replanner."""
     print("\n--- EVALUATOR NODE ---")
     table = state["planning_table"]
 
@@ -224,29 +314,76 @@ def evaluator_node(state: AgentState) -> AgentState:
                 step.status = "completed"
                 step.expectation["is_aligned"] = True
             else:
-                print(f"Step {step.step_id} FAILED (score: {score:.3f}). Injecting sub-step.")
+                print(f"Step {step.step_id} FAILED (score: {score:.3f}). Marking failed.")
                 step.status = "failed"
                 step.expectation["is_aligned"] = False
                 step.deviation_analysis = "Insufficient evidence — retrieval confidence below threshold."
 
-                new_step_id = round(step.step_id + 0.1, 1)
-                new_step = PlanStep(
-                    step_id=new_step_id,
-                    phase="Clarification Retrieval",
-                    question=f"Clarify gaps for: {step.question}",
-                    expectation={"outcome": "Fill missing information from failed step."},
-                )
-                insert_idx = table.index(step) + 1
-                table.insert(insert_idx, new_step)
-                print(f"Injected step {new_step_id}")
+            # Accumulate evidence for replanner
+            answer_summary = step.execution.get("answer", "")
+            # Truncate long answers for the context summary
+            if len(answer_summary) > 300:
+                answer_summary = answer_summary[:300] + "..."
+            state["accumulated_context"].append({
+                "step_id": step.step_id,
+                "question": step.question,
+                "answer": answer_summary,
+                "confidence": score,
+                "status": step.status,
+            })
+            state["iteration_count"] = state.get("iteration_count", 0) + 1
+            print(f"Iteration count: {state['iteration_count']}")
             break
 
-    # Aggregate final answer when all steps are done
+    # Aggregate final answer when all steps are done (for simple or when routing to END)
     all_done = all(s.status in ("completed", "failed") for s in table)
     if all_done:
         completed_answers = [
             s.execution.get("cited_answer", s.execution.get("answer", ""))
             for s in table
+            if s.status == "completed" and s.execution
+        ]
+        if completed_answers:
+            state["final_cited_answer"] = "\n\n---\n\n".join(completed_answers)
+            print("Aggregated final cited answer from completed steps.")
+
+    _print_table(state["planning_table"])
+    return state
+
+
+def replanner_node(state: AgentState) -> AgentState:
+    """Adaptively plan the next research step based on accumulated evidence.
+
+    Only fires for multi_hop queries. Decides whether to add a new step,
+    retry a failed step, or mark research as complete.
+    """
+    print("\n--- REPLANNER NODE ---")
+    objective = state["global_objective"]
+    accumulated = state.get("accumulated_context", [])
+
+    result = skill_adaptive_replan(objective, accumulated)
+    action = result.get("action", "complete")
+    print(f"Replanner action: {action} — {result.get('reasoning', '')}")
+
+    if action in ("next_step", "retry"):
+        # Generate a new step ID
+        existing_ids = [s.step_id for s in state["planning_table"]]
+        new_id = max(existing_ids) + 1.0 if existing_ids else 1.0
+
+        new_step = PlanStep(
+            step_id=new_id,
+            phase=result.get("phase", "Adaptive Research"),
+            question=result.get("question", state["global_objective"]),
+            expectation={"outcome": result.get("expectation", "")},
+        )
+        state["planning_table"].append(new_step)
+        print(f"Added new step {new_id}: {new_step.question}")
+    else:
+        # action == "complete": aggregate final answer
+        print("Replanner says research is complete.")
+        completed_answers = [
+            s.execution.get("cited_answer", s.execution.get("answer", ""))
+            for s in state["planning_table"]
             if s.status == "completed" and s.execution
         ]
         if completed_answers:
@@ -274,19 +411,46 @@ def _print_table(table: List[PlanStep]):
 # 6. Routing
 # ---------------------------------------------------------------------------
 
-def route_after_evaluator(state: AgentState) -> Literal["executor_node", "__end__"]:
+def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replanner_node", "__end__"]:
+    """3-way routing after evaluator:
+    - executor_node: pending steps remain
+    - replanner_node: multi_hop query, all current steps done, under iteration limit
+    - __end__: simple query done, or iteration limit exceeded
+    """
     table = state.get("planning_table", [])
+    iteration_count = state.get("iteration_count", 0)
 
-    if len(table) > 10:
-        print("Hard failure limit hit (>10 steps). Routing to END.")
+    if iteration_count > 6:
+        print("Iteration limit hit (>6). Routing to END.")
         return "__end__"
 
     has_pending = any(step.status == "pending" for step in table)
     if has_pending:
-        print("Routing back to EXECUTOR...")
+        print("Routing back to EXECUTOR (pending steps)...")
         return "executor_node"
 
-    print("All steps done. Routing to END.")
+    # All current steps are done
+    query_type = state.get("query_type", "simple")
+    if query_type == "multi_hop":
+        print("All current steps done (multi_hop). Routing to REPLANNER...")
+        return "replanner_node"
+
+    print("All steps done (simple). Routing to END.")
+    return "__end__"
+
+
+def route_after_replanner(state: AgentState) -> Literal["executor_node", "__end__"]:
+    """2-way routing after replanner:
+    - executor_node: new pending steps were added
+    - __end__: replanner said complete, or no pending steps
+    """
+    table = state.get("planning_table", [])
+    has_pending = any(step.status == "pending" for step in table)
+    if has_pending:
+        print("Routing to EXECUTOR (replanner added new step)...")
+        return "executor_node"
+
+    print("Replanner complete. Routing to END.")
     return "__end__"
 
 
@@ -301,6 +465,7 @@ def build_graph() -> Any:
     workflow.add_node("planner_node", planner_node)
     workflow.add_node("executor_node", executor_node)
     workflow.add_node("evaluator_node", evaluator_node)
+    workflow.add_node("replanner_node", replanner_node)
 
     workflow.set_entry_point("classifier_node")
     workflow.add_edge("classifier_node", "planner_node")
@@ -310,6 +475,10 @@ def build_graph() -> Any:
     workflow.add_conditional_edges(
         "evaluator_node",
         route_after_evaluator,
+    )
+    workflow.add_conditional_edges(
+        "replanner_node",
+        route_after_replanner,
     )
 
     return workflow.compile()
@@ -365,6 +534,8 @@ if __name__ == "__main__":
         "contingency_plan": demo["contingency"],
         "query_type": "",
         "final_cited_answer": "",
+        "accumulated_context": [],
+        "iteration_count": 0,
     }
 
     print("\nStarting Legal RAG Agent...")

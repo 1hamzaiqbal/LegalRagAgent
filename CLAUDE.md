@@ -37,35 +37,49 @@ cp .env.example .env
 
 ### LangGraph Workflow (main.py)
 
-Four-node state machine with conditional looping:
+Five-node state machine with adaptive replanning:
 
 1. **classifier_node** — Classifies objective as `simple` or `multi_hop` using `classify_and_route.md` skill
-2. **planner_node** — Breaks the `global_objective` into `PlanStep` entries using `plan_synthesis.md` skill
+2. **planner_node** — Generates initial plan. For `multi_hop`, emits only the first step; replanner handles the rest adaptively.
 3. **executor_node** — For each pending step: rewrites query (`query_rewrite.md`), retrieves from ChromaDB, synthesizes answer (`synthesize_answer.md`), grounds with citations (`ground_and_cite.md`), computes confidence via cosine similarity
-4. **evaluator_node** — If confidence >= 0.7 marks step "completed"; if < 0.7 marks "failed" and injects a sub-step. When all done, aggregates `final_cited_answer`.
+4. **evaluator_node** — Marks steps completed (confidence >= 0.7) or failed (< 0.7). Accumulates step summaries into `accumulated_context`. Increments `iteration_count`.
+5. **replanner_node** — (multi_hop only) Receives objective + accumulated evidence, decides: `next_step` (add new research step), `retry` (rephrase failed step), or `complete` (aggregate final answer).
 
-Routing: after evaluation, loops back to executor if pending steps remain; ends when all complete or >10 total steps (hard limit).
+Routing:
+- After evaluator: 3-way — `executor` (pending steps) | `replanner` (multi_hop, all done) | `END` (simple done, or iteration limit >6)
+- After replanner: 2-way — `executor` (new step added) | `END` (complete)
 
-Graph: `classifier → planner → executor → evaluator → {executor | END}`
+Graph: `classifier → planner → executor → evaluator → {executor | replanner | END}`; `replanner → {executor | END}`
 
 ### Shared State (`AgentState`)
 
-TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `contingency_plan`, `query_type` ("simple"/"multi_hop"), and `final_cited_answer`.
+TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `contingency_plan`, `query_type` ("simple"/"multi_hop"), `final_cited_answer`, `accumulated_context` (step summaries for replanner), and `iteration_count` (loop guard, max 6).
 
 ### Skill System (skills/)
 
-5 markdown prompt files loaded at runtime by `load_skill_instructions()`:
+6 markdown prompt files cached at first load via `@lru_cache` in `load_skill_instructions()`:
 - `classify_and_route.md` — classify query complexity
 - `plan_synthesis.md` — generate research plan
 - `query_rewrite.md` — optimize retrieval queries
 - `synthesize_answer.md` — synthesize grounded answers
 - `ground_and_cite.md` — verify grounding and add citations
+- `adaptive_replan.md` — decide next research step based on accumulated evidence
+
+### External Tool Placeholders (external_tools.py)
+
+`@tool`-decorated stubs for teammate's Playwright-based web lookup API:
+- `web_search(query)` — web search placeholder
+- `web_scrape(url)` — page scraping placeholder
+- `external_api_call(endpoint, payload)` — generic API wrapper placeholder
+- Configured via `EXTERNAL_TOOLS_BASE_URL`, `EXTERNAL_TOOLS_API_KEY` env vars
+- `get_external_tools()` returns all tools for `llm.bind_tools()` binding
 
 ### LLM Config (llm_config.py)
 
-- Single `get_llm()` function returning a `ChatOpenAI` instance
+- Single `get_llm()` function returning a cached `ChatOpenAI` singleton (`@lru_cache`)
 - Configured via env vars: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`
 - Default: Groq free tier with `llama-3.3-70b-versatile`
+- Supports DeepSeek (`deepseek-chat`) and vLLM with automatic prefix-cache hit logging
 
 ### RAG / Retrieval (rag_utils.py)
 
