@@ -67,7 +67,7 @@ A faithful RAG system that only synthesizes from evidence would answer **incorre
 
 1. **Load full 220K corpus** — highest impact, zero API cost — **DONE** (commit `09de734`)
 2. **Cross-encoder reranker** — fixes keyword noise, improves precision — **DONE** (source-aware reranking with `ms-marco-MiniLM-L-6-v2`)
-3. **Query expansion / multi-round retrieval** — fixes terminological gaps
+3. **Multi-query retrieval** — fixes terminological gaps — **DONE** (query_rewrite outputs primary + 2 alternative queries, `retrieve_documents_multi_query` pools candidates across all variants before cross-encoder reranking)
 4. **Web search fallback** — covers topics absent from corpus entirely
 
 ## Fix Results

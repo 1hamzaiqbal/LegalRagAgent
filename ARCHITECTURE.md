@@ -1,6 +1,6 @@
 # Architecture
 
-## Current Implementation (10 Skills + 9-Node Graph)
+## Current Implementation (7 Skills + 9-Node Graph)
 
 ```mermaid
 flowchart TD
@@ -12,9 +12,8 @@ flowchart TD
     PLAN -->|no hit| EXEC[ExecutePlan]
 
     subgraph EXEC_SUB [Executor — per step]
-        QR[QueryRewrite] --> RET[RetrieveEvidence]
-        RET --> SYN[SynthesizeAnswer]
-        SYN --> GC[GroundAndCite]
+        QR[QueryRewrite + MultiQuery] --> RET[RetrieveEvidence]
+        RET --> SC[SynthesizeAndCite]
     end
 
     EXEC --> EXEC_SUB
@@ -33,8 +32,7 @@ flowchart TD
     style CLASSIFY fill:#4CAF50,color:#fff
     style PLAN fill:#4CAF50,color:#fff
     style QR fill:#4CAF50,color:#fff
-    style SYN fill:#4CAF50,color:#fff
-    style GC fill:#4CAF50,color:#fff
+    style SC fill:#4CAF50,color:#fff
     style REPLAN fill:#4CAF50,color:#fff
     style VA fill:#4CAF50,color:#fff
     style RET fill:#2196F3,color:#fff
@@ -51,37 +49,35 @@ flowchart TD
 
 **QA Memory**: Successful query-answer pairs (avg confidence >= 0.7) are persisted to a separate ChromaDB collection (`qa_memory`, cosine distance). On subsequent runs, the planner checks for cached answers before generating a plan, short-circuiting execution on high-similarity matches (>= 0.92). The higher threshold ensures only near-exact question matches are served from cache.
 
-**Verification**: The verify_answer skill produces a `suggested_query` — a proper legal research question — when it finds issues. If verification fails on the first attempt, a corrective step using that query runs through the standard executor pipeline, then routes directly back to verification (skipping the replanner to avoid tangential research). A second failure terminates without adding orphaned steps. Citations use unified `[Source N]` labels across synthesis and grounding skills.
+**Injection Check**: Skippable via `SKIP_INJECTION_CHECK=1` env var (saves 1 LLM call for eval/testing). Default ON for production safety.
+
+**Verification**: The verify_answer skill produces a `suggested_query` — a proper legal research question — when it finds issues. If verification fails on the first attempt, a corrective step using that query runs through the standard executor pipeline, then routes directly back to verification (skipping the replanner to avoid tangential research). A second failure terminates without adding orphaned steps. Citations use unified `[Source N]` labels from the synthesize_and_cite skill.
 
 ---
 
 ## Skill Descriptions
 
-| # | Skill | Status | Description |
-|---|-------|--------|-------------|
-| 1 | ClassifyAndRoute | Built | Classifies query as `simple` or `multi_hop` to determine plan complexity |
-| 2 | PlanSynthesis | Built | Decomposes objective into a structured JSON plan of retrieval steps |
-| 3 | ExecutePlan | Built | Orchestrates per-step execution: rewrite, retrieve, synthesize, cite |
-| 4 | QueryRewriteAndDecompose | Built | Optimizes questions into dense legal retrieval queries (MBE/MEE vocab) |
-| 5 | RetrieveEvidence | Built | Top-k vector retrieval from ChromaDB (HuggingFace all-MiniLM-L6-v2) |
-| 6 | SynthesizeSubtaskAnswer | Built | Synthesizes grounded answers with Rule/Elements/Exceptions structure |
-| 7 | GroundAndCite | Built | Audits answers for grounding, adds `[Source N]` citations, flags gaps |
-| 8 | AdaptiveReplan | Built | Decides next research step based on accumulated evidence (multi_hop only) |
-| 9 | RetrieveLegalPassages | Built | `@tool`-decorated wrapper for retrieval, bindable via `llm.bind_tools()` |
-| 10 | DetectPromptInjection | Built | Screens user input for adversarial prompts before processing |
-| 11 | VerifyAnswer | Built | Cross-checks final answer against retrieved evidence for consistency |
-| 12 | MemoryWriteBack | Built | Persists successful query-answer pairs for future retrieval |
-| 13 | ObservabilityAndCostControl | Built | Tracks LLM calls, char usage, parse failures, step metrics, answer status per query |
+### LLM Skills (7 prompt files in `skills/`)
 
-## External Tool Placeholders (external_tools.py)
+| # | Skill | File | Description |
+|---|-------|------|-------------|
+| 1 | ClassifyAndRoute | `classify_and_route.md` | Classifies query as `simple` or `multi_hop` to determine plan complexity |
+| 2 | PlanSynthesis | `plan_synthesis.md` | Decomposes objective into a structured JSON plan of retrieval steps |
+| 3 | QueryRewrite | `query_rewrite.md` | Rewrites question into primary + 2 alternative queries (JSON) for multi-query retrieval |
+| 4 | SynthesizeAndCite | `synthesize_and_cite.md` | Synthesizes grounded answers with inline `[Source N]` citations and source map in one pass |
+| 5 | AdaptiveReplan | `adaptive_replan.md` | Decides next research step based on accumulated evidence (multi_hop only) |
+| 6 | DetectPromptInjection | `detect_prompt_injection.md` | Screens user input for adversarial prompts (skippable via `SKIP_INJECTION_CHECK=1`) |
+| 7 | VerifyAnswer | `verify_answer.md` | Cross-checks final answer against retrieved evidence for consistency |
 
-| Tool | Description |
+### Non-LLM Nodes
+
+| Node | Description |
 |------|-------------|
-| `web_search` | Placeholder for web search via teammate's Playwright API |
-| `web_scrape` | Placeholder for page scraping via Playwright |
-| `external_api_call` | Generic placeholder for teammate's API wrapper |
-
-Configured via `EXTERNAL_TOOLS_BASE_URL` and `EXTERNAL_TOOLS_API_KEY` env vars. All decorated with `@tool` for `llm.bind_tools()` integration.
+| ExecutePlan | Orchestrates per-step execution: rewrite, multi-query retrieve, synthesize+cite |
+| RetrieveEvidence | Two-stage retrieval: bi-encoder over-retrieve + cross-encoder rerank (ChromaDB) |
+| Evaluator | Checks confidence (cosine similarity), accumulates context for replanner |
+| MemoryWriteBack | Persists successful query-answer pairs for future retrieval |
+| Observability | Tracks LLM calls, char usage, parse failures, step metrics, answer status |
 
 ## State Schema
 
@@ -89,7 +85,6 @@ Configured via `EXTERNAL_TOOLS_BASE_URL` and `EXTERNAL_TOOLS_API_KEY` env vars. 
 AgentState:
   global_objective: str                # User's legal research question
   planning_table: List[PlanStep]       # Steps with status, execution results, confidence
-  contingency_plan: str                # Fallback strategy if retrieval fails
   query_type: str                      # "simple" or "multi_hop" (set by classifier)
   final_cited_answer: str              # Aggregated output with citations
   accumulated_context: List[Dict]      # Step summaries for replanner (question, answer, confidence, status)

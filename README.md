@@ -7,7 +7,7 @@ Agentic Legal RAG system built on LangGraph. Uses a **classify-plan-execute-eval
 ### 1. Install dependencies
 
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 ### 2. Set up your LLM
@@ -18,61 +18,66 @@ Copy the example env file and add your API key:
 cp .env.example .env
 ```
 
-The default configuration uses **Groq free tier** (no credit card needed). Get an API key at [console.groq.com](https://console.groq.com) and paste it in `.env`.
+The default configuration uses **Cerebras free tier** (14K requests/day, 1M tokens/day). Get an API key at [cloud.cerebras.ai](https://cloud.cerebras.ai) and paste it in `.env`.
 
-Other supported backends: Ollama (local), OpenAI — see `.env.example` for config.
+Other supported backends: Groq, Google AI Studio, Ollama (local), OpenAI, DeepSeek, vLLM — see `.env.example` for config.
 
 ### 3. Load passages (first run only)
 
 If the ChromaDB store hasn't been populated yet:
 
 ```bash
-python rag_utils.py
+uv run python load_corpus.py
 ```
 
-This loads the first 1000 bar exam passages into `./chroma_db/`.
+This loads the full 220K bar exam passage corpus into `./chroma_db/`.
 
 ### 4. Run the agent
 
 ```bash
-python main.py simple       # "What are the elements of a negligence claim?"
-python main.py multi_hop    # Constitutional rights + 4th/5th Amendment search scenario
-python main.py medium       # Preliminary injunction standard and factors
+uv run python main.py simple       # "What are the elements of a negligence claim?"
+uv run python main.py multi_hop    # Constitutional rights + 4th/5th Amendment search scenario
+uv run python main.py medium       # Preliminary injunction standard and factors
 ```
 
 ## Architecture
 
-Four-node LangGraph state machine:
+Nine-node LangGraph state machine with adaptive replanning, injection detection, answer verification, and QA memory:
 
 ```
-classifier → planner → executor → evaluator → {executor | END}
+detect_injection → classifier → planner → executor ⇄ evaluator → replanner → verify_answer → memory_writeback → observability → END
 ```
 
-- **Classifier**: Routes queries as `simple` (1 step) or `multi_hop` (2-4 steps)
-- **Planner**: LLM generates a structured research plan
-- **Executor**: Per step — rewrites query, retrieves from ChromaDB, synthesizes answer, grounds with citations
-- **Evaluator**: Checks confidence (cosine similarity). Passes at >= 0.7, injects sub-step on failure
+- **Injection Check**: Screens for adversarial prompts (skippable via `SKIP_INJECTION_CHECK=1`)
+- **Classifier**: Routes queries as `simple` (1 step) or `multi_hop` (adaptive steps)
+- **Planner**: Checks QA memory cache first, then LLM generates a structured research plan
+- **Executor**: Per step — rewrites query into primary + 2 alternatives, multi-query retrieves from ChromaDB, synthesizes answer with inline citations in one pass
+- **Evaluator**: Checks confidence (cosine similarity), accumulates context for replanner
+- **Replanner**: (multi_hop only) Adaptively adds research steps based on accumulated evidence
+- **Verify**: Cross-checks final answer against evidence; triggers corrective step on first failure
+- **Memory**: Caches verified answers for future retrieval (cosine similarity >= 0.92)
 
-### Skills (5 prompt files)
+### Skills (7 prompt files)
 
 | Skill | Purpose |
 |-------|---------|
 | `classify_and_route.md` | Classify query complexity |
 | `plan_synthesis.md` | Generate research plan |
-| `query_rewrite.md` | Optimize retrieval queries |
-| `synthesize_answer.md` | Synthesize grounded answers |
-| `ground_and_cite.md` | Verify grounding + add citations |
+| `query_rewrite.md` | Rewrite into primary + 2 alternative queries (JSON, multi-query retrieval) |
+| `synthesize_and_cite.md` | Synthesize answer with inline `[Source N]` citations in one pass |
+| `adaptive_replan.md` | Decide next research step from accumulated evidence |
+| `detect_prompt_injection.md` | Screen for adversarial prompts |
+| `verify_answer.md` | Cross-check answer against evidence |
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for full diagrams and the 12-skill vision.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for full diagrams and state schema.
 
-## Retrieval Evaluation
+## Evaluation
 
 ```bash
-python eval.py
+uv run python eval_comprehensive.py    # Two-phase: retrieval + full pipeline
+uv run python eval_reranker.py         # A/B: bi-encoder vs cross-encoder reranking
 ```
-
-Measures Recall@5 and MRR on 200 bar exam QA pairs.
 
 ## Required Skills
 
-The LangGraph agent dynamically loads agent instructions (skills) from markdown files located in the `skills/` directory. All 5 skill files are included in this repo.
+The LangGraph agent dynamically loads instructions (skills) from markdown files in the `skills/` directory. All 7 skill files are included in this repo.
