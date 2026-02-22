@@ -414,6 +414,7 @@ def executor_node(state: AgentState) -> AgentState:
                 "cited_answer": cited_answer,
                 "optimized_query": optimized_query,
                 "sources": evidence,
+                "retrieved_doc_ids": [doc.metadata.get("idx", "") for doc in docs],
                 "confidence_score": confidence,
             }
             break  # One step per node run
@@ -430,7 +431,9 @@ def evaluator_node(state: AgentState) -> AgentState:
     for step in table:
         if step.status == "pending" and "confidence_score" in step.execution:
             score = step.execution["confidence_score"]
-            if score >= 0.6:
+            # Threshold calibrated to corpus: avg cosine similarity for
+            # MiniLM-L6-v2 on 1K MBE passages is ~0.45 (Phase 1 eval).
+            if score >= 0.4:
                 print(f"Step {step.step_id} PASSED (score: {score:.3f}). Marking completed.")
                 step.status = "completed"
                 step.expectation["is_aligned"] = True
@@ -621,7 +624,7 @@ def memory_writeback_node(state: AgentState) -> AgentState:
     ]
     avg_confidence = sum(completed_scores) / len(completed_scores) if completed_scores else 0.0
 
-    if avg_confidence >= 0.7:
+    if avg_confidence >= 0.45:
         objective = state["global_objective"]
         write_to_memory(objective, answer, avg_confidence)
         print(f"Wrote to memory (avg confidence: {avg_confidence:.3f})")
@@ -768,7 +771,7 @@ def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replan
         if len(recent_failed) >= 3:
             last_three = recent_failed[-3:]
             score_range = max(last_three) - min(last_three)
-            if score_range < 0.1 and max(last_three) < 0.6:
+            if score_range < 0.1 and max(last_three) < 0.35:
                 print(f"Stagnation detected: last 3 failures scored {last_three} "
                       f"(range {score_range:.3f}). Topic likely not in corpus.")
                 print("Routing to VERIFY_ANSWER (skipping futile replanning).")
