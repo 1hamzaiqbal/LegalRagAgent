@@ -97,26 +97,32 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `conti
 
 ### RAG / Retrieval (rag_utils.py)
 
-- Embeddings: HuggingFace `all-MiniLM-L6-v2`
-- Vector store: ChromaDB persisted to `./chroma_db/`
-- `load_passages_to_chroma()` loads first 1000 passages from `barexam_qa/passages/` CSVs
-- `retrieve_documents(query, k=5)` returns top-k `Document` objects
+- Embeddings: HuggingFace `all-MiniLM-L6-v2` (bi-encoder)
+- Reranker: `cross-encoder/ms-marco-MiniLM-L-6-v2` (cross-encoder, cached singleton)
+- Vector store: ChromaDB persisted to `./chroma_db/`, 220K passages (98% caselaw, 1% MBE, 1% wex)
+- Two-stage retrieval in `retrieve_documents(query, k=5)`:
+  1. **Bi-encoder over-retrieval**: Fetch 4x candidates from MBE/wex and caselaw pools separately (source-filtered)
+  2. **Source-aware cross-encoder rerank**: Rerank within each pool, then interleave (3 study + 2 caselaw) to preserve source diversity
+  - For small corpora (<5K), falls back to simple retrieval + rerank
 - `compute_confidence(query, docs)` returns mean cosine similarity between query and doc embeddings
-- Singletons: `get_vectorstore()` and `get_memory_store()` return cached instances; `get_embeddings()` is `@lru_cache`
+- `load_passages_to_chroma(csv_path, max_passages=0)` loads passages with batch progress reporting
+- Singletons: `get_vectorstore()`, `get_memory_store()`, `get_embeddings()`, `get_cross_encoder()` all cached
 - QA Memory (separate `qa_memory` collection, cosine distance, same ChromaDB persist dir):
   - `check_memory(query, threshold=0.92)` returns `{"found": bool, "answer": str, "confidence": float, "question": str}`
   - `write_to_memory(question, answer, confidence)` stores QA pair with timestamp metadata
 
-### Evaluation (eval.py)
+### Evaluation
 
-Measures retrieval quality on `barexam_qa/qa/barexam_qa_validation.csv` (first 200 queries). Metrics: Recall@K and MRR. Expects columns `question` and `gold_idx`.
+- `eval.py` — Basic retrieval eval (Recall@K, MRR) on validation set
+- `eval_comprehensive.py` — Two-phase eval: Phase 1 retrieval-only (953 QA pairs), Phase 2 full pipeline (26 diverse queries with grading)
+- `eval_reranker.py` — A/B comparison of bi-encoder-only vs cross-encoder reranking on stratified 96-query sample
+- `load_corpus.py` — Load full 220K passage corpus: `uv run python load_corpus.py [count|status]`
 
 ## Data Directories (gitignored)
 
-- `barexam_qa/passages/` — legal passage CSVs
-- `barexam_qa/qa/` — QA dataset CSVs
-- `chroma_db/` — persisted ChromaDB vector store
+- `datasets/barexam_qa/` — passage CSVs and QA dataset CSVs
+- `chroma_db/` — persisted ChromaDB vector store (220K passages, ~1.4GB)
 
 ## Key Dependencies
 
-`langgraph`, `langchain-core`, `langchain-community`, `langchain-huggingface`, `langchain-openai`, `chromadb`, `pandas`, `pydantic`, `tqdm`, `numpy`, `python-dotenv`
+`langgraph`, `langchain-core`, `langchain-community`, `langchain-huggingface`, `langchain-openai`, `chromadb`, `pandas`, `pydantic`, `tqdm`, `numpy`, `python-dotenv`, `sentence-transformers`
