@@ -37,10 +37,10 @@ Return a JSON array of plan steps. Each step is an object with these fields:
 ## Planning Rules
 
 1. **Simple queries** (`query_type: "simple"`): Generate exactly 1 step that directly answers the question.
-2. **Multi-hop queries** (`query_type: "multi_hop"`): Generate 2-4 steps that break the question into sub-questions, each targeting a different legal concept or rule.
+2. **Multi-hop queries** (`query_type: "multi_hop"`): Generate exactly 1 step — the most important first sub-question to research. An adaptive replanner will generate subsequent steps based on what this first step finds, so do not try to plan the full research path upfront.
 3. Each `question` must be a self-contained search query — do not reference other steps.
 4. Each `phase` should describe what type of research this step performs (e.g., "Rule Identification", "Element Analysis", "Exception Check", "Application").
-5. Order steps logically: identify the rule first, then elements, then exceptions/defenses.
+5. For multi-hop, choose the step that establishes the foundational rule or framework needed to answer the broader question.
 6. Keep questions concise and specific — they will be used as retrieval queries against the corpus.
 
 ## Example

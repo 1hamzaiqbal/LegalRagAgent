@@ -1,12 +1,15 @@
 # Architecture
 
-## Current Implementation (6 Skills + Adaptive Replanning)
+## Current Implementation (10 Skills + 9-Node Graph)
 
 ```mermaid
 flowchart TD
-    START([Start]) --> CLASSIFY[ClassifyAndRoute]
+    START([Start]) --> DPI[DetectPromptInjection]
+    DPI -->|safe| CLASSIFY[ClassifyAndRoute]
+    DPI -->|adversarial| OBS
     CLASSIFY --> PLAN[PlanSynthesis]
-    PLAN --> EXEC[ExecutePlan]
+    PLAN -->|memory hit| MWB[MemoryWriteBack]
+    PLAN -->|no hit| EXEC[ExecutePlan]
 
     subgraph EXEC_SUB [Executor — per step]
         QR[QueryRewrite] --> RET[RetrieveEvidence]
@@ -17,67 +20,38 @@ flowchart TD
     EXEC --> EXEC_SUB
     EXEC_SUB --> EVAL{Evaluator}
     EVAL -->|pending steps| EXEC
-    EVAL -->|multi_hop, all done| REPLAN[AdaptiveReplan]
-    EVAL -->|simple done / limit| DONE([End])
+    EVAL -->|multi_hop, all done, no prior correction| REPLAN[AdaptiveReplan]
+    EVAL -->|simple done / limit / correction done| VA[VerifyAnswer]
     REPLAN -->|next_step / retry| EXEC
-    REPLAN -->|complete| DONE
+    REPLAN -->|complete| VA
+    VA -->|not verified, first failure| EXEC
+    VA -->|verified / retries exhausted| MWB
+    MWB --> OBS[Observability]
+    OBS --> DONE
 
+    style DPI fill:#4CAF50,color:#fff
     style CLASSIFY fill:#4CAF50,color:#fff
     style PLAN fill:#4CAF50,color:#fff
     style QR fill:#4CAF50,color:#fff
     style SYN fill:#4CAF50,color:#fff
     style GC fill:#4CAF50,color:#fff
     style REPLAN fill:#4CAF50,color:#fff
+    style VA fill:#4CAF50,color:#fff
     style RET fill:#2196F3,color:#fff
     style EVAL fill:#FF9800,color:#fff
+    style MWB fill:#9C27B0,color:#fff
+    style OBS fill:#607D8B,color:#fff
 ```
 
-**Legend**: Green = LLM skill (implemented), Blue = retrieval (ChromaDB), Orange = evaluation logic
+**Legend**: Green = LLM skill, Blue = retrieval (ChromaDB), Orange = evaluation logic, Purple = memory, Grey = observability
 
-**Key change**: The replanner node replaces hardcoded sub-step injection. For multi_hop queries, the planner emits only the first step. After each step completes, the replanner decides what to research next based on accumulated evidence ("model creates 1 query, gets answers, then creates next query").
+**Graph topology**: 9 nodes — `detect_injection → {classifier | observability}` (safe/unsafe); `classifier → planner → {executor | memory_writeback}` (no hit/memory hit); `executor → evaluator → {executor | replanner | verify_answer}`; `replanner → {executor | verify_answer}`; `verify_answer → {executor | memory_writeback}` (1 corrective retry max); `memory_writeback → observability → END`
 
 **Caching**: The LLM client is a singleton (`@lru_cache`), and skill prompt files are cached after first read. When using providers that support prefix caching (DeepSeek, vLLM with `--enable-prefix-caching`, OpenAI), cache-hit metrics are logged automatically per call.
 
----
+**QA Memory**: Successful query-answer pairs (avg confidence >= 0.7) are persisted to a separate ChromaDB collection (`qa_memory`, cosine distance). On subsequent runs, the planner checks for cached answers before generating a plan, short-circuiting execution on high-similarity matches (>= 0.92). The higher threshold ensures only near-exact question matches are served from cache.
 
-## Full 12-Skill Vision
-
-```mermaid
-flowchart TD
-    START([Start]) --> DPI[DetectPromptInjection]
-    DPI --> CAR[ClassifyAndRoute]
-    CAR --> PS[PlanSynthesis]
-    PS --> EP[ExecutePlan]
-
-    subgraph EXEC [Execute Loop]
-        QRD[QueryRewriteAndDecompose] --> RE[RetrieveEvidence]
-        RE --> SSA[SynthesizeSubtaskAnswer]
-        SSA --> GAC[GroundAndCite]
-    end
-
-    EP --> EXEC
-    EXEC --> VA[VerifyAnswer]
-    VA -->|needs retry| EP
-    VA -->|verified| MWB[MemoryWriteBack]
-    MWB --> OCC[ObservabilityAndCostControl]
-    OCC --> ORCH[OrchestratePlanExecuteRAG]
-    ORCH --> DONE([End])
-
-    style DPI fill:#9E9E9E,color:#fff
-    style CAR fill:#4CAF50,color:#fff
-    style PS fill:#4CAF50,color:#fff
-    style QRD fill:#4CAF50,color:#fff
-    style RE fill:#2196F3,color:#fff
-    style SSA fill:#4CAF50,color:#fff
-    style GAC fill:#4CAF50,color:#fff
-    style VA fill:#9E9E9E,color:#fff
-    style MWB fill:#9E9E9E,color:#fff
-    style OCC fill:#9E9E9E,color:#fff
-    style ORCH fill:#9E9E9E,color:#fff
-    style EP fill:#4CAF50,color:#fff
-```
-
-**Legend**: Green = built, Blue = retrieval, Grey = planned
+**Verification**: The verify_answer skill produces a `suggested_query` — a proper legal research question — when it finds issues. If verification fails on the first attempt, a corrective step using that query runs through the standard executor pipeline, then routes directly back to verification (skipping the replanner to avoid tangential research). A second failure terminates without adding orphaned steps. Citations use unified `[Source N]` labels across synthesis and grounding skills.
 
 ---
 
@@ -94,10 +68,10 @@ flowchart TD
 | 7 | GroundAndCite | Built | Audits answers for grounding, adds `[Source N]` citations, flags gaps |
 | 8 | AdaptiveReplan | Built | Decides next research step based on accumulated evidence (multi_hop only) |
 | 9 | RetrieveLegalPassages | Built | `@tool`-decorated wrapper for retrieval, bindable via `llm.bind_tools()` |
-| 10 | VerifyAnswer | Planned | Cross-checks final answer against retrieved evidence for consistency |
-| 11 | DetectPromptInjection | Planned | Screens user input for adversarial prompts before processing |
-| 12 | MemoryWriteBack | Planned | Persists successful query-answer pairs for future retrieval |
-| 13 | ObservabilityAndCostControl | Planned | Tracks token usage, latency, and cost per query |
+| 10 | DetectPromptInjection | Built | Screens user input for adversarial prompts before processing |
+| 11 | VerifyAnswer | Built | Cross-checks final answer against retrieved evidence for consistency |
+| 12 | MemoryWriteBack | Built | Persists successful query-answer pairs for future retrieval |
+| 13 | ObservabilityAndCostControl | Built | Tracks LLM calls, char usage, parse failures, step metrics, answer status per query |
 
 ## External Tool Placeholders (external_tools.py)
 
@@ -120,4 +94,9 @@ AgentState:
   final_cited_answer: str              # Aggregated output with citations
   accumulated_context: List[Dict]      # Step summaries for replanner (question, answer, confidence, status)
   iteration_count: int                 # Cycle counter for loop guard (max 6)
+  injection_check: Dict[str, Any]      # {"is_safe": bool, "reasoning": str}
+  verification_result: Dict[str, Any]  # {"is_verified": bool, "issues": [...], "reasoning": str}
+  verification_retries: int            # Counter for verification retry attempts (max 1 corrective step)
+  memory_hit: Dict[str, Any]           # {"found": bool, "answer": str, "confidence": float}
+  run_metrics: Dict[str, Any]          # Aggregated metrics from observability node
 ```

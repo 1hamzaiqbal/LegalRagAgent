@@ -1,4 +1,6 @@
+import functools
 import os
+import time
 import numpy as np
 import pandas as pd
 from typing import List, Dict, Any
@@ -9,19 +11,26 @@ from langchain_core.tools import tool
 
 CHROMA_DB_DIR = "./chroma_db"
 COLLECTION_NAME = "legal_passages"
+QA_MEMORY_COLLECTION = "qa_memory"
 
+@functools.lru_cache(maxsize=1)
 def get_embeddings():
     # Use a lightweight, fast local embedding model
     return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
+_vectorstore_instance = None
+
 def get_vectorstore() -> Chroma:
-    """Returns the Chroma vector store instance."""
-    embeddings = get_embeddings()
-    return Chroma(
-        collection_name=COLLECTION_NAME,
-        embedding_function=embeddings,
-        persist_directory=CHROMA_DB_DIR
-    )
+    """Returns the Chroma vector store singleton."""
+    global _vectorstore_instance
+    if _vectorstore_instance is None:
+        embeddings = get_embeddings()
+        _vectorstore_instance = Chroma(
+            collection_name=COLLECTION_NAME,
+            embedding_function=embeddings,
+            persist_directory=CHROMA_DB_DIR,
+        )
+    return _vectorstore_instance
 
 def load_passages_to_chroma(passages_csv_path: str):
     """Loads passages from a CSV into ChromaDB if it doesn't already exist."""
@@ -113,6 +122,62 @@ def retrieve_legal_passages(query: str, k: int = 5) -> str:
         source_id = doc.metadata.get("idx", "unknown")
         parts.append(f"[Passage {i}] (source: {source_id})\n{doc.page_content}")
     return "\n\n".join(parts)
+
+
+_memory_store_instance = None
+
+def get_memory_store() -> Chroma:
+    """Returns the Chroma QA memory collection singleton (cosine distance)."""
+    global _memory_store_instance
+    if _memory_store_instance is None:
+        embeddings = get_embeddings()
+        _memory_store_instance = Chroma(
+            collection_name=QA_MEMORY_COLLECTION,
+            embedding_function=embeddings,
+            persist_directory=CHROMA_DB_DIR,
+            collection_metadata={"hnsw:space": "cosine"},
+        )
+    return _memory_store_instance
+
+
+def check_memory(query: str, threshold: float = 0.92) -> Dict[str, Any]:
+    """Check if a similar question has been answered before.
+
+    Uses cosine similarity. Threshold of 0.92 requires near-exact match to
+    avoid serving cached answers for substantially different questions.
+
+    Returns {"found": bool, "answer": str, "confidence": float, "question": str}.
+    """
+    store = get_memory_store()
+    # Only search if the collection has documents
+    if store._collection.count() == 0:
+        return {"found": False, "answer": "", "confidence": 0.0, "question": ""}
+
+    results = store.similarity_search_with_relevance_scores(query, k=1)
+    if results:
+        doc, score = results[0]
+        if score >= threshold:
+            return {
+                "found": True,
+                "answer": doc.metadata.get("answer", ""),
+                "confidence": score,
+                "question": doc.page_content,
+            }
+    return {"found": False, "answer": "", "confidence": 0.0, "question": ""}
+
+
+def write_to_memory(question: str, answer: str, confidence: float) -> None:
+    """Store a question-answer pair in the QA memory collection."""
+    store = get_memory_store()
+    doc = Document(
+        page_content=question,
+        metadata={
+            "answer": answer,
+            "confidence": str(confidence),
+            "timestamp": str(time.time()),
+        },
+    )
+    store.add_documents([doc])
 
 
 if __name__ == "__main__":

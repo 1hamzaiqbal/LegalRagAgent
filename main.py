@@ -11,7 +11,7 @@ from langgraph.graph import StateGraph, END
 from pydantic import BaseModel, Field
 
 from llm_config import get_llm
-from rag_utils import retrieve_documents, compute_confidence
+from rag_utils import retrieve_documents, compute_confidence, check_memory, write_to_memory
 
 # ---------------------------------------------------------------------------
 # 1. Core Data Models
@@ -35,6 +35,11 @@ class AgentState(TypedDict):
     final_cited_answer: str    # aggregated output
     accumulated_context: List[Dict[str, Any]]  # step summaries for replanner
     iteration_count: int       # cycle counter for loop guard
+    injection_check: Dict[str, Any]            # {"is_safe": bool, "reasoning": str}
+    verification_result: Dict[str, Any]        # {"is_verified": bool, "issues": [...], "reasoning": str}
+    verification_retries: int                  # max 2
+    memory_hit: Dict[str, Any]                 # {"found": bool, "answer": str, "confidence": float}
+    run_metrics: Dict[str, Any]                # aggregated metrics from observability node
 
 
 # ---------------------------------------------------------------------------
@@ -90,10 +95,27 @@ def _parse_json(text: str) -> Any:
                 except json.JSONDecodeError:
                     continue
 
+    global _parse_failure_count
+    _parse_failure_count += 1
+    logger.warning("JSON parse failure #%d (input length: %d chars)", _parse_failure_count, len(text))
     return None
 
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# LLM call counter for observability
+# ---------------------------------------------------------------------------
+_llm_call_counter: Dict[str, Any] = {"count": 0, "input_chars": 0, "output_chars": 0}
+_parse_failure_count: int = 0
+
+
+def _reset_llm_call_counter() -> None:
+    global _parse_failure_count
+    _llm_call_counter["count"] = 0
+    _llm_call_counter["input_chars"] = 0
+    _llm_call_counter["output_chars"] = 0
+    _parse_failure_count = 0
 
 
 def _log_cache_metrics(response, label: str) -> None:
@@ -120,7 +142,7 @@ def _log_cache_metrics(response, label: str) -> None:
 
 
 def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
-    """Make an LLM call, log cache metrics, and return the text response."""
+    """Make an LLM call, log cache metrics, track usage, and return the text response."""
     llm = get_llm()
     messages = [
         SystemMessage(content=system_prompt),
@@ -129,6 +151,12 @@ def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
     response = llm.invoke(messages)
     if label:
         _log_cache_metrics(response, label)
+
+    # Track call metrics for observability
+    _llm_call_counter["count"] += 1
+    _llm_call_counter["input_chars"] += len(system_prompt) + len(user_prompt)
+    _llm_call_counter["output_chars"] += len(response.content)
+
     return response.content
 
 
@@ -203,9 +231,52 @@ def skill_adaptive_replan(objective: str, accumulated_context: List[Dict[str, An
     return {"action": "complete", "reasoning": "Fallback — could not parse replanner output"}
 
 
+def skill_detect_prompt_injection(objective: str) -> Dict[str, Any]:
+    """Classify input as safe or adversarial."""
+    instructions = load_skill_instructions("detect_prompt_injection")
+    raw = _llm_call(instructions, f"User input: {objective}", label="injection_check")
+    parsed = _parse_json(raw)
+    if parsed and isinstance(parsed, dict) and "is_safe" in parsed:
+        return parsed
+    # Fail-open: assume safe if parser fails
+    return {"is_safe": True, "reasoning": "Fallback — could not parse injection check output, assuming safe"}
+
+
+def skill_verify_answer(question: str, answer: str, evidence: List[str]) -> Dict[str, Any]:
+    """Cross-check an answer against retrieved evidence."""
+    instructions = load_skill_instructions("verify_answer")
+    evidence_text = "\n\n".join(
+        f"[Passage {i+1}]: {text}" for i, text in enumerate(evidence)
+    )
+    user_msg = f"Question: {question}\n\nAnswer:\n{answer}\n\nEvidence:\n{evidence_text}"
+    raw = _llm_call(instructions, user_msg, label="verify")
+    parsed = _parse_json(raw)
+    if parsed and isinstance(parsed, dict) and "is_verified" in parsed:
+        return parsed
+    # Fallback: assume verified if parser fails
+    return {"is_verified": True, "issues": [], "reasoning": "Fallback — could not parse verification output, assuming verified"}
+
+
 # ---------------------------------------------------------------------------
 # 4. Graph Nodes
 # ---------------------------------------------------------------------------
+
+def detect_injection_node(state: AgentState) -> AgentState:
+    """Screen user input for adversarial prompt injection."""
+    print("\n--- DETECT INJECTION NODE ---")
+    objective = state["global_objective"]
+    result = skill_detect_prompt_injection(objective)
+    state["injection_check"] = result
+    if result.get("is_safe", True):
+        print(f"Input is SAFE: {result.get('reasoning', '')}")
+    else:
+        print(f"Input is ADVERSARIAL: {result.get('reasoning', '')}")
+        state["final_cited_answer"] = (
+            "Request rejected: the input was classified as adversarial. "
+            "Please provide a legitimate legal research question."
+        )
+    return state
+
 
 def classifier_node(state: AgentState) -> AgentState:
     """Classify the objective to determine routing."""
@@ -222,12 +293,26 @@ def classifier_node(state: AgentState) -> AgentState:
 def planner_node(state: AgentState) -> AgentState:
     """Generate a research plan using the LLM.
 
+    Checks QA memory first — if a high-confidence cached answer exists,
+    short-circuits plan generation entirely.
+
     For multi_hop queries, only emits the first step — the replanner
     will adaptively generate subsequent steps based on accumulated evidence.
     """
     print("\n--- PLANNER NODE ---")
+
+    # Check QA memory for a cached answer
+    objective = state["global_objective"]
+    memory_result = check_memory(objective)
+    if memory_result["found"]:
+        print(f"MEMORY HIT! Confidence: {memory_result['confidence']:.3f}")
+        print(f"Cached question: {memory_result['question']}")
+        state["memory_hit"] = memory_result
+        state["final_cited_answer"] = memory_result["answer"]
+        return state
+    state["memory_hit"] = memory_result
+
     if not state.get("planning_table"):
-        objective = state["global_objective"]
         query_type = state.get("query_type", "multi_hop")
         print(f"Generating plan for: {objective} (type: {query_type})")
 
@@ -335,7 +420,7 @@ def evaluator_node(state: AgentState) -> AgentState:
             print(f"Iteration count: {state['iteration_count']}")
             break
 
-    # Aggregate final answer when all steps are done (for simple or when routing to END)
+    # Aggregate final answer when all steps are done
     all_done = all(s.status in ("completed", "failed") for s in table)
     if all_done:
         completed_answers = [
@@ -346,6 +431,14 @@ def evaluator_node(state: AgentState) -> AgentState:
         if completed_answers:
             state["final_cited_answer"] = "\n\n---\n\n".join(completed_answers)
             print("Aggregated final cited answer from completed steps.")
+        elif not state.get("final_cited_answer"):
+            failed_questions = [s.question for s in table if s.status == "failed"]
+            state["final_cited_answer"] = (
+                "Unable to produce a sufficiently grounded answer. "
+                f"All {len(failed_questions)} research step(s) failed to retrieve "
+                "high-confidence evidence from the corpus."
+            )
+            print("All steps failed — set failure message.")
 
     _print_table(state["planning_table"])
     return state
@@ -394,6 +487,151 @@ def replanner_node(state: AgentState) -> AgentState:
     return state
 
 
+def verify_answer_node(state: AgentState) -> AgentState:
+    """Cross-check the final answer against retrieved evidence."""
+    print("\n--- VERIFY ANSWER NODE ---")
+    table = state.get("planning_table", [])
+    objective = state["global_objective"]
+    answer = state.get("final_cited_answer", "")
+
+    if not answer:
+        print("No answer to verify. Skipping.")
+        state["verification_result"] = {"is_verified": True, "issues": [], "reasoning": "No answer produced"}
+        return state
+
+    # Gather all evidence from completed steps
+    evidence = []
+    for step in table:
+        if step.status == "completed" and step.execution:
+            evidence.extend(step.execution.get("sources", []))
+
+    if not evidence:
+        print("No evidence to verify against. Passing through.")
+        state["verification_result"] = {"is_verified": True, "issues": [], "reasoning": "No evidence available for verification"}
+        return state
+
+    result = skill_verify_answer(objective, answer, evidence)
+    state["verification_result"] = result
+
+    if result.get("is_verified", True):
+        print(f"Answer VERIFIED: {result.get('reasoning', '')}")
+    else:
+        retries = state.get("verification_retries", 0)
+        state["verification_retries"] = retries + 1
+        print(f"Answer NOT verified (attempt {retries + 1}): {result.get('reasoning', '')}")
+        issues = result.get("issues", [])
+        for issue in issues:
+            print(f"  - {issue}")
+
+        # Only add a corrective step on the first failure. A second failure
+        # means correction didn't help — don't add an orphan step that
+        # the router will skip.
+        if retries < 1:
+            existing_ids = [s.step_id for s in table]
+            new_id = max(existing_ids) + 1.0 if existing_ids else 1.0
+            # Use the LLM's suggested_query if available (a proper legal
+            # question), falling back to a best-effort extraction.
+            suggested = result.get("suggested_query", "")
+            if suggested:
+                corrective_question = suggested
+            else:
+                issue_text = issues[0] if issues else objective
+                corrective_question = issue_text
+            corrective_step = PlanStep(
+                step_id=new_id,
+                phase="Corrective Research",
+                question=corrective_question,
+                expectation={"outcome": "Resolve verification issue"},
+            )
+            state["planning_table"].append(corrective_step)
+            print(f"Added corrective step {new_id}: {corrective_question}")
+
+    return state
+
+
+def memory_writeback_node(state: AgentState) -> AgentState:
+    """Persist successful query-answer pairs to QA memory for future retrieval."""
+    print("\n--- MEMORY WRITEBACK NODE ---")
+    memory_hit = state.get("memory_hit", {})
+    answer = state.get("final_cited_answer", "")
+
+    # Skip write if answer came from cache (already in memory)
+    if memory_hit.get("found", False):
+        print("Answer came from memory cache — skipping write.")
+        return state
+
+    if not answer:
+        print("No answer to cache — skipping write.")
+        return state
+
+    # Compute average confidence across completed steps
+    table = state.get("planning_table", [])
+    completed_scores = [
+        s.execution.get("confidence_score", 0.0)
+        for s in table
+        if s.status == "completed" and s.execution
+    ]
+    avg_confidence = sum(completed_scores) / len(completed_scores) if completed_scores else 0.0
+
+    if avg_confidence >= 0.7:
+        objective = state["global_objective"]
+        write_to_memory(objective, answer, avg_confidence)
+        print(f"Wrote to memory (avg confidence: {avg_confidence:.3f})")
+    else:
+        print(f"Confidence too low ({avg_confidence:.3f}) — skipping memory write.")
+
+    return state
+
+
+def observability_node(state: AgentState) -> AgentState:
+    """Aggregate and print run metrics before termination."""
+    print("\n--- OBSERVABILITY NODE ---")
+    table = state.get("planning_table", [])
+    completed = sum(1 for s in table if s.status == "completed")
+    failed = sum(1 for s in table if s.status == "failed")
+    pending = sum(1 for s in table if s.status == "pending")
+
+    memory_hit = state.get("memory_hit", {})
+    has_answer = bool(state.get("final_cited_answer", ""))
+    injection_safe = state.get("injection_check", {}).get("is_safe", True)
+    metrics = {
+        "total_llm_calls": _llm_call_counter["count"],
+        "input_chars": _llm_call_counter["input_chars"],
+        "output_chars": _llm_call_counter["output_chars"],
+        "parse_failures": _parse_failure_count,
+        "iteration_count": state.get("iteration_count", 0),
+        "steps_completed": completed,
+        "steps_failed": failed,
+        "steps_pending": pending,
+        "query_type": state.get("query_type", "") or "(not classified)",
+        "memory_hit": memory_hit.get("found", False),
+        "verification_retries": state.get("verification_retries", 0),
+        "has_answer": has_answer,
+        "injection_safe": injection_safe,
+    }
+    state["run_metrics"] = metrics
+
+    print(f"\n{'='*50}")
+    print("  RUN METRICS SUMMARY")
+    print(f"{'='*50}")
+    print(f"  Query type:           {metrics['query_type']}")
+    print(f"  Injection safe:       {metrics['injection_safe']}")
+    print(f"  LLM calls:            {metrics['total_llm_calls']}")
+    print(f"  Input chars:          {metrics['input_chars']:,}")
+    print(f"  Output chars:         {metrics['output_chars']:,}")
+    print(f"  Parse failures:       {metrics['parse_failures']}")
+    print(f"  Iterations:           {metrics['iteration_count']}")
+    print(f"  Steps completed:      {metrics['steps_completed']}")
+    print(f"  Steps failed:         {metrics['steps_failed']}")
+    print(f"  Steps pending:        {metrics['steps_pending']}")
+    print(f"  Memory hit:           {metrics['memory_hit']}")
+    print(f"  Verification retries: {metrics['verification_retries']}")
+    print(f"  Has answer:           {metrics['has_answer']}")
+    print(f"{'='*50}\n")
+
+    return state
+
+
 # ---------------------------------------------------------------------------
 # 5. Helpers
 # ---------------------------------------------------------------------------
@@ -411,23 +649,63 @@ def _print_table(table: List[PlanStep]):
 # 6. Routing
 # ---------------------------------------------------------------------------
 
-def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replanner_node", "__end__"]:
+def route_after_injection(state: AgentState) -> Literal["classifier_node", "observability_node"]:
+    """Route after injection check: safe → classifier, unsafe → observability → END."""
+    if state.get("injection_check", {}).get("is_safe", True):
+        return "classifier_node"
+    print("Adversarial input detected. Routing to OBSERVABILITY.")
+    return "observability_node"
+
+
+def route_after_planner(state: AgentState) -> Literal["executor_node", "memory_writeback_node"]:
+    """Route after planner: memory hit → memory_writeback, otherwise → executor."""
+    if state.get("memory_hit", {}).get("found", False):
+        print("MEMORY HIT! Short-circuiting to MEMORY_WRITEBACK.")
+        return "memory_writeback_node"
+    return "executor_node"
+
+
+def route_after_verify(state: AgentState) -> Literal["executor_node", "memory_writeback_node"]:
+    """Route after verification:
+    - executor_node: not verified and retries < 2 and has corrective steps
+    - memory_writeback_node: verified or retries exhausted
+    """
+    vr = state.get("verification_result", {})
+    retries = state.get("verification_retries", 0)
+    table = state.get("planning_table", [])
+    has_pending = any(s.status == "pending" for s in table)
+    if not vr.get("is_verified", True) and retries < 2 and has_pending:
+        print("Verification failed — routing to EXECUTOR for corrective step.")
+        return "executor_node"
+    print("Routing to MEMORY_WRITEBACK.")
+    return "memory_writeback_node"
+
+
+def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replanner_node", "verify_answer_node"]:
     """3-way routing after evaluator:
     - executor_node: pending steps remain
     - replanner_node: multi_hop query, all current steps done, under iteration limit
-    - __end__: simple query done, or iteration limit exceeded
+    - verify_answer_node: simple query done, iteration limit exceeded, or
+      in a verification correction cycle (skip replanner on corrective steps)
     """
     table = state.get("planning_table", [])
     iteration_count = state.get("iteration_count", 0)
 
     if iteration_count > 6:
-        print("Iteration limit hit (>6). Routing to END.")
-        return "__end__"
+        print("Iteration limit hit (>6). Routing to VERIFY_ANSWER.")
+        return "verify_answer_node"
 
     has_pending = any(step.status == "pending" for step in table)
     if has_pending:
         print("Routing back to EXECUTOR (pending steps)...")
         return "executor_node"
+
+    # If we're in a verification correction cycle, go straight back to
+    # verify — don't detour through the replanner, which doesn't know
+    # about corrective context and could add tangential steps.
+    if state.get("verification_retries", 0) > 0:
+        print("Corrective step done. Routing to VERIFY_ANSWER (skip replanner)...")
+        return "verify_answer_node"
 
     # All current steps are done
     query_type = state.get("query_type", "simple")
@@ -435,14 +713,14 @@ def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replan
         print("All current steps done (multi_hop). Routing to REPLANNER...")
         return "replanner_node"
 
-    print("All steps done (simple). Routing to END.")
-    return "__end__"
+    print("All steps done (simple). Routing to VERIFY_ANSWER.")
+    return "verify_answer_node"
 
 
-def route_after_replanner(state: AgentState) -> Literal["executor_node", "__end__"]:
+def route_after_replanner(state: AgentState) -> Literal["executor_node", "verify_answer_node"]:
     """2-way routing after replanner:
     - executor_node: new pending steps were added
-    - __end__: replanner said complete, or no pending steps
+    - verify_answer_node: replanner said complete, or no pending steps
     """
     table = state.get("planning_table", [])
     has_pending = any(step.status == "pending" for step in table)
@@ -450,8 +728,8 @@ def route_after_replanner(state: AgentState) -> Literal["executor_node", "__end_
         print("Routing to EXECUTOR (replanner added new step)...")
         return "executor_node"
 
-    print("Replanner complete. Routing to END.")
-    return "__end__"
+    print("Replanner complete. Routing to VERIFY_ANSWER.")
+    return "verify_answer_node"
 
 
 # ---------------------------------------------------------------------------
@@ -461,17 +739,28 @@ def route_after_replanner(state: AgentState) -> Literal["executor_node", "__end_
 def build_graph() -> Any:
     workflow = StateGraph(AgentState)
 
+    workflow.add_node("detect_injection_node", detect_injection_node)
     workflow.add_node("classifier_node", classifier_node)
     workflow.add_node("planner_node", planner_node)
     workflow.add_node("executor_node", executor_node)
     workflow.add_node("evaluator_node", evaluator_node)
     workflow.add_node("replanner_node", replanner_node)
+    workflow.add_node("verify_answer_node", verify_answer_node)
+    workflow.add_node("memory_writeback_node", memory_writeback_node)
+    workflow.add_node("observability_node", observability_node)
 
-    workflow.set_entry_point("classifier_node")
+    workflow.set_entry_point("detect_injection_node")
+
+    workflow.add_conditional_edges(
+        "detect_injection_node",
+        route_after_injection,
+    )
     workflow.add_edge("classifier_node", "planner_node")
-    workflow.add_edge("planner_node", "executor_node")
+    workflow.add_conditional_edges(
+        "planner_node",
+        route_after_planner,
+    )
     workflow.add_edge("executor_node", "evaluator_node")
-
     workflow.add_conditional_edges(
         "evaluator_node",
         route_after_evaluator,
@@ -480,6 +769,12 @@ def build_graph() -> Any:
         "replanner_node",
         route_after_replanner,
     )
+    workflow.add_conditional_edges(
+        "verify_answer_node",
+        route_after_verify,
+    )
+    workflow.add_edge("memory_writeback_node", "observability_node")
+    workflow.add_edge("observability_node", END)
 
     return workflow.compile()
 
@@ -536,8 +831,14 @@ if __name__ == "__main__":
         "final_cited_answer": "",
         "accumulated_context": [],
         "iteration_count": 0,
+        "injection_check": {},
+        "verification_result": {},
+        "verification_retries": 0,
+        "memory_hit": {},
+        "run_metrics": {},
     }
 
+    _reset_llm_call_counter()
     print("\nStarting Legal RAG Agent...")
     final_state = None
     try:
