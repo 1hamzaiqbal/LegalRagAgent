@@ -10,7 +10,7 @@
 1. If a step failed (confidence < 0.4), you may retry with a **rephrased query** using different legal vocabulary.
 2. Consider what aspects of the objective remain unanswered by the accumulated evidence.
 3. **Hard step cap: 3 completed steps maximum.** If there are already 3+ completed steps, you MUST return `"complete"`. No exceptions.
-4. Each new question must be **self-contained** — do not reference previous step IDs.
+4. Each new question must be **self-contained** — do not reference previous step IDs or specific answer choices. Research legal concepts, not individual options.
 5. **STOP retrying when the corpus lacks coverage.** If 3+ consecutive steps have ALL failed with confidence below 0.35, return `"complete"` immediately.
 6. When all failed steps have similar confidence scores (within 0.05), rephrasing won't help.
 

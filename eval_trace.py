@@ -214,8 +214,7 @@ def trace_full_pipeline(question: str, gold_idx: str = "", correct_answer: str =
                 sources = step.execution.get("sources", [])
                 step_info["passage_previews"] = [s[:120] for s in sources]
                 # Synthesized answer
-                step_info["answer"] = step.execution.get("cited_answer",
-                                                          step.execution.get("answer", ""))
+                step_info["answer"] = step.execution.get("cited_answer", "")
             steps_detail.append(step_info)
 
     # Compute avg confidence across completed steps

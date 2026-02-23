@@ -27,6 +27,7 @@ uv run python eval_comprehensive.py pipeline 10   # Phase 2, first N queries
 uv run python eval_trace.py                       # All 8 trace queries
 uv run python eval_trace.py 3                     # First N queries
 uv run python eval_trace.py --query "What is..."  # Custom query
+uv run python eval_trace.py 3 --save              # Save case studies to case_studies/
 
 # Run retrieval A/B test (bi-encoder vs cross-encoder reranking)
 uv run python eval_reranker.py
@@ -35,8 +36,10 @@ uv run python eval_reranker.py
 uv run python llm_config.py
 
 # Load/check corpus
-uv run python load_corpus.py 20000    # Load first 20K passages
-uv run python load_corpus.py status   # Check current collection size
+uv run python load_corpus.py 20000         # Load first 20K passages
+uv run python load_corpus.py status        # Check current collection size
+uv run python load_corpus.py curated       # Gold passages + 500 padding (~1.5K)
+uv run python load_corpus.py curated 2000  # Gold passages + 2000 padding (~3K)
 ```
 
 ## Environment Setup
@@ -80,10 +83,10 @@ Nine-node state machine with adaptive replanning, injection detection, answer ve
 
 1. **detect_injection_node** — Screens input for adversarial prompt injection using `detect_prompt_injection.md` skill. Skippable via `SKIP_INJECTION_CHECK=1` env var (saves 1 LLM call for eval/testing). Unsafe inputs are rejected and routed to observability for metrics.
 2. **classifier_node** — Classifies objective as `simple` or `multi_hop` using `classify_and_route.md` skill (includes MC-specific guidance: single-concept MC → simple, multi-concept MC → multi_hop, defaults to multi_hop when in doubt)
-3. **planner_node** — Checks QA memory first (cosine similarity >= 0.92); on cache hit, short-circuits to memory writeback. Otherwise generates initial plan. For `multi_hop`, emits only the first step; replanner handles the rest adaptively.
+3. **planner_node** — Checks QA memory first (cosine similarity >= 0.92); on cache hit, short-circuits to memory writeback. Otherwise generates initial plan. For `multi_hop`, emits only the first step; replanner handles the rest adaptively. **MC isolation**: strips answer choices from objective before planning — research stays unbiased.
 4. **executor_node** — For each pending step: rewrites query into primary + 2 alternatives (`query_rewrite.md`, JSON output), multi-query retrieves from ChromaDB (`retrieve_documents_multi_query`), synthesizes answer with inline `[Source N]` citations in a single pass (`synthesize_and_cite.md`), computes confidence via cosine similarity
 5. **evaluator_node** — Marks steps completed or failed against a configurable confidence threshold (`EVAL_CONFIDENCE_THRESHOLD` env var, default 0.6 for gte-large). Accumulates step summaries into `accumulated_context`. Sets explicit failure message if all steps fail.
-6. **replanner_node** — (multi_hop only) Receives objective + accumulated evidence, decides: `next_step` (add new research step), `retry` (rephrase failed step), or `complete` (aggregate final answer). Hard cap: 3 completed steps max. On persistent LLM failure, gracefully falls back to `complete` to preserve accumulated evidence.
+6. **replanner_node** — (multi_hop only) Receives objective (MC choices stripped) + accumulated evidence, decides: `next_step` (add new research step), `retry` (rephrase failed step), or `complete` (aggregate final answer). Hard cap: 3 completed steps max. On persistent LLM failure, gracefully falls back to `complete` to preserve accumulated evidence.
 7. **verify_answer_node** — Cross-checks final answer against evidence using `verify_answer.md` skill. On first failure, adds a corrective step using the LLM's `suggested_query` (a proper legal question). Second failure terminates cleanly without orphaned steps. **MC selection**: if the objective contains answer choices, a dedicated `skill_select_mc_answer()` call runs ONCE after verification passes — applies all accumulated research to pick a letter with `**Answer: (X)**` format. This keeps per-step research unbiased.
 8. **memory_writeback_node** — Persists successful QA pairs (avg confidence >= 0.45, verified) to ChromaDB `qa_memory` collection (cosine distance) for future cache hits. Skips write if verification failed.
 9. **observability_node** — Aggregates and prints run metrics: LLM calls, char usage, parse failures, steps completed/failed, memory hit status, verification retries, has_answer, injection status.
@@ -155,9 +158,10 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
   - Query rewrite output (primary + alternatives)
   - Multi-query retrieval results with gold passage marking
   - Full pipeline execution trace (classify → plan → execute → verify)
-  - MC correctness check and trace summary table
+  - MC correctness check and trace summary table (Steps, Verified, Confidence columns)
+  - `--save` flag dumps case study JSON to `case_studies/` for review
 - `eval_reranker.py` — A/B comparison of bi-encoder-only vs cross-encoder reranking
-- `load_corpus.py` — Load passage corpus: `uv run python load_corpus.py [count|status]`
+- `load_corpus.py` — Load passage corpus: `uv run python load_corpus.py [count|status|curated]`
 
 ## Eval Metrics Reference
 
@@ -172,11 +176,12 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
 With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B:
 - Phase 1 Recall@5: **6.3%** (60/953) — up from 4.8% with MiniLM
 - Avg confidence: **0.71** (up from 0.48)
-- MC accuracy: **3/5 (60%)** on 6-query trace (was 0% before MC selection fix). MC selection is a single dedicated LLM call in `verify_answer_node` after all research completes — keeps per-step synthesis unbiased. Checker had a case-sensitivity bug (uppercase pattern vs lowered text) that masked 2 correct answers — now fixed.
-- Adaptive replanning works well: correctly decomposes questions (e.g., battery elements → self-defense → transferred intent) and the replanner's reasoning is contextual to the specific fact pattern
-- Pipeline compensates for retrieval gaps: multiple traced queries got MC correct despite gold passage NOT being in top-5 retrieval (0% Recall@5 on all 6 traced queries)
+- MC accuracy: **3/5 (60%)** on 5-query trace. All 5 verified, all 3c/0f, all 12 LLM calls. Wrong answers (crim law, evidence) are MC selector reasoning errors, not retrieval or pipeline failures — the research is correct, the final element-to-fact-pattern mapping is where the model stumbles.
+- MC isolation: planner and replanner now receive objective with answer choices stripped (`_strip_mc_choices`). Before this fix, the replanner generated MC-aware steps like "For each answer choice..." which leaked bias into per-step research. After: pure legal research queries.
+- Adaptive replanning decomposes well: battery → self-defense → transferred intent; receiving stolen property → mens rea → knowledge standard
+- Pipeline compensates for retrieval gaps: all 5 traced queries had 0% Recall@5 on gold passages but 3/5 got MC correct
 - QA memory cache can serve stale answers — clear with `store._collection.delete(ids=...)` when changing synthesis behavior
-- Connection errors during replanner now retry (via `_llm_call`) and fall back to `complete` on persistent failure — no longer crashes the query
+- Connection errors during replanner retry (via `_llm_call`) and fall back to `complete` on persistent failure
 
 ## Data Directories (gitignored)
 

@@ -5,7 +5,7 @@ import os
 import re
 import sys
 import time
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import Any, Dict, List, Literal, TypedDict
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
@@ -24,8 +24,6 @@ class PlanStep(BaseModel):
     phase: str
     question: str
     execution: Dict[str, Any] = Field(default_factory=dict)
-    expectation: Dict[str, Any] = Field(default_factory=dict)
-    deviation_analysis: Optional[str] = None
 
 
 class AgentState(TypedDict):
@@ -299,18 +297,17 @@ def skill_select_mc_answer(objective: str, research: str) -> str:
     keeping the research pipeline itself unbiased.
     """
     system_prompt = (
-        "You are a legal exam answer selector. You receive:\n"
-        "1. A multiple-choice legal question with answer choices (A, B, C, D)\n"
-        "2. Legal research that has been conducted to answer this question\n\n"
-        "Your job is to apply the research to select the BEST answer choice.\n\n"
-        "Rules:\n"
-        "- Base your selection ONLY on the legal research provided\n"
-        "- Evaluate each choice against the research findings\n"
-        "- Select the choice that is best supported by the research\n"
-        "- If the research is insufficient, select the best-supported option and note uncertainty\n\n"
+        "You are a bar exam answer selector. Apply legal research to a multiple-choice question.\n\n"
+        "Method:\n"
+        "1. Identify the legal rule and its ELEMENTS from the research\n"
+        "2. For EACH choice, check whether every required element is met by its specific facts\n"
+        "3. Eliminate choices where an element is missing or a defense/exception applies\n"
+        "4. Select the choice where all elements are satisfied and no defense negates liability\n\n"
+        "Be precise: apply the exact legal standard from the research to each choice's facts. "
+        "Do not assume facts not stated in the choice.\n\n"
         "Format your response EXACTLY as:\n"
         "**Answer: (X)**\n"
-        "Reasoning: [one sentence per choice explaining why it is correct or incorrect]"
+        "Reasoning: [For each choice, state which specific element is satisfied or missing]"
     )
     user_msg = f"Question:\n{objective}\n\nLegal research:\n{research}"
     return _llm_call(system_prompt, user_msg, label="mc_select").strip()
@@ -396,9 +393,11 @@ def planner_node(state: AgentState) -> AgentState:
 
     if not state.get("planning_table"):
         query_type = state.get("query_type", "multi_hop")
-        print(f"Generating plan for: {objective} (type: {query_type})")
+        # Strip MC choices — planner should research legal concepts, not analyze options
+        research_objective = _strip_mc_choices(objective)
+        print(f"Generating plan for: {research_objective} (type: {query_type})")
 
-        raw_steps = skill_plan_synthesis(objective, query_type)
+        raw_steps = skill_plan_synthesis(research_objective, query_type)
 
         # For multi_hop: only take the first step; replanner handles the rest
         if query_type == "multi_hop" and len(raw_steps) > 1:
@@ -411,7 +410,6 @@ def planner_node(state: AgentState) -> AgentState:
                 step_id=float(s.get("step_id", len(steps) + 1)),
                 phase=s.get("phase", "Research"),
                 question=s.get("question", objective),
-                expectation={"outcome": s.get("expectation", "")},
             ))
 
         state["planning_table"] = steps
@@ -463,7 +461,6 @@ def executor_node(state: AgentState) -> AgentState:
             print(f"  Confidence score: {confidence:.3f}")
 
             step.execution = {
-                "answer": cited_answer,
                 "cited_answer": cited_answer,
                 "optimized_query": optimized_query,
                 "sources": evidence,
@@ -491,16 +488,12 @@ def evaluator_node(state: AgentState) -> AgentState:
             if score >= threshold:
                 print(f"Step {step.step_id} PASSED (score: {score:.3f} >= {threshold})")
                 step.status = "completed"
-                step.expectation["is_aligned"] = True
             else:
                 print(f"Step {step.step_id} FAILED (score: {score:.3f} < {threshold})")
                 step.status = "failed"
-                step.expectation["is_aligned"] = False
-                step.deviation_analysis = "Insufficient evidence — retrieval confidence below threshold."
 
             # Accumulate evidence for replanner
-            answer_summary = step.execution.get("answer", "")
-            # Truncate long answers for the context summary
+            answer_summary = step.execution.get("cited_answer", "")
             if len(answer_summary) > 300:
                 answer_summary = answer_summary[:300] + "..."
             state["accumulated_context"].append({
@@ -517,13 +510,9 @@ def evaluator_node(state: AgentState) -> AgentState:
     # Aggregate final answer when all steps are done
     all_done = all(s.status in ("completed", "failed") for s in table)
     if all_done:
-        completed_answers = [
-            s.execution.get("cited_answer", s.execution.get("answer", ""))
-            for s in table
-            if s.status == "completed" and s.execution
-        ]
-        if completed_answers:
-            state["final_cited_answer"] = "\n\n---\n\n".join(completed_answers)
+        aggregated = _aggregate_completed_answers(table)
+        if aggregated:
+            state["final_cited_answer"] = aggregated
             print("Aggregated final cited answer from completed steps.")
         elif not state.get("final_cited_answer"):
             failed_questions = [s.question for s in table if s.status == "failed"]
@@ -545,7 +534,8 @@ def replanner_node(state: AgentState) -> AgentState:
     retry a failed step, or mark research as complete.
     """
     print("\n--- REPLANNER NODE ---")
-    objective = state["global_objective"]
+    # Strip MC choices — replanner should plan pure legal research
+    objective = _strip_mc_choices(state["global_objective"])
     accumulated = state.get("accumulated_context", [])
 
     try:
@@ -570,20 +560,15 @@ def replanner_node(state: AgentState) -> AgentState:
             step_id=new_id,
             phase=result.get("phase", "Adaptive Research"),
             question=result.get("question", state["global_objective"]),
-            expectation={"outcome": result.get("expectation", "")},
         )
         state["planning_table"].append(new_step)
         print(f"Added new step {new_id}: {new_step.question}")
     else:
         # action == "complete": aggregate final answer
         print("Replanner says research is complete.")
-        completed_answers = [
-            s.execution.get("cited_answer", s.execution.get("answer", ""))
-            for s in state["planning_table"]
-            if s.status == "completed" and s.execution
-        ]
-        if completed_answers:
-            state["final_cited_answer"] = "\n\n---\n\n".join(completed_answers)
+        aggregated = _aggregate_completed_answers(state["planning_table"])
+        if aggregated:
+            state["final_cited_answer"] = aggregated
             print("Aggregated final cited answer from completed steps.")
 
     _print_table(state["planning_table"])
@@ -660,7 +645,6 @@ def verify_answer_node(state: AgentState) -> AgentState:
                 step_id=new_id,
                 phase="Corrective Research",
                 question=corrective_question,
-                expectation={"outcome": "Resolve verification issue"},
             )
             state["planning_table"].append(corrective_step)
             print(f"Added corrective step {new_id}: {corrective_question}")
@@ -760,6 +744,28 @@ def observability_node(state: AgentState) -> AgentState:
 # ---------------------------------------------------------------------------
 # 5. Helpers
 # ---------------------------------------------------------------------------
+
+def _aggregate_completed_answers(table: List[PlanStep]) -> str:
+    """Join cited answers from all completed steps."""
+    answers = [
+        s.execution.get("cited_answer", "")
+        for s in table
+        if s.status == "completed" and s.execution
+    ]
+    return "\n\n---\n\n".join(a for a in answers if a)
+
+
+def _strip_mc_choices(objective: str) -> str:
+    """Strip 'Answer choices:' block from objective for unbiased research.
+
+    The planner, executor, and replanner should research legal concepts without
+    seeing MC options. Only the classifier (routing) and MC selector (final
+    stage) need the choices.
+    """
+    marker = "\n\nAnswer choices:"
+    idx = objective.find(marker)
+    return objective[:idx].strip() if idx != -1 else objective
+
 
 def _print_table(table: List[PlanStep]):
     print("\nCurrent Planning Table:")
