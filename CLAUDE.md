@@ -69,7 +69,7 @@ Default: `Alibaba-NLP/gte-large-en-v1.5` (1024d, 434M params, 8192 token context
 
 ### Evaluator Threshold
 
-`EVAL_CONFIDENCE_THRESHOLD` sets the cosine similarity threshold for marking a research step as completed vs failed. Default `0.6` (calibrated for gte-large-en-v1.5, avg ~0.71). Old MiniLM default was `0.4`.
+`EVAL_CONFIDENCE_THRESHOLD` sets the cosine similarity threshold for marking a research step as completed vs failed. Default `0.70` (calibrated for gte-large-en-v1.5, observed range 0.709-0.804). Previous default was 0.6 which was a no-op (0 failures in 24 traced steps). Old MiniLM default was `0.4`.
 
 ### Retrieval Mode
 
@@ -84,7 +84,7 @@ Nine-node state machine with adaptive replanning, injection detection, answer ve
 1. **detect_injection_node** — Screens input for adversarial prompt injection using `detect_prompt_injection.md` skill. Skippable via `SKIP_INJECTION_CHECK=1` env var (saves 1 LLM call for eval/testing). Unsafe inputs are rejected and routed to observability for metrics.
 2. **classifier_node** — Classifies objective as `simple` or `multi_hop` using `classify_and_route.md` skill (includes MC-specific guidance: single-concept MC → simple, multi-concept MC → multi_hop, defaults to multi_hop when in doubt)
 3. **planner_node** — Checks QA memory first (cosine similarity >= 0.92); on cache hit, short-circuits to memory writeback. Otherwise generates initial plan. For `multi_hop`, emits only the first step; replanner handles the rest adaptively. **MC isolation**: strips answer choices from objective before planning — research stays unbiased.
-4. **executor_node** — For each pending step: rewrites query into primary + 2 alternatives (`query_rewrite.md`, JSON output), multi-query retrieves from ChromaDB (`retrieve_documents_multi_query`), synthesizes answer with inline `[Source N]` citations in a single pass (`synthesize_and_cite.md`), computes confidence via cosine similarity
+4. **executor_node** — For each pending step: rewrites query into primary + 2 alternatives (`query_rewrite.md`, JSON output), multi-query retrieves from ChromaDB (`retrieve_documents_multi_query`, excludes doc_ids from prior steps for cross-step dedup), synthesizes answer with inline `[Source N]` citations in a single pass (`synthesize_and_cite.md`), computes confidence via cosine similarity
 5. **evaluator_node** — Marks steps completed or failed against a configurable confidence threshold (`EVAL_CONFIDENCE_THRESHOLD` env var, default 0.6 for gte-large). Accumulates step summaries into `accumulated_context`. Sets explicit failure message if all steps fail.
 6. **replanner_node** — (multi_hop only) Receives objective (MC choices stripped) + accumulated evidence, decides: `next_step` (add new research step), `retry` (rephrase failed step), or `complete` (aggregate final answer). Hard cap: 3 completed steps max. On persistent LLM failure, gracefully falls back to `complete` to preserve accumulated evidence.
 7. **verify_answer_node** — Cross-checks final answer against evidence using `verify_answer.md` skill. On first failure, adds a corrective step using the LLM's `suggested_query` (a proper legal question). Second failure terminates cleanly without orphaned steps. **MC selection**: if the objective contains answer choices, a dedicated `skill_select_mc_answer()` call runs ONCE after verification passes — applies all accumulated research to pick a letter with `**Answer: (X)**` format. This keeps per-step research unbiased.
@@ -136,9 +136,10 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
 - **Two retrieval modes** (controlled by `SOURCE_DIVERSE_RETRIEVAL` env var):
   - **Unified** (default): Over-retrieve 4x candidates from full corpus, cross-encoder reranks to top k
   - **Source-diverse**: Split into MBE/wex and caselaw pools, rerank within each, interleave (3 study + 2 caselaw)
-- **Multi-query retrieval** in `retrieve_documents_multi_query(queries, k=5)`:
+- **Multi-query retrieval** in `retrieve_documents_multi_query(queries, k=5, exclude_ids=None)`:
   - Pools bi-encoder candidates from multiple query variants (primary + alternatives)
   - Deduplicates by `idx`, cross-encoder reranks the full pool against primary query
+  - `exclude_ids` param filters out docs already retrieved in prior steps (cross-step dedup)
   - Bridges terminological gaps (e.g., "cancellation clause" also retrieves "illusory promise")
 - `compute_confidence(query, docs)` returns mean cosine similarity between query and doc embeddings
 - `load_passages_to_chroma(csv_path, max_passages=0)` loads passages with batch progress reporting
@@ -182,36 +183,35 @@ With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B (via Google AI Studio):
 
 | Query | MC | Steps | Conf | Unique docs | Time | LLM calls |
 |---|---|---|---|---|---|---|
-| torts | Y | 3c/0f | 0.792 | 15/15 | 57s | 12 |
-| contracts | Y | 3c/0f | 0.784 | 7/15 | 67s | 12 |
-| crimlaw | N (D→B) | 3c/0f | 0.738 | 10/15 | 56s | 12 |
-| evidence | N (A→C) | 3c/0f | 0.794 | 13/15 | 78s | 12 |
-| constlaw | Y | 3c/0f | 0.709 | 13/15 | 78s | 12 |
-| realprop | Y | 3c/0f | 0.803 | 10/15 | 72s | 12 |
-| multihop | n/a | 3c/0f | 0.804 | 10/15 | 78s | 11 |
-| oof | n/a | 1c/0f | 0.712 | n/a | 23s | 5 |
+| torts | Y | 3c/0f | 0.774 | 15/15 | 51s | 12 |
+| contracts | Y | 3c/0f | 0.773 | 15/15 | 99s | 12 |
+| crimlaw | N | 3c/1f | 0.741 | 20/20 | 57s | 15 |
+| evidence | Y | 3c/0f | 0.782 | 15/15 | 49s | 12 |
+| constlaw | Y | 3c/2f | 0.713 | 25/25 | 113s | 18 |
+| realprop | Y | 3c/0f | 0.778 | 15/15 | 90s | 12 |
+| multihop | n/a | 3c/0f | 0.808 | 15/15 | 45s | 11 |
+| oof | n/a | 1c/0f | 0.712 | 5/5 | 18s | 5 |
 
-- **MC accuracy: 4/6 (67%)**. Wrong answers (crimlaw, evidence) are MC selector reasoning errors, not pipeline failures — the research is correct, the final element-to-fact-pattern mapping is where Gemma 27B stumbles.
-- **Phase 1 Recall@5: 6.3%** (60/953) — up from 4.8% with MiniLM. Low because only 20K of 686K passages loaded.
-- **Avg confidence: 0.76** across 8 queries (range: 0.709–0.804).
-- **All queries verified on first pass** (8/8). The verifier has a strong pass-by-default bias — may need tightening.
-- **Multi-query rewrite improves confidence** in 6/8 queries (avg +0.028 over raw retrieval). Most value in terminological bridging.
-- **Passage diversity**: 7–15 unique docs across 3 steps (out of 15 possible). Contracts had worst diversity (7/15 unique), torts had perfect diversity (15/15).
-- **Classifier always picks multi_hop** for MC bar exam questions (even single-concept ones). Only `simple` classification observed: out-of-corpus query. Not necessarily wrong — multi_hop gives more thorough research — but means every MC query costs 12 LLM calls.
-- **Pipeline compensates for retrieval gaps**: gold passage Recall@5 is 0% on all traced MC queries, yet 4/6 get MC correct. The system retrieves relevant-enough passages to answer correctly even without the exact gold passage.
-- **MC isolation** working correctly: planner and replanner receive objective with answer choices stripped (`_strip_mc_choices`). Replanner questions are all pure legal research (no "For each answer choice..." leakage).
-- **Adaptive replanning decomposes well**: battery → self-defense → bystander duty; receiving stolen property → mens rea → knowledge standard; product liability → strict liability → warranties
-- **Out-of-corpus handling**: classifier correctly routes to simple (1 step), pipeline produces a reasonable answer from tangentially relevant passages, verification passes.
+- **MC accuracy: 5/6 (83%)** — up from 4/6 (67%) before cross-step dedup and threshold raise. Only crimlaw remains wrong.
+- **Passage diversity: 100%** on every query — up from avg ~73%. Cross-step `exclude_ids` ensures no doc is retrieved twice.
+- **Evaluator now rejects steps**: constlaw had 2 failures (3c/2f, 18 LLM calls), crimlaw had 1 failure (3c/1f, 15 calls). Queries with all-passing steps still use 12 calls. Retries cost 3 extra LLM calls each.
+- **Phase 1 Recall@5: 6.3%** (60/953) — low because only 20K of ~686K passages loaded.
+- **Avg confidence: 0.76** across 8 queries (range: 0.712–0.808).
+- **All queries verified on first pass** (8/8). Verifier has strong pass-by-default bias.
+- **Classifier always picks multi_hop** for MC bar exam questions. Only out-of-corpus gets simple.
+- **Pipeline compensates for retrieval gaps**: gold passage Recall@5 is 0% on all traced MC queries, yet 5/6 get MC correct.
+- **MC isolation** working: planner and replanner receive stripped objectives.
+- **Out-of-corpus handling**: classifier correctly routes to simple (1 step), produces reasonable answer.
 
 **Operational notes:**
-- QA memory cache can serve stale answers — clear before eval runs, or after changing synthesis behavior
+- QA memory cache cleared automatically at eval start (eval_trace.py and eval_comprehensive.py)
 - Connection errors during replanner retry via `_llm_call` and fall back to `complete` on persistent failure
 - `SKIP_INJECTION_CHECK=1` saves 1 LLM call per query (recommended for eval runs)
 
 **Bottleneck analysis:**
-1. **MC selector** (biggest lever): 2/6 wrong answers are reasoning errors in the final MC selection call, not research quality. Improving the element-based analysis prompt or using a stronger model here would have the most impact.
-2. **Passage diversity**: some queries retrieve overlapping passages across steps. Could improve by excluding already-retrieved doc IDs from subsequent steps.
-3. **Classifier granularity**: single-concept MC → simple would save ~7 LLM calls per query, but risks less thorough research. Current multi_hop-for-everything is safe but expensive.
+1. **MC selector** (biggest remaining lever): 1/6 wrong answer is a reasoning error in the final MC selection call. Research quality is good — the element-to-fact mapping is where Gemma 27B stumbles.
+2. **Classifier granularity**: single-concept MC → simple would save ~7 LLM calls per query, but risks less thorough research. Current multi_hop-for-everything is safe but expensive.
+3. **Verifier effectiveness**: 8/8 pass rate suggests the verifier may be too lenient. Consider adversarial testing.
 
 ## Data Directories (gitignored)
 

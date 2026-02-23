@@ -221,11 +221,15 @@ def _dedup_docs(scored_results) -> List[Document]:
     return candidates
 
 
-def retrieve_documents(query: str, k: int = 5, vectorstore: Chroma = None) -> List[Document]:
+def retrieve_documents(query: str, k: int = 5, vectorstore: Chroma = None,
+                       exclude_ids: set = None) -> List[Document]:
     """Two-stage retrieval: bi-encoder over-retrieve + cross-encoder rerank.
 
     When SOURCE_DIVERSE_RETRIEVAL is True, splits retrieval into study/caselaw pools.
     When False (default), retrieves from the full corpus and lets the cross-encoder decide.
+
+    Args:
+        exclude_ids: Set of document idx strings to exclude (for cross-step dedup).
     """
     vectorstore = vectorstore or get_vectorstore()
     total_docs = vectorstore._collection.count()
@@ -235,25 +239,37 @@ def retrieve_documents(query: str, k: int = 5, vectorstore: Chroma = None) -> Li
         fetch_k = k * 4
         retriever = get_retriever(k=fetch_k, vectorstore=vectorstore)
         candidates = retriever.invoke(query)
+        if exclude_ids:
+            candidates = [d for d in candidates if d.metadata.get("idx", "") not in exclude_ids]
         return rerank_with_cross_encoder(query, candidates, top_k=k)
 
     if SOURCE_DIVERSE_RETRIEVAL:
-        return _retrieve_source_diverse(query, k, vectorstore)
-    return _retrieve_unified(query, k, vectorstore)
+        results = _retrieve_source_diverse(query, k, vectorstore)
+    else:
+        results = _retrieve_unified(query, k, vectorstore)
+
+    if exclude_ids:
+        results = [d for d in results if d.metadata.get("idx", "") not in exclude_ids]
+    return results
 
 
 def retrieve_documents_multi_query(queries: List[str], k: int = 5,
-                                   vectorstore: Chroma = None) -> List[Document]:
+                                   vectorstore: Chroma = None,
+                                   exclude_ids: set = None) -> List[Document]:
     """Multi-query retrieval: pool candidates from multiple query variants, then rerank.
 
     For each query variant, bi-encoder over-retrieves candidates.
     All candidates are pooled and deduplicated. The cross-encoder reranks the
     full pool against the PRIMARY query (first in list).
+
+    Args:
+        exclude_ids: Set of document idx strings to exclude (for cross-step dedup).
     """
     if not queries:
         return []
     if len(queries) == 1:
-        return retrieve_documents(queries[0], k=k, vectorstore=vectorstore)
+        return retrieve_documents(queries[0], k=k, vectorstore=vectorstore,
+                                  exclude_ids=exclude_ids)
 
     vectorstore = vectorstore or get_vectorstore()
     total_docs = vectorstore._collection.count()
@@ -261,7 +277,7 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
     # For small corpora, simple pooled retrieval + rerank
     if total_docs < 5000:
         all_candidates = []
-        seen_idx = set()
+        seen_idx = set(exclude_ids) if exclude_ids else set()
         fetch_k = k * 3
         for q in queries:
             retriever = get_retriever(k=fetch_k, vectorstore=vectorstore)
@@ -277,9 +293,9 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
     if SOURCE_DIVERSE_RETRIEVAL:
         # Pool from both source pools across all query variants
         study_candidates = []
-        study_seen = set()
+        study_seen = set(exclude_ids) if exclude_ids else set()
         case_candidates = []
-        case_seen = set()
+        case_seen = set(exclude_ids) if exclude_ids else set()
 
         for q in queries:
             try:
@@ -338,7 +354,7 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
     else:
         # Unified: pool all candidates across all query variants, then rerank
         all_candidates = []
-        seen_idx = set()
+        seen_idx = set(exclude_ids) if exclude_ids else set()
 
         for q in queries:
             retriever = get_retriever(k=fetch_k, vectorstore=vectorstore)

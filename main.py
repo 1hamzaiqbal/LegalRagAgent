@@ -86,8 +86,6 @@ def _parse_json(text: str) -> Any:
                 fixed = re.sub(r",\s*([}\]])", r"\1", candidate)
                 # Remove JS-style single-line comments
                 fixed = re.sub(r"//.*?$", "", fixed, flags=re.MULTILINE)
-                # Replace single quotes with double quotes (simple heuristic)
-                fixed = fixed.replace("'", '"')
                 try:
                     return json.loads(fixed)
                 except json.JSONDecodeError:
@@ -233,7 +231,6 @@ def skill_plan_synthesis(objective: str, query_type: str) -> List[Dict]:
         "step_id": 1.0,
         "phase": "Direct Research",
         "question": objective,
-        "expectation": "Direct answer to the question",
     }]
 
 
@@ -428,9 +425,17 @@ def executor_node(state: AgentState) -> AgentState:
     print("\n--- EXECUTOR NODE ---")
     table = state["planning_table"]
 
+    # Gather doc_ids from prior steps for cross-step deduplication
+    prior_doc_ids = set()
+    for s in table:
+        if s.status in ("completed", "failed") and s.execution:
+            prior_doc_ids.update(s.execution.get("retrieved_doc_ids", []))
+
     for step in table:
         if step.status == "pending":
             print(f"Executing step {step.step_id}: {step.question}")
+            if prior_doc_ids:
+                print(f"  Excluding {len(prior_doc_ids)} prior doc_ids")
 
             # 1. Query rewrite (returns primary + alternatives)
             rewrite_result = skill_query_rewrite(step.question)
@@ -441,9 +446,10 @@ def executor_node(state: AgentState) -> AgentState:
                 for j, alt in enumerate(alternatives):
                     print(f"  Alt {j+1}: {alt[:80]}...")
 
-            # 2. Multi-query retrieve
+            # 2. Multi-query retrieve (excluding docs from prior steps)
             all_queries = [optimized_query] + alternatives
-            docs = retrieve_documents_multi_query(all_queries, k=5)
+            docs = retrieve_documents_multi_query(all_queries, k=5,
+                                                  exclude_ids=prior_doc_ids or None)
             evidence = [doc.page_content for doc in docs]
             print(f"  Retrieved {len(evidence)} passages:")
             for j, doc in enumerate(docs):
@@ -478,9 +484,10 @@ def evaluator_node(state: AgentState) -> AgentState:
     print("\n--- EVALUATOR NODE ---")
     table = state["planning_table"]
 
-    # Default 0.6 calibrated for gte-large-en-v1.5 (avg ~0.71). Lowest
-    # observed score in 6-query trace was 0.652.  Old MiniLM default was 0.4.
-    threshold = float(os.getenv("EVAL_CONFIDENCE_THRESHOLD", "0.6"))
+    # Default 0.70 calibrated for gte-large-en-v1.5 (observed range 0.709-0.804).
+    # Puts threshold at the floor of observed scores so ~10-20% of steps fail
+    # and get retried/rephrased by the replanner. Old default was 0.6 (no-op).
+    threshold = float(os.getenv("EVAL_CONFIDENCE_THRESHOLD", "0.70"))
 
     for step in table:
         if step.status == "pending" and "confidence_score" in step.execution:

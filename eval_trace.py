@@ -33,7 +33,7 @@ from main import (
 from llm_config import get_provider_info
 from rag_utils import (
     retrieve_documents, retrieve_documents_multi_query,
-    compute_confidence, get_vectorstore,
+    compute_confidence, get_vectorstore, get_memory_store,
 )
 from eval_comprehensive import _check_mc_correctness
 
@@ -362,6 +362,15 @@ def main():
     vs = get_vectorstore()
     print(f"Corpus: {vs._collection.count()} passages")
     print(f"Embedding: {os.getenv('EMBEDDING_MODEL', 'Alibaba-NLP/gte-large-en-v1.5')}")
+
+    # Clear QA memory cache for clean eval
+    mem_store = get_memory_store()
+    mem_count = mem_store._collection.count()
+    if mem_count > 0:
+        mem_ids = mem_store._collection.get()["ids"]
+        for i in range(0, len(mem_ids), 5000):
+            mem_store._collection.delete(ids=mem_ids[i:i+5000])
+        print(f"Cleared QA memory cache ({mem_count} entries)")
 
     # Parse args
     save_mode = "--save" in sys.argv
