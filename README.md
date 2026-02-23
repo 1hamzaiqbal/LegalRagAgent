@@ -2,38 +2,57 @@
 
 Agentic Legal RAG system built on LangGraph. Uses a **classify-plan-execute-evaluate** loop to answer legal research questions by retrieving passages from a ChromaDB vector store of bar exam materials.
 
-## Quickstart
+## Setup
 
-### 1. Install dependencies
+### 1. Clone and install
 
 ```bash
+git clone https://github.com/1hamzaiqbal/LegalRagAgent.git
+cd LegalRagAgent
 uv sync
 ```
 
-### 2. Set up your LLM
+Requires Python 3.11-3.13 and [uv](https://docs.astral.sh/uv/). Alternatively: `pip install -r requirements.txt`.
 
-Copy the example env file and add your API key:
+### 2. Configure LLM provider
 
 ```bash
 cp .env.example .env
+# Edit .env — add your API key for at least one provider
 ```
 
-Set `LLM_PROVIDER` to switch between backends. Default: **Google AI Studio** (Gemma 3 27B, 14.4K RPD free tier). Run `uv run python llm_config.py` to see all available providers.
+Default provider: **Google AI Studio** (Gemma 3 27B, 14.4K requests/day free). Get a key at [aistudio.google.com](https://aistudio.google.com/apikey).
 
-### 3. Load passages (first run only)
+Other free-tier options: Groq, OpenRouter, Cerebras. Run `uv run python llm_config.py` to see all providers.
+
+### 3. Download dataset
 
 ```bash
-uv run python load_corpus.py 20000          # 20K passages (~30 min with gte-large)
-uv run python load_corpus.py curated        # Gold passages + 500 padding (~1.5K, ~3 min)
+uv run python download_data.py
+```
+
+Downloads the [reglab/barexam_qa](https://huggingface.co/datasets/reglab/barexam_qa) dataset from HuggingFace (~686K bar exam passages + QA pairs). Saved to `datasets/barexam_qa/` (gitignored).
+
+To check if data is already present: `uv run python download_data.py --check`
+
+### 4. Build vector store
+
+```bash
+uv run python load_corpus.py curated        # Fast: ~1.5K passages, ~3 min
+uv run python load_corpus.py 20000          # Full eval: 20K passages, ~30 min
 uv run python load_corpus.py status         # Check current collection size
 ```
 
-### 4. Run the agent
+The first run downloads the embedding model (`gte-large-en-v1.5`, ~1.7 GB). Subsequent runs use the cached model. Set `HF_HUB_OFFLINE=1` after the first download to skip network checks.
+
+GPU note: `sentence-transformers` auto-detects CUDA. For GPU embedding on WSL, ensure PyTorch has CUDA support: `uv pip install torch --index-url https://download.pytorch.org/whl/cu121`.
+
+### 5. Run the agent
 
 ```bash
 uv run python main.py simple       # "What are the elements of a negligence claim?"
-uv run python main.py multi_hop    # Constitutional rights + 4th/5th Amendment search scenario
-uv run python main.py medium       # Preliminary injunction standard and factors
+uv run python main.py multi_hop    # Constitutional rights + 4th/5th Amendment scenario
+uv run python main.py medium       # Preliminary injunction standard
 ```
 
 ## Architecture
@@ -52,7 +71,7 @@ Nine-node LangGraph state machine with adaptive replanning, injection detection,
 - **Memory**: Caches answers (confidence >= 0.70) for future retrieval. Strips MC selection before caching.
 - **Observability**: Prints run metrics (LLM calls, confidence, steps, timing).
 
-### Skills (7 prompt files)
+### Skills (7 prompt files in `skills/`)
 
 | Skill | Purpose |
 |-------|---------|
@@ -88,3 +107,21 @@ uv run python eval_trace.py 3 --save              # Save case studies to case_st
 | realprop | Y | 3c/0f | 0.775 | 11 |
 
 MC accuracy: 4/6. 100% passage diversity across all steps.
+
+## Project Structure
+
+```
+main.py               # LangGraph pipeline (9 nodes, routing, state)
+rag_utils.py           # Embeddings, ChromaDB, retrieval, reranker, memory
+llm_config.py          # Provider registry (19 providers), LLM singleton
+load_corpus.py         # Load passages into ChromaDB
+download_data.py       # Download dataset from HuggingFace
+skills/                # 7 markdown prompt files (~1700 words total)
+eval_comprehensive.py  # Two-phase eval (retrieval + pipeline)
+eval_trace.py          # Per-query diagnostics with --save for case studies
+eval_reranker.py       # Bi-encoder vs cross-encoder A/B test
+case_studies/          # JSON traces from eval_trace.py --save
+ARCHITECTURE.md        # Full node reference, case studies, state schema
+pipeline_flags.md      # Known issues audit with severity ratings
+EXPERIMENT_LOG.md      # History of changes and eval results
+```
