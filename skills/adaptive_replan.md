@@ -15,7 +15,7 @@ You receive:
 
 ## Decision Rules
 
-1. **Do NOT re-ask a question that has already been answered** with confidence >= 0.4.
+1. **Do NOT re-ask a question that has already been answered** with confidence >= 0.6.
 2. If a step failed (confidence < 0.4), you may retry it with a **rephrased query** using different legal vocabulary.
 3. Consider what aspects of the objective remain unanswered by the accumulated evidence.
 4. **Hard step cap: 3 completed steps maximum.** Count the steps with status "completed" in the accumulated context. If there are already 3 or more, you MUST return `"complete"`. No exceptions — do not argue that "one more angle" would help.

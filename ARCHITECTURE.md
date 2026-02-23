@@ -47,7 +47,7 @@ flowchart TD
 
 **Caching**: The LLM client is a singleton (`@lru_cache`), and skill prompt files are cached after first read. When using providers that support prefix caching (DeepSeek, vLLM with `--enable-prefix-caching`, OpenAI), cache-hit metrics are logged automatically per call.
 
-**QA Memory**: Successful query-answer pairs (avg confidence >= 0.7) are persisted to a separate ChromaDB collection (`qa_memory`, cosine distance). On subsequent runs, the planner checks for cached answers before generating a plan, short-circuiting execution on high-similarity matches (>= 0.92). The higher threshold ensures only near-exact question matches are served from cache.
+**QA Memory**: Successful query-answer pairs (avg confidence >= 0.45) are persisted to a separate ChromaDB collection (`qa_memory`, cosine distance). On subsequent runs, the planner checks for cached answers before generating a plan, short-circuiting execution on high-similarity matches (>= 0.92). The higher threshold ensures only near-exact question matches are served from cache.
 
 **Injection Check**: Skippable via `SKIP_INJECTION_CHECK=1` env var (saves 1 LLM call for eval/testing). Default ON for production safety.
 
@@ -61,7 +61,7 @@ flowchart TD
 
 | # | Skill | File | Description |
 |---|-------|------|-------------|
-| 1 | ClassifyAndRoute | `classify_and_route.md` | Classifies query as `simple` or `multi_hop` to determine plan complexity |
+| 1 | ClassifyAndRoute | `classify_and_route.md` | Classifies query as `simple` or `multi_hop` (includes MC-specific guidance) |
 | 2 | PlanSynthesis | `plan_synthesis.md` | Decomposes objective into a structured JSON plan of retrieval steps |
 | 3 | QueryRewrite | `query_rewrite.md` | Rewrites question into primary + 2 alternative queries (JSON) for multi-query retrieval |
 | 4 | SynthesizeAndCite | `synthesize_and_cite.md` | Synthesizes grounded answers with inline `[Source N]` citations and source map in one pass |
@@ -75,7 +75,7 @@ flowchart TD
 |------|-------------|
 | ExecutePlan | Orchestrates per-step execution: rewrite, multi-query retrieve, synthesize+cite |
 | RetrieveEvidence | Two-stage retrieval: bi-encoder over-retrieve + cross-encoder rerank (ChromaDB) |
-| Evaluator | Checks confidence (cosine similarity), accumulates context for replanner |
+| Evaluator | Checks confidence against configurable threshold (`EVAL_CONFIDENCE_THRESHOLD`, default 0.6), accumulates context for replanner |
 | MemoryWriteBack | Persists successful query-answer pairs for future retrieval |
 | Observability | Tracks LLM calls, char usage, parse failures, step metrics, answer status |
 
@@ -88,7 +88,7 @@ AgentState:
   query_type: str                      # "simple" or "multi_hop" (set by classifier)
   final_cited_answer: str              # Aggregated output with citations
   accumulated_context: List[Dict]      # Step summaries for replanner (question, answer, confidence, status)
-  iteration_count: int                 # Cycle counter for loop guard (max 6)
+  iteration_count: int                 # Cycle counter for loop guard (max 4)
   injection_check: Dict[str, Any]      # {"is_safe": bool, "reasoning": str}
   verification_result: Dict[str, Any]  # {"is_verified": bool, "issues": [...], "reasoning": str}
   verification_retries: int            # Counter for verification retry attempts (max 1 corrective step)

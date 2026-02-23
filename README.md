@@ -30,7 +30,7 @@ If the ChromaDB store hasn't been populated yet:
 uv run python load_corpus.py
 ```
 
-This loads the full 220K bar exam passage corpus into `./chroma_db/`.
+This loads bar exam passages into `./chroma_db/` (default 20K for fast iteration; full corpus is 686K).
 
 ### 4. Run the agent
 
@@ -52,7 +52,7 @@ detect_injection → classifier → planner → executor ⇄ evaluator → repla
 - **Classifier**: Routes queries as `simple` (1 step) or `multi_hop` (adaptive steps)
 - **Planner**: Checks QA memory cache first, then LLM generates a structured research plan
 - **Executor**: Per step — rewrites query into primary + 2 alternatives, multi-query retrieves from ChromaDB, synthesizes answer with inline citations in one pass
-- **Evaluator**: Checks confidence (cosine similarity), accumulates context for replanner
+- **Evaluator**: Checks confidence against configurable threshold (`EVAL_CONFIDENCE_THRESHOLD`, default 0.6), accumulates context for replanner
 - **Replanner**: (multi_hop only) Adaptively adds research steps based on accumulated evidence
 - **Verify**: Cross-checks final answer against evidence; triggers corrective step on first failure
 - **Memory**: Caches verified answers for future retrieval (cosine similarity >= 0.92)

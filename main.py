@@ -11,7 +11,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 from pydantic import BaseModel, Field
 
-from llm_config import get_llm
+from llm_config import get_llm, get_provider_info
 from rag_utils import retrieve_documents_multi_query, compute_confidence, check_memory, write_to_memory
 
 # ---------------------------------------------------------------------------
@@ -154,16 +154,24 @@ def _extract_retry_delay(error_str: str) -> float | None:
 
 
 def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
-    """Make an LLM call with retry on rate-limit errors.
+    """Make an LLM call with retry on transient errors.
 
-    Retries up to _MAX_RETRIES times. Uses the API's suggested retry delay
-    when available, falling back to exponential backoff (2s, 4s, 8s).
+    Retries up to _MAX_RETRIES times on rate-limit, connection, and timeout
+    errors. Uses the API's suggested retry delay when available, falling
+    back to exponential backoff (2s, 4s, 8s).
     """
     llm = get_llm()
-    messages = [
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=user_prompt),
-    ]
+    model_name = get_provider_info().get("model", "").lower()
+    # Gemma models don't support system messages — merge into the user prompt
+    if "gemma" in model_name:
+        messages = [
+            HumanMessage(content=f"[INSTRUCTIONS]\n{system_prompt}\n[/INSTRUCTIONS]\n\n{user_prompt}"),
+        ]
+    else:
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt),
+        ]
 
     last_error = None
     for attempt in range(_MAX_RETRIES):
@@ -181,12 +189,16 @@ def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
         except Exception as e:
             last_error = e
             err_str = str(e).lower()
-            is_rate_limit = "429" in err_str or "rate" in err_str or "too many" in err_str
-            if is_rate_limit and attempt < _MAX_RETRIES - 1:
+            is_retryable = (
+                "429" in err_str or "rate" in err_str or "too many" in err_str
+                or "connection" in err_str or "timeout" in err_str
+                or isinstance(e, (ConnectionError, TimeoutError))
+            )
+            if is_retryable and attempt < _MAX_RETRIES - 1:
                 # Use API-suggested delay if available, otherwise exponential backoff
                 api_delay = _extract_retry_delay(str(e))
                 delay = min(api_delay or _RETRY_BASE_DELAY * (2 ** attempt), 60)
-                logger.warning("[%s] Rate limited (attempt %d/%d). Retrying in %.0fs...",
+                logger.warning("[%s] Retryable error (attempt %d/%d). Retrying in %.0fs...",
                                label, attempt + 1, _MAX_RETRIES, delay)
                 time.sleep(delay)
             else:
@@ -277,6 +289,31 @@ def skill_detect_prompt_injection(objective: str) -> Dict[str, Any]:
         return parsed
     # Fail-open: assume safe if parser fails
     return {"is_safe": True, "reasoning": "Fallback — could not parse injection check output, assuming safe"}
+
+
+def skill_select_mc_answer(objective: str, research: str) -> str:
+    """Given accumulated research and an MC question, select the best answer.
+
+    This is a final-stage call that applies completed legal research to pick
+    a letter.  It runs ONCE after all research steps and verification are done,
+    keeping the research pipeline itself unbiased.
+    """
+    system_prompt = (
+        "You are a legal exam answer selector. You receive:\n"
+        "1. A multiple-choice legal question with answer choices (A, B, C, D)\n"
+        "2. Legal research that has been conducted to answer this question\n\n"
+        "Your job is to apply the research to select the BEST answer choice.\n\n"
+        "Rules:\n"
+        "- Base your selection ONLY on the legal research provided\n"
+        "- Evaluate each choice against the research findings\n"
+        "- Select the choice that is best supported by the research\n"
+        "- If the research is insufficient, select the best-supported option and note uncertainty\n\n"
+        "Format your response EXACTLY as:\n"
+        "**Answer: (X)**\n"
+        "Reasoning: [one sentence per choice explaining why it is correct or incorrect]"
+    )
+    user_msg = f"Question:\n{objective}\n\nLegal research:\n{research}"
+    return _llm_call(system_prompt, user_msg, label="mc_select").strip()
 
 
 def skill_verify_answer(question: str, answer: str, evidence: List[str]) -> Dict[str, Any]:
@@ -412,6 +449,8 @@ def executor_node(state: AgentState) -> AgentState:
             print(f"  Retrieved {len(evidence)} passages")
 
             # 3. Synthesize and cite (single pass)
+            # Per-step synthesis does pure legal research — no MC choices here.
+            # MC selection happens once at the end in verify_answer_node.
             cited_answer = skill_synthesize_and_cite(step.question, evidence)
             print(f"  Synthesized and cited ({len(cited_answer)} chars)")
 
@@ -438,12 +477,14 @@ def evaluator_node(state: AgentState) -> AgentState:
     print("\n--- EVALUATOR NODE ---")
     table = state["planning_table"]
 
+    # Default 0.6 calibrated for gte-large-en-v1.5 (avg ~0.71). Lowest
+    # observed score in 6-query trace was 0.652.  Old MiniLM default was 0.4.
+    threshold = float(os.getenv("EVAL_CONFIDENCE_THRESHOLD", "0.6"))
+
     for step in table:
         if step.status == "pending" and "confidence_score" in step.execution:
             score = step.execution["confidence_score"]
-            # Threshold calibrated to corpus: avg cosine similarity for
-            # MiniLM-L6-v2 on 1K MBE passages is ~0.45 (Phase 1 eval).
-            if score >= 0.4:
+            if score >= threshold:
                 print(f"Step {step.step_id} PASSED (score: {score:.3f}). Marking completed.")
                 step.status = "completed"
                 step.expectation["is_aligned"] = True
@@ -503,7 +544,12 @@ def replanner_node(state: AgentState) -> AgentState:
     objective = state["global_objective"]
     accumulated = state.get("accumulated_context", [])
 
-    result = skill_adaptive_replan(objective, accumulated)
+    try:
+        result = skill_adaptive_replan(objective, accumulated)
+    except Exception as e:
+        logger.error("Replanner failed after retries: %s. Falling back to complete.", e)
+        print(f"Replanner error — graceful fallback to verify with existing evidence.")
+        result = {"action": "complete", "reasoning": f"Fallback — replanner error: {e}"}
     action = result.get("action", "complete")
     print(f"Replanner action: {action} — {result.get('reasoning', '')}")
 
@@ -570,6 +616,13 @@ def verify_answer_node(state: AgentState) -> AgentState:
 
     if result.get("is_verified", True):
         print(f"Answer VERIFIED: {result.get('reasoning', '')}")
+
+        # MC answer selection — single final call after all research is done
+        if "Answer choices:" in objective:
+            print("  MC choices detected — selecting answer...")
+            mc_response = skill_select_mc_answer(objective, answer)
+            state["final_cited_answer"] = answer + "\n\n---\n\n" + mc_response
+            print(f"  MC selection: {mc_response[:120]}...")
     else:
         retries = state.get("verification_retries", 0)
         state["verification_retries"] = retries + 1
