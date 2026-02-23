@@ -1,0 +1,133 @@
+{
+  "label": "trace_multihop",
+  "subject": "MULTI_HOP",
+  "question": "A consumer is injured by a defective product. Under what theories can the manufacturer be held liable, and what defenses are available?",
+  "gold_idx": "",
+  "correct_answer": "",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": null,
+    "mq_recall": null,
+    "raw_conf": 0.784740003908282,
+    "mq_conf": 0.8197955522667086,
+    "rewrite": {
+      "primary": "product liability strict liability negligence warranty breach design defect manufacturing defect failure to warn defenses",
+      "alternatives": [
+        "defective product negligence cause of action breach of warranty implied warranty merchantability privity",
+        "tort liability product defects risk-utility test foreseeable use misuse contributory negligence assumption of risk"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What are the elements of a negligence claim against a manufacturer for a defective product?",
+        "status": "completed",
+        "optimized_query": "product liability negligence strict liability manufacturing defect design defect failure to warn duty of care",
+        "retrieved_doc_ids": [
+          "mbe_437",
+          "mbe_1801",
+          "mbe_287",
+          "mbe_357",
+          "mbe_600"
+        ],
+        "confidence": 0.8215444251572718,
+        "passage_previews": [
+          "The doctrine of strict products liability imposes strict liability in tort on the manufacturer of a defective product an",
+          "To prevail on a negligence claim, a person must show negligent conduct by the manufacturer, leading to the supplying of ",
+          "A claim for strict products liability based on a design defect differs from a cause of action for a negligently designed",
+          "The elements for a strict-liability manufacture defect claim are the same as those for a design defect claim: (i) the pr",
+          "The elements of a claim for failure to warn based in negligence are: (1) the defendant designed the product at issue; (2"
+        ],
+        "answer": "**Rule**: A negligence claim can be brought against a manufacturer for supplying a dangerously defective product [Source 2]. This differs from strict products liability in that negligence requires proof of unreasonable care, while strict liability does not [Source 2] [Source 3].\n\n**Elements**: To prevail on a negligence claim, a plaintiff must demonstrate negligent conduct by the manufacturer resulting in a dangerously defective product [Source 2]. For a failure to warn claim, the elements are: (1) the defendant designed the product, (2) the product lacked an adequate warning, (3) the defendant failed to exercise ordinary care in warning of the risk, and (4) the plaintiff\u2019s damages resulted from the inadequate warning [Source 5]. \n\n**Defects**: Defects can arise from flaws in manufacturing, design, or inadequate warnings [Source 1]. A design defect exists if the risks of the design outweigh its benefits, or if the product fails to perform as safely as an ordinary consumer would expect [Source 1]. \n\n## Sources\n- **Source 1**: Types of product defects (manufacturing, design, warning) and tests for design defects.\n- **Source 2**: Elements of a negligence claim against a manufacturer.\n- **Source 3**: Distinction between negligence and strict liability in design defect cases.\n- **Source 4**: Elements of strict liability for manufacture and design defects.\n- **Source 5**: Elements of a negligence claim for failure to warn."
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Strict Liability",
+        "question": "What are the elements of a strict products liability claim against a manufacturer for a defective product?",
+        "status": "completed",
+        "optimized_query": "strict products liability manufacturing defect design defect failure to warn negligence per se causation damages",
+        "retrieved_doc_ids": [
+          "mbe_1632",
+          "mbe_1578",
+          "mbe_1589",
+          "mbe_2317",
+          "caselaw_12509567_179"
+        ],
+        "confidence": 0.8032080877006644,
+        "passage_previews": [
+          "A products liability action based on strict liability requires: (i) a strict duty by a commercial supplier; (ii) product",
+          "One of the elements of a prima facie case for products liability based on strict liability is causation of some harm to ",
+          "To establish a prima facie case in products liability based on strict liability in tort, the following elements must be ",
+          "In a products liability action based on strict liability, the plaintiff need show only (i) an absolute duty owed by a co",
+          "When a plaintiff contends that a defectively designed medical device caused her injuries, the question of punitive damag"
+        ],
+        "answer": "**Rule**: A strict products liability claim against a manufacturer requires a demonstration of specific elements [Source 1] [Source 3] [Source 4].\n\n**Elements**: To establish a prima facie case, a plaintiff must prove: (1) a strict duty owed by a commercial supplier [Source 1] [Source 3] [Source 4]; (2) production or sale of a defective product [Source 1] [Source 3] [Source 4]; (3) actual and proximate cause [Source 1] [Source 2] [Source 3] [Source 4]; and (4) damages [Source 1] [Source 2] [Source 3] [Source 4]. \n\n**Defectiveness**: A product is legally defective if it is unreasonably dangerous and could be made safer with adequate warnings, even if functioning as intended [Source 1] [Source 3]. In failure to warn cases, a presumption exists that an adequate warning would have been read and heeded [Source 1] [Source 3], though a jury can reject this presumption [Source 3].\n\n**Causation**: The defect must actually and proximately cause harm to the plaintiff [Source 2].\n\n## Sources\n- **Source 1**: Overview of strict products liability elements and defectiveness.\n- **Source 2**: Causation element of strict products liability.\n- **Source 3**: Detailed breakdown of elements, including defectiveness and presumption for warnings.\n- **Source 4**: Restatement of elements and clarification regarding intermediary negligence.\n- **Source 5**: Discussion of punitive damages in products liability cases."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Defenses to Liability",
+        "question": "What common defenses are available to manufacturers facing product liability claims, encompassing both negligence and strict liability?",
+        "status": "completed",
+        "optimized_query": "product liability defenses assumption of risk misuse contributory negligence comparative fault strict liability negligence",
+        "retrieved_doc_ids": [
+          "mbe_2125",
+          "mbe_1573",
+          "mbe_1997",
+          "mbe_223",
+          "mbe_1576"
+        ],
+        "confidence": 0.7986256896301118,
+        "passage_previews": [
+          "Manufacturers must foresee reasonably foreseeable misuses of a product, but a product manufacturer is not liable if the ",
+          "In jurisdictions applying pure comparative negligence (which you are to assume is the rule unless otherwise stated), imp",
+          "A prima facie case in products liability based on strict tort liability consists of: (i) an absolute duty owed by a comm",
+          "contributory negligence is a defense to a negligence claim in a product liability action",
+          "If the plaintiff is able to establish a prima facie case of negligence against the defendant, the defendant's defense th"
+        ],
+        "answer": "**Rule**: Manufacturers can be held liable under theories of both negligence and strict liability for injuries caused by their products [Source 3].\n\n**Defenses to Negligence**: Contributory negligence is a defense to a negligence claim in a product liability action [Source 4]. In comparative negligence jurisdictions, a plaintiff\u2019s recovery is not barred by their own negligence, and under pure comparative negligence, recovery is allowed regardless of the plaintiff\u2019s degree of fault [Source 5].\n\n**Defenses to Strict Liability**: A manufacturer is not liable if an injury results from an unintended and unforeseeable misuse of the product [Source 1]. In jurisdictions applying comparative negligence, a plaintiff\u2019s unreasonable assumption of risk reduces their damages [Source 2]. However, ordinary contributory negligence is *not* a defense to strict liability in jurisdictions that do not apply comparative fault rules [Source 3]. Absence of privity is also not a defense in strict liability actions [Source 1].\n\n## Sources\n- **Source 1**: Unforeseeable misuse as a defense, no privity requirement in strict liability.\n- **Source 2**: Assumption of risk as a variant of contributory negligence in comparative negligence jurisdictions.\n- **Source 3**: Prima facie case for strict liability, no contributory negligence defense in some jurisdictions.\n- **Source 4**: Contributory negligence as a defense to negligence claims.\n- **Source 5**: Comparative negligence and recovery despite plaintiff\u2019s negligence."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What are the elements of a negligence claim against a manufacturer for a defective product?",
+        "answer": "**Rule**: A negligence claim can be brought against a manufacturer for supplying a dangerously defective product [Source 2]. This differs from strict products liability in that negligence requires proof of unreasonable care, while strict liability does not [Source 2] [Source 3].\n\n**Elements**: To pr...",
+        "confidence": 0.8215444251572718,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "What are the elements of a strict products liability claim against a manufacturer for a defective product?",
+        "answer": "**Rule**: A strict products liability claim against a manufacturer requires a demonstration of specific elements [Source 1] [Source 3] [Source 4].\n\n**Elements**: To establish a prima facie case, a plaintiff must prove: (1) a strict duty owed by a commercial supplier [Source 1] [Source 3] [Source 4];...",
+        "confidence": 0.8032080877006644,
+        "status": "completed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What common defenses are available to manufacturers facing product liability claims, encompassing both negligence and strict liability?",
+        "answer": "**Rule**: Manufacturers can be held liable under theories of both negligence and strict liability for injuries caused by their products [Source 3].\n\n**Defenses to Negligence**: Contributory negligence is a defense to a negligence claim in a product liability action [Source 4]. In comparative neglige...",
+        "confidence": 0.7986256896301118,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "**Rule**: A negligence claim can be brought against a manufacturer for supplying a dangerously defective product [Source 2]. This differs from strict products liability in that negligence requires proof of unreasonable care, while strict liability does not [Source 2] [Source 3].\n\n**Elements**: To prevail on a negligence claim, a plaintiff must demonstrate negligent conduct by the manufacturer resulting in a dangerously defective product [Source 2]. For a failure to warn claim, the elements are: (1) the defendant designed the product, (2) the product lacked an adequate warning, (3) the defendant failed to exercise ordinary care in warning of the risk, and (4) the plaintiff\u2019s damages resulted from the inadequate warning [Source 5]. \n\n**Defects**: Defects can arise from flaws in manufacturing, design, or inadequate warnings [Source 1]. A design defect exists if the risks of the design outweigh its benefits, or if the product fails to perform as safely as an ordinary consumer would expect [Source 1]. \n\n## Sources\n- **Source 1**: Types of product defects (manufacturing, design, warning) and tests for design defects.\n- **Source 2**: Elements of a negligence claim against a manufacturer.\n- **Source 3**: Distinction between negligence and strict liability in design defect cases.\n- **Source 4**: Elements of strict liability for manufacture and design defects.\n- **Source 5**: Elements of a negligence claim for failure to warn.\n\n---\n\n**Rule**: A strict products liability claim against a manufacturer requires a demonstration of specific elements [Source 1] [Source 3] [Source 4].\n\n**Elements**: To establish a prima facie case, a plaintiff must prove: (1) a strict duty owed by a commercial supplier [Source 1] [Source 3] [Source 4]; (2) production or sale of a defective product [Source 1] [Source 3] [Source 4]; (3) actual and proximate cause [Source 1] [Source 2] [Source 3] [Source 4]; and (4) damages [Source 1] [Source 2] [Source 3] [Source 4]. \n\n**Defectiveness**: A product is legally defective if it is unreasonably dangerous and could be made safer with adequate warnings, even if functioning as intended [Source 1] [Source 3]. In failure to warn cases, a presumption exists that an adequate warning would have been read and heeded [Source 1] [Source 3], though a jury can reject this presumption [Source 3].\n\n**Causation**: The defect must actually and proximately cause harm to the plaintiff [Source 2].\n\n## Sources\n- **Source 1**: Overview of strict products liability elements and defectiveness.\n- **Source 2**: Causation element of strict products liability.\n- **Source 3**: Detailed breakdown of elements, including defectiveness and presumption for warnings.\n- **Source 4**: Restatement of elements and clarification regarding intermediary negligence.\n- **Source 5**: Discussion of punitive damages in products liability cases.\n\n---\n\n**Rule**: Manufacturers can be held liable under theories of both negligence and strict liability for injuries caused by their products [Source 3].\n\n**Defenses to Negligence**: Contributory negligence is a defense to a negligence claim in a product liability action [Source 4]. In comparative negligence jurisdictions, a plaintiff\u2019s recovery is not barred by their own negligence, and under pure comparative negligence, recovery is allowed regardless of the plaintiff\u2019s degree of fault [Source 5].\n\n**Defenses to Strict Liability**: A manufacturer is not liable if an injury results from an unintended and unforeseeable misuse of the product [Source 1]. In jurisdictions applying comparative negligence, a plaintiff\u2019s unreasonable assumption of risk reduces their damages [Source 2]. However, ordinary contributory negligence is *not* a defense to strict liability in jurisdictions that do not apply comparative fault rules [Source 3]. Absence of privity is also not a defense in strict liability actions [Source 1].\n\n## Sources\n- **Source 1**: Unforeseeable misuse as a defense, no privity requirement in strict liability.\n- **Source 2**: Assumption of risk as a variant of contributory negligence in comparative negligence jurisdictions.\n- **Source 3**: Prima facie case for strict liability, no contributory negligence defense in some jurisdictions.\n- **Source 4**: Contributory negligence as a defense to negligence claims.\n- **Source 5**: Comparative negligence and recovery despite plaintiff\u2019s negligence.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "suggested_query": "",
+      "reasoning": "The answer accurately summarizes the theories of liability (negligence and strict liability) and available defenses, drawing directly from the provided evidence. It correctly outlines the elements of each claim and the distinctions between them. The discussion of defenses aligns with the passages regarding contributory/comparative negligence and unforeseeable misuse."
+    },
+    "is_verified": true,
+    "avg_confidence": 0.8077927341626827
+  },
+  "mc_result": null,
+  "metrics": {
+    "elapsed_sec": 44.7,
+    "total_llm_calls": 11,
+    "steps_completed": 3,
+    "steps_failed": 0
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "label": "trace_realprop",
+  "subject": "REAL PROP.",
+  "question": "Owen owned Greenacre, a tract of land, in fee simple. By warranty deed he conveyed Greenacre to Lafe for life \"and from and after the death of Lafe to Rem, her heirs and assigns.\" Subsequently Rem died, devising all of her estate to Dan. Rem was survived by Hannah, her sole heir-at-law. Shortly thereafter Lafe died, survived by Owen, Dan, and Hannah. Title to Greenacre now is in",
+  "gold_idx": "mbe_546",
+  "correct_answer": "B",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.6751893071497502,
+    "mq_conf": 0.7731740252196471,
+    "rewrite": {
+      "primary": "life estate remainder future interest fee tail reversionary interest Rule Against Perpetuities inheritance devise",
+      "alternatives": [
+        "vested remainder contingent remainder executory interest fee simple determinable marketability of title",
+        "devising heirs at law inheritance property law estate planning trust conveyance"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What is a life estate and how does it affect future interests?",
+        "status": "completed",
+        "optimized_query": "life estate future interests remainder reversion Rule Against Perpetuities property law estates in land",
+        "retrieved_doc_ids": [
+          "mbe_1776",
+          "mbe_1762",
+          "mbe_1730",
+          "mbe_1433",
+          "mbe_335"
+        ],
+        "confidence": 0.7892127013015469,
+        "passage_previews": [
+          "Under the Rule Against Perpetuities, an interest in property is not valid unless it will vest, if at all, not later than",
+          "Under the Rule Against Perpetuities, an interest in property is not valid unless it will vest, if at all, not later than",
+          "The Rule of Perpetuities mandates that an interest in land must vest not later than twenty-one years after the death of ",
+          "A person owning an estate in real property can create and transfer a lesser estate. The residue left in the grantor, whi",
+          "A life tenant's relation to the remainderman is a quasi-fiduciary one in the sense that he must exercise reasonable care"
+        ],
+        "answer": "A life estate is a lesser estate that a person owning real property can create and transfer [Source 4]. A life tenant must exercise reasonable care to preserve the property for the remainderman and cannot defeat the remainderman\u2019s estate [Source 5]. \n\nA life tenant has obligations regarding the property, including paying taxes and interest on any prior mortgage encumbrances [Source 5]. If a life tenant fails to meet these obligations, the future interest holder may be required to contribute to payments, and the life tenant cannot acquire title through a tax sale that excludes the remainderman [Source 5].  The life tenant may purchase at a foreclosure sale, but must allow the remainderman to contribute their share of the cost [Source 5].\n\nRemainders always follow life estates [Source 1]. The Rule Against Perpetuities applies to future interests, including those following life estates, requiring that interests vest no later than 21 years after a life in being [Source 1] [Source 2] [Source 3] [Source 4].\n\n## Sources\n- **Source 1**: Relationship between life estates and remainders, Rule Against Perpetuities\n- **Source 2**: Rule Against Perpetuities and validity of interests\n- **Source 3**: Rule of Perpetuities and vesting requirements\n- **Source 4**: Creation and transfer of life estates, reversionary interests\n- **Source 5**: Life tenant\u2019s duties to remainderman, tax obligations, and foreclosure rights."
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Future Interests - Remainders",
+        "question": "What is a remainder interest, and how does it vest?",
+        "status": "completed",
+        "optimized_query": "remainder interest vesting future interest Rule Against Perpetuities present estates contingent remainder",
+        "retrieved_doc_ids": [
+          "mbe_1776",
+          "mbe_355",
+          "mbe_1762",
+          "mbe_1507",
+          "mbe_1438"
+        ],
+        "confidence": 0.8184787845058439,
+        "passage_previews": [
+          "Under the Rule Against Perpetuities, an interest in property is not valid unless it will vest, if at all, not later than",
+          "The rule against perpetuities in Virginia voids a contingent remainder or executory interest, created inter vivos or by ",
+          "Under the Rule Against Perpetuities, an interest in property is not valid unless it will vest, if at all, not later than",
+          "A remainder is a future interest created in a transferee that is capable of taking in present possession on the natural ",
+          "A remainder is a future interest created in a transferee that is capable of taking in possession on the natural terminat"
+        ],
+        "answer": "**Rule**: A remainder is a future interest created in a transferee capable of taking possession upon the natural termination of a preceding estate [Source 4] [Source 5]. Remainders typically follow life estates [Source 1] [Source 4].\n\n**Vesting**: A remainder is vested if the beneficiaries are ascertainable and their taking in possession is not subject to a condition precedent [Source 5]. A vested remainder can be subject to total divestment if possession is subject to a condition subsequent [Source 3] [Source 5]. A remainder is contingent if its taking is subject to a condition precedent or is created in favor of unborn/unascertained persons [Source 4]. \n\nThe Rule Against Perpetuities dictates that an interest, including remainders, must vest, if at all, within 21 years after a life in being at the creation of the interest [Source 1] [Source 2] [Source 3].\n\n## Sources\n- **Source 1**: Definition of remainder, relationship to life estates, and introduction to the Rule Against Perpetuities.\n- **Source 2**: Virginia-specific application of the Rule Against Perpetuities.\n- **Source 3**: Vesting, executory interests, and the \"all-or-nothing\" rule under the Rule Against Perpetuities.\n- **Source 4**: Definition of remainder and contingent remainders.\n- **Source 5**: Definition of vested and vested remainder subject to open, and vested remainder subject to total divestment."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Future Interests - Rule Against Perpetuities",
+        "question": "What is the Rule Against Perpetuities and how does it apply to remainders?",
+        "status": "completed",
+        "optimized_query": "Rule Against Perpetuities remainder interest vesting period lives in being perpetuities savings clause",
+        "retrieved_doc_ids": [
+          "mbe_1776",
+          "mbe_355",
+          "mbe_2301",
+          "mbe_966",
+          "mbe_1762"
+        ],
+        "confidence": 0.8008022359510202,
+        "passage_previews": [
+          "Under the Rule Against Perpetuities, an interest in property is not valid unless it will vest, if at all, not later than",
+          "The rule against perpetuities in Virginia voids a contingent remainder or executory interest, created inter vivos or by ",
+          "The Rule Against Perpetuities provides that no interest in property is valid unless it must vest, if at all, not later t",
+          "The Rule Against Perpetuities requires that an interest in property, to be valid, must vest, if at all, not later than 2",
+          "Under the Rule Against Perpetuities, an interest in property is not valid unless it will vest, if at all, not later than"
+        ],
+        "answer": "**Rule**: The Rule Against Perpetuities dictates that an interest in property is not valid unless it vests, if at all, not later than 21 years after a life in being at the creation of the interest [Source 1] [Source 3] [Source 4] [Source 5].\n\n**Application to Remainders**: The validity of interests is determined at the time of creation, considering existing facts [Source 1]. In Virginia, the period is 21 years and 10 months [Source 2]. The test for invalidity isn\u2019t actual vesting within the period, but the *possibility* of vesting beyond it [Source 3]. Remainders always follow life estates [Source 1]. Contingent remainders and executory interests are subject to the Rule [Source 1] [Source 5]. \n\n**Further Considerations**: The \u201clives in being plus 21 years\u201d period begins when the interest is created, and the measuring lives must be alive at that time [Source 1]. The Rule does not apply to options connected to leaseholds [Source 3]. A gift to charity followed by a gift to another charity is an exception [Source 5].\n\n\n\n## Sources\n- **Source 1**: General overview of the Rule Against Perpetuities and its application to remainders.\n- **Source 2**: Specifies the Rule Against Perpetuities period in Virginia.\n- **Source 3**: Details the test for invalidity and exceptions regarding options.\n- **Source 4**: Clarifies the Rule\u2019s application to wills and the effect of a violating interest.\n- **Source 5**: Addresses the Rule\u2019s application to irrevocable trusts, charitable gifts, and executory interests."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What is a life estate and how does it affect future interests?",
+        "answer": "A life estate is a lesser estate that a person owning real property can create and transfer [Source 4]. A life tenant must exercise reasonable care to preserve the property for the remainderman and cannot defeat the remainderman\u2019s estate [Source 5]. \n\nA life tenant has obligations regarding the prop...",
+        "confidence": 0.7892127013015469,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "What is a remainder interest, and how does it vest?",
+        "answer": "**Rule**: A remainder is a future interest created in a transferee capable of taking possession upon the natural termination of a preceding estate [Source 4] [Source 5]. Remainders typically follow life estates [Source 1] [Source 4].\n\n**Vesting**: A remainder is vested if the beneficiaries are ascer...",
+        "confidence": 0.8184787845058439,
+        "status": "completed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What is the Rule Against Perpetuities and how does it apply to remainders?",
+        "answer": "**Rule**: The Rule Against Perpetuities dictates that an interest in property is not valid unless it vests, if at all, not later than 21 years after a life in being at the creation of the interest [Source 1] [Source 3] [Source 4] [Source 5].\n\n**Application to Remainders**: The validity of interests ...",
+        "confidence": 0.8008022359510202,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "A life estate is a lesser estate that a person owning real property can create and transfer [Source 4]. A life tenant must exercise reasonable care to preserve the property for the remainderman and cannot defeat the remainderman\u2019s estate [Source 5]. \n\nA life tenant has obligations regarding the property, including paying taxes and interest on any prior mortgage encumbrances [Source 5]. If a life tenant fails to meet these obligations, the future interest holder may be required to contribute to payments, and the life tenant cannot acquire title through a tax sale that excludes the remainderman [Source 5].  The life tenant may purchase at a foreclosure sale, but must allow the remainderman to contribute their share of the cost [Source 5].\n\nRemainders always follow life estates [Source 1]. The Rule Against Perpetuities applies to future interests, including those following life estates, requiring that interests vest no later than 21 years after a life in being [Source 1] [Source 2] [Source 3] [Source 4].\n\n## Sources\n- **Source 1**: Relationship between life estates and remainders, Rule Against Perpetuities\n- **Source 2**: Rule Against Perpetuities and validity of interests\n- **Source 3**: Rule of Perpetuities and vesting requirements\n- **Source 4**: Creation and transfer of life estates, reversionary interests\n- **Source 5**: Life tenant\u2019s duties to remainderman, tax obligations, and foreclosure rights.\n\n---\n\n**Rule**: A remainder is a future interest created in a transferee capable of taking possession upon the natural termination of a preceding estate [Source 4] [Source 5]. Remainders typically follow life estates [Source 1] [Source 4].\n\n**Vesting**: A remainder is vested if the beneficiaries are ascertainable and their taking in possession is not subject to a condition precedent [Source 5]. A vested remainder can be subject to total divestment if possession is subject to a condition subsequent [Source 3] [Source 5]. A remainder is contingent if its taking is subject to a condition precedent or is created in favor of unborn/unascertained persons [Source 4]. \n\nThe Rule Against Perpetuities dictates that an interest, including remainders, must vest, if at all, within 21 years after a life in being at the creation of the interest [Source 1] [Source 2] [Source 3].\n\n## Sources\n- **Source 1**: Definition of remainder, relationship to life estates, and introduction to the Rule Against Perpetuities.\n- **Source 2**: Virginia-specific application of the Rule Against Perpetuities.\n- **Source 3**: Vesting, executory interests, and the \"all-or-nothing\" rule under the Rule Against Perpetuities.\n- **Source 4**: Definition of remainder and contingent remainders.\n- **Source 5**: Definition of vested and vested remainder subject to open, and vested remainder subject to total divestment.\n\n---\n\n**Rule**: The Rule Against Perpetuities dictates that an interest in property is not valid unless it vests, if at all, not later than 21 years after a life in being at the creation of the interest [Source 1] [Source 3] [Source 4] [Source 5].\n\n**Application to Remainders**: The validity of interests is determined at the time of creation, considering existing facts [Source 1]. In Virginia, the period is 21 years and 10 months [Source 2]. The test for invalidity isn\u2019t actual vesting within the period, but the *possibility* of vesting beyond it [Source 3]. Remainders always follow life estates [Source 1]. Contingent remainders and executory interests are subject to the Rule [Source 1] [Source 5]. \n\n**Further Considerations**: The \u201clives in being plus 21 years\u201d period begins when the interest is created, and the measuring lives must be alive at that time [Source 1]. The Rule does not apply to options connected to leaseholds [Source 3]. A gift to charity followed by a gift to another charity is an exception [Source 5].\n\n\n\n## Sources\n- **Source 1**: General overview of the Rule Against Perpetuities and its application to remainders.\n- **Source 2**: Specifies the Rule Against Perpetuities period in Virginia.\n- **Source 3**: Details the test for invalidity and exceptions regarding options.\n- **Source 4**: Clarifies the Rule\u2019s application to wills and the effect of a violating interest.\n- **Source 5**: Addresses the Rule\u2019s application to irrevocable trusts, charitable gifts, and executory interests.\n\n---\n\n**Answer: (B)**\nReasoning:\n**(A) Owen, because the contingent remainder never vested and Owen's reversion was entitled to possession immediately upon Lafe's death.** This is incorrect. The remainder to Rem was not contingent. Rem was an ascertainable person, and her taking was not subject to any condition precedent. Therefore, it was a vested remainder. Owen\u2019s reversion would only take effect if Rem\u2019s interest was extinguished.\n**(B) Dan, because the vested remainder in Rem was transmitted by her will.** This is correct. Rem had a vested remainder in Greenacre. Vested remainders are inheritable and pass through the remainderman\u2019s estate by will or intestacy. Rem devised her interest to Dan, and thus Dan now holds title. All elements of a vested remainder are met: Rem was ascertainable, and there was no condition precedent to her taking possession.\n**(C) Hannah, because she is Rem's heir.** This is incorrect. While Hannah is Rem\u2019s heir, a vested remainder passes by will or intestacy, not by inheritance. Rem\u2019s will controlled the disposition of her vested remainder.\n**(D) either Owen or Hannah, depending upon whether the destructibility of contingent remainders is recognized in the applicable jurisdiction.** This is incorrect. The remainder was *not* contingent, so the destructibility doctrine is irrelevant. The remainder vested in Rem, and passed to Dan via her will.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "suggested_query": "",
+      "reasoning": "The provided text extensively discusses life estates, remainders, and the Rule Against Perpetuities. While the question asks about the ownership of Greenacre after certain events, the provided text focuses on the legal principles governing these types of property interests and doesn't offer a direct answer to the question of who owns the property. However, it does not contradict any potential answer choices, nor does it fabricate any legal rules. The answer choices would require applying these principles to the specific facts, which is not done in the provided text. Therefore, the response is acceptable as it accurately reflects the content of the provided sources."
+    },
+    "is_verified": true,
+    "avg_confidence": 0.802831240586137
+  },
+  "mc_result": {
+    "correct": true,
+    "method": "text_match",
+    "details": "answer contains correct choice text"
+  },
+  "metrics": {
+    "elapsed_sec": 72.2,
+    "total_llm_calls": 12,
+    "steps_completed": 3,
+    "steps_failed": 0
+  }
+}

@@ -2,11 +2,11 @@
 
 Systematic audit of yellow/red flags across the codebase. Each flag has severity, evidence from traces, and proposed fixes.
 
-**Latest eval baseline** (8-query trace, Gemma 3 27B, 20K passages, threshold 0.70, cross-step dedup ON):
-- MC accuracy: 5/6 (83%)
+**Latest eval baseline** (3-query trace, Gemma 3 27B, 20K passages, threshold 0.70, cross-step dedup ON, verifier removed):
+- MC accuracy: 2/3 (torts Y, contracts Y, crimlaw N)
+- LLM calls: 11/query (down from 12 after verifier removal)
 - Passage diversity: 100% unique docs on every query
-- Steps with failures: 3/26 (evaluator now rejects borderline steps)
-- Avg LLM calls: 11.9/query
+- Citation format: `[Query X][Source Y]` with step headers
 
 ---
 
@@ -30,39 +30,23 @@ Systematic audit of yellow/red flags across the codebase. Each flag has severity
 - **Problem**: Fallback plan dict still had `"expectation"` key removed from PlanStep model.
 - **Fix**: Removed the key.
 
----
+### F5. Verifier always passes (was R1)
+- **Problem**: 8/8 traced queries pass first attempt. Corrective-step path never triggered. 1 wasted LLM call/query.
+- **Fix**: Removed verifier LLM call. Auto-pass verification. Kept MC selection in verify_answer_node. Removed dead corrective-step retry code and `verification_retries` state field.
+- **Result**: 11 LLM calls/query (down from 12). Skill file `verify_answer.md` retained for future use.
 
-## RED FLAGS (open)
+### F6. QA memory cache serves stale MC answers (was R2)
+- **Problem**: Cached full answer including MC letter selection. Write threshold 0.45 (everything qualifies).
+- **Fix**: Strip MC selection (`**Answer: (X)**` block) before caching. Raise write threshold to 0.70.
+- **Result**: MC selection re-runs fresh each time. Only high-confidence answers cached.
 
-### R1. Verifier always passes
-- **File**: `main.py` verify_answer_node, `skills/verify_answer.md`
-- **Evidence**: 8/8 traced queries pass first attempt (both before and after threshold/dedup changes). Corrective-step path has never triggered in any traced eval.
-- **Root cause**: Skill says "pass by default", "when in doubt PASS". Verifier sees the same evidence the synthesizer used — it's checking whether the LLM contradicted itself.
-- **Impact**: 1 wasted LLM call/query (~8% of total). False "verified" label. Dead code in corrective-step path.
-- **Fix options**:
-  - **(A) Independent evidence**: Re-retrieve for the *answer text* (not the original question) and verify against those passages. Catches claims not grounded in any retrievable passage. Adds 1 retrieval call but no LLM call.
-  - **(B) Remove verifier**: Save the LLM call. Accept that synthesis quality is the synthesizer's job. Simplest change, saves ~5s/query.
-  - **(C) Adversarial verifier**: Change skill to "try to find problems." Risk: false failures increase LLM calls via retries.
-- **Recommendation**: (B) is safest. The verifier adds no signal. If we want verification later, (A) is the right architecture.
+### F7. Silent exception swallowing (was R3)
+- **Problem**: 6 instances of `except Exception: pass` in source-diverse retrieval paths.
+- **Fix**: Added `import logging` and `logger = logging.getLogger(__name__)` to rag_utils.py. All catches now log `logger.warning("retrieval pool error: %s", e)`.
 
-### R2. QA memory cache serves stale answers
-- **File**: `rag_utils.py` check_memory/write_to_memory, `main.py` planner_node/memory_writeback_node
-- **Evidence**: Caused wrong answer in testing (cached MC letter from prior model/skill config). Now mitigated by clearing cache at eval start.
-- **Root cause**: No invalidation on skill/model/corpus changes. Writes at confidence >= 0.45 (everything qualifies). Caches full answer including MC selection.
-- **Impact**: Mitigated for eval (auto-clear). Still a risk for demo/production use where cache persists across sessions.
-- **Fix options**:
-  - **(A) Strip MC from cached answer**: Only cache the research portion (`_aggregate_completed_answers`), not the `--- **Answer: (X)**` MC selection. MC selection re-runs each time.
-  - **(B) Version the cache**: Store a hash of skill file contents + model name in metadata. Invalidate on mismatch.
-  - **(C) Raise write threshold**: From 0.45 to 0.70 (match eval threshold). Fewer but higher-quality cache entries.
-- **Recommendation**: (A) + (C) together. Strip MC, raise write threshold.
-
-### R3. Silent exception swallowing in rag_utils.py
-- **File**: `rag_utils.py` lines 164-169, 170-176, and 4 more in multi-query source-diverse path
-- **Evidence**: 6 instances of `except Exception: pass` in source-diverse retrieval paths.
-- **Root cause**: Intended for ChromaDB filter errors when a source type doesn't exist. Catches everything.
-- **Impact**: Low today (source-diverse is off by default). Any ChromaDB error (disk full, corruption) is silently swallowed.
-- **Fix options**: Replace bare `except Exception: pass` with `except Exception as e: logger.warning("retrieval pool error: %s", e)`. No behavior change, just visibility.
-- **Recommendation**: Trivial fix. Just add logging.
+### F8. Raw answer concatenation (was Y4)
+- **Problem**: Source citations restarted per step. `[Source 1]` in step 1 vs step 2 were different passages.
+- **Fix**: `_aggregate_completed_answers()` now adds `### Step N: {phase}` headers and rewrites `[Source N]` → `[Query X][Source N]`.
 
 ---
 
@@ -72,22 +56,12 @@ Systematic audit of yellow/red flags across the codebase. Each flag has severity
 - **File**: `main.py` classifier_node, `skills/classify_and_route.md`
 - **Evidence**: 6/6 MC queries classified multi_hop. Only out-of-corpus got simple.
 - **Root cause**: Skill says "when in doubt, classify as multi_hop."
-- **Impact**: Every MC query costs 12+ LLM calls instead of 5. Not a correctness issue — may even help (more research = more evidence for MC selector).
+- **Impact**: Every MC query costs 11 LLM calls instead of ~4. Not a correctness issue — may even help.
 - **Recommendation**: Accept. Safety margin is worth the cost on free-tier models.
 - **Status**: Accepted
 
-### Y4. Raw answer concatenation (no merge/dedup)
-- **File**: `main.py` `_aggregate_completed_answers()`
-- **Evidence**: Final answer is 3 step answers joined by `---`. Source citations restart per step ([Source 1] in step 1 vs [Source 1] in step 2 are different passages).
-- **Impact**: MC selector sees overlapping content. Citation references are ambiguous across steps. With dedup fix (F2), content overlap is reduced but citation numbering still restarts.
-- **Fix options**:
-  - **(A) Global citation renumbering**: Post-process the joined answer to renumber [Source N] sequentially across steps. No LLM call.
-  - **(B) Section headers**: Prefix each step's answer with `### Step N: {phase}` so the MC selector can distinguish.
-  - **(C) Accept as-is**: MC selector at 83% accuracy handles it well enough.
-- **Recommendation**: (A) is clean and mechanical. Could combine with (B).
-
 ### Y6. String-matching for retryable errors
-- **File**: `main.py` `_llm_call()` lines 190-193
+- **File**: `main.py` `_llm_call()` lines 188-192
 - **Evidence**: `"connection" in err_str` could match "connection type is invalid" (not transient).
 - **Impact**: No observed false matches. Worst case: 2 extra retries with delay on a non-transient error.
 - **Recommendation**: Low priority. Could tighten to check for specific HTTP status codes in the string.
@@ -120,12 +94,3 @@ Systematic audit of yellow/red flags across the codebase. Each flag has severity
 - **Impact**: Fragile but works. Would matter if we added per-passage provenance tracking.
 - **Recommendation**: Low priority. Merge into list of `{"idx": str, "text": str}` dicts when needed.
 - **Status**: Low priority
-
----
-
-## Priority queue (next changes)
-
-1. **R3** — Add logging to silent exception catches (trivial, pure safety)
-2. **R1** — Remove verifier or give it independent evidence (saves 1 LLM call/query, removes false confidence)
-3. **R2** — Strip MC from cached answers + raise write threshold (prevents stale MC answers)
-4. **Y4** — Global citation renumbering in aggregated answer (cleaner MC selector input)

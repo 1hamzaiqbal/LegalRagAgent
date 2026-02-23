@@ -166,7 +166,6 @@ def trace_full_pipeline(question: str, gold_idx: str = "", correct_answer: str =
         "iteration_count": 0,
         "injection_check": {},
         "verification_result": {},
-        "verification_retries": 0,
         "memory_hit": {},
         "run_metrics": {},
     }

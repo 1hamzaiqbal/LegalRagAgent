@@ -1,0 +1,137 @@
+{
+  "label": "trace_contracts",
+  "subject": "CONTRACTS",
+  "question": "Which of the following fact patterns most clearly suggests an implied-in-fact contract?",
+  "gold_idx": "mbe_684",
+  "correct_answer": "C",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.80759225317853,
+    "mq_conf": 0.7771050682025689,
+    "rewrite": {
+      "primary": "implied-in-fact contract prior dealings course of conduct mutual intent contractual obligation",
+      "alternatives": [
+        "quasi-contract unjust enrichment reasonable expectation benefit conferred detrimental reliance",
+        "contract formation implied terms conduct manifesting assent mutual agreement past practice"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What are the required elements of an implied-in-fact contract?",
+        "status": "completed",
+        "optimized_query": "implied-in-fact contract elements conduct manifestation mutual intent reasonable reliance offer acceptance",
+        "retrieved_doc_ids": [
+          "mbe_1826",
+          "mbe_1181",
+          "mbe_759",
+          "mbe_797",
+          "caselaw_12532323_87"
+        ],
+        "confidence": 0.7592213811009795,
+        "passage_previews": [
+          "An implied-in-fact contract is a contract formed by manifestations of assent other than oral or written language, i.e., ",
+          "An implied-in-fact contract is formed by manifestations of assent other than oral or written language, i.e., by conduct.",
+          "\u201cFormation of a valid contract requires that there be a meeting of the minds as evidenced by a manifestation of mutual i",
+          "Contracts consist of an offer, acceptance, consideration, and intent by the parties to be bound by the contract. Day v. ",
+          "Even if Defendant demonstrated that Plaintiff was provided reasonable notice of the Ticket Contract, it would also need "
+        ],
+        "answer": "**Rule**: An implied-in-fact contract is formed through manifestations of assent, other than expressed language, such as conduct [Source 1] [Source 2] [Source 4].\n\n**Elements**: (1) An offer by one party and acceptance by the other [Source 3]. (2) This acceptance can be shown through conduct, even silently accepting offered benefits [Source 1] [Source 2] [Source 5]. (3) There must be a mutual manifestation of assent, or a \u201cmeeting of the minds,\u201d evidenced by conduct [Source 3] [Source 5]. (4) The party asserting the contract\u2019s existence bears the burden of establishing both its existence and terms [Source 3]. \n\n**Considerations**:  Intent to be bound is also a required element of a contract [Source 4]. The conduct manifesting assent must be intentional, and the actor must realize the other party may infer assent from that conduct [Source 5].\n\n## Sources\n- **Source 1**: Definition of implied-in-fact contract and acceptance through inaction.\n- **Source 2**: Formation of implied-in-fact contracts through conduct and acceptance of benefits.\n- **Source 3**: Offer and acceptance as evidence of a meeting of the minds.\n- **Source 4**: General contract elements, including implied contracts.\n- **Source 5**: Mutual assent and the requirement of intent in manifesting acceptance through conduct."
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Fact Pattern Analysis",
+        "question": "How do courts determine whether conduct manifests assent to form an implied-in-fact contract?",
+        "status": "completed",
+        "optimized_query": "implied-in-fact contract manifestation of assent objective intent conduct mutual agreement contract formation",
+        "retrieved_doc_ids": [
+          "mbe_1181",
+          "mbe_1826",
+          "mbe_759",
+          "caselaw_12532323_87",
+          "mbe_118"
+        ],
+        "confidence": 0.8161062589179385,
+        "passage_previews": [
+          "An implied-in-fact contract is formed by manifestations of assent other than oral or written language, i.e., by conduct.",
+          "An implied-in-fact contract is a contract formed by manifestations of assent other than oral or written language, i.e., ",
+          "\u201cFormation of a valid contract requires that there be a meeting of the minds as evidenced by a manifestation of mutual i",
+          "Even if Defendant demonstrated that Plaintiff was provided reasonable notice of the Ticket Contract, it would also need ",
+          "Implied-in-fact contract An implied-in-fact contract is formed when parties\u2019 promises are inferred from their intentiona"
+        ],
+        "answer": "**Rule**: An implied-in-fact contract is formed through manifestations of assent, other than express language, specifically through conduct [Source 1] [Source 2] [Source 5].\n\n**Elements**: Courts determine assent by looking to whether a party knowingly accepts offered benefits [Source 1]. Even without a subjective \u201cmeeting of the minds,\u201d conduct objectively appearing to manifest a contractual intent is sufficient [Source 2]. A party\u2019s inaction can constitute acceptance if they silently take offered services with a reasonable opportunity to reject them and reason to know they were offered with expectation of compensation [Source 2]. \n\n**Factors**: The manifestation of assent can be implied from the parties\u2019 conduct and course of dealing, demonstrating consent to be bound [Source 4]. However, conduct only manifests assent if the party intends to engage in it and knows or has reason to know the other party may infer assent from that conduct [Source 4].\n\n## Sources\n- **Source 1**: Definition of implied-in-fact contract and acceptance of benefits.\n- **Source 2**: Objective manifestation of intent and silent acceptance of services.\n- **Source 3**: General contract formation requirements (offer and acceptance).\n- **Source 4**: Mutual manifestation of assent, conduct as evidence of agreement, and intent to be bound.\n- **Source 5**: Formation through intentional conduct and reasonable knowledge of assent."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Fact Pattern Analysis",
+        "question": "What legal standards do courts use to distinguish between implied-in-fact contracts and gratuitous benefits?",
+        "status": "completed",
+        "optimized_query": "implied-in-fact contract gratuitous benefit unjust enrichment quasi-contract detrimental reliance contract formation elements",
+        "retrieved_doc_ids": [
+          "mbe_1826",
+          "mbe_1181",
+          "mbe_523",
+          "mbe_450",
+          "mbe_2234"
+        ],
+        "confidence": 0.7477130916253054,
+        "passage_previews": [
+          "An implied-in-fact contract is a contract formed by manifestations of assent other than oral or written language, i.e., ",
+          "An implied-in-fact contract is formed by manifestations of assent other than oral or written language, i.e., by conduct.",
+          "A cause of action for quasi-contract invokes consideration of equitable principles, rather than of contract. \u201c \u2018... [It]",
+          "A contract implied in fact is \u201ca true contract containing all necessary elements for a binding agreement except that it ",
+          "Where there is no existing contractual relationship between the parties, restitution may be recovered in a quasi-contrac"
+        ],
+        "answer": "**Rule**: Courts distinguish between implied-in-fact contracts and situations giving rise to restitution based on whether a contract, though not expressly formed, can be inferred from conduct [Source 1] [Source 2] [Source 4]. Restitution, conversely, is an equitable remedy to prevent unjust enrichment where no enforceable contract exists [Source 1] [Source 3].\n\n**Implied-in-Fact Contract**: These contracts are formed by conduct manifesting assent, even without explicit language, and require an objective appearance of contractual intent [Source 1] [Source 2] [Source 4]. Acceptance can be demonstrated by silently accepting offered benefits with a reasonable opportunity to reject them and knowledge that compensation was expected [Source 1] [Source 2]. The contract must be based on evidence of intent to contract, not merely a course of dealing [Source 4].\n\n**Gratuitous Benefits/Quasi-Contract**: A quasi-contract action arises when a plaintiff confers a benefit on a defendant with a reasonable expectation of compensation, the defendant knew of this expectation, and the defendant would be unjustly enriched without payment [Source 5] [Source 3]. This remedy is based on equitable principles, not contractual ones [Source 3]. \n\n## Sources\n- **Source 1**: Implied-in-fact contracts vs. quasi-contracts; acceptance by inaction.\n- **Source 2**: Formation of implied-in-fact contracts through conduct.\n- **Source 3**: Quasi-contract as an equitable remedy for unjust enrichment.\n- **Source 4**: Defining implied-in-fact contracts and the requirement of intent.\n- **Source 5**: Elements for recovery in a quasi-contract action."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What are the required elements of an implied-in-fact contract?",
+        "answer": "**Rule**: An implied-in-fact contract is formed through manifestations of assent, other than expressed language, such as conduct [Source 1] [Source 2] [Source 4].\n\n**Elements**: (1) An offer by one party and acceptance by the other [Source 3]. (2) This acceptance can be shown through conduct, even s...",
+        "confidence": 0.7592213811009795,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "How do courts determine whether conduct manifests assent to form an implied-in-fact contract?",
+        "answer": "**Rule**: An implied-in-fact contract is formed through manifestations of assent, other than express language, specifically through conduct [Source 1] [Source 2] [Source 5].\n\n**Elements**: Courts determine assent by looking to whether a party knowingly accepts offered benefits [Source 1]. Even witho...",
+        "confidence": 0.8161062589179385,
+        "status": "completed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What legal standards do courts use to distinguish between implied-in-fact contracts and gratuitous benefits?",
+        "answer": "**Rule**: Courts distinguish between implied-in-fact contracts and situations giving rise to restitution based on whether a contract, though not expressly formed, can be inferred from conduct [Source 1] [Source 2] [Source 4]. Restitution, conversely, is an equitable remedy to prevent unjust enrichme...",
+        "confidence": 0.7477130916253054,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "**Rule**: An implied-in-fact contract is formed through manifestations of assent, other than expressed language, such as conduct [Source 1] [Source 2] [Source 4].\n\n**Elements**: (1) An offer by one party and acceptance by the other [Source 3]. (2) This acceptance can be shown through conduct, even silently accepting offered benefits [Source 1] [Source 2] [Source 5]. (3) There must be a mutual manifestation of assent, or a \u201cmeeting of the minds,\u201d evidenced by conduct [Source 3] [Source 5]. (4) The party asserting the contract\u2019s existence bears the burden of establishing both its existence and terms [Source 3]. \n\n**Considerations**:  Intent to be bound is also a required element of a contract [Source 4]. The conduct manifesting assent must be intentional, and the actor must realize the other party may infer assent from that conduct [Source 5].\n\n## Sources\n- **Source 1**: Definition of implied-in-fact contract and acceptance through inaction.\n- **Source 2**: Formation of implied-in-fact contracts through conduct and acceptance of benefits.\n- **Source 3**: Offer and acceptance as evidence of a meeting of the minds.\n- **Source 4**: General contract elements, including implied contracts.\n- **Source 5**: Mutual assent and the requirement of intent in manifesting acceptance through conduct.\n\n---\n\n**Rule**: An implied-in-fact contract is formed through manifestations of assent, other than express language, specifically through conduct [Source 1] [Source 2] [Source 5].\n\n**Elements**: Courts determine assent by looking to whether a party knowingly accepts offered benefits [Source 1]. Even without a subjective \u201cmeeting of the minds,\u201d conduct objectively appearing to manifest a contractual intent is sufficient [Source 2]. A party\u2019s inaction can constitute acceptance if they silently take offered services with a reasonable opportunity to reject them and reason to know they were offered with expectation of compensation [Source 2]. \n\n**Factors**: The manifestation of assent can be implied from the parties\u2019 conduct and course of dealing, demonstrating consent to be bound [Source 4]. However, conduct only manifests assent if the party intends to engage in it and knows or has reason to know the other party may infer assent from that conduct [Source 4].\n\n## Sources\n- **Source 1**: Definition of implied-in-fact contract and acceptance of benefits.\n- **Source 2**: Objective manifestation of intent and silent acceptance of services.\n- **Source 3**: General contract formation requirements (offer and acceptance).\n- **Source 4**: Mutual manifestation of assent, conduct as evidence of agreement, and intent to be bound.\n- **Source 5**: Formation through intentional conduct and reasonable knowledge of assent.\n\n---\n\n**Rule**: Courts distinguish between implied-in-fact contracts and situations giving rise to restitution based on whether a contract, though not expressly formed, can be inferred from conduct [Source 1] [Source 2] [Source 4]. Restitution, conversely, is an equitable remedy to prevent unjust enrichment where no enforceable contract exists [Source 1] [Source 3].\n\n**Implied-in-Fact Contract**: These contracts are formed by conduct manifesting assent, even without explicit language, and require an objective appearance of contractual intent [Source 1] [Source 2] [Source 4]. Acceptance can be demonstrated by silently accepting offered benefits with a reasonable opportunity to reject them and knowledge that compensation was expected [Source 1] [Source 2]. The contract must be based on evidence of intent to contract, not merely a course of dealing [Source 4].\n\n**Gratuitous Benefits/Quasi-Contract**: A quasi-contract action arises when a plaintiff confers a benefit on a defendant with a reasonable expectation of compensation, the defendant knew of this expectation, and the defendant would be unjustly enriched without payment [Source 5] [Source 3]. This remedy is based on equitable principles, not contractual ones [Source 3]. \n\n## Sources\n- **Source 1**: Implied-in-fact contracts vs. quasi-contracts; acceptance by inaction.\n- **Source 2**: Formation of implied-in-fact contracts through conduct.\n- **Source 3**: Quasi-contract as an equitable remedy for unjust enrichment.\n- **Source 4**: Defining implied-in-fact contracts and the requirement of intent.\n- **Source 5**: Elements for recovery in a quasi-contract action.\n\n---\n\n**Answer: (C)**\nReasoning: Choice A describes a mistake and good faith payment, potentially leading to restitution, but not an implied contract. Choice B involves treatment without consent, more akin to an emergency exception or potential tort, not a contract. Choice D involves a familial act with no expectation of compensation, resembling a gift. Choice C most closely aligns with the research, as Asphalt paved Nabor\u2019s driveway while Nabor observed without objection, suggesting silent acceptance of offered benefits and a potential manifestation of assent through conduct, even if unintentional, which is a key element of an implied-in-fact contract as outlined in the provided research.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "suggested_query": "",
+      "reasoning": "The answer accurately defines an implied-in-fact contract and its elements, drawing directly from the provided sources. It correctly emphasizes the importance of conduct manifesting assent and the intent to be bound. The answer does not contradict the evidence or fabricate any legal rules."
+    },
+    "is_verified": true,
+    "avg_confidence": 0.7743469105480744
+  },
+  "mc_result": {
+    "correct": true,
+    "method": "letter_match",
+    "details": "answer explicitly selects C"
+  },
+  "metrics": {
+    "elapsed_sec": 82.3,
+    "total_llm_calls": 12,
+    "steps_completed": 3,
+    "steps_failed": 0
+  }
+}

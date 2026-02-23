@@ -1,0 +1,137 @@
+{
+  "label": "trace_evidence",
+  "subject": "EVIDENCE",
+  "question": "Which of the following items of evidence is LEAST likely to be admitted without a supporting witness?",
+  "gold_idx": "mbe_575",
+  "correct_answer": "C",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.7372311227083925,
+    "mq_conf": 0.7863259099588334,
+    "rewrite": {
+      "primary": "hearsay exceptions business records exception ancient document exception state of mind exception inadmissible evidence",
+      "alternatives": [
+        "best evidence rule authentication requirement original document secondary evidence admissibility challenges",
+        "evidence objections lack of foundation improper foundation circumstantial evidence probative value relevance"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What are the rules regarding hearsay evidence and its exceptions?",
+        "status": "completed",
+        "optimized_query": "hearsay evidence admissibility exceptions declarant unavailability prior inconsistent statement business records",
+        "retrieved_doc_ids": [
+          "mbe_1365",
+          "mbe_1758",
+          "mbe_29",
+          "mbe_2175",
+          "mbe_2248"
+        ],
+        "confidence": 0.8089237421847331,
+        "passage_previews": [
+          "The past recollection recorded exception to the hearsay rule is one of a class of hearsay exceptions that do not require",
+          "Related to the exception to the hearsay rule for public records and other official writings, Federal Rule of Evidence 80",
+          "\u201cHearsay is an out of court, unsworn, oral or written statement by a third person, which is offered for the truth of its",
+          "Hearsay is a statement, other than one made by the declarant while testifying at the trial or hearing, offered in eviden",
+          "Statements made by hearsay declarants can be impeached to the same extent as those of an in-court witness; thus, a state"
+        ],
+        "answer": "**Rule**: Hearsay is an out-of-court statement offered to prove the truth of the matter asserted and is generally inadmissible [Source 3] [Source 4].\n\n**Elements**: A statement qualifies as hearsay if it is (1) not made by the declarant while testifying [Source 4] and (2) offered to prove the truth of its content [Source 3]. \n\n**Exceptions**: Several exceptions exist, and some do not require the declarant to be unavailable. These include the past recollection recorded exception [Source 1], public records and certifications [Source 2], and statements against interest [Source 3]. Other exceptions *do* require the declarant to be unavailable [Source 4]. \n\n**Further Rules**: Statements can be impeached with prior inconsistent statements, even for hearsay declarants, without offering the opportunity to explain or deny [Source 5]. Prior testimony of an unavailable declarant may also be admissible [Source 5].\n\n## Sources\n- **Source 1**: Past recollection recorded exception to hearsay\n- **Source 2**: Public records hearsay exception\n- **Source 3**: Definition of hearsay, unavailability, statement against interest exception\n- **Source 4**: General rules of hearsay admissibility and effect\n- **Source 5**: Impeachment of hearsay declarants and prior testimony"
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Evidence Admissibility",
+        "question": "What types of documentary evidence are commonly considered 'self-authenticating' under the Federal Rules of Evidence, and therefore less reliant on witness testimony for admission?",
+        "status": "completed",
+        "optimized_query": "Federal Rules of Evidence 902 self-authentication documentary evidence admissibility authentication witness testimony",
+        "retrieved_doc_ids": [
+          "mbe_619",
+          "mbe_575",
+          "mbe_104",
+          "mbe_42",
+          "mbe_1993"
+        ],
+        "confidence": 0.7682518815964905,
+        "passage_previews": [
+          "To satisfy the requirement under Rule 901(a) of the Federal Rules of Evidence that all evidence be authenticated or iden",
+          "In order to be admissible at trial, a document must be authenticated. Generally, authentication requires competent testi",
+          "The rules of evidence provide that an item is properly authenticated or identified by \u201cevidence sufficient to support a ",
+          "Rule 701 requires that lay witness opinion testimony be \u201crationally based on the perception of the witness.\u201d See F.R.E. ",
+          "The Federal Rules permit witnesses qualified as experts to testify in the form of an opinion if the subject matter is on"
+        ],
+        "answer": "Under the Federal Rules of Evidence, a document must be authenticated to be admissible at trial, generally requiring competent testimony [Source 2]. However, certain documents are considered \u201cself-authenticating\u201d under Rule 902 and do not require additional testimony [Source 2]. \n\nTo satisfy authentication requirements, the proponent of evidence must offer evidence supporting a finding that the item is what they claim it is [Source 1]. Authentication can be achieved through testimony, the item\u2019s characteristics, or evidence demonstrating an accurate process or system [Source 1]. The authentication requirement is often not onerous, and a single sentence indicating the document\u2019s authenticity may suffice [Source 2].\n\nThe evidence does not address specific types of documents that are self-authenticating beyond stating that Rule 902 outlines these categories.\n\n\n\n## Sources\n- **Source 1**: Methods of authentication under Rule 901(a) and (b) of the Federal Rules of Evidence.\n- **Source 2**: Self-authenticating documents under Rule 902 and general authentication requirements.\n- **Source 3**: Authentication of videotapes through officer testimony.\n- **Source 4**: Lay witness opinion testimony regarding handwriting identification.\n- **Source 5**: Expert opinion testimony under Rules 702, 703, and 704."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Hearsay Exceptions",
+        "question": "What are common exceptions to the hearsay rule that allow for the admission of documentary evidence without a sponsoring witness?",
+        "status": "completed",
+        "optimized_query": "hearsay exceptions business records exception public records exception ancient documents admission against interest",
+        "retrieved_doc_ids": [
+          "mbe_480",
+          "mbe_235",
+          "mbe_2306",
+          "mbe_1421",
+          "mbe_1402"
+        ],
+        "confidence": 0.7682172844728095,
+        "passage_previews": [
+          "The hearsay exceptions for statements against interest, on the other hand, require that the statement be against either ",
+          "A record created by a third party which is adopted by a business may be admitted under the business record exception to ",
+          "A report constitutes hearsay if it is an out-of-court statement offered to prove the truth of the matter asserted. Howev",
+          "The statement against interest exception to the hearsay rule requires that the declarant be unavailable as a witness. A ",
+          "Under the Federal Rules, statements of a person, now unavailable as a witness, against that person's pecuniary, propriet"
+        ],
+        "answer": "**Rule**: Several exceptions to the hearsay rule allow for the admission of documentary evidence without a sponsoring witness [Source 1] [Source 2] [Source 3] [Source 5].\n\n**Exceptions**: One exception is the business record exception, which applies to records adopted by a business if they were procured in the normal course of business, the business relied on the record, and other circumstances indicate trustworthiness [Source 2]. Public records also constitute an exception, allowing factual findings from investigations authorized by law to be admitted, unless trustworthiness is questionable [Source 3]. Statements against interest made by an unavailable declarant\u2014relating to pecuniary, proprietary, or penal interests\u2014are also admissible [Source 1] [Source 5]. \n\n**Requirements for Unavailable Declarant**: A declarant is considered unavailable if they are subject to privilege, refuse to testify, lack memory, are deceased or ill, or are absent and cannot be compelled to attend [Source 4].\n\n## Sources\n- **Source 1**: Statements against interest hearsay exception.\n- **Source 2**: Business record hearsay exception.\n- **Source 3**: Public records hearsay exception.\n- **Source 4**: Definition of an unavailable declarant.\n- **Source 5**: Federal Rules regarding statements against interest."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What are the rules regarding hearsay evidence and its exceptions?",
+        "answer": "**Rule**: Hearsay is an out-of-court statement offered to prove the truth of the matter asserted and is generally inadmissible [Source 3] [Source 4].\n\n**Elements**: A statement qualifies as hearsay if it is (1) not made by the declarant while testifying [Source 4] and (2) offered to prove the truth ...",
+        "confidence": 0.8089237421847331,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "What types of documentary evidence are commonly considered 'self-authenticating' under the Federal Rules of Evidence, and therefore less reliant on witness testimony for admission?",
+        "answer": "Under the Federal Rules of Evidence, a document must be authenticated to be admissible at trial, generally requiring competent testimony [Source 2]. However, certain documents are considered \u201cself-authenticating\u201d under Rule 902 and do not require additional testimony [Source 2]. \n\nTo satisfy authent...",
+        "confidence": 0.7682518815964905,
+        "status": "completed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What are common exceptions to the hearsay rule that allow for the admission of documentary evidence without a sponsoring witness?",
+        "answer": "**Rule**: Several exceptions to the hearsay rule allow for the admission of documentary evidence without a sponsoring witness [Source 1] [Source 2] [Source 3] [Source 5].\n\n**Exceptions**: One exception is the business record exception, which applies to records adopted by a business if they were proc...",
+        "confidence": 0.7682172844728095,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "**Rule**: Hearsay is an out-of-court statement offered to prove the truth of the matter asserted and is generally inadmissible [Source 3] [Source 4].\n\n**Elements**: A statement qualifies as hearsay if it is (1) not made by the declarant while testifying [Source 4] and (2) offered to prove the truth of its content [Source 3]. \n\n**Exceptions**: Several exceptions exist, and some do not require the declarant to be unavailable. These include the past recollection recorded exception [Source 1], public records and certifications [Source 2], and statements against interest [Source 3]. Other exceptions *do* require the declarant to be unavailable [Source 4]. \n\n**Further Rules**: Statements can be impeached with prior inconsistent statements, even for hearsay declarants, without offering the opportunity to explain or deny [Source 5]. Prior testimony of an unavailable declarant may also be admissible [Source 5].\n\n## Sources\n- **Source 1**: Past recollection recorded exception to hearsay\n- **Source 2**: Public records hearsay exception\n- **Source 3**: Definition of hearsay, unavailability, statement against interest exception\n- **Source 4**: General rules of hearsay admissibility and effect\n- **Source 5**: Impeachment of hearsay declarants and prior testimony\n\n---\n\nUnder the Federal Rules of Evidence, a document must be authenticated to be admissible at trial, generally requiring competent testimony [Source 2]. However, certain documents are considered \u201cself-authenticating\u201d under Rule 902 and do not require additional testimony [Source 2]. \n\nTo satisfy authentication requirements, the proponent of evidence must offer evidence supporting a finding that the item is what they claim it is [Source 1]. Authentication can be achieved through testimony, the item\u2019s characteristics, or evidence demonstrating an accurate process or system [Source 1]. The authentication requirement is often not onerous, and a single sentence indicating the document\u2019s authenticity may suffice [Source 2].\n\nThe evidence does not address specific types of documents that are self-authenticating beyond stating that Rule 902 outlines these categories.\n\n\n\n## Sources\n- **Source 1**: Methods of authentication under Rule 901(a) and (b) of the Federal Rules of Evidence.\n- **Source 2**: Self-authenticating documents under Rule 902 and general authentication requirements.\n- **Source 3**: Authentication of videotapes through officer testimony.\n- **Source 4**: Lay witness opinion testimony regarding handwriting identification.\n- **Source 5**: Expert opinion testimony under Rules 702, 703, and 704.\n\n---\n\n**Rule**: Several exceptions to the hearsay rule allow for the admission of documentary evidence without a sponsoring witness [Source 1] [Source 2] [Source 3] [Source 5].\n\n**Exceptions**: One exception is the business record exception, which applies to records adopted by a business if they were procured in the normal course of business, the business relied on the record, and other circumstances indicate trustworthiness [Source 2]. Public records also constitute an exception, allowing factual findings from investigations authorized by law to be admitted, unless trustworthiness is questionable [Source 3]. Statements against interest made by an unavailable declarant\u2014relating to pecuniary, proprietary, or penal interests\u2014are also admissible [Source 1] [Source 5]. \n\n**Requirements for Unavailable Declarant**: A declarant is considered unavailable if they are subject to privilege, refuse to testify, lack memory, are deceased or ill, or are absent and cannot be compelled to attend [Source 4].\n\n## Sources\n- **Source 1**: Statements against interest hearsay exception.\n- **Source 2**: Business record hearsay exception.\n- **Source 3**: Public records hearsay exception.\n- **Source 4**: Definition of an unavailable declarant.\n- **Source 5**: Federal Rules regarding statements against interest.\n\n---\n\n**Answer: (A)**\nReasoning:\n(A) In a libel action, a copy of a newspaper purporting to be published by Defendant Newspaper Publishing Company. - This is least likely to be admitted without a supporting witness. While a newspaper *could* fall under a business record exception, establishing that requires more than just presenting the newspaper itself. It requires demonstrating the newspaper\u2019s process for creating and publishing the content, and reliance on that process. Without testimony establishing these facts, it's unlikely to be admitted. It is not self-authenticating.\n\n(B) In a case involving contaminated food, a can label purporting to identify the canner as Defendant Company. - This *could* be admitted under the public records exception (if created by a government agency) or potentially as a business record if the proponent can show it was created in the normal course of business. It's more readily authenticated than a newspaper without a witness than (A).\n\n(C) In a defamation case, a document purporting to be a memorandum from the Defendant Company president to \"All Personnel,\" printed on Defendant's letterhead. - This is likely admissible as a business record. The letterhead and \"All Personnel\" designation suggest it was created and maintained in the ordinary course of the Defendant\u2019s business.\n\n(D) In a case involving injury to a pedestrian, a pamphlet on stopping distances issued by the State Highway Department. - This is most likely admissible as a public record. Documents issued by a state agency are generally considered reliable and fall under the public records exception to hearsay.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "suggested_query": "",
+      "reasoning": "The answer correctly identifies that hearsay is generally inadmissible and outlines several exceptions. The passages support this and do not contain any contradictions or fabricated rules. The question asks which item is *least* likely to be admitted without a supporting witness, and the answer correctly focuses on the need for authentication and potential hearsay concerns, all of which are supported by the provided evidence."
+    },
+    "is_verified": true,
+    "avg_confidence": 0.7817976360846778
+  },
+  "mc_result": {
+    "correct": true,
+    "method": "text_match",
+    "details": "answer contains correct choice text"
+  },
+  "metrics": {
+    "elapsed_sec": 48.8,
+    "total_llm_calls": 12,
+    "steps_completed": 3,
+    "steps_failed": 0
+  }
+}

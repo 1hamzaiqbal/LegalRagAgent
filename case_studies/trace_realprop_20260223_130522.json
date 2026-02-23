@@ -1,0 +1,136 @@
+{
+  "label": "trace_realprop",
+  "subject": "REAL PROP.",
+  "question": "Owen owned Greenacre, a tract of land, in fee simple. By warranty deed he conveyed Greenacre to Lafe for life \"and from and after the death of Lafe to Rem, her heirs and assigns.\" Subsequently Rem died, devising all of her estate to Dan. Rem was survived by Hannah, her sole heir-at-law. Shortly thereafter Lafe died, survived by Owen, Dan, and Hannah. Title to Greenacre now is in",
+  "gold_idx": "mbe_546",
+  "correct_answer": "B",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.6751893071497502,
+    "mq_conf": 0.7238341126330579,
+    "rewrite": {
+      "primary": "life estate remainder future interest fee tail survivorship remainder in fee simple devise inheritance",
+      "alternatives": [
+        "vested remainder contingent remainder rule against perpetuities inheritance property law estate planning",
+        "devising heirs at law fee simple absolute life tenant reversionary interest inheritance"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What is a life estate and how does it affect future interests?",
+        "status": "completed",
+        "optimized_query": "life estate future interests remainder reversion Rule Against Perpetuities property law estates in land",
+        "retrieved_doc_ids": [
+          "mbe_1776",
+          "mbe_1762",
+          "mbe_1730",
+          "mbe_1433",
+          "mbe_355"
+        ],
+        "confidence": 0.8022278748623904,
+        "passage_previews": [
+          "Under the Rule Against Perpetuities, an interest in property is not valid unless it will vest, if at all, not later than",
+          "Under the Rule Against Perpetuities, an interest in property is not valid unless it will vest, if at all, not later than",
+          "The Rule of Perpetuities mandates that an interest in land must vest not later than twenty-one years after the death of ",
+          "A person owning an estate in real property can create and transfer a lesser estate. The residue left in the grantor, whi",
+          "The rule against perpetuities in Virginia voids a contingent remainder or executory interest, created inter vivos or by "
+        ],
+        "answer": "**Rule**: A life estate is a lesser estate that can be created and transferred by a person owning real property [Source 4]. Remainders generally follow life estates [Source 1].\n\n**Future Interests**: The Rule Against Perpetuities governs the validity of future interests, requiring that an interest vest, if at all, no later than 21 years after a life in being at the creation of the interest [Source 2] [Source 3] [Source 4] [Source 5].  A contingent remainder arises if taking an interest is subject to a condition precedent [Source 1]. An executory interest can divest the interest of another or spring out of the grantor [Source 1] [Source 2], and is subject to the Rule Against Perpetuities [Source 2]. If an executory interest is void under the Rule, it is treated as if it does not exist [Source 3]. A reversion is a future interest retained by the grantor and is transferable [Source 4]. \n\nThe evidence does not address the specific creation of a life estate, only that it exists as a lesser estate.\n\n\n\n## Sources\n- **Source 1**: Relationship between life estates and remainders, definition of contingent remainder and executory interest.\n- **Source 2**: Rule Against Perpetuities and its application to executory interests, charitable gifts, and vested remainders.\n- **Source 3**: Rule Against Perpetuities, possibility of reverter, fee simple determinable.\n- **Source 4**: Creation and transfer of lesser estates, reversionary interests.\n- **Source 5**: Rule Against Perpetuities in Virginia."
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Future Interest Determination",
+        "question": "What is a remainder interest, and how does it vest?",
+        "status": "completed",
+        "optimized_query": "remainder interest vesting future interest Rule Against Perpetuities present estates contingent remainder",
+        "retrieved_doc_ids": [
+          "mbe_1507",
+          "mbe_1438",
+          "mbe_40",
+          "mbe_1494",
+          "mbe_2301"
+        ],
+        "confidence": 0.7840723324713161,
+        "passage_previews": [
+          "A remainder is a future interest created in a transferee that is capable of taking in present possession on the natural ",
+          "A remainder is a future interest created in a transferee that is capable of taking in possession on the natural terminat",
+          "\u201cTypically, a remainder interest occurs when a possessory interest in property (often a life estate) is given to one per",
+          "Indefeasible remainders (also referred to as indefeasibly vested remainders) refer to a future interest in property that",
+          "The Rule Against Perpetuities provides that no interest in property is valid unless it must vest, if at all, not later t"
+        ],
+        "answer": "**Rule**: A remainder is a future interest created in a transferee capable of taking possession upon the natural termination of a preceding estate [Source 1] [Source 2] [Source 3].\n\n**Vesting**: A remainder is vested if the beneficiaries are ascertainable and their taking in possession is not subject to a condition precedent [Source 2] [Source 3]. A vested remainder created in a class of persons certain to take, but subject to diminution, is a vested remainder subject to open [Source 2]. Vested remainders can be subject to total divestment via a condition subsequent [Source 2]. An indefeasible remainder has no condition precedent or future contingency [Source 4]. \n\nA remainder interest is vested when a person in being at the creation of the interest would have a right to immediate possession upon termination of the preceding estate [Source 3]. Texas courts will construe a remainder as vested if reasonably possible [Source 3].\n\nThe Rule Against Perpetuities requires that an interest must vest, if at all, within 21 years after lives in being at the creation of the interest [Source 5]. \n\n## Sources\n- **Source 1**: Definition of a remainder\n- **Source 2**: Vesting requirements for remainders\n- **Source 3**: Texas law on remainder vesting, ascertainability\n- **Source 4**: Indefeasible remainders\n- **Source 5**: Rule Against Perpetuities and its application to remainders."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Heirship and Inheritance",
+        "question": "How does the death of a remainderman who has devised their estate affect the ownership of property, particularly considering the presence of an heir-at-law?",
+        "status": "completed",
+        "optimized_query": "remainderman death will devise estate heir-at-law property ownership future interest acceleration vesting",
+        "retrieved_doc_ids": [
+          "mbe_546",
+          "mbe_1517",
+          "mbe_1673",
+          "mbe_109",
+          "mbe_2241"
+        ],
+        "confidence": 0.7386099908626166,
+        "passage_previews": [
+          "A vested remainder is a present fixed right in the remainderman to take possession upon the natural termination of the p",
+          "At the time of the conveyance by the landowner, the son had a life estate, the son's widow had a contingent interest (be",
+          "It seems clear that the testator intended her grandchildren to inherit the property at some time, and that the only thin",
+          "To distinguish between vested remainders and contingent remainders, a court must determine whether at the time the instr",
+          "If a future interest can be transferred voluntarily by its owner, it is also subject to involuntary transfer; i.e., it c"
+        ],
+        "answer": "A vested remainder represents a present, fixed right to possession upon the natural termination of a preceding estate [Source 1]. When a remainderman with a vested remainder dies, that remainder can be devised by will [Source 2]. \n\nSpecifically, a vested remainder can be subject to open, meaning it is vested but could expand if additional remaindermen are born [Source 2] [Source 3]. Once the class defining the remainder closes\u2014such as when the life tenant (here, the son) dies and can no longer have more children\u2014the vested remainders become indefeasibly vested [Source 2] [Source 3]. \n\nThe presence of an heir-at-law is not directly addressed in the provided passages regarding the effect of a remainderman\u2019s death and devise. The passages focus on the transferability of vested remainders and how they vest or become indefeasibly vested [Source 2] [Source 5].\n\n## Sources\n- **Source 1**: Definition of a vested remainder.\n- **Source 2**: Vested remainders, contingent remainders, and how they vest; transferability.\n- **Source 3**: Vested remainders subject to open and becoming indefeasibly vested.\n- **Source 4**: Distinguishing between vested and contingent remainders.\n- **Source 5**: Transferability of vested and contingent remainders."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What is a life estate and how does it affect future interests?",
+        "answer": "**Rule**: A life estate is a lesser estate that can be created and transferred by a person owning real property [Source 4]. Remainders generally follow life estates [Source 1].\n\n**Future Interests**: The Rule Against Perpetuities governs the validity of future interests, requiring that an interest v...",
+        "confidence": 0.8022278748623904,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "What is a remainder interest, and how does it vest?",
+        "answer": "**Rule**: A remainder is a future interest created in a transferee capable of taking possession upon the natural termination of a preceding estate [Source 1] [Source 2] [Source 3].\n\n**Vesting**: A remainder is vested if the beneficiaries are ascertainable and their taking in possession is not subjec...",
+        "confidence": 0.7840723324713161,
+        "status": "completed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "How does the death of a remainderman who has devised their estate affect the ownership of property, particularly considering the presence of an heir-at-law?",
+        "answer": "A vested remainder represents a present, fixed right to possession upon the natural termination of a preceding estate [Source 1]. When a remainderman with a vested remainder dies, that remainder can be devised by will [Source 2]. \n\nSpecifically, a vested remainder can be subject to open, meaning it ...",
+        "confidence": 0.7386099908626166,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "### Step 1: Rule Identification\n\n**Rule**: A life estate is a lesser estate that can be created and transferred by a person owning real property [Query 1][Source 4]. Remainders generally follow life estates [Query 1][Source 1].\n\n**Future Interests**: The Rule Against Perpetuities governs the validity of future interests, requiring that an interest vest, if at all, no later than 21 years after a life in being at the creation of the interest [Query 1][Source 2] [Query 1][Source 3] [Query 1][Source 4] [Query 1][Source 5].  A contingent remainder arises if taking an interest is subject to a condition precedent [Query 1][Source 1]. An executory interest can divest the interest of another or spring out of the grantor [Query 1][Source 1] [Query 1][Source 2], and is subject to the Rule Against Perpetuities [Query 1][Source 2]. If an executory interest is void under the Rule, it is treated as if it does not exist [Query 1][Source 3]. A reversion is a future interest retained by the grantor and is transferable [Query 1][Source 4]. \n\nThe evidence does not address the specific creation of a life estate, only that it exists as a lesser estate.\n\n\n\n## Sources\n- **Source 1**: Relationship between life estates and remainders, definition of contingent remainder and executory interest.\n- **Source 2**: Rule Against Perpetuities and its application to executory interests, charitable gifts, and vested remainders.\n- **Source 3**: Rule Against Perpetuities, possibility of reverter, fee simple determinable.\n- **Source 4**: Creation and transfer of lesser estates, reversionary interests.\n- **Source 5**: Rule Against Perpetuities in Virginia.\n\n---\n\n### Step 2: Future Interest Determination\n\n**Rule**: A remainder is a future interest created in a transferee capable of taking possession upon the natural termination of a preceding estate [Query 2][Source 1] [Query 2][Source 2] [Query 2][Source 3].\n\n**Vesting**: A remainder is vested if the beneficiaries are ascertainable and their taking in possession is not subject to a condition precedent [Query 2][Source 2] [Query 2][Source 3]. A vested remainder created in a class of persons certain to take, but subject to diminution, is a vested remainder subject to open [Query 2][Source 2]. Vested remainders can be subject to total divestment via a condition subsequent [Query 2][Source 2]. An indefeasible remainder has no condition precedent or future contingency [Query 2][Source 4]. \n\nA remainder interest is vested when a person in being at the creation of the interest would have a right to immediate possession upon termination of the preceding estate [Query 2][Source 3]. Texas courts will construe a remainder as vested if reasonably possible [Query 2][Source 3].\n\nThe Rule Against Perpetuities requires that an interest must vest, if at all, within 21 years after lives in being at the creation of the interest [Query 2][Source 5]. \n\n## Sources\n- **Source 1**: Definition of a remainder\n- **Source 2**: Vesting requirements for remainders\n- **Source 3**: Texas law on remainder vesting, ascertainability\n- **Source 4**: Indefeasible remainders\n- **Source 5**: Rule Against Perpetuities and its application to remainders.\n\n---\n\n### Step 3: Heirship and Inheritance\n\nA vested remainder represents a present, fixed right to possession upon the natural termination of a preceding estate [Query 3][Source 1]. When a remainderman with a vested remainder dies, that remainder can be devised by will [Query 3][Source 2]. \n\nSpecifically, a vested remainder can be subject to open, meaning it is vested but could expand if additional remaindermen are born [Query 3][Source 2] [Query 3][Source 3]. Once the class defining the remainder closes\u2014such as when the life tenant (here, the son) dies and can no longer have more children\u2014the vested remainders become indefeasibly vested [Query 3][Source 2] [Query 3][Source 3]. \n\nThe presence of an heir-at-law is not directly addressed in the provided passages regarding the effect of a remainderman\u2019s death and devise. The passages focus on the transferability of vested remainders and how they vest or become indefeasibly vested [Query 3][Source 2] [Query 3][Source 5].\n\n## Sources\n- **Source 1**: Definition of a vested remainder.\n- **Source 2**: Vested remainders, contingent remainders, and how they vest; transferability.\n- **Source 3**: Vested remainders subject to open and becoming indefeasibly vested.\n- **Source 4**: Distinguishing between vested and contingent remainders.\n- **Source 5**: Transferability of vested and contingent remainders.\n\n---\n\n**Answer: (B)**\nReasoning:\n(A) Owen: This is incorrect. The remainder to Rem was not contingent; it was a vested remainder (to Rem, her heirs and assigns). A vested remainder is not subject to a reversion back to the grantor upon the remainderman\u2019s death. The element of a *contingent* remainder that never vests is missing.\n(B) Dan: This is correct. Rem received a vested remainder in fee simple, and a vested remainder is devisable. Rem devised her estate to Dan, thus Dan now holds title. All elements of a valid transfer of a vested remainder are met.\n(C) Hannah: This is incorrect. Hannah is Rem\u2019s heir, but Rem had a vested remainder that she could devise by will. Heirship is only relevant if Rem had died intestate (without a will), which is not the case here. The element of *intestacy* is missing.\n(D) either Owen or Hannah: This is incorrect. The remainder was vested, eliminating Owen\u2019s claim. Hannah\u2019s claim is also incorrect because Rem devised her estate to Dan. The element of a *contingent remainder* is missing, and the fact that Rem *did* have a will is ignored.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "reasoning": "Auto-pass (verifier removed)"
+    },
+    "is_verified": true,
+    "avg_confidence": 0.7749700660654412
+  },
+  "mc_result": {
+    "correct": true,
+    "method": "letter_match",
+    "details": "answer explicitly selects B"
+  },
+  "metrics": {
+    "elapsed_sec": 73.6,
+    "total_llm_calls": 11,
+    "steps_completed": 3,
+    "steps_failed": 0
+  }
+}

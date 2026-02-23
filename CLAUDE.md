@@ -87,23 +87,23 @@ Nine-node state machine with adaptive replanning, injection detection, answer ve
 4. **executor_node** — For each pending step: rewrites query into primary + 2 alternatives (`query_rewrite.md`, JSON output), multi-query retrieves from ChromaDB (`retrieve_documents_multi_query`, excludes doc_ids from prior steps for cross-step dedup), synthesizes answer with inline `[Source N]` citations in a single pass (`synthesize_and_cite.md`), computes confidence via cosine similarity
 5. **evaluator_node** — Marks steps completed or failed against a configurable confidence threshold (`EVAL_CONFIDENCE_THRESHOLD` env var, default 0.70). Accumulates step summaries into `accumulated_context`. Sets explicit failure message if all steps fail.
 6. **replanner_node** — (multi_hop only) Receives objective (MC choices stripped) + accumulated evidence, decides: `next_step` (add new research step), `retry` (rephrase failed step), or `complete` (aggregate final answer). Hard cap: 3 completed steps max. On persistent LLM failure, gracefully falls back to `complete` to preserve accumulated evidence.
-7. **verify_answer_node** — Cross-checks final answer against evidence using `verify_answer.md` skill. On first failure, adds a corrective step using the LLM's `suggested_query` (a proper legal question). Second failure terminates cleanly without orphaned steps. **MC selection**: if the objective contains answer choices, a dedicated `skill_select_mc_answer()` call runs ONCE after verification passes — applies all accumulated research to pick a letter with `**Answer: (X)**` format. This keeps per-step research unbiased.
-8. **memory_writeback_node** — Persists successful QA pairs (avg confidence >= 0.45, verified) to ChromaDB `qa_memory` collection (cosine distance) for future cache hits. Skips write if verification failed.
-9. **observability_node** — Aggregates and prints run metrics: LLM calls, char usage, parse failures, steps completed/failed, memory hit status, verification retries, has_answer, injection status.
+7. **verify_answer_node** — MC answer selection node. Verifier LLM call removed (was always passing — see R1 in pipeline_flags.md). Auto-passes verification. **MC selection**: if the objective contains answer choices, a dedicated `skill_select_mc_answer()` call runs ONCE — applies all accumulated research to pick a letter with `**Answer: (X)**` format. This keeps per-step research unbiased.
+8. **memory_writeback_node** — Persists successful QA pairs (avg confidence >= 0.70) to ChromaDB `qa_memory` collection (cosine distance) for future cache hits. Strips MC selection from cached answer so MC re-runs fresh each time (prevents stale letter answers). Skips write if verification failed.
+9. **observability_node** — Aggregates and prints run metrics: LLM calls, char usage, parse failures, steps completed/failed, memory hit status, has_answer, injection status.
 
 Routing:
 - After injection check: 2-way — `classifier` (safe) | `observability` (unsafe, for metrics)
 - After planner: 2-way — `executor` (no memory hit) | `memory_writeback` (memory hit)
-- After evaluator: 3-way — `executor` (pending steps) | `replanner` (multi_hop, all done, no prior correction) | `verify_answer` (simple done, iteration limit, or correction done)
+- After evaluator: 3-way — `executor` (pending steps) | `replanner` (multi_hop, all done) | `verify_answer` (simple done, iteration limit, or hard step cap)
 - After replanner: 2-way — `executor` (new step added) | `verify_answer` (complete)
-- After verify: 2-way — `executor` (not verified, first failure) | `memory_writeback` (verified or retry exhausted)
+- After verify: fixed — `memory_writeback` (always, no corrective retry)
 - After memory writeback: fixed — `observability → END`
 
-Graph: `detect_injection → {classifier | observability}`; `classifier → planner → {executor | memory_writeback}`; `executor → evaluator → {executor | replanner | verify_answer}`; `replanner → {executor | verify_answer}`; `verify_answer → {executor | memory_writeback}`; `memory_writeback → observability → END`
+Graph: `detect_injection → {classifier | observability}`; `classifier → planner → {executor | memory_writeback}`; `executor → evaluator → {executor | replanner | verify_answer}`; `replanner → {executor | verify_answer}`; `verify_answer → memory_writeback → observability → END`
 
 ### Shared State (`AgentState`)
 
-TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query_type` ("simple"/"multi_hop"), `final_cited_answer`, `accumulated_context` (step summaries for replanner), `iteration_count` (loop guard, max 4), `injection_check` (safety result), `verification_result` (answer verification with `suggested_query`), `verification_retries` (max 2), `memory_hit` (QA cache result, threshold 0.92), and `run_metrics` (observability data including parse failures and has_answer).
+TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query_type` ("simple"/"multi_hop"), `final_cited_answer`, `accumulated_context` (step summaries for replanner), `iteration_count` (loop guard, max 4), `injection_check` (safety result), `verification_result` (auto-pass dict), `memory_hit` (QA cache result, threshold 0.92), and `run_metrics` (observability data including parse failures and has_answer).
 
 `PlanStep` model: `step_id` (float), `status` (pending/completed/failed), `phase` (str), `question` (str), `execution` (dict — stores `cited_answer`, `optimized_query`, `retrieved_doc_ids`, `confidence`). Previously had `expectation` and `deviation_analysis` fields — removed as dead state (written but never read).
 
@@ -117,7 +117,7 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
 - `synthesize_and_cite.md` (~300w) — synthesize with inline `[Source N]` citations and `## Sources` map. Anti-fabrication block (critical): only state facts from evidence passages.
 - `adaptive_replan.md` (~250w) — decide next research step based on accumulated evidence. Hard cap: 3 completed steps. Stagnation: 3+ consecutive failures → stop. Explicit rule: do not reference answer choices or previous step IDs.
 - `detect_prompt_injection.md` (~160w) — screen input for adversarial prompts. Leads with guardrail: legal topics involving crime are SAFE. Fail-open, skippable via `SKIP_INJECTION_CHECK=1`.
-- `verify_answer.md` (~240w) — cross-check answer against evidence. "Standard legal knowledge is acceptable" elevated to top. Pass-by-default bias.
+- `verify_answer.md` (~240w) — cross-check answer against evidence. Retained but **not currently called** (verifier was always passing — removed in R1). Available for future use with independent-evidence architecture.
 
 ### LLM Config (llm_config.py)
 
@@ -182,25 +182,16 @@ With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B (via Google AI Studio):
 
 | Query | MC | Steps | Conf | Unique docs | Time | LLM calls |
 |---|---|---|---|---|---|---|
-| torts | Y | 3c/0f | 0.774 | 15/15 | 51s | 12 |
-| contracts | Y | 3c/0f | 0.773 | 15/15 | 99s | 12 |
-| crimlaw | N | 3c/1f | 0.741 | 20/20 | 57s | 15 |
-| evidence | Y | 3c/0f | 0.782 | 15/15 | 49s | 12 |
-| constlaw | Y | 3c/2f | 0.713 | 25/25 | 113s | 18 |
-| realprop | Y | 3c/0f | 0.778 | 15/15 | 90s | 12 |
-| multihop | n/a | 3c/0f | 0.808 | 15/15 | 45s | 11 |
-| oof | n/a | 1c/0f | 0.712 | 5/5 | 18s | 5 |
+| torts | Y | 3c/0f | 0.792 | 15/15 | 91s | 11 |
+| contracts | Y | 3c/0f | 0.773 | 15/15 | 61s | 11 |
+| crimlaw | N | 3c/0f | 0.720 | 15/15 | 77s | 11 |
 
-- **MC accuracy: 5/6 (83%)** — up from 4/6 (67%) before cross-step dedup and threshold raise. Only crimlaw remains wrong.
-- **Passage diversity: 100%** on every query — up from avg ~73%. Cross-step `exclude_ids` ensures no doc is retrieved twice.
-- **Evaluator now rejects steps**: constlaw had 2 failures (3c/2f, 18 LLM calls), crimlaw had 1 failure (3c/1f, 15 calls). Queries with all-passing steps still use 12 calls. Retries cost 3 extra LLM calls each.
-- **Phase 1 Recall@5: 6.3%** (60/953) — low because only 20K of ~686K passages loaded.
-- **Avg confidence: 0.76** across 8 queries (range: 0.712–0.808).
-- **All queries verified on first pass** (8/8). Verifier has strong pass-by-default bias.
-- **Classifier always picks multi_hop** for MC bar exam questions. Only out-of-corpus gets simple.
-- **Pipeline compensates for retrieval gaps**: gold passage Recall@5 is 0% on all traced MC queries, yet 5/6 get MC correct.
-- **MC isolation** working: planner and replanner receive stripped objectives.
-- **Out-of-corpus handling**: classifier correctly routes to simple (1 step), produces reasonable answer.
+- **MC accuracy: 2/3 on latest 3-query run** (torts Y, contracts Y, crimlaw N — consistent with prior 5/6 on full 8-query).
+- **LLM calls: 11/query** (down from 12 after verifier removal). Baseline for multi_hop MC: classify(1) + plan(1) + 3x[rewrite(1) + synthesize(1)] + 3x replan(1) + mc_select(1) = 11.
+- **Passage diversity: 100%** on every query. Cross-step `exclude_ids` working.
+- **Citation format**: `[Query X][Source Y]` with `### Step N: {phase}` headers in aggregated answer.
+- **Memory writeback**: MC selection stripped from cache, write threshold 0.70.
+- **Verifier removed**: Was always passing (8/8). Saves 1 LLM call/query. Skill file retained for future use.
 
 **Operational notes:**
 - QA memory cache cleared automatically at eval start (eval_trace.py and eval_comprehensive.py)
@@ -210,7 +201,6 @@ With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B (via Google AI Studio):
 **Bottleneck analysis:**
 1. **MC selector** (biggest remaining lever): 1/6 wrong answer is a reasoning error in the final MC selection call. Research quality is good — the element-to-fact mapping is where Gemma 27B stumbles.
 2. **Classifier granularity**: single-concept MC → simple would save ~7 LLM calls per query, but risks less thorough research. Current multi_hop-for-everything is safe but expensive.
-3. **Verifier effectiveness**: 8/8 pass rate suggests the verifier may be too lenient. Consider adversarial testing.
 
 ## Data Directories (gitignored)
 

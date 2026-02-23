@@ -35,7 +35,6 @@ class AgentState(TypedDict):
     iteration_count: int       # cycle counter for loop guard
     injection_check: Dict[str, Any]            # {"is_safe": bool, "reasoning": str}
     verification_result: Dict[str, Any]        # {"is_verified": bool, "issues": [...], "reasoning": str}
-    verification_retries: int                  # max 2
     memory_hit: Dict[str, Any]                 # {"found": bool, "answer": str, "confidence": float}
     run_metrics: Dict[str, Any]                # aggregated metrics from observability node
 
@@ -583,68 +582,37 @@ def replanner_node(state: AgentState) -> AgentState:
 
 
 def verify_answer_node(state: AgentState) -> AgentState:
-    """Cross-check the final answer against retrieved evidence."""
-    print("\n--- VERIFY ANSWER NODE ---")
-    table = state.get("planning_table", [])
+    """MC answer selection node (verification removed — was always passing).
+
+    If the objective contains MC answer choices, runs a single LLM call to
+    select the best letter based on accumulated research. Otherwise, passes
+    through to memory writeback.
+    """
+    print("\n--- VERIFY / MC SELECT NODE ---")
     objective = state["global_objective"]
     answer = state.get("final_cited_answer", "")
 
     if not answer:
-        print("No answer to verify. Skipping.")
+        print("No answer produced. Skipping.")
         state["verification_result"] = {"is_verified": True, "issues": [], "reasoning": "No answer produced"}
         return state
 
-    # Don't waste an LLM call verifying a failure message
     if answer.startswith("Unable to produce") or answer.startswith("Request rejected"):
-        print("Answer is a fallback/rejection message — skipping verification.")
+        print("Answer is a fallback/rejection message — skipping.")
         state["verification_result"] = {"is_verified": False, "issues": ["Answer is a failure message"], "reasoning": "No real answer to verify"}
         return state
 
-    # Gather all evidence from completed steps
-    evidence = []
-    for step in table:
-        if step.status == "completed" and step.execution:
-            evidence.extend(step.execution.get("sources", []))
+    # Auto-pass verification (verifier was always passing — see R1 in pipeline_flags.md)
+    state["verification_result"] = {"is_verified": True, "issues": [], "reasoning": "Auto-pass (verifier removed)"}
 
-    if not evidence:
-        print("No evidence to verify against. Passing through.")
-        state["verification_result"] = {"is_verified": True, "issues": [], "reasoning": "No evidence available for verification"}
-        return state
-
-    result = skill_verify_answer(objective, answer, evidence)
-    state["verification_result"] = result
-
-    if result.get("is_verified", True):
-        print(f"Answer VERIFIED: {result.get('reasoning', '')}")
-
-        # MC answer selection — single final call after all research is done
-        if "Answer choices:" in objective:
-            print("  MC choices detected — selecting answer...")
-            mc_response = skill_select_mc_answer(objective, answer)
-            state["final_cited_answer"] = answer + "\n\n---\n\n" + mc_response
-            print(f"  MC selection: {mc_response}")
+    # MC answer selection — single final call after all research is done
+    if "Answer choices:" in objective:
+        print("  MC choices detected — selecting answer...")
+        mc_response = skill_select_mc_answer(objective, answer)
+        state["final_cited_answer"] = answer + "\n\n---\n\n" + mc_response
+        print(f"  MC selection: {mc_response}")
     else:
-        retries = state.get("verification_retries", 0)
-        state["verification_retries"] = retries + 1
-        issues = result.get("issues", [])
-        suggested = result.get("suggested_query", "")
-        print(f"Answer NOT verified (attempt {retries + 1}): {result.get('reasoning', '')}")
-        for issue in issues:
-            print(f"  - {issue}")
-        if suggested:
-            print(f"  Suggested query: {suggested}")
-
-        # Only retry once — a second failure means correction didn't help
-        if retries < 1:
-            existing_ids = [s.step_id for s in table]
-            new_id = max(existing_ids) + 1.0 if existing_ids else 1.0
-            corrective_question = suggested or (issues[0] if issues else objective)
-            state["planning_table"].append(PlanStep(
-                step_id=new_id,
-                phase="Corrective Research",
-                question=corrective_question,
-            ))
-            print(f"Added corrective step {new_id}: {corrective_question}")
+        print("  No MC choices — passing through.")
 
     return state
 
@@ -679,10 +647,18 @@ def memory_writeback_node(state: AgentState) -> AgentState:
     ]
     avg_confidence = sum(completed_scores) / len(completed_scores) if completed_scores else 0.0
 
-    if avg_confidence >= 0.45:
+    if avg_confidence >= 0.70:
         objective = state["global_objective"]
-        write_to_memory(objective, answer, avg_confidence)
-        print(f"Wrote to memory (avg confidence: {avg_confidence:.3f})")
+        # Strip MC selection from cached answer — only cache the research portion.
+        # MC selection is appended after "\n\n---\n\n" and contains "**Answer:".
+        # Re-running MC selection each time prevents stale letter answers.
+        cache_answer = answer
+        if "**Answer:" in answer:
+            last_sep = answer.rfind("\n\n---\n\n")
+            if last_sep != -1:
+                cache_answer = answer[:last_sep]
+        write_to_memory(objective, cache_answer, avg_confidence)
+        print(f"Wrote to memory (avg confidence: {avg_confidence:.3f}, {len(cache_answer)} chars cached)")
     else:
         print(f"Confidence too low ({avg_confidence:.3f}) — skipping memory write.")
 
@@ -711,7 +687,6 @@ def observability_node(state: AgentState) -> AgentState:
         "steps_pending": pending,
         "query_type": state.get("query_type", "") or "(not classified)",
         "memory_hit": memory_hit.get("found", False),
-        "verification_retries": state.get("verification_retries", 0),
         "has_answer": has_answer,
         "injection_safe": injection_safe,
     }
@@ -733,13 +708,25 @@ def observability_node(state: AgentState) -> AgentState:
 # ---------------------------------------------------------------------------
 
 def _aggregate_completed_answers(table: List[PlanStep]) -> str:
-    """Join cited answers from all completed steps."""
-    answers = [
-        s.execution.get("cited_answer", "")
-        for s in table
-        if s.status == "completed" and s.execution
-    ]
-    return "\n\n---\n\n".join(a for a in answers if a)
+    """Aggregate cited answers from completed steps with step headers and scoped citations.
+
+    Rewrites [Source N] → [Query X][Source N] so citations are unambiguous
+    across steps. Adds ### Step headers for structure.
+    """
+    completed = [s for s in table if s.status == "completed" and s.execution]
+    if not completed:
+        return ""
+
+    sections = []
+    for i, step in enumerate(completed, 1):
+        answer = step.execution.get("cited_answer", "")
+        if not answer:
+            continue
+        # Rewrite [Source N] → [Query i][Source N] throughout the answer text
+        tagged = re.sub(r"\[Source (\d+)\]", rf"[Query {i}][Source \1]", answer)
+        sections.append(f"### Step {i}: {step.phase}\n\n{tagged}")
+
+    return "\n\n---\n\n".join(sections)
 
 
 def _strip_mc_choices(objective: str) -> str:
@@ -782,18 +769,8 @@ def route_after_planner(state: AgentState) -> Literal["executor_node", "memory_w
     return "executor_node"
 
 
-def route_after_verify(state: AgentState) -> Literal["executor_node", "memory_writeback_node"]:
-    """Route after verification:
-    - executor_node: not verified and retries < 2 and has corrective steps
-    - memory_writeback_node: verified or retries exhausted
-    """
-    vr = state.get("verification_result", {})
-    retries = state.get("verification_retries", 0)
-    table = state.get("planning_table", [])
-    has_pending = any(s.status == "pending" for s in table)
-    if not vr.get("is_verified", True) and retries < 2 and has_pending:
-        print("Verification failed — routing to EXECUTOR for corrective step.")
-        return "executor_node"
+def route_after_verify(state: AgentState) -> Literal["memory_writeback_node"]:
+    """Route after verify/MC-select: always proceed to memory writeback."""
     print("Routing to MEMORY_WRITEBACK.")
     return "memory_writeback_node"
 
@@ -802,8 +779,7 @@ def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replan
     """3-way routing after evaluator:
     - executor_node: pending steps remain
     - replanner_node: multi_hop query, all current steps done, under iteration limit
-    - verify_answer_node: simple query done, iteration limit exceeded, or
-      in a verification correction cycle (skip replanner on corrective steps)
+    - verify_answer_node: simple query done, iteration limit exceeded, or hard step cap
     """
     table = state.get("planning_table", [])
     iteration_count = state.get("iteration_count", 0)
@@ -816,13 +792,6 @@ def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replan
     if has_pending:
         print("Routing back to EXECUTOR (pending steps)...")
         return "executor_node"
-
-    # If we're in a verification correction cycle, go straight back to
-    # verify — don't detour through the replanner, which doesn't know
-    # about corrective context and could add tangential steps.
-    if state.get("verification_retries", 0) > 0:
-        print("Corrective step done. Routing to VERIFY_ANSWER (skip replanner)...")
-        return "verify_answer_node"
 
     # All current steps are done
     query_type = state.get("query_type", "simple")
@@ -968,7 +937,6 @@ if __name__ == "__main__":
         "iteration_count": 0,
         "injection_check": {},
         "verification_result": {},
-        "verification_retries": 0,
         "memory_hit": {},
         "run_metrics": {},
     }

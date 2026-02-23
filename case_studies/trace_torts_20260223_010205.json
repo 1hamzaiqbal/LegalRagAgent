@@ -1,0 +1,137 @@
+{
+  "label": "trace_torts",
+  "subject": "TORTS",
+  "question": "In the course of a bank holdup, Robber fired a gun at Guard. Guard drew his revolver and returned the fire. One of the bullets fired by Guard ricocheted, striking Plaintiff. If Plaintiff asserts a claim against Guard based upon battery, will Plaintiff prevail?",
+  "gold_idx": "mbe_571",
+  "correct_answer": "C",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.6916546274079265,
+    "mq_conf": 0.7815330240772845,
+    "rewrite": {
+      "primary": "battery negligence transferred intent proximate cause intervening criminal act self-defense tort liability",
+      "alternatives": [
+        "intentional torts unlawful touching assault battery defenses reasonable force duty of care",
+        "civil liability firearm discharge ricochet negligence standard of care foreseeable harm tort claim"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What is the definition of battery and the required intent?",
+        "status": "completed",
+        "optimized_query": "battery tort intentional tort harmful or offensive contact mens rea definition elements strict liability",
+        "retrieved_doc_ids": [
+          "mbe_583",
+          "caselaw_12692192_72",
+          "mbe_542",
+          "mbe_2131",
+          "mbe_2278"
+        ],
+        "confidence": 0.7769396486181155,
+        "passage_previews": [
+          "\u201cThe elements of civil battery are: (1) defendant intentionally performed an act that resulted in a harmful or offensive",
+          "In the context of Louisiana delictual law, the intentional tort of \"battery\" is \"[a] harmful or offensive contact with a",
+          "The elements of a civil battery claim in California are: \u201c(1) defendant intentionally performed an act that resulted in ",
+          "Battery requires an intent on the part of the defendant to bring about harmful or offensive (i.e., unconsented-to) conta",
+          "Battery requires (i) an act by the defendant that brings about harmful or offensive contact to the plaintiff's person, ("
+        ],
+        "answer": "**Rule**: Battery is an intentional tort involving harmful or offensive contact with another person [Source 1] [Source 2] [Source 5].\n\n**Elements**: The elements of battery are (1) an act by the defendant resulting in harmful or offensive contact with the plaintiff\u2019s person, (2) intent by the defendant to cause such contact, and (3) causation [Source 5]. California also requires proof of unreasonable force [Source 3]. A plaintiff must not have consented to the contact [Source 1] [Source 2] [Source 3].\n\n**Intent**: The defendant must intend to cause a harmful or offensive contact, but need not intend to inflict actual damage [Source 2] [Source 4]. It is sufficient if the defendant intends to inflict either a harmful or offensive contact without the other's consent [Source 2]. The defendant must know with substantial certainty that a harmful or offensive contact will result from their action [Source 5].\n\n## Sources\n- **Source 1**: Definition and elements of civil battery in California, consent as a defense.\n- **Source 2**: Definition of battery under Louisiana law, intent requirement, and consent as a defense.\n- **Source 3**: Elements of civil battery in California, including unreasonable force.\n- **Source 4**: Intent requirement for battery, liability of minors and incompetents.\n- **Source 5**: Elements of battery, including intent and causation, and additional details regarding capacity and consciousness."
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Defensive Privilege",
+        "question": "Under what circumstances, if any, does the law recognize a privilege allowing a person to use force, even deadly force, in self-defense or the defense of others?",
+        "status": "completed",
+        "optimized_query": "self-defense justification deadly force reasonable belief imminent threat duty to retreat stand-your-ground law defense of others",
+        "retrieved_doc_ids": [
+          "mbe_2291",
+          "caselaw_12575991_66",
+          "mbe_1243",
+          "mbe_439",
+          "caselaw_12696456_50"
+        ],
+        "confidence": 0.788206277055715,
+        "passage_previews": [
+          "Generally, one who is at fault for starting a confrontation has no right to use force in self-defense, but when the vict",
+          "The panel never actually held whether the district court erred by not instructing on the self-defense presumption. That ",
+          "The general rule is that one may use deadly force in self-defense even if the use of force could be avoided by retreatin",
+          "The use of deadly force is not justifiable unless the actor believes that such force is necessary to protect himself or ",
+          "C. A person who is not engaged in unlawful activity and who is in a place where he or she has a right to be shall have n"
+        ],
+        "answer": "**Rule**: The law recognizes a privilege to use force, even deadly force, in self-defense or the defense of others, under specific circumstances [Source 4] [Source 5].\n\n**Elements**: The use of deadly force is justifiable when an actor reasonably believes such force is necessary to protect against death, serious bodily injury, kidnapping, or sexual intercourse compelled by force [Source 4]. This belief must be reasonable, considering the facts as they appeared to the defendant at the time [Source 4]. \n\n**Exceptions/Defenses**: Generally, an initial aggressor has no right to use force in self-defense [Source 3] [Source 1]. However, an aggressor may regain this right by attempting to withdraw and communicating that withdrawal, or when the other party escalates a minor fight to deadly force without allowing retreat [Source 3] [Source 1]. Furthermore, there is generally no duty to retreat before using deadly force [Source 1] [Source 3] [Source 5], particularly for those not engaged in unlawful activity and with a right to be in that place [Source 5]. A presumption exists that deadly force is necessary when someone unlawfully enters an occupied vehicle [Source 2].\n\n## Sources\n- **Source 1**: Initial aggressor and regaining right to self-defense\n- **Source 2**: Self-defense presumption regarding occupied vehicles\n- **Source 3**: General rule on retreat and initial aggressor\n- **Source 4**: Justification and reasonableness of deadly force\n- **Source 5**: \u201cStand your ground\u201d and no duty to retreat."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Duty of Care",
+        "question": "What duty of care does a person owe to bystanders when using force in self-defense or the defense of others?",
+        "status": "completed",
+        "optimized_query": "self-defense duty of care bystander injury negligence proximate cause reasonable force defense of others",
+        "retrieved_doc_ids": [
+          "mbe_1599",
+          "mbe_1628",
+          "mbe_1640",
+          "mbe_1598",
+          "caselaw_12529634_196"
+        ],
+        "confidence": 0.7751960565315753,
+        "passage_previews": [
+          "To establish a prima face case for negligence, the following elements must be proved: (i) the existence of a duty on the",
+          "To establish a prima facie case for negligence, the attorney must show that the breach of his duty to her was the actual",
+          "The duty to avoid negligent infliction of emotional distress may be breached when the defendant creates a foreseeable ri",
+          "One of the elements of negligence is a showing that defendant's breach of duty was the actual (cause in fact) and proxim",
+          "\"Unreasonable self-defense, also called imperfect self-defense, 'obviates malice because that most culpable of mental st"
+        ],
+        "answer": "The evidence does not directly address the duty of care owed to bystanders when using force in self-defense or the defense of others. However, it does state that, generally, no legal duty is imposed on a person to affirmatively act for the benefit of others [Source 1]. \n\nRegarding negligent infliction of emotional distress, a bystander may recover if they are closely related to the injured person, were present at the scene, and personally observed the event through sight, hearing, or other senses [Source 3]. \n\nThe passages discuss negligence generally, requiring a duty of care, breach of that duty, causation, and damages [Source 1] [Source 2] [Source 4]. Proximate cause exists when harmful results are normal incidents of the increased risk caused by a defendant\u2019s acts [Source 1] [Source 2] [Source 4].\n\nThe evidence also discusses \u201cunreasonable self-defense\u201d which negates malice but still constitutes unreasonable conduct [Source 5].\n\n\n\n## Sources\n- **Source 1**: General negligence principles and duty to act.\n- **Source 2**: Proximate cause in negligence cases.\n- **Source 3**: Negligent infliction of emotional distress and bystander recovery.\n- **Source 4**: Causation element of negligence.\n- **Source 5**: Unreasonable self-defense and its effect on malice."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What is the definition of battery and the required intent?",
+        "answer": "**Rule**: Battery is an intentional tort involving harmful or offensive contact with another person [Source 1] [Source 2] [Source 5].\n\n**Elements**: The elements of battery are (1) an act by the defendant resulting in harmful or offensive contact with the plaintiff\u2019s person, (2) intent by the defend...",
+        "confidence": 0.7769396486181155,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "Under what circumstances, if any, does the law recognize a privilege allowing a person to use force, even deadly force, in self-defense or the defense of others?",
+        "answer": "**Rule**: The law recognizes a privilege to use force, even deadly force, in self-defense or the defense of others, under specific circumstances [Source 4] [Source 5].\n\n**Elements**: The use of deadly force is justifiable when an actor reasonably believes such force is necessary to protect against d...",
+        "confidence": 0.788206277055715,
+        "status": "completed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What duty of care does a person owe to bystanders when using force in self-defense or the defense of others?",
+        "answer": "The evidence does not directly address the duty of care owed to bystanders when using force in self-defense or the defense of others. However, it does state that, generally, no legal duty is imposed on a person to affirmatively act for the benefit of others [Source 1]. \n\nRegarding negligent inflicti...",
+        "confidence": 0.7751960565315753,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "**Rule**: Battery is an intentional tort involving harmful or offensive contact with another person [Source 1] [Source 2] [Source 5].\n\n**Elements**: The elements of battery are (1) an act by the defendant resulting in harmful or offensive contact with the plaintiff\u2019s person, (2) intent by the defendant to cause such contact, and (3) causation [Source 5]. California also requires proof of unreasonable force [Source 3]. A plaintiff must not have consented to the contact [Source 1] [Source 2] [Source 3].\n\n**Intent**: The defendant must intend to cause a harmful or offensive contact, but need not intend to inflict actual damage [Source 2] [Source 4]. It is sufficient if the defendant intends to inflict either a harmful or offensive contact without the other's consent [Source 2]. The defendant must know with substantial certainty that a harmful or offensive contact will result from their action [Source 5].\n\n## Sources\n- **Source 1**: Definition and elements of civil battery in California, consent as a defense.\n- **Source 2**: Definition of battery under Louisiana law, intent requirement, and consent as a defense.\n- **Source 3**: Elements of civil battery in California, including unreasonable force.\n- **Source 4**: Intent requirement for battery, liability of minors and incompetents.\n- **Source 5**: Elements of battery, including intent and causation, and additional details regarding capacity and consciousness.\n\n---\n\n**Rule**: The law recognizes a privilege to use force, even deadly force, in self-defense or the defense of others, under specific circumstances [Source 4] [Source 5].\n\n**Elements**: The use of deadly force is justifiable when an actor reasonably believes such force is necessary to protect against death, serious bodily injury, kidnapping, or sexual intercourse compelled by force [Source 4]. This belief must be reasonable, considering the facts as they appeared to the defendant at the time [Source 4]. \n\n**Exceptions/Defenses**: Generally, an initial aggressor has no right to use force in self-defense [Source 3] [Source 1]. However, an aggressor may regain this right by attempting to withdraw and communicating that withdrawal, or when the other party escalates a minor fight to deadly force without allowing retreat [Source 3] [Source 1]. Furthermore, there is generally no duty to retreat before using deadly force [Source 1] [Source 3] [Source 5], particularly for those not engaged in unlawful activity and with a right to be in that place [Source 5]. A presumption exists that deadly force is necessary when someone unlawfully enters an occupied vehicle [Source 2].\n\n## Sources\n- **Source 1**: Initial aggressor and regaining right to self-defense\n- **Source 2**: Self-defense presumption regarding occupied vehicles\n- **Source 3**: General rule on retreat and initial aggressor\n- **Source 4**: Justification and reasonableness of deadly force\n- **Source 5**: \u201cStand your ground\u201d and no duty to retreat.\n\n---\n\nThe evidence does not directly address the duty of care owed to bystanders when using force in self-defense or the defense of others. However, it does state that, generally, no legal duty is imposed on a person to affirmatively act for the benefit of others [Source 1]. \n\nRegarding negligent infliction of emotional distress, a bystander may recover if they are closely related to the injured person, were present at the scene, and personally observed the event through sight, hearing, or other senses [Source 3]. \n\nThe passages discuss negligence generally, requiring a duty of care, breach of that duty, causation, and damages [Source 1] [Source 2] [Source 4]. Proximate cause exists when harmful results are normal incidents of the increased risk caused by a defendant\u2019s acts [Source 1] [Source 2] [Source 4].\n\nThe evidence also discusses \u201cunreasonable self-defense\u201d which negates malice but still constitutes unreasonable conduct [Source 5].\n\n\n\n## Sources\n- **Source 1**: General negligence principles and duty to act.\n- **Source 2**: Proximate cause in negligence cases.\n- **Source 3**: Negligent infliction of emotional distress and bystander recovery.\n- **Source 4**: Causation element of negligence.\n- **Source 5**: Unreasonable self-defense and its effect on malice.\n\n---\n\n**Answer: (C)**\nReasoning: The research establishes a privilege to use force, even deadly force, in self-defense if a reasonable belief exists that such force is necessary (Source 4). If Guard fired reasonably in his own defense during the bank holdup, he would not be liable for battery, even if the bullet ricocheted and struck Plaintiff (Source 4). Choice A is incorrect because accomplice status is not addressed in the research. Choice B is incorrect as transferred intent is not discussed in the provided research. Choice D is incorrect because the research focuses on the reasonableness of the action, not solely on intent to shoot the plaintiff, and establishes intent to cause *a* harmful or offensive contact is sufficient (Source 2).",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "suggested_query": "",
+      "reasoning": "The answer correctly identifies the elements of battery and discusses intent. It also introduces the concept of self-defense, which is relevant to the scenario. The evidence supports these statements. While the evidence doesn't directly address bystander liability in self-defense situations, the answer doesn't make any claims that contradict the provided text. Therefore, the answer is verified."
+    },
+    "is_verified": true,
+    "avg_confidence": 0.7801139940684686
+  },
+  "mc_result": {
+    "correct": true,
+    "method": "letter_match",
+    "details": "answer explicitly selects C"
+  },
+  "metrics": {
+    "elapsed_sec": 85.5,
+    "total_llm_calls": 12,
+    "steps_completed": 3,
+    "steps_failed": 0
+  }
+}

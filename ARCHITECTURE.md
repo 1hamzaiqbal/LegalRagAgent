@@ -20,11 +20,10 @@ flowchart TD
     EXEC_SUB --> EVAL{Evaluator}
     EVAL -->|pending steps| EXEC
     EVAL -->|multi_hop, all done, ≤3 completed, no stagnation| REPLAN[AdaptiveReplan]
-    EVAL -->|simple done / limit / ≥3 steps / correction / stagnation| VA[VerifyAnswer]
+    EVAL -->|simple done / limit / ≥3 steps / stagnation| VA[MC Select]
     REPLAN -->|next_step / retry| EXEC
     REPLAN -->|complete| VA
-    VA -->|not verified, first failure| EXEC
-    VA -->|verified / retries exhausted| MWB
+    VA --> MWB
     MWB --> OBS[Observability]
     OBS --> DONE
 
@@ -43,15 +42,15 @@ flowchart TD
 
 **Legend**: Green = LLM skill, Blue = retrieval (ChromaDB), Orange = evaluation logic, Purple = memory, Grey = observability
 
-**Graph topology**: 9 nodes — `detect_injection → {classifier | observability}` (safe/unsafe); `classifier → planner → {executor | memory_writeback}` (no hit/memory hit); `executor → evaluator → {executor | replanner | verify_answer}`; `replanner → {executor | verify_answer}`; `verify_answer → {executor | memory_writeback}` (1 corrective retry max); `memory_writeback → observability → END`
+**Graph topology**: 9 nodes — `detect_injection → {classifier | observability}` (safe/unsafe); `classifier → planner → {executor | memory_writeback}` (no hit/memory hit); `executor → evaluator → {executor | replanner | verify_answer}`; `replanner → {executor | verify_answer}`; `verify_answer → memory_writeback → observability → END`
 
 **Caching**: The LLM client is a singleton (`@lru_cache`), and skill prompt files are cached after first read. When using providers that support prefix caching (DeepSeek, vLLM with `--enable-prefix-caching`, OpenAI), cache-hit metrics are logged automatically per call.
 
-**QA Memory**: Successful query-answer pairs (avg confidence >= 0.45) are persisted to a separate ChromaDB collection (`qa_memory`, cosine distance). On subsequent runs, the planner checks for cached answers before generating a plan, short-circuiting execution on high-similarity matches (>= 0.92). The higher threshold ensures only near-exact question matches are served from cache.
+**QA Memory**: Successful query-answer pairs (avg confidence >= 0.70) are persisted to a separate ChromaDB collection (`qa_memory`, cosine distance). MC selection is stripped before caching so it re-runs fresh each time. On subsequent runs, the planner checks for cached answers before generating a plan, short-circuiting execution on high-similarity matches (>= 0.92).
 
 **Injection Check**: Skippable via `SKIP_INJECTION_CHECK=1` env var (saves 1 LLM call for eval/testing). Default ON for production safety.
 
-**Verification**: The verify_answer skill produces a `suggested_query` — a proper legal research question — when it finds issues. If verification fails on the first attempt, a corrective step using that query runs through the standard executor pipeline, then routes directly back to verification (skipping the replanner to avoid tangential research). A second failure terminates without adding orphaned steps. Citations use unified `[Source N]` labels from the synthesize_and_cite skill.
+**MC Selection**: The verify_answer_node now auto-passes verification (the verifier LLM call was removed — it always passed, see R1 in pipeline_flags.md). For MC questions, a dedicated `skill_select_mc_answer()` call runs once after all research is complete. Citations use scoped `[Query X][Source N]` labels across aggregated steps.
 
 ---
 
@@ -67,7 +66,7 @@ flowchart TD
 | 4 | SynthesizeAndCite | `synthesize_and_cite.md` | Synthesizes grounded answers with inline `[Source N]` citations and source map in one pass |
 | 5 | AdaptiveReplan | `adaptive_replan.md` | Decides next research step based on accumulated evidence (multi_hop only) |
 | 6 | DetectPromptInjection | `detect_prompt_injection.md` | Screens user input for adversarial prompts (skippable via `SKIP_INJECTION_CHECK=1`) |
-| 7 | VerifyAnswer | `verify_answer.md` | Cross-checks final answer against retrieved evidence for consistency |
+| 7 | VerifyAnswer | `verify_answer.md` | Cross-checks answer against evidence (retained but **not currently called** — verifier removed in R1) |
 
 ### Non-LLM Nodes
 
@@ -75,7 +74,7 @@ flowchart TD
 |------|-------------|
 | ExecutePlan | Orchestrates per-step execution: rewrite, multi-query retrieve, synthesize+cite |
 | RetrieveEvidence | Two-stage retrieval: bi-encoder over-retrieve + cross-encoder rerank (ChromaDB) |
-| Evaluator | Checks confidence against configurable threshold (`EVAL_CONFIDENCE_THRESHOLD`, default 0.6), accumulates context for replanner |
+| Evaluator | Checks confidence against configurable threshold (`EVAL_CONFIDENCE_THRESHOLD`, default 0.70), accumulates context for replanner |
 | MemoryWriteBack | Persists successful query-answer pairs for future retrieval |
 | Observability | Tracks LLM calls, char usage, parse failures, step metrics, answer status |
 
@@ -91,7 +90,6 @@ AgentState:
   iteration_count: int                 # Cycle counter for loop guard (max 4)
   injection_check: Dict[str, Any]      # {"is_safe": bool, "reasoning": str}
   verification_result: Dict[str, Any]  # {"is_verified": bool, "issues": [...], "reasoning": str}
-  verification_retries: int            # Counter for verification retry attempts (max 1 corrective step)
   memory_hit: Dict[str, Any]           # {"found": bool, "answer": str, "confidence": float}
   run_metrics: Dict[str, Any]          # Aggregated metrics from observability node
 ```

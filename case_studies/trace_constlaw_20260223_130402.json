@@ -1,0 +1,138 @@
+{
+  "label": "trace_constlaw",
+  "subject": "CONST. LAW",
+  "question": "Which of the following acts by the United States Senate would be constitutionally IMPROPER?",
+  "gold_idx": "mbe_498",
+  "correct_answer": "C",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.7130112488266802,
+    "mq_conf": 0.6637341464773643,
+    "rewrite": {
+      "primary": "Senate constitutional powers impeachment trial advice and consent treaty ratification filibuster cloture",
+      "alternatives": [
+        "Senate procedure rule change legislative process quorum call motion to proceed",
+        "US Constitution Senate authority legislative function enumerated powers separation of powers"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What are the enumerated powers of the United States Senate as defined in the Constitution?",
+        "status": "failed",
+        "optimized_query": "United States Senate enumerated powers Constitution Article I Section 3 impeachment trials treaty ratification confirmation power",
+        "retrieved_doc_ids": [
+          "mbe_1883",
+          "mbe_275",
+          "mbe_1019",
+          "mbe_1051",
+          "mbe_1072"
+        ],
+        "confidence": 0.6922646697111399,
+        "passage_previews": [
+          "Under Article II, Section 2, Congress may not appoint members of a body with administrative or enforcement powers. Such ",
+          "The U.S. Constitution establishes a system of dual sovereignty between the states and the federal government, with each ",
+          "Article II, Section 2 provides that the President shall nominate, and with the advice and consent of the Senate shall ap",
+          "Under Article III, Section 2, the United States Supreme Court has original jurisdiction in all cases affecting ambassado",
+          "Congress's power to investigate is limited to matters onewhich it can legislate. Therefore, if the Surgeon General can d"
+        ],
+        "answer": "**Rule**: The U.S. Constitution establishes a system of dual sovereignty, granting limited enumerated powers to Congress while reserving most legislative powers to the states [Source 2].\n\n**Enumerated Powers**: The Constitution explicitly grants Congress a limited set of carefully defined enumerated powers [Source 2]. These powers include the ability to utilize taxing and spending powers to influence state actions, regulate interstate commerce, implement international treaties, and directly regulate states to protect individual rights through constitutional amendments [Source 2]. \n\n**Appointment Powers**: The Senate provides advice and consent on presidential appointments of ambassadors and other officers of the United States [Source 3]. Congress may vest the appointment of inferior officers in the President alone, in the courts, or in heads of departments [Source 1] [Source 3].\n\n**Jurisdiction**: The Supreme Court has original jurisdiction in cases affecting ambassadors, public ministers, and consuls, and cases involving a state as a party [Source 4].\n\n## Sources\n- **Source 1**: Presidential appointment of officers, congressional limitations\n- **Source 2**: Enumerated powers, federalism, limits on congressional power\n- **Source 3**: Senate\u2019s role in appointments\n- **Source 4**: Supreme Court\u2019s original jurisdiction\n- **Source 5**: Congressional investigative power"
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Constitutional Powers - Retry",
+        "question": "What specific powers are granted to the United States Senate by the U.S. Constitution?",
+        "status": "failed",
+        "optimized_query": "United States Senate constitutional powers impeachment treaty ratification confirmation appointments Article I Section 3",
+        "retrieved_doc_ids": [
+          "caselaw_12531018_79",
+          "mbe_375",
+          "mbe_445",
+          "mbe_2312",
+          "caselaw_12626109_10"
+        ],
+        "confidence": 0.673614227777436,
+        "passage_previews": [
+          "Lucia , 138 S.Ct. at 2051. The \"Appointments Clause\" is found in Article II, Section 2, Clause 2 of the United States Co",
+          "The US Constitution contains ambiguities regarding the roles of Congress and the President in making foreign policy. In ",
+          "Article I, Section 7 of the Constitution states that \u201c[e]very Bill which shall have passed the House of Representatives ",
+          "The Appointments Clause of the Constitution permits Congress to vest appointments of inferior officers only in the Presi",
+          "As we have just said, PROMESA gives the President of the United States the power to appoint the Board's seven members wi"
+        ],
+        "answer": "The U.S. Constitution grants the Senate the power to provide advice and consent on presidential nominations for treaties, Ambassadors, and Executive Department leaders [Source 2]. The Senate also shares in the legislative process; every bill must pass both the House of Representatives and the Senate before being presented to the President to become law [Source 3]. \n\nFurthermore, the Constitution allows Congress to vest the appointment of \u201cinferior officers\u201d in the President, the courts, or the heads of departments [Source 4]. However, a recent law, PROMESA, allows the President to appoint the Board\u2019s seven members without Senate confirmation, provided selections are made from lists prepared by congressional leaders [Source 5]. The Senate\u2019s role in approving appointments is outlined in the Appointments Clause, found in Article II, Section 2, Clause 2 of the Constitution [Source 1].\n\n## Sources\n- **Source 1**: Location of the Appointments Clause.\n- **Source 2**: Senate\u2019s role in treaties, ambassadors, and Executive Branch officials.\n- **Source 3**: Bicameralism and presentment requirements for bills to become law.\n- **Source 4**: Congressional power regarding appointments of inferior officers.\n- **Source 5**: Exception to Senate confirmation for appointments under PROMESA."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Constitutional Limitations",
+        "question": "What constitutional limitations are placed on the powers of the United States Senate?",
+        "status": "failed",
+        "optimized_query": "United States Senate constitutional powers limitations checks and balances legislative authority Article I Section 5",
+        "retrieved_doc_ids": [
+          "mbe_897",
+          "caselaw_12574626_35",
+          "caselaw_12521398_115",
+          "mbe_61",
+          "mbe_382"
+        ],
+        "confidence": 0.697458413129018,
+        "passage_previews": [
+          "Article I, Section 6, clause 1 of the Constitution reads, in part, [Senators and Representatives] shall in all Cases, ex",
+          "Article 3, section 1 of the Idaho Constitution provides that, \"[t]he legislative power of the state shall be vested in a",
+          "\"All legislative Powers herein granted shall be vested in a Congress.\" U.S. Const. art. I.",
+          "The Spending Clause of the Constitution of the United States empowers Congress \u201c[t]o lay and collect Taxes, Duties, Impo",
+          "The power of Congress to regulate commerce, although broad, has limits,1 and is not absolute or without effective bounds"
+        ],
+        "answer": "The U.S. Constitution places several limitations on the powers of the Senate, and Congress generally. \n\nRegarding legislative speech, Senators and Representatives have a privilege protecting them from being questioned in any place outside of their respective Houses, except in cases of treason, felony, and breach of the peace [Source 1]. This \u201cSpeech or Debate Clause\u201d aims to protect the integrity and independence of the legislative process [Source 1].\n\nFurthermore, the Idaho Constitution establishes that the legislative power is vested in a senate and house of representatives, and the legislature cannot delegate its power to make laws [Source 2]. \n\nCongress\u2019s power to regulate commerce is not absolute and must have a real or substantial relation to interstate commerce [Source 5]. A federal statute regulating activity unrelated to commerce may be invalidated [Source 5]. Congress also has broad discretion to tax and spend for the \u201cgeneral Welfare,\u201d but may impose limits on how those funds are used [Source 4].\n\n## Sources\n- **Source 1**: Speech or Debate Clause and its purpose.\n- **Source 2**: Idaho constitutional limitations on legislative power.\n- **Source 3**: Vesting of legislative powers in Congress.\n- **Source 4**: Spending Clause and Congressional discretion.\n- **Source 5**: Limits on the Commerce Clause."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What are the enumerated powers of the United States Senate as defined in the Constitution?",
+        "answer": "**Rule**: The U.S. Constitution establishes a system of dual sovereignty, granting limited enumerated powers to Congress while reserving most legislative powers to the states [Source 2].\n\n**Enumerated Powers**: The Constitution explicitly grants Congress a limited set of carefully defined enumerated...",
+        "confidence": 0.6922646697111399,
+        "status": "failed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "What specific powers are granted to the United States Senate by the U.S. Constitution?",
+        "answer": "The U.S. Constitution grants the Senate the power to provide advice and consent on presidential nominations for treaties, Ambassadors, and Executive Department leaders [Source 2]. The Senate also shares in the legislative process; every bill must pass both the House of Representatives and the Senate...",
+        "confidence": 0.673614227777436,
+        "status": "failed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What constitutional limitations are placed on the powers of the United States Senate?",
+        "answer": "The U.S. Constitution places several limitations on the powers of the Senate, and Congress generally. \n\nRegarding legislative speech, Senators and Representatives have a privilege protecting them from being questioned in any place outside of their respective Houses, except in cases of treason, felon...",
+        "confidence": 0.697458413129018,
+        "status": "failed"
+      }
+    ],
+    "final_answer": "Unable to produce a sufficiently grounded answer. All 1 research step(s) failed to retrieve high-confidence evidence from the corpus.",
+    "verification": {
+      "is_verified": false,
+      "issues": [
+        "Answer is a failure message"
+      ],
+      "reasoning": "No real answer to verify"
+    },
+    "is_verified": false,
+    "avg_confidence": 0.0
+  },
+  "mc_result": {
+    "correct": false,
+    "method": "overlap",
+    "details": "highest overlap with B (3), correct C (3)"
+  },
+  "metrics": {
+    "elapsed_sec": 90.6,
+    "total_llm_calls": 11,
+    "steps_completed": 0,
+    "steps_failed": 3
+  }
+}

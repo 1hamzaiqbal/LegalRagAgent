@@ -1,0 +1,137 @@
+{
+  "label": "trace_contracts",
+  "subject": "CONTRACTS",
+  "question": "Which of the following fact patterns most clearly suggests an implied-in-fact contract?",
+  "gold_idx": "mbe_684",
+  "correct_answer": "C",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.80759225317853,
+    "mq_conf": 0.7771050682025689,
+    "rewrite": {
+      "primary": "implied-in-fact contract prior dealings course of conduct mutual intent contractual obligation",
+      "alternatives": [
+        "quasi-contract unjust enrichment reasonable expectation benefit conferred detrimental reliance",
+        "contract formation implied terms conduct manifesting assent mutual agreement reasonable value"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What are the required elements of an implied-in-fact contract?",
+        "status": "completed",
+        "optimized_query": "implied-in-fact contract elements conduct manifestation mutual intent reasonable reliance offer acceptance",
+        "retrieved_doc_ids": [
+          "mbe_1826",
+          "mbe_1181",
+          "mbe_759",
+          "mbe_797",
+          "caselaw_12532323_87"
+        ],
+        "confidence": 0.7592213811009795,
+        "passage_previews": [
+          "An implied-in-fact contract is a contract formed by manifestations of assent other than oral or written language, i.e., ",
+          "An implied-in-fact contract is formed by manifestations of assent other than oral or written language, i.e., by conduct.",
+          "\u201cFormation of a valid contract requires that there be a meeting of the minds as evidenced by a manifestation of mutual i",
+          "Contracts consist of an offer, acceptance, consideration, and intent by the parties to be bound by the contract. Day v. ",
+          "Even if Defendant demonstrated that Plaintiff was provided reasonable notice of the Ticket Contract, it would also need "
+        ],
+        "answer": "**Rule**: An implied-in-fact contract is formed through manifestations of assent, other than expressed language, such as conduct [Source 1] [Source 2] [Source 4].\n\n**Elements**: (1) An offer by one party and acceptance by the other [Source 3]. (2) This acceptance can be shown through conduct, even silently accepting offered benefits [Source 1] [Source 2] [Source 5]. (3) There must be a mutual manifestation of assent, or a \u201cmeeting of the minds\u201d [Source 3] [Source 5]. (4) The party asserting the contract\u2019s existence bears the burden of establishing it and its terms [Source 3]. \n\n**Considerations**: The conduct manifesting assent must be intentional, and the acting party must reasonably believe the other party would infer assent from that conduct [Source 5]. Additionally, contracts require offer, acceptance, consideration, and intent to be bound [Source 4].\n\n## Sources\n- **Source 1**: Definition of implied-in-fact contract and acceptance through inaction.\n- **Source 2**: Formation of implied-in-fact contracts through conduct and acceptance of benefits.\n- **Source 3**: Offer and acceptance as evidence of a meeting of the minds.\n- **Source 4**: Elements of contracts generally, including implied contracts.\n- **Source 5**: Mutual manifestation of assent and intent behind conduct."
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Fact Pattern Analysis",
+        "question": "How do courts determine whether conduct manifests assent to form an implied-in-fact contract?",
+        "status": "completed",
+        "optimized_query": "implied-in-fact contract manifestation of assent objective intent conduct mutual agreement contract formation",
+        "retrieved_doc_ids": [
+          "mbe_118",
+          "caselaw_12530829_31",
+          "mbe_450",
+          "mbe_112",
+          "caselaw_12574786_140"
+        ],
+        "confidence": 0.7800892133561483,
+        "passage_previews": [
+          "Implied-in-fact contract An implied-in-fact contract is formed when parties\u2019 promises are inferred from their intentiona",
+          "A contract exists if the parties mutually assent to be bound by all its material terms, the assent is either expressly o",
+          "A contract implied in fact is \u201ca true contract containing all necessary elements for a binding agreement except that it ",
+          "\u201cWhen deciding whether the parties agreed to arbitrate a certain matter..., courts generally ... should apply ordinary s",
+          "[\u00b662] \"Whether a contract has been entered into depends on the intent of the parties and is a question of fact.\" Hunter "
+        ],
+        "answer": "**Rule**: An implied-in-fact contract is formed when parties\u2019 promises are inferred from their intentional conduct, and one party knows or has reason to know the other party will interpret that conduct as assent [Source 1]. A contract requires mutual assent to be bound by its material terms [Source 2].\n\n**Elements**: To determine if conduct manifests assent, courts look to the objective manifestations of the parties\u2019 intent through their words and deeds [Source 4]. This intent must be based on clear evidence, not merely a course of dealing [Source 3]. The question is not subjective intent, but what a reasonable person in the other party\u2019s position would conclude from the conduct [Source 4] [Source 5].\n\n**Application**: Acceptance of services or products from a merchant, such as in a barbershop or vending machine, can demonstrate assent to pay for their reasonable value [Source 1]. Determining whether a contract exists, and the intent of the parties, is a question of fact [Source 5]. \n\n## Sources\n- **Source 1**: Definition and examples of implied-in-fact contracts.\n- **Source 2**: General contract requirements, including assent.\n- **Source 3**: Requirement of intent to contract, not just a course of dealing.\n- **Source 4**: Objective manifestation of intent in contract formation.\n- **Source 5**: Intent as a question of fact, determined objectively."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Fact Pattern Analysis",
+        "question": "What legal standards do courts use to evaluate whether a party reasonably relied on another party's conduct as an offer to form a contract?",
+        "status": "completed",
+        "optimized_query": "contract law reasonable reliance detrimental reliance promissory estoppel offer acceptance consideration",
+        "retrieved_doc_ids": [
+          "caselaw_12561519_44",
+          "mbe_292",
+          "mbe_927",
+          "mbe_2195",
+          "mbe_2257"
+        ],
+        "confidence": 0.779488781854443,
+        "passage_previews": [
+          "Under Nebraska law, the doctrine of promissory estoppel does not require that the promise giving rise to the cause of ac",
+          "Had defendant's bid expressly stated or clearly implied that it was revocable at any time before acceptance we would tre",
+          "Promissory estoppel renders an offer binding as an option contract even without consideration if the offeror should reas",
+          "Generally, offers can be revoked at will by the offeror, even if she has promised not to revoke for a certain period of ",
+          "A unilateral contract is one in which the offer requests performance rather than a promise to perform, and under the Fir"
+        ],
+        "answer": "**Rule**: Promissory estoppel can render an offer binding even without consideration if the offeror should reasonably expect it to induce action or forbearance by the offeree, and such action is induced [Source 3]. This is particularly relevant when reviewing a dismissal for failure to state a claim [Source 1].\n\n**Elements**: To establish reasonable reliance, a court considers whether the offeror could reasonably expect the offeree to rely on the offer to their detriment, and whether that reliance actually occurred [Source 3] [Source 4]. This reliance must be foreseeable and result in a prejudicial change in position [Source 2]. \n\n**Application**:  An offeror has reason to expect reliance when submitting a bid with the understanding it may be used by others in formulating their own bids, particularly when the offeror has a stake in the outcome [Source 2].  When a plaintiff uses a defendant\u2019s offer in computing their own bid, they are bound by their own bid, and the defendant should have realized the possibility of this reliance [Source 2]. \n\n## Sources\n- **Source 1**: Promissory estoppel and reasonable reliance in Nebraska law.\n- **Source 2**: Reasonable reliance on bids and subsidiary promises not to revoke.\n- **Source 3**: Promissory estoppel standards for binding an offer without consideration.\n- **Source 4**: Limitations on offer revocation and detrimental reliance.\n- **Source 5**: Unilateral contracts and detrimental reliance as an element of promissory estoppel."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What are the required elements of an implied-in-fact contract?",
+        "answer": "**Rule**: An implied-in-fact contract is formed through manifestations of assent, other than expressed language, such as conduct [Source 1] [Source 2] [Source 4].\n\n**Elements**: (1) An offer by one party and acceptance by the other [Source 3]. (2) This acceptance can be shown through conduct, even s...",
+        "confidence": 0.7592213811009795,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "How do courts determine whether conduct manifests assent to form an implied-in-fact contract?",
+        "answer": "**Rule**: An implied-in-fact contract is formed when parties\u2019 promises are inferred from their intentional conduct, and one party knows or has reason to know the other party will interpret that conduct as assent [Source 1]. A contract requires mutual assent to be bound by its material terms [Source ...",
+        "confidence": 0.7800892133561483,
+        "status": "completed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What legal standards do courts use to evaluate whether a party reasonably relied on another party's conduct as an offer to form a contract?",
+        "answer": "**Rule**: Promissory estoppel can render an offer binding even without consideration if the offeror should reasonably expect it to induce action or forbearance by the offeree, and such action is induced [Source 3]. This is particularly relevant when reviewing a dismissal for failure to state a claim...",
+        "confidence": 0.779488781854443,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "**Rule**: An implied-in-fact contract is formed through manifestations of assent, other than expressed language, such as conduct [Source 1] [Source 2] [Source 4].\n\n**Elements**: (1) An offer by one party and acceptance by the other [Source 3]. (2) This acceptance can be shown through conduct, even silently accepting offered benefits [Source 1] [Source 2] [Source 5]. (3) There must be a mutual manifestation of assent, or a \u201cmeeting of the minds\u201d [Source 3] [Source 5]. (4) The party asserting the contract\u2019s existence bears the burden of establishing it and its terms [Source 3]. \n\n**Considerations**: The conduct manifesting assent must be intentional, and the acting party must reasonably believe the other party would infer assent from that conduct [Source 5]. Additionally, contracts require offer, acceptance, consideration, and intent to be bound [Source 4].\n\n## Sources\n- **Source 1**: Definition of implied-in-fact contract and acceptance through inaction.\n- **Source 2**: Formation of implied-in-fact contracts through conduct and acceptance of benefits.\n- **Source 3**: Offer and acceptance as evidence of a meeting of the minds.\n- **Source 4**: Elements of contracts generally, including implied contracts.\n- **Source 5**: Mutual manifestation of assent and intent behind conduct.\n\n---\n\n**Rule**: An implied-in-fact contract is formed when parties\u2019 promises are inferred from their intentional conduct, and one party knows or has reason to know the other party will interpret that conduct as assent [Source 1]. A contract requires mutual assent to be bound by its material terms [Source 2].\n\n**Elements**: To determine if conduct manifests assent, courts look to the objective manifestations of the parties\u2019 intent through their words and deeds [Source 4]. This intent must be based on clear evidence, not merely a course of dealing [Source 3]. The question is not subjective intent, but what a reasonable person in the other party\u2019s position would conclude from the conduct [Source 4] [Source 5].\n\n**Application**: Acceptance of services or products from a merchant, such as in a barbershop or vending machine, can demonstrate assent to pay for their reasonable value [Source 1]. Determining whether a contract exists, and the intent of the parties, is a question of fact [Source 5]. \n\n## Sources\n- **Source 1**: Definition and examples of implied-in-fact contracts.\n- **Source 2**: General contract requirements, including assent.\n- **Source 3**: Requirement of intent to contract, not just a course of dealing.\n- **Source 4**: Objective manifestation of intent in contract formation.\n- **Source 5**: Intent as a question of fact, determined objectively.\n\n---\n\n**Rule**: Promissory estoppel can render an offer binding even without consideration if the offeror should reasonably expect it to induce action or forbearance by the offeree, and such action is induced [Source 3]. This is particularly relevant when reviewing a dismissal for failure to state a claim [Source 1].\n\n**Elements**: To establish reasonable reliance, a court considers whether the offeror could reasonably expect the offeree to rely on the offer to their detriment, and whether that reliance actually occurred [Source 3] [Source 4]. This reliance must be foreseeable and result in a prejudicial change in position [Source 2]. \n\n**Application**:  An offeror has reason to expect reliance when submitting a bid with the understanding it may be used by others in formulating their own bids, particularly when the offeror has a stake in the outcome [Source 2].  When a plaintiff uses a defendant\u2019s offer in computing their own bid, they are bound by their own bid, and the defendant should have realized the possibility of this reliance [Source 2]. \n\n## Sources\n- **Source 1**: Promissory estoppel and reasonable reliance in Nebraska law.\n- **Source 2**: Reasonable reliance on bids and subsidiary promises not to revoke.\n- **Source 3**: Promissory estoppel standards for binding an offer without consideration.\n- **Source 4**: Limitations on offer revocation and detrimental reliance.\n- **Source 5**: Unilateral contracts and detrimental reliance as an element of promissory estoppel.\n\n---\n\n**Answer: (C)**\nReasoning:\n**(A)** Algernon paying the wrong bill is a mistake, not a manifestation of assent to a contract. Element 1 (offer and acceptance) is missing. There's no offer by the county, and Algernon\u2019s payment isn\u2019t acceptance of an offer, but rather an attempt to fulfill an existing (though mistaken) obligation.\n**(B)** Meddick treating Ryder while unconscious doesn\u2019t meet the \u201cintentional conduct\u201d requirement. Element 2 (acceptance through conduct) is missing because Ryder had no knowledge or consent, so no conduct could manifest assent. It\u2019s more akin to emergency medical care, potentially giving rise to a quasi-contract claim, but not an implied-in-fact contract.\n**(C)** Asphalt paving Nabor\u2019s driveway while Nabor watches and doesn\u2019t object strongly suggests an implied-in-fact contract. Asphalt offered to pave *a* driveway (Element 1 - offer). Nabor\u2019s silence and lack of objection, while watching the work, constitutes acceptance by conduct (Element 2 - acceptance through conduct/silently accepting benefits). A reasonable person would infer from Nabor\u2019s inaction that he assented to the paving and the implied promise to pay for it (Element 3 - mutual manifestation of assent).\n**(D)** Iris filing her mother\u2019s taxes is a familial act, not a contractual one. While there\u2019s an offer (Iris\u2019s service) and acceptance (mother\u2019s request), it lacks the intent to create legal relations necessary for a contract. It\u2019s a gift or family favor, not a bargain seeking enforcement. Element 4 (intent to be bound) is missing.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "suggested_query": "",
+      "reasoning": "The answer correctly identifies the elements of an implied-in-fact contract and accurately reflects the information provided in the passages. The passages consistently define implied-in-fact contracts as those formed through conduct, rather than express language, and emphasize the importance of objective manifestations of intent and acceptance of benefits. The answer does not contradict any of the provided evidence."
+    },
+    "is_verified": true,
+    "avg_confidence": 0.7729331254371902
+  },
+  "mc_result": {
+    "correct": true,
+    "method": "letter_match",
+    "details": "answer explicitly selects C"
+  },
+  "metrics": {
+    "elapsed_sec": 99.0,
+    "total_llm_calls": 12,
+    "steps_completed": 3,
+    "steps_failed": 0
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "label": "trace_contracts",
+  "subject": "CONTRACTS",
+  "question": "Which of the following fact patterns most clearly suggests an implied-in-fact contract?",
+  "gold_idx": "mbe_684",
+  "correct_answer": "C",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.80759225317853,
+    "mq_conf": 0.7771050682025689,
+    "rewrite": {
+      "primary": "implied-in-fact contract prior dealings course of conduct mutual intent contractual obligation",
+      "alternatives": [
+        "quasi-contract unjust enrichment reasonable expectation benefit conferred detrimental reliance",
+        "contract formation implied terms conduct manifesting assent mutual agreement past performance"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What are the required elements of an implied-in-fact contract?",
+        "status": "completed",
+        "optimized_query": "implied-in-fact contract elements conduct manifestation mutual intent reasonable reliance offer acceptance",
+        "retrieved_doc_ids": [
+          "mbe_1826",
+          "mbe_1181",
+          "mbe_759",
+          "mbe_797",
+          "caselaw_12532323_87"
+        ],
+        "confidence": 0.7592213811009795,
+        "passage_previews": [
+          "An implied-in-fact contract is a contract formed by manifestations of assent other than oral or written language, i.e., ",
+          "An implied-in-fact contract is formed by manifestations of assent other than oral or written language, i.e., by conduct.",
+          "\u201cFormation of a valid contract requires that there be a meeting of the minds as evidenced by a manifestation of mutual i",
+          "Contracts consist of an offer, acceptance, consideration, and intent by the parties to be bound by the contract. Day v. ",
+          "Even if Defendant demonstrated that Plaintiff was provided reasonable notice of the Ticket Contract, it would also need "
+        ],
+        "answer": "**Rule**: An implied-in-fact contract is formed through conduct manifesting assent, rather than through oral or written language [Source 1] [Source 2] [Source 4].\n\n**Elements**: (1) A manifestation of assent, which can be an offer and acceptance [Source 3] [Source 4]; (2) this manifestation can occur through conduct, such as knowingly accepting offered benefits [Source 2] [Source 4]; (3) the party\u2019s conduct must objectively appear to manifest a contractual intent [Source 1]; (4) the party must intend to engage in the conduct and realize the other party may infer assent from it [Source 5]. \n\n**Burden of Proof**: The party asserting the existence of an implied-in-fact contract bears the burden of establishing both its existence and its terms [Source 3].\n\n## Sources\n- **Source 1**: Definition of implied-in-fact contract and objective manifestation of intent.\n- **Source 2**: Formation through conduct and acceptance of benefits.\n- **Source 3**: Offer and acceptance as evidence of a meeting of the minds; burden of proof.\n- **Source 4**: Distinguishes implied-in-fact from express contracts; formation by conduct.\n- **Source 5**: Requirement of intent and knowledge that conduct manifests assent."
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Fact Pattern Analysis",
+        "question": "How do courts determine 'manifestation of assent' through conduct in implied-in-fact contract cases?",
+        "status": "completed",
+        "optimized_query": "implied-in-fact contract manifestation of assent conduct objective intent mutual agreement contract formation",
+        "retrieved_doc_ids": [
+          "mbe_118",
+          "caselaw_12530829_31",
+          "mbe_450",
+          "caselaw_12574786_140",
+          "mbe_80"
+        ],
+        "confidence": 0.7799758540692432,
+        "passage_previews": [
+          "Implied-in-fact contract An implied-in-fact contract is formed when parties\u2019 promises are inferred from their intentiona",
+          "A contract exists if the parties mutually assent to be bound by all its material terms, the assent is either expressly o",
+          "A contract implied in fact is \u201ca true contract containing all necessary elements for a binding agreement except that it ",
+          "[\u00b662] \"Whether a contract has been entered into depends on the intent of the parties and is a question of fact.\" Hunter ",
+          "Unless required by law, contracts need not be in writing to be enforceable. Bill Walker & Assocs., Inc. v. Parrish, 770 "
+        ],
+        "answer": "**Rule**: A contract exists when parties mutually assent to be bound by its material terms, and this assent can be either express or implied [Source 2].\n\n**Manifestation of Assent**: In implied-in-fact contracts, assent is manifested through intentional conduct where one party knows or has reason to know the other will interpret that conduct as agreement [Source 1]. This manifestation doesn\u2019t require written or oral expression; it can be shown by spoken words, actions, or even inactions [Source 5]. \n\n**Determination of Intent**: Determining whether a contract exists depends on the parties\u2019 intent, a question of fact, and courts use an objective approach [Source 4]. A party\u2019s intent is understood as what a reasonable person in the other party\u2019s position would conclude from their actions [Source 4]. The contract must be based on clear evidence of intent to contract, not merely a course of dealing [Source 3].\n\n## Sources\n- **Source 1**: Definition and examples of implied-in-fact contracts.\n- **Source 2**: Requirement of mutual assent, express or implied.\n- **Source 3**: Requirement of clear evidence of intent to contract.\n- **Source 4**: Intent as a question of fact, objective approach to determining intent.\n- **Source 5**: Assent can be manifested through conduct (actions/inactions)."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Fact Pattern Analysis",
+        "question": "What legal standards do courts use to evaluate whether conduct demonstrates an intent to contract, specifically regarding reasonable expectations and industry customs?",
+        "status": "completed",
+        "optimized_query": "intent to contract offer acceptance mutual assent reasonable person objective manifestation industry custom",
+        "retrieved_doc_ids": [
+          "mbe_343",
+          "mbe_210",
+          "mbe_291",
+          "mbe_1204",
+          "mbe_112"
+        ],
+        "confidence": 0.7456644562801323,
+        "passage_previews": [
+          "A contract is formed when an offer is made and accepted, and the agreement is supported by consideration. Marquardt v. P",
+          "An \u201cacceptance\u201d is an \u201cexpression of the intent to accept the offer, by word, sign, writing or act, communicated or deli",
+          "An offer is defined as \u201cthe manifestation of willingness to enter into a bargain, so made as to justify another person i",
+          "If offers stating precisely the same terms cross in the mail, they do not give rise to a contract despite the apparent m",
+          "\u201cWhen deciding whether the parties agreed to arbitrate a certain matter..., courts generally ... should apply ordinary s"
+        ],
+        "answer": "**Rule**: A contract is formed when an offer is made and accepted, with the agreement supported by consideration [Source 1].\n\n**Elements**: Acceptance is demonstrated by words or conduct that objectively manifest an intent to accept an offer [Source 1] [Source 2]. This can include performing according to the offer\u2019s terms or accepting accompanying consideration [Source 2]. A manifestation of assent to the terms of an offer, made in a manner invited or required by the offer, constitutes acceptance [Source 3].\n\n**Application**: Courts evaluating intent to contract apply ordinary state-law principles [Source 5]. The focus is on the objective manifestations of intent, as revealed through words and deeds, rather than subjective intentions [Source 5]. Mutual intent to be bound is an essential element of a contract [Source 5]. \n\n## Sources\n- **Source 1**: Definition of a contract and acceptance.\n- **Source 2**: Methods of demonstrating acceptance (performance, consideration).\n- **Source 3**: Further definition of an offer and acceptance.\n- **Source 4**: Addresses crossed offers and lack of knowledge.\n- **Source 5**: Application of state law principles and focus on objective intent."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What are the required elements of an implied-in-fact contract?",
+        "answer": "**Rule**: An implied-in-fact contract is formed through conduct manifesting assent, rather than through oral or written language [Source 1] [Source 2] [Source 4].\n\n**Elements**: (1) A manifestation of assent, which can be an offer and acceptance [Source 3] [Source 4]; (2) this manifestation can occu...",
+        "confidence": 0.7592213811009795,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "How do courts determine 'manifestation of assent' through conduct in implied-in-fact contract cases?",
+        "answer": "**Rule**: A contract exists when parties mutually assent to be bound by its material terms, and this assent can be either express or implied [Source 2].\n\n**Manifestation of Assent**: In implied-in-fact contracts, assent is manifested through intentional conduct where one party knows or has reason to...",
+        "confidence": 0.7799758540692432,
+        "status": "completed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What legal standards do courts use to evaluate whether conduct demonstrates an intent to contract, specifically regarding reasonable expectations and industry customs?",
+        "answer": "**Rule**: A contract is formed when an offer is made and accepted, with the agreement supported by consideration [Source 1].\n\n**Elements**: Acceptance is demonstrated by words or conduct that objectively manifest an intent to accept an offer [Source 1] [Source 2]. This can include performing accordi...",
+        "confidence": 0.7456644562801323,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "**Rule**: An implied-in-fact contract is formed through conduct manifesting assent, rather than through oral or written language [Source 1] [Source 2] [Source 4].\n\n**Elements**: (1) A manifestation of assent, which can be an offer and acceptance [Source 3] [Source 4]; (2) this manifestation can occur through conduct, such as knowingly accepting offered benefits [Source 2] [Source 4]; (3) the party\u2019s conduct must objectively appear to manifest a contractual intent [Source 1]; (4) the party must intend to engage in the conduct and realize the other party may infer assent from it [Source 5]. \n\n**Burden of Proof**: The party asserting the existence of an implied-in-fact contract bears the burden of establishing both its existence and its terms [Source 3].\n\n## Sources\n- **Source 1**: Definition of implied-in-fact contract and objective manifestation of intent.\n- **Source 2**: Formation through conduct and acceptance of benefits.\n- **Source 3**: Offer and acceptance as evidence of a meeting of the minds; burden of proof.\n- **Source 4**: Distinguishes implied-in-fact from express contracts; formation by conduct.\n- **Source 5**: Requirement of intent and knowledge that conduct manifests assent.\n\n---\n\n**Rule**: A contract exists when parties mutually assent to be bound by its material terms, and this assent can be either express or implied [Source 2].\n\n**Manifestation of Assent**: In implied-in-fact contracts, assent is manifested through intentional conduct where one party knows or has reason to know the other will interpret that conduct as agreement [Source 1]. This manifestation doesn\u2019t require written or oral expression; it can be shown by spoken words, actions, or even inactions [Source 5]. \n\n**Determination of Intent**: Determining whether a contract exists depends on the parties\u2019 intent, a question of fact, and courts use an objective approach [Source 4]. A party\u2019s intent is understood as what a reasonable person in the other party\u2019s position would conclude from their actions [Source 4]. The contract must be based on clear evidence of intent to contract, not merely a course of dealing [Source 3].\n\n## Sources\n- **Source 1**: Definition and examples of implied-in-fact contracts.\n- **Source 2**: Requirement of mutual assent, express or implied.\n- **Source 3**: Requirement of clear evidence of intent to contract.\n- **Source 4**: Intent as a question of fact, objective approach to determining intent.\n- **Source 5**: Assent can be manifested through conduct (actions/inactions).\n\n---\n\n**Rule**: A contract is formed when an offer is made and accepted, with the agreement supported by consideration [Source 1].\n\n**Elements**: Acceptance is demonstrated by words or conduct that objectively manifest an intent to accept an offer [Source 1] [Source 2]. This can include performing according to the offer\u2019s terms or accepting accompanying consideration [Source 2]. A manifestation of assent to the terms of an offer, made in a manner invited or required by the offer, constitutes acceptance [Source 3].\n\n**Application**: Courts evaluating intent to contract apply ordinary state-law principles [Source 5]. The focus is on the objective manifestations of intent, as revealed through words and deeds, rather than subjective intentions [Source 5]. Mutual intent to be bound is an essential element of a contract [Source 5]. \n\n## Sources\n- **Source 1**: Definition of a contract and acceptance.\n- **Source 2**: Methods of demonstrating acceptance (performance, consideration).\n- **Source 3**: Further definition of an offer and acceptance.\n- **Source 4**: Addresses crossed offers and lack of knowledge.\n- **Source 5**: Application of state law principles and focus on objective intent.\n\n---\n\n**Answer: (C)**\nReasoning:\n**(A)** Algernon paying the wrong bill is a mistake, not a manifestation of assent to a contract. Element 1 (manifestation of assent) is missing. It\u2019s a unilateral mistake and doesn\u2019t suggest an offer/acceptance.\n**(B)** Meddick treating Ryder while unconscious lacks any manifestation of assent from Ryder. Element 1 (manifestation of assent) is missing, and Ryder didn\u2019t knowingly accept any benefits. This could potentially be a quasi-contract, but not an implied-in-fact contract.\n**(C)** Asphalt paving Nabor\u2019s driveway while Nabor watches and doesn\u2019t object *does* suggest an implied-in-fact contract. Element 1 (manifestation of assent) is met by Asphalt\u2019s conduct (paving the driveway) and Nabor\u2019s conduct (watching without objection \u2013 knowingly accepting a benefit). Element 2 (knowingly accepting offered benefits) is met. Element 3 (objective appearance of contractual intent) is met because a reasonable person would interpret Nabor\u2019s silence as acceptance. Element 4 (intent to engage in conduct and realize the other party may infer assent) is met by Asphalt\u2019s belief they had a contract and Nabor\u2019s awareness of the paving.\n**(D)** Iris filing her mother\u2019s taxes is a familial act, not a contractual one. While there\u2019s conduct, it lacks the objective appearance of a contractual intent. Element 3 (objective appearance of contractual intent) is missing. It\u2019s a gift, not a bargained-for exchange.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "suggested_query": "",
+      "reasoning": "The answer accurately defines and outlines the elements of an implied-in-fact contract, drawing support from the provided sources. It correctly emphasizes conduct manifesting assent and objective intent. The answer does not contradict the evidence or fabricate any legal rules."
+    },
+    "is_verified": true,
+    "avg_confidence": 0.761620563816785
+  },
+  "mc_result": {
+    "correct": true,
+    "method": "letter_match",
+    "details": "answer explicitly selects C"
+  },
+  "metrics": {
+    "elapsed_sec": 94.5,
+    "total_llm_calls": 12,
+    "steps_completed": 3,
+    "steps_failed": 0
+  }
+}

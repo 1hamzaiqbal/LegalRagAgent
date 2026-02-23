@@ -397,7 +397,6 @@ def phase2_pipeline(max_queries: int = None):
             "iteration_count": 0,
             "injection_check": {},
             "verification_result": {},
-            "verification_retries": 0,
             "memory_hit": {},
             "run_metrics": {},
         }
@@ -451,7 +450,6 @@ def phase2_pipeline(max_queries: int = None):
             "answer_preview": (answer[:400] + "...") if len(answer) > 400 else answer,
             "is_verified": verification.get("is_verified", None),
             "verification_issues": verification.get("issues", []),
-            "verification_retries": fs.get("verification_retries", 0),
             "memory_hit": fs.get("memory_hit", {}).get("found", False),
             "injection_safe": fs.get("injection_check", {}).get("is_safe", None),
             "steps_completed": metrics.get("steps_completed", 0),
@@ -525,8 +523,6 @@ def _grade(r):
         score += 1
     elif r["llm_calls"] <= 18:
         score += 0  # no bonus for moderate call count
-    if r["verification_retries"] == 0:
-        score += 1
     if r["parse_failures"] == 0:
         score += 1
 
@@ -547,12 +543,11 @@ def _print_pipeline_results(results, total_elapsed):
     print("DETAILED PIPELINE RESULTS")
     print(f"{'='*130}")
     hdr = (f"{'Label':<32} {'Cat':<12} {'Grd':>3} {'Time':>6} {'LLM':>4} "
-           f"{'Iter':>4} {'Ans':>5} {'Vrfy':>4} {'MC':>5} {'VR':>3} {'Gold':>4} "
+           f"{'Iter':>4} {'Ans':>5} {'MC':>5} {'Gold':>4} "
            f"{'Prs':>3} {'Err':>3}")
     print(hdr)
-    print("-" * 130)
+    print("-" * 120)
     for r in results:
-        v = "Y" if r["is_verified"] is True else ("N" if r["is_verified"] is False else "-")
         g = "Y" if r["gold_retrieved"] else ("." if not r["gold_idx"] else "N")
         err = "Y" if r["error"] else "."
         mc = "Y" if r.get("mc_correct") is True else (
@@ -560,8 +555,8 @@ def _print_pipeline_results(results, total_elapsed):
             "." if r.get("mc_method") == "n/a" else "?"))
         print(f"{r['label']:<32} {r['category']:<12} {r['grade']:>3} "
               f"{r['elapsed_sec']:>5.1f}s {r['llm_calls']:>4} "
-              f"{r['iterations']:>4} {r['answer_len']:>5} {v:>4} "
-              f"{mc:>5} {r['verification_retries']:>3} {g:>4} "
+              f"{r['iterations']:>4} {r['answer_len']:>5} "
+              f"{mc:>5} {g:>4} "
               f"{r['parse_failures']:>3} {err:>3}")
 
     # Category breakdown

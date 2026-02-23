@@ -1,4 +1,5 @@
 import functools
+import logging
 import os
 import time
 import numpy as np
@@ -8,6 +9,8 @@ from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 from sentence_transformers import CrossEncoder
+
+logger = logging.getLogger(__name__)
 
 CHROMA_DB_DIR = "./chroma_db"
 COLLECTION_NAME = "legal_passages"
@@ -165,14 +168,16 @@ def _retrieve_source_diverse(query: str, k: int, vectorstore: Chroma) -> List[Do
         study_results = vectorstore.similarity_search_with_relevance_scores(
             query, k=fetch_k, filter={"source": {"$in": ["mbe", "wex"]}}
         )
-    except Exception:
+    except Exception as e:
+        logger.warning("retrieval pool error (study): %s", e)
         study_results = []
 
     try:
         case_results = vectorstore.similarity_search_with_relevance_scores(
             query, k=fetch_k, filter={"source": "caselaw"}
         )
-    except Exception:
+    except Exception as e:
+        logger.warning("retrieval pool error (caselaw): %s", e)
         case_results = []
 
     study_candidates = _dedup_docs(study_results)
@@ -307,8 +312,8 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
                     if idx not in study_seen:
                         study_seen.add(idx)
                         study_candidates.append(doc)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("multi-query retrieval pool error (study): %s", e)
 
             try:
                 case_results = vectorstore.similarity_search_with_relevance_scores(
@@ -319,8 +324,8 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
                     if idx not in case_seen:
                         case_seen.add(idx)
                         case_candidates.append(doc)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("multi-query retrieval pool error (caselaw): %s", e)
 
         primary_query = queries[0]
         study_k = (k + 1) // 2

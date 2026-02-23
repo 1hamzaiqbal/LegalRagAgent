@@ -1,0 +1,137 @@
+{
+  "label": "trace_torts",
+  "subject": "TORTS",
+  "question": "In the course of a bank holdup, Robber fired a gun at Guard. Guard drew his revolver and returned the fire. One of the bullets fired by Guard ricocheted, striking Plaintiff. If Plaintiff asserts a claim against Guard based upon battery, will Plaintiff prevail?",
+  "gold_idx": "mbe_571",
+  "correct_answer": "C",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.6916546274079265,
+    "mq_conf": 0.7815330240772845,
+    "rewrite": {
+      "primary": "battery negligence transferred intent proximate cause intervening criminal act self-defense tort liability",
+      "alternatives": [
+        "intentional torts unlawful force harmful contact duty of care reasonable person standard",
+        "assault battery civil liability criminal act defense of others negligence per se"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What is the definition of battery and the required intent?",
+        "status": "completed",
+        "optimized_query": "battery tort intentional tort harmful or offensive contact mens rea definition required intent",
+        "retrieved_doc_ids": [
+          "mbe_2278",
+          "mbe_2131",
+          "mbe_1649",
+          "caselaw_12692192_72",
+          "mbe_981"
+        ],
+        "confidence": 0.8457944579686529,
+        "passage_previews": [
+          "Battery requires (i) an act by the defendant that brings about harmful or offensive contact to the plaintiff's person, (",
+          "Battery requires an intent on the part of the defendant to bring about harmful or offensive (i.e., unconsented-to) conta",
+          "Battery requires: (i) an act by defendant that causes a harmful or offensive contact to plaintiff's person; (ii) intent ",
+          "In the context of Louisiana delictual law, the intentional tort of \"battery\" is \"[a] harmful or offensive contact with a",
+          "To establish a prima facie case for an intentional tort such as battery, the plaintiff must prove (i) an act by the defe"
+        ],
+        "answer": "**Rule**: Battery is an intentional tort requiring an act by the defendant that brings about harmful or offensive contact to the plaintiff\u2019s person [Source 1] [Source 3] [Source 5].\n\n**Elements**: The elements of battery are (i) an act by the defendant, (ii) intent, and (iii) causation [Source 5]. The act must cause a harmful or offensive contact to the plaintiff\u2019s person [Source 1] [Source 3].\n\n**Intent**: The defendant must intend to bring about such contact [Source 1] [Source 2] [Source 3] [Source 5]. This intent is satisfied if the defendant knows with substantial certainty that a harmful or offensive contact will result from their actions [Source 1] [Source 3] [Source 5]. Malice or intent to inflict actual damage is not required [Source 4]. A six-year-old is capable of committing intentional torts, including battery [Source 1].\n\n## Sources\n- **Source 1**: Definition of battery, elements, intent requirement, age of responsibility.\n- **Source 2**: Intent requirement, liability of minors and incompetents.\n- **Source 3**: Definition of battery, elements, intent requirement, substantial certainty.\n- **Source 4**: Louisiana law definition of battery and assault, intent standard, consent as a defense.\n- **Source 5**: Prima facie case for intentional torts, definition of intent, application to battery."
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Defensive Privilege",
+        "question": "Under what circumstances does the defense of self-defense or defense of others apply to negate liability for battery?",
+        "status": "completed",
+        "optimized_query": "battery self-defense defense of others reasonable force proportional response imminent threat criminal law",
+        "retrieved_doc_ids": [
+          "caselaw_12521513_40",
+          "caselaw_12564328_7",
+          "caselaw_12575991_66",
+          "caselaw_12529634_196",
+          "mbe_1929"
+        ],
+        "confidence": 0.7490553140491247,
+        "passage_previews": [
+          "We previously noted that common law assault under Maryland law is an attempted battery or the intentional placing of a v",
+          "\u00b66 The jury convicted on the lesser included offenses of second degree intentional homicide and attempted second degree ",
+          "The panel never actually held whether the district court erred by not instructing on the self-defense presumption. That ",
+          "\"Unreasonable self-defense, also called imperfect self-defense, 'obviates malice because that most culpable of mental st",
+          "Deadly force in defense of others is acceptable if the other is being threatened with serious bodily harm."
+        ],
+        "answer": "The evidence discusses self-defense and defense of others as potential defenses against battery or homicide charges.\n\n**Rule**: Imperfect self-defense, also known as unreasonable self-defense, can negate malice [Source 4].\n\n**Elements**: Imperfect self-defense applies when a person intentionally causes death based on an actual belief that they were in imminent danger of death or great bodily harm, and an actual belief that the deadly force used was necessary for defense, even if those beliefs were not reasonable [Source 2]. A killing in imperfect self-defense is unreasonable conduct because the belief in the need to defend is not reasonable, but is mitigated by the defendant\u2019s good faith belief [Source 4].\n\n**Application**: Deadly force is acceptable in defense of others if the other person is threatened with serious bodily harm [Source 5]. A presumption exists that deadly force is necessary to prevent imminent death or great bodily harm if the person against whom the force is used is unlawfully entering or has unlawfully entered an occupied vehicle [Source 3].\n\n## Sources\n- **Source 1**: Definition of battery\n- **Source 2**: Imperfect self-defense under Wisconsin law\n- **Source 3**: Self-defense presumption in Kansas\n- **Source 4**: Unreasonable/imperfect self-defense and negation of malice\n- **Source 5**: Defense of others with deadly force"
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Duty of Care",
+        "question": "What duty of care does a person owe to bystanders when using force in self-defense or defense of others?",
+        "status": "completed",
+        "optimized_query": "self-defense duty of care bystander negligence proximate cause reasonable person standard defense of others",
+        "retrieved_doc_ids": [
+          "mbe_1565",
+          "mbe_675",
+          "mbe_2068",
+          "mbe_1599",
+          "mbe_1547"
+        ],
+        "confidence": 0.7659444946612066,
+        "passage_previews": [
+          "A prima facie case for negligence consists of: (i) a duty on the part of the defendant to conform to a specific standard",
+          "Generally, as the plaintiff claims, tort law requires that a duty of reasonable care be exercised to avoid injury to oth",
+          "When a death is caused by criminal negligence, it is involuntary manslaughter. Criminal negligence requires a greater de",
+          "To establish a prima face case for negligence, the following elements must be proved: (i) the existence of a duty on the",
+          "A prima face case for negligence consists of: (i) a duty on the part of the defendant to conform to a specific standard "
+        ],
+        "answer": "**Rule**: A person has a general duty to act as an ordinary, prudent, reasonable person to avoid creating unreasonable risks of injury to others [Source 1] [Source 2].\n\n**Elements**: To establish a negligence claim, a plaintiff must prove (i) a duty, (ii) breach of that duty, (iii) causation, and (iv) damages [Source 1] [Source 4] [Source 5]. This duty extends to those persons where the defendant\u2019s conduct creates an unreasonable risk of injury [Source 1].\n\n**Exceptions**: Generally, there is no duty to affirmatively act for the benefit of others, unless a special relationship exists [Source 4]. A person is not required to take precautions against events that cannot reasonably be foreseen [Source 5]. \n\nThe evidence does not address the specific duty of care owed to bystanders when using force in self-defense or defense of others.\n\n\n\n## Sources\n- **Source 1**: Defines negligence and the duty of reasonable care.\n- **Source 2**: States reasonable care is determined by community standards.\n- **Source 3**: Discusses criminal negligence, manslaughter, and murder \u2013 not relevant to civil duty of care.\n- **Source 4**: Details elements of negligence, lack of affirmative duty, and causation.\n- **Source 5**: Addresses unforeseeable events and negligence."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What is the definition of battery and the required intent?",
+        "answer": "**Rule**: Battery is an intentional tort requiring an act by the defendant that brings about harmful or offensive contact to the plaintiff\u2019s person [Source 1] [Source 3] [Source 5].\n\n**Elements**: The elements of battery are (i) an act by the defendant, (ii) intent, and (iii) causation [Source 5]. T...",
+        "confidence": 0.8457944579686529,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "Under what circumstances does the defense of self-defense or defense of others apply to negate liability for battery?",
+        "answer": "The evidence discusses self-defense and defense of others as potential defenses against battery or homicide charges.\n\n**Rule**: Imperfect self-defense, also known as unreasonable self-defense, can negate malice [Source 4].\n\n**Elements**: Imperfect self-defense applies when a person intentionally cau...",
+        "confidence": 0.7490553140491247,
+        "status": "completed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What duty of care does a person owe to bystanders when using force in self-defense or defense of others?",
+        "answer": "**Rule**: A person has a general duty to act as an ordinary, prudent, reasonable person to avoid creating unreasonable risks of injury to others [Source 1] [Source 2].\n\n**Elements**: To establish a negligence claim, a plaintiff must prove (i) a duty, (ii) breach of that duty, (iii) causation, and (i...",
+        "confidence": 0.7659444946612066,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "**Rule**: Battery is an intentional tort requiring an act by the defendant that brings about harmful or offensive contact to the plaintiff\u2019s person [Source 1] [Source 3] [Source 5].\n\n**Elements**: The elements of battery are (i) an act by the defendant, (ii) intent, and (iii) causation [Source 5]. The act must cause a harmful or offensive contact to the plaintiff\u2019s person [Source 1] [Source 3].\n\n**Intent**: The defendant must intend to bring about such contact [Source 1] [Source 2] [Source 3] [Source 5]. This intent is satisfied if the defendant knows with substantial certainty that a harmful or offensive contact will result from their actions [Source 1] [Source 3] [Source 5]. Malice or intent to inflict actual damage is not required [Source 4]. A six-year-old is capable of committing intentional torts, including battery [Source 1].\n\n## Sources\n- **Source 1**: Definition of battery, elements, intent requirement, age of responsibility.\n- **Source 2**: Intent requirement, liability of minors and incompetents.\n- **Source 3**: Definition of battery, elements, intent requirement, substantial certainty.\n- **Source 4**: Louisiana law definition of battery and assault, intent standard, consent as a defense.\n- **Source 5**: Prima facie case for intentional torts, definition of intent, application to battery.\n\n---\n\nThe evidence discusses self-defense and defense of others as potential defenses against battery or homicide charges.\n\n**Rule**: Imperfect self-defense, also known as unreasonable self-defense, can negate malice [Source 4].\n\n**Elements**: Imperfect self-defense applies when a person intentionally causes death based on an actual belief that they were in imminent danger of death or great bodily harm, and an actual belief that the deadly force used was necessary for defense, even if those beliefs were not reasonable [Source 2]. A killing in imperfect self-defense is unreasonable conduct because the belief in the need to defend is not reasonable, but is mitigated by the defendant\u2019s good faith belief [Source 4].\n\n**Application**: Deadly force is acceptable in defense of others if the other person is threatened with serious bodily harm [Source 5]. A presumption exists that deadly force is necessary to prevent imminent death or great bodily harm if the person against whom the force is used is unlawfully entering or has unlawfully entered an occupied vehicle [Source 3].\n\n## Sources\n- **Source 1**: Definition of battery\n- **Source 2**: Imperfect self-defense under Wisconsin law\n- **Source 3**: Self-defense presumption in Kansas\n- **Source 4**: Unreasonable/imperfect self-defense and negation of malice\n- **Source 5**: Defense of others with deadly force\n\n---\n\n**Rule**: A person has a general duty to act as an ordinary, prudent, reasonable person to avoid creating unreasonable risks of injury to others [Source 1] [Source 2].\n\n**Elements**: To establish a negligence claim, a plaintiff must prove (i) a duty, (ii) breach of that duty, (iii) causation, and (iv) damages [Source 1] [Source 4] [Source 5]. This duty extends to those persons where the defendant\u2019s conduct creates an unreasonable risk of injury [Source 1].\n\n**Exceptions**: Generally, there is no duty to affirmatively act for the benefit of others, unless a special relationship exists [Source 4]. A person is not required to take precautions against events that cannot reasonably be foreseen [Source 5]. \n\nThe evidence does not address the specific duty of care owed to bystanders when using force in self-defense or defense of others.\n\n\n\n## Sources\n- **Source 1**: Defines negligence and the duty of reasonable care.\n- **Source 2**: States reasonable care is determined by community standards.\n- **Source 3**: Discusses criminal negligence, manslaughter, and murder \u2013 not relevant to civil duty of care.\n- **Source 4**: Details elements of negligence, lack of affirmative duty, and causation.\n- **Source 5**: Addresses unforeseeable events and negligence.\n\n---\n\n**Answer: (C)**\nReasoning:\n**(A) Yes, unless Plaintiff was Robber's accomplice.** - This choice introduces a fact (Plaintiff being an accomplice) not present in the question. While accomplice liability could be relevant in other contexts, it doesn\u2019t address the battery claim itself. The elements of battery \u2013 act, intent, and causation \u2013 are not addressed. Missing element: analysis of battery elements.\n**(B) Yes, under the doctrine of transferred intent.** - Transferred intent applies when the defendant intends to harm one person but harms another. However, the research does not mention transferred intent as a principle applicable to battery. The question states Guard returned fire *at* Robber, not intending to hit Plaintiff. This choice misapplies legal doctrine. Missing element: application of correct legal doctrine.\n**(C) No, if Guard fired reasonably in his own defense.** - This choice correctly identifies a potential defense to battery: reasonable self-defense. The research states imperfect self-defense (unreasonable but good faith belief) can negate malice, and deadly force is acceptable when threatened with serious bodily harm. If Guard\u2019s actions were reasonable under the circumstances of a bank holdup, he would have a valid defense. All elements of battery (act, intent, causation) are present, but the defense negates liability.\n**(D) No, if Guard did not intend to shoot Plaintiff.** - While true that Guard didn\u2019t *intend* to shoot Plaintiff, the research clarifies that intent for battery only requires substantial certainty that harmful or offensive contact will result. The fact that the bullet ricocheted doesn\u2019t negate the intent element, as Guard intended to fire at Robber, knowing with substantial certainty that doing so could cause harm. This choice misinterprets the intent requirement. Missing element: correct understanding of intent standard.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "suggested_query": "",
+      "reasoning": "The answer correctly identifies the elements of battery (act, intent, causation) and accurately states the intent standard (substantial certainty). The passages support these statements. The question asks about a specific scenario involving self-defense, but the provided evidence does not offer a definitive answer on whether the guard's actions would constitute battery in that context. The answer does not contradict the evidence, nor does it fabricate any legal rules. It accurately reflects the information provided regarding battery."
+    },
+    "is_verified": true,
+    "avg_confidence": 0.7869314222263281
+  },
+  "mc_result": {
+    "correct": true,
+    "method": "text_match",
+    "details": "answer contains correct choice text"
+  },
+  "metrics": {
+    "elapsed_sec": 49.9,
+    "total_llm_calls": 12,
+    "steps_completed": 3,
+    "steps_failed": 0
+  }
+}
