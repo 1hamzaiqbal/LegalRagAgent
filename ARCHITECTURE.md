@@ -91,7 +91,7 @@ MC-specific guidance in the skill:
 
 **Purpose**: Check QA memory cache, then generate an initial research plan.
 
-**Skill**: `plan_synthesis.md` (~230 words). Produces a JSON array of plan steps.
+**Skill**: `plan_synthesis.md` (~200 words). Produces a JSON array of plan steps (fields: `step_id`, `phase`, `question`).
 
 **Decision criteria**:
 1. **Memory check first**: Queries `qa_memory` collection (cosine similarity >= 0.92). On hit, short-circuits to memory_writeback with cached answer. No LLM call spent.

@@ -2,9 +2,9 @@
 
 Systematic audit of yellow/red flags across the codebase. Each flag has severity, evidence from traces, and proposed fixes.
 
-**Latest eval baseline** (3-query trace, Gemma 3 27B, 20K passages, threshold 0.70, cross-step dedup ON, verifier removed):
-- MC accuracy: 2/3 (torts Y, contracts Y, crimlaw N)
-- LLM calls: 11/query (down from 12 after verifier removal)
+**Latest eval baseline** (8-query trace, Gemma 3 27B, 20K passages, threshold 0.70, cross-step dedup ON, verifier removed):
+- MC accuracy: 4/6 (torts Y, contracts Y, crimlaw N, evidence Y, constlaw N, realprop Y)
+- LLM calls: 11/query multi_hop MC, 10 non-MC, 4 simple
 - Passage diversity: 100% unique docs on every query
 - Citation format: `[Query X][Source Y]` with step headers
 

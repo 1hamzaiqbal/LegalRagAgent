@@ -94,7 +94,7 @@ Nine-node state machine with adaptive replanning, injection detection, answer ve
 Routing:
 - After injection check: 2-way — `classifier` (safe) | `observability` (unsafe, for metrics)
 - After planner: 2-way — `executor` (no memory hit) | `memory_writeback` (memory hit)
-- After evaluator: 3-way — `executor` (pending steps) | `replanner` (multi_hop, all done) | `verify_answer` (simple done, iteration limit, or hard step cap)
+- After evaluator: 3-way — `executor` (pending steps) | `replanner` (multi_hop, all done, <3 completed) | `verify_answer` (simple done, iteration limit >4, hard step cap >=3, or stagnation)
 - After replanner: 2-way — `executor` (new step added) | `verify_answer` (complete)
 - After verify: fixed — `memory_writeback` (always, no corrective retry)
 - After memory writeback: fixed — `observability → END`
@@ -105,7 +105,7 @@ Graph: `detect_injection → {classifier | observability}`; `classifier → plan
 
 TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query_type` ("simple"/"multi_hop"), `final_cited_answer`, `accumulated_context` (step summaries for replanner), `iteration_count` (loop guard, max 4), `injection_check` (safety result), `verification_result` (auto-pass dict), `memory_hit` (QA cache result, threshold 0.92), and `run_metrics` (observability data including parse failures and has_answer).
 
-`PlanStep` model: `step_id` (float), `status` (pending/completed/failed), `phase` (str), `question` (str), `execution` (dict — stores `cited_answer`, `optimized_query`, `retrieved_doc_ids`, `confidence`). Previously had `expectation` and `deviation_analysis` fields — removed as dead state (written but never read).
+`PlanStep` model: `step_id` (float), `status` (pending/completed/failed), `phase` (str), `question` (str), `execution` (dict — stores `cited_answer`, `optimized_query`, `sources` (passage texts), `retrieved_doc_ids` (idx strings), `confidence_score`).
 
 ### Skill System (skills/)
 
@@ -180,14 +180,19 @@ With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B (via Google AI Studio):
 
 **8-query trace results** (6 MC bar exam + 1 multi-hop + 1 out-of-corpus):
 
-| Query | MC | Steps | Conf | Unique docs | Time | LLM calls |
-|---|---|---|---|---|---|---|
-| torts | Y | 3c/0f | 0.792 | 15/15 | 91s | 11 |
-| contracts | Y | 3c/0f | 0.773 | 15/15 | 61s | 11 |
-| crimlaw | N | 3c/0f | 0.720 | 15/15 | 77s | 11 |
+| Query | MC | Steps | Conf | Time | LLM calls |
+|---|---|---|---|---|---|
+| torts | Y | 3c/0f | 0.773 | 74s | 11 |
+| contracts | Y | 3c/0f | 0.773 | 57s | 11 |
+| crimlaw | N | 3c/0f | 0.721 | 69s | 11 |
+| evidence | Y | 3c/0f | 0.790 | 78s | 11 |
+| constlaw | N | 0c/3f | — | 91s | 11 |
+| realprop | Y | 3c/0f | 0.775 | 74s | 11 |
+| multihop | n/a | 3c/0f | 0.795 | 54s | 10 |
+| oof | n/a | 1c/0f | 0.717 | 23s | 4 |
 
-- **MC accuracy: 2/3 on latest 3-query run** (torts Y, contracts Y, crimlaw N — consistent with prior 5/6 on full 8-query).
-- **LLM calls: 11/query** (down from 12 after verifier removal). Baseline for multi_hop MC: classify(1) + plan(1) + 3x[rewrite(1) + synthesize(1)] + 3x replan(1) + mc_select(1) = 11.
+- **MC accuracy: 4/6** (torts Y, contracts Y, crimlaw N, evidence Y, constlaw N, realprop Y). Constlaw scores 0.67-0.70 (borderline threshold), crimlaw is an LLM reasoning error.
+- **LLM calls**: multi_hop MC = 11 (classify + plan + 3x[rewrite + synthesize] + 3x replan + mc_select). multi_hop non-MC = 10 (no mc_select). simple = 4 (classify + plan + rewrite + synthesize).
 - **Passage diversity: 100%** on every query. Cross-step `exclude_ids` working.
 - **Citation format**: `[Query X][Source Y]` with `### Step N: {phase}` headers in aggregated answer.
 - **Memory writeback**: MC selection stripped from cache, write threshold 0.70.
@@ -199,7 +204,7 @@ With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B (via Google AI Studio):
 - `SKIP_INJECTION_CHECK=1` saves 1 LLM call per query (recommended for eval runs)
 
 **Bottleneck analysis:**
-1. **MC selector** (biggest remaining lever): 1/6 wrong answer is a reasoning error in the final MC selection call. Research quality is good — the element-to-fact mapping is where Gemma 27B stumbles.
+1. **MC selector** (biggest remaining lever): 2/6 wrong answers — crimlaw is an LLM reasoning error, constlaw is a borderline-threshold retrieval issue. Research quality is generally good.
 2. **Classifier granularity**: single-concept MC → simple would save ~7 LLM calls per query, but risks less thorough research. Current multi_hop-for-everything is safe but expensive.
 
 ## Data Directories (gitignored)

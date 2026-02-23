@@ -769,12 +769,6 @@ def route_after_planner(state: AgentState) -> Literal["executor_node", "memory_w
     return "executor_node"
 
 
-def route_after_verify(state: AgentState) -> Literal["memory_writeback_node"]:
-    """Route after verify/MC-select: always proceed to memory writeback."""
-    print("Routing to MEMORY_WRITEBACK.")
-    return "memory_writeback_node"
-
-
 def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replanner_node", "verify_answer_node"]:
     """3-way routing after evaluator:
     - executor_node: pending steps remain
@@ -877,10 +871,7 @@ def build_graph() -> Any:
         "replanner_node",
         route_after_replanner,
     )
-    workflow.add_conditional_edges(
-        "verify_answer_node",
-        route_after_verify,
-    )
+    workflow.add_edge("verify_answer_node", "memory_writeback_node")
     workflow.add_edge("memory_writeback_node", "observability_node")
     workflow.add_edge("observability_node", END)
 

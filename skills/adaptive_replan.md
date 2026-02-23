@@ -21,15 +21,15 @@
   "action": "next_step",
   "phase": "Phase name for the new step",
   "question": "The new retrieval question",
-  "expectation": "What a good answer should contain",
+
   "reasoning": "Why this step is needed given what we know so far"
 }
 ```
 
 ### Actions
 
-- `"next_step"` — Unanswered aspect of the objective. Provide `phase`, `question`, `expectation`, `reasoning`.
-- `"retry"` — Failed step should be retried with different wording. Provide `phase`, `question`, `expectation`, `reasoning`.
+- `"next_step"` — Unanswered aspect of the objective. Provide `phase`, `question`, `reasoning`.
+- `"retry"` — Failed step should be retried with different wording. Provide `phase`, `question`, `reasoning`.
 - `"complete"` — Evidence sufficiently addresses the objective, OR further retrieval is unlikely to improve results. Provide only `reasoning`.
 
 ```json
