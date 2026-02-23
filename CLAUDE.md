@@ -103,18 +103,21 @@ Graph: `detect_injection → {classifier | observability}`; `classifier → plan
 
 ### Shared State (`AgentState`)
 
-TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query_type` ("simple"/"multi_hop"), `final_cited_answer`, `accumulated_context` (step summaries for replanner), `iteration_count` (loop guard, max 4), `injection_check` (safety result), `verification_result` (answer verification with `suggested_query`), `verification_retries` (1 corrective retry max), `memory_hit` (QA cache result, threshold 0.92), and `run_metrics` (observability data including parse failures and has_answer).
+TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query_type` ("simple"/"multi_hop"), `final_cited_answer`, `accumulated_context` (step summaries for replanner), `iteration_count` (loop guard, max 4), `injection_check` (safety result), `verification_result` (answer verification with `suggested_query`), `verification_retries` (max 2), `memory_hit` (QA cache result, threshold 0.92), and `run_metrics` (observability data including parse failures and has_answer).
+
+`PlanStep` model: `step_id` (float), `status` (pending/completed/failed), `phase` (str), `question` (str), `execution` (dict — stores `cited_answer`, `optimized_query`, `retrieved_doc_ids`, `confidence`). Previously had `expectation` and `deviation_analysis` fields — removed as dead state (written but never read).
 
 ### Skill System (skills/)
 
-7 markdown prompt files cached at first load via `@lru_cache` in `load_skill_instructions()`:
-- `classify_and_route.md` — classify query complexity (simple vs multi_hop). Includes MC-specific guidance: single-concept MC → simple, multi-concept MC → multi_hop, defaults to multi_hop when in doubt.
-- `plan_synthesis.md` — generate research plan (1 step for simple, 1 initial step for multi_hop — replanner handles the rest)
-- `query_rewrite.md` — rewrite query into primary + 2 alternatives with different legal terminology (JSON output for multi-query retrieval)
-- `synthesize_and_cite.md` — synthesize answer with inline `[Source N]` citations and `## Sources` map in a single pass. Has anti-fabrication rules: only state facts from evidence passages. Per-step synthesis does pure legal research with no MC awareness.
-- `adaptive_replan.md` — decide next research step based on accumulated evidence. Hard cap: 3 completed steps. Stagnation detection: 3+ consecutive failures → stop.
-- `detect_prompt_injection.md` — screen input for adversarial prompts (fail-open, skippable via `SKIP_INJECTION_CHECK=1`)
-- `verify_answer.md` — cross-check answer against evidence for contradictions, fabricated rules, missing critical elements. Pass-by-default bias.
+7 markdown prompt files (~1700 words total, trimmed ~40% from original ~2800) cached at first load via `@lru_cache` in `load_skill_instructions()`. Design principle: **principles and output format only; hard rules only when necessary.**
+
+- `classify_and_route.md` (~200w) — classify query complexity (simple vs multi_hop). MC-specific guidance: single-concept MC → simple, multi-concept MC → multi_hop, defaults to multi_hop when in doubt.
+- `plan_synthesis.md` (~230w) — generate research plan (1 step for simple, 1 initial step for multi_hop). Two examples (simple + multi_hop) demonstrating correct 1-step output.
+- `query_rewrite.md` (~320w) — rewrite query into primary + 2 alternatives with different legal terminology (JSON output). 5 merged rules (down from 7).
+- `synthesize_and_cite.md` (~300w) — synthesize with inline `[Source N]` citations and `## Sources` map. Anti-fabrication block (critical): only state facts from evidence passages.
+- `adaptive_replan.md` (~250w) — decide next research step based on accumulated evidence. Hard cap: 3 completed steps. Stagnation: 3+ consecutive failures → stop. Explicit rule: do not reference answer choices or previous step IDs.
+- `detect_prompt_injection.md` (~160w) — screen input for adversarial prompts. Leads with guardrail: legal topics involving crime are SAFE. Fail-open, skippable via `SKIP_INJECTION_CHECK=1`.
+- `verify_answer.md` (~240w) — cross-check answer against evidence. "Standard legal knowledge is acceptable" elevated to top. Pass-by-default bias.
 
 ### LLM Config (llm_config.py)
 
@@ -147,7 +150,7 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
 ### Evaluation
 
 - `eval_comprehensive.py` — Two-phase eval:
-  - Phase 1: retrieval-only Recall@5/MRR on 953 QA pairs (no LLM calls)
+  - Phase 1: retrieval-only Recall@5/MRR on all in-store QA pairs (dynamically sized — queries vectorstore for corpus size, not hardcoded). With 20K passages, ~953 QA pairs have gold passages in store.
   - Phase 2: full pipeline on 26 diverse queries (18 bar exam MC + 4 multi-hop + 2 out-of-corpus + 2 edge cases)
   - MC correctness checking via `_check_mc_correctness()` (3 strategies: text match, letter extraction, word overlap)
   - Clears QA memory cache before each run for clean eval
@@ -159,7 +162,7 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
   - Multi-query retrieval results with gold passage marking
   - Full pipeline execution trace (classify → plan → execute → verify)
   - MC correctness check and trace summary table (Steps, Verified, Confidence columns)
-  - `--save` flag dumps case study JSON to `case_studies/` for review
+  - `--save` flag dumps case study JSON to `case_studies/` — captures per-step query rewrites, passage IDs+previews, synthesized answers, confidence, verification, MC result, timing
 - `eval_reranker.py` — A/B comparison of bi-encoder-only vs cross-encoder reranking
 - `load_corpus.py` — Load passage corpus: `uv run python load_corpus.py [count|status|curated]`
 
@@ -171,26 +174,67 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
 - **A+B rate**: Percentage of queries graded A or B (pipeline produces a useful, cited answer)
 - **Confidence**: Mean cosine similarity between query embedding and retrieved doc embeddings
 
-### Known Eval Findings (as of 2026-02-22)
+### Known Eval Findings (as of 2026-02-23)
 
-With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B:
-- Phase 1 Recall@5: **6.3%** (60/953) — up from 4.8% with MiniLM
-- Avg confidence: **0.71** (up from 0.48)
-- MC accuracy: **3/5 (60%)** on 5-query trace. All 5 verified, all 3c/0f, all 12 LLM calls. Wrong answers (crim law, evidence) are MC selector reasoning errors, not retrieval or pipeline failures — the research is correct, the final element-to-fact-pattern mapping is where the model stumbles.
-- MC isolation: planner and replanner now receive objective with answer choices stripped (`_strip_mc_choices`). Before this fix, the replanner generated MC-aware steps like "For each answer choice..." which leaked bias into per-step research. After: pure legal research queries.
-- Adaptive replanning decomposes well: battery → self-defense → transferred intent; receiving stolen property → mens rea → knowledge standard
-- Pipeline compensates for retrieval gaps: all 5 traced queries had 0% Recall@5 on gold passages but 3/5 got MC correct
-- QA memory cache can serve stale answers — clear with `store._collection.delete(ids=...)` when changing synthesis behavior
-- Connection errors during replanner retry (via `_llm_call`) and fall back to `complete` on persistent failure
+With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B (via Google AI Studio):
+
+**8-query trace results** (6 MC bar exam + 1 multi-hop + 1 out-of-corpus):
+
+| Query | MC | Steps | Conf | Unique docs | Time | LLM calls |
+|---|---|---|---|---|---|---|
+| torts | Y | 3c/0f | 0.792 | 15/15 | 57s | 12 |
+| contracts | Y | 3c/0f | 0.784 | 7/15 | 67s | 12 |
+| crimlaw | N (D→B) | 3c/0f | 0.738 | 10/15 | 56s | 12 |
+| evidence | N (A→C) | 3c/0f | 0.794 | 13/15 | 78s | 12 |
+| constlaw | Y | 3c/0f | 0.709 | 13/15 | 78s | 12 |
+| realprop | Y | 3c/0f | 0.803 | 10/15 | 72s | 12 |
+| multihop | n/a | 3c/0f | 0.804 | 10/15 | 78s | 11 |
+| oof | n/a | 1c/0f | 0.712 | n/a | 23s | 5 |
+
+- **MC accuracy: 4/6 (67%)**. Wrong answers (crimlaw, evidence) are MC selector reasoning errors, not pipeline failures — the research is correct, the final element-to-fact-pattern mapping is where Gemma 27B stumbles.
+- **Phase 1 Recall@5: 6.3%** (60/953) — up from 4.8% with MiniLM. Low because only 20K of 686K passages loaded.
+- **Avg confidence: 0.76** across 8 queries (range: 0.709–0.804).
+- **All queries verified on first pass** (8/8). The verifier has a strong pass-by-default bias — may need tightening.
+- **Multi-query rewrite improves confidence** in 6/8 queries (avg +0.028 over raw retrieval). Most value in terminological bridging.
+- **Passage diversity**: 7–15 unique docs across 3 steps (out of 15 possible). Contracts had worst diversity (7/15 unique), torts had perfect diversity (15/15).
+- **Classifier always picks multi_hop** for MC bar exam questions (even single-concept ones). Only `simple` classification observed: out-of-corpus query. Not necessarily wrong — multi_hop gives more thorough research — but means every MC query costs 12 LLM calls.
+- **Pipeline compensates for retrieval gaps**: gold passage Recall@5 is 0% on all traced MC queries, yet 4/6 get MC correct. The system retrieves relevant-enough passages to answer correctly even without the exact gold passage.
+- **MC isolation** working correctly: planner and replanner receive objective with answer choices stripped (`_strip_mc_choices`). Replanner questions are all pure legal research (no "For each answer choice..." leakage).
+- **Adaptive replanning decomposes well**: battery → self-defense → bystander duty; receiving stolen property → mens rea → knowledge standard; product liability → strict liability → warranties
+- **Out-of-corpus handling**: classifier correctly routes to simple (1 step), pipeline produces a reasonable answer from tangentially relevant passages, verification passes.
+
+**Operational notes:**
+- QA memory cache can serve stale answers — clear before eval runs, or after changing synthesis behavior
+- Connection errors during replanner retry via `_llm_call` and fall back to `complete` on persistent failure
+- `SKIP_INJECTION_CHECK=1` saves 1 LLM call per query (recommended for eval runs)
+
+**Bottleneck analysis:**
+1. **MC selector** (biggest lever): 2/6 wrong answers are reasoning errors in the final MC selection call, not research quality. Improving the element-based analysis prompt or using a stronger model here would have the most impact.
+2. **Passage diversity**: some queries retrieve overlapping passages across steps. Could improve by excluding already-retrieved doc IDs from subsequent steps.
+3. **Classifier granularity**: single-concept MC → simple would save ~7 LLM calls per query, but risks less thorough research. Current multi_hop-for-everything is safe but expensive.
 
 ## Data Directories (gitignored)
 
 - `datasets/barexam_qa/` — passage CSVs and QA dataset CSVs (from `reglab/barexam_qa` on HuggingFace)
 - `chroma_db/` — persisted ChromaDB vector store
+- `case_studies/` — JSON trace files from `eval_trace.py --save` (per-query pipeline diagnostics)
 
 ## Key Dependencies
 
 `langgraph`, `langchain-core`, `langchain-community`, `langchain-huggingface`, `langchain-openai`, `chromadb`, `pandas`, `pydantic`, `tqdm`, `numpy`, `python-dotenv`, `sentence-transformers`
+
+## Stale / Needs Verification
+
+Items that may be outdated or need re-testing:
+
+- **Full corpus size "686K"**: This number was from the original dataset description. Actual row count in `barexam_qa_train.csv` has not been recently verified.
+- **Source-diverse retrieval mode**: `SOURCE_DIVERSE_RETRIEVAL=1` path hasn't been tested with gte-large-en-v1.5 or current eval queries. May need recalibration of the 3-study/2-caselaw interleave ratio.
+- **`eval_reranker.py`**: A/B reranking comparison hasn't been run recently. Results may differ with gte-large embeddings vs old MiniLM.
+- **QA memory threshold 0.92**: Not tuned since initial implementation. May be too strict (rarely hits) or too loose (serves stale answers). Needs empirical testing.
+- **Memory writeback confidence threshold 0.45**: Very low bar — may write low-quality answers to cache. Should verify against actual confidence distribution.
+- **Provider registry "19 providers"**: Count may have drifted as providers were added/removed. Run `uv run python llm_config.py` to verify.
+- **Curated corpus gold count "~953"**: Depends on how many unique `gold_idx` values exist in `qa.csv`. Number was estimated from Phase 1 eval with 20K passages.
+- **Verifier effectiveness**: 8/8 pass rate suggests the verifier may be too lenient. Needs adversarial testing with deliberately wrong answers to calibrate.
 
 ## WSL Setup
 
