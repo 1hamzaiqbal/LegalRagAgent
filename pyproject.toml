@@ -3,7 +3,7 @@ name = "legal-rag-agent"
 version = "0.1.0"
 description = "Agentic Legal RAG system built on LangGraph"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "langgraph>=0.2.0",
     "langchain-core>=0.3.0",

@@ -13,6 +13,7 @@ Usage:
 
 import json
 import os
+import re
 import sys
 import time
 import traceback
@@ -20,6 +21,85 @@ from collections import Counter
 
 import pandas as pd
 from tqdm import tqdm
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Multiple-Choice Correctness Checking
+# ────────────────────────────────────────────────────────────────────────────
+
+def _check_mc_correctness(answer: str, correct_letter: str, choices: dict) -> dict:
+    """Check if the pipeline's answer matches the correct multiple-choice answer.
+
+    Uses three strategies (any match = correct):
+      1. The answer contains the correct choice's text (fuzzy substring match)
+      2. The answer explicitly mentions the correct letter (e.g., "the answer is B")
+      3. The answer contains more text from the correct choice than any other choice
+
+    Returns {"correct": bool, "method": str, "details": str}.
+    """
+    if not correct_letter or not answer or not choices:
+        return {"correct": None, "method": "n/a", "details": "no MC data"}
+
+    correct_text = choices.get(correct_letter, "").strip()
+    answer_lower = answer.lower()
+
+    # Strategy 1: correct choice text appears in the answer (>= 20 char substring)
+    if correct_text and len(correct_text) >= 20:
+        # Use a meaningful substring (first 60 chars, lowered)
+        snippet = correct_text[:60].lower().strip()
+        if snippet in answer_lower:
+            return {"correct": True, "method": "text_match",
+                    "details": f"answer contains correct choice text"}
+
+    # Strategy 2: explicit letter mention like "answer is B", "correct answer: B"
+    letter_patterns = [
+        rf'\banswer\s+is\s+\(?{correct_letter}\)?\b',
+        rf'\bcorrect\s+answer[:\s]+\(?{correct_letter}\)?\b',
+        rf'\b\({correct_letter}\)\s+is\s+correct\b',
+        rf'\boption\s+\(?{correct_letter}\)?\s+is\s+correct\b',
+    ]
+    for pat in letter_patterns:
+        if re.search(pat, answer_lower):
+            return {"correct": True, "method": "letter_match",
+                    "details": f"answer explicitly selects {correct_letter}"}
+
+    # Check if answer explicitly selects a WRONG letter
+    for wrong_letter in choices:
+        if wrong_letter == correct_letter:
+            continue
+        for pat_tmpl in [r'\banswer\s+is\s+\(?{L}\)?\b', r'\bcorrect\s+answer[:\s]+\(?{L}\)?\b']:
+            pat = pat_tmpl.replace("{L}", wrong_letter)
+            if re.search(pat, answer_lower):
+                return {"correct": False, "method": "letter_match",
+                        "details": f"answer selects {wrong_letter}, correct is {correct_letter}"}
+
+    # Strategy 3: overlap scoring — which choice's text has the most overlap with the answer?
+    if correct_text:
+        def _overlap_score(choice_text: str) -> int:
+            words = set(choice_text.lower().split())
+            answer_words = set(answer_lower.split())
+            return len(words & answer_words)
+
+        scores = {}
+        for letter, text in choices.items():
+            if text.strip():
+                scores[letter] = _overlap_score(text)
+
+        if scores:
+            best_letter = max(scores, key=scores.get)
+            best_score = scores[best_letter]
+            correct_score = scores.get(correct_letter, 0)
+            if best_score > 0 and best_letter == correct_letter and correct_score > scores.get(
+                    sorted(scores, key=scores.get, reverse=True)[1] if len(scores) > 1 else "", 0):
+                return {"correct": True, "method": "overlap",
+                        "details": f"highest overlap with {correct_letter} ({correct_score} words)"}
+            elif best_score > 0 and best_letter != correct_letter:
+                return {"correct": False, "method": "overlap",
+                        "details": f"highest overlap with {best_letter} ({best_score}), "
+                                   f"correct {correct_letter} ({correct_score})"}
+
+    return {"correct": None, "method": "uncertain",
+            "details": "could not determine MC answer from pipeline output"}
 
 # ────────────────────────────────────────────────────────────────────────────
 # PHASE 1: Retrieval Quality
@@ -249,11 +329,22 @@ def _select_pipeline_queries():
 def phase2_pipeline(max_queries: int = None):
     """Run the full pipeline on diverse questions and evaluate end-to-end."""
     from main import build_graph, _reset_llm_call_counter, _llm_call_counter, _parse_failure_count
-    from rag_utils import retrieve_documents
+    from rag_utils import retrieve_documents, get_memory_store
 
     print(f"\n{'='*80}")
     print(f"PHASE 2: FULL PIPELINE EVALUATION")
     print(f"{'='*80}\n")
+
+    # Clear QA memory cache so every query runs the full pipeline
+    mem_store = get_memory_store()
+    mem_count = mem_store._collection.count()
+    if mem_count > 0:
+        mem_ids = mem_store._collection.get()["ids"]
+        for i in range(0, len(mem_ids), 5000):
+            mem_store._collection.delete(ids=mem_ids[i:i+5000])
+        print(f"Cleared QA memory cache ({mem_count} entries) for clean eval.")
+    else:
+        print("QA memory cache already empty.")
 
     queries = _select_pipeline_queries()
     if max_queries:
@@ -319,6 +410,13 @@ def phase2_pipeline(max_queries: int = None):
                         gold_retrieved = True
                         break
 
+        # Check multiple-choice correctness for bar exam questions
+        mc_result = _check_mc_correctness(
+            answer,
+            query.get("correct_answer", ""),
+            query.get("choices", {}),
+        )
+
         result = {
             "label": query["label"],
             "category": query["category"],
@@ -340,16 +438,21 @@ def phase2_pipeline(max_queries: int = None):
             "gold_idx": gold_idx,
             "gold_retrieved": gold_retrieved,
             "correct_answer": query.get("correct_answer", ""),
+            "mc_correct": mc_result["correct"],
+            "mc_method": mc_result["method"],
+            "mc_details": mc_result["details"],
         }
         result["grade"] = _grade(result)
         results.append(result)
 
+        mc_tag = "CORRECT" if mc_result["correct"] is True else (
+            "WRONG" if mc_result["correct"] is False else "?")
         print(f"\n>>> {result['grade']} | {result['elapsed_sec']}s | "
               f"LLM: {result['llm_calls']} | Iter: {result['iterations']} | "
               f"Ans: {result['answer_len']}ch | "
               f"Verified: {result['is_verified']} | "
+              f"MC: {mc_tag} ({mc_result['method']}) | "
               f"GoldRetr: {result['gold_retrieved']} | "
-              f"MemHit: {result['memory_hit']} | "
               f"Error: {result['error'] or 'None'}")
 
     total_elapsed = time.time() - total_start
@@ -384,16 +487,23 @@ def _grade(r):
         return "F"
 
     score = 0
+    # Correctness is the most important signal (for MC questions)
+    mc = r.get("mc_correct")
+    if mc is True:
+        score += 4
+    elif mc is False:
+        score -= 2  # wrong answer is a significant penalty
+
     if r["answer_len"] >= 200:
-        score += 3
+        score += 2
     elif r["answer_len"] >= 100:
         score += 1
     if r["is_verified"] is True:
-        score += 3
-    if r["llm_calls"] <= 10:
         score += 2
-    elif r["llm_calls"] <= 18:
+    if r["llm_calls"] <= 10:
         score += 1
+    elif r["llm_calls"] <= 18:
+        score += 0  # no bonus for moderate call count
     if r["verification_retries"] == 0:
         score += 1
     if r["parse_failures"] == 0:
@@ -416,20 +526,22 @@ def _print_pipeline_results(results, total_elapsed):
     print("DETAILED PIPELINE RESULTS")
     print(f"{'='*130}")
     hdr = (f"{'Label':<32} {'Cat':<12} {'Grd':>3} {'Time':>6} {'LLM':>4} "
-           f"{'Iter':>4} {'Ans':>5} {'Vrfy':>4} {'VR':>3} {'Gold':>4} "
-           f"{'Mem':>3} {'Prs':>3} {'Err':>3}")
+           f"{'Iter':>4} {'Ans':>5} {'Vrfy':>4} {'MC':>5} {'VR':>3} {'Gold':>4} "
+           f"{'Prs':>3} {'Err':>3}")
     print(hdr)
     print("-" * 130)
     for r in results:
         v = "Y" if r["is_verified"] is True else ("N" if r["is_verified"] is False else "-")
         g = "Y" if r["gold_retrieved"] else ("." if not r["gold_idx"] else "N")
         err = "Y" if r["error"] else "."
-        mem = "Y" if r["memory_hit"] else "."
+        mc = "Y" if r.get("mc_correct") is True else (
+            "N" if r.get("mc_correct") is False else (
+            "." if r.get("mc_method") == "n/a" else "?"))
         print(f"{r['label']:<32} {r['category']:<12} {r['grade']:>3} "
               f"{r['elapsed_sec']:>5.1f}s {r['llm_calls']:>4} "
               f"{r['iterations']:>4} {r['answer_len']:>5} {v:>4} "
-              f"{r['verification_retries']:>3} {g:>4} "
-              f"{mem:>3} {r['parse_failures']:>3} {err:>3}")
+              f"{mc:>5} {r['verification_retries']:>3} {g:>4} "
+              f"{r['parse_failures']:>3} {err:>3}")
 
     # Category breakdown
     print(f"\n\n{'='*80}")
@@ -454,9 +566,18 @@ def _print_pipeline_results(results, total_elapsed):
         a_count = grades.count("A")
         b_count = grades.count("B")
 
+        mc_correct = sum(1 for r in cat_results if r.get("mc_correct") is True)
+        mc_wrong = sum(1 for r in cat_results if r.get("mc_correct") is False)
+        mc_total = mc_correct + mc_wrong + sum(
+            1 for r in cat_results if r.get("mc_correct") is None and r.get("mc_method") != "n/a")
+
         print(f"\n  {cat.upper()} ({len(cat_results)} queries)")
         print(f"    Grades:     {' '.join(grades)}")
         print(f"    A+B rate:   {(a_count + b_count)/len(cat_results)*100:.0f}%")
+        if mc_total > 0:
+            print(f"    MC correct: {mc_correct}/{mc_total} "
+                  f"({mc_correct/mc_total*100:.0f}%) "
+                  f"[{mc_wrong} wrong, {mc_total - mc_correct - mc_wrong} uncertain]")
         print(f"    Verified:   {verified}/{len(cat_results)}")
         if gold_total > 0:
             print(f"    Gold retr:  {gold_hits}/{gold_total} ({gold_hits/gold_total*100:.0f}%)")
@@ -480,6 +601,12 @@ def _print_pipeline_results(results, total_elapsed):
     sub_gold = sum(1 for r in substantive if r["gold_retrieved"])
     sub_gold_total = sum(1 for r in substantive if r["gold_idx"])
 
+    # MC correctness (only for bar exam questions with answer keys)
+    mc_questions = [r for r in results if r.get("correct_answer")]
+    mc_correct = sum(1 for r in mc_questions if r.get("mc_correct") is True)
+    mc_wrong = sum(1 for r in mc_questions if r.get("mc_correct") is False)
+    mc_uncertain = sum(1 for r in mc_questions if r.get("mc_correct") is None)
+
     print(f"  Total queries:           {len(results)}")
     print(f"  Total time:              {total_elapsed:.0f}s ({total_elapsed/60:.1f}min)")
     print(f"  Total LLM calls:         {total_llm}")
@@ -492,6 +619,14 @@ def _print_pipeline_results(results, total_elapsed):
           f"{sum(1 for r in substantive if r['grade'] in ('A','B'))/max(len(substantive),1)*100:.0f}% "
           f"({len(substantive)} queries)")
     print(f"")
+    if mc_questions:
+        mc_determined = mc_correct + mc_wrong
+        print(f"  MC CORRECTNESS:          {mc_correct}/{len(mc_questions)} "
+              f"({mc_correct/len(mc_questions)*100:.0f}%) "
+              f"[{mc_correct} correct, {mc_wrong} wrong, {mc_uncertain} uncertain]")
+        if mc_determined > 0:
+            print(f"  MC accuracy (determined): {mc_correct}/{mc_determined} "
+                  f"({mc_correct/mc_determined*100:.0f}%)")
     print(f"  Verification rate:       {sub_verified}/{len(substantive)} substantive")
     if sub_gold_total > 0:
         print(f"  Gold passage retrieval:   {sub_gold}/{sub_gold_total} "
