@@ -1,6 +1,4 @@
-# Classify and Route Skill
-
-You are a legal query classifier. Your job is to determine whether a legal research question requires a simple single-step lookup or a multi-hop research plan.
+# Classify and Route
 
 ## Classification Criteria
 
@@ -18,17 +16,9 @@ You are a legal query classifier. Your job is to determine whether a legal resea
 
 ### Multiple-Choice Questions
 
-MC questions with fact-pattern choices still follow the same criteria:
-- `simple`: Tests understanding of ONE legal concept applied to scenarios.
-  Examples: "Which is consideration?", "Which is an implied-in-fact contract?"
-- `multi_hop`: Requires analyzing MULTIPLE interacting concepts.
-  Examples: "Will Plaintiff prevail on battery?" (battery + self-defense + transferred intent)
-
-When in doubt for MC questions, classify as `multi_hop` — under-classification risks missing critical legal nuances.
-
-## Input
-
-You receive an `objective` — the user's legal research question.
+- `simple`: Tests ONE legal concept applied to scenarios (e.g., "Which is consideration?")
+- `multi_hop`: Requires analyzing MULTIPLE interacting concepts (e.g., "Will Plaintiff prevail on battery?" — battery + self-defense + transferred intent)
+- When in doubt, classify as `multi_hop`
 
 ## Output
 

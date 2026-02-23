@@ -108,6 +108,30 @@ def _check_mc_correctness(answer: str, correct_letter: str, choices: dict) -> di
             "details": "could not determine MC answer from pipeline output"}
 
 # ────────────────────────────────────────────────────────────────────────────
+# Shared Helpers
+# ────────────────────────────────────────────────────────────────────────────
+
+def _full_question(row) -> str:
+    """Build full question text from prompt + question columns."""
+    prompt = str(row["prompt"]) if pd.notna(row["prompt"]) else ""
+    q = str(row["question"])
+    return (prompt + " " + q).strip()
+
+
+def _load_in_store_qa() -> pd.DataFrame:
+    """Load QA pairs whose gold passages exist in the current vector store."""
+    from rag_utils import get_vectorstore
+    vs = get_vectorstore()
+    corpus_size = vs._collection.count()
+    qa = pd.read_csv("datasets/barexam_qa/qa/qa.csv")
+    passages = pd.read_csv("datasets/barexam_qa/barexam_qa_train.csv", nrows=corpus_size)
+    passage_ids = set(passages["idx"].tolist())
+    qa_in = qa[qa["gold_idx"].isin(passage_ids)].copy()
+    qa_in["full_q"] = qa_in.apply(_full_question, axis=1)
+    return qa_in
+
+
+# ────────────────────────────────────────────────────────────────────────────
 # PHASE 1: Retrieval Quality
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -119,22 +143,11 @@ def phase1_retrieval(k: int = 5):
     print(f"PHASE 1: RETRIEVAL QUALITY (Recall@{k}, MRR)")
     print(f"{'='*80}\n")
 
-    # Load QA pairs and identify which have gold passages in our store
-    qa = pd.read_csv("datasets/barexam_qa/qa/qa.csv")
-    passages = pd.read_csv("datasets/barexam_qa/barexam_qa_train.csv", nrows=1000)
-    passage_ids = set(passages["idx"].tolist())
-    qa_in_store = qa[qa["gold_idx"].isin(passage_ids)].copy()
+    qa_in_store = _load_in_store_qa()
+    total_qa = len(pd.read_csv("datasets/barexam_qa/qa/qa.csv"))
 
-    print(f"Total QA pairs: {len(qa)}")
+    print(f"Total QA pairs: {total_qa}")
     print(f"QA pairs with gold passage in store: {len(qa_in_store)}")
-
-    # Build full question text from prompt + question
-    def full_question(row):
-        prompt = str(row["prompt"]) if pd.notna(row["prompt"]) else ""
-        q = str(row["question"])
-        return (prompt + " " + q).strip()
-
-    qa_in_store["full_q"] = qa_in_store.apply(full_question, axis=1)
 
     # Evaluate
     hits_at_k = 0
@@ -209,17 +222,7 @@ def phase1_retrieval(k: int = 5):
 
 def _select_pipeline_queries():
     """Select 26 diverse questions from the BarExam QA dataset + multi-hop scenarios."""
-    qa = pd.read_csv("datasets/barexam_qa/qa/qa.csv")
-    passages = pd.read_csv("datasets/barexam_qa/barexam_qa_train.csv", nrows=1000)
-    passage_ids = set(passages["idx"].tolist())
-    qa_in = qa[qa["gold_idx"].isin(passage_ids)].copy()
-
-    def full_question(row):
-        prompt = str(row["prompt"]) if pd.notna(row["prompt"]) else ""
-        q = str(row["question"])
-        return (prompt + " " + q).strip()
-
-    qa_in["full_q"] = qa_in.apply(full_question, axis=1)
+    qa_in = _load_in_store_qa()
     qa_in["q_len"] = qa_in["full_q"].str.len()
 
     queries = []

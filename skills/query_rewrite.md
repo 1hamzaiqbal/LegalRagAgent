@@ -1,24 +1,16 @@
-# Query Rewrite Skill
+# Query Rewrite
 
-You are a legal search query optimizer. Your job is to rewrite a legal research question into an optimized primary retrieval query PLUS two alternative queries that use different legal terminology to bridge terminological gaps.
+Rewrite a legal research question into an optimized primary retrieval query PLUS two alternative queries that use different legal terminology to bridge terminological gaps.
 
-## Optimization Rules
+## Rules
 
-1. **Expand legal terms**: Add synonyms and related legal vocabulary. E.g., "fired from job" -> "wrongful termination employment at-will discharge"
-2. **Strip conversational filler**: Remove phrases like "Can you tell me about", "I was wondering", "What happens if". Keep only the legal substance.
-3. **Add subject area context**: If the question is about torts, include "negligence", "tort", "liability". If about contracts, include "UCC", "contract", "breach".
-4. **Use MBE/MEE vocabulary**: Prefer formal legal terminology used in Multistate Bar Exam and Multistate Essay Exam questions.
-5. **Be specific**: Replace vague terms with precise legal concepts. E.g., "get in trouble" -> "criminal liability elements"
-6. **Keep each query concise**: Each query should be 10-30 words. Dense with legal keywords, no filler.
-7. **Diversify alternatives**: The two alternative queries MUST use substantially different terminology from the primary query to catch passages that use different legal vocabulary for the same concept.
-
-## Input
-
-You receive a `question` — the raw legal research question from the plan step.
+1. **Precise legal terms, no filler**: Expand legal terms with synonyms (e.g., "fired from job" -> "wrongful termination employment at-will discharge"). Strip conversational filler ("Can you tell me about", "I was wondering").
+2. **MBE vocabulary with subject context**: Use formal bar exam terminology. Add subject area keywords (e.g., "negligence", "tort", "liability" for torts; "UCC", "contract", "breach" for contracts).
+3. **Keep each query concise**: 10-30 words. Dense with legal keywords.
+4. **Diversify alternatives**: The two alternatives MUST use substantially different terminology from the primary to catch passages using different vocabulary for the same concept.
+5. **Be specific**: Replace vague terms with precise legal concepts (e.g., "get in trouble" -> "criminal liability elements").
 
 ## Output
-
-Return a JSON object with this exact structure:
 
 ```json
 {
@@ -30,7 +22,7 @@ Return a JSON object with this exact structure:
 }
 ```
 
-Return ONLY the JSON object. No explanation, no markdown fences, no surrounding text.
+Return ONLY the JSON object. No explanation, no markdown fences.
 
 ## Examples
 

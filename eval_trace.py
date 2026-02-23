@@ -14,6 +14,7 @@ Usage:
   uv run python eval_trace.py                  # Run all trace queries
   uv run python eval_trace.py 3                # Run first N queries only
   uv run python eval_trace.py --query "..."    # Run a custom query
+  uv run python eval_trace.py 3 --save         # Run 3 queries, save to case_studies/
 """
 
 import json
@@ -195,15 +196,50 @@ def trace_full_pipeline(question: str, gold_idx: str = "", correct_answer: str =
         print(f"\n  MC Check: {status} (method: {mc_result['method']})")
         print(f"  Details: {mc_result['details']}")
 
+    # Extract per-step details for case study output
+    steps_detail = []
+    if final_state:
+        for step in final_state.get("planning_table", []):
+            step_info = {
+                "step_id": step.step_id,
+                "phase": step.phase,
+                "question": step.question,
+                "status": step.status,
+            }
+            if step.execution:
+                step_info["optimized_query"] = step.execution.get("optimized_query", "")
+                step_info["retrieved_doc_ids"] = step.execution.get("retrieved_doc_ids", [])
+                step_info["confidence"] = step.execution.get("confidence_score", 0.0)
+                # Preview of each retrieved passage
+                sources = step.execution.get("sources", [])
+                step_info["passage_previews"] = [s[:120] for s in sources]
+                # Synthesized answer
+                step_info["answer"] = step.execution.get("cited_answer",
+                                                          step.execution.get("answer", ""))
+            steps_detail.append(step_info)
+
+    # Compute avg confidence across completed steps
+    completed_confs = [
+        s["confidence"] for s in steps_detail
+        if s["status"] == "completed" and "confidence" in s
+    ]
+    avg_conf = sum(completed_confs) / len(completed_confs) if completed_confs else 0.0
+
     # Summary
     metrics = final_state.get("run_metrics", {}) if final_state else {}
+    verification = final_state.get("verification_result", {}) if final_state else {}
+    is_verified = verification.get("is_verified", None)
+    steps_completed = metrics.get("steps_completed", 0)
+    steps_failed = metrics.get("steps_failed", 0)
+
     print(f"\n{'─'*80}")
     print(f"TRACE SUMMARY")
     print(f"{'─'*80}")
     print(f"  Time: {elapsed:.1f}s | LLM calls: {metrics.get('total_llm_calls', '?')}")
     print(f"  Query type: {final_state.get('query_type', '?') if final_state else '?'}")
-    print(f"  Steps: {metrics.get('steps_completed', 0)} completed, {metrics.get('steps_failed', 0)} failed")
-    print(f"  Verified: {final_state.get('verification_result', {}).get('is_verified', '?') if final_state else '?'}")
+    print(f"  Steps: {steps_completed} completed, {steps_failed} failed")
+    print(f"  Verified: {is_verified}")
+    print(f"  Avg confidence: {avg_conf:.3f}")
     print(f"  Raw retrieval found gold: {ret_trace['raw_recall']}")
     print(f"  Multi-query found gold: {ret_trace['mq_recall']}")
     print(f"  MC correct: {mc_result['correct'] if mc_result else 'n/a'}")
@@ -214,6 +250,14 @@ def trace_full_pipeline(question: str, gold_idx: str = "", correct_answer: str =
         "elapsed": elapsed,
         "mc_result": mc_result,
         "metrics": metrics,
+        "steps_completed": steps_completed,
+        "steps_failed": steps_failed,
+        "is_verified": is_verified,
+        "avg_confidence": avg_conf,
+        "steps_detail": steps_detail,
+        "verification": verification,
+        "query_type": final_state.get("query_type", "") if final_state else "",
+        "accumulated_context": final_state.get("accumulated_context", []) if final_state else [],
     }
 
 
@@ -267,6 +311,52 @@ def select_trace_queries(n: int = 8):
     return queries[:n]
 
 
+def save_case_study(query_info: dict, result: dict, output_dir: str = "case_studies"):
+    """Save a single query's full trace to a JSON file."""
+    os.makedirs(output_dir, exist_ok=True)
+    label = query_info.get("label", "unknown")
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    filename = f"{label}_{timestamp}.json"
+    filepath = os.path.join(output_dir, filename)
+
+    case = {
+        "label": label,
+        "subject": query_info.get("subject", ""),
+        "question": query_info.get("question", ""),
+        "gold_idx": query_info.get("gold_idx", ""),
+        "correct_answer": query_info.get("correct_answer", ""),
+        "query_type": result.get("query_type", ""),
+        "retrieval": {
+            "raw_recall": result.get("raw_recall"),
+            "mq_recall": result.get("mq_recall"),
+            "raw_conf": result.get("raw_conf"),
+            "mq_conf": result.get("mq_conf"),
+            "rewrite": result.get("rewrite", {}),
+        },
+        "pipeline": {
+            "steps": result.get("steps_detail", []),
+            "accumulated_context": result.get("accumulated_context", []),
+            "final_answer": result.get("answer", ""),
+            "verification": result.get("verification", {}),
+            "is_verified": result.get("is_verified"),
+            "avg_confidence": result.get("avg_confidence", 0.0),
+        },
+        "mc_result": result.get("mc_result"),
+        "metrics": {
+            "elapsed_sec": round(result.get("elapsed", 0), 1),
+            "total_llm_calls": result.get("metrics", {}).get("total_llm_calls", 0),
+            "steps_completed": result.get("steps_completed", 0),
+            "steps_failed": result.get("steps_failed", 0),
+        },
+    }
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(case, f, indent=2, default=str)
+
+    print(f"  Saved case study: {filepath}")
+    return filepath
+
+
 def main():
     pinfo = get_provider_info()
     print(f"Provider: {pinfo['provider']} | Model: {pinfo['model']}")
@@ -275,17 +365,21 @@ def main():
     print(f"Embedding: {os.getenv('EMBEDDING_MODEL', 'Alibaba-NLP/gte-large-en-v1.5')}")
 
     # Parse args
-    if len(sys.argv) > 1 and sys.argv[1] == "--query":
-        query = " ".join(sys.argv[2:])
+    save_mode = "--save" in sys.argv
+    args = [a for a in sys.argv[1:] if a != "--save"]
+
+    if args and args[0] == "--query":
+        query = " ".join(args[1:])
         trace_full_pipeline(query)
         return
 
-    n = int(sys.argv[1]) if len(sys.argv) > 1 else 8
+    n = int(args[0]) if args else 8
     queries = select_trace_queries(n)
 
-    print(f"\nTracing {len(queries)} queries...\n")
+    print(f"\nTracing {len(queries)} queries...{'  (saving case studies)' if save_mode else ''}\n")
 
     results = []
+    saved_files = []
     for i, q in enumerate(queries):
         print(f"\n{'#'*80}")
         print(f"# [{i+1}/{len(queries)}] {q['label']} ({q['subject']})")
@@ -301,21 +395,37 @@ def main():
         result["subject"] = q["subject"]
         results.append(result)
 
+        if save_mode:
+            path = save_case_study(q, result)
+            saved_files.append(path)
+
     # Final summary table
-    print(f"\n\n{'='*80}")
+    print(f"\n\n{'='*100}")
     print(f"EXPERIMENT SUMMARY")
-    print(f"{'='*80}")
-    print(f"{'Label':<25} {'Subj':<12} {'RawGold':>8} {'MQGold':>8} {'MC':>8} {'Time':>6} {'LLM':>4}")
-    print("-" * 80)
+    print(f"{'='*100}")
+    print(f"{'Label':<25} {'Subj':<12} {'RawGold':>8} {'MQGold':>8} {'MC':>4} "
+          f"{'Steps':>10} {'Vrfy':>5} {'Conf':>6} {'Time':>6} {'LLM':>4}")
+    print("-" * 100)
     for r in results:
         raw_g = "Y" if r["raw_recall"] else ("N" if r["raw_recall"] is not None else ".")
         mq_g = "Y" if r["mq_recall"] else ("N" if r["mq_recall"] is not None else ".")
         mc = "Y" if r.get("mc_result", {}) and r["mc_result"]["correct"] else (
             "N" if r.get("mc_result") else "."
         )
+        steps_str = f"{r.get('steps_completed', 0)}c/{r.get('steps_failed', 0)}f"
+        vrfy = "Y" if r.get("is_verified") is True else (
+            "N" if r.get("is_verified") is False else "?"
+        )
+        conf = f"{r.get('avg_confidence', 0):.3f}"
         t = f"{r['elapsed']:.0f}s"
         llm = str(r.get("metrics", {}).get("total_llm_calls", "?"))
-        print(f"{r['label']:<25} {r['subject']:<12} {raw_g:>8} {mq_g:>8} {mc:>8} {t:>6} {llm:>4}")
+        print(f"{r['label']:<25} {r['subject']:<12} {raw_g:>8} {mq_g:>8} {mc:>4} "
+              f"{steps_str:>10} {vrfy:>5} {conf:>6} {t:>6} {llm:>4}")
+
+    if save_mode and saved_files:
+        print(f"\nCase studies saved to: {os.path.dirname(saved_files[0])}/")
+        for f in saved_files:
+            print(f"  {os.path.basename(f)}")
 
 
 if __name__ == "__main__":

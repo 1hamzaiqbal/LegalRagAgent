@@ -440,19 +440,23 @@ def executor_node(state: AgentState) -> AgentState:
             alternatives = rewrite_result.get("alternatives", [])
             print(f"  Primary query: {optimized_query[:80]}...")
             if alternatives:
-                print(f"  + {len(alternatives)} alternative queries")
+                for j, alt in enumerate(alternatives):
+                    print(f"  Alt {j+1}: {alt[:80]}...")
 
             # 2. Multi-query retrieve
             all_queries = [optimized_query] + alternatives
             docs = retrieve_documents_multi_query(all_queries, k=5)
             evidence = [doc.page_content for doc in docs]
-            print(f"  Retrieved {len(evidence)} passages")
+            print(f"  Retrieved {len(evidence)} passages:")
+            for j, doc in enumerate(docs):
+                idx = doc.metadata.get("idx", "")
+                print(f"    [{j+1}] {idx}: {doc.page_content[:80]}...")
 
             # 3. Synthesize and cite (single pass)
             # Per-step synthesis does pure legal research — no MC choices here.
             # MC selection happens once at the end in verify_answer_node.
             cited_answer = skill_synthesize_and_cite(step.question, evidence)
-            print(f"  Synthesized and cited ({len(cited_answer)} chars)")
+            print(f"  Synthesized ({len(cited_answer)} chars): {cited_answer[:200]}...")
 
             # 4. Compute confidence
             confidence = compute_confidence(optimized_query, docs)
@@ -485,11 +489,11 @@ def evaluator_node(state: AgentState) -> AgentState:
         if step.status == "pending" and "confidence_score" in step.execution:
             score = step.execution["confidence_score"]
             if score >= threshold:
-                print(f"Step {step.step_id} PASSED (score: {score:.3f}). Marking completed.")
+                print(f"Step {step.step_id} PASSED (score: {score:.3f} >= {threshold})")
                 step.status = "completed"
                 step.expectation["is_aligned"] = True
             else:
-                print(f"Step {step.step_id} FAILED (score: {score:.3f}). Marking failed.")
+                print(f"Step {step.step_id} FAILED (score: {score:.3f} < {threshold})")
                 step.status = "failed"
                 step.expectation["is_aligned"] = False
                 step.deviation_analysis = "Insufficient evidence — retrieval confidence below threshold."
@@ -550,6 +554,10 @@ def replanner_node(state: AgentState) -> AgentState:
         logger.error("Replanner failed after retries: %s. Falling back to complete.", e)
         print(f"Replanner error — graceful fallback to verify with existing evidence.")
         result = {"action": "complete", "reasoning": f"Fallback — replanner error: {e}"}
+    completed_count = sum(1 for s in accumulated if s.get("status") == "completed")
+    failed_count = sum(1 for s in accumulated if s.get("status") == "failed")
+    print(f"Accumulated context: {len(accumulated)} steps ({completed_count} completed, {failed_count} failed)")
+
     action = result.get("action", "complete")
     print(f"Replanner action: {action} — {result.get('reasoning', '')}")
 
@@ -622,7 +630,7 @@ def verify_answer_node(state: AgentState) -> AgentState:
             print("  MC choices detected — selecting answer...")
             mc_response = skill_select_mc_answer(objective, answer)
             state["final_cited_answer"] = answer + "\n\n---\n\n" + mc_response
-            print(f"  MC selection: {mc_response[:120]}...")
+            print(f"  MC selection: {mc_response}")
     else:
         retries = state.get("verification_retries", 0)
         state["verification_retries"] = retries + 1
@@ -630,6 +638,9 @@ def verify_answer_node(state: AgentState) -> AgentState:
         issues = result.get("issues", [])
         for issue in issues:
             print(f"  - {issue}")
+        suggested = result.get("suggested_query", "")
+        if suggested:
+            print(f"  Suggested query: {suggested}")
 
         # Only add a corrective step on the first failure. A second failure
         # means correction didn't help — don't add an orphan step that
