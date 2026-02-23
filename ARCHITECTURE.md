@@ -19,8 +19,8 @@ flowchart TD
     EXEC --> EXEC_SUB
     EXEC_SUB --> EVAL{Evaluator}
     EVAL -->|pending steps| EXEC
-    EVAL -->|multi_hop, all done, no prior correction| REPLAN[AdaptiveReplan]
-    EVAL -->|simple done / limit / correction done| VA[VerifyAnswer]
+    EVAL -->|multi_hop, all done, ≤3 completed, no stagnation| REPLAN[AdaptiveReplan]
+    EVAL -->|simple done / limit / ≥3 steps / correction / stagnation| VA[VerifyAnswer]
     REPLAN -->|next_step / retry| EXEC
     REPLAN -->|complete| VA
     VA -->|not verified, first failure| EXEC

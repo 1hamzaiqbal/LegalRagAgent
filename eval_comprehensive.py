@@ -51,15 +51,17 @@ def _check_mc_correctness(answer: str, correct_letter: str, choices: dict) -> di
             return {"correct": True, "method": "text_match",
                     "details": f"answer contains correct choice text"}
 
-    # Strategy 2: explicit letter mention like "answer is B", "correct answer: B"
+    # Strategy 2: explicit letter mention like "answer is B", "**Answer: (B)**"
     letter_patterns = [
+        rf'\*\*answer:\s*\({correct_letter}\)\*\*',             # **Answer: (C)** — strict MC format
         rf'\banswer\s+is\s+\(?{correct_letter}\)?\b',
         rf'\bcorrect\s+answer[:\s]+\(?{correct_letter}\)?\b',
         rf'\b\({correct_letter}\)\s+is\s+correct\b',
         rf'\boption\s+\(?{correct_letter}\)?\s+is\s+correct\b',
+        rf'\bselect(?:ing|ed|s)?\s+\(?{correct_letter}\)?\b',
     ]
     for pat in letter_patterns:
-        if re.search(pat, answer_lower):
+        if re.search(pat, answer_lower, re.IGNORECASE):
             return {"correct": True, "method": "letter_match",
                     "details": f"answer explicitly selects {correct_letter}"}
 
@@ -67,9 +69,13 @@ def _check_mc_correctness(answer: str, correct_letter: str, choices: dict) -> di
     for wrong_letter in choices:
         if wrong_letter == correct_letter:
             continue
-        for pat_tmpl in [r'\banswer\s+is\s+\(?{L}\)?\b', r'\bcorrect\s+answer[:\s]+\(?{L}\)?\b']:
-            pat = pat_tmpl.replace("{L}", wrong_letter)
-            if re.search(pat, answer_lower):
+        wrong_patterns = [
+            rf'\*\*answer:\s*\({wrong_letter}\)\*\*',
+            rf'\banswer\s+is\s+\(?{wrong_letter}\)?\b',
+            rf'\bcorrect\s+answer[:\s]+\(?{wrong_letter}\)?\b',
+        ]
+        for pat in wrong_patterns:
+            if re.search(pat, answer_lower, re.IGNORECASE):
                 return {"correct": False, "method": "letter_match",
                         "details": f"answer selects {wrong_letter}, correct is {correct_letter}"}
 
@@ -330,10 +336,15 @@ def phase2_pipeline(max_queries: int = None):
     """Run the full pipeline on diverse questions and evaluate end-to-end."""
     from main import build_graph, _reset_llm_call_counter, _llm_call_counter, _parse_failure_count
     from rag_utils import retrieve_documents, get_memory_store
+    from llm_config import get_provider_info
 
     print(f"\n{'='*80}")
     print(f"PHASE 2: FULL PIPELINE EVALUATION")
     print(f"{'='*80}\n")
+
+    # Log provider info
+    pinfo = get_provider_info()
+    print(f"Provider: {pinfo['provider']} | Model: {pinfo['model']} | RPD: {pinfo.get('rpd', '?')} | TPD: {pinfo.get('tpd', '?')}")
 
     # Clear QA memory cache so every query runs the full pipeline
     mem_store = get_memory_store()
@@ -366,9 +377,16 @@ def phase2_pipeline(max_queries: int = None):
         print(f"# {obj_preview}{'...' if len(query['objective'])>120 else ''}")
         print(f"{'#'*80}")
 
+        # Append MC choices to the objective so the LLM can select among them
+        objective = query["objective"]
+        query_choices = query.get("choices", {})
+        if query_choices and any(query_choices.values()):
+            choice_text = "\n".join(f"  ({k}) {v}" for k, v in sorted(query_choices.items()) if v)
+            objective = f"{objective}\n\nAnswer choices:\n{choice_text}"
+
         _reset_llm_call_counter()
         initial_state = {
-            "global_objective": query["objective"],
+            "global_objective": objective,
             "planning_table": [],
             "query_type": "",
             "final_cited_answer": "",

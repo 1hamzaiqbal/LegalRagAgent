@@ -3,7 +3,7 @@ import os
 import time
 import numpy as np
 import pandas as pd
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
@@ -13,10 +13,25 @@ CHROMA_DB_DIR = "./chroma_db"
 COLLECTION_NAME = "legal_passages"
 QA_MEMORY_COLLECTION = "qa_memory"
 
+# Embedding model — configurable via env var. Default: gte-large-en-v1.5 (1024d, 8192 tokens)
+# Other options: "all-MiniLM-L6-v2" (384d, fast), "freelawproject/modernbert-embed-base_finetune_8192" (768d, legal-specific)
+DEFAULT_EMBEDDING_MODEL = "Alibaba-NLP/gte-large-en-v1.5"
+
+# Source-aware retrieval — when True, retrieves from study (mbe/wex) and caselaw pools
+# separately and interleaves results. When False, retrieves from the full corpus and lets
+# the cross-encoder pick the best passages regardless of source.
+SOURCE_DIVERSE_RETRIEVAL = os.getenv("SOURCE_DIVERSE_RETRIEVAL", "0") == "1"
+
+
 @functools.lru_cache(maxsize=1)
 def get_embeddings():
-    # Use a lightweight, fast local embedding model
-    return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    model_name = os.getenv("EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL)
+    print(f"[rag_utils] Loading embedding model: {model_name}")
+    # Some models (gte-large, modernbert) use custom architectures that need trust_remote_code
+    return HuggingFaceEmbeddings(
+        model_name=model_name,
+        model_kwargs={"trust_remote_code": True},
+    )
 
 @functools.lru_cache(maxsize=1)
 def get_cross_encoder():
@@ -33,12 +48,7 @@ def rerank_with_cross_encoder(
     docs: List[Document],
     top_k: int = 5,
 ) -> List[Document]:
-    """Rerank documents using a cross-encoder model.
-
-    The cross-encoder scores each (query, document) pair with full attention,
-    which is much better than bi-encoder cosine similarity at distinguishing
-    semantically relevant passages from keyword-noise matches.
-    """
+    """Rerank documents using a cross-encoder model."""
     if not docs or len(docs) <= 1:
         return docs[:top_k]
 
@@ -46,7 +56,6 @@ def rerank_with_cross_encoder(
     pairs = [(query, doc.page_content) for doc in docs]
     scores = cross_encoder.predict(pairs)
 
-    # Sort by cross-encoder score (descending) and take top_k
     scored = sorted(zip(docs, scores), key=lambda x: x[1], reverse=True)
     return [doc for doc, _ in scored[:top_k]]
 
@@ -79,7 +88,6 @@ def load_passages_to_chroma(passages_csv_path: str, max_passages: int = 0,
     if max_passages > 0:
         df = df.head(max_passages)
 
-    # Expected columns: idx, text (and others we can store in metadata)
     documents = []
     for _, row in df.iterrows():
         if 'idx' not in row or 'text' not in row or pd.isna(row['text']):
@@ -97,7 +105,6 @@ def load_passages_to_chroma(passages_csv_path: str, max_passages: int = 0,
     print(f"Prepared {len(documents)} documents. Initializing vectorstore...")
     vectorstore = get_vectorstore(collection_name)
 
-    # Check if we already have documents
     existing_count = vectorstore._collection.count()
     if existing_count >= len(documents):
         print(f"Vectorstore already contains {existing_count} documents (>= {len(documents)}). Skipping.")
@@ -107,12 +114,10 @@ def load_passages_to_chroma(passages_csv_path: str, max_passages: int = 0,
         print(f"Vectorstore has {existing_count} docs but need {len(documents)}. Clearing and reloading...")
         ids = vectorstore._collection.get()["ids"]
         if ids:
-            # Delete in batches to avoid memory issues
             for i in range(0, len(ids), 5000):
                 vectorstore._collection.delete(ids=ids[i:i+5000])
         print("Cleared existing collection.")
 
-    # Add in batches
     batch_size = 500
     total = len(documents)
     for i in range(0, total, batch_size):
@@ -131,29 +136,31 @@ def get_retriever(k: int = 5, vectorstore: Chroma = None):
     return vs.as_retriever(search_kwargs={"k": k})
 
 
-def retrieve_documents(query: str, k: int = 5, vectorstore: Chroma = None) -> List[Document]:
-    """Two-stage retrieval: hybrid bi-encoder fetch + source-aware cross-encoder rerank.
+# ---------------------------------------------------------------------------
+# Retrieval
+# ---------------------------------------------------------------------------
 
-    Stage 1 (bi-encoder): Over-retrieve from MBE/wex and caselaw pools separately.
-    Stage 2 (cross-encoder): Rerank within each pool separately, then interleave.
-    This preserves source diversity (MBE passages aren't drowned by caselaw) while
-    fixing keyword-noise and shallow-similarity mismatches within each pool.
+def _retrieve_unified(query: str, k: int, vectorstore: Chroma) -> List[Document]:
+    """Unified retrieval: over-retrieve from full corpus, then cross-encoder rerank.
 
-    For small corpora (<5K docs), falls back to simple retrieval + rerank.
+    No source splitting — the cross-encoder picks the best passages regardless
+    of whether they're MBE, wex, or caselaw.
     """
-    vectorstore = vectorstore or get_vectorstore()
-    total_docs = vectorstore._collection.count()
+    fetch_k = k * 4
+    retriever = get_retriever(k=fetch_k, vectorstore=vectorstore)
+    candidates = retriever.invoke(query)
+    return rerank_with_cross_encoder(query, candidates, top_k=k)
 
-    # Over-retrieval factor: fetch 4x candidates per pool for the cross-encoder
+
+def _retrieve_source_diverse(query: str, k: int, vectorstore: Chroma) -> List[Document]:
+    """Source-diverse retrieval: separate pools for study material vs caselaw.
+
+    Over-retrieves from each pool, reranks within each, then interleaves.
+    Preserves source diversity but may miss the best passages if they're
+    concentrated in one pool.
+    """
     fetch_k = k * 4
 
-    # If corpus is small (<5K), no source imbalance — simple retrieval + rerank
-    if total_docs < 5000:
-        retriever = get_retriever(k=fetch_k, vectorstore=vectorstore)
-        candidates = retriever.invoke(query)
-        return rerank_with_cross_encoder(query, candidates, top_k=k)
-
-    # Stage 1: Hybrid bi-encoder retrieval (over-retrieve from each pool)
     try:
         study_results = vectorstore.similarity_search_with_relevance_scores(
             query, k=fetch_k, filter={"source": {"$in": ["mbe", "wex"]}}
@@ -168,31 +175,15 @@ def retrieve_documents(query: str, k: int = 5, vectorstore: Chroma = None) -> Li
     except Exception:
         case_results = []
 
-    # Deduplicate within each pool
-    study_candidates = []
-    study_seen = set()
-    for doc, _ in study_results:
-        idx = doc.metadata.get("idx", "")
-        if idx not in study_seen:
-            study_seen.add(idx)
-            study_candidates.append(doc)
+    study_candidates = _dedup_docs(study_results)
+    case_candidates = _dedup_docs(case_results)
 
-    case_candidates = []
-    case_seen = set()
-    for doc, _ in case_results:
-        idx = doc.metadata.get("idx", "")
-        if idx not in case_seen:
-            case_seen.add(idx)
-            case_candidates.append(doc)
-
-    # Stage 2: Source-aware cross-encoder rerank within each pool
-    study_k = (k + 1) // 2  # e.g., 3 out of 5
-    case_k = k - study_k     # e.g., 2 out of 5
+    study_k = (k + 1) // 2
+    case_k = k - study_k
 
     reranked_study = rerank_with_cross_encoder(query, study_candidates, top_k=study_k)
     reranked_case = rerank_with_cross_encoder(query, case_candidates, top_k=case_k)
 
-    # Interleave: study material first, then caselaw
     result = list(reranked_study)
     seen = {doc.metadata.get("idx", "") for doc in result}
     for doc in reranked_case:
@@ -218,16 +209,46 @@ def retrieve_documents(query: str, k: int = 5, vectorstore: Chroma = None) -> Li
     return result
 
 
+def _dedup_docs(scored_results) -> List[Document]:
+    """Deduplicate (doc, score) results by idx."""
+    candidates = []
+    seen = set()
+    for doc, _ in scored_results:
+        idx = doc.metadata.get("idx", "")
+        if idx not in seen:
+            seen.add(idx)
+            candidates.append(doc)
+    return candidates
+
+
+def retrieve_documents(query: str, k: int = 5, vectorstore: Chroma = None) -> List[Document]:
+    """Two-stage retrieval: bi-encoder over-retrieve + cross-encoder rerank.
+
+    When SOURCE_DIVERSE_RETRIEVAL is True, splits retrieval into study/caselaw pools.
+    When False (default), retrieves from the full corpus and lets the cross-encoder decide.
+    """
+    vectorstore = vectorstore or get_vectorstore()
+    total_docs = vectorstore._collection.count()
+
+    # Small corpus: always use simple retrieval
+    if total_docs < 5000:
+        fetch_k = k * 4
+        retriever = get_retriever(k=fetch_k, vectorstore=vectorstore)
+        candidates = retriever.invoke(query)
+        return rerank_with_cross_encoder(query, candidates, top_k=k)
+
+    if SOURCE_DIVERSE_RETRIEVAL:
+        return _retrieve_source_diverse(query, k, vectorstore)
+    return _retrieve_unified(query, k, vectorstore)
+
+
 def retrieve_documents_multi_query(queries: List[str], k: int = 5,
                                    vectorstore: Chroma = None) -> List[Document]:
     """Multi-query retrieval: pool candidates from multiple query variants, then rerank.
 
-    For each query, bi-encoder over-retrieves from each source pool (study + caselaw).
-    All candidates are pooled and deduplicated by idx. The cross-encoder reranks the
-    full pool against the PRIMARY query (first in list). Source-aware interleaving
-    preserves diversity (3 study + 2 caselaw).
-
-    Falls back to single-query retrieve_documents if only one query is provided.
+    For each query variant, bi-encoder over-retrieves candidates.
+    All candidates are pooled and deduplicated. The cross-encoder reranks the
+    full pool against the PRIMARY query (first in list).
     """
     if not queries:
         return []
@@ -251,65 +272,50 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
                     all_candidates.append(doc)
         return rerank_with_cross_encoder(queries[0], all_candidates, top_k=k)
 
-    # Over-retrieval factor per query (smaller than single-query since we have multiple)
     fetch_k = k * 3
 
-    study_candidates = []
-    study_seen = set()
-    case_candidates = []
-    case_seen = set()
+    if SOURCE_DIVERSE_RETRIEVAL:
+        # Pool from both source pools across all query variants
+        study_candidates = []
+        study_seen = set()
+        case_candidates = []
+        case_seen = set()
 
-    for q in queries:
-        # Study pool (mbe + wex)
-        try:
-            study_results = vectorstore.similarity_search_with_relevance_scores(
-                q, k=fetch_k, filter={"source": {"$in": ["mbe", "wex"]}}
-            )
-            for doc, _ in study_results:
-                idx = doc.metadata.get("idx", "")
-                if idx not in study_seen:
-                    study_seen.add(idx)
-                    study_candidates.append(doc)
-        except Exception:
-            pass
+        for q in queries:
+            try:
+                study_results = vectorstore.similarity_search_with_relevance_scores(
+                    q, k=fetch_k, filter={"source": {"$in": ["mbe", "wex"]}}
+                )
+                for doc, _ in study_results:
+                    idx = doc.metadata.get("idx", "")
+                    if idx not in study_seen:
+                        study_seen.add(idx)
+                        study_candidates.append(doc)
+            except Exception:
+                pass
 
-        # Caselaw pool
-        try:
-            case_results = vectorstore.similarity_search_with_relevance_scores(
-                q, k=fetch_k, filter={"source": "caselaw"}
-            )
-            for doc, _ in case_results:
-                idx = doc.metadata.get("idx", "")
-                if idx not in case_seen:
-                    case_seen.add(idx)
-                    case_candidates.append(doc)
-        except Exception:
-            pass
+            try:
+                case_results = vectorstore.similarity_search_with_relevance_scores(
+                    q, k=fetch_k, filter={"source": "caselaw"}
+                )
+                for doc, _ in case_results:
+                    idx = doc.metadata.get("idx", "")
+                    if idx not in case_seen:
+                        case_seen.add(idx)
+                        case_candidates.append(doc)
+            except Exception:
+                pass
 
-    # Cross-encoder rerank against the PRIMARY query within each pool
-    primary_query = queries[0]
-    study_k = (k + 1) // 2  # e.g., 3 out of 5
-    case_k = k - study_k     # e.g., 2 out of 5
+        primary_query = queries[0]
+        study_k = (k + 1) // 2
+        case_k = k - study_k
 
-    reranked_study = rerank_with_cross_encoder(primary_query, study_candidates, top_k=study_k)
-    reranked_case = rerank_with_cross_encoder(primary_query, case_candidates, top_k=case_k)
+        reranked_study = rerank_with_cross_encoder(primary_query, study_candidates, top_k=study_k)
+        reranked_case = rerank_with_cross_encoder(primary_query, case_candidates, top_k=case_k)
 
-    # Interleave: study material first, then caselaw
-    result = list(reranked_study)
-    seen = {doc.metadata.get("idx", "") for doc in result}
-    for doc in reranked_case:
-        if len(result) >= k:
-            break
-        idx = doc.metadata.get("idx", "")
-        if idx not in seen:
-            seen.add(idx)
-            result.append(doc)
-
-    # Backfill if either pool was too small
-    if len(result) < k:
-        all_candidates = study_candidates + case_candidates
-        all_reranked = rerank_with_cross_encoder(primary_query, all_candidates, top_k=k * 2)
-        for doc in all_reranked:
+        result = list(reranked_study)
+        seen = {doc.metadata.get("idx", "") for doc in result}
+        for doc in reranked_case:
             if len(result) >= k:
                 break
             idx = doc.metadata.get("idx", "")
@@ -317,7 +323,32 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
                 seen.add(idx)
                 result.append(doc)
 
-    return result
+        if len(result) < k:
+            all_candidates = study_candidates + case_candidates
+            all_reranked = rerank_with_cross_encoder(primary_query, all_candidates, top_k=k * 2)
+            for doc in all_reranked:
+                if len(result) >= k:
+                    break
+                idx = doc.metadata.get("idx", "")
+                if idx not in seen:
+                    seen.add(idx)
+                    result.append(doc)
+
+        return result
+    else:
+        # Unified: pool all candidates across all query variants, then rerank
+        all_candidates = []
+        seen_idx = set()
+
+        for q in queries:
+            retriever = get_retriever(k=fetch_k, vectorstore=vectorstore)
+            for doc in retriever.invoke(q):
+                idx = doc.metadata.get("idx", "")
+                if idx not in seen_idx:
+                    seen_idx.add(idx)
+                    all_candidates.append(doc)
+
+        return rerank_with_cross_encoder(queries[0], all_candidates, top_k=k)
 
 
 def compute_confidence(query: str, docs: List[Document]) -> float:
@@ -330,7 +361,6 @@ def compute_confidence(query: str, docs: List[Document]) -> float:
     doc_texts = [doc.page_content for doc in docs]
     doc_embs = np.array(embeddings.embed_documents(doc_texts))
 
-    # Cosine similarity between query and each doc
     query_norm = query_emb / (np.linalg.norm(query_emb) + 1e-10)
     doc_norms = doc_embs / (np.linalg.norm(doc_embs, axis=1, keepdims=True) + 1e-10)
     similarities = doc_norms @ query_norm
@@ -362,7 +392,6 @@ def check_memory(query: str, threshold: float = 0.92) -> Dict[str, Any]:
     Returns {"found": bool, "answer": str, "confidence": float, "question": str}.
     """
     store = get_memory_store()
-    # Only search if the collection has documents
     if store._collection.count() == 0:
         return {"found": False, "answer": "", "confidence": 0.0, "question": ""}
 
@@ -394,7 +423,6 @@ def write_to_memory(question: str, answer: str, confidence: float) -> None:
 
 
 if __name__ == "__main__":
-    # Test loading validation set
     valid_passages = "barexam_qa/passages/barexam_qa_validation.csv"
     if os.path.exists(valid_passages):
         load_passages_to_chroma(valid_passages)
