@@ -85,7 +85,7 @@ Nine-node state machine with adaptive replanning, injection detection, answer ve
 2. **classifier_node** — Classifies objective as `simple` or `multi_hop` using `classify_and_route.md` skill (includes MC-specific guidance: single-concept MC → simple, multi-concept MC → multi_hop, defaults to multi_hop when in doubt)
 3. **planner_node** — Checks QA memory first (cosine similarity >= 0.92); on cache hit, short-circuits to memory writeback. Otherwise generates initial plan. For `multi_hop`, emits only the first step; replanner handles the rest adaptively. **MC isolation**: strips answer choices from objective before planning — research stays unbiased.
 4. **executor_node** — For each pending step: rewrites query into primary + 2 alternatives (`query_rewrite.md`, JSON output), multi-query retrieves from ChromaDB (`retrieve_documents_multi_query`, excludes doc_ids from prior steps for cross-step dedup), synthesizes answer with inline `[Source N]` citations in a single pass (`synthesize_and_cite.md`), computes confidence via cosine similarity
-5. **evaluator_node** — Marks steps completed or failed against a configurable confidence threshold (`EVAL_CONFIDENCE_THRESHOLD` env var, default 0.6 for gte-large). Accumulates step summaries into `accumulated_context`. Sets explicit failure message if all steps fail.
+5. **evaluator_node** — Marks steps completed or failed against a configurable confidence threshold (`EVAL_CONFIDENCE_THRESHOLD` env var, default 0.70). Accumulates step summaries into `accumulated_context`. Sets explicit failure message if all steps fail.
 6. **replanner_node** — (multi_hop only) Receives objective (MC choices stripped) + accumulated evidence, decides: `next_step` (add new research step), `retry` (rephrase failed step), or `complete` (aggregate final answer). Hard cap: 3 completed steps max. On persistent LLM failure, gracefully falls back to `complete` to preserve accumulated evidence.
 7. **verify_answer_node** — Cross-checks final answer against evidence using `verify_answer.md` skill. On first failure, adds a corrective step using the LLM's `suggested_query` (a proper legal question). Second failure terminates cleanly without orphaned steps. **MC selection**: if the objective contains answer choices, a dedicated `skill_select_mc_answer()` call runs ONCE after verification passes — applies all accumulated research to pick a letter with `**Answer: (X)**` format. This keeps per-step research unbiased.
 8. **memory_writeback_node** — Persists successful QA pairs (avg confidence >= 0.45, verified) to ChromaDB `qa_memory` collection (cosine distance) for future cache hits. Skips write if verification failed.
@@ -157,13 +157,12 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
   - Clears QA memory cache before each run for clean eval
   - Logs provider info at start
   - Bar exam queries now include MC answer choices in the objective
-- `eval_trace.py` — Detailed per-query diagnostics showing:
-  - Raw retrieval results (bi-encoder + cross-encoder, no rewrite)
-  - Query rewrite output (primary + alternatives)
-  - Multi-query retrieval results with gold passage marking
+- `eval_trace.py` — Detailed per-query diagnostics:
+  - Clears QA memory cache at start for clean eval
+  - Raw retrieval, query rewrite, multi-query retrieval with gold passage marking
   - Full pipeline execution trace (classify → plan → execute → verify)
   - MC correctness check and trace summary table (Steps, Verified, Confidence columns)
-  - `--save` flag dumps case study JSON to `case_studies/` — captures per-step query rewrites, passage IDs+previews, synthesized answers, confidence, verification, MC result, timing
+  - `--save` flag dumps case study JSON to `case_studies/`
 - `eval_reranker.py` — A/B comparison of bi-encoder-only vs cross-encoder reranking
 - `load_corpus.py` — Load passage corpus: `uv run python load_corpus.py [count|status|curated]`
 
@@ -223,18 +222,15 @@ With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B (via Google AI Studio):
 
 `langgraph`, `langchain-core`, `langchain-community`, `langchain-huggingface`, `langchain-openai`, `chromadb`, `pandas`, `pydantic`, `tqdm`, `numpy`, `python-dotenv`, `sentence-transformers`
 
-## Stale / Needs Verification
+## Known Issues & Tech Debt
 
-Items that may be outdated or need re-testing:
+See `pipeline_flags.md` for the full audit with severity ratings, evidence, and fix proposals.
 
-- **Full corpus size "686K"**: This number was from the original dataset description. Actual row count in `barexam_qa_train.csv` has not been recently verified.
-- **Source-diverse retrieval mode**: `SOURCE_DIVERSE_RETRIEVAL=1` path hasn't been tested with gte-large-en-v1.5 or current eval queries. May need recalibration of the 3-study/2-caselaw interleave ratio.
-- **`eval_reranker.py`**: A/B reranking comparison hasn't been run recently. Results may differ with gte-large embeddings vs old MiniLM.
-- **QA memory threshold 0.92**: Not tuned since initial implementation. May be too strict (rarely hits) or too loose (serves stale answers). Needs empirical testing.
-- **Memory writeback confidence threshold 0.45**: Very low bar — may write low-quality answers to cache. Should verify against actual confidence distribution.
-- **Provider registry "19 providers"**: Count may have drifted as providers were added/removed. Run `uv run python llm_config.py` to verify.
-- **Curated corpus gold count "~953"**: Depends on how many unique `gold_idx` values exist in `qa.csv`. Number was estimated from Phase 1 eval with 20K passages.
-- **Verifier effectiveness**: 8/8 pass rate suggests the verifier may be too lenient. Needs adversarial testing with deliberately wrong answers to calibrate.
+**Unverified claims in this doc:**
+- **Full corpus size "686K"**: From original dataset description. Actual `barexam_qa_train.csv` row count not recently verified.
+- **Source-diverse retrieval mode**: `SOURCE_DIVERSE_RETRIEVAL=1` not tested with gte-large-en-v1.5. May need recalibration.
+- **`eval_reranker.py`**: A/B comparison not run recently. Results may differ with current embeddings.
+- **Provider registry "19 providers"**: Count may have drifted. Run `uv run python llm_config.py` to verify.
 
 ## WSL Setup
 
