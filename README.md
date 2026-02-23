@@ -18,19 +18,15 @@ Copy the example env file and add your API key:
 cp .env.example .env
 ```
 
-The default configuration uses **Cerebras free tier** (14K requests/day, 1M tokens/day). Get an API key at [cloud.cerebras.ai](https://cloud.cerebras.ai) and paste it in `.env`.
-
-Other supported backends: Groq, Google AI Studio, Ollama (local), OpenAI, DeepSeek, vLLM — see `.env.example` for config.
+Set `LLM_PROVIDER` to switch between backends. Default: **Google AI Studio** (Gemma 3 27B, 14.4K RPD free tier). Run `uv run python llm_config.py` to see all available providers.
 
 ### 3. Load passages (first run only)
 
-If the ChromaDB store hasn't been populated yet:
-
 ```bash
-uv run python load_corpus.py
+uv run python load_corpus.py 20000          # 20K passages (~30 min with gte-large)
+uv run python load_corpus.py curated        # Gold passages + 500 padding (~1.5K, ~3 min)
+uv run python load_corpus.py status         # Check current collection size
 ```
-
-This loads bar exam passages into `./chroma_db/` (default 20K for fast iteration; full corpus is 686K).
 
 ### 4. Run the agent
 
@@ -42,42 +38,53 @@ uv run python main.py medium       # Preliminary injunction standard and factors
 
 ## Architecture
 
-Nine-node LangGraph state machine with adaptive replanning, injection detection, answer verification, and QA memory:
+Nine-node LangGraph state machine with adaptive replanning, injection detection, MC answer selection, and QA memory.
 
-```
-detect_injection → classifier → planner → executor ⇄ evaluator → replanner → verify_answer → memory_writeback → observability → END
-```
+![LangGraph Pipeline](graph.png)
 
 - **Injection Check**: Screens for adversarial prompts (skippable via `SKIP_INJECTION_CHECK=1`)
-- **Classifier**: Routes queries as `simple` (1 step) or `multi_hop` (adaptive steps)
-- **Planner**: Checks QA memory cache first, then LLM generates a structured research plan
-- **Executor**: Per step — rewrites query into primary + 2 alternatives, multi-query retrieves from ChromaDB, synthesizes answer with inline citations in one pass
-- **Evaluator**: Checks confidence against configurable threshold (`EVAL_CONFIDENCE_THRESHOLD`, default 0.6), accumulates context for replanner
-- **Replanner**: (multi_hop only) Adaptively adds research steps based on accumulated evidence
-- **Verify**: Cross-checks final answer against evidence; triggers corrective step on first failure
-- **Memory**: Caches verified answers for future retrieval (cosine similarity >= 0.92)
+- **Classifier**: Routes queries as `simple` (1 step, 4 LLM calls) or `multi_hop` (adaptive steps, 10-11 calls)
+- **Planner**: Checks QA memory cache first (cosine >= 0.92), then generates initial research step. Strips MC answer choices before planning.
+- **Executor**: Per step — rewrites query into primary + 2 alternatives, multi-query retrieves from ChromaDB (with cross-step dedup), synthesizes answer with inline `[Query X][Source N]` citations
+- **Evaluator**: Checks confidence against threshold (`EVAL_CONFIDENCE_THRESHOLD`, default 0.70). Accumulates step summaries for replanner.
+- **Replanner**: (multi_hop only) Adaptively adds research steps based on accumulated evidence. Hard cap: 3 completed steps.
+- **MC Select**: For MC questions, applies accumulated research to select answer letter. Non-MC passes through.
+- **Memory**: Caches answers (confidence >= 0.70) for future retrieval. Strips MC selection before caching.
+- **Observability**: Prints run metrics (LLM calls, confidence, steps, timing).
 
 ### Skills (7 prompt files)
 
 | Skill | Purpose |
 |-------|---------|
-| `classify_and_route.md` | Classify query complexity |
-| `plan_synthesis.md` | Generate research plan |
-| `query_rewrite.md` | Rewrite into primary + 2 alternative queries (JSON, multi-query retrieval) |
-| `synthesize_and_cite.md` | Synthesize answer with inline `[Source N]` citations in one pass |
+| `classify_and_route.md` | Classify query complexity (simple vs multi_hop) |
+| `plan_synthesis.md` | Generate initial research step |
+| `query_rewrite.md` | Rewrite into primary + 2 alternative queries (JSON) |
+| `synthesize_and_cite.md` | Synthesize answer with inline `[Source N]` citations |
 | `adaptive_replan.md` | Decide next research step from accumulated evidence |
 | `detect_prompt_injection.md` | Screen for adversarial prompts |
-| `verify_answer.md` | Cross-check answer against evidence |
+| `verify_answer.md` | Cross-check answer against evidence (retained for future use) |
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for full diagrams and state schema.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for full node-by-node reference, state schema, and annotated case studies.
 
 ## Evaluation
 
 ```bash
-uv run python eval_comprehensive.py    # Two-phase: retrieval + full pipeline
-uv run python eval_reranker.py         # A/B: bi-encoder vs cross-encoder reranking
+uv run python eval_comprehensive.py              # Two-phase: retrieval + full pipeline
+uv run python eval_comprehensive.py retrieval     # Phase 1 only (no LLM)
+uv run python eval_comprehensive.py pipeline 10   # Phase 2, first N queries
+uv run python eval_trace.py 3                     # Traced diagnostics, first N queries
+uv run python eval_trace.py 3 --save              # Save case studies to case_studies/
 ```
 
-## Required Skills
+### Latest Results (Gemma 3 27B, 20K passages)
 
-The LangGraph agent dynamically loads instructions (skills) from markdown files in the `skills/` directory. All 7 skill files are included in this repo.
+| Query | MC | Steps | Conf | LLM calls |
+|---|---|---|---|---|
+| torts | Y | 3c/0f | 0.773 | 11 |
+| contracts | Y | 3c/0f | 0.773 | 11 |
+| crimlaw | N | 3c/0f | 0.721 | 11 |
+| evidence | Y | 3c/0f | 0.790 | 11 |
+| constlaw | N | 0c/3f | — | 11 |
+| realprop | Y | 3c/0f | 0.775 | 11 |
+
+MC accuracy: 4/6. 100% passage diversity across all steps.
