@@ -619,34 +619,24 @@ def verify_answer_node(state: AgentState) -> AgentState:
     else:
         retries = state.get("verification_retries", 0)
         state["verification_retries"] = retries + 1
-        print(f"Answer NOT verified (attempt {retries + 1}): {result.get('reasoning', '')}")
         issues = result.get("issues", [])
+        suggested = result.get("suggested_query", "")
+        print(f"Answer NOT verified (attempt {retries + 1}): {result.get('reasoning', '')}")
         for issue in issues:
             print(f"  - {issue}")
-        suggested = result.get("suggested_query", "")
         if suggested:
             print(f"  Suggested query: {suggested}")
 
-        # Only add a corrective step on the first failure. A second failure
-        # means correction didn't help — don't add an orphan step that
-        # the router will skip.
+        # Only retry once — a second failure means correction didn't help
         if retries < 1:
             existing_ids = [s.step_id for s in table]
             new_id = max(existing_ids) + 1.0 if existing_ids else 1.0
-            # Use the LLM's suggested_query if available (a proper legal
-            # question), falling back to a best-effort extraction.
-            suggested = result.get("suggested_query", "")
-            if suggested:
-                corrective_question = suggested
-            else:
-                issue_text = issues[0] if issues else objective
-                corrective_question = issue_text
-            corrective_step = PlanStep(
+            corrective_question = suggested or (issues[0] if issues else objective)
+            state["planning_table"].append(PlanStep(
                 step_id=new_id,
                 phase="Corrective Research",
                 question=corrective_question,
-            )
-            state["planning_table"].append(corrective_step)
+            ))
             print(f"Added corrective step {new_id}: {corrective_question}")
 
     return state
@@ -723,19 +713,9 @@ def observability_node(state: AgentState) -> AgentState:
     print(f"\n{'='*50}")
     print("  RUN METRICS SUMMARY")
     print(f"{'='*50}")
-    print(f"  Query type:           {metrics['query_type']}")
-    print(f"  Injection safe:       {metrics['injection_safe']}")
-    print(f"  LLM calls:            {metrics['total_llm_calls']}")
-    print(f"  Input chars:          {metrics['input_chars']:,}")
-    print(f"  Output chars:         {metrics['output_chars']:,}")
-    print(f"  Parse failures:       {metrics['parse_failures']}")
-    print(f"  Iterations:           {metrics['iteration_count']}")
-    print(f"  Steps completed:      {metrics['steps_completed']}")
-    print(f"  Steps failed:         {metrics['steps_failed']}")
-    print(f"  Steps pending:        {metrics['steps_pending']}")
-    print(f"  Memory hit:           {metrics['memory_hit']}")
-    print(f"  Verification retries: {metrics['verification_retries']}")
-    print(f"  Has answer:           {metrics['has_answer']}")
+    for key, val in metrics.items():
+        label = key.replace("_", " ").title()
+        print(f"  {label:<22} {val}")
     print(f"{'='*50}\n")
 
     return state
@@ -768,11 +748,10 @@ def _strip_mc_choices(objective: str) -> str:
 
 
 def _print_table(table: List[PlanStep]):
-    print("\nCurrent Planning Table:")
+    print("\nPlanning Table:")
     for s in table:
-        executed = "Yes" if "confidence_score" in s.execution else "No"
-        score = f" (score: {s.execution['confidence_score']:.3f})" if "confidence_score" in s.execution else ""
-        print(f"  [{s.status.upper()}] Step {s.step_id}: {s.question} | Executed: {executed}{score}")
+        score = f"  ({s.execution['confidence_score']:.3f})" if "confidence_score" in s.execution else ""
+        print(f"  [{s.status.upper():>9}] {s.step_id}: {s.question[:70]}{score}")
     print("-" * 60)
 
 
