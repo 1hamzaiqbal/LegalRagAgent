@@ -2,103 +2,130 @@
 
 Systematic audit of yellow/red flags across the codebase. Each flag has severity, evidence from traces, and proposed fixes.
 
-## RED FLAGS
+**Latest eval baseline** (8-query trace, Gemma 3 27B, 20K passages, threshold 0.70, cross-step dedup ON):
+- MC accuracy: 5/6 (83%)
+- Passage diversity: 100% unique docs on every query
+- Steps with failures: 3/26 (evaluator now rejects borderline steps)
+- Avg LLM calls: 11.9/query
 
-### R1. Verifier always passes (verify_answer_node)
-- **Evidence**: 8/8 traced queries passed first attempt. Corrective-step path is dead code in practice.
-- **Root cause**: Skill says "pass by default", "when in doubt PASS", and verifier sees the *same evidence* the synthesizer used — it's checking whether the LLM contradicted itself, which it rarely does.
-- **Impact**: 1 wasted LLM call/query. False "verified" label on every answer.
-- **Fix options**: (A) Give verifier independently-retrieved evidence. (B) Remove verifier, save the call. (C) Make verifier adversarial — but risk false failures.
-- **Status**: Open
+---
+
+## FIXED
+
+### F1. Confidence threshold was a no-op (was Y1)
+- **Problem**: Threshold 0.6, observed range 0.709-0.804. 0/24 steps failed.
+- **Fix**: Raised default to 0.70. Now 3/26 steps fail, triggering replanner retries.
+- **Result**: constlaw 3c/2f (18 LLM calls), crimlaw 3c/1f (15 calls). Others unchanged at 12.
+
+### F2. No cross-step passage deduplication (was Y3)
+- **Problem**: Contracts had 7/15 unique docs (53% overlap). Avg ~73% unique.
+- **Fix**: `exclude_ids` param on `retrieve_documents_multi_query()`. Executor gathers prior doc_ids.
+- **Result**: 100% unique docs on every query. MC accuracy rose from 4/6 to 5/6 (evidence query flipped correct).
+
+### F3. Single-quote JSON hack (was Y5)
+- **Problem**: `fixed.replace("'", '"')` would corrupt apostrophes in text values.
+- **Fix**: Removed the line. Broken JSON now falls through to parse failure counter honestly.
+
+### F4. Stale "expectation" key in fallback (was Y8)
+- **Problem**: Fallback plan dict still had `"expectation"` key removed from PlanStep model.
+- **Fix**: Removed the key.
+
+---
+
+## RED FLAGS (open)
+
+### R1. Verifier always passes
+- **File**: `main.py` verify_answer_node, `skills/verify_answer.md`
+- **Evidence**: 8/8 traced queries pass first attempt (both before and after threshold/dedup changes). Corrective-step path has never triggered in any traced eval.
+- **Root cause**: Skill says "pass by default", "when in doubt PASS". Verifier sees the same evidence the synthesizer used — it's checking whether the LLM contradicted itself.
+- **Impact**: 1 wasted LLM call/query (~8% of total). False "verified" label. Dead code in corrective-step path.
+- **Fix options**:
+  - **(A) Independent evidence**: Re-retrieve for the *answer text* (not the original question) and verify against those passages. Catches claims not grounded in any retrievable passage. Adds 1 retrieval call but no LLM call.
+  - **(B) Remove verifier**: Save the LLM call. Accept that synthesis quality is the synthesizer's job. Simplest change, saves ~5s/query.
+  - **(C) Adversarial verifier**: Change skill to "try to find problems." Risk: false failures increase LLM calls via retries.
+- **Recommendation**: (B) is safest. The verifier adds no signal. If we want verification later, (A) is the right architecture.
 
 ### R2. QA memory cache serves stale answers
-- **Evidence**: Hit in testing — cached answer returned wrong MC letter (B) when correct was (C). Had to manually clear cache.
-- **Root cause**: No invalidation on skill/model/corpus changes. Writes at confidence >= 0.45 (everything passes). Caches full final answer including `**Answer: (X)**` MC selection.
-- **Impact**: Silent wrong answers in production/demo use.
-- **Fix options**: (A) Disable by default, opt-in via env var. (B) Version cache with hash of skills+model. (C) Don't cache MC selections, only research.
-- **Status**: Open
+- **File**: `rag_utils.py` check_memory/write_to_memory, `main.py` planner_node/memory_writeback_node
+- **Evidence**: Caused wrong answer in testing (cached MC letter from prior model/skill config). Now mitigated by clearing cache at eval start.
+- **Root cause**: No invalidation on skill/model/corpus changes. Writes at confidence >= 0.45 (everything qualifies). Caches full answer including MC selection.
+- **Impact**: Mitigated for eval (auto-clear). Still a risk for demo/production use where cache persists across sessions.
+- **Fix options**:
+  - **(A) Strip MC from cached answer**: Only cache the research portion (`_aggregate_completed_answers`), not the `--- **Answer: (X)**` MC selection. MC selection re-runs each time.
+  - **(B) Version the cache**: Store a hash of skill file contents + model name in metadata. Invalidate on mismatch.
+  - **(C) Raise write threshold**: From 0.45 to 0.70 (match eval threshold). Fewer but higher-quality cache entries.
+- **Recommendation**: (A) + (C) together. Strip MC, raise write threshold.
 
 ### R3. Silent exception swallowing in rag_utils.py
+- **File**: `rag_utils.py` lines 164-169, 170-176, and 4 more in multi-query source-diverse path
 - **Evidence**: 6 instances of `except Exception: pass` in source-diverse retrieval paths.
-- **Root cause**: Intended to handle ChromaDB filter errors for missing source types, but catches everything.
-- **Impact**: Low today (source-diverse is off by default), but any ChromaDB error (disk, corruption) would be silently ignored.
-- **Fix options**: Catch specific exceptions + log warnings.
-- **Status**: Open
+- **Root cause**: Intended for ChromaDB filter errors when a source type doesn't exist. Catches everything.
+- **Impact**: Low today (source-diverse is off by default). Any ChromaDB error (disk full, corruption) is silently swallowed.
+- **Fix options**: Replace bare `except Exception: pass` with `except Exception as e: logger.warning("retrieval pool error: %s", e)`. No behavior change, just visibility.
+- **Recommendation**: Trivial fix. Just add logging.
 
-## YELLOW FLAGS
+---
 
-### Y1. Confidence score is a rubber stamp (evaluator_node)
-- **Evidence**: 0/24 steps failed across 8 traces. Observed range: 0.709-0.804. Threshold: 0.6.
-- **Root cause**: Threshold too low for gte-large. Metric (mean cosine) measures query-doc proximity, not answer quality.
-- **Impact**: Evaluator is a no-op. Every step passes regardless of quality.
-- **Fix options**: (A) Raise threshold to 0.70+. (B) Use max instead of mean. (C) Use cross-encoder score instead of bi-encoder cosine.
-- **Status**: FIXED — raised default to 0.70
+## YELLOW FLAGS (open)
 
 ### Y2. Classifier always picks multi_hop for MC
+- **File**: `main.py` classifier_node, `skills/classify_and_route.md`
 - **Evidence**: 6/6 MC queries classified multi_hop. Only out-of-corpus got simple.
 - **Root cause**: Skill says "when in doubt, classify as multi_hop."
-- **Impact**: 2.4x more LLM calls for simple questions (12 vs 5). Not a correctness issue.
-- **Fix options**: Adjust skill guidance, or accept cost for safety.
-- **Status**: Accepted (safety margin worth the cost)
-
-### Y3. No cross-step passage deduplication
-- **Evidence**: Contracts had 7/15 unique docs (53% overlap across 3 steps).
-- **Root cause**: Each step retrieves independently. Replanner doesn't know what was retrieved.
-- **Impact**: Wastes retrieval capacity. Redundant content in final answer.
-- **Fix options**: Pass `exclude_ids` from prior steps to `retrieve_documents_multi_query()`.
-- **Status**: FIXED — executor_node gathers prior doc_ids, passes as exclude_ids
+- **Impact**: Every MC query costs 12+ LLM calls instead of 5. Not a correctness issue — may even help (more research = more evidence for MC selector).
+- **Recommendation**: Accept. Safety margin is worth the cost on free-tier models.
+- **Status**: Accepted
 
 ### Y4. Raw answer concatenation (no merge/dedup)
-- **Evidence**: Final answer is 3 step answers joined by `---`. Source citations (Source 1, Source 2...) restart per step, creating ambiguity.
-- **Root cause**: `_aggregate_completed_answers()` does simple string join.
-- **Impact**: MC selector and verifier see redundant/overlapping content. Citation references are ambiguous across steps.
-- **Fix options**: (A) Global citation renumbering. (B) Lightweight merge/dedup LLM call. (C) Accept as-is (MC selector handles it).
-- **Status**: Open
-
-### Y5. Single-quote JSON fix corrupts apostrophes
-- **Evidence**: Line 90 of main.py: `fixed = fixed.replace("'", '"')` — replaces ALL single quotes.
-- **Root cause**: Last-resort heuristic for malformed JSON from LLM.
-- **Impact**: Probably never fires. If it did, would corrupt English text containing apostrophes.
-- **Fix options**: Remove the line. If JSON is that broken, let it fail and count as parse failure.
-- **Status**: FIXED — removed
+- **File**: `main.py` `_aggregate_completed_answers()`
+- **Evidence**: Final answer is 3 step answers joined by `---`. Source citations restart per step ([Source 1] in step 1 vs [Source 1] in step 2 are different passages).
+- **Impact**: MC selector sees overlapping content. Citation references are ambiguous across steps. With dedup fix (F2), content overlap is reduced but citation numbering still restarts.
+- **Fix options**:
+  - **(A) Global citation renumbering**: Post-process the joined answer to renumber [Source N] sequentially across steps. No LLM call.
+  - **(B) Section headers**: Prefix each step's answer with `### Step N: {phase}` so the MC selector can distinguish.
+  - **(C) Accept as-is**: MC selector at 83% accuracy handles it well enough.
+- **Recommendation**: (A) is clean and mechanical. Could combine with (B).
 
 ### Y6. String-matching for retryable errors
-- **Evidence**: `"connection" in err_str` could match non-transient errors mentioning "connection."
-- **Root cause**: LangChain wraps HTTP errors as generic exceptions with string messages.
-- **Impact**: No observed false matches, but fragile.
-- **Fix options**: Tighten patterns or check exception types.
+- **File**: `main.py` `_llm_call()` lines 190-193
+- **Evidence**: `"connection" in err_str` could match "connection type is invalid" (not transient).
+- **Impact**: No observed false matches. Worst case: 2 extra retries with delay on a non-transient error.
+- **Recommendation**: Low priority. Could tighten to check for specific HTTP status codes in the string.
 - **Status**: Low priority
 
 ### Y7. step_id is a float
-- **Evidence**: All observed step_ids are x.0 (1.0, 2.0, 3.0). Never fractional.
-- **Root cause**: JSON parsing returns numbers as float by default.
-- **Impact**: Semantically wrong type, cosmetic only.
-- **Fix options**: Cast to int at PlanStep construction.
+- **File**: `main.py` PlanStep model
+- **Evidence**: All observed values are x.0. JSON parsing returns floats by default.
+- **Impact**: Cosmetic. Works fine.
+- **Recommendation**: Low priority. `int(s.get("step_id", ...))` at construction time.
 - **Status**: Low priority
 
-### Y8. Stale "expectation" key in fallback plan
-- **Evidence**: `skill_plan_synthesis` fallback dict (line 236) still has `"expectation"` key. PlanStep no longer has this field.
-- **Root cause**: Missed during dead-state cleanup.
-- **Impact**: Silently ignored by Pydantic v2. Would break on `extra = "forbid"`.
-- **Fix options**: Remove the key from fallback dict.
-- **Status**: FIXED — removed
-
 ### Y9. Graph rebuilds per query in eval_trace.py
-- **Evidence**: `build_graph()` called inside `trace_full_pipeline()` — 8 compilations vs 1.
-- **Root cause**: Different pattern from eval_comprehensive.py which builds once.
-- **Impact**: Milliseconds. Not meaningful.
+- **File**: `eval_trace.py` `trace_full_pipeline()`
+- **Evidence**: `build_graph()` called inside the function. 8 compilations vs 1.
+- **Impact**: Milliseconds. Not meaningful vs 60-80s of LLM calls.
+- **Recommendation**: Low priority. Move `build_graph()` to `main()` and pass app as arg.
 - **Status**: Low priority
 
 ### Y10. Count-based skip in load_passages_to_chroma
-- **Evidence**: If existing collection has 20K docs and you try to load 1.5K curated, it skips (20K >= 1.5K).
-- **Root cause**: Only compares count, not content.
-- **Impact**: Must manually clear when switching from larger to smaller corpus.
-- **Fix options**: Store source config in collection metadata, auto-clear on mismatch.
-- **Status**: Low priority (known workflow)
+- **File**: `rag_utils.py` `load_passages_to_chroma()` line 108-110
+- **Evidence**: `if existing_count >= len(documents): skip`. Switching from 20K to 1.5K curated silently keeps 20K.
+- **Impact**: Must manually clear when switching to smaller corpus. Known workflow.
+- **Recommendation**: Low priority. Could store source CSV hash in collection metadata.
+- **Status**: Low priority
 
 ### Y11. Evidence stored as raw strings with no per-doc metadata
-- **Evidence**: `step.execution["sources"]` is a list of strings parallel-indexed with `retrieved_doc_ids`.
-- **Root cause**: Simple design — metadata lives in a separate list.
-- **Impact**: Fragile parallel indexing. Would break if lists got out of sync.
-- **Fix options**: Store as list of `{"idx": ..., "text": ..., "source": ...}` dicts.
+- **File**: `main.py` executor_node, `step.execution["sources"]`
+- **Evidence**: Parallel lists: `sources` (text strings) and `retrieved_doc_ids` (idx strings). If they desync, no way to trace which passage supported which claim.
+- **Impact**: Fragile but works. Would matter if we added per-passage provenance tracking.
+- **Recommendation**: Low priority. Merge into list of `{"idx": str, "text": str}` dicts when needed.
 - **Status**: Low priority
+
+---
+
+## Priority queue (next changes)
+
+1. **R3** — Add logging to silent exception catches (trivial, pure safety)
+2. **R1** — Remove verifier or give it independent evidence (saves 1 LLM call/query, removes false confidence)
+3. **R2** — Strip MC from cached answers + raise write threshold (prevents stale MC answers)
+4. **Y4** — Global citation renumbering in aggregated answer (cleaner MC selector input)
