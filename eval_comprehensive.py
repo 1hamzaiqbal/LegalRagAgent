@@ -17,6 +17,9 @@ import re
 import sys
 import time
 import traceback
+import concurrent.futures
+import threading
+import io
 from collections import Counter
 
 import pandas as pd
@@ -335,15 +338,22 @@ def _select_pipeline_queries():
     return queries
 
 
-def phase2_pipeline(max_queries: int = None):
+def phase2_pipeline(max_queries: int = None, parallel_workers: int = 1):
     """Run the full pipeline on diverse questions and evaluate end-to-end."""
-    from main import build_graph, _reset_llm_call_counter, _llm_call_counter, _parse_failure_count
+    from main import build_graph, _reset_llm_call_counter, _llm_call_counter, _parse_failure_count, _get_deepseek_balance
     from rag_utils import retrieve_documents, get_memory_store
     from llm_config import get_provider_info
 
     print(f"\n{'='*80}")
     print(f"PHASE 2: FULL PIPELINE EVALUATION")
     print(f"{'='*80}\n")
+
+    # Capture initial balance for cost tracking
+    initial_balance = _get_deepseek_balance()
+    initial_totals = {}
+    if initial_balance.get("is_available"):
+        for info in initial_balance.get("balance_infos", []):
+            initial_totals[info.get("currency")] = float(info.get("total_balance", 0.0))
 
     # Log provider info
     pinfo = get_provider_info()
@@ -372,112 +382,142 @@ def phase2_pipeline(max_queries: int = None):
     app = build_graph()
     results = []
     total_start = time.time()
-
-    for i, query in enumerate(queries):
-        print(f"\n{'#'*80}")
-        print(f"# [{query['category'].upper()}] QUERY {i+1}/{len(queries)}: {query['label']}")
-        obj_preview = query['objective'][:120]
-        print(f"# {obj_preview}{'...' if len(query['objective'])>120 else ''}")
-        print(f"{'#'*80}")
-
-        # Append MC choices to the objective so the LLM can select among them
-        objective = query["objective"]
-        query_choices = query.get("choices", {})
-        if query_choices and any(query_choices.values()):
-            choice_text = "\n".join(f"  ({k}) {v}" for k, v in sorted(query_choices.items()) if v)
-            objective = f"{objective}\n\nAnswer choices:\n{choice_text}"
-
-        _reset_llm_call_counter()
-        initial_state = {
-            "global_objective": objective,
-            "planning_table": [],
-            "query_type": "",
-            "final_cited_answer": "",
-            "accumulated_context": [],
-            "iteration_count": 0,
-            "injection_check": {},
-            "verification_result": {},
-            "memory_hit": {},
-            "run_metrics": {},
-        }
-
-        start = time.time()
-        final_state = None
-        error = None
+    
+    def process_query(i, query):
         try:
-            for output in app.stream(initial_state):
-                for node_name, node_state in output.items():
-                    final_state = node_state
-        except Exception as e:
-            error = str(e)
-            traceback.print_exc()
+            print(f"\n{'#'*80}")
+            print(f"# [{query['category'].upper()}] QUERY {i+1}/{len(queries)}: {query['label']}")
+            obj_preview = query['objective'][:120]
+            print(f"# {obj_preview}{'...' if len(query['objective'])>120 else ''}")
+            print(f"{'#'*80}")
 
-        elapsed = time.time() - start
-        fs = final_state or {}
-        metrics = fs.get("run_metrics", {})
-        verification = fs.get("verification_result", {})
-        answer = fs.get("final_cited_answer", "")
+            # Append MC choices to the objective so the LLM can select among them
+            objective = query["objective"]
+            query_choices = query.get("choices", {})
+            if query_choices and any(query_choices.values()):
+                choice_text = "\n".join(f"  ({k}) {v}" for k, v in sorted(query_choices.items()) if v)
+                objective = f"{objective}\n\nAnswer choices:\n{choice_text}"
 
-        # Check if gold passage was retrieved (for bar exam questions)
-        gold_retrieved = False
-        gold_idx = query.get("gold_idx", "")
-        if gold_idx:
-            # Check in planning table execution results
-            for step in fs.get("planning_table", []):
-                if step.execution:
-                    retrieved_ids = step.execution.get("retrieved_doc_ids", [])
-                    if gold_idx in retrieved_ids:
-                        gold_retrieved = True
-                        break
+            _reset_llm_call_counter()
+            initial_state = {
+                "global_objective": objective,
+                "planning_table": [],
+                "query_type": "",
+                "final_cited_answer": "",
+                "accumulated_context": [],
+                "iteration_count": 0,
+                "injection_check": {},
+                "verification_result": {},
+                "memory_hit": {},
+                "run_metrics": {},
+            }
 
-        # Check multiple-choice correctness for bar exam questions
-        mc_result = _check_mc_correctness(
-            answer,
-            query.get("correct_answer", ""),
-            query.get("choices", {}),
-        )
+            start = time.time()
+            final_state = None
+            error = None
+            try:
+                for output in app.stream(initial_state):
+                    for node_name, node_state in output.items():
+                        final_state = node_state
+            except Exception as e:
+                error = str(e)
+                traceback.print_exc()
 
-        result = {
-            "label": query["label"],
-            "category": query["category"],
-            "elapsed_sec": round(elapsed, 1),
-            "error": error,
-            "llm_calls": metrics.get("total_llm_calls", 0),
-            "parse_failures": metrics.get("parse_failures", 0),
-            "iterations": fs.get("iteration_count", 0),
-            "query_type": fs.get("query_type", ""),
-            "answer_len": len(answer),
-            "answer_preview": (answer[:400] + "...") if len(answer) > 400 else answer,
-            "is_verified": verification.get("is_verified", None),
-            "verification_issues": verification.get("issues", []),
-            "memory_hit": fs.get("memory_hit", {}).get("found", False),
-            "injection_safe": fs.get("injection_check", {}).get("is_safe", None),
-            "steps_completed": metrics.get("steps_completed", 0),
-            "steps_failed": metrics.get("steps_failed", 0),
-            "gold_idx": gold_idx,
-            "gold_retrieved": gold_retrieved,
-            "correct_answer": query.get("correct_answer", ""),
-            "mc_correct": mc_result["correct"],
-            "mc_method": mc_result["method"],
-            "mc_details": mc_result["details"],
-        }
-        result["grade"] = _grade(result)
-        results.append(result)
+            elapsed = time.time() - start
+            fs = final_state or {}
+            metrics = fs.get("run_metrics", {})
+            verification = fs.get("verification_result", {})
+            answer = fs.get("final_cited_answer", "")
 
-        mc_tag = "CORRECT" if mc_result["correct"] is True else (
-            "WRONG" if mc_result["correct"] is False else "?")
-        print(f"\n>>> {result['grade']} | {result['elapsed_sec']}s | "
-              f"LLM: {result['llm_calls']} | Iter: {result['iterations']} | "
-              f"Ans: {result['answer_len']}ch | "
-              f"Verified: {result['is_verified']} | "
-              f"MC: {mc_tag} ({mc_result['method']}) | "
-              f"GoldRetr: {result['gold_retrieved']} | "
-              f"Error: {result['error'] or 'None'}")
+            # Check if gold passage was retrieved (for bar exam questions)
+            gold_retrieved = False
+            gold_idx = query.get("gold_idx", "")
+            if gold_idx:
+                # Check in planning table execution results
+                for step in fs.get("planning_table", []):
+                    if step.execution:
+                        retrieved_ids = step.execution.get("retrieved_doc_ids", [])
+                        if gold_idx in retrieved_ids:
+                            gold_retrieved = True
+                            break
+
+            # Check multiple-choice correctness for bar exam questions
+            mc_result = _check_mc_correctness(
+                answer,
+                query.get("correct_answer", ""),
+                query.get("choices", {}),
+            )
+
+            result = {
+                "label": query["label"],
+                "category": query["category"],
+                "elapsed_sec": round(elapsed, 1),
+                "error": error,
+                "llm_calls": metrics.get("total_llm_calls", 0),
+                "parse_failures": metrics.get("parse_failures", 0),
+                "iterations": fs.get("iteration_count", 0),
+                "query_type": fs.get("query_type", ""),
+                "answer_len": len(answer),
+                "answer_preview": (answer[:400] + "...") if len(answer) > 400 else answer,
+                "is_verified": verification.get("is_verified", None),
+                "verification_issues": verification.get("issues", []),
+                "memory_hit": fs.get("memory_hit", {}).get("found", False),
+                "injection_safe": fs.get("injection_check", {}).get("is_safe", None),
+                "steps_completed": metrics.get("steps_completed", 0),
+                "steps_failed": metrics.get("steps_failed", 0),
+                "gold_idx": gold_idx,
+                "gold_retrieved": gold_retrieved,
+                "correct_answer": query.get("correct_answer", ""),
+                "mc_correct": mc_result["correct"],
+                "mc_method": mc_result["method"],
+                "mc_details": mc_result["details"],
+            }
+            result["grade"] = _grade(result)
+            
+            mc_tag = "CORRECT" if mc_result["correct"] is True else (
+                "WRONG" if mc_result["correct"] is False else "?")
+            print(f"\n>>> {result['grade']} | {result['elapsed_sec']}s | "
+                  f"LLM: {result['llm_calls']} | Iter: {result['iterations']} | "
+                  f"Ans: {result['answer_len']}ch | "
+                  f"Verified: {result['is_verified']} | "
+                  f"MC: {mc_tag} ({mc_result['method']}) | "
+                  f"GoldRetr: {result['gold_retrieved']} | "
+                  f"Error: {result['error'] or 'None'}")
+            
+            return result
+        finally:
+            if hasattr(sys.stdout, 'flush_thread_buffer'):
+                sys.stdout.flush_thread_buffer()
+
+    if parallel_workers > 1:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_workers) as executor:
+            futures = [executor.submit(process_query, i, q) for i, q in enumerate(queries)]
+            for future in concurrent.futures.as_completed(futures):
+                results.append(future.result())
+    else:
+        for i, query in enumerate(queries):
+            results.append(process_query(i, query))
 
     total_elapsed = time.time() - total_start
 
+    # Calculate total cost for the eval run
+    cost_strs = []
+    if initial_balance.get("is_available"):
+        from main import _get_deepseek_balance
+        final_balance = _get_deepseek_balance()
+        if final_balance.get("is_available"):
+            for fin_info in final_balance.get("balance_infos", []):
+                currency = fin_info.get("currency")
+                fin_tot = float(fin_info.get("total_balance", 0.0))
+                init_tot = initial_totals.get(currency, 0.0)
+                spent = init_tot - fin_tot
+                if spent > 0:
+                    cost_strs.append(f"{spent:.4f} {currency}")
+                elif init_tot > 0:
+                    cost_strs.append(f"< 0.01 {currency} (API precision limitation)")
+
     # ── Print results ───────────────────────────────────────────────────
-    _print_pipeline_results(results, total_elapsed)
+    _print_pipeline_results(results, total_elapsed, cost_strs)
     return results
 
 
@@ -536,7 +576,7 @@ def _grade(r):
         return "D"
 
 
-def _print_pipeline_results(results, total_elapsed):
+def _print_pipeline_results(results, total_elapsed, cost_strs=None):
     """Print detailed pipeline evaluation results."""
     # Detailed table
     print(f"\n\n{'='*130}")
@@ -650,6 +690,9 @@ def _print_pipeline_results(results, total_elapsed):
     print(f"  Memory cache hits:       {total_memory}")
     print(f"  Errors:                  {total_errors}")
     print(f"  Parse failures:          {sum(r['parse_failures'] for r in results)}")
+    if cost_strs:
+        print(f"  TOTAL API COST:          {', '.join(cost_strs)}")
+
     print(f"{'='*80}")
 
     # JSON dump
@@ -670,14 +713,70 @@ def _print_pipeline_results(results, total_elapsed):
 # ────────────────────────────────────────────────────────────────────────────
 
 def main():
-    mode = sys.argv[1] if len(sys.argv) > 1 else "both"
-    max_queries = int(sys.argv[2]) if len(sys.argv) > 2 else None
+    # Setup DualLogger
+    provider_name = os.getenv("LLM_PROVIDER", "default").strip().lower()
+    run_log_file = f"latest_run_{provider_name}.txt"
+    try:
+        with open(run_log_file, "w", encoding="utf-8") as f:
+            f.write(f"COMMAND RUN: uv run python {' '.join(sys.argv)}\n")
+            f.write("=" * 60 + "\n\n")
+
+        class DualLogger:
+            def __init__(self, filepath):
+                self.terminal = sys.stdout
+                self.log = open(filepath, "a", encoding="utf-8")
+                self.local = threading.local()
+                self._lock = threading.Lock()
+
+            def _get_buffer(self):
+                if not hasattr(self.local, 'buffer'):
+                    self.local.buffer = io.StringIO()
+                return self.local.buffer
+
+            def write(self, message):
+                if threading.current_thread() is threading.main_thread():
+                    self.terminal.write(message)
+                    self.log.write(message)
+                else:
+                    self._get_buffer().write(message)
+
+            def flush(self):
+                if threading.current_thread() is threading.main_thread():
+                    self.terminal.flush()
+                    self.log.flush()
+
+            def flush_thread_buffer(self):
+                if hasattr(self.local, 'buffer'):
+                    content = self.local.buffer.getvalue()
+                    if content:
+                        with self._lock:
+                            self.terminal.write(content)
+                            self.log.write(content)
+                            self.terminal.flush()
+                            self.log.flush()
+                    self.local.buffer = io.StringIO()
+
+        sys.stdout = DualLogger(run_log_file)
+    except Exception as e:
+        print(f"Failed to setup file logger: {e}")
+
+    # Parse arguments
+    args = sys.argv[1:]
+    
+    parallel_workers = 1
+    if "--parallel" in args:
+        idx = args.index("--parallel")
+        parallel_workers = int(args[idx + 1])
+        args = args[:idx] + args[idx + 2:]
+
+    mode = args[0] if len(args) > 0 else "both"
+    max_queries = int(args[1]) if len(args) > 1 else None
 
     if mode in ("retrieval", "both"):
         phase1_retrieval(k=5)
 
     if mode in ("pipeline", "both"):
-        phase2_pipeline(max_queries=max_queries)
+        phase2_pipeline(max_queries=max_queries, parallel_workers=parallel_workers)
 
 
 if __name__ == "__main__":

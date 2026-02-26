@@ -92,9 +92,9 @@ def _parse_json(text: str) -> Any:
                 except json.JSONDecodeError:
                     continue
 
-    global _parse_failure_count
-    _parse_failure_count += 1
-    logger.warning("JSON parse failure #%d (input length: %d chars)", _parse_failure_count, len(text))
+    _, parse_failures = _get_metrics()
+    _local_metrics.parse_failure_count = parse_failures + 1
+    logger.warning("JSON parse failure #%d (input length: %d chars)", _local_metrics.parse_failure_count, len(text))
     return None
 
 
@@ -103,16 +103,23 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # LLM call counter for observability
 # ---------------------------------------------------------------------------
-_llm_call_counter: Dict[str, Any] = {"count": 0, "input_chars": 0, "output_chars": 0}
-_parse_failure_count: int = 0
+import threading
 
+_local_metrics = threading.local()
+
+def _get_metrics():
+    if not hasattr(_local_metrics, 'llm_call_counter'):
+        _local_metrics.llm_call_counter = {"count": 0, "input_chars": 0, "output_chars": 0}
+    if not hasattr(_local_metrics, 'parse_failure_count'):
+        _local_metrics.parse_failure_count = 0
+    return _local_metrics.llm_call_counter, _local_metrics.parse_failure_count
 
 def _reset_llm_call_counter() -> None:
-    global _parse_failure_count
-    _llm_call_counter["count"] = 0
-    _llm_call_counter["input_chars"] = 0
-    _llm_call_counter["output_chars"] = 0
-    _parse_failure_count = 0
+    counter, _ = _get_metrics()
+    counter["count"] = 0
+    counter["input_chars"] = 0
+    counter["output_chars"] = 0
+    _local_metrics.parse_failure_count = 0
 
 
 def _log_cache_metrics(response, label: str) -> None:
@@ -200,9 +207,10 @@ def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
                 _log_cache_metrics(response, label)
 
             # Track call metrics for observability
-            _llm_call_counter["count"] += 1
-            _llm_call_counter["input_chars"] += len(system_prompt) + len(user_prompt)
-            _llm_call_counter["output_chars"] += len(response.content)
+            counter, _ = _get_metrics()
+            counter["count"] += 1
+            counter["input_chars"] += len(system_prompt) + len(user_prompt)
+            counter["output_chars"] += len(response.content)
 
             return response.content
         except Exception as e:
@@ -717,13 +725,14 @@ def observability_node(state: AgentState) -> AgentState:
                 if currency in init_infos:
                     cost_spend += max(0.0, init_infos[currency] - fin_bal)
 
+    counter, parse_failures = _get_metrics()
     metrics = {
         "model": get_provider_info().get("model", "unknown"),
-        "total_llm_calls": _llm_call_counter["count"],
-        "input_chars": _llm_call_counter["input_chars"],
-        "output_chars": _llm_call_counter["output_chars"],
+        "total_llm_calls": counter["count"],
+        "input_chars": counter["input_chars"],
+        "output_chars": counter["output_chars"],
         "cost_spend": f"{cost_spend:.4f} CNY" if cost_spend > 0 else ("< 0.01 CNY" if initial_balance.get("is_available") else "N/A"),
-        "parse_failures": _parse_failure_count,
+        "parse_failures": parse_failures,
         "iteration_count": state.get("iteration_count", 0),
         "steps_completed": completed,
         "steps_failed": failed,

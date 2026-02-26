@@ -4,6 +4,7 @@ import os
 import time
 import numpy as np
 import pandas as pd
+import threading
 from typing import List, Dict, Any, Optional
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -11,6 +12,17 @@ from langchain_core.documents import Document
 from sentence_transformers import CrossEncoder
 
 logger = logging.getLogger(__name__)
+
+# Global lock to prevent Apple Silicon MPS crashes when multiple threads hit the GPU
+_gpu_lock = threading.Lock()
+
+def gpu_locked(func):
+    """Decorator to ensure only one thread accesses the GPU at a time."""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        with _gpu_lock:
+            return func(*args, **kwargs)
+    return wrapper
 
 CHROMA_DB_DIR = "./chroma_db"
 COLLECTION_NAME = "legal_passages"
@@ -226,6 +238,7 @@ def _dedup_docs(scored_results) -> List[Document]:
     return candidates
 
 
+@gpu_locked
 def retrieve_documents(query: str, k: int = 5, vectorstore: Chroma = None,
                        exclude_ids: set = None) -> List[Document]:
     """Two-stage retrieval: bi-encoder over-retrieve + cross-encoder rerank.
@@ -258,6 +271,7 @@ def retrieve_documents(query: str, k: int = 5, vectorstore: Chroma = None,
     return results
 
 
+@gpu_locked
 def retrieve_documents_multi_query(queries: List[str], k: int = 5,
                                    vectorstore: Chroma = None,
                                    exclude_ids: set = None) -> List[Document]:
@@ -404,6 +418,7 @@ def get_memory_store() -> Chroma:
     return _memory_store_instance
 
 
+@gpu_locked
 def check_memory(query: str, threshold: float = 0.92) -> Dict[str, Any]:
     """Check if a similar question has been answered before.
 
@@ -429,6 +444,7 @@ def check_memory(query: str, threshold: float = 0.92) -> Dict[str, Any]:
     return {"found": False, "answer": "", "confidence": 0.0, "question": ""}
 
 
+@gpu_locked
 def write_to_memory(question: str, answer: str, confidence: float) -> None:
     """Store a question-answer pair in the QA memory collection."""
     store = get_memory_store()

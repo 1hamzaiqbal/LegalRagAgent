@@ -23,6 +23,9 @@ import re
 import sys
 import time
 import pandas as pd
+import concurrent.futures
+import threading
+import io
 
 os.environ.setdefault("SKIP_INJECTION_CHECK", "1")
 
@@ -260,53 +263,30 @@ def trace_full_pipeline(question: str, gold_idx: str = "", correct_answer: str =
 
 
 def select_trace_queries(n: int = 8):
-    """Select a diverse set of questions for tracing."""
+    """Select a diverse and deterministic set of questions for tracing."""
     qa = _load_qa_with_gold()
     queries = []
 
-    # Pick 1 per subject (shortest = easiest)
-    for subj in ["TORTS", "CONTRACTS", "CRIM. LAW", "EVIDENCE", "CONST. LAW", "REAL PROP."]:
-        subj_qs = qa[qa["subject"] == subj].sort_values("full_q", key=lambda x: x.str.len())
-        if len(subj_qs) > 0:
-            row = subj_qs.iloc[0]
-            queries.append({
-                "label": f"trace_{subj.lower().replace(' ', '').replace('.', '')}",
-                "question": row["full_q"],
-                "gold_idx": row["gold_idx"],
-                "correct_answer": row["answer"],
-                "choices": {
-                    "A": str(row["choice_a"]) if pd.notna(row["choice_a"]) else "",
-                    "B": str(row["choice_b"]) if pd.notna(row["choice_b"]) else "",
-                    "C": str(row["choice_c"]) if pd.notna(row["choice_c"]) else "",
-                    "D": str(row["choice_d"]) if pd.notna(row["choice_d"]) else "",
-                },
-                "subject": subj,
-            })
+    # Sample 'n' questions randomly but deterministically
+    sampled_qa = qa.sample(n=min(n, len(qa)), random_state=42)
 
-    # Add 1 multi-hop
-    queries.append({
-        "label": "trace_multihop",
-        "question": (
-            "A consumer is injured by a defective product. Under what theories can the "
-            "manufacturer be held liable, and what defenses are available?"
-        ),
-        "gold_idx": "",
-        "correct_answer": "",
-        "choices": {},
-        "subject": "MULTI_HOP",
-    })
+    for i, row in sampled_qa.iterrows():
+        subj_name = str(row["subject"]).lower().replace(" ", "").replace(".", "")
+        queries.append({
+            "label": f"trace_{subj_name}_{i}",
+            "question": row["full_q"],
+            "gold_idx": row["gold_idx"],
+            "correct_answer": row["answer"],
+            "choices": {
+                "A": str(row["choice_a"]) if pd.notna(row["choice_a"]) else "",
+                "B": str(row["choice_b"]) if pd.notna(row["choice_b"]) else "",
+                "C": str(row["choice_c"]) if pd.notna(row["choice_c"]) else "",
+                "D": str(row["choice_d"]) if pd.notna(row["choice_d"]) else "",
+            },
+            "subject": row["subject"],
+        })
 
-    # Add 1 out-of-corpus
-    queries.append({
-        "label": "trace_oof",
-        "question": "What are the requirements for obtaining asylum in the United States?",
-        "gold_idx": "",
-        "correct_answer": "",
-        "choices": {},
-        "subject": "OUT_OF_CORPUS",
-    })
-
-    return queries[:n]
+    return queries
 
 
 def save_case_study(query_info: dict, result: dict, output_dir: str = "case_studies"):
@@ -368,14 +348,38 @@ def main():
             def __init__(self, filepath):
                 self.terminal = sys.stdout
                 self.log = open(filepath, "a", encoding="utf-8")
+                self.local = threading.local()
+                self._lock = threading.Lock()
+
+            def _get_buffer(self):
+                if not hasattr(self.local, 'buffer'):
+                    self.local.buffer = io.StringIO()
+                return self.local.buffer
 
             def write(self, message):
-                self.terminal.write(message)
-                self.log.write(message)
+                # Only buffer if we are inside a worker thread
+                if threading.current_thread() is threading.main_thread():
+                    self.terminal.write(message)
+                    self.log.write(message)
+                else:
+                    self._get_buffer().write(message)
 
             def flush(self):
-                self.terminal.flush()
-                self.log.flush()
+                if threading.current_thread() is threading.main_thread():
+                    self.terminal.flush()
+                    self.log.flush()
+
+            def flush_thread_buffer(self):
+                """Called at the end of a thread's work to dump its buffer sequentially."""
+                if hasattr(self.local, 'buffer'):
+                    content = self.local.buffer.getvalue()
+                    if content:
+                        with self._lock:
+                            self.terminal.write(content)
+                            self.log.write(content)
+                            self.terminal.flush()
+                            self.log.flush()
+                    self.local.buffer = io.StringIO()
 
         sys.stdout = DualLogger(run_log_file)
     except Exception as e:
@@ -403,9 +407,14 @@ def main():
             mem_store._collection.delete(ids=mem_ids[i:i+5000])
         print(f"Cleared QA memory cache ({mem_count} entries)")
 
-    # Parse args
     save_mode = "--save" in sys.argv
     args = [a for a in sys.argv[1:] if a != "--save"]
+
+    parallel_workers = 1
+    if "--parallel" in args:
+        idx = args.index("--parallel")
+        parallel_workers = int(args[idx + 1])
+        args = args[:idx] + args[idx + 2:]
 
     if args and args[0] == "--query":
         query = " ".join(args[1:])
@@ -415,28 +424,48 @@ def main():
     n = int(args[0]) if args else 8
     queries = select_trace_queries(n)
 
-    print(f"\nTracing {len(queries)} queries...{'  (saving case studies)' if save_mode else ''}\n")
+    print(f"\nTracing {len(queries)} queries {'in parallel (' + str(parallel_workers) + ' threads) ' if parallel_workers > 1 else ''}...{'  (saving case studies)' if save_mode else ''}\n")
 
+    eval_start_time = time.time()
     results = []
     saved_files = []
-    for i, q in enumerate(queries):
-        print(f"\n{'#'*80}")
-        print(f"# [{i+1}/{len(queries)}] {q['label']} ({q['subject']})")
-        print(f"{'#'*80}")
+    
+    def process_query(i, q):
+        try:
+            print(f"\n{'#'*80}")
+            print(f"# [{i+1}/{len(queries)}] {q['label']} ({q['subject']})")
+            print(f"{'#'*80}")
+            
+            res = trace_full_pipeline(
+                question=q["question"],
+                gold_idx=q["gold_idx"],
+                correct_answer=q["correct_answer"],
+                choices=q.get("choices"),
+            )
+            res["label"] = q["label"]
+            res["subject"] = q["subject"]
+            return q, res
+        finally:
+            # Check if using our thread-safe logger, and flush this thread's stdout buffer
+            if hasattr(sys.stdout, 'flush_thread_buffer'):
+                sys.stdout.flush_thread_buffer()
 
-        result = trace_full_pipeline(
-            question=q["question"],
-            gold_idx=q["gold_idx"],
-            correct_answer=q["correct_answer"],
-            choices=q["choices"],
-        )
-        result["label"] = q["label"]
-        result["subject"] = q["subject"]
-        results.append(result)
-
-        if save_mode:
-            path = save_case_study(q, result)
-            saved_files.append(path)
+    if parallel_workers > 1:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_workers) as executor:
+            futures = [executor.submit(process_query, i, q) for i, q in enumerate(queries)]
+            for future in concurrent.futures.as_completed(futures):
+                q, result = future.result()
+                results.append(result)
+                if save_mode:
+                    path = save_case_study(q, result)
+                    saved_files.append(path)
+    else:
+        for i, q in enumerate(queries):
+            _, result = process_query(i, q)
+            results.append(result)
+            if save_mode:
+                path = save_case_study(q, result)
+                saved_files.append(path)
 
     # Final summary table
     print(f"\n\n{'='*100}")
@@ -468,11 +497,13 @@ def main():
         accuracy = (mc_correct / mc_total) * 100
         print(f"\nOVERALL ACCURACY: {mc_correct}/{mc_total} ({accuracy:.1f}%)")
 
+    eval_total_time = time.time() - eval_start_time
+
     # Calculate total cost for the eval run
+    cost_strs = []
     if initial_balance.get("is_available"):
         final_balance = _get_deepseek_balance()
         if final_balance.get("is_available"):
-            cost_strs = []
             for fin_info in final_balance.get("balance_infos", []):
                 currency = fin_info.get("currency")
                 fin_tot = float(fin_info.get("total_balance", 0.0))
@@ -482,10 +513,12 @@ def main():
                     cost_strs.append(f"{spent:.4f} {currency}")
                 elif init_tot > 0:
                     cost_strs.append(f"< 0.01 {currency} (API precision limitation)")
-            if cost_strs:
-                print("\n" + "=" * 100)
-                print(f"TOTAL API COST: {', '.join(cost_strs)}")
-                print("=" * 100)
+            
+    print("\n" + "=" * 100)
+    if cost_strs:
+        print(f"TOTAL API COST: {', '.join(cost_strs)}")
+    print(f"TOTAL TIME ELAPSED: {eval_total_time:.1f}s")
+    print("=" * 100)
 
     if save_mode and saved_files:
         print(f"\nCase studies saved to: {os.path.dirname(saved_files[0])}/")
