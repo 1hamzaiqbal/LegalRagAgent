@@ -20,7 +20,6 @@ import pandas as pd
 os.environ.setdefault("SKIP_INJECTION_CHECK", "1")
 
 from main import build_graph, _get_deepseek_balance
-from rag_utils import get_memory_store
 from llm_config import get_provider_info
 
 
@@ -139,6 +138,8 @@ def run_single_query(app, q: dict):
         "elapsed_sec": round(elapsed, 1),
         "error": error,
         "llm_calls": metrics.get("total_llm_calls", 0),
+        "input_chars": metrics.get("input_tokens", 0),
+        "output_chars": metrics.get("output_tokens", 0),
         "is_correct": is_correct
     }
 
@@ -177,14 +178,13 @@ def main():
 
             def write(self, message):
                 if threading.current_thread() is threading.main_thread():
-                    with self._lock:
-                        self.terminal.write(message)
-                        self.log.write(message)
+                    self.terminal.write(message)
+                    self.log.write(message)
                 else:
                     self._get_buffer().write(message)
 
             def flush(self):
-                with self._lock:
+                if threading.current_thread() is threading.main_thread():
                     self.terminal.flush()
                     self.log.flush()
 
@@ -197,7 +197,7 @@ def main():
                             self.log.write(content)
                             self.terminal.flush()
                             self.log.flush()
-                        self.local.buffer = io.StringIO()
+                    self.local.buffer = io.StringIO()
 
         sys.stdout = DualLogger(run_log_file)
     except Exception as e:
@@ -218,13 +218,6 @@ def main():
     pinfo = get_provider_info()
     print(f"Provider: {pinfo['provider']} | Model: {pinfo['model']}")
 
-    # Clear QA memory cache
-    mem_store = get_memory_store()
-    mem_ids = mem_store._collection.get()["ids"]
-    if mem_ids:
-        mem_store._collection.delete(ids=mem_ids)
-        print(f"Cleared QA memory cache ({len(mem_ids)} entries).")
-
     queries = select_qa_queries(n)
     app = build_graph()
     
@@ -238,9 +231,9 @@ def main():
             print(f"[{i+1}/{n}] Evaluating {q['label']}...")
             res = run_single_query(app, q)
             mc_tag = "CORRECT" if res["is_correct"] else ("ERROR" if res["error"] else "WRONG")
-            print(f"  → Result: {mc_tag} | {res['elapsed_sec']}s | {res['llm_calls']} LLM calls")
+            print(f"  -> Result: {mc_tag} | {res['elapsed_sec']}s | {res['llm_calls']} LLM calls")
             if res["error"]:
-                print(f"  → Error: {res['error']}")
+                print(f"  -> Error: {res['error']}")
             return res
         finally:
             if hasattr(sys.stdout, 'flush_thread_buffer'):
@@ -277,21 +270,34 @@ def main():
                 elif init_tot > 0:
                     cost_strs.append(f"< 0.01 {currency}")
 
+    # Evaluate Stats
+    total_api_calls = sum(r["llm_calls"] for r in results)
+    avg_in_tokens = int(sum(r.get("input_chars", 0) for r in results) / len(queries)) if queries else 0
+    avg_out_tokens = int(sum(r.get("output_chars", 0) for r in results) / len(queries)) if queries else 0
+
     print(f"\n\n{'='*80}")
     print("FINAL QA BENCHMARK REPORT")
     print(f"{'='*80}")
-    print(f"Accuracy:           {correct}/{len(queries)} ({accuracy:.1f}%)")
-    print(f"Failed to execute:  {errors}")
-    print(f"Total time elapsed: {eval_total_time:.1f}s")
+    print("--- EXPERIMENT SETTINGS ---")
+    print(f"Embedding Model:      {os.getenv('EMBEDDING_MODEL', 'sentence-transformers/all-MiniLM-L6-v2')}")
+    print(f"LLM Provider/Model:   {os.getenv('LLM_PROVIDER', 'default')} / {pinfo['model']}")
+    print(f"Confidence Threshold: {os.getenv('EVAL_CONFIDENCE_THRESHOLD', '0.70')}")
+    print("\n--- STATISTICS ---")
+    print(f"Accuracy:             {correct}/{len(queries)} ({accuracy:.1f}%)")
+    print(f"Failed to execute:    {errors}")
+    print(f"Total time elapsed:   {eval_total_time:.1f}s")
+    print(f"Total LLM API Calls:  {total_api_calls}")
+    print(f"Avg Input Tokens:     {avg_in_tokens} per query")
+    print(f"Avg Output Tokens:    {avg_out_tokens} per query")
     if cost_strs:
-        print(f"Total API cost:     {', '.join(cost_strs)}")
+        print(f"Total API cost:       {', '.join(cost_strs)}")
     
     # Write a quick breakdown at the end
     print("-" * 80)
     print(f"{'Label':<30} {'Result':<10} {'Time':>6} {'LLM':>4}")
     print("-" * 80)
     for r in sorted(results, key=lambda x: x["label"]):
-        status = "✓" if r["is_correct"] else ("!" if r["error"] else "✗")
+        status = "PASS" if r["is_correct"] else ("ERR" if r["error"] else "FAIL")
         print(f"{r['label']:<30} {status:<10} {r['elapsed_sec']:>5.1f}s {r['llm_calls']:>4}")
     print(f"{'='*80}\n")
 

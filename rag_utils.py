@@ -17,15 +17,11 @@ logger = logging.getLogger(__name__)
 _gpu_lock = threading.Lock()
 
 def gpu_locked(func):
-    """Decorator to ensure only one thread accesses the GPU at a time on MPS."""
+    """Decorator to ensure only one thread accesses the GPU at a time."""
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        import torch
-        # Only lock if we are on Apple Silicon MPS (known to crash with concurrent access)
-        if torch.backends.mps.is_available():
-            with _gpu_lock:
-                return func(*args, **kwargs)
-        return func(*args, **kwargs)
+        with _gpu_lock:
+            return func(*args, **kwargs)
     return wrapper
 
 CHROMA_DB_DIR = "./chroma_db"
@@ -45,17 +41,11 @@ SOURCE_DIVERSE_RETRIEVAL = os.getenv("SOURCE_DIVERSE_RETRIEVAL", "0") == "1"
 @functools.lru_cache(maxsize=1)
 def get_embeddings():
     model_name = os.getenv("EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL)
-    import torch
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"[rag_utils] Loading embedding model: {model_name} on {device}")
-    
+    print(f"[rag_utils] Loading embedding model: {model_name}")
     # Some models (gte-large, modernbert) use custom architectures that need trust_remote_code
     return HuggingFaceEmbeddings(
         model_name=model_name,
-        model_kwargs={
-            "trust_remote_code": True,
-            "device": device
-        },
+        model_kwargs={"trust_remote_code": True},
     )
 
 @functools.lru_cache(maxsize=1)
@@ -65,10 +55,7 @@ def get_cross_encoder():
     ms-marco-MiniLM-L-6-v2 scores (query, document) pairs with full
     cross-attention, catching semantic nuances that bi-encoder embeddings miss.
     """
-    import torch
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"[rag_utils] Loading cross-encoder on {device}")
-    return CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", device=device)
+    return CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 
 def rerank_with_cross_encoder(
@@ -414,62 +401,6 @@ def compute_confidence(query: str, docs: List[Document]) -> float:
     similarities = doc_norms @ query_norm
 
     return float(np.mean(similarities))
-
-_memory_store_instance = None
-
-def get_memory_store() -> Chroma:
-    """Returns the Chroma QA memory collection singleton (cosine distance)."""
-    global _memory_store_instance
-    if _memory_store_instance is None:
-        embeddings = get_embeddings()
-        _memory_store_instance = Chroma(
-            collection_name=QA_MEMORY_COLLECTION,
-            embedding_function=embeddings,
-            persist_directory=CHROMA_DB_DIR,
-            collection_metadata={"hnsw:space": "cosine"},
-        )
-    return _memory_store_instance
-
-
-@gpu_locked
-def check_memory(query: str, threshold: float = 0.92) -> Dict[str, Any]:
-    """Check if a similar question has been answered before.
-
-    Uses cosine similarity. Threshold of 0.92 requires near-exact match to
-    avoid serving cached answers for substantially different questions.
-
-    Returns {"found": bool, "answer": str, "confidence": float, "question": str}.
-    """
-    store = get_memory_store()
-    if store._collection.count() == 0:
-        return {"found": False, "answer": "", "confidence": 0.0, "question": ""}
-
-    results = store.similarity_search_with_relevance_scores(query, k=1)
-    if results:
-        doc, score = results[0]
-        if score >= threshold:
-            return {
-                "found": True,
-                "answer": doc.metadata.get("answer", ""),
-                "confidence": score,
-                "question": doc.page_content,
-            }
-    return {"found": False, "answer": "", "confidence": 0.0, "question": ""}
-
-
-@gpu_locked
-def write_to_memory(question: str, answer: str, confidence: float) -> None:
-    """Store a question-answer pair in the QA memory collection."""
-    store = get_memory_store()
-    doc = Document(
-        page_content=question,
-        metadata={
-            "answer": answer,
-            "confidence": str(confidence),
-            "timestamp": str(time.time()),
-        },
-    )
-    store.add_documents([doc])
 
 
 if __name__ == "__main__":

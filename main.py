@@ -7,13 +7,14 @@ import sys
 import time
 import requests
 from typing import Any, Dict, List, Literal, TypedDict
+import tiktoken
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 from pydantic import BaseModel, Field
 
 from llm_config import get_llm, get_provider_info
-from rag_utils import retrieve_documents_multi_query, compute_confidence, check_memory, write_to_memory
+from rag_utils import retrieve_documents_multi_query, compute_confidence
 
 # ---------------------------------------------------------------------------
 # 1. Core Data Models
@@ -37,7 +38,6 @@ class AgentState(TypedDict):
     initial_balance: Dict[str, Any]            # initial deepseek balance snapshot
     injection_check: Dict[str, Any]            # {"is_safe": bool, "reasoning": str}
     verification_result: Dict[str, Any]        # {"is_verified": bool, "issues": [...], "reasoning": str}
-    memory_hit: Dict[str, Any]                 # {"found": bool, "answer": str, "confidence": float}
     run_metrics: Dict[str, Any]                # aggregated metrics from observability node
 
 
@@ -209,8 +209,14 @@ def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
             # Track call metrics for observability
             counter, _ = _get_metrics()
             counter["count"] += 1
-            counter["input_chars"] += len(system_prompt) + len(user_prompt)
-            counter["output_chars"] += len(response.content)
+            try:
+                enc = tiktoken.get_encoding("cl100k_base")
+                counter["input_chars"] += len(enc.encode(system_prompt + user_prompt))
+                counter["output_chars"] += len(enc.encode(response.content))
+            except Exception as e:
+                logger.warning(f"tiktoken encoding failed: {e}. Falling back to character count.")
+                counter["input_chars"] += len(system_prompt) + len(user_prompt)
+                counter["output_chars"] += len(response.content)
 
             return response.content
         except Exception as e:
@@ -404,24 +410,12 @@ def classifier_node(state: AgentState) -> AgentState:
 def planner_node(state: AgentState) -> AgentState:
     """Generate a research plan using the LLM.
 
-    Checks QA memory first — if a high-confidence cached answer exists,
-    short-circuits plan generation entirely.
-
-    For multi_hop queries, only emits the first step — the replanner
+    For multi_hop queries, only emits the first step - the replanner
     will adaptively generate subsequent steps based on accumulated evidence.
     """
     print("\n--- PLANNER NODE ---")
 
-    # Check QA memory for a cached answer
     objective = state["global_objective"]
-    memory_result = check_memory(objective)
-    if memory_result["found"]:
-        print(f"MEMORY HIT! Confidence: {memory_result['confidence']:.3f}")
-        print(f"Cached question: {memory_result['question']}")
-        state["memory_hit"] = memory_result
-        state["final_cited_answer"] = memory_result["answer"]
-        return state
-    state["memory_hit"] = memory_result
 
     if not state.get("planning_table"):
         query_type = state.get("query_type", "multi_hop")
@@ -653,54 +647,6 @@ def verify_answer_node(state: AgentState) -> AgentState:
     return state
 
 
-def memory_writeback_node(state: AgentState) -> AgentState:
-    """Persist successful query-answer pairs to QA memory for future retrieval."""
-    print("\n--- MEMORY WRITEBACK NODE ---")
-    memory_hit = state.get("memory_hit", {})
-    answer = state.get("final_cited_answer", "")
-
-    # Skip write if answer came from cache (already in memory)
-    if memory_hit.get("found", False):
-        print("Answer came from memory cache — skipping write.")
-        return state
-
-    if not answer:
-        print("No answer to cache — skipping write.")
-        return state
-
-    # Don't cache unverified answers — they may contain unsupported claims
-    vr = state.get("verification_result", {})
-    if vr and not vr.get("is_verified", True):
-        print("Answer failed verification — skipping memory write.")
-        return state
-
-    # Compute average confidence across completed steps
-    table = state.get("planning_table", [])
-    completed_scores = [
-        s.execution.get("confidence_score", 0.0)
-        for s in table
-        if s.status == "completed" and s.execution
-    ]
-    avg_confidence = sum(completed_scores) / len(completed_scores) if completed_scores else 0.0
-
-    if avg_confidence >= 0.70:
-        objective = state["global_objective"]
-        # Strip MC selection from cached answer — only cache the research portion.
-        # MC selection is appended after "\n\n---\n\n" and contains "**Answer:".
-        # Re-running MC selection each time prevents stale letter answers.
-        cache_answer = answer
-        if "**Answer:" in answer:
-            last_sep = answer.rfind("\n\n---\n\n")
-            if last_sep != -1:
-                cache_answer = answer[:last_sep]
-        write_to_memory(objective, cache_answer, avg_confidence)
-        print(f"Wrote to memory (avg confidence: {avg_confidence:.3f}, {len(cache_answer)} chars cached)")
-    else:
-        print(f"Confidence too low ({avg_confidence:.3f}) — skipping memory write.")
-
-    return state
-
-
 def observability_node(state: AgentState) -> AgentState:
     """Aggregate and print run metrics before termination."""
     print("\n--- OBSERVABILITY NODE ---")
@@ -709,7 +655,6 @@ def observability_node(state: AgentState) -> AgentState:
     failed = sum(1 for s in table if s.status == "failed")
     pending = sum(1 for s in table if s.status == "pending")
 
-    memory_hit = state.get("memory_hit", {})
     has_answer = bool(state.get("final_cited_answer", ""))
     injection_safe = state.get("injection_check", {}).get("is_safe", True)
     
@@ -729,8 +674,8 @@ def observability_node(state: AgentState) -> AgentState:
     metrics = {
         "model": get_provider_info().get("model", "unknown"),
         "total_llm_calls": counter["count"],
-        "input_chars": counter["input_chars"],
-        "output_chars": counter["output_chars"],
+        "input_tokens": counter["input_chars"],
+        "output_tokens": counter["output_chars"],
         "cost_spend": f"{cost_spend:.4f} CNY" if cost_spend > 0 else ("< 0.01 CNY" if initial_balance.get("is_available") else "N/A"),
         "parse_failures": parse_failures,
         "iteration_count": state.get("iteration_count", 0),
@@ -738,7 +683,6 @@ def observability_node(state: AgentState) -> AgentState:
         "steps_failed": failed,
         "steps_pending": pending,
         "query_type": state.get("query_type", "") or "(not classified)",
-        "memory_hit": memory_hit.get("found", False),
         "has_answer": has_answer,
         "injection_safe": injection_safe,
     }
@@ -813,11 +757,8 @@ def route_after_injection(state: AgentState) -> Literal["classifier_node", "obse
     return "observability_node"
 
 
-def route_after_planner(state: AgentState) -> Literal["executor_node", "memory_writeback_node"]:
-    """Route after planner: memory hit → memory_writeback, otherwise → executor."""
-    if state.get("memory_hit", {}).get("found", False):
-        print("MEMORY HIT! Short-circuiting to MEMORY_WRITEBACK.")
-        return "memory_writeback_node"
+def route_after_planner(state: AgentState) -> Literal["executor_node"]:
+    """Route after planner: always route to executor."""
     return "executor_node"
 
 
@@ -900,7 +841,6 @@ def build_graph() -> Any:
     workflow.add_node("evaluator_node", evaluator_node)
     workflow.add_node("replanner_node", replanner_node)
     workflow.add_node("verify_answer_node", verify_answer_node)
-    workflow.add_node("memory_writeback_node", memory_writeback_node)
     workflow.add_node("observability_node", observability_node)
 
     workflow.set_entry_point("detect_injection_node")
@@ -923,8 +863,7 @@ def build_graph() -> Any:
         "replanner_node",
         route_after_replanner,
     )
-    workflow.add_edge("verify_answer_node", "memory_writeback_node")
-    workflow.add_edge("memory_writeback_node", "observability_node")
+    workflow.add_edge("verify_answer_node", "observability_node")
     workflow.add_edge("observability_node", END)
 
     return workflow.compile()
@@ -980,7 +919,6 @@ if __name__ == "__main__":
         "iteration_count": 0,
         "injection_check": {},
         "verification_result": {},
-        "memory_hit": {},
         "run_metrics": {},
     }
 
