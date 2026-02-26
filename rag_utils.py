@@ -386,6 +386,7 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
         return rerank_with_cross_encoder(queries[0], all_candidates, top_k=k)
 
 
+@gpu_locked
 def compute_confidence(query: str, docs: List[Document]) -> float:
     """Compute confidence as mean cosine similarity between query and doc embeddings."""
     if not docs:
