@@ -154,52 +154,73 @@ def main():
         parallel_workers = int(args[idx + 1])
         args = args[:idx] + args[idx + 2:]
 
+    continue_eval = False
+    if "--continue" in args:
+        continue_eval = True
+        args.remove("--continue")
+
     n = int(args[0]) if len(args) > 0 else 10
     
     # Setup buffered DualLogger
     provider_name = os.getenv("LLM_PROVIDER", "default").strip().lower()
     run_log_file = f"eval_qa_{provider_name}.txt"
+    
+    import re
+    completed_queries = {}
+    if continue_eval and os.path.exists(run_log_file):
+        with open(run_log_file, "r", encoding="utf-8") as f:
+            log_content = f.read()
+            pattern = re.compile(
+                r'\[\d+/\d+\] Evaluating ([\w_]+)\.\.\..*?'
+                r'-> Result: (CORRECT|WRONG|ERROR)\s+\|\s+([\d\.]+)s\s+\|\s+(?:TOTAL:\s+\d+\s+calls\s+\((\d+)\s+this\s+q\)\s+\|\s+IN:\s+\d+\s+tokens\s+\((\d+)\s+this\s+q\)\s+\|\s+OUT:\s+\d+\s+tokens\s+\((\d+)\s+this\s+q\)|(\d+)\s+LLM calls)',
+                re.DOTALL
+            )
+            for m in pattern.finditer(log_content):
+                label = m.group(1)
+                res_str = m.group(2)
+                elapsed = float(m.group(3))
+                
+                if m.group(7): # Old format
+                    q_calls = int(m.group(7))
+                    q_in, q_out = 0, 0
+                else: # New format
+                    q_calls = int(m.group(4))
+                    q_in = int(m.group(5))
+                    q_out = int(m.group(6))
+                
+                completed_queries[label] = {
+                    "label": label,
+                    "subject": "unknown",
+                    "elapsed_sec": elapsed,
+                    "error": "error" if res_str == "ERROR" else None,
+                    "llm_calls": q_calls,
+                    "input_chars": q_in,
+                    "output_chars": q_out,
+                    "is_correct": res_str == "CORRECT"
+                }
+
     try:
-        with open(run_log_file, "w", encoding="utf-8") as f:
-            f.write(f"COMMAND RUN: uv run python {' '.join(sys.argv)}\n")
-            f.write("=" * 60 + "\n\n")
+        file_mode = "a" if continue_eval else "w"
+        with open(run_log_file, file_mode, encoding="utf-8") as f:
+            if not continue_eval:
+                f.write(f"COMMAND RUN: uv run python {' '.join(sys.argv)}\n")
+                f.write("=" * 60 + "\n\n")
 
         class DualLogger:
             def __init__(self, filepath):
                 self.terminal = sys.stdout
                 self.log = open(filepath, "a", encoding="utf-8")
-                self.local = threading.local()
-                self._lock = threading.Lock()
-
-            def _get_buffer(self):
-                if not hasattr(self.local, 'buffer'):
-                    self.local.buffer = io.StringIO()
-                return self.local.buffer
 
             def write(self, message):
-                if threading.current_thread() is threading.main_thread():
-                    self.terminal.write(message)
-                    self.log.write(message)
-                else:
-                    self._get_buffer().write(message)
+                self.terminal.write(message)
+                self.log.write(message)
 
             def flush(self):
-                if threading.current_thread() is threading.main_thread():
-                    self.terminal.flush()
-                    self.log.flush()
-
-            def flush_thread_buffer(self):
-                if hasattr(self.local, 'buffer'):
-                    content = self.local.buffer.getvalue()
-                    if content:
-                        with self._lock:
-                            self.terminal.write(content)
-                            self.log.write(content)
-                            self.terminal.flush()
-                            self.log.flush()
-                    self.local.buffer = io.StringIO()
+                self.terminal.flush()
+                self.log.flush()
 
         sys.stdout = DualLogger(run_log_file)
+        sys.stderr = sys.stdout
     except Exception as e:
         print(f"Failed to setup file logger: {e}")
 
@@ -221,9 +242,17 @@ def main():
     queries = select_qa_queries(n)
     app = build_graph()
     
-    print(f"\nEvaluating {len(queries)} questions {'in parallel (' + str(parallel_workers) + ' threads) ' if parallel_workers > 1 else ''}...\n")
+    queries_to_run = [q for q in queries if q["label"] not in completed_queries]
+    
+    if continue_eval:
+        print(f"\nFound --continue flag. Recovered {len(completed_queries)} previously completed queries from {run_log_file}.")
+        
+    if len(queries_to_run) == 0:
+        print("\nAll queries have already been completed!")
+    else:
+        print(f"\nEvaluating {len(queries_to_run)} questions {'in parallel (' + str(parallel_workers) + ' threads) ' if parallel_workers > 1 else ''}...\n")
 
-    results = []
+    results = list(completed_queries.values())
     eval_start_time = time.time()
     
     def worker_func(i, q):
@@ -235,7 +264,9 @@ def main():
             start_out = start_counts["output_chars"]
 
             print(f"[{i+1}/{n}] Evaluating {q['label']}...")
+            
             res = run_single_query(app, q)
+
             mc_tag = "CORRECT" if res["is_correct"] else ("ERROR" if res["error"] else "WRONG")
             
             end_counts, _ = _get_metrics()
@@ -250,21 +281,28 @@ def main():
             print(f"  -> Result: {mc_tag} | {res['elapsed_sec']}s | TOTAL: {end_calls} calls ({q_calls} this q) | IN: {end_in} tokens ({q_in} this q) | OUT: {end_out} tokens ({q_out} this q)")
             if res["error"]:
                 print(f"  -> Error: {res['error']}")
+                
+            # Override with per-query local metrics
+            res["global_llm_calls"] = res["llm_calls"]
+            res["global_input_chars"] = res["input_chars"]
+            res["global_output_chars"] = res["output_chars"]
+            res["llm_calls"] = q_calls
+            res["input_chars"] = q_in
+            res["output_chars"] = q_out
+            
             return res
         finally:
             if hasattr(sys.stdout, 'flush_thread_buffer'):
                 sys.stdout.flush_thread_buffer()
 
-    if parallel_workers > 1:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_workers) as executor:
-            futures = [executor.submit(worker_func, i, q) for i, q in enumerate(queries)]
-            for future in concurrent.futures.as_completed(futures):
-                results.append(future.result())
-    else:
-        for i, q in enumerate(queries):
-            results.append(worker_func(i, q))
+    # Run sequentially (parallelization disabled)
+    for i, q in enumerate(queries_to_run):
+        results.append(worker_func(i, q))
 
-    eval_total_time = time.time() - eval_start_time
+    if continue_eval:
+        eval_total_time = sum(r["elapsed_sec"] for r in results)
+    else:
+        eval_total_time = time.time() - eval_start_time
 
     # Evaluate Accuracy
     correct = sum(1 for r in results if r["is_correct"])

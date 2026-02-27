@@ -95,31 +95,31 @@ def _parse_json(text: str) -> Any:
     _, parse_failures = _get_metrics()
     _local_metrics.parse_failure_count = parse_failures + 1
     logger.warning("JSON parse failure #%d (input length: %d chars)", _local_metrics.parse_failure_count, len(text))
-    return None
+    # Fail fast so the caller doesn't hang in a retry loop using an empty dict
+    raise ValueError(f"LLM returned unparseable JSON: {text[:100]}...")
 
 
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# LLM call counter for observability
+# LLM call counter for observability (Sequential)
 # ---------------------------------------------------------------------------
-import threading
+class MetricsState:
+    def __init__(self):
+        self.llm_call_counter = {"count": 0, "input_chars": 0, "output_chars": 0}
+        self.parse_failure_count = 0
 
-_local_metrics = threading.local()
+_metrics_state = MetricsState()
 
 def _get_metrics():
-    if not hasattr(_local_metrics, 'llm_call_counter'):
-        _local_metrics.llm_call_counter = {"count": 0, "input_chars": 0, "output_chars": 0}
-    if not hasattr(_local_metrics, 'parse_failure_count'):
-        _local_metrics.parse_failure_count = 0
-    return _local_metrics.llm_call_counter, _local_metrics.parse_failure_count
+    return _metrics_state.llm_call_counter, _metrics_state.parse_failure_count
 
 def _reset_llm_call_counter() -> None:
     counter, _ = _get_metrics()
     counter["count"] = 0
     counter["input_chars"] = 0
     counter["output_chars"] = 0
-    _local_metrics.parse_failure_count = 0
+    _metrics_state.parse_failure_count = 0
 
 
 def _log_cache_metrics(response, label: str) -> None:
@@ -249,9 +249,13 @@ def skill_classify_and_route(objective: str) -> Dict[str, str]:
     instructions = load_skill_instructions("classify_and_route")
     user_msg = f"Objective: {objective}"
     raw = _llm_call(instructions, user_msg, label="classify")
-    parsed = _parse_json(raw)
-    if parsed and isinstance(parsed, dict) and "query_type" in parsed:
-        return parsed
+    try:
+        parsed = _parse_json(raw)
+        if parsed and isinstance(parsed, dict) and "query_type" in parsed:
+            return parsed
+    except ValueError as e:
+        logger.warning(f"Classification parse error: {e}")
+        pass
     return {"query_type": "multi_hop", "reasoning": "Fallback — could not parse classifier output"}
 
 
@@ -260,9 +264,13 @@ def skill_plan_synthesis(objective: str, query_type: str) -> List[Dict]:
     instructions = load_skill_instructions("plan_synthesis")
     user_msg = f"Objective: {objective}\nQuery type: {query_type}"
     raw = _llm_call(instructions, user_msg, label="plan")
-    parsed = _parse_json(raw)
-    if parsed and isinstance(parsed, list):
-        return parsed
+    try:
+        parsed = _parse_json(raw)
+        if parsed and isinstance(parsed, list):
+            return parsed
+    except ValueError as e:
+        logger.warning(f"Planner parse error: {e}")
+        pass
     # Fallback: single step
     return [{
         "step_id": 1.0,
@@ -279,12 +287,16 @@ def skill_query_rewrite(question: str) -> Dict[str, Any]:
     """
     instructions = load_skill_instructions("query_rewrite")
     raw = _llm_call(instructions, f"Question: {question}", label="query_rewrite").strip()
-    parsed = _parse_json(raw)
-    if parsed and isinstance(parsed, dict) and "primary" in parsed:
-        return {
-            "primary": parsed["primary"],
-            "alternatives": parsed.get("alternatives", []),
-        }
+    try:
+        parsed = _parse_json(raw)
+        if parsed and isinstance(parsed, dict) and "primary" in parsed:
+            return {
+                "primary": parsed["primary"],
+                "alternatives": parsed.get("alternatives", []),
+            }
+    except ValueError as e:
+        logger.warning(f"Query generation parse error: {e}")
+        pass
     # Fallback: treat entire output as primary (handles old plain-text format)
     return {"primary": raw, "alternatives": []}
 
@@ -305,9 +317,13 @@ def skill_adaptive_replan(objective: str, accumulated_context: List[Dict[str, An
     context_summary = json.dumps(accumulated_context, indent=2)
     user_msg = f"Objective: {objective}\n\nAccumulated context:\n{context_summary}"
     raw = _llm_call(instructions, user_msg, label="replan")
-    parsed = _parse_json(raw)
-    if parsed and isinstance(parsed, dict) and "action" in parsed:
-        return parsed
+    try:
+        parsed = _parse_json(raw)
+        if parsed and isinstance(parsed, dict) and "action" in parsed:
+            return parsed
+    except ValueError as e:
+        logger.warning(f"Replanner parse error: {e}")
+        pass
     # Fallback: stop planning
     return {"action": "complete", "reasoning": "Fallback — could not parse replanner output"}
 
@@ -316,9 +332,13 @@ def skill_detect_prompt_injection(objective: str) -> Dict[str, Any]:
     """Classify input as safe or adversarial."""
     instructions = load_skill_instructions("detect_prompt_injection")
     raw = _llm_call(instructions, f"User input: {objective}", label="injection_check")
-    parsed = _parse_json(raw)
-    if parsed and isinstance(parsed, dict) and "is_safe" in parsed:
-        return parsed
+    try:
+        parsed = _parse_json(raw)
+        if parsed and isinstance(parsed, dict) and "is_safe" in parsed:
+            return parsed
+    except ValueError as e:
+        logger.warning(f"Injection check parse error: {e}")
+        pass
     # Fail-open: assume safe if parser fails
     return {"is_safe": True, "reasoning": "Fallback — could not parse injection check output, assuming safe"}
 
@@ -355,9 +375,13 @@ def skill_verify_answer(question: str, answer: str, evidence: List[str]) -> Dict
     )
     user_msg = f"Question: {question}\n\nAnswer:\n{answer}\n\nEvidence:\n{evidence_text}"
     raw = _llm_call(instructions, user_msg, label="verify")
-    parsed = _parse_json(raw)
-    if parsed and isinstance(parsed, dict) and "is_verified" in parsed:
-        return parsed
+    try:
+        parsed = _parse_json(raw)
+        if parsed and isinstance(parsed, dict) and "is_verified" in parsed:
+            return parsed
+    except ValueError as e:
+        logger.warning(f"Verification parse error: {e}")
+        pass
     # Fallback: assume verified if parser fails
     return {"is_verified": True, "issues": [], "reasoning": "Fallback — could not parse verification output, assuming verified"}
 
