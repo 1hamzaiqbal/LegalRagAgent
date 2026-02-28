@@ -18,19 +18,19 @@ uv run python main.py multi_hop    # Multi-concept constitutional rights scenari
 uv run python main.py medium       # Preliminary injunction standard
 
 # Run comprehensive evaluation (retrieval + full pipeline)
-uv run python eval_comprehensive.py              # Both phases
-uv run python eval_comprehensive.py retrieval     # Phase 1 only (no LLM)
-uv run python eval_comprehensive.py pipeline      # Phase 2 only
-uv run python eval_comprehensive.py pipeline 10   # Phase 2, first N queries
+uv run python eval/eval_comprehensive.py              # Both phases
+uv run python eval/eval_comprehensive.py retrieval     # Phase 1 only (no LLM)
+uv run python eval/eval_comprehensive.py pipeline      # Phase 2 only
+uv run python eval/eval_comprehensive.py pipeline 10   # Phase 2, first N queries
 
 # Run traced experiment (detailed per-query diagnostics)
-uv run python eval_trace.py                       # All 8 trace queries
-uv run python eval_trace.py 3                     # First N queries
-uv run python eval_trace.py --query "What is..."  # Custom query
-uv run python eval_trace.py 3 --save              # Save case studies to case_studies/
+uv run python eval/eval_trace.py                       # All 8 trace queries
+uv run python eval/eval_trace.py 3                     # First N queries
+uv run python eval/eval_trace.py --query "What is..."  # Custom query
+uv run python eval/eval_trace.py 3 --save              # Save case studies to case_studies/
 
 # Run retrieval A/B test (bi-encoder vs cross-encoder reranking)
-uv run python eval_reranker.py
+uv run python eval/eval_reranker.py
 
 # List all available LLM providers
 uv run python llm_config.py
@@ -150,20 +150,20 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
 
 ### Evaluation
 
-- `eval_comprehensive.py` — Two-phase eval:
+- `eval/eval_comprehensive.py` — Two-phase eval:
   - Phase 1: retrieval-only Recall@5/MRR on all in-store QA pairs (dynamically sized — queries vectorstore for corpus size, not hardcoded). With 20K passages, ~953 QA pairs have gold passages in store.
   - Phase 2: full pipeline on 26 diverse queries (18 bar exam MC + 4 multi-hop + 2 out-of-corpus + 2 edge cases)
   - MC correctness checking via `_check_mc_correctness()` (3 strategies: text match, letter extraction, word overlap)
   - Clears QA memory cache before each run for clean eval
   - Logs provider info at start
   - Bar exam queries now include MC answer choices in the objective
-- `eval_trace.py` — Detailed per-query diagnostics:
+- `eval/eval_trace.py` — Detailed per-query diagnostics:
   - Clears QA memory cache at start for clean eval
   - Raw retrieval, query rewrite, multi-query retrieval with gold passage marking
   - Full pipeline execution trace (classify → plan → execute → verify)
   - MC correctness check and trace summary table (Steps, Verified, Confidence columns)
   - `--save` flag dumps case study JSON to `case_studies/`
-- `eval_reranker.py` — A/B comparison of bi-encoder-only vs cross-encoder reranking
+- `eval/eval_reranker.py` — A/B comparison of bi-encoder-only vs cross-encoder reranking
 - `load_corpus.py` — Load passage corpus: `uv run python load_corpus.py [count|status|curated]`
 
 ## Eval Metrics Reference
@@ -199,7 +199,7 @@ With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B (via Google AI Studio):
 - **Verifier removed**: Was always passing (8/8). Saves 1 LLM call/query. Skill file retained for future use.
 
 **Operational notes:**
-- QA memory cache cleared automatically at eval start (eval_trace.py and eval_comprehensive.py)
+- QA memory cache cleared automatically at eval start (eval/eval_trace.py and eval/eval_comprehensive.py)
 - Connection errors during replanner retry via `_llm_call` and fall back to `complete` on persistent failure
 - `SKIP_INJECTION_CHECK=1` saves 1 LLM call per query (recommended for eval runs)
 
@@ -211,7 +211,7 @@ With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B (via Google AI Studio):
 
 - `datasets/barexam_qa/` — passage CSVs and QA dataset CSVs (from `reglab/barexam_qa` on HuggingFace)
 - `chroma_db/` — persisted ChromaDB vector store
-- `case_studies/` — JSON trace files from `eval_trace.py --save` (per-query pipeline diagnostics)
+- `case_studies/` — JSON trace files from `eval/eval_trace.py --save` (per-query pipeline diagnostics)
 
 ## Key Dependencies
 
@@ -219,12 +219,12 @@ With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B (via Google AI Studio):
 
 ## Known Issues & Tech Debt
 
-See `pipeline_flags.md` for the full audit with severity ratings, evidence, and fix proposals.
+See `docs/pipeline_flags.md` for the full audit with severity ratings, evidence, and fix proposals.
 
 **Unverified claims in this doc:**
 - **Full corpus size "686K"**: From original dataset description. Actual `barexam_qa_train.csv` row count not recently verified.
 - **Source-diverse retrieval mode**: `SOURCE_DIVERSE_RETRIEVAL=1` not tested with gte-large-en-v1.5. May need recalibration.
-- **`eval_reranker.py`**: A/B comparison not run recently. Results may differ with current embeddings.
+- **`eval/eval_reranker.py`**: A/B comparison not run recently. Results may differ with current embeddings.
 - **Provider registry "19 providers"**: Count may have drifted. Run `uv run python llm_config.py` to verify.
 
 ## WSL Setup

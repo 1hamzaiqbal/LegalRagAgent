@@ -163,7 +163,8 @@ def main():
     
     # Setup buffered DualLogger
     provider_name = os.getenv("LLM_PROVIDER", "default").strip().lower()
-    run_log_file = f"eval_qa_{provider_name}.txt"
+    os.makedirs("logs", exist_ok=True)
+    run_log_file = f"logs/eval_qa_{provider_name}.txt"
     
     import re
     completed_queries = {}

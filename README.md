@@ -12,7 +12,7 @@ cd LegalRagAgent
 uv sync
 ```
 
-Requires Python 3.11-3.13 and [uv](https://docs.astral.sh/uv/). Alternatively: `pip install -r requirements.txt`.
+Requires Python 3.11-3.13 and [uv](https://docs.astral.sh/uv/).
 
 ### 2. Configure LLM provider
 
@@ -83,13 +83,13 @@ Nine-node LangGraph state machine with adaptive replanning, injection detection,
 | `detect_prompt_injection.md` | Screen for adversarial prompts |
 | `verify_answer.md` | Cross-check answer against evidence (retained for future use) |
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for full node-by-node reference, state schema, and annotated case studies.
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for full node-by-node reference, state schema, and annotated case studies.
 
 ## Evaluation
 
 ```bash
-uv run python eval_qa.py 100                     # Run full QA evaluation on 100 queries
-uv run python eval_qa.py 100 --continue          # Resume an interrupted evaluation from log file
+uv run python eval/eval_qa.py 100                     # Run full QA evaluation on 100 queries
+uv run python eval/eval_qa.py 100 --continue          # Resume an interrupted evaluation from log file
 
 ```
 
@@ -115,11 +115,18 @@ llm_config.py          # Provider registry (19 providers), LLM singleton
 load_corpus.py         # Load passages into ChromaDB
 download_data.py       # Download dataset from HuggingFace
 skills/                # 7 markdown prompt files (~1700 words total)
-eval_comprehensive.py  # Two-phase eval (retrieval + pipeline)
-eval_trace.py          # Per-query diagnostics with --save for case studies
-eval_reranker.py       # Bi-encoder vs cross-encoder A/B test
+eval/                  # Evaluation scripts
+  eval_qa.py           # Full QA evaluation on N queries
+  eval_comprehensive.py # Two-phase eval (retrieval + pipeline)
+  eval_trace.py        # Per-query diagnostics with --save for case studies
+  eval_reranker.py     # Bi-encoder vs cross-encoder A/B test
+  eval_baseline.py     # No-RAG baseline for comparison
+logs/                  # Eval output logs (.txt files)
+docs/                  # Internal reference documentation
+  ARCHITECTURE.md      # Full node reference, case studies, state schema
+  pipeline_flags.md    # Known issues audit with severity ratings
+  EXPERIMENT_LOG.md    # History of changes and eval results
+  DIAGNOSIS.md         # Early retrieval failure analysis
 case_studies/          # JSON traces from eval_trace.py --save
-ARCHITECTURE.md        # Full node reference, case studies, state schema
-pipeline_flags.md      # Known issues audit with severity ratings
-EXPERIMENT_LOG.md      # History of changes and eval results
+archive/               # Old skill designs (not used by pipeline)
 ```

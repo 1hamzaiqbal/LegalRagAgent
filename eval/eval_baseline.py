@@ -163,7 +163,8 @@ def main():
     
     # Setup buffered DualLogger
     provider_name = os.getenv("LLM_PROVIDER", "default").strip().lower()
-    run_log_file = f"eval_baseline_{provider_name}.txt"
+    os.makedirs("logs", exist_ok=True)
+    run_log_file = f"logs/eval_baseline_{provider_name}.txt"
     
     completed_queries = {}
     if continue_eval and os.path.exists(run_log_file):

@@ -38,7 +38,7 @@ from rag_utils import (
     retrieve_documents, retrieve_documents_multi_query,
     compute_confidence, get_vectorstore, get_memory_store,
 )
-from eval_comprehensive import _check_mc_correctness
+from eval.eval_comprehensive import _check_mc_correctness
 
 
 def _load_qa_with_gold():
@@ -338,7 +338,8 @@ def save_case_study(query_info: dict, result: dict, output_dir: str = "case_stud
 def main():
     # Set up DualLogger to tee stdout to latest_run_{provider}.txt
     provider_name = os.getenv("LLM_PROVIDER", "default").strip().lower()
-    run_log_file = f"latest_run_{provider_name}.txt"
+    os.makedirs("logs", exist_ok=True)
+    run_log_file = f"logs/latest_run_{provider_name}.txt"
     try:
         with open(run_log_file, "w", encoding="utf-8") as f:
             f.write(f"COMMAND RUN: uv run python {' '.join(sys.argv)}\n")

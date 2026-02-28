@@ -715,7 +715,8 @@ def _print_pipeline_results(results, total_elapsed, cost_strs=None):
 def main():
     # Setup DualLogger
     provider_name = os.getenv("LLM_PROVIDER", "default").strip().lower()
-    run_log_file = f"latest_run_{provider_name}.txt"
+    os.makedirs("logs", exist_ok=True)
+    run_log_file = f"logs/latest_run_{provider_name}.txt"
     try:
         with open(run_log_file, "w", encoding="utf-8") as f:
             f.write(f"COMMAND RUN: uv run python {' '.join(sys.argv)}\n")
