@@ -29,6 +29,15 @@ uv run python eval/eval_trace.py 3                     # First N queries
 uv run python eval/eval_trace.py --query "What is..."  # Custom query
 uv run python eval/eval_trace.py 3 --save              # Save case studies to case_studies/
 
+# Run QA accuracy benchmark (N random bar exam questions)
+uv run python eval/eval_qa.py 50                  # 50 questions sequential
+uv run python eval/eval_qa.py 50 --parallel 5     # 50 questions, 5 parallel
+uv run python eval/eval_qa.py 100 --continue      # Resume interrupted run from log
+
+# Run baseline LLM accuracy (no RAG, direct LLM answer)
+uv run python eval/eval_baseline.py 50            # Compare vs pipeline
+uv run python eval/eval_baseline.py 100 --continue  # Resume from log
+
 # Run retrieval A/B test (bi-encoder vs cross-encoder reranking)
 uv run python eval/eval_reranker.py
 
@@ -61,7 +70,7 @@ OPENROUTER_API_KEY=...
 CEREBRAS_API_KEY=...
 ```
 
-Run `uv run python llm_config.py` to see all 19 providers with rate limits.
+Run `uv run python llm_config.py` to see all 21 providers with rate limits.
 
 ### Embedding Model
 
@@ -79,31 +88,29 @@ Default: `Alibaba-NLP/gte-large-en-v1.5` (1024d, 434M params, 8192 token context
 
 ### LangGraph Workflow (main.py)
 
-Nine-node state machine with adaptive replanning, injection detection, answer verification, QA memory, and observability:
+Eight-node state machine with adaptive replanning, injection detection, answer verification, and observability:
 
 1. **detect_injection_node** — Screens input for adversarial prompt injection using `detect_prompt_injection.md` skill. Skippable via `SKIP_INJECTION_CHECK=1` env var (saves 1 LLM call for eval/testing). Unsafe inputs are rejected and routed to observability for metrics.
 2. **classifier_node** — Classifies objective as `simple` or `multi_hop` using `classify_and_route.md` skill (includes MC-specific guidance: single-concept MC → simple, multi-concept MC → multi_hop, defaults to multi_hop when in doubt)
-3. **planner_node** — Checks QA memory first (cosine similarity >= 0.92); on cache hit, short-circuits to memory writeback. Otherwise generates initial plan. For `multi_hop`, emits only the first step; replanner handles the rest adaptively. **MC isolation**: strips answer choices from objective before planning — research stays unbiased.
+3. **planner_node** — Generates initial plan. For `multi_hop`, emits only the first step; replanner handles the rest adaptively. **MC isolation**: strips answer choices from objective before planning — research stays unbiased.
 4. **executor_node** — For each pending step: rewrites query into primary + 2 alternatives (`query_rewrite.md`, JSON output), multi-query retrieves from ChromaDB (`retrieve_documents_multi_query`, excludes doc_ids from prior steps for cross-step dedup), synthesizes answer with inline `[Source N]` citations in a single pass (`synthesize_and_cite.md`), computes confidence via cosine similarity
 5. **evaluator_node** — Marks steps completed or failed against a configurable confidence threshold (`EVAL_CONFIDENCE_THRESHOLD` env var, default 0.70). Accumulates step summaries into `accumulated_context`. Sets explicit failure message if all steps fail.
 6. **replanner_node** — (multi_hop only) Receives objective (MC choices stripped) + accumulated evidence, decides: `next_step` (add new research step), `retry` (rephrase failed step), or `complete` (aggregate final answer). Hard cap: 3 completed steps max. On persistent LLM failure, gracefully falls back to `complete` to preserve accumulated evidence.
-7. **verify_answer_node** — MC answer selection node. Verifier LLM call removed (was always passing — see R1 in pipeline_flags.md). Auto-passes verification. **MC selection**: if the objective contains answer choices, a dedicated `skill_select_mc_answer()` call runs ONCE — applies all accumulated research to pick a letter with `**Answer: (X)**` format. This keeps per-step research unbiased.
-8. **memory_writeback_node** — Persists successful QA pairs (avg confidence >= 0.70) to ChromaDB `qa_memory` collection (cosine distance) for future cache hits. Strips MC selection from cached answer so MC re-runs fresh each time (prevents stale letter answers). Skips write if verification failed.
-9. **observability_node** — Aggregates and prints run metrics: LLM calls, char usage, parse failures, steps completed/failed, memory hit status, has_answer, injection status.
+7. **verify_answer_node** — MC answer selection node. Verifier LLM call removed (was always passing — see R1 in docs/pipeline_flags.md). Auto-passes verification. **MC selection**: if the objective contains answer choices, a dedicated `skill_select_mc_answer()` call runs ONCE — applies all accumulated research to pick a letter with `**Answer: (X)**` format. This keeps per-step research unbiased.
+8. **observability_node** — Aggregates and prints run metrics: LLM calls, token usage, parse failures, steps completed/failed, has_answer, injection status.
 
 Routing:
 - After injection check: 2-way — `classifier` (safe) | `observability` (unsafe, for metrics)
-- After planner: 2-way — `executor` (no memory hit) | `memory_writeback` (memory hit)
+- After planner: fixed — `executor`
 - After evaluator: 3-way — `executor` (pending steps) | `replanner` (multi_hop, all done, <3 completed) | `verify_answer` (simple done, iteration limit >4, hard step cap >=3, or stagnation)
 - After replanner: 2-way — `executor` (new step added) | `verify_answer` (complete)
-- After verify: fixed — `memory_writeback` (always, no corrective retry)
-- After memory writeback: fixed — `observability → END`
+- After verify: fixed — `observability → END`
 
-Graph: `detect_injection → {classifier | observability}`; `classifier → planner → {executor | memory_writeback}`; `executor → evaluator → {executor | replanner | verify_answer}`; `replanner → {executor | verify_answer}`; `verify_answer → memory_writeback → observability → END`
+Graph: `detect_injection → {classifier | observability}`; `classifier → planner → executor → evaluator → {executor | replanner | verify_answer}`; `replanner → {executor | verify_answer}`; `verify_answer → observability → END`
 
 ### Shared State (`AgentState`)
 
-TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query_type` ("simple"/"multi_hop"), `final_cited_answer`, `accumulated_context` (step summaries for replanner), `iteration_count` (loop guard, max 4), `injection_check` (safety result), `verification_result` (auto-pass dict), `memory_hit` (QA cache result, threshold 0.92), and `run_metrics` (observability data including parse failures and has_answer).
+TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query_type` ("simple"/"multi_hop"), `final_cited_answer`, `accumulated_context` (step summaries for replanner), `iteration_count` (loop guard, max 4), `injection_check` (safety result), `verification_result` (auto-pass dict), `initial_balance` (DeepSeek API spend tracking), and `run_metrics` (observability data including parse failures and has_answer).
 
 `PlanStep` model: `step_id` (float), `status` (pending/completed/failed), `phase` (str), `question` (str), `execution` (dict — stores `cited_answer`, `optimized_query`, `sources` (passage texts), `retrieved_doc_ids` (idx strings), `confidence_score`).
 
@@ -121,7 +128,7 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
 
 ### LLM Config (llm_config.py)
 
-- **Provider registry**: 19 providers across Google AI Studio, Groq, OpenRouter, Cerebras, Ollama — each with model name, API key env var, and rate limits (RPD/TPD)
+- **Provider registry**: 21 providers across Google AI Studio, Groq, OpenRouter, Cerebras, Ollama — each with model name, API key env var, and rate limits (RPD/TPD)
 - `get_llm()` — cached `ChatOpenAI` singleton resolved from `LLM_PROVIDER` env var (falls back to raw `LLM_BASE_URL`/`LLM_API_KEY`/`LLM_MODEL`)
 - `get_provider_info()` — returns current provider name, model, and rate limits (used by eval logging)
 - `list_providers()` — prints all providers with rate limits
@@ -143,10 +150,7 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
   - Bridges terminological gaps (e.g., "cancellation clause" also retrieves "illusory promise")
 - `compute_confidence(query, docs)` returns mean cosine similarity between query and doc embeddings
 - `load_passages_to_chroma(csv_path, max_passages=0)` loads passages with batch progress reporting
-- Singletons: `get_vectorstore()`, `get_memory_store()`, `get_embeddings()`, `get_cross_encoder()` all cached
-- QA Memory (separate `qa_memory` collection, cosine distance, same ChromaDB persist dir):
-  - `check_memory(query, threshold=0.92)` — returns cached answer if near-exact match found
-  - `write_to_memory(question, answer, confidence)` — stores QA pair with timestamp
+- Singletons: `get_vectorstore()`, `get_embeddings()`, `get_cross_encoder()` all cached
 
 ### Evaluation
 
@@ -163,6 +167,8 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
   - Full pipeline execution trace (classify → plan → execute → verify)
   - MC correctness check and trace summary table (Steps, Verified, Confidence columns)
   - `--save` flag dumps case study JSON to `case_studies/`
+- `eval/eval_qa.py` — Parallel QA evaluation on N randomly sampled bar exam questions (fixed seed). Supports `--parallel N` and `--continue` (resume from log file).
+- `eval/eval_baseline.py` — Direct LLM baseline (bypasses RAG pipeline entirely). Measures raw LLM accuracy for comparison. Supports `--continue`.
 - `eval/eval_reranker.py` — A/B comparison of bi-encoder-only vs cross-encoder reranking
 - `load_corpus.py` — Load passage corpus: `uv run python load_corpus.py [count|status|curated]`
 
@@ -195,11 +201,9 @@ With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B (via Google AI Studio):
 - **LLM calls**: multi_hop MC = 11 (classify + plan + 3x[rewrite + synthesize] + 3x replan + mc_select). multi_hop non-MC = 10 (no mc_select). simple = 4 (classify + plan + rewrite + synthesize).
 - **Passage diversity: 100%** on every query. Cross-step `exclude_ids` working.
 - **Citation format**: `[Query X][Source Y]` with `### Step N: {phase}` headers in aggregated answer.
-- **Memory writeback**: MC selection stripped from cache, write threshold 0.70.
 - **Verifier removed**: Was always passing (8/8). Saves 1 LLM call/query. Skill file retained for future use.
 
 **Operational notes:**
-- QA memory cache cleared automatically at eval start (eval/eval_trace.py and eval/eval_comprehensive.py)
 - Connection errors during replanner retry via `_llm_call` and fall back to `complete` on persistent failure
 - `SKIP_INJECTION_CHECK=1` saves 1 LLM call per query (recommended for eval runs)
 
@@ -225,7 +229,7 @@ See `docs/pipeline_flags.md` for the full audit with severity ratings, evidence,
 - **Full corpus size "686K"**: From original dataset description. Actual `barexam_qa_train.csv` row count not recently verified.
 - **Source-diverse retrieval mode**: `SOURCE_DIVERSE_RETRIEVAL=1` not tested with gte-large-en-v1.5. May need recalibration.
 - **`eval/eval_reranker.py`**: A/B comparison not run recently. Results may differ with current embeddings.
-- **Provider registry "19 providers"**: Count may have drifted. Run `uv run python llm_config.py` to verify.
+- **Provider registry "21 providers"**: Count may drift as providers are added. Run `uv run python llm_config.py` to verify.
 
 ## WSL Setup
 

@@ -2,7 +2,7 @@
 
 ## What This System Does
 
-This is an agentic legal research pipeline. Given a legal question — often a multiple-choice bar exam question — it autonomously plans what to research, retrieves evidence from a corpus of ~686K bar exam passages, synthesizes cited answers, evaluates its own confidence, and adaptively decides what to research next. The entire process is orchestrated as a 9-node LangGraph state machine.
+This is an agentic legal research pipeline. Given a legal question — often a multiple-choice bar exam question — it autonomously plans what to research, retrieves evidence from a corpus of ~686K bar exam passages, synthesizes cited answers, evaluates its own confidence, and adaptively decides what to research next. The entire process is orchestrated as an 8-node LangGraph state machine.
 
 The key insight: instead of retrieving passages once and hoping the right ones appear, the system runs multiple rounds of targeted research. Each round focuses on a different angle of the legal question, and each round's retrieval is informed by what prior rounds already found.
 
@@ -14,8 +14,7 @@ flowchart TD
     DPI -->|safe| CLASSIFY[ClassifyAndRoute]
     DPI -->|adversarial| OBS
     CLASSIFY --> PLAN[PlanSynthesis]
-    PLAN -->|memory hit| MWB[MemoryWriteBack]
-    PLAN -->|no hit| EXEC[ExecutePlan]
+    PLAN --> EXEC[ExecutePlan]
 
     subgraph EXEC_SUB [Executor — per step]
         QR[QueryRewrite + MultiQuery] --> RET[RetrieveEvidence]
@@ -29,8 +28,7 @@ flowchart TD
     EVAL -->|simple done / limit / ≥3 steps / stagnation| VA[MC Select]
     REPLAN -->|next_step / retry| EXEC
     REPLAN -->|complete| VA
-    VA --> MWB
-    MWB --> OBS[Observability]
+    VA --> OBS[Observability]
     OBS --> DONE
 
     style DPI fill:#4CAF50,color:#fff
@@ -42,11 +40,10 @@ flowchart TD
     style VA fill:#4CAF50,color:#fff
     style RET fill:#2196F3,color:#fff
     style EVAL fill:#FF9800,color:#fff
-    style MWB fill:#9C27B0,color:#fff
     style OBS fill:#607D8B,color:#fff
 ```
 
-**Legend**: Green = LLM skill call, Blue = retrieval (ChromaDB), Orange = evaluation logic, Purple = memory, Grey = observability
+**Legend**: Green = LLM skill call, Blue = retrieval (ChromaDB), Orange = evaluation logic, Grey = observability
 
 **LLM call budget**: multi_hop MC = 11, multi_hop non-MC = 10, simple = 4. Injection check adds 1 when enabled.
 
@@ -274,9 +271,7 @@ The LLM reasons through each option:
 
 *LLM calls: 11 total*
 
-### Step 13: Cache and Finish → `memory_writeback_node` → `observability_node`
-
-The memory node caches the research for future use. Average confidence (0.773) exceeds the write threshold (0.70), so the answer is written to QA memory. Critically, **only the research is cached** — the MC selection block (`**Answer: (C)**...`) is stripped before caching. If the same question is asked again, the MC selection will re-run fresh against the cached research rather than blindly returning a stale letter.
+### Step 13: Finish → `observability_node`
 
 The observability node prints run metrics: 11 LLM calls, 3 steps completed, 0 failed, 73.7 seconds, MC correct.
 
@@ -362,12 +357,11 @@ MC-specific guidance in the skill:
 **Skill**: `plan_synthesis.md` (~200 words). Produces a JSON array of plan steps (fields: `step_id`, `phase`, `question`).
 
 **Decision criteria**:
-1. **Memory check first**: Queries `qa_memory` collection (cosine similarity >= 0.92). On hit, short-circuits to memory_writeback with cached answer. No LLM call spent.
-2. **MC isolation**: Strips `\n\nAnswer choices:` block from objective before planning. The planner researches legal concepts, not MC options.
-3. **Step truncation for multi_hop**: Even if the LLM produces multiple steps, only step 1 is kept. The replanner generates subsequent steps adaptively based on what step 1 finds.
-4. **Simple queries**: Take whatever the LLM produces (typically 1 step).
+1. **MC isolation**: Strips `\n\nAnswer choices:` block from objective before planning. The planner researches legal concepts, not MC options.
+2. **Step truncation for multi_hop**: Even if the LLM produces multiple steps, only step 1 is kept. The replanner generates subsequent steps adaptively based on what step 1 finds.
+3. **Simple queries**: Take whatever the LLM produces (typically 1 step).
 
-**Routing**: memory hit → memory_writeback, no hit → executor.
+**Routing**: Fixed → executor.
 
 **Observed behavior**: For MC torts ("battery claim against Guard"), the planner produces step 1: "What is the definition of battery and the required intent?" — a clean, unbiased legal question that doesn't mention answer choices.
 
@@ -492,33 +486,17 @@ The MC response is appended to the final answer after a `\n\n---\n\n` separator.
 
 **Non-MC questions**: Pass through with no LLM call.
 
-**Routing**: Fixed → memory_writeback (always).
+**Routing**: Fixed → observability.
 
 **Observed behavior**: MC accuracy 4-5/6 depending on run. Torts, contracts, evidence, real property consistently correct. Crimlaw consistently wrong (Gemma 27B misapplies elements). Constlaw varies.
 
 ---
 
-### 8. memory_writeback_node
-
-**Purpose**: Cache successful answers for future retrieval.
-
-**Write criteria**:
-- Average confidence across completed steps >= 0.70
-- Answer must exist and not be a failure message
-- Verification must have passed (always true currently)
-- Answer didn't come from cache (no re-writing what's already cached)
-
-**MC stripping**: Before writing, strips the MC selection block (text after last `\n\n---\n\n` containing `**Answer:`). Only the research portion is cached. This prevents stale MC letter answers — the MC selection re-runs fresh each time.
-
-**Routing**: Fixed → observability.
-
----
-
-### 9. observability_node
+### 8. observability_node
 
 **Purpose**: Aggregate and print run metrics before termination.
 
-Prints: total LLM calls, input/output chars, parse failures, iteration count, steps completed/failed/pending, query type, memory hit status, has_answer, injection_safe.
+Prints: total LLM calls, input/output tokens, parse failures, iteration count, steps completed/failed/pending, query type, has_answer, injection_safe.
 
 **Routing**: Fixed → END.
 
@@ -570,7 +548,7 @@ AgentState:
   iteration_count: int                 # Cycle counter for loop guard (max 4)
   injection_check: Dict[str, Any]     # {"is_safe": bool, "reasoning": str}
   verification_result: Dict[str, Any]  # {"is_verified": bool, ...} — always True (verifier removed)
-  memory_hit: Dict[str, Any]           # {"found": bool, "answer": str, "confidence": float}
+  initial_balance: Dict[str, Any]      # DeepSeek API spend tracking
   run_metrics: Dict[str, Any]          # Aggregated metrics from observability node
 ```
 
@@ -596,7 +574,7 @@ Design principle: **principles and output format only; hard rules only when nece
 
 ## Current Issues
 
-See `pipeline_flags.md` for the full audit. Summary of open items:
+See `docs/pipeline_flags.md` for the full audit. Summary of open items:
 
 ### Bugs
 

@@ -39,6 +39,7 @@ Systematic audit of yellow/red flags across the codebase. Each flag has severity
 - **Problem**: Cached full answer including MC letter selection. Write threshold 0.45 (everything qualifies).
 - **Fix**: Strip MC selection (`**Answer: (X)**` block) before caching. Raise write threshold to 0.70.
 - **Result**: MC selection re-runs fresh each time. Only high-confidence answers cached.
+- **Note**: QA memory system was subsequently removed entirely from the pipeline.
 
 ### F7. Silent exception swallowing (was R3)
 - **Problem**: 6 instances of `except Exception: pass` in source-diverse retrieval paths.
@@ -75,7 +76,7 @@ Systematic audit of yellow/red flags across the codebase. Each flag has severity
 - **Status**: Low priority
 
 ### Y9. Graph rebuilds per query in eval_trace.py
-- **File**: `eval_trace.py` `trace_full_pipeline()`
+- **File**: `eval/eval_trace.py` `trace_full_pipeline()`
 - **Evidence**: `build_graph()` called inside the function. 8 compilations vs 1.
 - **Impact**: Milliseconds. Not meaningful vs 60-80s of LLM calls.
 - **Recommendation**: Low priority. Move `build_graph()` to `main()` and pass app as arg.

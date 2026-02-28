@@ -57,18 +57,17 @@ uv run python main.py medium       # Preliminary injunction standard
 
 ## Architecture
 
-Nine-node LangGraph state machine with adaptive replanning, injection detection, MC answer selection, and QA memory.
+Eight-node LangGraph state machine with adaptive replanning, injection detection, and MC answer selection.
 
 ![LangGraph Pipeline](graph.png)
 
 - **Injection Check**: Screens for adversarial prompts (skippable via `SKIP_INJECTION_CHECK=1`)
 - **Classifier**: Routes queries as `simple` (1 step, 4 LLM calls) or `multi_hop` (adaptive steps, 10-11 calls)
-- **Planner**: Checks QA memory cache first (cosine >= 0.92), then generates initial research step. Strips MC answer choices before planning.
+- **Planner**: Generates initial research step. Strips MC answer choices before planning.
 - **Executor**: Per step — rewrites query into primary + 2 alternatives, multi-query retrieves from ChromaDB (with cross-step dedup), synthesizes answer with inline `[Query X][Source N]` citations
 - **Evaluator**: Checks confidence against threshold (`EVAL_CONFIDENCE_THRESHOLD`, default 0.70). Accumulates step summaries for replanner.
 - **Replanner**: (multi_hop only) Adaptively adds research steps based on accumulated evidence. Hard cap: 3 completed steps.
 - **MC Select**: For MC questions, applies accumulated research to select answer letter. Non-MC passes through.
-- **Memory**: Caches answers (confidence >= 0.70) for future retrieval. Strips MC selection before caching.
 - **Observability**: Prints run metrics (LLM calls, confidence, steps, timing).
 
 ### Skills (7 prompt files in `skills/`)
@@ -109,9 +108,9 @@ MC accuracy: 4/6. 100% passage diversity across all steps.
 ## Project Structure
 
 ```
-main.py               # LangGraph pipeline (9 nodes, routing, state)
-rag_utils.py           # Embeddings, ChromaDB, retrieval, reranker, memory
-llm_config.py          # Provider registry (19 providers), LLM singleton
+main.py               # LangGraph pipeline (8 nodes, routing, state)
+rag_utils.py           # Embeddings, ChromaDB, retrieval, reranker
+llm_config.py          # Provider registry (21 providers), LLM singleton
 load_corpus.py         # Load passages into ChromaDB
 download_data.py       # Download dataset from HuggingFace
 skills/                # 7 markdown prompt files (~1700 words total)
@@ -125,8 +124,6 @@ logs/                  # Eval output logs (.txt files)
 docs/                  # Internal reference documentation
   ARCHITECTURE.md      # Full node reference, case studies, state schema
   pipeline_flags.md    # Known issues audit with severity ratings
-  EXPERIMENT_LOG.md    # History of changes and eval results
-  DIAGNOSIS.md         # Early retrieval failure analysis
 case_studies/          # JSON traces from eval_trace.py --save
 archive/               # Old skill designs (not used by pipeline)
 ```
