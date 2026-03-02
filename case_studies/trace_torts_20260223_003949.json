@@ -1,0 +1,137 @@
+{
+  "label": "trace_torts",
+  "subject": "TORTS",
+  "question": "In the course of a bank holdup, Robber fired a gun at Guard. Guard drew his revolver and returned the fire. One of the bullets fired by Guard ricocheted, striking Plaintiff. If Plaintiff asserts a claim against Guard based upon battery, will Plaintiff prevail?",
+  "gold_idx": "mbe_571",
+  "correct_answer": "C",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.6916546274079265,
+    "mq_conf": 0.7815330240772845,
+    "rewrite": {
+      "primary": "battery negligence transferred intent proximate cause intervening criminal act self-defense tort liability",
+      "alternatives": [
+        "intentional torts unlawful touching assault battery defenses reasonable force duty of care",
+        "civil liability firearm discharge ricochet negligence standard of care foreseeable harm tort claim"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What is the definition of battery and what is required for a plaintiff to prevail on a battery claim?",
+        "status": "completed",
+        "optimized_query": "battery tort intentional tort harmful or offensive contact plaintiff prevailing elements damages causation",
+        "retrieved_doc_ids": [
+          "mbe_542",
+          "mbe_2278",
+          "mbe_583",
+          "caselaw_12692192_72",
+          "mbe_1625"
+        ],
+        "confidence": 0.8268970378995624,
+        "passage_previews": [
+          "The elements of a civil battery claim in California are: \u201c(1) defendant intentionally performed an act that resulted in ",
+          "Battery requires (i) an act by the defendant that brings about harmful or offensive contact to the plaintiff's person, (",
+          "\u201cThe elements of civil battery are: (1) defendant intentionally performed an act that resulted in a harmful or offensive",
+          "In the context of Louisiana delictual law, the intentional tort of \"battery\" is \"[a] harmful or offensive contact with a",
+          "The prima facie case for battery has the following elements: (i) an act by the defendant that brings about harmful or of"
+        ],
+        "answer": "**Rule**: Battery is an intentional tort involving harmful or offensive contact with another person [Source 2] [Source 3] [Source 5].\n\n**Elements**: To prevail on a battery claim, a plaintiff must demonstrate: (1) the defendant intentionally performed an act resulting in a harmful or offensive contact with the plaintiff\u2019s person; (2) the plaintiff did not consent to the contact; and (3) the contact caused injury, damage, loss, or harm [Source 1] [Source 3]. \n\n**Factors**: A plaintiff must also prove unreasonable force [Source 1]. The defendant must intend to bring about the contact, with substantial certainty that a harmful or offensive contact will result [Source 2] [Source 5].\n\n**Defenses**: Consent is an absolute defense to a battery claim [Source 4].\n\n## Sources\n- **Source 1**: Elements of battery in California, requirement of unreasonable force.\n- **Source 2**: General elements of battery, intent requirement.\n- **Source 3**: Restatement of battery elements, citing case law.\n- **Source 4**: Louisiana law on battery and assault, consent as a defense.\n- **Source 5**: Prima facie case for battery."
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Defense to Battery",
+        "question": "What legal defenses are available to a defendant in a battery claim, specifically self-defense and defense of others?",
+        "status": "completed",
+        "optimized_query": "battery intentional tort self-defense defense of others reasonable force proportionate response imminent threat",
+        "retrieved_doc_ids": [
+          "mbe_1720",
+          "caselaw_12521513_40",
+          "caselaw_12564328_7",
+          "caselaw_12692192_72",
+          "mbe_1871"
+        ],
+        "confidence": 0.7748178258673564,
+        "passage_previews": [
+          "The issue in this question is the type of force one may use in self-defense, and whether retreat is necessary. Generally",
+          "We previously noted that common law assault under Maryland law is an attempted battery or the intentional placing of a v",
+          "\u00b66 The jury convicted on the lesser included offenses of second degree intentional homicide and attempted second degree ",
+          "In the context of Louisiana delictual law, the intentional tort of \"battery\" is \"[a] harmful or offensive contact with a",
+          "The requisite intent for intentional torts (such as battery) is satisfied if the actor knows with substantial certainty "
+        ],
+        "answer": "The evidence discusses self-defense as a potential defense to a battery claim [Source 1] [Source 3]. Generally, a person without fault may use reasonable force to protect themselves from imminent unlawful force [Source 1]. There is no duty to retreat before using nondeadly force [Source 1]. In Wisconsin, an \u201cactual belief\u201d that one was in imminent danger, and that the force used was necessary for defense, can serve as a defense, even if those beliefs were not reasonable \u2013 termed \u201cunnecessary defensive force\u201d [Source 3]. \n\nThe evidence also mentions consent as a defense, stating it is an \u201cabsolute defense\u201d in a sexual assault case and a bar to recovery for intentional infliction of harmful or offensive touching [Source 4]. Additionally, one may use reasonable force to prevent a tort against their property, but only if preceded by a request to desist [Source 5]. The evidence does not address the defense of others.\n\n## Sources\n- **Source 1**: Self-defense generally, no duty to retreat.\n- **Source 3**: Wisconsin\u2019s \u201cunnecessary defensive force\u201d (imperfect self-defense)\n- **Source 4**: Consent as a defense to battery and related torts.\n- **Source 5**: Defense of property with a prior request to desist."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Transferred Intent Analysis",
+        "question": "What is the doctrine of transferred intent, and how does it apply to cases involving ricocheting bullets?",
+        "status": "completed",
+        "optimized_query": "transferred intent doctrine criminal law attempt malice aforethought ricochet bullet proximate cause",
+        "retrieved_doc_ids": [
+          "mbe_1881",
+          "mbe_520",
+          "mbe_503",
+          "mbe_2103",
+          "mbe_1332"
+        ],
+        "confidence": 0.7752990683742966,
+        "passage_previews": [
+          "Murder is the unlawful killing of another human being with malice aforethought. Malice aforethought exists when the defe",
+          "The doctrine of transferred intent is a theory of imputed liability. It was developed to address situations where a defe",
+          "Thus, malice aforethought is the \u201cgrand criterion\u201d which elevates a homicide, which may be innocent or criminal, to murd",
+          "Murder is the unlawful killing of a human being with malice aforethought. Malice aforethought is present if the defendan",
+          "At common law, murder is the unlawful killing of a human being with malice aforethought. \"Malice aforethought\" exists if"
+        ],
+        "answer": "**Rule**: The doctrine of transferred intent is a theory of imputed liability [Source 2].\n\n**Application**: This doctrine addresses situations where a defendant intends to harm one person (A) but accidentally harms another (B) [Source 2]. Without this doctrine, a defendant who intended murder could avoid responsibility for killing the wrong person [Source 2]. Instead, the intent to kill A is \u201ctransferred or imputed\u201d to victim B [Source 2]. \n\nThe evidence does not address whether the doctrine of transferred intent applies specifically to cases involving ricocheting bullets.\n\n## Sources\n- **Source 1**: Definition of murder and malice aforethought.\n- **Source 2**: Explanation of the doctrine of transferred intent.\n- **Source 3**: Discussion of malice aforethought and types of murder.\n- **Source 4**: Causation and duty to act in homicide cases.\n- **Source 5**: Elements of murder and the defense of duress."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What is the definition of battery and what is required for a plaintiff to prevail on a battery claim?",
+        "answer": "**Rule**: Battery is an intentional tort involving harmful or offensive contact with another person [Source 2] [Source 3] [Source 5].\n\n**Elements**: To prevail on a battery claim, a plaintiff must demonstrate: (1) the defendant intentionally performed an act resulting in a harmful or offensive conta...",
+        "confidence": 0.8268970378995624,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "What legal defenses are available to a defendant in a battery claim, specifically self-defense and defense of others?",
+        "answer": "The evidence discusses self-defense as a potential defense to a battery claim [Source 1] [Source 3]. Generally, a person without fault may use reasonable force to protect themselves from imminent unlawful force [Source 1]. There is no duty to retreat before using nondeadly force [Source 1]. In Wisco...",
+        "confidence": 0.7748178258673564,
+        "status": "completed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What is the doctrine of transferred intent, and how does it apply to cases involving ricocheting bullets?",
+        "answer": "**Rule**: The doctrine of transferred intent is a theory of imputed liability [Source 2].\n\n**Application**: This doctrine addresses situations where a defendant intends to harm one person (A) but accidentally harms another (B) [Source 2]. Without this doctrine, a defendant who intended murder could ...",
+        "confidence": 0.7752990683742966,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "**Rule**: Battery is an intentional tort involving harmful or offensive contact with another person [Source 2] [Source 3] [Source 5].\n\n**Elements**: To prevail on a battery claim, a plaintiff must demonstrate: (1) the defendant intentionally performed an act resulting in a harmful or offensive contact with the plaintiff\u2019s person; (2) the plaintiff did not consent to the contact; and (3) the contact caused injury, damage, loss, or harm [Source 1] [Source 3]. \n\n**Factors**: A plaintiff must also prove unreasonable force [Source 1]. The defendant must intend to bring about the contact, with substantial certainty that a harmful or offensive contact will result [Source 2] [Source 5].\n\n**Defenses**: Consent is an absolute defense to a battery claim [Source 4].\n\n## Sources\n- **Source 1**: Elements of battery in California, requirement of unreasonable force.\n- **Source 2**: General elements of battery, intent requirement.\n- **Source 3**: Restatement of battery elements, citing case law.\n- **Source 4**: Louisiana law on battery and assault, consent as a defense.\n- **Source 5**: Prima facie case for battery.\n\n---\n\nThe evidence discusses self-defense as a potential defense to a battery claim [Source 1] [Source 3]. Generally, a person without fault may use reasonable force to protect themselves from imminent unlawful force [Source 1]. There is no duty to retreat before using nondeadly force [Source 1]. In Wisconsin, an \u201cactual belief\u201d that one was in imminent danger, and that the force used was necessary for defense, can serve as a defense, even if those beliefs were not reasonable \u2013 termed \u201cunnecessary defensive force\u201d [Source 3]. \n\nThe evidence also mentions consent as a defense, stating it is an \u201cabsolute defense\u201d in a sexual assault case and a bar to recovery for intentional infliction of harmful or offensive touching [Source 4]. Additionally, one may use reasonable force to prevent a tort against their property, but only if preceded by a request to desist [Source 5]. The evidence does not address the defense of others.\n\n## Sources\n- **Source 1**: Self-defense generally, no duty to retreat.\n- **Source 3**: Wisconsin\u2019s \u201cunnecessary defensive force\u201d (imperfect self-defense)\n- **Source 4**: Consent as a defense to battery and related torts.\n- **Source 5**: Defense of property with a prior request to desist.\n\n---\n\n**Rule**: The doctrine of transferred intent is a theory of imputed liability [Source 2].\n\n**Application**: This doctrine addresses situations where a defendant intends to harm one person (A) but accidentally harms another (B) [Source 2]. Without this doctrine, a defendant who intended murder could avoid responsibility for killing the wrong person [Source 2]. Instead, the intent to kill A is \u201ctransferred or imputed\u201d to victim B [Source 2]. \n\nThe evidence does not address whether the doctrine of transferred intent applies specifically to cases involving ricocheting bullets.\n\n## Sources\n- **Source 1**: Definition of murder and malice aforethought.\n- **Source 2**: Explanation of the doctrine of transferred intent.\n- **Source 3**: Discussion of malice aforethought and types of murder.\n- **Source 4**: Causation and duty to act in homicide cases.\n- **Source 5**: Elements of murder and the defense of duress.\n\n---\n\n**Answer: (C)**\nReasoning: (A) is incorrect because the research does not mention accomplice liability as a factor in a battery claim. (B) is incorrect because while the research defines transferred intent, it does not apply it to the facts or suggest it would allow Plaintiff to prevail. (C) is correct because the research states a person may use reasonable force in self-defense, and if Guard fired reasonably in his own defense, that would negate liability. (D) is incorrect because the research states intent to bring about contact with substantial certainty is required for battery, not necessarily intent to shoot the specific plaintiff.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "suggested_query": "",
+      "reasoning": "The answer correctly states the elements of battery and relevant factors like intent and unreasonable force, all supported by the provided evidence. It also correctly identifies consent as a defense. The evidence also discusses self-defense, which is relevant to the scenario, and the answer accurately reflects this. No contradictions or fabricated rules are present."
+    },
+    "is_verified": true,
+    "avg_confidence": 0.7923379773804052
+  },
+  "mc_result": {
+    "correct": true,
+    "method": "letter_match",
+    "details": "answer explicitly selects C"
+  },
+  "metrics": {
+    "elapsed_sec": 61.0,
+    "total_llm_calls": 12,
+    "steps_completed": 3,
+    "steps_failed": 0
+  }
+}

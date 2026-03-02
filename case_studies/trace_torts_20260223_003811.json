@@ -1,0 +1,40 @@
+{
+  "label": "trace_torts",
+  "subject": "TORTS",
+  "question": "In the course of a bank holdup, Robber fired a gun at Guard. Guard drew his revolver and returned the fire. One of the bullets fired by Guard ricocheted, striking Plaintiff. If Plaintiff asserts a claim against Guard based upon battery, will Plaintiff prevail?",
+  "gold_idx": "mbe_571",
+  "correct_answer": "C",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.6916546274079265,
+    "mq_conf": 0.7815330240772845,
+    "rewrite": {
+      "primary": "battery negligence transferred intent proximate cause intervening criminal act self-defense tort liability",
+      "alternatives": [
+        "intentional torts unlawful force harmful contact duty of care reasonable person standard",
+        "assault battery civil liability criminal act defense of others ricochet injury causation"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [],
+    "accumulated_context": [],
+    "final_answer": "**Rule**: A civil battery occurs when a defendant intentionally performs an act resulting in harmful or offensive contact with the plaintiff\u2019s person [Source 1] [Source 2] [Source 3] [Source 4] [Source 5].\n\n**Elements**: The elements of a battery claim are: (1) the defendant intentionally performed an act that resulted in a harmful or offensive contact with the plaintiff\u2019s person; (2) the plaintiff did not consent to the contact; and (3) the harmful or offensive contact caused injury, damage, loss or harm to the plaintiff [Source 1] [Source 2].  The defendant must intend to bring about such contact, or know with substantial certainty that a harmful or offensive contact will result from their action [Source 3] [Source 5]. Causation is also required [Source 3] [Source 4] [Source 5].\n\n**Application**:  The evidence does not provide facts to apply these elements to a specific scenario.\n\n**Gap**: The evidence does not address potential defenses to a battery claim.\n\n## Sources\n- **Source 1**: Defines the elements of a civil battery claim in California.\n- **Source 2**: Restates the elements of civil battery, citing further case law.\n- **Source 3**: Details the requirements of battery, including intent and causation.\n- **Source 4**: Lists the prima facie case elements for battery.\n- **Source 5**: Explains the intent requirement and the doctrine of transferred intent in battery cases.\n\n---\n\n**Rule**: Generally, a person who is without fault may use reasonable force to protect themselves from imminent unlawful force [Source 1].\n\n**Elements/Factors**: Self-defense does not require retreat before using nondeadly force [Source 1].  A belief that deadly force is necessary to prevent imminent death or great bodily harm may give rise to a presumption of reasonableness, particularly when defending oneself within an occupied vehicle [Source 3].  However, a belief need not be reasonable to negate malice, constituting \u201cimperfect self-defense\u201d [Source 5].\n\n**Exceptions/Defenses**:  \u201cUnnecessary defensive force\u201d or imperfect self-defense applies when a person intentionally causes death believing they were in imminent danger, even if that belief was not reasonable [Source 2]. The defense of necessity allows interference with another\u2019s property to avoid a more serious threatened injury [Source 4]. \n\n**Gap**: The evidence does not address the specific requirements for a defense of others claim, only self-defense.\n\n## Sources\n- **Source 1**: Discusses the general right to self-defense and the lack of a duty to retreat.\n- **Source 2**: Defines \u201cUnnecessary defensive force\u201d (imperfect self-defense) under Wisconsin law.\n- **Source 3**: Details a self-defense presumption related to occupied vehicles in Kansas.\n- **Source 4**: Explains the defense of necessity regarding property interference.\n- **Source 5**: Defines and explains \u201cimperfect self-defense\u201d and its effect on malice.\n\n---\n\n**Rule**: The doctrine of transferred intent applies when a defendant intends to commit a tort against one person but instead commits a different tort against that person, or harms an unintended victim [Source 1] [Source 3].\n\n**Elements**: The doctrine operates as a theory of imputed liability, allowing the intent to commit one tort to be \u201ctransferred\u201d to another [Source 3]. Specifically, intent to commit assault (apprehension of contact) can satisfy the intent requirement for battery if contact occurs [Source 2]. The defendant must have intended to cause harmful or offensive contact, though malice or intent to inflict actual damage is not required [Source 5].\n\n**Application**: If a defendant intends to harm A but accidentally harms B, the intent to harm A is transferred to B, and the defendant can be held liable for the harm to B [Source 3] [Source 4]. This applies even if the defendant initially intended only to cause apprehension of contact (assault), which can then suffice for battery liability [Source 2]. \n\n**Gap**: The evidence does not address whether transferred intent applies to all torts, or only those closely related like assault and battery.\n\n\n\n## Sources\n- **Source 1**: Defines transferred intent and its application to assault and battery.\n- **Source 2**: Outlines the elements of battery and how transferred intent satisfies the intent requirement.\n- **Source 3**: Explains the rationale behind transferred intent as a theory of imputed liability, using a murder example.\n- **Source 4**: Provides an example of transferred intent in a shooting scenario.\n- **Source 5**: Defines battery and assault in Louisiana law and discusses the role of intent and consent.\n\n---\n\n**Answer: (B)**\nReasoning: The research explicitly states the doctrine of transferred intent applies when a defendant intends to commit a tort against one person but harms an unintended victim, which is precisely the scenario presented\u2014Guard intended to harm Robber but harmed Plaintiff. Choice (A) is unsupported as the research does not mention accomplice liability. Choice (C) is potentially relevant, but the research notes a gap regarding defenses to battery, so it cannot be definitively selected. Choice (D) is incorrect because transferred intent allows liability even without intending to shoot the plaintiff, as the intent to shoot the original target is \u201ctransferred.\u201d",
+    "verification": {},
+    "is_verified": null,
+    "avg_confidence": 0.0
+  },
+  "mc_result": {
+    "correct": false,
+    "method": "letter_match",
+    "details": "answer selects B, correct is C"
+  },
+  "metrics": {
+    "elapsed_sec": 3.5,
+    "total_llm_calls": 1,
+    "steps_completed": 0,
+    "steps_failed": 0
+  }
+}

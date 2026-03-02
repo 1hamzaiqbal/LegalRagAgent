@@ -1,0 +1,72 @@
+{
+  "label": "trace_oof",
+  "subject": "OUT_OF_CORPUS",
+  "question": "What are the requirements for obtaining asylum in the United States?",
+  "gold_idx": "",
+  "correct_answer": "",
+  "query_type": "simple",
+  "retrieval": {
+    "raw_recall": null,
+    "mq_recall": null,
+    "raw_conf": 0.6646718670191383,
+    "mq_conf": 0.7275241118402391,
+    "rewrite": {
+      "primary": "asylum eligibility refugee status persecution well-founded fear convention against torture political opinion",
+      "alternatives": [
+        "immigration asylum affirmative asylum credible fear deportation protection withholding of removal",
+        "INA section 208 asylum requirements past persecution future persecution statutory definition refugee"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What are the statutory and regulatory requirements for a person to be granted asylum in the United States?",
+        "status": "completed",
+        "optimized_query": "asylum eligibility statutory requirements 8 U.S.C. \u00a7 1101(a)(42) refugee status persecution well-founded fear",
+        "retrieved_doc_ids": [
+          "caselaw_12626322_12",
+          "caselaw_12521879_16",
+          "caselaw_12520009_11",
+          "caselaw_12626322_197",
+          "caselaw_12521317_26"
+        ],
+        "confidence": 0.7167697707302746,
+        "passage_previews": [
+          "If the asylum officer finds an applicant's asserted fear to be credible, the applicant will receive \"full consideration\"",
+          "To establish a \"reasonable likelihood\" that he is entitled to asylum relief, the movant must \"merely show[ ] a realistic",
+          "An application for asylum must be \"filed within 1 year after the date of the alien's arrival in the United States.\" 8 U.",
+          "But it is the Court's directionality requirement that bucks tradition. Respondent asks merely to be freed from wrongful ",
+          "Before this court, Fabian does not challenge the denial of his request for asylum under INA \u00a7 208(a), 8 U.S.C. \u00a7 1158(a)"
+        ],
+        "answer": "To be granted asylum in the United States, an applicant must demonstrate a well-founded fear of persecution [Source 2]. This requires showing a fear of persecution on account of race, religion, nationality, membership in a particular social group, or political opinion [Source 2]. Additionally, the applicant must demonstrate a \u201creasonable possibility\u201d of suffering persecution if returned to their native country [Source 2], and be unable or unwilling to avail themselves of protection from that country [Source 2]. A past persecution on a protected ground creates a rebuttable presumption of a well-founded fear of future persecution [Source 2].\n\nAn application for asylum must generally be filed within one year of the alien\u2019s arrival in the United States [Source 3]. However, exceptions exist for \u201cextraordinary circumstances\u201d relating to the delay [Source 3]. Maintaining lawful, non-immigrant status can constitute an extraordinary circumstance, but the application must be filed within a reasonable time after that status expires [Source 3]. Waiting \u201csix months or longer\u201d after the expiration of lawful status may be considered unreasonable [Source 3]. \n\nIf an asylum officer finds an applicant\u2019s fear credible, the claim receives full consideration in a removal hearing [Source 1]. An applicant found not to have a credible fear can appeal to an immigration judge for a *de novo* determination [Source 1].\n\n## Sources\n- **Source 1**: Process after initial asylum officer determination.\n- **Source 2**: Elements of a well-founded fear of persecution.\n- **Source 3**: One-year filing deadline and exceptions."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What are the statutory and regulatory requirements for a person to be granted asylum in the United States?",
+        "answer": "To be granted asylum in the United States, an applicant must demonstrate a well-founded fear of persecution [Source 2]. This requires showing a fear of persecution on account of race, religion, nationality, membership in a particular social group, or political opinion [Source 2]. Additionally, the a...",
+        "confidence": 0.7167697707302746,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "### Step 1: Rule Identification\n\nTo be granted asylum in the United States, an applicant must demonstrate a well-founded fear of persecution [Query 1][Source 2]. This requires showing a fear of persecution on account of race, religion, nationality, membership in a particular social group, or political opinion [Query 1][Source 2]. Additionally, the applicant must demonstrate a \u201creasonable possibility\u201d of suffering persecution if returned to their native country [Query 1][Source 2], and be unable or unwilling to avail themselves of protection from that country [Query 1][Source 2]. A past persecution on a protected ground creates a rebuttable presumption of a well-founded fear of future persecution [Query 1][Source 2].\n\nAn application for asylum must generally be filed within one year of the alien\u2019s arrival in the United States [Query 1][Source 3]. However, exceptions exist for \u201cextraordinary circumstances\u201d relating to the delay [Query 1][Source 3]. Maintaining lawful, non-immigrant status can constitute an extraordinary circumstance, but the application must be filed within a reasonable time after that status expires [Query 1][Source 3]. Waiting \u201csix months or longer\u201d after the expiration of lawful status may be considered unreasonable [Query 1][Source 3]. \n\nIf an asylum officer finds an applicant\u2019s fear credible, the claim receives full consideration in a removal hearing [Query 1][Source 1]. An applicant found not to have a credible fear can appeal to an immigration judge for a *de novo* determination [Query 1][Source 1].\n\n## Sources\n- **Source 1**: Process after initial asylum officer determination.\n- **Source 2**: Elements of a well-founded fear of persecution.\n- **Source 3**: One-year filing deadline and exceptions.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "reasoning": "Auto-pass (verifier removed)"
+    },
+    "is_verified": true,
+    "avg_confidence": 0.7167697707302746
+  },
+  "mc_result": null,
+  "metrics": {
+    "elapsed_sec": 23.4,
+    "total_llm_calls": 4,
+    "steps_completed": 1,
+    "steps_failed": 0
+  }
+}

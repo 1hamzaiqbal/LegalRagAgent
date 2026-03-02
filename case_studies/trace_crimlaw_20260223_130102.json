@@ -1,0 +1,136 @@
+{
+  "label": "trace_crimlaw",
+  "subject": "CRIM. LAW",
+  "question": "In which of the following cases is Morrow most likely to be convicted if she is charged with receiving stolen property?",
+  "gold_idx": "mbe_492",
+  "correct_answer": "B",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.7097575473153156,
+    "mq_conf": 0.7231905611356931,
+    "rewrite": {
+      "primary": "receiving stolen property mens rea knowledge of theft intent good faith purchase defense",
+      "alternatives": [
+        "criminal receipt stolen goods knowingly concealing unlawful possession larceny conversion",
+        "theft by receiving penal code elements reasonable diligence due care bona fide purchaser"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What are the elements of the crime of receiving stolen property?",
+        "status": "completed",
+        "optimized_query": "receiving stolen property mens rea scienter knowledge of theft criminal intent elements prosecution",
+        "retrieved_doc_ids": [
+          "mbe_1220",
+          "mbe_1223",
+          "mbe_648",
+          "mbe_1687",
+          "mbe_1802"
+        ],
+        "confidence": 0.7366626041608629,
+        "passage_previews": [
+          "One commits the crime of receipt of stolen property by receiving possession and control of \"stolen\" personal property, k",
+          "Receipt of stolen property requires that defendant receive possession and control of stolen personal property knowing it",
+          "The elements of theft by trick and device are: \u201c(1) the obtaining of the possession of the property of another by some t",
+          "At common law, burglary was the breaking and entering of the dwelling house of another at nighttime with the intent to c",
+          "Larceny requires a specific intent to steal. A statute that closely resembles a traditional common law offense requiring"
+        ],
+        "answer": "**Rule**: A person commits the crime of receiving stolen property by taking possession of stolen property with a specific mental state [Source 1].\n\n**Elements**: (1) Receiving possession and control of \u201cstolen\u201d personal property; (2) knowing the property was obtained in a manner constituting a criminal offense by another person; and (3) intending to permanently deprive the owner of their interest in the property [Source 1] [Source 2].\n\n**Mental State**: The required mental state \u2013 knowing the property was stolen and intending to deprive the owner \u2013 must coincide with the physical act of receiving the property [Source 2]. A later decision to keep the property does not satisfy this requirement [Source 2].\n\n## Sources\n- **Source 1**: Definition and core elements of receiving stolen property.\n- **Source 2**: Requirement of concurrence between mental state and physical act."
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Mental State Analysis",
+        "question": "What mental states satisfy the requirement of 'knowing the property was obtained in a manner constituting a crime' for receiving stolen property?",
+        "status": "completed",
+        "optimized_query": "receiving stolen property mens rea knowledge of criminal origin good faith purchase statutory definition",
+        "retrieved_doc_ids": [
+          "mbe_1475",
+          "caselaw_12687882_35",
+          "mbe_2292",
+          "mbe_1252",
+          "mbe_272"
+        ],
+        "confidence": 0.712725982334409,
+        "passage_previews": [
+          "Whether installed in good faith or not, in the absence of a statute, trespassers' annexations on the property of another",
+          "La. C.C. art. 3481 provides: \"Good faith is presumed. Neither error of fact nor error of law defeats this presumption. T",
+          "When a grantor purports to convey property that he does not own, his subsequent acquisition of title to that property ve",
+          "At common law, theft by false pretenses occurs when a defendant (i) obtains title; (ii) to the property of another; (iii",
+          "The general larceny statute, G.L. c. 266, \u00a7 30, merges into one statutory crime \u201cthree common-law crimes of \u2018stealing\u2019 \u201d"
+        ],
+        "answer": "The evidence does not directly address the mental state required for receiving stolen property. However, it discusses knowledge of ownership in the context of possession and theft [Source 2] [Source 4].\n\n**Rule**: Louisiana Civil Code article 3481 establishes a presumption of good faith [Source 2].\n\n**Elements**: This presumption is rebutted when the possessor knows, or should know, that they are not the owner of the property [Source 2]. \n\nIn the context of theft by false pretenses, a defendant must obtain title with a *knowing* false statement of fact and with the intent to defraud [Source 4]. The evidence indicates that larceny encompasses theft by false pretense [Source 5].\n\n## Sources\n- **Source 2**: Presumption of good faith possession and its rebuttal based on knowledge.\n- **Source 4**: Elements of theft by false pretenses, including a \u201cknowing\u201d false statement.\n- **Source 5**: Larceny encompassing theft by false pretenses."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Mental State Analysis",
+        "question": "What level of awareness regarding the stolen nature of property constitutes 'knowing' for the purposes of receiving stolen property, and are there any defenses related to good faith belief in lawful ownership?",
+        "status": "completed",
+        "optimized_query": "receiving stolen property mens rea knowledge intent good faith defense reasonable care criminal statute",
+        "retrieved_doc_ids": [
+          "caselaw_12542989_2",
+          "caselaw_12530033_178",
+          "mbe_2224",
+          "mbe_1727",
+          "mbe_1796"
+        ],
+        "confidence": 0.7131083181122966,
+        "passage_previews": [
+          "Background. On January 13, 2017, a Suffolk County grand jury returned three indictments charging the defendant, Mila Dep",
+          "As set out above, \"[a] person is guilty of theft if he unlawfully takes, or exercises unlawful control over, movable pro",
+          "Robbery requires an intent to permanently deprive the victim of her property. An intent to recover property that the def",
+          "Although the exact state statutes may vary, larceny typically involves (i) the unlawful taking (ii) of the property of a",
+          "Generally, it is not a defense to a crime that the accused was unaware that her acts were prohibited by the criminal law"
+        ],
+        "answer": "The evidence does not directly address the level of awareness required to constitute \u201cknowing\u201d receipt of stolen property. However, it states that for theft, there must be an intent to deprive the owner of property [Source 2]. \n\nRegarding defenses, generally, ignorance of the law is not a defense to a crime [Source 5]. However, reliance on an erroneous official statement of the law *can* be a defense [Source 5]. Additionally, if reasonable reliance on advice of counsel negates the required state of mind for a crime, it may be a defense [Source 5]. Mistake regarding the scope of the law does not negate the required state of mind [Source 5].\n\n## Sources\n- **Source 2**: Defines theft and the required intent.\n- **Source 5**: Discusses defenses related to ignorance of the law and reliance on official statements or counsel."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What are the elements of the crime of receiving stolen property?",
+        "answer": "**Rule**: A person commits the crime of receiving stolen property by taking possession of stolen property with a specific mental state [Source 1].\n\n**Elements**: (1) Receiving possession and control of \u201cstolen\u201d personal property; (2) knowing the property was obtained in a manner constituting a crimi...",
+        "confidence": 0.7366626041608629,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "What mental states satisfy the requirement of 'knowing the property was obtained in a manner constituting a crime' for receiving stolen property?",
+        "answer": "The evidence does not directly address the mental state required for receiving stolen property. However, it discusses knowledge of ownership in the context of possession and theft [Source 2] [Source 4].\n\n**Rule**: Louisiana Civil Code article 3481 establishes a presumption of good faith [Source 2].\n...",
+        "confidence": 0.712725982334409,
+        "status": "completed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What level of awareness regarding the stolen nature of property constitutes 'knowing' for the purposes of receiving stolen property, and are there any defenses related to good faith belief in lawful ownership?",
+        "answer": "The evidence does not directly address the level of awareness required to constitute \u201cknowing\u201d receipt of stolen property. However, it states that for theft, there must be an intent to deprive the owner of property [Source 2]. \n\nRegarding defenses, generally, ignorance of the law is not a defense to...",
+        "confidence": 0.7131083181122966,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "### Step 1: Rule Identification\n\n**Rule**: A person commits the crime of receiving stolen property by taking possession of stolen property with a specific mental state [Query 1][Source 1].\n\n**Elements**: (1) Receiving possession and control of \u201cstolen\u201d personal property; (2) knowing the property was obtained in a manner constituting a criminal offense by another person; and (3) intending to permanently deprive the owner of their interest in the property [Query 1][Source 1] [Query 1][Source 2].\n\n**Mental State**: The required mental state \u2013 knowing the property was stolen and intending to deprive the owner \u2013 must coincide with the physical act of receiving the property [Query 1][Source 2]. A later decision to keep the property does not satisfy this requirement [Query 1][Source 2].\n\n## Sources\n- **Source 1**: Definition and core elements of receiving stolen property.\n- **Source 2**: Requirement of concurrence between mental state and physical act.\n\n---\n\n### Step 2: Mental State Analysis\n\nThe evidence does not directly address the mental state required for receiving stolen property. However, it discusses knowledge of ownership in the context of possession and theft [Query 2][Source 2] [Query 2][Source 4].\n\n**Rule**: Louisiana Civil Code article 3481 establishes a presumption of good faith [Query 2][Source 2].\n\n**Elements**: This presumption is rebutted when the possessor knows, or should know, that they are not the owner of the property [Query 2][Source 2]. \n\nIn the context of theft by false pretenses, a defendant must obtain title with a *knowing* false statement of fact and with the intent to defraud [Query 2][Source 4]. The evidence indicates that larceny encompasses theft by false pretense [Query 2][Source 5].\n\n## Sources\n- **Source 2**: Presumption of good faith possession and its rebuttal based on knowledge.\n- **Source 4**: Elements of theft by false pretenses, including a \u201cknowing\u201d false statement.\n- **Source 5**: Larceny encompassing theft by false pretenses.\n\n---\n\n### Step 3: Mental State Analysis\n\nThe evidence does not directly address the level of awareness required to constitute \u201cknowing\u201d receipt of stolen property. However, it states that for theft, there must be an intent to deprive the owner of property [Query 3][Source 2]. \n\nRegarding defenses, generally, ignorance of the law is not a defense to a crime [Query 3][Source 5]. However, reliance on an erroneous official statement of the law *can* be a defense [Query 3][Source 5]. Additionally, if reasonable reliance on advice of counsel negates the required state of mind for a crime, it may be a defense [Query 3][Source 5]. Mistake regarding the scope of the law does not negate the required state of mind [Query 3][Source 5].\n\n## Sources\n- **Source 2**: Defines theft and the required intent.\n- **Source 5**: Discusses defenses related to ignorance of the law and reliance on official statements or counsel.\n\n---\n\n**Answer: (D)**\nReasoning:\n**(A)** Morrow was told the car was stolen by Aster, but Aster is an undercover agent. While Morrow knew the car was stolen, Aster\u2019s status as an agent acting with police cooperation could potentially negate Morrow\u2019s intent to permanently deprive the *true* owner of the car, as the \u201ccriminal offense\u201d aspect is mitigated by police involvement. This creates doubt about element (2) and (3).\n**(B)** Similar to (A), Ball told Morrow the car was stolen, but Eames\u2019s involvement as an undercover agent complicates the \u201ccriminal offense\u201d element (2). Eames feigned cooperation, but this doesn\u2019t necessarily mean Morrow knew a crime was being committed in the traditional sense.\n**(C)** Cooper told Morrow the car was stolen and was apprehended by police while selling it. This is similar to (A) and (B) \u2013 the police involvement complicates the \u201ccriminal offense\u201d element (2). Morrow\u2019s knowledge that the car was stolen doesn\u2019t automatically equate to knowledge that a completed criminal act occurred.\n**(D)** Dixon *told* Morrow the car was stolen, but Dixon actually owned the car and committed insurance fraud. Morrow knew the car was reported stolen, satisfying element (2) \u2013 knowing the property was obtained in a manner constituting a criminal offense (insurance fraud). Morrow\u2019s intent to permanently deprive the owner (Dixon, or the insurance company) is satisfied by the purchase. The presumption of good faith is rebutted because Morrow knew, or should have known, she wasn\u2019t the rightful owner. This choice most clearly establishes all three elements of receiving stolen property.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "reasoning": "Auto-pass (verifier removed)"
+    },
+    "is_verified": true,
+    "avg_confidence": 0.7208323015358561
+  },
+  "mc_result": {
+    "correct": false,
+    "method": "letter_match",
+    "details": "answer selects D, correct is B"
+  },
+  "metrics": {
+    "elapsed_sec": 68.5,
+    "total_llm_calls": 11,
+    "steps_completed": 3,
+    "steps_failed": 0
+  }
+}

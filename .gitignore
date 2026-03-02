@@ -1,0 +1,23 @@
+# Data (downloaded via download_data.py, large)
+datasets/
+barexam_qa/passages
+barexam_qa/qa
+
+# Vector store (rebuilt via load_corpus.py)
+chroma_db/
+
+# Environment
+.env
+venv/
+.venv/
+__pycache__/
+
+# Lock file (allows flexible dependency resolution per platform)
+uv.lock
+
+# Personal notes
+agentic_ideas/
+
+# Editor
+*~
+*.swp

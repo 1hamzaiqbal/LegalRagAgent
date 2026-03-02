@@ -1,0 +1,137 @@
+{
+  "label": "trace_evidence",
+  "subject": "EVIDENCE",
+  "question": "Which of the following items of evidence is LEAST likely to be admitted without a supporting witness?",
+  "gold_idx": "mbe_575",
+  "correct_answer": "C",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.7372311227083925,
+    "mq_conf": 0.7924039506943098,
+    "rewrite": {
+      "primary": "hearsay exception business records exception ancient document exception state of mind exception inadmissible evidence",
+      "alternatives": [
+        "best evidence rule authentication requirement secondary evidence original document required proof",
+        "evidence admissibility foundation witness testimony direct evidence circumstantial evidence probative value"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What are the rules regarding hearsay evidence and its exceptions?",
+        "status": "completed",
+        "optimized_query": "hearsay evidence admissibility exceptions declarant unavailability prior inconsistent statement business records",
+        "retrieved_doc_ids": [
+          "mbe_1365",
+          "mbe_1758",
+          "mbe_29",
+          "mbe_2175",
+          "mbe_2248"
+        ],
+        "confidence": 0.8089237421847331,
+        "passage_previews": [
+          "The past recollection recorded exception to the hearsay rule is one of a class of hearsay exceptions that do not require",
+          "Related to the exception to the hearsay rule for public records and other official writings, Federal Rule of Evidence 80",
+          "\u201cHearsay is an out of court, unsworn, oral or written statement by a third person, which is offered for the truth of its",
+          "Hearsay is a statement, other than one made by the declarant while testifying at the trial or hearing, offered in eviden",
+          "Statements made by hearsay declarants can be impeached to the same extent as those of an in-court witness; thus, a state"
+        ],
+        "answer": "**Rule**: Hearsay is an out-of-court statement offered to prove the truth of the matter asserted and is generally inadmissible [Source 3] [Source 4].\n\n**Elements**: A statement qualifies as hearsay if it is (1) not made by the declarant while testifying, and (2) offered to prove the truth of its content [Source 4].\n\n**Exceptions**: Several exceptions exist where hearsay is admissible. These include: (1) past recollection recorded, which requires a foundation demonstrating the witness once had personal knowledge, the writing was made or adopted by the witness, was timely made, is accurate, and the witness now has insufficient recollection [Source 1]; (2) public records, where a custodian\u2019s certification of diligent search and failure to find a record is admissible [Source 2]; and (3) statements against interest, but only if the declarant is unavailable [Source 3] [Source 4].  \n\n**Unavailability**: A declarant is unavailable when they cannot or will not appear to testify [Source 3]. Unavailability is only required for *certain* hearsay exceptions [Source 4]. \n\n## Sources\n- **Source 1**: Past recollection recorded exception \u2013 foundation requirements.\n- **Source 2**: Public records hearsay exception \u2013 certification and self-authentication.\n- **Source 3**: Definition of hearsay and unavailability, statement against interest exception.\n- **Source 4**: General definition of hearsay, inadmissibility, exceptions, and effect on the hearer.\n- **Source 5**: Impeachment of hearsay declarants and prior inconsistent statements."
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Evidence Admissibility",
+        "question": "What types of documentary evidence are commonly considered 'self-authenticating' under the Federal Rules of Evidence, and therefore less reliant on witness testimony for admission?",
+        "status": "completed",
+        "optimized_query": "Federal Rules of Evidence 902 self-authentication documentary evidence admissibility authentication witness testimony",
+        "retrieved_doc_ids": [
+          "mbe_619",
+          "mbe_575",
+          "mbe_104",
+          "mbe_42",
+          "mbe_1993"
+        ],
+        "confidence": 0.7682518815964905,
+        "passage_previews": [
+          "To satisfy the requirement under Rule 901(a) of the Federal Rules of Evidence that all evidence be authenticated or iden",
+          "In order to be admissible at trial, a document must be authenticated. Generally, authentication requires competent testi",
+          "The rules of evidence provide that an item is properly authenticated or identified by \u201cevidence sufficient to support a ",
+          "Rule 701 requires that lay witness opinion testimony be \u201crationally based on the perception of the witness.\u201d See F.R.E. ",
+          "The Federal Rules permit witnesses qualified as experts to testify in the form of an opinion if the subject matter is on"
+        ],
+        "answer": "Under the Federal Rules of Evidence, a document must be authenticated to be admissible at trial, generally requiring competent testimony [Source 2]. However, certain documents are considered \u201cself-authenticating\u201d under Federal Rule of Evidence 902 and do not require additional testimony [Source 2]. \n\nTo satisfy authentication requirements generally, the proponent of evidence must offer evidence supporting a finding that the item is what they claim it is [Source 1]. Authentication can be achieved through testimony stating an item is what it is claimed to be [Source 1] [Source 3], or by considering the item\u2019s appearance, contents, or other characteristics alongside all surrounding circumstances [Source 1]. \n\nThe authentication requirement is \u201crarely onerous,\u201d and can often be met with a single sentence indicating the document\u2019s apparent authenticity [Source 2].\n\n\n\n## Sources\n- **Source 1**: Methods of authentication under Rule 901, including testimony, appearance, and processes.\n- **Source 2**: Self-authenticating documents under Rule 902 and general authentication requirements.\n- **Source 3**: Testimony authenticating items as what they are claimed to be."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Evidence Admissibility",
+        "question": "What evidentiary rules govern the admissibility of business records, and what requirements must be met to admit them without a sponsoring witness?",
+        "status": "completed",
+        "optimized_query": "business records exception hearsay rule authentication admission without sponsoring witness recordkeeping requirements Federal Rules of Evidence 803(6)",
+        "retrieved_doc_ids": [
+          "mbe_2",
+          "mbe_235",
+          "caselaw_12576974_9",
+          "caselaw_12508311_34",
+          "mbe_1892"
+        ],
+        "confidence": 0.7921305249165136,
+        "passage_previews": [
+          "Before a document may be received in evidence, it must meet a number of foundational requirements including: relevancy, ",
+          "A record created by a third party which is adopted by a business may be admitted under the business record exception to ",
+          "[W]hen a court relies on Rule 803(b) (24), sua sponte or at the urging of counsel, for admission of hearsay evidence not",
+          "Federal Rule of Evidence 806 precedes and is the prototype for N.J.R.E. 806, upon which the trial judge properly relied.",
+          "Hearsay is defined under the Federal Rules as \"a statement, other than one made by the declarant while testifying at the"
+        ],
+        "answer": "**Rule**: Business records are generally considered hearsay, but statutes may allow their admission despite this [Source 1].\n\n**Elements**: To admit business records under \u00a7 490.680, the following must be met: (1) testimony from a custodian or qualified witness regarding the record\u2019s identity and mode of preparation [Source 1]; (2) the record was made in the regular course of business, at or near the time of the event [Source 1]; and (3) the sources of information, method, and time of preparation justify admission in the court\u2019s opinion [Source 1]. All requirements must be satisfied [Source 1].\n\n**Exceptions**: Records created by a third party may be admissible if the business procured the record in the normal course of business, relied on the record, and other circumstances indicate trustworthiness [Source 2]. When admitting hearsay evidence under Rule 803(b), the court must state its basis for determining trustworthiness, probative value, and necessity on the record [Source 3].\n\n## Sources\n- **Source 1**: Admissibility of business records under \u00a7 490.680, foundational requirements for evidence.\n- **Source 2**: Admissibility of third-party records adopted by a business.\n- **Source 3**: Court\u2019s obligation when admitting hearsay evidence under Rule 803(b).\n- **Source 4**: Federal Rule of Evidence 806 and its application to prior convictions.\n- **Source 5**: Definition of hearsay and exception for contemporaneous statements."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What are the rules regarding hearsay evidence and its exceptions?",
+        "answer": "**Rule**: Hearsay is an out-of-court statement offered to prove the truth of the matter asserted and is generally inadmissible [Source 3] [Source 4].\n\n**Elements**: A statement qualifies as hearsay if it is (1) not made by the declarant while testifying, and (2) offered to prove the truth of its con...",
+        "confidence": 0.8089237421847331,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "What types of documentary evidence are commonly considered 'self-authenticating' under the Federal Rules of Evidence, and therefore less reliant on witness testimony for admission?",
+        "answer": "Under the Federal Rules of Evidence, a document must be authenticated to be admissible at trial, generally requiring competent testimony [Source 2]. However, certain documents are considered \u201cself-authenticating\u201d under Federal Rule of Evidence 902 and do not require additional testimony [Source 2]. ...",
+        "confidence": 0.7682518815964905,
+        "status": "completed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What evidentiary rules govern the admissibility of business records, and what requirements must be met to admit them without a sponsoring witness?",
+        "answer": "**Rule**: Business records are generally considered hearsay, but statutes may allow their admission despite this [Source 1].\n\n**Elements**: To admit business records under \u00a7 490.680, the following must be met: (1) testimony from a custodian or qualified witness regarding the record\u2019s identity and mo...",
+        "confidence": 0.7921305249165136,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "**Rule**: Hearsay is an out-of-court statement offered to prove the truth of the matter asserted and is generally inadmissible [Source 3] [Source 4].\n\n**Elements**: A statement qualifies as hearsay if it is (1) not made by the declarant while testifying, and (2) offered to prove the truth of its content [Source 4].\n\n**Exceptions**: Several exceptions exist where hearsay is admissible. These include: (1) past recollection recorded, which requires a foundation demonstrating the witness once had personal knowledge, the writing was made or adopted by the witness, was timely made, is accurate, and the witness now has insufficient recollection [Source 1]; (2) public records, where a custodian\u2019s certification of diligent search and failure to find a record is admissible [Source 2]; and (3) statements against interest, but only if the declarant is unavailable [Source 3] [Source 4].  \n\n**Unavailability**: A declarant is unavailable when they cannot or will not appear to testify [Source 3]. Unavailability is only required for *certain* hearsay exceptions [Source 4]. \n\n## Sources\n- **Source 1**: Past recollection recorded exception \u2013 foundation requirements.\n- **Source 2**: Public records hearsay exception \u2013 certification and self-authentication.\n- **Source 3**: Definition of hearsay and unavailability, statement against interest exception.\n- **Source 4**: General definition of hearsay, inadmissibility, exceptions, and effect on the hearer.\n- **Source 5**: Impeachment of hearsay declarants and prior inconsistent statements.\n\n---\n\nUnder the Federal Rules of Evidence, a document must be authenticated to be admissible at trial, generally requiring competent testimony [Source 2]. However, certain documents are considered \u201cself-authenticating\u201d under Federal Rule of Evidence 902 and do not require additional testimony [Source 2]. \n\nTo satisfy authentication requirements generally, the proponent of evidence must offer evidence supporting a finding that the item is what they claim it is [Source 1]. Authentication can be achieved through testimony stating an item is what it is claimed to be [Source 1] [Source 3], or by considering the item\u2019s appearance, contents, or other characteristics alongside all surrounding circumstances [Source 1]. \n\nThe authentication requirement is \u201crarely onerous,\u201d and can often be met with a single sentence indicating the document\u2019s apparent authenticity [Source 2].\n\n\n\n## Sources\n- **Source 1**: Methods of authentication under Rule 901, including testimony, appearance, and processes.\n- **Source 2**: Self-authenticating documents under Rule 902 and general authentication requirements.\n- **Source 3**: Testimony authenticating items as what they are claimed to be.\n\n---\n\n**Rule**: Business records are generally considered hearsay, but statutes may allow their admission despite this [Source 1].\n\n**Elements**: To admit business records under \u00a7 490.680, the following must be met: (1) testimony from a custodian or qualified witness regarding the record\u2019s identity and mode of preparation [Source 1]; (2) the record was made in the regular course of business, at or near the time of the event [Source 1]; and (3) the sources of information, method, and time of preparation justify admission in the court\u2019s opinion [Source 1]. All requirements must be satisfied [Source 1].\n\n**Exceptions**: Records created by a third party may be admissible if the business procured the record in the normal course of business, relied on the record, and other circumstances indicate trustworthiness [Source 2]. When admitting hearsay evidence under Rule 803(b), the court must state its basis for determining trustworthiness, probative value, and necessity on the record [Source 3].\n\n## Sources\n- **Source 1**: Admissibility of business records under \u00a7 490.680, foundational requirements for evidence.\n- **Source 2**: Admissibility of third-party records adopted by a business.\n- **Source 3**: Court\u2019s obligation when admitting hearsay evidence under Rule 803(b).\n- **Source 4**: Federal Rule of Evidence 806 and its application to prior convictions.\n- **Source 5**: Definition of hearsay and exception for contemporaneous statements.\n\n---\n\n**Answer: (A)**\nReasoning:\n(A) In a libel action, a copy of a newspaper purporting to be published by Defendant Newspaper Publishing Company. \u2013 This is the least likely to be admitted without a supporting witness. While a newspaper itself isn\u2019t necessarily hearsay, offering it to prove the *truth* of the libelous statements *within* the newspaper is hearsay. Authentication requires proof the defendant actually published it. The research states authentication generally requires testimony. While appearance/contents *can* be considered, a newspaper is easily fabricated, making authentication without testimony less certain.\n(B) In a case involving contaminated food, a can label purporting to identify the canner as Defendant Company. \u2013 A can label is likely self-authenticating or easily authenticated with minimal testimony. The label\u2019s appearance and contents strongly suggest it\u2019s what it claims to be.\n(C) In a defamation case, a document purporting to be a memorandum from the Defendant Company president to \"All Personnel,\" printed on Defendant's letterhead. \u2013 A company memo on letterhead is readily authenticated by its appearance and contents. It\u2019s highly likely a court would find it authentic with minimal supporting testimony.\n(D) In a case involving injury to a pedestrian, a pamphlet on stopping distances issued by the State Highway Department. \u2013 This pamphlet is likely a public record and potentially self-authenticating. Even if not self-authenticating, it\u2019s easily authenticated by its source (State Highway Department) and content, requiring minimal testimony.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "suggested_query": "",
+      "reasoning": "The question asks which item is *least* likely to be admitted without a supporting witness. All options involve documents offered to prove the truth of the matter asserted (i.e., hearsay). The passages consistently emphasize the need for authentication, often through witness testimony. However, some documents are 'self-authenticating' or fall under exceptions like public records (requiring a custodian's certification). Option (D), the pamphlet from the State Highway Department, is most likely to be considered a published record and potentially self-authenticating or easily authenticated with minimal testimony. The others \u2013 a newspaper, can label, and company memo \u2013 are more reliant on establishing their origin and authenticity through a witness. Therefore, the answer correctly identifies the pamphlet as the least likely to require a witness."
+    },
+    "is_verified": true,
+    "avg_confidence": 0.789768716232579
+  },
+  "mc_result": {
+    "correct": true,
+    "method": "text_match",
+    "details": "answer contains correct choice text"
+  },
+  "metrics": {
+    "elapsed_sec": 98.3,
+    "total_llm_calls": 12,
+    "steps_completed": 3,
+    "steps_failed": 0
+  }
+}

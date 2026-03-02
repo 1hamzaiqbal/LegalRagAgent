@@ -1,0 +1,137 @@
+{
+  "label": "trace_crimlaw",
+  "subject": "CRIM. LAW",
+  "question": "In which of the following cases is Morrow most likely to be convicted if she is charged with receiving stolen property?",
+  "gold_idx": "mbe_492",
+  "correct_answer": "B",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.7097575473153156,
+    "mq_conf": 0.7231905611356931,
+    "rewrite": {
+      "primary": "receiving stolen property mens rea knowledge of theft intent good faith purchase defense",
+      "alternatives": [
+        "criminal receipt stolen goods knowingly concealing unlawful possession larceny conversion",
+        "theft by receiving statutory offense reasonable care due diligence bona fide purchaser"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What are the elements of the crime of receiving stolen property?",
+        "status": "completed",
+        "optimized_query": "receiving stolen property mens rea scienter knowledge of theft criminal intent elements prosecution",
+        "retrieved_doc_ids": [
+          "mbe_1220",
+          "mbe_1223",
+          "mbe_648",
+          "mbe_1687",
+          "mbe_1802"
+        ],
+        "confidence": 0.7366626041608629,
+        "passage_previews": [
+          "One commits the crime of receipt of stolen property by receiving possession and control of \"stolen\" personal property, k",
+          "Receipt of stolen property requires that defendant receive possession and control of stolen personal property knowing it",
+          "The elements of theft by trick and device are: \u201c(1) the obtaining of the possession of the property of another by some t",
+          "At common law, burglary was the breaking and entering of the dwelling house of another at nighttime with the intent to c",
+          "Larceny requires a specific intent to steal. A statute that closely resembles a traditional common law offense requiring"
+        ],
+        "answer": "**Rule**: A person commits the crime of receiving stolen property by taking possession of stolen property with a specific mental state [Source 1].\n\n**Elements**: (1) Receiving possession and control of \u201cstolen\u201d personal property; (2) knowing the property was obtained in a manner constituting a criminal offense by another person; and (3) intending to permanently deprive the owner of their interest in the property [Source 1] [Source 2].\n\n**Mental State**: The required mental state \u2013 knowing the property was stolen and intending to deprive the owner \u2013 must coincide with the physical act of receiving the property [Source 2]. A later decision to keep the property does not satisfy this requirement [Source 2].\n\n## Sources\n- **Source 1**: Definition and core elements of receiving stolen property.\n- **Source 2**: Requirement of concurrence between mental state and physical act."
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Mental State Analysis",
+        "question": "What mental states satisfy the requirement of 'knowing the property was obtained in a manner constituting a crime' for receiving stolen property?",
+        "status": "completed",
+        "optimized_query": "receiving stolen property mens rea knowledge of criminal origin good faith purchase statutory definition",
+        "retrieved_doc_ids": [
+          "mbe_1220",
+          "mbe_1223",
+          "mbe_1475",
+          "mbe_1687",
+          "caselaw_12687882_35"
+        ],
+        "confidence": 0.7410570094137835,
+        "passage_previews": [
+          "One commits the crime of receipt of stolen property by receiving possession and control of \"stolen\" personal property, k",
+          "Receipt of stolen property requires that defendant receive possession and control of stolen personal property knowing it",
+          "Whether installed in good faith or not, in the absence of a statute, trespassers' annexations on the property of another",
+          "At common law, burglary was the breaking and entering of the dwelling house of another at nighttime with the intent to c",
+          "La. C.C. art. 3481 provides: \"Good faith is presumed. Neither error of fact nor error of law defeats this presumption. T"
+        ],
+        "answer": "**Rule**: The crime of receipt of stolen property requires the defendant to receive possession and control of stolen personal property with a specific mental state [Source 1].\n\n**Mental State**: To be convicted, a defendant must *know* the property was obtained in a manner constituting a criminal offense [Source 1]. This knowledge must coincide with the physical act of receiving the property; a later decision to keep stolen property does not satisfy the mental state requirement [Source 2]. \n\nThe evidence does not address whether good faith or lack of awareness of the property\u2019s stolen status impacts liability [Source 5]. The evidence also does not address whether a defendant \u201cshould know\u201d the property was stolen [Source 5].\n\n## Sources\n- **Source 1**: Definition of receipt of stolen property and the required mental state.\n- **Source 2**: Concurrence of mental state and physical act required for the crime.\n- **Source 5**: Presumption of good faith and rebuttal based on knowledge or what one should know regarding ownership."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Case Specifics",
+        "question": "What constitutes 'knowing' possession of stolen property in the context of recent case law?",
+        "status": "completed",
+        "optimized_query": "criminal law \"knowing possession\" stolen property mens rea recent cases statutory definition",
+        "retrieved_doc_ids": [
+          "mbe_1220",
+          "mbe_1223",
+          "caselaw_12695920_17",
+          "mbe_272",
+          "caselaw_12545743_34"
+        ],
+        "confidence": 0.7476545096342233,
+        "passage_previews": [
+          "One commits the crime of receipt of stolen property by receiving possession and control of \"stolen\" personal property, k",
+          "Receipt of stolen property requires that defendant receive possession and control of stolen personal property knowing it",
+          "The Fourth District held that the evidence was insufficient to convict Garcia, notwithstanding his presence in the van a",
+          "The general larceny statute, G.L. c. 266, \u00a7 30, merges into one statutory crime \u201cthree common-law crimes of \u2018stealing\u2019 \u201d",
+          "\u00b6 25 \" 'Knowledge and possession are factual issues, and the trier of fact's findings on these questions will not be dis"
+        ],
+        "answer": "**Rule**: A crime is committed when one receives possession and control of stolen personal property [Source 1].\n\n**Elements**: To be convicted of receipt of stolen property, a defendant must (1) receive possession and control of stolen personal property, (2) *know* the property was stolen by another person, and (3) intend to permanently deprive the owner of the property [Source 2]. This requires a concurrence of the mental state and the physical act [Source 2].\n\n**Determination of Knowledge**: Questions of knowledge and possession are factual issues determined by the trier of fact, and will not be disturbed unless the evidence is unbelievable or contrary to the verdict [Source 5]. \n\n**Exclusive Possession**: The state must prove the defendant had exclusive possession and the ability to exercise dominion and control over the property; mere proximity is insufficient [Source 3].\n\n## Sources\n- **Source 1**: Defines the crime of receipt of stolen property.\n- **Source 2**: Details the required mental state (\"knowing\") and intent for receipt of stolen property.\n- **Source 3**: Addresses the requirement of exclusive possession.\n- **Source 4**: Discusses general larceny statutes and related crimes.\n- **Source 5**: Explains the standard of review for factual findings regarding knowledge and possession."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What are the elements of the crime of receiving stolen property?",
+        "answer": "**Rule**: A person commits the crime of receiving stolen property by taking possession of stolen property with a specific mental state [Source 1].\n\n**Elements**: (1) Receiving possession and control of \u201cstolen\u201d personal property; (2) knowing the property was obtained in a manner constituting a crimi...",
+        "confidence": 0.7366626041608629,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "What mental states satisfy the requirement of 'knowing the property was obtained in a manner constituting a crime' for receiving stolen property?",
+        "answer": "**Rule**: The crime of receipt of stolen property requires the defendant to receive possession and control of stolen personal property with a specific mental state [Source 1].\n\n**Mental State**: To be convicted, a defendant must *know* the property was obtained in a manner constituting a criminal of...",
+        "confidence": 0.7410570094137835,
+        "status": "completed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What constitutes 'knowing' possession of stolen property in the context of recent case law?",
+        "answer": "**Rule**: A crime is committed when one receives possession and control of stolen personal property [Source 1].\n\n**Elements**: To be convicted of receipt of stolen property, a defendant must (1) receive possession and control of stolen personal property, (2) *know* the property was stolen by another...",
+        "confidence": 0.7476545096342233,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "**Rule**: A person commits the crime of receiving stolen property by taking possession of stolen property with a specific mental state [Source 1].\n\n**Elements**: (1) Receiving possession and control of \u201cstolen\u201d personal property; (2) knowing the property was obtained in a manner constituting a criminal offense by another person; and (3) intending to permanently deprive the owner of their interest in the property [Source 1] [Source 2].\n\n**Mental State**: The required mental state \u2013 knowing the property was stolen and intending to deprive the owner \u2013 must coincide with the physical act of receiving the property [Source 2]. A later decision to keep the property does not satisfy this requirement [Source 2].\n\n## Sources\n- **Source 1**: Definition and core elements of receiving stolen property.\n- **Source 2**: Requirement of concurrence between mental state and physical act.\n\n---\n\n**Rule**: The crime of receipt of stolen property requires the defendant to receive possession and control of stolen personal property with a specific mental state [Source 1].\n\n**Mental State**: To be convicted, a defendant must *know* the property was obtained in a manner constituting a criminal offense [Source 1]. This knowledge must coincide with the physical act of receiving the property; a later decision to keep stolen property does not satisfy the mental state requirement [Source 2]. \n\nThe evidence does not address whether good faith or lack of awareness of the property\u2019s stolen status impacts liability [Source 5]. The evidence also does not address whether a defendant \u201cshould know\u201d the property was stolen [Source 5].\n\n## Sources\n- **Source 1**: Definition of receipt of stolen property and the required mental state.\n- **Source 2**: Concurrence of mental state and physical act required for the crime.\n- **Source 5**: Presumption of good faith and rebuttal based on knowledge or what one should know regarding ownership.\n\n---\n\n**Rule**: A crime is committed when one receives possession and control of stolen personal property [Source 1].\n\n**Elements**: To be convicted of receipt of stolen property, a defendant must (1) receive possession and control of stolen personal property, (2) *know* the property was stolen by another person, and (3) intend to permanently deprive the owner of the property [Source 2]. This requires a concurrence of the mental state and the physical act [Source 2].\n\n**Determination of Knowledge**: Questions of knowledge and possession are factual issues determined by the trier of fact, and will not be disturbed unless the evidence is unbelievable or contrary to the verdict [Source 5]. \n\n**Exclusive Possession**: The state must prove the defendant had exclusive possession and the ability to exercise dominion and control over the property; mere proximity is insufficient [Source 3].\n\n## Sources\n- **Source 1**: Defines the crime of receipt of stolen property.\n- **Source 2**: Details the required mental state (\"knowing\") and intent for receipt of stolen property.\n- **Source 3**: Addresses the requirement of exclusive possession.\n- **Source 4**: Discusses general larceny statutes and related crimes.\n- **Source 5**: Explains the standard of review for factual findings regarding knowledge and possession.\n\n---\n\n**Answer: (D)**\nReasoning: (A) is incorrect because Aster is an undercover agent, potentially negating the element of criminal offense by another person; (B) is incorrect because Eames\u2019 involvement as an undercover agent similarly complicates the element of criminal offense; (C) is incorrect because Cooper\u2019s cooperation with police after the theft also potentially negates the element of criminal offense; (D) is correct because Dixon explicitly told Morrow the car was stolen, demonstrating Morrow *knew* the property was obtained in a manner constituting a criminal offense (insurance fraud), and this knowledge coincided with the physical act of receiving the property, fulfilling all elements of the crime.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "suggested_query": "",
+      "reasoning": "The answer accurately states the elements of receiving stolen property (knowledge and intent coinciding with possession) as supported by the provided passages. It correctly identifies that Morrow's knowledge of the stolen status is key to conviction, and all answer choices involve Morrow being *told* the property was stolen. The passages do not offer a basis to differentiate between the scenarios presented in the answer choices, so the answer correctly focuses on the core legal principles."
+    },
+    "is_verified": true,
+    "avg_confidence": 0.7417913744029566
+  },
+  "mc_result": {
+    "correct": false,
+    "method": "letter_match",
+    "details": "answer selects D, correct is B"
+  },
+  "metrics": {
+    "elapsed_sec": 61.6,
+    "total_llm_calls": 12,
+    "steps_completed": 3,
+    "steps_failed": 0
+  }
+}

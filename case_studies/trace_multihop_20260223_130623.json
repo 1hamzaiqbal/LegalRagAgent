@@ -1,0 +1,132 @@
+{
+  "label": "trace_multihop",
+  "subject": "MULTI_HOP",
+  "question": "A consumer is injured by a defective product. Under what theories can the manufacturer be held liable, and what defenses are available?",
+  "gold_idx": "",
+  "correct_answer": "",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": null,
+    "mq_recall": null,
+    "raw_conf": 0.784740003908282,
+    "mq_conf": 0.8197955522667086,
+    "rewrite": {
+      "primary": "product liability strict liability negligence warranty breach design defect manufacturing defect failure to warn defenses",
+      "alternatives": [
+        "defective product negligence cause of action breach of warranty implied warranty merchantability privity",
+        "tort liability product defects risk-utility test foreseeable misuse assumption of risk contributory negligence"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What are the elements of a negligence claim against a manufacturer for a defective product?",
+        "status": "completed",
+        "optimized_query": "product liability negligence strict liability manufacturing defect design defect failure to warn duty of care",
+        "retrieved_doc_ids": [
+          "mbe_437",
+          "mbe_1801",
+          "mbe_287",
+          "mbe_357",
+          "mbe_1632"
+        ],
+        "confidence": 0.8375384369308211,
+        "passage_previews": [
+          "The doctrine of strict products liability imposes strict liability in tort on the manufacturer of a defective product an",
+          "To prevail on a negligence claim, a person must show negligent conduct by the manufacturer, leading to the supplying of ",
+          "A claim for strict products liability based on a design defect differs from a cause of action for a negligently designed",
+          "The elements for a strict-liability manufacture defect claim are the same as those for a design defect claim: (i) the pr",
+          "A products liability action based on strict liability requires: (i) a strict duty by a commercial supplier; (ii) product"
+        ],
+        "answer": "**Rule**: A negligence claim against a manufacturer requires showing negligent conduct leading to a dangerously defective product [Source 2]. This differs from strict products liability, which does not require proof of unreasonable conduct [Source 3].\n\n**Elements**: To prevail on a negligence claim, a plaintiff must demonstrate that the manufacturer\u2019s failure to exercise reasonable care resulted in a dangerously defective product [Source 2]. Res ipsa loquitur may establish this failure, as manufacturing defects typically indicate negligence [Source 2]. \n\n**Application**: Negligence by the product owner is foreseeable and does not relieve the manufacturer of liability for its own negligence [Source 2]. Strict liability claims for design defects focus on the product\u2019s safety, not the manufacturer\u2019s conduct [Source 3]. Both design and manufacturing defects require proof that the product was defective and unreasonably dangerous, the defect existed when it left the defendant\u2019s control, and the defect proximately caused the plaintiff\u2019s injuries [Source 4]. A product can be legally defective if it could be made safer with adequate warnings [Source 5].\n\n## Sources\n- **Source 1**: Strict products liability \u2013 defects, purpose, and chain of distribution.\n- **Source 2**: Elements of a negligence claim against a manufacturer.\n- **Source 3**: Distinction between negligence and strict liability for design defects.\n- **Source 4**: Elements of a strict liability claim for manufacturing and design defects.\n- **Source 5**: Elements of strict liability, defective products, and warnings."
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Strict Liability",
+        "question": "What are the elements of a strict products liability claim against a manufacturer for a defective product?",
+        "status": "completed",
+        "optimized_query": "strict products liability manufacturing defect design defect failure to warn negligence per se causation damages",
+        "retrieved_doc_ids": [
+          "mbe_1578",
+          "mbe_1589",
+          "mbe_2317",
+          "caselaw_12509567_179",
+          "mbe_2125"
+        ],
+        "confidence": 0.791517050945197,
+        "passage_previews": [
+          "One of the elements of a prima facie case for products liability based on strict liability is causation of some harm to ",
+          "To establish a prima facie case in products liability based on strict liability in tort, the following elements must be ",
+          "In a products liability action based on strict liability, the plaintiff need show only (i) an absolute duty owed by a co",
+          "When a plaintiff contends that a defectively designed medical device caused her injuries, the question of punitive damag",
+          "Manufacturers must foresee reasonably foreseeable misuses of a product, but a product manufacturer is not liable if the "
+        ],
+        "answer": "**Rule**: Strict products liability imposes liability on commercial suppliers for harm caused by defective products [Source 2] [Source 3].\n\n**Elements**: To establish a prima facie case, a plaintiff must prove: (1) a strict duty owed by a commercial supplier [Source 2] [Source 3]; (2) the production or sale of a defective product, which must be \u201cunreasonably dangerous\u201d [Source 2]; (3) actual and proximate cause between the defect and the harm [Source 1] [Source 2] [Source 3]; and (4) damages [Source 1] [Source 2] [Source 3].\n\n**Application**: In failure to warn cases, a plaintiff is entitled to a presumption that an adequate warning would have been read and heeded, though a jury can reject this presumption [Source 2]. Manufacturers must foresee reasonably foreseeable misuses of a product, but are not liable for unintended and unforeseeable misuses [Source 5]. \n\n## Sources\n- **Source 1**: Causation and damages element\n- **Source 2**: Elements of a strict products liability claim\n- **Source 3**: Restatement of elements, duty owed by commercial supplier\n- **Source 4**: Punitive damages in products liability\n- **Source 5**: Foreseeable misuse and lack of privity defense."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Breach of Warranty",
+        "question": "What are the different types of warranties (express and implied) that can be breached by a manufacturer of a defective product, and what are the requirements for establishing each?",
+        "status": "completed",
+        "optimized_query": "product liability warranties express warranty implied warranty merchantability fitness for particular purpose breach requirements disclaimers UCC 2-314",
+        "retrieved_doc_ids": [
+          "mbe_1941",
+          "mbe_1942",
+          "caselaw_12529697_183",
+          "caselaw_12530732_344",
+          "caselaw_12547293_27"
+        ],
+        "confidence": 0.7561137353289251,
+        "passage_previews": [
+          "An implied warranty of fitness for a particular purpose arises where a seller knows that the buyer is relying on the sel",
+          "An express warranty will arise from any statement of fact or promise. Mere puffery does not give rise to a warranty. An ",
+          "Section 5(h) provides as follows: \"The warranties and remedies set forth in this section 5 above are exclusive remedies ",
+          "The Court predicts that the Supreme Court of New Mexico would agree with Lieb v. Milne's implied-warranty-of-fitness ana",
+          "[15] Contrary to Farm Bureau's assertions, Indiana Code section 26-1-2-316 does not require the inclusion of the word \"m"
+        ],
+        "answer": "**Rule**: Warranties, both express and implied, can be breached by a manufacturer of defective products [Source 1, Source 2, Source 3].\n\n**Express Warranty**: An express warranty arises from any statement of fact or promise, but not from mere \u201cpuffery\u201d [Source 2].\n\n**Implied Warranty**: Two types of implied warranties exist: warranty of fitness for a particular purpose and warranty of merchantability [Source 1]. The warranty of fitness for a particular purpose arises when a seller knows a buyer is relying on their expertise to select suitable goods, and the buyer relies on that expertise [Source 1]. The warranty of merchantability arises in sales by a merchant, ensuring goods are fit for ordinary purposes [Source 1, Source 4]. To be merchantable, goods must be \u201cfit for the ordinary purposes for which such goods are used\u201d [Source 4].\n\n**Disclaimer**: The implied warranty of merchantability can be disclaimed, even without explicitly mentioning \u201cmerchantability,\u201d through phrases like \u201cas is\u201d or \u201cwith all faults\u201d [Source 5]. However, a specific agreement may explicitly exclude all warranties, express or implied [Source 3].\n\n## Sources\n- **Source 1**: Implied warranties of fitness and merchantability\n- **Source 2**: Definition of express warranty\n- **Source 3**: Exclusive remedies and warranty disclaimers\n- **Source 4**: Merchantability standard\n- **Source 5**: Disclaimer of implied warranty of merchantability"
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What are the elements of a negligence claim against a manufacturer for a defective product?",
+        "answer": "**Rule**: A negligence claim against a manufacturer requires showing negligent conduct leading to a dangerously defective product [Source 2]. This differs from strict products liability, which does not require proof of unreasonable conduct [Source 3].\n\n**Elements**: To prevail on a negligence claim,...",
+        "confidence": 0.8375384369308211,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "What are the elements of a strict products liability claim against a manufacturer for a defective product?",
+        "answer": "**Rule**: Strict products liability imposes liability on commercial suppliers for harm caused by defective products [Source 2] [Source 3].\n\n**Elements**: To establish a prima facie case, a plaintiff must prove: (1) a strict duty owed by a commercial supplier [Source 2] [Source 3]; (2) the production...",
+        "confidence": 0.791517050945197,
+        "status": "completed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What are the different types of warranties (express and implied) that can be breached by a manufacturer of a defective product, and what are the requirements for establishing each?",
+        "answer": "**Rule**: Warranties, both express and implied, can be breached by a manufacturer of defective products [Source 1, Source 2, Source 3].\n\n**Express Warranty**: An express warranty arises from any statement of fact or promise, but not from mere \u201cpuffery\u201d [Source 2].\n\n**Implied Warranty**: Two types of...",
+        "confidence": 0.7561137353289251,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "### Step 1: Rule Identification\n\n**Rule**: A negligence claim against a manufacturer requires showing negligent conduct leading to a dangerously defective product [Query 1][Source 2]. This differs from strict products liability, which does not require proof of unreasonable conduct [Query 1][Source 3].\n\n**Elements**: To prevail on a negligence claim, a plaintiff must demonstrate that the manufacturer\u2019s failure to exercise reasonable care resulted in a dangerously defective product [Query 1][Source 2]. Res ipsa loquitur may establish this failure, as manufacturing defects typically indicate negligence [Query 1][Source 2]. \n\n**Application**: Negligence by the product owner is foreseeable and does not relieve the manufacturer of liability for its own negligence [Query 1][Source 2]. Strict liability claims for design defects focus on the product\u2019s safety, not the manufacturer\u2019s conduct [Query 1][Source 3]. Both design and manufacturing defects require proof that the product was defective and unreasonably dangerous, the defect existed when it left the defendant\u2019s control, and the defect proximately caused the plaintiff\u2019s injuries [Query 1][Source 4]. A product can be legally defective if it could be made safer with adequate warnings [Query 1][Source 5].\n\n## Sources\n- **Source 1**: Strict products liability \u2013 defects, purpose, and chain of distribution.\n- **Source 2**: Elements of a negligence claim against a manufacturer.\n- **Source 3**: Distinction between negligence and strict liability for design defects.\n- **Source 4**: Elements of a strict liability claim for manufacturing and design defects.\n- **Source 5**: Elements of strict liability, defective products, and warnings.\n\n---\n\n### Step 2: Strict Liability\n\n**Rule**: Strict products liability imposes liability on commercial suppliers for harm caused by defective products [Query 2][Source 2] [Query 2][Source 3].\n\n**Elements**: To establish a prima facie case, a plaintiff must prove: (1) a strict duty owed by a commercial supplier [Query 2][Source 2] [Query 2][Source 3]; (2) the production or sale of a defective product, which must be \u201cunreasonably dangerous\u201d [Query 2][Source 2]; (3) actual and proximate cause between the defect and the harm [Query 2][Source 1] [Query 2][Source 2] [Query 2][Source 3]; and (4) damages [Query 2][Source 1] [Query 2][Source 2] [Query 2][Source 3].\n\n**Application**: In failure to warn cases, a plaintiff is entitled to a presumption that an adequate warning would have been read and heeded, though a jury can reject this presumption [Query 2][Source 2]. Manufacturers must foresee reasonably foreseeable misuses of a product, but are not liable for unintended and unforeseeable misuses [Query 2][Source 5]. \n\n## Sources\n- **Source 1**: Causation and damages element\n- **Source 2**: Elements of a strict products liability claim\n- **Source 3**: Restatement of elements, duty owed by commercial supplier\n- **Source 4**: Punitive damages in products liability\n- **Source 5**: Foreseeable misuse and lack of privity defense.\n\n---\n\n### Step 3: Breach of Warranty\n\n**Rule**: Warranties, both express and implied, can be breached by a manufacturer of defective products [Source 1, Source 2, Source 3].\n\n**Express Warranty**: An express warranty arises from any statement of fact or promise, but not from mere \u201cpuffery\u201d [Query 3][Source 2].\n\n**Implied Warranty**: Two types of implied warranties exist: warranty of fitness for a particular purpose and warranty of merchantability [Query 3][Source 1]. The warranty of fitness for a particular purpose arises when a seller knows a buyer is relying on their expertise to select suitable goods, and the buyer relies on that expertise [Query 3][Source 1]. The warranty of merchantability arises in sales by a merchant, ensuring goods are fit for ordinary purposes [Source 1, Source 4]. To be merchantable, goods must be \u201cfit for the ordinary purposes for which such goods are used\u201d [Query 3][Source 4].\n\n**Disclaimer**: The implied warranty of merchantability can be disclaimed, even without explicitly mentioning \u201cmerchantability,\u201d through phrases like \u201cas is\u201d or \u201cwith all faults\u201d [Query 3][Source 5]. However, a specific agreement may explicitly exclude all warranties, express or implied [Query 3][Source 3].\n\n## Sources\n- **Source 1**: Implied warranties of fitness and merchantability\n- **Source 2**: Definition of express warranty\n- **Source 3**: Exclusive remedies and warranty disclaimers\n- **Source 4**: Merchantability standard\n- **Source 5**: Disclaimer of implied warranty of merchantability",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "reasoning": "Auto-pass (verifier removed)"
+    },
+    "is_verified": true,
+    "avg_confidence": 0.7950564077349811
+  },
+  "mc_result": null,
+  "metrics": {
+    "elapsed_sec": 54.3,
+    "total_llm_calls": 10,
+    "steps_completed": 3,
+    "steps_failed": 0
+  }
+}

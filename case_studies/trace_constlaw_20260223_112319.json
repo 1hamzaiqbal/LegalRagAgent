@@ -1,0 +1,167 @@
+{
+  "label": "trace_constlaw",
+  "subject": "CONST. LAW",
+  "question": "Which of the following acts by the United States Senate would be constitutionally IMPROPER?",
+  "gold_idx": "mbe_498",
+  "correct_answer": "C",
+  "query_type": "multi_hop",
+  "retrieval": {
+    "raw_recall": false,
+    "mq_recall": false,
+    "raw_conf": 0.7130112488266802,
+    "mq_conf": 0.6780545248539772,
+    "rewrite": {
+      "primary": "Senate constitutional powers impeachment trial advice and consent treaty ratification filibuster cloture",
+      "alternatives": [
+        "Senate procedure rule interpretation legislative process quorum requirements constitutional limitations",
+        "US Constitution Senate authority legislative oversight executive branch checks and balances separation of powers"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What are the enumerated powers of the United States Senate as defined in the Constitution?",
+        "status": "completed",
+        "optimized_query": "United States Senate enumerated powers Constitution Article I Section 3 impeachment trials treaty ratification confirmation appointments",
+        "retrieved_doc_ids": [
+          "mbe_1019",
+          "mbe_1883",
+          "mbe_1051",
+          "mbe_2312",
+          "caselaw_12626109_10"
+        ],
+        "confidence": 0.7095828364104987,
+        "passage_previews": [
+          "Article II, Section 2 provides that the President shall nominate, and with the advice and consent of the Senate shall ap",
+          "Under Article II, Section 2, Congress may not appoint members of a body with administrative or enforcement powers. Such ",
+          "Under Article III, Section 2, the United States Supreme Court has original jurisdiction in all cases affecting ambassado",
+          "The Appointments Clause of the Constitution permits Congress to vest appointments of inferior officers only in the Presi",
+          "As we have just said, PROMESA gives the President of the United States the power to appoint the Board's seven members wi"
+        ],
+        "answer": "**Rule**: The Constitution outlines specific appointment powers granted to the Senate [Source 1].\n\n**Enumerated Powers**: The Senate provides \u201cadvice and consent\u201d to the President\u2019s nominations for ambassadors and other officers of the United States [Source 1] [Source 2]. Specifically, Cabinet-level officers require Senate confirmation for their appointment [Source 2]. \n\n**Limitations**: Congress may not vest in itself any broader appointment powers than what is provided for by the Constitution [Source 1]. Congress can vest the appointment of inferior officers in the President alone, in the courts of law, or in the heads of departments [Source 1] [Source 2] [Source 4]. The President may appoint inferior officers without Senate approval if Congress provides for it [Source 2]. The President can appoint members to a board without Senate confirmation if selected from lists prepared by congressional leaders [Source 5].\n\n## Sources\n- **Source 1**: Presidential appointments and Senate consent; limitations on Congressional appointment power.\n- **Source 2**: Senate confirmation for Cabinet-level officers; appointment of inferior officers.\n- **Source 3**: Supreme Court original jurisdiction.\n- **Source 4**: Restrictions on Congress appointing enforcement powers; delegation of legislative power.\n- **Source 5**: Presidential appointment power with congressional leader lists."
+      },
+      {
+        "step_id": 2.0,
+        "phase": "Improper Senate Actions",
+        "question": "What constitutional limitations exist on the Senate's 'advice and consent' power regarding presidential appointments?",
+        "status": "failed",
+        "optimized_query": "Senate advice and consent presidential appointments constitutional limitations recess appointments judicial nominations Article II",
+        "retrieved_doc_ids": [
+          "caselaw_12531018_79",
+          "mbe_1935",
+          "caselaw_12576060_72",
+          "caselaw_12531387_23",
+          "caselaw_12530887_72"
+        ],
+        "confidence": 0.6913919478111741,
+        "passage_previews": [
+          "Lucia , 138 S.Ct. at 2051. The \"Appointments Clause\" is found in Article II, Section 2, Clause 2 of the United States Co",
+          "The Appointment Clause of the Constitution permits Congress to vest appointments of inferior officers only in the Presid",
+          "But that was not always the case. The former nominating commission statutes for the Court of Appeals replaced by K.S.A. ",
+          "That leaves only the timeliness of Wilson's claim to be decided. Because the alleged defect in the appointment of SSA AL",
+          "Since Weiss , the CAAF and the service courts of criminal appeals have routinely rejected Appointments Clause challenges"
+        ],
+        "answer": "The Appointments Clause, found in Article II, Section 2, Clause 2 of the United States Constitution, vests the power to appoint \u201cOfficers of the United States\u201d with the President alone [Source 1]. Congress may only vest appointments of *inferior* officers in the President, the courts, or the heads of departments [Source 2]. \n\nConstitutional limitations exist regarding challenges to appointments. Objections to appointments based on the Appointments Clause are considered \u201cstructural constitutional objections\u201d and may be considered on appeal even if not raised in lower proceedings [Source 4]. The Supreme Court has indicated a willingness to relax procedural rules to address these concerns, citing the need to protect the separation of powers embedded in the Appointments Clause [Source 4].\n\nThe evidence does not address limitations on the Senate\u2019s power beyond the requirement of \u2018advice and consent\u2019 for appointments.\n\n## Sources\n- **Source 1**: Defines the Appointments Clause and Presidential appointment power.\n- **Source 2**: Details Congress\u2019s limited power to appoint inferior officers.\n- **Source 4**: Discusses the ability to raise Appointments Clause objections on appeal."
+      },
+      {
+        "step_id": 3.0,
+        "phase": "Constitutional Limitations",
+        "question": "What are the constitutional restrictions on the Senate's role in confirming presidential appointments, particularly concerning the types of positions subject to Senate confirmation?",
+        "status": "failed",
+        "optimized_query": "Senate confirmation power presidential appointments Article II Appointments Clause recess appointments advice and consent",
+        "retrieved_doc_ids": [
+          "caselaw_12576060_68",
+          "caselaw_12530771_34",
+          "caselaw_12561454_2",
+          "caselaw_12521398_115",
+          "mbe_521"
+        ],
+        "confidence": 0.677067086091834,
+        "passage_previews": [
+          "In Leek v. Theis , 217 Kan. 784, 539 P.2d 304 (1975), Governor Docking appointed Franklin Theis to the state Adult Autho",
+          "Because the plaintiff did not raise his Appointments Clause challenge until he sought judicial review, and late in this ",
+          "The requests by the House of Representatives and the Senate for an advisory opinion remain pending.",
+          "\"All legislative Powers herein granted shall be vested in a Congress.\" U.S. Const. art. I.",
+          "Article III, Section 1 of the Constitution states: \"In all Cases affecting Ambassadors, other public Ministers and Consu"
+        ],
+        "answer": "The evidence does not address constitutional restrictions on the Senate\u2019s role in confirming presidential appointments, nor does it detail the types of positions subject to Senate confirmation. \n\nThe passages discuss a case, *Leek v. Theis*, involving a state-level appointment to the Adult Authority and the subsequent actions of the Governor and Senate regarding confirmation [Source 1]. The court held that a failure of Senate confirmation resulted in a vacancy, allowing for a new appointment [Source 1]. \n\nOne passage notes a forfeited Appointments Clause challenge raised during judicial review [Source 2], and another mentions pending requests for advisory opinions from the House and Senate [Source 3]. Passages [Source 4] and [Source 5] state portions of the U.S. Constitution regarding legislative and judicial powers, respectively, but do not address the Senate\u2019s confirmation role.\n\n## Sources\n- **Source 1**: *Leek v. Theis* case details and Senate confirmation/vacancy.\n- **Source 2**: Appointments Clause challenge and forfeiture.\n- **Source 3**: Pending requests for advisory opinions.\n- **Source 4**: Article I of the U.S. Constitution - Legislative Powers.\n- **Source 5**: Article III of the U.S. Constitution - Judicial Powers."
+      },
+      {
+        "step_id": 4.0,
+        "phase": "Clarify Senate Appointment Powers",
+        "question": "What is the scope of the Senate's 'advice and consent' power under the Appointments Clause, and what types of presidential appointments require Senate confirmation?",
+        "status": "failed",
+        "optimized_query": "Appointments Clause Senate advice and consent presidential appointments recess appointments principal officer inferior officer",
+        "retrieved_doc_ids": [
+          "mbe_375",
+          "caselaw_12659252_50",
+          "caselaw_12530824_79",
+          "mbe_1028",
+          "caselaw_12577237_178"
+        ],
+        "confidence": 0.6373513871534708,
+        "passage_previews": [
+          "The US Constitution contains ambiguities regarding the roles of Congress and the President in making foreign policy. In ",
+          "The Missouri Constitution states, \"The governor shall fill all vacancies in public offices unless otherwise provided by ",
+          "The Court agrees that restraint is appropriate. However, Supreme Court and D.C. Circuit precedent do not foreclose injun",
+          "The power to enter into treaties is vested in the President, and his power to act for the United States in day-to-day fo",
+          "After the House proposed this broader language, the bill was revised again in conference. The Conference Committee amend"
+        ],
+        "answer": "The US Constitution grants the President the power to make treaties and nominate Ambassadors and Executive Department leaders, subject to the Senate\u2019s \u201cadvice and consent\u201d [Source 1]. The Senate\u2019s role extends to approving Ambassadorial nominations and high-ranking Executive Branch officials [Source 1]. \n\nThe evidence does not address the specific types of presidential appointments beyond Ambassadors and Executive Department leaders that require Senate confirmation.\n\nThe evidence does not address limitations on the Senate\u2019s advice and consent power, nor does it detail any exceptions to this requirement [Source 1]. The evidence also does not address whether the Senate\u2019s power extends to other types of appointments [Source 1].\n\n## Sources\n- **Source 1**: Senate\u2019s \u2018advice and consent\u2019 power regarding treaties, Ambassadors, and Executive Department leaders.\n- **Source 2**: Missouri Governor\u2019s appointment powers.\n- **Source 3**: Circumstances for injunctive relief against the President.\n- **Source 4**: Presidential power in foreign affairs.\n- **Source 5**: Conference Committee report regarding board consultations with attorneys."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What are the enumerated powers of the United States Senate as defined in the Constitution?",
+        "answer": "**Rule**: The Constitution outlines specific appointment powers granted to the Senate [Source 1].\n\n**Enumerated Powers**: The Senate provides \u201cadvice and consent\u201d to the President\u2019s nominations for ambassadors and other officers of the United States [Source 1] [Source 2]. Specifically, Cabinet-level...",
+        "confidence": 0.7095828364104987,
+        "status": "completed"
+      },
+      {
+        "step_id": 2.0,
+        "question": "What constitutional limitations exist on the Senate's 'advice and consent' power regarding presidential appointments?",
+        "answer": "The Appointments Clause, found in Article II, Section 2, Clause 2 of the United States Constitution, vests the power to appoint \u201cOfficers of the United States\u201d with the President alone [Source 1]. Congress may only vest appointments of *inferior* officers in the President, the courts, or the heads o...",
+        "confidence": 0.6913919478111741,
+        "status": "failed"
+      },
+      {
+        "step_id": 3.0,
+        "question": "What are the constitutional restrictions on the Senate's role in confirming presidential appointments, particularly concerning the types of positions subject to Senate confirmation?",
+        "answer": "The evidence does not address constitutional restrictions on the Senate\u2019s role in confirming presidential appointments, nor does it detail the types of positions subject to Senate confirmation. \n\nThe passages discuss a case, *Leek v. Theis*, involving a state-level appointment to the Adult Authority...",
+        "confidence": 0.677067086091834,
+        "status": "failed"
+      },
+      {
+        "step_id": 4.0,
+        "question": "What is the scope of the Senate's 'advice and consent' power under the Appointments Clause, and what types of presidential appointments require Senate confirmation?",
+        "answer": "The US Constitution grants the President the power to make treaties and nominate Ambassadors and Executive Department leaders, subject to the Senate\u2019s \u201cadvice and consent\u201d [Source 1]. The Senate\u2019s role extends to approving Ambassadorial nominations and high-ranking Executive Branch officials [Source...",
+        "confidence": 0.6373513871534708,
+        "status": "failed"
+      }
+    ],
+    "final_answer": "**Rule**: The Constitution outlines specific appointment powers granted to the Senate [Source 1].\n\n**Enumerated Powers**: The Senate provides \u201cadvice and consent\u201d to the President\u2019s nominations for ambassadors and other officers of the United States [Source 1] [Source 2]. Specifically, Cabinet-level officers require Senate confirmation for their appointment [Source 2]. \n\n**Limitations**: Congress may not vest in itself any broader appointment powers than what is provided for by the Constitution [Source 1]. Congress can vest the appointment of inferior officers in the President alone, in the courts of law, or in the heads of departments [Source 1] [Source 2] [Source 4]. The President may appoint inferior officers without Senate approval if Congress provides for it [Source 2]. The President can appoint members to a board without Senate confirmation if selected from lists prepared by congressional leaders [Source 5].\n\n## Sources\n- **Source 1**: Presidential appointments and Senate consent; limitations on Congressional appointment power.\n- **Source 2**: Senate confirmation for Cabinet-level officers; appointment of inferior officers.\n- **Source 3**: Supreme Court original jurisdiction.\n- **Source 4**: Restrictions on Congress appointing enforcement powers; delegation of legislative power.\n- **Source 5**: Presidential appointment power with congressional leader lists.\n\n---\n\n**Answer: (C)**\nReasoning:\nThe rule states Congress may not vest in itself any broader appointment powers than what is provided for by the Constitution. The Senate appointing a commission to *finally* adjudicate a boundary dispute between two states is an exercise of judicial power, and effectively an appointment to a quasi-judicial position, without constitutional authorization. This exceeds the Senate\u2019s enumerated powers related to advice and consent on presidential appointments.\n\n(A) is proper: The Constitution outlines procedures for amending the Constitution, including ratification by states and a role for both the House and Senate in validating ratifications.\n(B) is proper: Determining the eligibility of a senator is within the Senate\u2019s purview as a body determining its own membership. This does not involve an appointment power.\n(D) is proper: Passing resolutions regarding foreign policy is a legislative act within the Senate\u2019s powers and does not relate to appointment powers.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "suggested_query": "",
+      "reasoning": "The answer focuses on appointment powers, which is relevant to the question. The passages confirm the Senate's role in advice and consent for appointments and limitations on Congress's appointment power. While the question asks about what is constitutionally IMPROPER, the provided evidence focuses on the limits of Congress's appointment power, which aligns with identifying an improper act. The answer correctly identifies the constitutional principles related to appointment powers."
+    },
+    "is_verified": true,
+    "avg_confidence": 0.7095828364104987
+  },
+  "mc_result": {
+    "correct": true,
+    "method": "letter_match",
+    "details": "answer explicitly selects C"
+  },
+  "metrics": {
+    "elapsed_sec": 58.3,
+    "total_llm_calls": 16,
+    "steps_completed": 1,
+    "steps_failed": 3
+  }
+}

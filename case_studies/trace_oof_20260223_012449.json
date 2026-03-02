@@ -1,0 +1,73 @@
+{
+  "label": "trace_oof",
+  "subject": "OUT_OF_CORPUS",
+  "question": "What are the requirements for obtaining asylum in the United States?",
+  "gold_idx": "",
+  "correct_answer": "",
+  "query_type": "simple",
+  "retrieval": {
+    "raw_recall": null,
+    "mq_recall": null,
+    "raw_conf": 0.6646718670191383,
+    "mq_conf": 0.7275241118402391,
+    "rewrite": {
+      "primary": "asylum eligibility refugee status persecution well-founded fear convention against torture political opinion",
+      "alternatives": [
+        "immigration asylum affirmative asylum credible fear reasonable fear deportation protection",
+        "INA section 208 asylum application statutory refugee definition withholding of removal"
+      ]
+    }
+  },
+  "pipeline": {
+    "steps": [
+      {
+        "step_id": 1.0,
+        "phase": "Rule Identification",
+        "question": "What are the statutory and regulatory requirements for a person to be granted asylum in the United States?",
+        "status": "completed",
+        "optimized_query": "asylum eligibility statutory requirements 8 U.S.C. \u00a7 1101(a)(42) refugee status persecution well-founded fear",
+        "retrieved_doc_ids": [
+          "caselaw_12522005_7",
+          "caselaw_12626322_12",
+          "caselaw_12521879_16",
+          "caselaw_12521759_57",
+          "caselaw_12626322_197"
+        ],
+        "confidence": 0.7122105785074876,
+        "passage_previews": [
+          "In 2017, the Immigration Judge ordered Dahal's removal to Nepal. See In re Dahal, No. A200-173-934, at 15 (Exec. Office ",
+          "If the asylum officer finds an applicant's asserted fear to be credible, the applicant will receive \"full consideration\"",
+          "To establish a \"reasonable likelihood\" that he is entitled to asylum relief, the movant must \"merely show[ ] a realistic",
+          "While we conclude that substantial evidence supports the BIA's no-persecution determination, we also note, but need not ",
+          "But it is the Court's directionality requirement that bucks tradition. Respondent asks merely to be freed from wrongful "
+        ],
+        "answer": "To be granted asylum in the United States, an applicant must demonstrate a \u201cwell-founded fear of persecution\u201d [Source 3]. This requires showing a fear of persecution on account of race, religion, nationality, membership in a particular social group, or political opinion [Source 3]. \n\nAdditionally, the applicant must demonstrate a \u201creasonable possibility\u201d of suffering persecution if returned to their native country [Source 3]. They must also show they are unable or unwilling to return to their country or seek its protection due to this fear [Source 3]. If an applicant demonstrates past persecution based on a protected ground, there is a rebuttable presumption of a well-founded fear of future persecution [Source 3].\n\nAn asylum officer\u2019s finding on the credibility of an applicant\u2019s fear determines the next steps [Source 2]. If the fear is credible, the applicant receives full consideration in a removal hearing [Source 2]. If not credible, a supervisor reviews the determination, and the applicant can appeal to an immigration judge for a *de novo* determination [Source 2]. To establish a \u201creasonable likelihood\u201d of entitlement to asylum, the applicant must show a \u201crealistic chance\u201d of ultimately being granted asylum [Source 3].\n\n## Sources\n- **Source 1**: Not used - discusses a specific case and rebuttable presumption.\n- **Source 2**: Credibility determinations and appeal process.\n- **Source 3**: Elements of asylum claim, including well-founded fear, protected grounds, and reasonable possibility of persecution.\n- **Source 4**: Discusses \"particular social group\" status for former police officers.\n- **Source 5**: Discusses the traditional nature of asylum requests."
+      }
+    ],
+    "accumulated_context": [
+      {
+        "step_id": 1.0,
+        "question": "What are the statutory and regulatory requirements for a person to be granted asylum in the United States?",
+        "answer": "To be granted asylum in the United States, an applicant must demonstrate a \u201cwell-founded fear of persecution\u201d [Source 3]. This requires showing a fear of persecution on account of race, religion, nationality, membership in a particular social group, or political opinion [Source 3]. \n\nAdditionally, t...",
+        "confidence": 0.7122105785074876,
+        "status": "completed"
+      }
+    ],
+    "final_answer": "To be granted asylum in the United States, an applicant must demonstrate a \u201cwell-founded fear of persecution\u201d [Source 3]. This requires showing a fear of persecution on account of race, religion, nationality, membership in a particular social group, or political opinion [Source 3]. \n\nAdditionally, the applicant must demonstrate a \u201creasonable possibility\u201d of suffering persecution if returned to their native country [Source 3]. They must also show they are unable or unwilling to return to their country or seek its protection due to this fear [Source 3]. If an applicant demonstrates past persecution based on a protected ground, there is a rebuttable presumption of a well-founded fear of future persecution [Source 3].\n\nAn asylum officer\u2019s finding on the credibility of an applicant\u2019s fear determines the next steps [Source 2]. If the fear is credible, the applicant receives full consideration in a removal hearing [Source 2]. If not credible, a supervisor reviews the determination, and the applicant can appeal to an immigration judge for a *de novo* determination [Source 2]. To establish a \u201creasonable likelihood\u201d of entitlement to asylum, the applicant must show a \u201crealistic chance\u201d of ultimately being granted asylum [Source 3].\n\n## Sources\n- **Source 1**: Not used - discusses a specific case and rebuttable presumption.\n- **Source 2**: Credibility determinations and appeal process.\n- **Source 3**: Elements of asylum claim, including well-founded fear, protected grounds, and reasonable possibility of persecution.\n- **Source 4**: Discusses \"particular social group\" status for former police officers.\n- **Source 5**: Discusses the traditional nature of asylum requests.",
+    "verification": {
+      "is_verified": true,
+      "issues": [],
+      "suggested_query": "",
+      "reasoning": "The answer accurately summarizes the requirements for asylum as stated in the provided evidence, including the well-founded fear of persecution, protected grounds, reasonable possibility of persecution, and inability/unwillingness to return to the home country. It also correctly notes the rebuttable presumption for past persecution and the credibility determination process. No contradictions or missing critical elements were identified."
+    },
+    "is_verified": true,
+    "avg_confidence": 0.7122105785074876
+  },
+  "mc_result": null,
+  "metrics": {
+    "elapsed_sec": 22.7,
+    "total_llm_calls": 5,
+    "steps_completed": 1,
+    "steps_failed": 0
+  }
+}
