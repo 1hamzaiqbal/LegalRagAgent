@@ -321,12 +321,14 @@ def skill_synthesize_and_cite(question: str, evidence: List[str]) -> str:
 
 
 def skill_adaptive_replan(objective: str, current_step_id: float,
-                          retrieved_content: str, plan_table: List[Dict]) -> ReplanResult:
+                          retrieved_content: str, plan_table: List[Dict],
+                          accumulated_context: List[Dict] | None = None) -> ReplanResult:
     """Evaluate the current step and adaptively update the Plan Table.
 
     Sends the inputs the adaptive_replan skill expects: objective,
-    current_step_id, retrieved_content, and the full plan_table (with
-    expectation_achieved filled for completed steps).
+    current_step_id, retrieved_content, the full plan_table (with
+    expectation_achieved filled for completed steps), and accumulated
+    evidence summaries from all prior steps.
     """
     instructions = load_skill_instructions("adaptive_replan")
     plan_table_json = json.dumps(plan_table, indent=2)
@@ -336,6 +338,8 @@ def skill_adaptive_replan(objective: str, current_step_id: float,
         f"retrieved_content:\n{retrieved_content}\n\n"
         f"plan_table:\n{plan_table_json}"
     )
+    if accumulated_context:
+        user_msg += f"\n\naccumulated_evidence:\n{json.dumps(accumulated_context, indent=2)}"
     raw = _llm_call(instructions, user_msg, label="replan")
     try:
         parsed = _parse_json(raw)
@@ -385,25 +389,6 @@ def skill_select_mc_answer(objective: str, research: str) -> str:
     )
     user_msg = f"Question:\n{objective}\n\nLegal research:\n{research}"
     return _llm_call(system_prompt, user_msg, label="mc_select").strip()
-
-
-def skill_verify_answer(question: str, answer: str, evidence: List[str]) -> Dict[str, Any]:
-    """Cross-check an answer against retrieved evidence."""
-    instructions = load_skill_instructions("verify_answer")
-    evidence_text = "\n\n".join(
-        f"[Passage {i+1}]: {text}" for i, text in enumerate(evidence)
-    )
-    user_msg = f"Question: {question}\n\nAnswer:\n{answer}\n\nEvidence:\n{evidence_text}"
-    raw = _llm_call(instructions, user_msg, label="verify")
-    try:
-        parsed = _parse_json(raw)
-        if parsed and isinstance(parsed, dict) and "is_verified" in parsed:
-            return parsed
-    except ValueError as e:
-        logger.warning(f"Verification parse error: {e}")
-        pass
-    # Fallback: assume verified if parser fails
-    return {"is_verified": True, "issues": [], "reasoning": "Fallback — could not parse verification output, assuming verified"}
 
 
 # ---------------------------------------------------------------------------
@@ -555,9 +540,16 @@ def evaluator_node(state: AgentState) -> AgentState:
             if score >= threshold:
                 print(f"Step {step.step_id} PASSED (score: {score:.3f} >= {threshold})")
                 step.status = "completed"
+                # Fill expectation_achieved so the replanner knows this step
+                # is immutable history (its skill rule: "NEVER modify a step
+                # whose expectation_achieved is already filled").
+                cited = step.execution.get("cited_answer", "")
+                summary = cited[:150].rsplit(" ", 1)[0] if len(cited) > 150 else cited
+                step.expectation_achieved = f"Yes - {summary}"
             else:
                 print(f"Step {step.step_id} FAILED (score: {score:.3f} < {threshold})")
                 step.status = "failed"
+                step.expectation_achieved = f"No - low confidence ({score:.3f})"
 
             # Accumulate evidence for replanner
             answer_summary = step.execution.get("cited_answer", "")
@@ -634,7 +626,8 @@ def replanner_node(state: AgentState) -> AgentState:
 
     try:
         result: ReplanResult = skill_adaptive_replan(
-            objective, current_step_id, retrieved_content, plan_table_for_skill
+            objective, current_step_id, retrieved_content, plan_table_for_skill,
+            accumulated_context=state.get("accumulated_context"),
         )
     except Exception as e:
         logger.error("Replanner failed after retries: %s. Falling back to complete.", e)
@@ -719,7 +712,7 @@ def verify_answer_node(state: AgentState) -> AgentState:
 
     If the objective contains MC answer choices, runs a single LLM call to
     select the best letter based on accumulated research. Otherwise, passes
-    through to memory writeback.
+    through to observability.
     """
     print("\n--- VERIFY / MC SELECT NODE ---")
     objective = state["global_objective"]
@@ -889,9 +882,10 @@ def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replan
     iteration_count = state.get("iteration_count", 0)
     query_type = state.get("query_type", "simple")
 
-    # Hard iteration limit (safety valve)
-    if iteration_count > 6:
-        print("Iteration limit hit (>6). Routing to VERIFY_ANSWER.")
+    # Hard iteration limit (safety valve). Structural max is 10 (5 steps +
+    # 5 retries), but anything beyond 8 is already unusual.
+    if iteration_count > 10:
+        print("Iteration limit hit (>10). Routing to VERIFY_ANSWER.")
         return "verify_answer_node"
 
     has_pending = any(s.status == "pending" for s in table)
@@ -1036,6 +1030,7 @@ if __name__ == "__main__":
         "final_cited_answer": "",
         "accumulated_context": [],
         "iteration_count": 0,
+        "initial_balance": {},
         "injection_check": {},
         "verification_result": {},
         "run_metrics": {},

@@ -6,6 +6,7 @@
 - `current_step_id`: The step_id that was just executed
 - `retrieved_content`: The passages returned by retrieval for the current step
 - `plan_table`: The current Plan Table as a JSON array (with `expectation_achieved` filled for all previously completed steps, empty for the current and future steps)
+- `accumulated_evidence` *(optional)*: JSON array of evidence summaries from all executed steps, each with `step_id`, `status`, `answer` (truncated), and `confidence`
 
 ## Task
 
