@@ -700,6 +700,9 @@ def replanner_node(state: AgentState) -> AgentState:
     elif action == "complete":
         # action == "complete": aggregate final answer
         print("Replanner says research is complete.")
+        # Drop remaining pending steps so route_after_replanner
+        # respects the "complete" decision instead of executing them.
+        state["planning_table"] = [s for s in state["planning_table"] if s.status != "pending"]
         aggregated = _aggregate_completed_answers(state["planning_table"])
         if aggregated:
             state["final_cited_answer"] = aggregated
