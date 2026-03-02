@@ -17,6 +17,9 @@ import io
 import pandas as pd
 import re
 
+# Add parent directory to sys.path to allow absolute imports from root
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from main import _get_deepseek_balance, _llm_call, _get_metrics
 from llm_config import get_provider_info
 
@@ -164,7 +167,8 @@ def main():
     # Setup buffered DualLogger
     provider_name = os.getenv("LLM_PROVIDER", "default").strip().lower()
     os.makedirs("logs", exist_ok=True)
-    run_log_file = f"logs/eval_baseline_{provider_name}.txt"
+    timestamp = time.strftime("%Y%m%d_%H")
+    run_log_file = f"logs/eval_baseline_{provider_name}_{timestamp}.txt"
     
     completed_queries = {}
     if continue_eval and os.path.exists(run_log_file):

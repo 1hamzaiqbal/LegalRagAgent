@@ -20,12 +20,22 @@ from rag_utils import retrieve_documents_multi_query, compute_confidence
 # 1. Core Data Models
 # ---------------------------------------------------------------------------
 
-class PlanStep(BaseModel):
+class PlanStepData(BaseModel):
     step_id: float
+    planned_action: str
+    retrieval_question: str
+    expected_answer: str
+    expectation_achieved: str = ""
+
+class PlanStep(PlanStepData):
     status: Literal["pending", "completed", "failed"] = "pending"
-    phase: str
-    question: str
     execution: Dict[str, Any] = Field(default_factory=dict)
+    retry_count: int = 0
+
+class ReplanResult(BaseModel):
+    action: str
+    reasoning: str
+    updated_plan_table: List[PlanStepData] = Field(default_factory=list)
 
 
 class AgentState(TypedDict):
@@ -47,8 +57,8 @@ class AgentState(TypedDict):
 
 @functools.lru_cache(maxsize=None)
 def load_skill_instructions(skill_name: str) -> str:
-    """Loads markdown instructions from the skills/ directory (cached after first read)."""
-    skill_path = os.path.join("skills", f"{skill_name}.md")
+    """Loads markdown instructions from the archive/ directory (cached after first read)."""
+    skill_path = os.path.join("archive", "adaptive-plan-and-solve", f"{skill_name}.md")
     try:
         with open(skill_path, "r", encoding="utf-8") as f:
             return f.read()
@@ -145,7 +155,7 @@ def _log_cache_metrics(response, label: str) -> None:
         logger.info("[%s] Prefix cache: %d/%d prompt tokens (%.0f%%)", label, cached, total, pct)
 
 
-_MAX_RETRIES = 3
+_MAX_RETRIES = 2
 _RETRY_BASE_DELAY = 2  # seconds
 
 def _get_deepseek_balance() -> Dict[str, Any]:
@@ -256,27 +266,30 @@ def skill_classify_and_route(objective: str) -> Dict[str, str]:
     except ValueError as e:
         logger.warning(f"Classification parse error: {e}")
         pass
-    return {"query_type": "multi_hop", "reasoning": "Fallback — could not parse classifier output"}
+    return {"query_type": "simple", "reasoning": "Fallback — could not parse classifier output. Defaulting to simple."}
 
 
-def skill_plan_synthesis(objective: str, query_type: str) -> List[Dict]:
+def skill_plan_synthesis(objective: str, query_type: str) -> List[PlanStepData]:
     """Generate a plan as a list of step dicts."""
+    from pydantic import TypeAdapter
     instructions = load_skill_instructions("plan_synthesis")
     user_msg = f"Objective: {objective}\nQuery type: {query_type}"
     raw = _llm_call(instructions, user_msg, label="plan")
     try:
         parsed = _parse_json(raw)
         if parsed and isinstance(parsed, list):
-            return parsed
-    except ValueError as e:
+            adapter = TypeAdapter(List[PlanStepData])
+            return adapter.validate_python(parsed)
+    except Exception as e:
         logger.warning(f"Planner parse error: {e}")
         pass
     # Fallback: single step
-    return [{
-        "step_id": 1.0,
-        "phase": "Direct Research",
-        "question": objective,
-    }]
+    return [PlanStepData(
+        step_id=1.0,
+        planned_action="Direct Research",
+        retrieval_question=objective,
+        expected_answer="Find information to answer the question.",
+    )]
 
 
 def skill_query_rewrite(question: str) -> Dict[str, Any]:
@@ -311,7 +324,7 @@ def skill_synthesize_and_cite(question: str, evidence: List[str]) -> str:
     return _llm_call(instructions, user_msg, label="synthesize_and_cite").strip()
 
 
-def skill_adaptive_replan(objective: str, accumulated_context: List[Dict[str, Any]]) -> Dict[str, Any]:
+def skill_adaptive_replan(objective: str, accumulated_context: List[Dict[str, Any]]) -> ReplanResult:
     """Decide next action based on accumulated research evidence."""
     instructions = load_skill_instructions("adaptive_replan")
     context_summary = json.dumps(accumulated_context, indent=2)
@@ -320,12 +333,12 @@ def skill_adaptive_replan(objective: str, accumulated_context: List[Dict[str, An
     try:
         parsed = _parse_json(raw)
         if parsed and isinstance(parsed, dict) and "action" in parsed:
-            return parsed
-    except ValueError as e:
+            return ReplanResult.model_validate(parsed)
+    except Exception as e:
         logger.warning(f"Replanner parse error: {e}")
         pass
     # Fallback: stop planning
-    return {"action": "complete", "reasoning": "Fallback — could not parse replanner output"}
+    return ReplanResult(action="complete", reasoning="Fallback — could not parse replanner output", updated_plan_table=[])
 
 
 def skill_detect_prompt_injection(objective: str) -> Dict[str, Any]:
@@ -457,9 +470,11 @@ def planner_node(state: AgentState) -> AgentState:
         steps = []
         for s in raw_steps:
             steps.append(PlanStep(
-                step_id=float(s.get("step_id", len(steps) + 1)),
-                phase=s.get("phase", "Research"),
-                question=s.get("question", objective),
+                step_id=float(s.step_id),
+                planned_action=s.planned_action,
+                retrieval_question=s.retrieval_question,
+                expected_answer=s.expected_answer,
+                expectation_achieved=s.expectation_achieved,
             ))
 
         state["planning_table"] = steps
@@ -486,12 +501,12 @@ def executor_node(state: AgentState) -> AgentState:
 
     for step in table:
         if step.status == "pending":
-            print(f"Executing step {step.step_id}: {step.question}")
+            print(f"Executing step {step.step_id}: {step.retrieval_question}")
             if prior_doc_ids:
                 print(f"  Excluding {len(prior_doc_ids)} prior doc_ids")
 
             # 1. Query rewrite (returns primary + alternatives)
-            rewrite_result = skill_query_rewrite(step.question)
+            rewrite_result = skill_query_rewrite(step.retrieval_question)
             optimized_query = rewrite_result["primary"]
             alternatives = rewrite_result.get("alternatives", [])
             print(f"  Primary query: {optimized_query[:80]}...")
@@ -512,7 +527,7 @@ def executor_node(state: AgentState) -> AgentState:
             # 3. Synthesize and cite (single pass)
             # Per-step synthesis does pure legal research — no MC choices here.
             # MC selection happens once at the end in verify_answer_node.
-            cited_answer = skill_synthesize_and_cite(step.question, evidence)
+            cited_answer = skill_synthesize_and_cite(step.retrieval_question, evidence)
             print(f"  Synthesized ({len(cited_answer)} chars): {cited_answer[:200]}...")
 
             # 4. Compute confidence
@@ -558,7 +573,10 @@ def evaluator_node(state: AgentState) -> AgentState:
                 answer_summary = answer_summary[:300] + "..."
             state["accumulated_context"].append({
                 "step_id": step.step_id,
-                "question": step.question,
+                "planned_action": step.planned_action,
+                "retrieval_question": step.retrieval_question,
+                "expected_answer": step.expected_answer,
+                "expectation_achieved": step.expectation_achieved,
                 "answer": answer_summary,
                 "confidence": score,
                 "status": step.status,
@@ -575,7 +593,7 @@ def evaluator_node(state: AgentState) -> AgentState:
             state["final_cited_answer"] = aggregated
             print("Aggregated final cited answer from completed steps.")
         elif not state.get("final_cited_answer"):
-            failed_questions = [s.question for s in table if s.status == "failed"]
+            failed_questions = [s.retrieval_question for s in table if s.status == "failed"]
             state["final_cited_answer"] = (
                 "Unable to produce a sufficiently grounded answer. "
                 f"All {len(failed_questions)} research step(s) failed to retrieve "
@@ -599,31 +617,68 @@ def replanner_node(state: AgentState) -> AgentState:
     accumulated = state.get("accumulated_context", [])
 
     try:
-        result = skill_adaptive_replan(objective, accumulated)
+        result: ReplanResult = skill_adaptive_replan(objective, accumulated)
     except Exception as e:
         logger.error("Replanner failed after retries: %s. Falling back to complete.", e)
         print(f"Replanner error — graceful fallback to verify with existing evidence.")
-        result = {"action": "complete", "reasoning": f"Fallback — replanner error: {e}"}
+        result = ReplanResult(action="complete", reasoning=f"Fallback — replanner error: {e}")
     completed_count = sum(1 for s in accumulated if s.get("status") == "completed")
     failed_count = sum(1 for s in accumulated if s.get("status") == "failed")
     print(f"Accumulated context: {len(accumulated)} steps ({completed_count} completed, {failed_count} failed)")
 
-    action = result.get("action", "complete")
-    print(f"Replanner action: {action} — {result.get('reasoning', '')}")
+    action = result.action
+    print(f"Replanner action: {action} — {result.reasoning}")
+    
+    current_table = state.get("planning_table", [])
+    
+    # Enforce max 1 retry per step based on skill instructions
+    if action == "retry" and result.updated_plan_table:
+        # Find the step being retried (should be the first one in the updated table or the current failed one)
+        # We find the step that we would be retrying
+        retry_step_id = result.updated_plan_table[0].step_id if result.updated_plan_table else None
+        if retry_step_id is not None:
+             match = next((s for s in current_table if s.step_id == retry_step_id), None)
+             if match and match.retry_count >= 1:
+                  print(f"Max retries (1) reached for step {retry_step_id}. Overriding 'retry' to 'next_step'.")
+                  action = "next_step"
 
-    if action in ("next_step", "retry"):
-        # Generate a new step ID
-        existing_ids = [s.step_id for s in state["planning_table"]]
-        new_id = max(existing_ids) + 1.0 if existing_ids else 1.0
+    if action in ("next_step", "retry") and result.updated_plan_table:
+        # Merge updated Plan Table from LLM into agent state
+        
+        # 1. Update existing steps (only pending or the one being retried)
+        for updated_step in result.updated_plan_table:
+            # Find matching step in current table
+            match = next((s for s in current_table if s.step_id == updated_step.step_id), None)
+            if match:
+                # Never modify completed/failed steps unless we are explicitly retrying
+                if match.status == "pending" or (action == "retry" and match.step_id == updated_step.step_id):
+                    match.planned_action = updated_step.planned_action
+                    match.retrieval_question = updated_step.retrieval_question
+                    match.expected_answer = updated_step.expected_answer
+                    match.expectation_achieved = updated_step.expectation_achieved
+                    if action == "retry" and match.step_id == updated_step.step_id:
+                        match.status = "pending" # Reset status for retry
+                        match.retry_count += 1
+            else:
+                # 2. Add new steps
+                new_step = PlanStep(
+                    step_id=updated_step.step_id,
+                    planned_action=updated_step.planned_action,
+                    retrieval_question=updated_step.retrieval_question,
+                    expected_answer=updated_step.expected_answer,
+                    expectation_achieved=updated_step.expectation_achieved,
+                )
+                current_table.append(new_step)
+                print(f"Added new step {new_step.step_id}: {new_step.retrieval_question}")
+        
+        # 3. Remove pending steps that the LLM dropped
+        updated_ids = {s.step_id for s in result.updated_plan_table}
+        state["planning_table"] = [
+            s for s in current_table
+            if s.status != "pending" or s.step_id in updated_ids
+        ]
 
-        new_step = PlanStep(
-            step_id=new_id,
-            phase=result.get("phase", "Adaptive Research"),
-            question=result.get("question", state["global_objective"]),
-        )
-        state["planning_table"].append(new_step)
-        print(f"Added new step {new_id}: {new_step.question}")
-    else:
+    elif action == "complete":
         # action == "complete": aggregate final answer
         print("Replanner says research is complete.")
         aggregated = _aggregate_completed_answers(state["planning_table"])
@@ -744,7 +799,7 @@ def _aggregate_completed_answers(table: List[PlanStep]) -> str:
             continue
         # Rewrite [Source N] → [Query i][Source N] throughout the answer text
         tagged = re.sub(r"\[Source (\d+)\]", rf"[Query {i}][Source \1]", answer)
-        sections.append(f"### Step {i}: {step.phase}\n\n{tagged}")
+        sections.append(f"### Step {i}: {step.planned_action}\n\n{tagged}")
 
     return "\n\n---\n\n".join(sections)
 
@@ -765,7 +820,9 @@ def _print_table(table: List[PlanStep]):
     print("\nPlanning Table:")
     for s in table:
         score = f"  ({s.execution['confidence_score']:.3f})" if "confidence_score" in s.execution else ""
-        print(f"  [{s.status.upper():>9}] {s.step_id}: {s.question[:70]}{score}")
+        print(f"  [{s.status.upper():>9}] {s.step_id}: {s.retrieval_question[:70]}{score}")
+        if s.expectation_achieved:
+            print(f"             Achieved: {s.expectation_achieved[:70]}")
     print("-" * 60)
 
 

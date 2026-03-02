@@ -27,6 +27,9 @@ import concurrent.futures
 import threading
 import io
 
+# Add parent directory to sys.path to allow absolute imports from root
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 os.environ.setdefault("SKIP_INJECTION_CHECK", "1")
 
 from main import (
@@ -336,10 +339,11 @@ def save_case_study(query_info: dict, result: dict, output_dir: str = "case_stud
 
 
 def main():
-    # Set up DualLogger to tee stdout to latest_run_{provider}.txt
+    # Set up DualLogger to tee stdout to latest_run_{provider}_{timestamp}.txt
     provider_name = os.getenv("LLM_PROVIDER", "default").strip().lower()
     os.makedirs("logs", exist_ok=True)
-    run_log_file = f"logs/latest_run_{provider_name}.txt"
+    timestamp = time.strftime("%Y%m%d_%H")
+    run_log_file = f"logs/latest_run_{provider_name}_{timestamp}.txt"
     try:
         with open(run_log_file, "w", encoding="utf-8") as f:
             f.write(f"COMMAND RUN: uv run python {' '.join(sys.argv)}\n")

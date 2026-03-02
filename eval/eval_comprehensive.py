@@ -22,6 +22,9 @@ import threading
 import io
 from collections import Counter
 
+# Add parent directory to sys.path to allow absolute imports from root
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import pandas as pd
 from tqdm import tqdm
 
@@ -716,7 +719,8 @@ def main():
     # Setup DualLogger
     provider_name = os.getenv("LLM_PROVIDER", "default").strip().lower()
     os.makedirs("logs", exist_ok=True)
-    run_log_file = f"logs/latest_run_{provider_name}.txt"
+    timestamp = time.strftime("%Y%m%d_%H")
+    run_log_file = f"logs/latest_run_{provider_name}_{timestamp}.txt"
     try:
         with open(run_log_file, "w", encoding="utf-8") as f:
             f.write(f"COMMAND RUN: uv run python {' '.join(sys.argv)}\n")
