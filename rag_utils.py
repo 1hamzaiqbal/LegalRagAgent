@@ -382,7 +382,10 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
 
 
 def compute_confidence(query: str, docs: List[Document]) -> float:
-    """Compute confidence as mean cross-encoder score of retrieved documents.
+    """Compute confidence as max cross-encoder score of retrieved documents.
+
+    Uses the best-scoring passage rather than the mean so that a single
+    highly relevant passage isn't drowned out by weaker ones in the pool.
 
     Reads 'cross_encoder_score' from document metadata (stored during
     reranking). No extra computation — scores are already computed.
@@ -399,7 +402,7 @@ def compute_confidence(query: str, docs: List[Document]) -> float:
         return 0.0
 
     scores = [doc.metadata.get("cross_encoder_score", 0.0) for doc in docs]
-    return float(np.mean(scores))
+    return float(np.max(scores))
 
 
 if __name__ == "__main__":
