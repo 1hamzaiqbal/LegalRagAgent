@@ -103,8 +103,8 @@ def _parse_json(text: str) -> Any:
                     continue
 
     _, parse_failures = _get_metrics()
-    _local_metrics.parse_failure_count = parse_failures + 1
-    logger.warning("JSON parse failure #%d (input length: %d chars)", _local_metrics.parse_failure_count, len(text))
+    _metrics_state.parse_failure_count = parse_failures + 1
+    logger.warning("JSON parse failure #%d (input length: %d chars)", _metrics_state.parse_failure_count, len(text))
     # Fail fast so the caller doesn't hang in a retry loop using an empty dict
     raise ValueError(f"LLM returned unparseable JSON: {text[:100]}...")
 
