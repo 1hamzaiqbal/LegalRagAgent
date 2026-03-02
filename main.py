@@ -538,19 +538,20 @@ def evaluator_node(state: AgentState) -> AgentState:
     for step in table:
         if step.status == "pending" and "confidence_score" in step.execution:
             score = step.execution["confidence_score"]
+            cited = step.execution.get("cited_answer", "")
+            summary = cited[:150].rsplit(" ", 1)[0] if len(cited) > 150 else cited
             if score >= threshold:
                 print(f"Step {step.step_id} PASSED (score: {score:.3f} >= {threshold})")
                 step.status = "completed"
                 # Fill expectation_achieved so the replanner knows this step
                 # is immutable history (its skill rule: "NEVER modify a step
                 # whose expectation_achieved is already filled").
-                cited = step.execution.get("cited_answer", "")
-                summary = cited[:150].rsplit(" ", 1)[0] if len(cited) > 150 else cited
+                
                 step.expectation_achieved = f"Yes - {summary}"
             else:
                 print(f"Step {step.step_id} FAILED (score: {score:.3f} < {threshold})")
                 step.status = "failed"
-                step.expectation_achieved = f"No - low confidence ({score:.3f})"
+                step.expectation_achieved = f"No - low confidence ({score:.3f}) - {summary}"
 
             # Accumulate evidence for replanner
             answer_summary = step.execution.get("cited_answer", "")
