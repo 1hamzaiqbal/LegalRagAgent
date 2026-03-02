@@ -881,10 +881,9 @@ def route_after_injection(state: AgentState) -> Literal["classify_and_plan_node"
 
 def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replanner_node", "verify_answer_node"]:
     """3-way routing after evaluator:
-    - replanner_node: multi_hop query — replanner fires after EACH step to
-      evaluate results and adaptively update the Plan Table
-    - executor_node: simple query with pending steps
-    - verify_answer_node: simple query done, or hard limits hit
+    - executor_node: step passed and pending steps remain (continue plan)
+    - replanner_node: multi_hop, step failed or all current steps done
+    - verify_answer_node: simple done, or hard limits hit
     """
     table = state.get("planning_table", [])
     iteration_count = state.get("iteration_count", 0)
@@ -895,20 +894,40 @@ def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replan
         print("Iteration limit hit (>6). Routing to VERIFY_ANSWER.")
         return "verify_answer_node"
 
+    has_pending = any(s.status == "pending" for s in table)
+
+    # Check if the most recently evaluated step failed
+    last_evaluated = None
+    for step in reversed(table):
+        if step.status in ("completed", "failed") and step.execution:
+            last_evaluated = step
+            break
+    last_step_failed = last_evaluated and last_evaluated.status == "failed"
+
     if query_type == "multi_hop":
-        # Hard cap: 5 completed steps matches Plan Table skill cap
         completed_count = sum(1 for s in table if s.status == "completed")
         if completed_count >= 5:
             print(f"Hard step cap ({completed_count} completed). Routing to VERIFY_ANSWER.")
             return "verify_answer_node"
 
-        # Route to replanner after EACH step so it can evaluate results
-        # and adaptively update the plan table
-        print("Routing to REPLANNER (multi_hop — adaptive evaluation)...")
+        # If a step failed, always consult the replanner — it may want to
+        # retry, reorder, or drop remaining steps.
+        if last_step_failed:
+            print("Routing to REPLANNER (step failed — adaptive response)...")
+            return "replanner_node"
+
+        # Step passed and more steps pending — continue executing the plan.
+        # No need to ask the replanner "what next?" when the next step is
+        # already queued. Saves 1 LLM call per passing step.
+        if has_pending:
+            print("Routing to EXECUTOR (step passed, pending steps remain)...")
+            return "executor_node"
+
+        # All current steps done — replanner decides: add more or complete
+        print("Routing to REPLANNER (all current steps done)...")
         return "replanner_node"
 
     # Simple queries: execute pending steps, then verify
-    has_pending = any(step.status == "pending" for step in table)
     if has_pending:
         print("Routing back to EXECUTOR (pending steps)...")
         return "executor_node"
