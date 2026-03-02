@@ -57,8 +57,8 @@ class AgentState(TypedDict):
 
 @functools.lru_cache(maxsize=None)
 def load_skill_instructions(skill_name: str) -> str:
-    """Loads markdown instructions from the archive/ directory (cached after first read)."""
-    skill_path = os.path.join("archive", "adaptive-plan-and-solve", f"{skill_name}.md")
+    """Loads markdown instructions from the skills/ directory (cached after first read)."""
+    skill_path = os.path.join("skills", f"{skill_name}.md")
     try:
         with open(skill_path, "r", encoding="utf-8") as f:
             return f.read()
@@ -324,11 +324,22 @@ def skill_synthesize_and_cite(question: str, evidence: List[str]) -> str:
     return _llm_call(instructions, user_msg, label="synthesize_and_cite").strip()
 
 
-def skill_adaptive_replan(objective: str, accumulated_context: List[Dict[str, Any]]) -> ReplanResult:
-    """Decide next action based on accumulated research evidence."""
+def skill_adaptive_replan(objective: str, current_step_id: float,
+                          retrieved_content: str, plan_table: List[Dict]) -> ReplanResult:
+    """Evaluate the current step and adaptively update the Plan Table.
+
+    Sends the inputs the adaptive_replan skill expects: objective,
+    current_step_id, retrieved_content, and the full plan_table (with
+    expectation_achieved filled for completed steps).
+    """
     instructions = load_skill_instructions("adaptive_replan")
-    context_summary = json.dumps(accumulated_context, indent=2)
-    user_msg = f"Objective: {objective}\n\nAccumulated context:\n{context_summary}"
+    plan_table_json = json.dumps(plan_table, indent=2)
+    user_msg = (
+        f"Objective: {objective}\n\n"
+        f"current_step_id: {current_step_id}\n\n"
+        f"retrieved_content:\n{retrieved_content}\n\n"
+        f"plan_table:\n{plan_table_json}"
+    )
     raw = _llm_call(instructions, user_msg, label="replan")
     try:
         parsed = _parse_json(raw)
@@ -445,10 +456,10 @@ def classifier_node(state: AgentState) -> AgentState:
 
 
 def planner_node(state: AgentState) -> AgentState:
-    """Generate a research plan using the LLM.
+    """Generate a research plan (Plan Table) using the LLM.
 
-    For multi_hop queries, only emits the first step - the replanner
-    will adaptively generate subsequent steps based on accumulated evidence.
+    For multi_hop queries, generates the full plan upfront (up to 5 steps).
+    The replanner adaptively modifies pending steps after each execution.
     """
     print("\n--- PLANNER NODE ---")
 
@@ -462,10 +473,8 @@ def planner_node(state: AgentState) -> AgentState:
 
         raw_steps = skill_plan_synthesis(research_objective, query_type)
 
-        # For multi_hop: only take the first step; replanner handles the rest
-        if query_type == "multi_hop" and len(raw_steps) > 1:
-            raw_steps = raw_steps[:1]
-            print("(multi_hop) Truncated to first step — replanner will generate next steps adaptively.")
+        # Plan Table skill generates the full plan upfront (up to 5 steps).
+        # The replanner adaptively modifies pending steps after each execution.
 
         steps = []
         for s in raw_steps:
@@ -585,9 +594,12 @@ def evaluator_node(state: AgentState) -> AgentState:
             print(f"Iteration count: {state['iteration_count']}")
             break
 
-    # Aggregate final answer when all steps are done
+    # Aggregate final answer when all steps are done (simple queries only).
+    # For multi_hop, the replanner handles aggregation — setting the failure
+    # message here would be premature since the replanner may add new steps.
+    query_type = state.get("query_type", "simple")
     all_done = all(s.status in ("completed", "failed") for s in table)
-    if all_done:
+    if all_done and query_type == "simple":
         aggregated = _aggregate_completed_answers(table)
         if aggregated:
             state["final_cited_answer"] = aggregated
@@ -614,22 +626,46 @@ def replanner_node(state: AgentState) -> AgentState:
     print("\n--- REPLANNER NODE ---")
     # Strip MC choices — replanner should plan pure legal research
     objective = _strip_mc_choices(state["global_objective"])
-    accumulated = state.get("accumulated_context", [])
+    table = state.get("planning_table", [])
+
+    # Find the most recently executed step (for current_step_id and retrieved_content)
+    last_executed = None
+    for step in reversed(table):
+        if step.status in ("completed", "failed") and step.execution:
+            last_executed = step
+            break
+
+    current_step_id = last_executed.step_id if last_executed else 1.0
+    retrieved_content = "\n\n".join(last_executed.execution.get("sources", [])) if last_executed else ""
+
+    # Build plan table JSON matching the skill's expected schema
+    plan_table_for_skill = []
+    for s in table:
+        plan_table_for_skill.append({
+            "step_id": s.step_id,
+            "planned_action": s.planned_action,
+            "retrieval_question": s.retrieval_question,
+            "expected_answer": s.expected_answer,
+            "expectation_achieved": s.expectation_achieved,
+        })
 
     try:
-        result: ReplanResult = skill_adaptive_replan(objective, accumulated)
+        result: ReplanResult = skill_adaptive_replan(
+            objective, current_step_id, retrieved_content, plan_table_for_skill
+        )
     except Exception as e:
         logger.error("Replanner failed after retries: %s. Falling back to complete.", e)
         print(f"Replanner error — graceful fallback to verify with existing evidence.")
         result = ReplanResult(action="complete", reasoning=f"Fallback — replanner error: {e}")
-    completed_count = sum(1 for s in accumulated if s.get("status") == "completed")
-    failed_count = sum(1 for s in accumulated if s.get("status") == "failed")
-    print(f"Accumulated context: {len(accumulated)} steps ({completed_count} completed, {failed_count} failed)")
+
+    completed_count = sum(1 for s in table if s.status == "completed")
+    failed_count = sum(1 for s in table if s.status == "failed")
+    print(f"Plan table: {len(table)} steps ({completed_count} completed, {failed_count} failed)")
 
     action = result.action
     print(f"Replanner action: {action} — {result.reasoning}")
-    
-    current_table = state.get("planning_table", [])
+
+    current_table = table  # same reference as state["planning_table"]
     
     # Enforce max 1 retry per step based on skill instructions
     if action == "retry" and result.updated_plan_table:
@@ -699,6 +735,23 @@ def verify_answer_node(state: AgentState) -> AgentState:
     """
     print("\n--- VERIFY / MC SELECT NODE ---")
     objective = state["global_objective"]
+    answer = state.get("final_cited_answer", "")
+
+    # Ensure final answer is aggregated (catches hard-limit routing that
+    # bypasses replanner aggregation, e.g. iteration limit or step cap)
+    if not answer or answer.startswith("Unable to produce"):
+        table = state.get("planning_table", [])
+        aggregated = _aggregate_completed_answers(table)
+        if aggregated:
+            answer = aggregated
+            state["final_cited_answer"] = answer
+            print("Aggregated final answer from completed steps.")
+        elif not answer:
+            state["final_cited_answer"] = (
+                "Unable to produce a sufficiently grounded answer. "
+                "Research steps failed to retrieve high-confidence evidence."
+            )
+
     answer = state.get("final_cited_answer", "")
 
     if not answer:
@@ -840,49 +893,37 @@ def route_after_injection(state: AgentState) -> Literal["classifier_node", "obse
 
 def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replanner_node", "verify_answer_node"]:
     """3-way routing after evaluator:
-    - executor_node: pending steps remain
-    - replanner_node: multi_hop query, all current steps done, under iteration limit
-    - verify_answer_node: simple query done, iteration limit exceeded, or hard step cap
+    - replanner_node: multi_hop query — replanner fires after EACH step to
+      evaluate results and adaptively update the Plan Table
+    - executor_node: simple query with pending steps
+    - verify_answer_node: simple query done, or hard limits hit
     """
     table = state.get("planning_table", [])
     iteration_count = state.get("iteration_count", 0)
+    query_type = state.get("query_type", "simple")
 
-    if iteration_count > 4:
-        print("Iteration limit hit (>4). Routing to VERIFY_ANSWER.")
+    # Hard iteration limit (safety valve)
+    if iteration_count > 6:
+        print("Iteration limit hit (>6). Routing to VERIFY_ANSWER.")
         return "verify_answer_node"
 
+    if query_type == "multi_hop":
+        # Hard cap: 5 completed steps matches Plan Table skill cap
+        completed_count = sum(1 for s in table if s.status == "completed")
+        if completed_count >= 5:
+            print(f"Hard step cap ({completed_count} completed). Routing to VERIFY_ANSWER.")
+            return "verify_answer_node"
+
+        # Route to replanner after EACH step so it can evaluate results
+        # and adaptively update the plan table
+        print("Routing to REPLANNER (multi_hop — adaptive evaluation)...")
+        return "replanner_node"
+
+    # Simple queries: execute pending steps, then verify
     has_pending = any(step.status == "pending" for step in table)
     if has_pending:
         print("Routing back to EXECUTOR (pending steps)...")
         return "executor_node"
-
-    # All current steps are done
-    query_type = state.get("query_type", "simple")
-    if query_type == "multi_hop":
-        # Hard cap: 3+ completed steps is enough evidence.
-        completed_count = sum(1 for s in table if s.status == "completed")
-        if completed_count >= 3:
-            print(f"Hard step cap ({completed_count} completed). Routing to VERIFY_ANSWER.")
-            return "verify_answer_node"
-
-        # Stagnation check: if 3+ consecutive steps all failed with similar
-        # scores, the topic isn't in the corpus — skip replanner.
-        recent_failed = [
-            s.execution.get("confidence_score", 0.0)
-            for s in table
-            if s.status == "failed" and s.execution
-        ]
-        if len(recent_failed) >= 3:
-            last_three = recent_failed[-3:]
-            score_range = max(last_three) - min(last_three)
-            if score_range < 0.1 and max(last_three) < 0.35:
-                print(f"Stagnation detected: last 3 failures scored {last_three} "
-                      f"(range {score_range:.3f}). Topic likely not in corpus.")
-                print("Routing to VERIFY_ANSWER (skipping futile replanning).")
-                return "verify_answer_node"
-
-        print("All current steps done (multi_hop). Routing to REPLANNER...")
-        return "replanner_node"
 
     print("All steps done (simple). Routing to VERIFY_ANSWER.")
     return "verify_answer_node"
