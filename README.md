@@ -43,6 +43,8 @@ uv run python load_corpus.py 20000          # Full eval: 20K passages, ~30 min
 uv run python load_corpus.py status         # Check current collection size
 ```
 
+run ```bash Remove-Item -Recurse -Force chroma_db``` to remove the vector store and build it again if updating embedding model
+
 The first run downloads the embedding model (`gte-large-en-v1.5`, ~1.7 GB). Subsequent runs use the cached model. Set `HF_HUB_OFFLINE=1` after the first download to skip network checks.
 
 GPU note: `sentence-transformers` auto-detects CUDA. For GPU embedding on WSL, ensure PyTorch has CUDA support: `uv pip install torch --index-url https://download.pytorch.org/whl/cu121`.
@@ -57,25 +59,23 @@ uv run python main.py medium       # Preliminary injunction standard
 
 ## Architecture
 
-Eight-node LangGraph state machine with adaptive replanning, injection detection, and MC answer selection.
+Seven-node LangGraph state machine with adaptive replanning, injection detection, and MC answer selection.
 
 ![LangGraph Pipeline](graph.png)
 
 - **Injection Check**: Screens for adversarial prompts (skippable via `SKIP_INJECTION_CHECK=1`)
-- **Classifier**: Routes queries as `simple` (1 step, 4 LLM calls) or `multi_hop` (adaptive steps, 10-11 calls)
-- **Planner**: Generates initial research step. Strips MC answer choices before planning.
+- **Classify & Plan**: Classifies query as `simple` or `multi_hop` and generates the research plan in a single LLM call. Strips MC answer choices before planning.
 - **Executor**: Per step — rewrites query into primary + 2 alternatives, multi-query retrieves from ChromaDB (with cross-step dedup), synthesizes answer with inline `[Query X][Source N]` citations
-- **Evaluator**: Checks confidence against threshold (`EVAL_CONFIDENCE_THRESHOLD`, default 0.70). Accumulates step summaries for replanner.
-- **Replanner**: (multi_hop only) Adaptively adds research steps based on accumulated evidence. Hard cap: 3 completed steps.
+- **Evaluator**: Checks confidence against threshold (`EVAL_CONFIDENCE_THRESHOLD`, default 0.0 on cross-encoder logit scale). Accumulates step summaries for replanner.
+- **Replanner**: (multi_hop only) Adaptively adds research steps based on accumulated evidence. Hard cap: 5 completed steps.
 - **MC Select**: For MC questions, applies accumulated research to select answer letter. Non-MC passes through.
 - **Observability**: Prints run metrics (LLM calls, confidence, steps, timing).
 
-### Skills (7 prompt files in `skills/`)
+### Skills (6 prompt files in `skills/`)
 
 | Skill | Purpose |
 |-------|---------|
-| `classify_and_route.md` | Classify query complexity (simple vs multi_hop) |
-| `plan_synthesis.md` | Generate initial research step |
+| `classify_and_plan.md` | Classify query complexity + generate research plan (1 LLM call) |
 | `query_rewrite.md` | Rewrite into primary + 2 alternative queries (JSON) |
 | `synthesize_and_cite.md` | Synthesize answer with inline `[Source N]` citations |
 | `adaptive_replan.md` | Decide next research step from accumulated evidence |

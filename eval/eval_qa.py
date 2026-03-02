@@ -16,6 +16,9 @@ import threading
 import io
 import pandas as pd
 
+# Add parent directory to sys.path to allow absolute imports from root
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Bypass the anti-injection prompt loop to save LLM calls/cost during eval
 os.environ.setdefault("SKIP_INJECTION_CHECK", "1")
 
@@ -164,7 +167,8 @@ def main():
     # Setup buffered DualLogger
     provider_name = os.getenv("LLM_PROVIDER", "default").strip().lower()
     os.makedirs("logs", exist_ok=True)
-    run_log_file = f"logs/eval_qa_{provider_name}.txt"
+    timestamp = time.strftime("%Y%m%d_%H")
+    run_log_file = f"logs/eval_qa_{provider_name}_{timestamp}.txt"
     
     import re
     completed_queries = {}
@@ -336,7 +340,7 @@ def main():
     print("--- EXPERIMENT SETTINGS ---")
     print(f"Embedding Model:      {os.getenv('EMBEDDING_MODEL', 'sentence-transformers/all-MiniLM-L6-v2')}")
     print(f"LLM Provider/Model:   {os.getenv('LLM_PROVIDER', 'default')} / {pinfo['model']}")
-    print(f"Confidence Threshold: {os.getenv('EVAL_CONFIDENCE_THRESHOLD', '0.70')}")
+    print(f"Confidence Threshold: {os.getenv('EVAL_CONFIDENCE_THRESHOLD', '0.0')} (cross-encoder logits)")
     print("\n--- STATISTICS ---")
     print(f"Accuracy:             {correct}/{len(queries)} ({accuracy:.1f}%)")
     print(f"Failed to execute:    {errors}")

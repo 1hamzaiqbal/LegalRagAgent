@@ -27,16 +27,19 @@ import concurrent.futures
 import threading
 import io
 
+# Add parent directory to sys.path to allow absolute imports from root
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 os.environ.setdefault("SKIP_INJECTION_CHECK", "1")
 
 from main import (
-    build_graph, _reset_llm_call_counter, _llm_call_counter,
+    build_graph, _reset_llm_call_counter,
     skill_query_rewrite, _get_deepseek_balance
 )
 from llm_config import get_provider_info
 from rag_utils import (
     retrieve_documents, retrieve_documents_multi_query,
-    compute_confidence, get_vectorstore, get_memory_store,
+    compute_confidence, get_vectorstore,
 )
 from eval.eval_comprehensive import _check_mc_correctness
 
@@ -336,10 +339,11 @@ def save_case_study(query_info: dict, result: dict, output_dir: str = "case_stud
 
 
 def main():
-    # Set up DualLogger to tee stdout to latest_run_{provider}.txt
+    # Set up DualLogger to tee stdout to latest_run_{provider}_{timestamp}.txt
     provider_name = os.getenv("LLM_PROVIDER", "default").strip().lower()
     os.makedirs("logs", exist_ok=True)
-    run_log_file = f"logs/latest_run_{provider_name}.txt"
+    timestamp = time.strftime("%Y%m%d_%H")
+    run_log_file = f"logs/latest_run_{provider_name}_{timestamp}.txt"
     try:
         with open(run_log_file, "w", encoding="utf-8") as f:
             f.write(f"COMMAND RUN: uv run python {' '.join(sys.argv)}\n")
@@ -398,15 +402,6 @@ def main():
     vs = get_vectorstore()
     print(f"Corpus: {vs._collection.count()} passages")
     print(f"Embedding: {os.getenv('EMBEDDING_MODEL', 'Alibaba-NLP/gte-large-en-v1.5')}")
-
-    # Clear QA memory cache for clean eval
-    mem_store = get_memory_store()
-    mem_count = mem_store._collection.count()
-    if mem_count > 0:
-        mem_ids = mem_store._collection.get()["ids"]
-        for i in range(0, len(mem_ids), 5000):
-            mem_store._collection.delete(ids=mem_ids[i:i+5000])
-        print(f"Cleared QA memory cache ({mem_count} entries)")
 
     save_mode = "--save" in sys.argv
     args = [a for a in sys.argv[1:] if a != "--save"]

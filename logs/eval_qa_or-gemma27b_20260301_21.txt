@@ -1,0 +1,336 @@
+COMMAND RUN: uv run python eval/eval_qa.py 1
+============================================================
+
+
+================================================================================
+QA EVALUATION (1 QUERIES)
+================================================================================
+
+Provider: or-gemma27b | Model: google/gemma-3-27b-it
+[rag_utils] Loading embedding model: sentence-transformers/all-MiniLM-L6-v2
+C:\Users\desktop\Desktop\legalRag\LegalRagAgent\rag_utils.py:81: LangChainDeprecationWarning: The class `Chroma` was deprecated in LangChain 0.2.9 and will be removed in 1.0. An updated version of the class exists in the `langchain-chroma package and should be used instead. To use it run `pip install -U `langchain-chroma` and import as `from `langchain_chroma import Chroma``.
+  _vectorstore_instances[collection_name] = Chroma(
+
+Evaluating 1 questions ...
+
+[1/1] Evaluating qa_nan_199...
+
+--- DETECT INJECTION NODE ---
+Injection check SKIPPED (SKIP_INJECTION_CHECK=1)
+
+--- CLASSIFY & PLAN NODE ---
+Classifying and planning for: Sand Company operated an installation for distributing sand and gravel. The installation was adjacent to a residential area. On Sand's grounds there was a chute with polished metal sides for loading sand and gravel into trucks. The trucks being loaded stopped on the public street below the chute. After closing hours, a plywood screen was placed in the chute and the ladder used for inspection was removed to another section of the installation. For several months, however, a number of children, 8 to 10 years of age, had been playing on Sand's property and the adjoining street after closing hours. The children found the ladder and also discovered that they could remove the plywood screen from the chute and slide down to the street below. Sand knew of this activity. One evening, the children were using the chute as a play device. As an automobile driven by Commuter approached the chute, Ladd, an 8-year-old boy, slid down just in front of the automobile. Commuter applied her brakes, but they suddenly failed, and she hit and injured Ladd. Commuter saw the child in time to have avoided hitting him if her brakes had worked properly. Two days previously, Commuter had taken her car to Garage to have her brakes inspected. Garage inspected the brakes and told her that the brakes were in perfect working order. Claims were asserted on behalf of Ladd by his proper legal representative against Sand, Commuter, and Garage. On Ladd's claim against Garage, will Ladd prevail?
+Classification: multi_hop (5 steps)
+Generated 5 plan steps
+
+Planning Table:
+  [  PENDING] 1.0: What is the standard of care for professional services, specifically a
+  [  PENDING] 2.0: What constitutes a breach of the standard of care for an auto repair g
+  [  PENDING] 3.0: What is required to establish proximate cause in a negligence claim?
+  [  PENDING] 4.0: Are there any defenses available to a garage in a negligence claim whe
+  [  PENDING] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'
+------------------------------------------------------------
+
+--- EXECUTOR NODE ---
+Executing step 1.0: What is the standard of care for professional services, specifically auto repair?
+  Primary query: professional negligence standard of care auto repair mechanic skill reasonable p...
+  Alt 1: malpractice automotive technician reasonable skill and care implied warranty mer...
+  Alt 2: negligence auto mechanic reasonable person standard industry custom breach of du...
+  Retrieved 5 passages:
+    [1] mbe_630: Expert testimony is necessary to establish the applicable standard of care “when...
+    [2] mbe_548: “[N]egligence is the failure to use due care,” i.e., “that degree of care which ...
+    [3] mbe_43: There are three questions: (1) As to the plaintiff's due care; (2) as to the neg...
+    [4] mbe_54: Where a person, by his negligence, creates a situation that calls for rescue, he...
+    [5] mbe_143: In a medical malpractice case, the relevant standard of care is that of a reason...
+  Synthesized (1430 chars): The standard of care is defined as the degree of care a person of ordinary prudence and reason would exercise under the same circumstances [Source 2]. This is often referred to as ordinary or simple n...
+  Confidence score: -4.278
+
+Planning Table:
+  [  PENDING] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [  PENDING] 2.0: What constitutes a breach of the standard of care for an auto repair g
+  [  PENDING] 3.0: What is required to establish proximate cause in a negligence claim?
+  [  PENDING] 4.0: Are there any defenses available to a garage in a negligence claim whe
+  [  PENDING] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'
+------------------------------------------------------------
+
+--- EVALUATOR NODE ---
+Step 1.0 FAILED (score: -4.278 < 0.5)
+Iteration count: 1
+
+Planning Table:
+  [   FAILED] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [  PENDING] 2.0: What constitutes a breach of the standard of care for an auto repair g
+  [  PENDING] 3.0: What is required to establish proximate cause in a negligence claim?
+  [  PENDING] 4.0: Are there any defenses available to a garage in a negligence claim whe
+  [  PENDING] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'
+------------------------------------------------------------
+Routing to REPLANNER (multi_hop — adaptive evaluation)...
+
+--- REPLANNER NODE ---
+Plan table: 5 steps (0 completed, 1 failed)
+Replanner action: next_step — The retrieved content defines negligence and the standard of care, but does not specifically address the standard for professional services like auto repair. Step 1 is still pending and needs to be completed to establish the relevant standard of care before analyzing breach. Therefore, we proceed to the next step.
+
+Planning Table:
+  [   FAILED] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [  PENDING] 2.0: What constitutes a breach of the standard of care for an auto repair g
+  [  PENDING] 3.0: What is required to establish proximate cause in a negligence claim?
+  [  PENDING] 4.0: Are there any defenses available to a garage in a negligence claim whe
+  [  PENDING] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'
+------------------------------------------------------------
+Routing to EXECUTOR (next pending step)...
+
+--- EXECUTOR NODE ---
+Executing step 2.0: What constitutes a breach of the standard of care for an auto repair garage inspecting brakes?
+  Excluding 5 prior doc_ids
+  Primary query: negligence auto repair mechanic standard of care brake inspection duty of care f...
+  Alt 1: professional malpractice auto mechanic negligence brake service warranty implied...
+  Alt 2: tort liability negligence mechanic duty brake inspection reasonably prudent pers...
+  Retrieved 5 passages:
+    [1] mbe_683: A duty of care arises when it is foreseeable that harm may result if care is not...
+    [2] mbe_199: the essential elements of negligent inspection are the same as general negligenc...
+    [3] mbe_748: If a car accident is caused by a defective condition that the driver knew or sho...
+    [4] mbe_313: A statute's violation is deemed negligence per se if the claimed injury (a) was ...
+    [5] mbe_991: The applicable standard of care in a cause of action can be established by provi...
+  Synthesized (1446 chars): **Rule**: Negligent inspection shares the same elements as general negligence: a legal duty, breach of that duty, damages, and a causal connection between the defendant’s conduct and the plaintiff’s i...
+  Confidence score: -4.138
+
+Planning Table:
+  [   FAILED] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [  PENDING] 2.0: What constitutes a breach of the standard of care for an auto repair g  (-4.138)
+  [  PENDING] 3.0: What is required to establish proximate cause in a negligence claim?
+  [  PENDING] 4.0: Are there any defenses available to a garage in a negligence claim whe
+  [  PENDING] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'
+------------------------------------------------------------
+
+--- EVALUATOR NODE ---
+Step 2.0 FAILED (score: -4.138 < 0.5)
+Iteration count: 2
+
+Planning Table:
+  [   FAILED] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [   FAILED] 2.0: What constitutes a breach of the standard of care for an auto repair g  (-4.138)
+  [  PENDING] 3.0: What is required to establish proximate cause in a negligence claim?
+  [  PENDING] 4.0: Are there any defenses available to a garage in a negligence claim whe
+  [  PENDING] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'
+------------------------------------------------------------
+Routing to REPLANNER (multi_hop — adaptive evaluation)...
+
+--- REPLANNER NODE ---
+Plan table: 5 steps (0 completed, 2 failed)
+Replanner action: next_step — Step 2 retrieved content discussing the standard of care and elements of negligence, but does not specifically address the breach of duty for an auto repair garage. The retrieved content is generally helpful but doesn't directly answer the question. Proceeding to step 3 to analyze causation.
+
+Planning Table:
+  [   FAILED] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [   FAILED] 2.0: What constitutes a breach of the standard of care for an auto repair g  (-4.138)
+  [  PENDING] 3.0: What is required to establish proximate cause in a negligence claim?
+  [  PENDING] 4.0: Are there any defenses available to a garage in a negligence claim whe
+  [  PENDING] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'
+------------------------------------------------------------
+Routing to EXECUTOR (next pending step)...
+
+--- EXECUTOR NODE ---
+Executing step 3.0: What is required to establish proximate cause in a negligence claim?
+  Excluding 10 prior doc_ids
+  Primary query: proximate cause negligence foreseeability direct cause intervening cause superse...
+  Alt 1: legal cause negligence actual cause foreseeability in fact scope of liability to...
+  Alt 2: negligence causation duty breach damages foreseeability intervening act proximat...
+  Retrieved 5 passages:
+    [1] mbe_612: Proximate cause is “a ‘cause which in the natural and continuous sequence, unbro...
+    [2] mbe_138: Proximate cause is the cause that in a natural and continuous sequence, unbroken...
+    [3] mbe_835: Proximate cause is the cause that “ ‘ “in natural and continuous sequence, unbro...
+    [4] mbe_647: Causation as an element of any negligence action consists of two components, but...
+    [5] mbe_530: Proximate cause has two elements: cause in fact and foreseeability. Travis v. Ci...
+  Synthesized (1507 chars): **Rule**: In a negligence claim, causation consists of two components: but-for causation and proximate cause [Source 4]. Proximate cause limits liability based on public policy considerations regardin...
+  Confidence score: 3.278
+
+Planning Table:
+  [   FAILED] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [   FAILED] 2.0: What constitutes a breach of the standard of care for an auto repair g  (-4.138)
+  [  PENDING] 3.0: What is required to establish proximate cause in a negligence claim?  (3.278)
+  [  PENDING] 4.0: Are there any defenses available to a garage in a negligence claim whe
+  [  PENDING] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'
+------------------------------------------------------------
+
+--- EVALUATOR NODE ---
+Step 3.0 PASSED (score: 3.278 >= 0.5)
+Iteration count: 3
+
+Planning Table:
+  [   FAILED] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [   FAILED] 2.0: What constitutes a breach of the standard of care for an auto repair g  (-4.138)
+  [COMPLETED] 3.0: What is required to establish proximate cause in a negligence claim?  (3.278)
+  [  PENDING] 4.0: Are there any defenses available to a garage in a negligence claim whe
+  [  PENDING] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'
+------------------------------------------------------------
+Routing to REPLANNER (multi_hop — adaptive evaluation)...
+
+--- REPLANNER NODE ---
+Plan table: 5 steps (1 completed, 2 failed)
+Replanner action: next_step — Step 3 retrieved a detailed explanation of proximate cause, including its elements and how it relates to 'but for' causation. The expectation for Step 3 was fully achieved as the retrieved content covers all the requested aspects. Therefore, we should proceed to the next pending step, Step 4, to explore potential defenses for the garage.
+
+Planning Table:
+  [   FAILED] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [   FAILED] 2.0: What constitutes a breach of the standard of care for an auto repair g  (-4.138)
+  [COMPLETED] 3.0: What is required to establish proximate cause in a negligence claim?  (3.278)
+  [  PENDING] 4.0: Are there any defenses available to a garage in a negligence claim whe
+  [  PENDING] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'
+------------------------------------------------------------
+Routing to EXECUTOR (next pending step)...
+
+--- EXECUTOR NODE ---
+Executing step 4.0: Are there any defenses available to a garage in a negligence claim where brakes were recently inspected?
+  Excluding 15 prior doc_ids
+  Primary query: negligence brake inspection defense contributory negligence comparative fault me...
+  Alt 1: automotive repair negligence assumption of risk shop liability duty of care prox...
+  Alt 2: tort liability independent contractor defense negligent entrustment mechanic's l...
+  Retrieved 5 passages:
+    [1] mbe_702: “Contributory negligence is conduct on the part of a plaintiff which falls below...
+    [2] mbe_223: contributory negligence is a defense to a negligence claim in a product liabilit...
+    [3] mbe_698: Contributory negligence is defined as “conduct on the part of the plaintiff whic...
+    [4] mbe_201: “Contributory negligence” is defined as conduct on the part of the plaintiff whi...
+    [5] mbe_314: Contributory negligence is defined as “conduct on the part of the plaintiff whic...
+  Synthesized (1220 chars): **Rule**: Contributory negligence can serve as a defense to a negligence claim [Source 2].
+
+**Elements**: Contributory negligence is conduct on the part of a plaintiff that falls below the standard of...
+  Confidence score: -0.336
+
+Planning Table:
+  [   FAILED] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [   FAILED] 2.0: What constitutes a breach of the standard of care for an auto repair g  (-4.138)
+  [COMPLETED] 3.0: What is required to establish proximate cause in a negligence claim?  (3.278)
+  [  PENDING] 4.0: Are there any defenses available to a garage in a negligence claim whe  (-0.336)
+  [  PENDING] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'
+------------------------------------------------------------
+
+--- EVALUATOR NODE ---
+Step 4.0 FAILED (score: -0.336 < 0.5)
+Iteration count: 4
+
+Planning Table:
+  [   FAILED] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [   FAILED] 2.0: What constitutes a breach of the standard of care for an auto repair g  (-4.138)
+  [COMPLETED] 3.0: What is required to establish proximate cause in a negligence claim?  (3.278)
+  [   FAILED] 4.0: Are there any defenses available to a garage in a negligence claim whe  (-0.336)
+  [  PENDING] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'
+------------------------------------------------------------
+Routing to REPLANNER (multi_hop — adaptive evaluation)...
+
+--- REPLANNER NODE ---
+Plan table: 5 steps (1 completed, 3 failed)
+Replanner action: next_step — Step 4 asked about defenses available to the garage, and the retrieved content discusses contributory negligence. While relevant to negligence generally, it doesn't directly address defenses *specific* to a garage's recent inspection. The content provides a definition of contributory negligence, but doesn't explain how it applies to this case or if it's a valid defense for the garage. Therefore, the expectation was not met. Proceeding to step 5 to apply the facts.
+
+Planning Table:
+  [   FAILED] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [   FAILED] 2.0: What constitutes a breach of the standard of care for an auto repair g  (-4.138)
+  [COMPLETED] 3.0: What is required to establish proximate cause in a negligence claim?  (3.278)
+  [   FAILED] 4.0: Are there any defenses available to a garage in a negligence claim whe  (-0.336)
+  [  PENDING] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'
+------------------------------------------------------------
+Routing to EXECUTOR (next pending step)...
+
+--- EXECUTOR NODE ---
+Executing step 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd's injuries?
+  Excluding 20 prior doc_ids
+  Primary query: negligence duty of care breach proximate cause causation damages Ladd v. Garage ...
+  Alt 1: tort law negligence elements foreseeability intervening cause actual cause legal...
+  Alt 2: premises defect dangerous condition invitee status negligence per se comparative...
+  Retrieved 5 passages:
+    [1] mbe_569: In Virginia, a store owner owes its customers a duty to exercise ordinary care t...
+    [2] mbe_895: The general rule is that a defendant is liable in damages to a plaintiff for all...
+    [3] mbe_137: In order to sustain a claim for negligence, a plaintiff must be able to establis...
+    [4] mbe_175: In order to sustain a claim for negligence, a plaintiff must be able to establis...
+    [5] mbe_987: While breach of duty is ordinarily a question for the trier of fact, a plaintiff...
+  Synthesized (1241 chars): To determine if Garage’s actions (or inactions) caused Ladd’s injuries, a negligence claim requires establishing a legal duty, a breach of that duty, an injury, and a causal connection between the bre...
+  Confidence score: -1.331
+
+Planning Table:
+  [   FAILED] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [   FAILED] 2.0: What constitutes a breach of the standard of care for an auto repair g  (-4.138)
+  [COMPLETED] 3.0: What is required to establish proximate cause in a negligence claim?  (3.278)
+  [   FAILED] 4.0: Are there any defenses available to a garage in a negligence claim whe  (-0.336)
+  [  PENDING] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'  (-1.331)
+------------------------------------------------------------
+
+--- EVALUATOR NODE ---
+Step 5.0 FAILED (score: -1.331 < 0.5)
+Iteration count: 5
+
+Planning Table:
+  [   FAILED] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [   FAILED] 2.0: What constitutes a breach of the standard of care for an auto repair g  (-4.138)
+  [COMPLETED] 3.0: What is required to establish proximate cause in a negligence claim?  (3.278)
+  [   FAILED] 4.0: Are there any defenses available to a garage in a negligence claim whe  (-0.336)
+  [   FAILED] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'  (-1.331)
+------------------------------------------------------------
+Routing to REPLANNER (multi_hop — adaptive evaluation)...
+
+--- REPLANNER NODE ---
+Plan table: 5 steps (1 completed, 4 failed)
+Replanner action: next_step — Step 5 retrieved information discussing the elements of negligence (duty, breach, injury, causation) and proximate cause, but did not directly apply those concepts to the facts of this case. Proceeding to step 1 to identify the negligence standard for professional services.
+
+Planning Table:
+  [   FAILED] 1.0: What is the standard of care for professional services, specifically a  (-4.278)
+  [   FAILED] 2.0: What constitutes a breach of the standard of care for an auto repair g  (-4.138)
+  [COMPLETED] 3.0: What is required to establish proximate cause in a negligence claim?  (3.278)
+  [   FAILED] 4.0: Are there any defenses available to a garage in a negligence claim whe  (-0.336)
+  [   FAILED] 5.0: Considering the facts, did Garage's actions (or inactions) cause Ladd'  (-1.331)
+------------------------------------------------------------
+Replanner complete. Routing to VERIFY_ANSWER.
+
+--- VERIFY / MC SELECT NODE ---
+Aggregated final answer from completed steps.
+  MC choices detected — selecting answer...
+  MC selection: **Answer: (B)**
+Reasoning:
+(A) Yes, because Garage is strictly liable in tort. - Strict liability typically applies to abnormally dangerous activities or defective products, not general service provision like brake inspections. This choice misstates the law. *Element: Strict liability does not apply to negligence in brake inspection.*
+
+(B) Yes, if Garage was negligent in inspecting Commuter's brakes. - This choice correctly identifies the basis for liability against Garage. If Garage was negligent in inspecting the brakes (failing to detect a problem that existed), and that negligence was a but-for and proximate cause of the injury, Garage could be liable. The research establishes that negligence requires establishing causation (both but-for and proximate). *Elements: Negligence, but-for causation, proximate cause.*
+
+(C) No, if Ladd was in the legal category of a bystander. - Ladd’s status as a bystander is irrelevant to Garage’s potential negligence. The question concerns Garage’s duty to Commuter, and whether a breach of that duty contributed to Ladd’s injury. *Element: Ladd's status as a bystander does not negate Garage's potential negligence.*
+
+(D) No, because Sand 's conduct was an independent and superseding cause. - While Sand’s conduct is relevant to the overall situation, it doesn’t automatically absolve Garage. A superseding cause must be *unforeseeable* and break the chain of causation. Garage’s alleged negligence in inspecting the brakes is a direct link to the injury, and not necessarily superseded by Sand’s actions. *Element: Sand's conduct does not necessarily break the chain of causation from Garage's potential negligence.*
+
+--- OBSERVABILITY NODE ---
+
+==================================================
+  RUN METRICS SUMMARY
+==================================================
+  Model                  google/gemma-3-27b-it
+  Total Llm Calls        17
+  Input Tokens           25405
+  Output Tokens          5392
+  Cost Spend             N/A
+  Parse Failures         0
+  Iteration Count        5
+  Steps Completed        1
+  Steps Failed           4
+  Steps Pending          0
+  Query Type             multi_hop
+  Has Answer             True
+  Injection Safe         True
+==================================================
+
+  -> Result: CORRECT | 127.5s | TOTAL: 17 calls (17 this q) | IN: 25405 tokens (25405 this q) | OUT: 5392 tokens (5392 this q)
+
+
+================================================================================
+FINAL QA BENCHMARK REPORT
+================================================================================
+--- EXPERIMENT SETTINGS ---
+Embedding Model:      sentence-transformers/all-MiniLM-L6-v2
+LLM Provider/Model:   or-gemma27b / google/gemma-3-27b-it
+Confidence Threshold: 0.50 (cross-encoder logits)
+
+--- STATISTICS ---
+Accuracy:             1/1 (100.0%)
+Failed to execute:    0
+Total time elapsed:   127.5s
+Total LLM API Calls:  17
+Avg Input Tokens:     25405 per query
+Avg Output Tokens:    5392 per query
+--------------------------------------------------------------------------------
+Label                          Result       Time  LLM
+--------------------------------------------------------------------------------
+qa_nan_199                     PASS       127.5s   17
+================================================================================
+
