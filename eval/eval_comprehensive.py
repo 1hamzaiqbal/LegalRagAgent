@@ -343,8 +343,8 @@ def _select_pipeline_queries():
 
 def phase2_pipeline(max_queries: int = None, parallel_workers: int = 1):
     """Run the full pipeline on diverse questions and evaluate end-to-end."""
-    from main import build_graph, _reset_llm_call_counter, _llm_call_counter, _parse_failure_count, _get_deepseek_balance
-    from rag_utils import retrieve_documents, get_memory_store
+    from main import build_graph, _reset_llm_call_counter, _get_deepseek_balance
+    from rag_utils import retrieve_documents
     from llm_config import get_provider_info
 
     print(f"\n{'='*80}")
@@ -361,17 +361,6 @@ def phase2_pipeline(max_queries: int = None, parallel_workers: int = 1):
     # Log provider info
     pinfo = get_provider_info()
     print(f"Provider: {pinfo['provider']} | Model: {pinfo['model']} | RPD: {pinfo.get('rpd', '?')} | TPD: {pinfo.get('tpd', '?')}")
-
-    # Clear QA memory cache so every query runs the full pipeline
-    mem_store = get_memory_store()
-    mem_count = mem_store._collection.count()
-    if mem_count > 0:
-        mem_ids = mem_store._collection.get()["ids"]
-        for i in range(0, len(mem_ids), 5000):
-            mem_store._collection.delete(ids=mem_ids[i:i+5000])
-        print(f"Cleared QA memory cache ({mem_count} entries) for clean eval.")
-    else:
-        print("QA memory cache already empty.")
 
     queries = _select_pipeline_queries()
     if max_queries:

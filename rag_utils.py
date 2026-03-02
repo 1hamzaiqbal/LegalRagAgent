@@ -51,16 +51,25 @@ def rerank_with_cross_encoder(
     docs: List[Document],
     top_k: int = 5,
 ) -> List[Document]:
-    """Rerank documents using a cross-encoder model."""
-    if not docs or len(docs) <= 1:
-        return docs[:top_k]
+    """Rerank documents using a cross-encoder model.
+
+    Stores the cross-encoder score in each document's metadata under
+    'cross_encoder_score'. These scores are used downstream for confidence
+    scoring (replacing bi-encoder cosine similarity).
+    """
+    if not docs:
+        return []
 
     cross_encoder = get_cross_encoder()
     pairs = [(query, doc.page_content) for doc in docs]
     scores = cross_encoder.predict(pairs)
 
     scored = sorted(zip(docs, scores), key=lambda x: x[1], reverse=True)
-    return [doc for doc, _ in scored[:top_k]]
+    result = []
+    for doc, score in scored[:top_k]:
+        doc.metadata["cross_encoder_score"] = float(score)
+        result.append(doc)
+    return result
 
 
 _vectorstore_instances: Dict[str, Chroma] = {}
@@ -373,20 +382,24 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
 
 
 def compute_confidence(query: str, docs: List[Document]) -> float:
-    """Compute confidence as mean cosine similarity between query and doc embeddings."""
+    """Compute confidence as mean cross-encoder score of retrieved documents.
+
+    Reads 'cross_encoder_score' from document metadata (stored during
+    reranking). No extra computation — scores are already computed.
+
+    ms-marco-MiniLM-L-6-v2 outputs raw logits: positive = relevant,
+    negative = irrelevant. Typical range roughly -10 to +10.
+
+    Args:
+        query: Unused (kept for API compatibility). Scores are already
+               computed against the query during reranking.
+        docs: Documents with cross_encoder_score in metadata.
+    """
     if not docs:
         return 0.0
 
-    embeddings = get_embeddings()
-    query_emb = np.array(embeddings.embed_query(query))
-    doc_texts = [doc.page_content for doc in docs]
-    doc_embs = np.array(embeddings.embed_documents(doc_texts))
-
-    query_norm = query_emb / (np.linalg.norm(query_emb) + 1e-10)
-    doc_norms = doc_embs / (np.linalg.norm(doc_embs, axis=1, keepdims=True) + 1e-10)
-    similarities = doc_norms @ query_norm
-
-    return float(np.mean(similarities))
+    scores = [doc.metadata.get("cross_encoder_score", 0.0) for doc in docs]
+    return float(np.mean(scores))
 
 
 if __name__ == "__main__":

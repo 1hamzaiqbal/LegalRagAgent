@@ -340,7 +340,7 @@ def main():
     print("--- EXPERIMENT SETTINGS ---")
     print(f"Embedding Model:      {os.getenv('EMBEDDING_MODEL', 'sentence-transformers/all-MiniLM-L6-v2')}")
     print(f"LLM Provider/Model:   {os.getenv('LLM_PROVIDER', 'default')} / {pinfo['model']}")
-    print(f"Confidence Threshold: {os.getenv('EVAL_CONFIDENCE_THRESHOLD', '0.70')}")
+    print(f"Confidence Threshold: {os.getenv('EVAL_CONFIDENCE_THRESHOLD', '0.0')} (cross-encoder logits)")
     print("\n--- STATISTICS ---")
     print(f"Accuracy:             {correct}/{len(queries)} ({accuracy:.1f}%)")
     print(f"Failed to execute:    {errors}")

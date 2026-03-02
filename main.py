@@ -561,10 +561,11 @@ def evaluator_node(state: AgentState) -> AgentState:
     print("\n--- EVALUATOR NODE ---")
     table = state["planning_table"]
 
-    # Default 0.70 calibrated for gte-large-en-v1.5 (observed range 0.709-0.804).
-    # Puts threshold at the floor of observed scores so ~10-20% of steps fail
-    # and get retried/rephrased by the replanner. Old default was 0.6 (no-op).
-    threshold = float(os.getenv("EVAL_CONFIDENCE_THRESHOLD", "0.70"))
+    # Cross-encoder (ms-marco-MiniLM-L-6-v2) outputs raw logits:
+    #   positive = relevant, negative = irrelevant, typical range -10 to +10.
+    # Default 0.0 = "more likely relevant than not". Needs calibration on
+    # actual eval runs — set EVAL_CONFIDENCE_THRESHOLD to tune.
+    threshold = float(os.getenv("EVAL_CONFIDENCE_THRESHOLD", "0.0"))
 
     for step in table:
         if step.status == "pending" and "confidence_score" in step.execution:
