@@ -650,33 +650,38 @@ def replanner_node(state: AgentState) -> AgentState:
 
     current_table = table  # same reference as state["planning_table"]
     
-    # Enforce max 1 retry per step based on skill instructions
+    # Identify the specific retry target: the failed step whose question changed
+    retry_target_id = None
     if action == "retry" and result.updated_plan_table:
-        # Find the step being retried (should be the first one in the updated table or the current failed one)
-        # We find the step that we would be retrying
-        retry_step_id = result.updated_plan_table[0].step_id if result.updated_plan_table else None
-        if retry_step_id is not None:
-             match = next((s for s in current_table if s.step_id == retry_step_id), None)
-             if match and match.retry_count >= 1:
-                  print(f"Max retries (1) reached for step {retry_step_id}. Overriding 'retry' to 'next_step'.")
-                  action = "next_step"
+        for updated in result.updated_plan_table:
+            existing = next((s for s in current_table if s.step_id == updated.step_id), None)
+            if existing and existing.status == "failed":
+                retry_target_id = updated.step_id
+                break
+
+        # Enforce max 1 retry per step
+        if retry_target_id is not None:
+            target = next((s for s in current_table if s.step_id == retry_target_id), None)
+            if target and target.retry_count >= 1:
+                print(f"Max retries (1) reached for step {retry_target_id}. Overriding 'retry' to 'next_step'.")
+                action = "next_step"
 
     if action in ("next_step", "retry") and result.updated_plan_table:
         # Merge updated Plan Table from LLM into agent state
-        
-        # 1. Update existing steps (only pending or the one being retried)
+
+        # 1. Update existing steps (only pending or the specific retry target)
         for updated_step in result.updated_plan_table:
-            # Find matching step in current table
             match = next((s for s in current_table if s.step_id == updated_step.step_id), None)
             if match:
-                # Never modify completed/failed steps unless we are explicitly retrying
-                if match.status == "pending" or (action == "retry" and match.step_id == updated_step.step_id):
+                is_retry_target = action == "retry" and match.step_id == retry_target_id
+                # Never modify completed/failed steps unless this is the retry target
+                if match.status == "pending" or is_retry_target:
                     match.planned_action = updated_step.planned_action
                     match.retrieval_question = updated_step.retrieval_question
                     match.expected_answer = updated_step.expected_answer
                     match.expectation_achieved = updated_step.expectation_achieved
-                    if action == "retry" and match.step_id == updated_step.step_id:
-                        match.status = "pending" # Reset status for retry
+                    if is_retry_target:
+                        match.status = "pending"  # Reset only the retry target
                         match.retry_count += 1
             else:
                 # 2. Add new steps
