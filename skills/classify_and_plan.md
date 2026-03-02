@@ -48,6 +48,11 @@ Return a JSON object with exactly these fields:
 2. **Multi-hop**: Multiple steps. Start with the foundational rule, then build toward analysis. Each step should address a distinct aspect.
 3. Each `retrieval_question` must be **self-contained** — do not reference other step IDs or answers.
 4. Keep retrieval questions concise and specific — they are used as retrieval queries.
+5. **Doctrine-level queries**: Frame retrieval questions as abstract legal doctrine lookups. The corpus contains textbook-style legal rules and principles, NOT fact-specific case analyses. Strip out parties, objects, and scenario details — those are applied during synthesis, not retrieval.
+   - BAD: "What is the standard of care for a mechanic inspecting brakes?"
+   - GOOD: "What are the elements of negligent inspection?"
+   - BAD: "How does a garage's false assurance of brake safety affect liability?"
+   - GOOD: "What are the elements of negligent misrepresentation?"
 
 ## Examples
 
@@ -56,9 +61,9 @@ Simple — "What are the elements of adverse possession?"
 {"query_type": "simple", "plan_table": [{"step_id": 1, "planned_action": "Rule Identification", "retrieval_question": "What are the elements required for adverse possession of land?", "expected_answer": "A list of required elements: actual and exclusive, open and notorious, adverse/hostile, continuous for statutory period", "expectation_achieved": ""}]}
 ```
 
-Multi-hop — "Can a store be held liable if a customer slips on a wet floor?"
+Multi-hop — "A garage inspected a car's brakes and said they were fine. The brakes failed 2 days later causing an accident. Is the garage liable?"
 ```json
-{"query_type": "multi_hop", "plan_table": [{"step_id": 1, "planned_action": "Rule Identification", "retrieval_question": "What is the legal standard for premises liability for business invitees?", "expected_answer": "Duty of care owed to invitees: duty to inspect, discover, and make safe or warn of dangerous conditions", "expectation_achieved": ""}, {"step_id": 2, "planned_action": "Breach Analysis", "retrieval_question": "What constitutes breach of duty in slip-and-fall premises liability cases?", "expected_answer": "Actual or constructive notice of hazard, reasonable time to discover and remedy", "expectation_achieved": ""}, {"step_id": 3, "planned_action": "Defense Analysis", "retrieval_question": "What defenses are available in premises liability slip-and-fall cases?", "expected_answer": "Comparative negligence, assumption of risk, open and obvious doctrine", "expectation_achieved": ""}]}
+{"query_type": "multi_hop", "plan_table": [{"step_id": 1, "planned_action": "Rule Identification", "retrieval_question": "What are the elements of negligent inspection?", "expected_answer": "Duty, breach, causation, damages — same as general negligence applied to inspection context", "expectation_achieved": ""}, {"step_id": 2, "planned_action": "Causation Analysis", "retrieval_question": "What is required to establish proximate cause in a negligence action?", "expected_answer": "But-for causation and proximate cause: injury must be foreseeable result of defendant's negligence", "expectation_achieved": ""}, {"step_id": 3, "planned_action": "Defense Analysis", "retrieval_question": "What is an independent superseding cause in tort law?", "expected_answer": "An unforeseeable intervening act that breaks the chain of proximate causation", "expectation_achieved": ""}]}
 ```
 
 Return ONLY the JSON object. No explanation, no markdown fences.

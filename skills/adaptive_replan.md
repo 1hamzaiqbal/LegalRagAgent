@@ -28,6 +28,8 @@
 - **Hard step cap: 5 steps maximum.** Do not add steps beyond this limit.
 - **Stop on futility**: If 3+ consecutive completed steps all have `expectation_achieved` starting with `"No"`, return `"complete"` immediately.
 - Each `retrieval_question` must be **self-contained** — do not reference previous step IDs or specific answer content.
+- **Generalize on failure**: If a step failed because retrieval returned irrelevant content, the query was likely too fact-specific. When reviewing pending steps, rewrite their queries as abstract legal doctrine lookups (e.g., "What are the elements of negligent inspection?" instead of "What is the standard of care for a mechanic inspecting brakes?"). The corpus contains textbook rules, not fact-specific analyses.
+- **Always review pending steps after a failure.** Do not leave pending queries unchanged when prior steps show the same query style is not working.
 
 ## Output
 
@@ -89,6 +91,22 @@ Output — evaluates step 2, modifies pending step 3:
     {"step_id": 1, "planned_action": "Rule Identification", "retrieval_question": "What is the legal standard for premises liability for business invitees?", "expected_answer": "Duty of care owed to invitees", "expectation_achieved": "Yes - found duty to inspect, discover, and make safe or warn"},
     {"step_id": 2, "planned_action": "Breach Analysis", "retrieval_question": "What constitutes breach of duty in slip-and-fall cases?", "expected_answer": "Actual or constructive notice, reasonable time to remedy", "expectation_achieved": "Partial - found actual notice standard but constructive notice not covered"},
     {"step_id": 3, "planned_action": "Notice Doctrine", "retrieval_question": "What is constructive notice in premises liability and how is it established?", "expected_answer": "Time-based test for constructive notice, mode-of-operation approach", "expectation_achieved": ""}
+  ]
+}
+```
+
+### Example 2: Generalizing after failure
+
+Step 1 asked "What is the standard of care for a mechanic inspecting brakes?" and retrieval returned irrelevant content (score: No). Pending steps 2 and 3 also have fact-specific queries that will likely fail the same way.
+
+```json
+{
+  "action": "next_step",
+  "reasoning": "Step 1 failed because the query was too fact-specific — the corpus has general negligence doctrine, not mechanic-specific rules. Generalizing pending steps to match corpus language.",
+  "updated_plan_table": [
+    {"step_id": 1, "planned_action": "Rule Identification", "retrieval_question": "What is the standard of care for a mechanic inspecting brakes?", "expected_answer": "...", "expectation_achieved": "No - retrieved general negligence principles but nothing mechanic-specific"},
+    {"step_id": 2, "planned_action": "Breach Analysis", "retrieval_question": "What are the elements required to prove breach of duty in a negligence claim?", "expected_answer": "Failure to exercise reasonable care, deviation from standard of care", "expectation_achieved": ""},
+    {"step_id": 3, "planned_action": "Causation Analysis", "retrieval_question": "What is required to establish proximate cause in a negligence action?", "expected_answer": "But-for causation and foreseeability", "expectation_achieved": ""}
   ]
 }
 ```
