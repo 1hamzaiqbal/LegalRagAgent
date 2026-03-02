@@ -1,0 +1,209 @@
+COMMAND RUN: uv run python eval/eval_qa.py 1
+============================================================
+
+
+================================================================================
+QA EVALUATION (1 QUERIES)
+================================================================================
+
+Provider: deepseek-reasoner | Model: deepseek-reasoner
+[rag_utils] Loading embedding model: sentence-transformers/all-MiniLM-L6-v2
+C:\Users\desktop\Desktop\legalRag\LegalRagAgent\rag_utils.py:81: LangChainDeprecationWarning: The class `Chroma` was deprecated in LangChain 0.2.9 and will be removed in 1.0. An updated version of the class exists in the `langchain-chroma package and should be used instead. To use it run `pip install -U `langchain-chroma` and import as `from `langchain_chroma import Chroma``.
+  _vectorstore_instances[collection_name] = Chroma(
+
+Evaluating 1 questions ...
+
+[1/1] Evaluating qa_nan_199...
+
+--- DETECT INJECTION NODE ---
+Injection check SKIPPED (SKIP_INJECTION_CHECK=1)
+
+--- CLASSIFY & PLAN NODE ---
+Classifying and planning for: Sand Company operated an installation for distributing sand and gravel. The installation was adjacent to a residential area. On Sand's grounds there was a chute with polished metal sides for loading sand and gravel into trucks. The trucks being loaded stopped on the public street below the chute. After closing hours, a plywood screen was placed in the chute and the ladder used for inspection was removed to another section of the installation. For several months, however, a number of children, 8 to 10 years of age, had been playing on Sand's property and the adjoining street after closing hours. The children found the ladder and also discovered that they could remove the plywood screen from the chute and slide down to the street below. Sand knew of this activity. One evening, the children were using the chute as a play device. As an automobile driven by Commuter approached the chute, Ladd, an 8-year-old boy, slid down just in front of the automobile. Commuter applied her brakes, but they suddenly failed, and she hit and injured Ladd. Commuter saw the child in time to have avoided hitting him if her brakes had worked properly. Two days previously, Commuter had taken her car to Garage to have her brakes inspected. Garage inspected the brakes and told her that the brakes were in perfect working order. Claims were asserted on behalf of Ladd by his proper legal representative against Sand, Commuter, and Garage. On Ladd's claim against Garage, will Ladd prevail?
+Classification: multi_hop (4 steps)
+Generated 4 plan steps
+
+Planning Table:
+  [  PENDING] 1.0: What duty of care does a garage owe to third parties for vehicle brake
+  [  PENDING] 2.0: What constitutes breach of duty in a negligent vehicle brake inspectio
+  [  PENDING] 3.0: How is proximate cause established in negligence cases involving third
+  [  PENDING] 4.0: What defenses can a garage raise against a negligence claim by a third
+------------------------------------------------------------
+
+--- EXECUTOR NODE ---
+Executing step 1.0: What duty of care does a garage owe to third parties for vehicle brake inspections?
+  Primary query: duty of care negligence garage auto repair third parties vehicle brake inspectio...
+  Alt 1: standard of care mechanics bystanders brake system checks negligence elements fo...
+  Alt 2: tortious liability automotive shops negligent brake inspections injury to public...
+  Retrieved 5 passages:
+    [1] mbe_43: There are three questions: (1) As to the plaintiff's due care; (2) as to the neg...
+    [2] mbe_675: Generally, as the plaintiff claims, tort law requires that a duty of reasonable ...
+    [3] mbe_54: Where a person, by his negligence, creates a situation that calls for rescue, he...
+    [4] mbe_747: Manufacturers and sellers are strictly liable for injuries caused by unreasonabl...
+    [5] mbe_437: The doctrine of strict products liability imposes strict liability in tort on th...
+  Synthesized (1474 chars): The evidence does not directly address the duty of care a garage owes to third parties for vehicle brake inspections.
+
+**General Duty of Care**: Tort law generally imposes a duty to exercise reasonabl...
+  Confidence score: -3.653
+
+Planning Table:
+  [  PENDING] 1.0: What duty of care does a garage owe to third parties for vehicle brake  (-3.653)
+  [  PENDING] 2.0: What constitutes breach of duty in a negligent vehicle brake inspectio
+  [  PENDING] 3.0: How is proximate cause established in negligence cases involving third
+  [  PENDING] 4.0: What defenses can a garage raise against a negligence claim by a third
+------------------------------------------------------------
+
+--- EVALUATOR NODE ---
+Step 1.0 FAILED (score: -3.653 < 0.5)
+Iteration count: 1
+
+Planning Table:
+  [   FAILED] 1.0: What duty of care does a garage owe to third parties for vehicle brake  (-3.653)
+  [  PENDING] 2.0: What constitutes breach of duty in a negligent vehicle brake inspectio
+  [  PENDING] 3.0: How is proximate cause established in negligence cases involving third
+  [  PENDING] 4.0: What defenses can a garage raise against a negligence claim by a third
+------------------------------------------------------------
+Routing to REPLANNER (multi_hop — adaptive evaluation)...
+
+--- REPLANNER NODE ---
+Plan table: 4 steps (0 completed, 1 failed)
+Replanner action: retry — The retrieved content did not address the specific duty of a garage to third parties for brake inspections; it discussed general negligence and products liability. Rephrasing the retrieval question to be more precise may target relevant legal principles.
+
+Planning Table:
+  [  PENDING] 1.0: In negligence law, what is the scope of duty for a garage inspecting b  (-3.653)
+  [  PENDING] 2.0: What constitutes breach of duty in a negligent vehicle brake inspectio
+  [  PENDING] 3.0: How is proximate cause established in negligence cases involving third
+  [  PENDING] 4.0: What defenses can a garage raise against a negligence claim by a third
+------------------------------------------------------------
+Routing to EXECUTOR (replanner added new step)...
+
+--- EXECUTOR NODE ---
+Executing step 1.0: In negligence law, what is the scope of duty for a garage inspecting brakes to third parties injured due to brake failure?
+  Primary query: negligence duty of care garage mechanic brake inspection third party liability f...
+  Alt 1: foreseeable harm proximate cause negligent brake service auto repair liability t...
+  Alt 2: service provider negligence defective repair duty to warn third parties mechanic...
+  Retrieved 5 passages:
+    [1] mbe_43: There are three questions: (1) As to the plaintiff's due care; (2) as to the neg...
+    [2] mbe_137: In order to sustain a claim for negligence, a plaintiff must be able to establis...
+    [3] mbe_175: In order to sustain a claim for negligence, a plaintiff must be able to establis...
+    [4] mbe_600: The elements of a claim for failure to warn based in negligence are: (1) the def...
+    [5] mbe_895: The general rule is that a defendant is liable in damages to a plaintiff for all...
+  Synthesized (1365 chars): In negligence law, a plaintiff must establish "(1) a legal duty; (2) a breach of this duty; (3) an injury; and (4) a causal connection between the breach and the injury" [Source 2][Source 3]. Duty is ...
+  Confidence score: -2.172
+
+Planning Table:
+  [  PENDING] 1.0: In negligence law, what is the scope of duty for a garage inspecting b  (-2.172)
+  [  PENDING] 2.0: What constitutes breach of duty in a negligent vehicle brake inspectio
+  [  PENDING] 3.0: How is proximate cause established in negligence cases involving third
+  [  PENDING] 4.0: What defenses can a garage raise against a negligence claim by a third
+------------------------------------------------------------
+
+--- EVALUATOR NODE ---
+Step 1.0 FAILED (score: -2.172 < 0.5)
+Iteration count: 2
+
+Planning Table:
+  [   FAILED] 1.0: In negligence law, what is the scope of duty for a garage inspecting b  (-2.172)
+  [  PENDING] 2.0: What constitutes breach of duty in a negligent vehicle brake inspectio
+  [  PENDING] 3.0: How is proximate cause established in negligence cases involving third
+  [  PENDING] 4.0: What defenses can a garage raise against a negligence claim by a third
+------------------------------------------------------------
+Routing to REPLANNER (multi_hop — adaptive evaluation)...
+
+--- REPLANNER NODE ---
+Plan table: 4 steps (0 completed, 1 failed)
+Replanner action: retry — The retrieved content for step 1.0 only covered general negligence elements without specific reference to a garage's duty to third parties in brake inspections. Retrying with a more focused question may yield relevant legal standards on duty of care.
+Max retries (1) reached for step 1.0. Overriding 'retry' to 'next_step'.
+
+Planning Table:
+  [   FAILED] 1.0: In negligence law, what is the scope of duty for a garage inspecting b  (-2.172)
+  [  PENDING] 2.0: What constitutes breach of duty in a negligent vehicle brake inspectio
+  [  PENDING] 3.0: How is proximate cause established in negligence cases involving third
+  [  PENDING] 4.0: What defenses can a garage raise against a negligence claim by a third
+------------------------------------------------------------
+Routing to EXECUTOR (replanner added new step)...
+
+--- EXECUTOR NODE ---
+Executing step 2.0: What constitutes breach of duty in a negligent vehicle brake inspection case?
+  Excluding 5 prior doc_ids
+  Primary query: breach of duty negligence standard of care vehicle brake inspection tort liabili...
+  Alt 1: professional negligence mechanics inspection standards automotive brake defects ...
+  Alt 2: negligent inspection liability causation brake system failure duty of mechanic v...
+  Retrieved 5 passages:
+    [1] mbe_199: the essential elements of negligent inspection are the same as general negligenc...
+    [2] mbe_675: Generally, as the plaintiff claims, tort law requires that a duty of reasonable ...
+    [3] mbe_313: A statute's violation is deemed negligence per se if the claimed injury (a) was ...
+    [4] mbe_987: While breach of duty is ordinarily a question for the trier of fact, a plaintiff...
+    [5] mbe_630: Expert testimony is necessary to establish the applicable standard of care “when...
+  Synthesized (1949 chars): **Rule**: Breach of duty in a negligent vehicle brake inspection case is the failure to exercise the standard of reasonable care, which is an element of the general negligence claim [Source 1].
+
+**Est...
+  Confidence score: -2.304
+
+Planning Table:
+  [   FAILED] 1.0: In negligence law, what is the scope of duty for a garage inspecting b  (-2.172)
+  [  PENDING] 2.0: What constitutes breach of duty in a negligent vehicle brake inspectio  (-2.304)
+  [  PENDING] 3.0: How is proximate cause established in negligence cases involving third
+  [  PENDING] 4.0: What defenses can a garage raise against a negligence claim by a third
+------------------------------------------------------------
+
+--- EVALUATOR NODE ---
+Step 2.0 FAILED (score: -2.304 < 0.5)
+Iteration count: 3
+
+Planning Table:
+  [   FAILED] 1.0: In negligence law, what is the scope of duty for a garage inspecting b  (-2.172)
+  [   FAILED] 2.0: What constitutes breach of duty in a negligent vehicle brake inspectio  (-2.304)
+  [  PENDING] 3.0: How is proximate cause established in negligence cases involving third
+  [  PENDING] 4.0: What defenses can a garage raise against a negligence claim by a third
+------------------------------------------------------------
+Iteration limit hit (>2). Routing to VERIFY_ANSWER.
+
+--- VERIFY / MC SELECT NODE ---
+Answer is a fallback/rejection message — skipping.
+
+--- OBSERVABILITY NODE ---
+
+==================================================
+  RUN METRICS SUMMARY
+==================================================
+  Model                  deepseek-reasoner
+  Total Llm Calls        9
+  Input Tokens           13998
+  Output Tokens          2483
+  Cost Spend             0.0400 CNY
+  Parse Failures         0
+  Iteration Count        3
+  Steps Completed        0
+  Steps Failed           2
+  Steps Pending          2
+  Query Type             multi_hop
+  Has Answer             True
+  Injection Safe         True
+==================================================
+
+  -> Result: WRONG | 626.5s | TOTAL: 9 calls (9 this q) | IN: 13998 tokens (13998 this q) | OUT: 2483 tokens (2483 this q)
+
+
+================================================================================
+FINAL QA BENCHMARK REPORT
+================================================================================
+--- EXPERIMENT SETTINGS ---
+Embedding Model:      sentence-transformers/all-MiniLM-L6-v2
+LLM Provider/Model:   deepseek-reasoner / deepseek-reasoner
+Confidence Threshold: 0.50 (cross-encoder logits)
+
+--- STATISTICS ---
+Accuracy:             0/1 (0.0%)
+Failed to execute:    0
+Total time elapsed:   626.5s
+Total LLM API Calls:  9
+Avg Input Tokens:     13998 per query
+Avg Output Tokens:    2483 per query
+Total API cost:       0.0400 CNY
+--------------------------------------------------------------------------------
+Label                          Result       Time  LLM
+--------------------------------------------------------------------------------
+qa_nan_199                     FAIL       626.5s    9
+================================================================================
+

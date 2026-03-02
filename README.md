@@ -43,6 +43,8 @@ uv run python load_corpus.py 20000          # Full eval: 20K passages, ~30 min
 uv run python load_corpus.py status         # Check current collection size
 ```
 
+run ```bash Remove-Item -Recurse -Force chroma_db``` to remove the vector store and build it again if updating embedding model
+
 The first run downloads the embedding model (`gte-large-en-v1.5`, ~1.7 GB). Subsequent runs use the cached model. Set `HF_HUB_OFFLINE=1` after the first download to skip network checks.
 
 GPU note: `sentence-transformers` auto-detects CUDA. For GPU embedding on WSL, ensure PyTorch has CUDA support: `uv pip install torch --index-url https://download.pytorch.org/whl/cu121`.

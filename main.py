@@ -436,7 +436,8 @@ def classify_and_plan_node(state: AgentState) -> AgentState:
 
     if not state.get("planning_table"):
         # Strip MC choices — planner should research legal concepts, not analyze options
-        research_objective = _strip_mc_choices(objective)
+        # research_objective = _strip_mc_choices(objective)
+        research_objective = objective
         print(f"Classifying and planning for: {research_objective}")
 
         query_type, raw_steps = skill_classify_and_plan(research_objective)
@@ -600,7 +601,8 @@ def replanner_node(state: AgentState) -> AgentState:
     """
     print("\n--- REPLANNER NODE ---")
     # Strip MC choices — replanner should plan pure legal research
-    objective = _strip_mc_choices(state["global_objective"])
+    # objective = _strip_mc_choices(state["global_objective"])
+    objective = state["global_objective"]
     table = state.get("planning_table", [])
 
     # Find the most recently executed step (for current_step_id and retrieved_content)
@@ -851,13 +853,18 @@ def _strip_mc_choices(objective: str) -> str:
 
 
 def _print_table(table: List[PlanStep]):
-    print("\nPlanning Table:")
+    print(f"\n{'='*80}")
+    print(f"  PLANNING TABLE ({len(table)} steps)")
+    print(f"{'='*80}")
     for s in table:
-        score = f"  ({s.execution['confidence_score']:.3f})" if "confidence_score" in s.execution else ""
-        print(f"  [{s.status.upper():>9}] {s.step_id}: {s.retrieval_question[:70]}{score}")
+        score = f"  (Score: {s.execution['confidence_score']:.3f})" if "confidence_score" in s.execution else ""
+        print(f"[{s.status.upper():>9}] Step {s.step_id}{score}")
+        print(f"  Action   : {s.planned_action}")
+        print(f"  Query    : {s.retrieval_question}")
+        print(f"  Expected : {s.expected_answer}")
         if s.expectation_achieved:
-            print(f"             Achieved: {s.expectation_achieved[:70]}")
-    print("-" * 60)
+            print(f"  Achieved : {s.expectation_achieved}")
+        print("-" * 80)
 
 
 # ---------------------------------------------------------------------------
