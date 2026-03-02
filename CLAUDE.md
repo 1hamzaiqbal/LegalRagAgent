@@ -88,25 +88,24 @@ Default: `Alibaba-NLP/gte-large-en-v1.5` (1024d, 434M params, 8192 token context
 
 ### LangGraph Workflow (main.py)
 
-Eight-node state machine with adaptive replanning, injection detection, answer verification, and observability:
+Seven-node state machine with adaptive replanning, injection detection, answer verification, and observability:
 
 1. **detect_injection_node** — Screens input for adversarial prompt injection using `detect_prompt_injection.md` skill. Skippable via `SKIP_INJECTION_CHECK=1` env var (saves 1 LLM call for eval/testing). Unsafe inputs are rejected and routed to observability for metrics.
-2. **classifier_node** — Classifies objective as `simple` or `multi_hop` using `classify_and_route.md` skill (includes MC-specific guidance: single-concept MC → simple, multi-concept MC → multi_hop, defaults to multi_hop when in doubt)
-3. **planner_node** — Generates initial plan. For `multi_hop`, emits only the first step; replanner handles the rest adaptively. **MC isolation**: strips answer choices from objective before planning — research stays unbiased.
-4. **executor_node** — For each pending step: rewrites query into primary + 2 alternatives (`query_rewrite.md`, JSON output), multi-query retrieves from ChromaDB (`retrieve_documents_multi_query`, excludes doc_ids from prior steps for cross-step dedup), synthesizes answer with inline `[Source N]` citations in a single pass (`synthesize_and_cite.md`), computes confidence via cosine similarity
-5. **evaluator_node** — Marks steps completed or failed against a configurable confidence threshold (`EVAL_CONFIDENCE_THRESHOLD` env var, default 0.70). Accumulates step summaries into `accumulated_context`. Sets explicit failure message if all steps fail.
-6. **replanner_node** — (multi_hop only) Receives objective (MC choices stripped) + accumulated evidence, decides: `next_step` (add new research step), `retry` (rephrase failed step), or `complete` (aggregate final answer). Hard cap: 3 completed steps max. On persistent LLM failure, gracefully falls back to `complete` to preserve accumulated evidence.
-7. **verify_answer_node** — MC answer selection node. Verifier LLM call removed (was always passing — see R1 in docs/pipeline_flags.md). Auto-passes verification. **MC selection**: if the objective contains answer choices, a dedicated `skill_select_mc_answer()` call runs ONCE — applies all accumulated research to pick a letter with `**Answer: (X)**` format. This keeps per-step research unbiased.
-8. **observability_node** — Aggregates and prints run metrics: LLM calls, token usage, parse failures, steps completed/failed, has_answer, injection status.
+2. **classify_and_plan_node** — Classifies objective as `simple` or `multi_hop` and generates the research plan in a single LLM call using `classify_and_plan.md` skill. **MC isolation**: strips answer choices before planning. Safety: if plan has >1 step, forces `multi_hop` regardless of LLM output.
+3. **executor_node** — For each pending step: rewrites query into primary + 2 alternatives (`query_rewrite.md`, JSON output), multi-query retrieves from ChromaDB (`retrieve_documents_multi_query`, excludes doc_ids from prior steps for cross-step dedup), synthesizes answer with inline `[Source N]` citations in a single pass (`synthesize_and_cite.md`), computes confidence via cross-encoder scores
+4. **evaluator_node** — Marks steps completed or failed against a configurable confidence threshold (`EVAL_CONFIDENCE_THRESHOLD` env var, default 0.0 on cross-encoder logit scale). Accumulates step summaries into `accumulated_context`. Sets explicit failure message if all steps fail.
+5. **replanner_node** — (multi_hop only) Receives objective (MC choices stripped) + accumulated evidence, decides: `next_step` (add new research step), `retry` (rephrase failed step), or `complete` (aggregate final answer). Hard cap: 5 completed steps max. On persistent LLM failure, gracefully falls back to `complete` to preserve accumulated evidence.
+6. **verify_answer_node** — MC answer selection node. Verifier LLM call removed (was always passing — see R1 in docs/pipeline_flags.md). Auto-passes verification. **MC selection**: if the objective contains answer choices, a dedicated `skill_select_mc_answer()` call runs ONCE — applies all accumulated research to pick a letter with `**Answer: (X)**` format. This keeps per-step research unbiased.
+7. **observability_node** — Aggregates and prints run metrics: LLM calls, token usage, parse failures, steps completed/failed, has_answer, injection status.
 
 Routing:
-- After injection check: 2-way — `classifier` (safe) | `observability` (unsafe, for metrics)
-- After planner: fixed — `executor`
-- After evaluator: 3-way — `executor` (pending steps) | `replanner` (multi_hop, all done, <3 completed) | `verify_answer` (simple done, iteration limit >4, hard step cap >=3, or stagnation)
+- After injection check: 2-way — `classify_and_plan` (safe) | `observability` (unsafe, for metrics)
+- After classify_and_plan: fixed — `executor`
+- After evaluator: 3-way — `executor` (pending steps) | `replanner` (multi_hop, all done, <5 completed) | `verify_answer` (simple done, iteration limit >6, hard step cap >=5, or stagnation)
 - After replanner: 2-way — `executor` (new step added) | `verify_answer` (complete)
 - After verify: fixed — `observability → END`
 
-Graph: `detect_injection → {classifier | observability}`; `classifier → planner → executor → evaluator → {executor | replanner | verify_answer}`; `replanner → {executor | verify_answer}`; `verify_answer → observability → END`
+Graph: `detect_injection → {classify_and_plan | observability}`; `classify_and_plan → executor → evaluator → {executor | replanner | verify_answer}`; `replanner → {executor | verify_answer}`; `verify_answer → observability → END`
 
 ### Shared State (`AgentState`)
 
@@ -116,15 +115,16 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
 
 ### Skill System (skills/)
 
-7 markdown prompt files (~1700 words total, trimmed ~40% from original ~2800) cached at first load via `@lru_cache` in `load_skill_instructions()`. Design principle: **principles and output format only; hard rules only when necessary.**
+6 active markdown prompt files cached at first load via `@lru_cache` in `load_skill_instructions()`. Design principle: **principles and output format only; hard rules only when necessary.**
 
-- `classify_and_route.md` (~200w) — classify query complexity (simple vs multi_hop). MC-specific guidance: single-concept MC → simple, multi-concept MC → multi_hop, defaults to multi_hop when in doubt.
-- `plan_synthesis.md` (~230w) — generate research plan (1 step for simple, 1 initial step for multi_hop). Two examples (simple + multi_hop) demonstrating correct 1-step output.
+- `classify_and_plan.md` (~400w) — classify query complexity (simple vs multi_hop) and generate the research plan in one call. Outputs `{"query_type": ..., "plan_table": [...]}`. MC-specific guidance: single-concept MC → simple, multi-concept MC → multi_hop, defaults to multi_hop when in doubt.
 - `query_rewrite.md` (~320w) — rewrite query into primary + 2 alternatives with different legal terminology (JSON output). 5 merged rules (down from 7).
 - `synthesize_and_cite.md` (~300w) — synthesize with inline `[Source N]` citations and `## Sources` map. Anti-fabrication block (critical): only state facts from evidence passages.
-- `adaptive_replan.md` (~250w) — decide next research step based on accumulated evidence. Hard cap: 3 completed steps. Stagnation: 3+ consecutive failures → stop. Explicit rule: do not reference answer choices or previous step IDs.
+- `adaptive_replan.md` (~250w) — decide next research step based on accumulated evidence. Hard cap: 5 completed steps. Stagnation: 3+ consecutive failures → stop. Explicit rule: do not reference answer choices or previous step IDs.
 - `detect_prompt_injection.md` (~160w) — screen input for adversarial prompts. Leads with guardrail: legal topics involving crime are SAFE. Fail-open, skippable via `SKIP_INJECTION_CHECK=1`.
 - `verify_answer.md` (~240w) — cross-check answer against evidence. Retained but **not currently called** (verifier was always passing — removed in R1). Available for future use with independent-evidence architecture.
+
+Archived: `classify_and_route.md` and `plan_synthesis.md` (replaced by `classify_and_plan.md`).
 
 ### LLM Config (llm_config.py)
 
@@ -148,7 +148,7 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
   - Deduplicates by `idx`, cross-encoder reranks the full pool against primary query
   - `exclude_ids` param filters out docs already retrieved in prior steps (cross-step dedup)
   - Bridges terminological gaps (e.g., "cancellation clause" also retrieves "illusory promise")
-- `compute_confidence(query, docs)` returns mean cosine similarity between query and doc embeddings
+- `compute_confidence(query, docs)` returns mean cross-encoder score from doc metadata (no extra computation — scores stored during reranking)
 - `load_passages_to_chroma(csv_path, max_passages=0)` loads passages with batch progress reporting
 - Singletons: `get_vectorstore()`, `get_embeddings()`, `get_cross_encoder()` all cached
 
@@ -158,11 +158,9 @@ TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query
   - Phase 1: retrieval-only Recall@5/MRR on all in-store QA pairs (dynamically sized — queries vectorstore for corpus size, not hardcoded). With 20K passages, ~953 QA pairs have gold passages in store.
   - Phase 2: full pipeline on 26 diverse queries (18 bar exam MC + 4 multi-hop + 2 out-of-corpus + 2 edge cases)
   - MC correctness checking via `_check_mc_correctness()` (3 strategies: text match, letter extraction, word overlap)
-  - Clears QA memory cache before each run for clean eval
   - Logs provider info at start
   - Bar exam queries now include MC answer choices in the objective
 - `eval/eval_trace.py` — Detailed per-query diagnostics:
-  - Clears QA memory cache at start for clean eval
   - Raw retrieval, query rewrite, multi-query retrieval with gold passage marking
   - Full pipeline execution trace (classify → plan → execute → verify)
   - MC correctness check and trace summary table (Steps, Verified, Confidence columns)
@@ -198,7 +196,7 @@ With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B (via Google AI Studio):
 | oof | n/a | 1c/0f | 0.717 | 23s | 4 |
 
 - **MC accuracy: 4/6** (torts Y, contracts Y, crimlaw N, evidence Y, constlaw N, realprop Y). Constlaw scores 0.67-0.70 (borderline threshold), crimlaw is an LLM reasoning error.
-- **LLM calls**: multi_hop MC = 11 (classify + plan + 3x[rewrite + synthesize] + 3x replan + mc_select). multi_hop non-MC = 10 (no mc_select). simple = 4 (classify + plan + rewrite + synthesize).
+- **LLM calls** (pre-merge counts; now -1 each): multi_hop MC = 11→10 (classify_and_plan + 3x[rewrite + synthesize] + 3x replan + mc_select). multi_hop non-MC = 10→9 (no mc_select). simple = 4→3 (classify_and_plan + rewrite + synthesize).
 - **Passage diversity: 100%** on every query. Cross-step `exclude_ids` working.
 - **Citation format**: `[Query X][Source Y]` with `### Step N: {phase}` headers in aggregated answer.
 - **Verifier removed**: Was always passing (8/8). Saves 1 LLM call/query. Skill file retained for future use.
@@ -209,7 +207,6 @@ With `gte-large-en-v1.5` on 20K passages, Gemma 3 27B (via Google AI Studio):
 
 **Bottleneck analysis:**
 1. **MC selector** (biggest remaining lever): 2/6 wrong answers — crimlaw is an LLM reasoning error, constlaw is a borderline-threshold retrieval issue. Research quality is generally good.
-2. **Classifier granularity**: single-concept MC → simple would save ~7 LLM calls per query, but risks less thorough research. Current multi_hop-for-everything is safe but expensive.
 
 ## Data Directories (gitignored)
 

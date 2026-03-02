@@ -254,37 +254,33 @@ def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
 # 3. Skill Wrappers
 # ---------------------------------------------------------------------------
 
-def skill_classify_and_route(objective: str) -> Dict[str, str]:
-    """Classify objective as simple or multi_hop."""
-    instructions = load_skill_instructions("classify_and_route")
-    user_msg = f"Objective: {objective}"
-    raw = _llm_call(instructions, user_msg, label="classify")
-    try:
-        parsed = _parse_json(raw)
-        if parsed and isinstance(parsed, dict) and "query_type" in parsed:
-            return parsed
-    except ValueError as e:
-        logger.warning(f"Classification parse error: {e}")
-        pass
-    return {"query_type": "simple", "reasoning": "Fallback — could not parse classifier output. Defaulting to simple."}
+def skill_classify_and_plan(objective: str) -> tuple[str, List[PlanStepData]]:
+    """Classify objective and generate a plan in a single LLM call.
 
-
-def skill_plan_synthesis(objective: str, query_type: str) -> List[PlanStepData]:
-    """Generate a plan as a list of step dicts."""
+    Returns (query_type, plan_steps). Safety: if the plan has >1 step,
+    forces query_type to multi_hop regardless of what the LLM said.
+    """
     from pydantic import TypeAdapter
-    instructions = load_skill_instructions("plan_synthesis")
-    user_msg = f"Objective: {objective}\nQuery type: {query_type}"
-    raw = _llm_call(instructions, user_msg, label="plan")
+    instructions = load_skill_instructions("classify_and_plan")
+    user_msg = f"Objective: {objective}"
+    raw = _llm_call(instructions, user_msg, label="classify_and_plan")
     try:
         parsed = _parse_json(raw)
-        if parsed and isinstance(parsed, list):
-            adapter = TypeAdapter(List[PlanStepData])
-            return adapter.validate_python(parsed)
+        if parsed and isinstance(parsed, dict):
+            query_type = parsed.get("query_type", "simple")
+            raw_steps = parsed.get("plan_table", [])
+            if raw_steps and isinstance(raw_steps, list):
+                adapter = TypeAdapter(List[PlanStepData])
+                steps = adapter.validate_python(raw_steps)
+                # Safety: plan length is the ground truth for classification
+                if len(steps) > 1:
+                    query_type = "multi_hop"
+                return query_type, steps
     except Exception as e:
-        logger.warning(f"Planner parse error: {e}")
+        logger.warning(f"Classify-and-plan parse error: {e}")
         pass
-    # Fallback: single step
-    return [PlanStepData(
+    # Fallback: simple with a single direct-research step
+    return "simple", [PlanStepData(
         step_id=1.0,
         planned_action="Direct Research",
         retrieval_question=objective,
@@ -443,38 +439,24 @@ def detect_injection_node(state: AgentState) -> AgentState:
     return state
 
 
-def classifier_node(state: AgentState) -> AgentState:
-    """Classify the objective to determine routing."""
-    print("\n--- CLASSIFIER NODE ---")
-    objective = state["global_objective"]
-    print(f"Classifying: {objective}")
+def classify_and_plan_node(state: AgentState) -> AgentState:
+    """Classify objective and generate a research plan in one LLM call.
 
-    result = skill_classify_and_route(objective)
-    state["query_type"] = result["query_type"]
-    print(f"Classification: {result['query_type']} — {result.get('reasoning', '')}")
-    return state
-
-
-def planner_node(state: AgentState) -> AgentState:
-    """Generate a research plan (Plan Table) using the LLM.
-
-    For multi_hop queries, generates the full plan upfront (up to 5 steps).
+    Replaces the old classifier_node + planner_node pair, saving 1 LLM call.
+    For multi_hop, generates the full plan upfront (up to 5 steps).
     The replanner adaptively modifies pending steps after each execution.
     """
-    print("\n--- PLANNER NODE ---")
-
+    print("\n--- CLASSIFY & PLAN NODE ---")
     objective = state["global_objective"]
 
     if not state.get("planning_table"):
-        query_type = state.get("query_type", "multi_hop")
         # Strip MC choices — planner should research legal concepts, not analyze options
         research_objective = _strip_mc_choices(objective)
-        print(f"Generating plan for: {research_objective} (type: {query_type})")
+        print(f"Classifying and planning for: {research_objective}")
 
-        raw_steps = skill_plan_synthesis(research_objective, query_type)
-
-        # Plan Table skill generates the full plan upfront (up to 5 steps).
-        # The replanner adaptively modifies pending steps after each execution.
+        query_type, raw_steps = skill_classify_and_plan(research_objective)
+        state["query_type"] = query_type
+        print(f"Classification: {query_type} ({len(raw_steps)} steps)")
 
         steps = []
         for s in raw_steps:
@@ -861,9 +843,9 @@ def _aggregate_completed_answers(table: List[PlanStep]) -> str:
 def _strip_mc_choices(objective: str) -> str:
     """Strip 'Answer choices:' block from objective for unbiased research.
 
-    The planner, executor, and replanner should research legal concepts without
-    seeing MC options. Only the classifier (routing) and MC selector (final
-    stage) need the choices.
+    The classify-and-plan node, executor, and replanner should research legal
+    concepts without seeing MC options. Only the MC selector (final stage)
+    needs the choices.
     """
     marker = "\n\nAnswer choices:"
     idx = objective.find(marker)
@@ -884,10 +866,10 @@ def _print_table(table: List[PlanStep]):
 # 6. Routing
 # ---------------------------------------------------------------------------
 
-def route_after_injection(state: AgentState) -> Literal["classifier_node", "observability_node"]:
-    """Route after injection check: safe → classifier, unsafe → observability → END."""
+def route_after_injection(state: AgentState) -> Literal["classify_and_plan_node", "observability_node"]:
+    """Route after injection check: safe → classify_and_plan, unsafe → observability → END."""
     if state.get("injection_check", {}).get("is_safe", True):
-        return "classifier_node"
+        return "classify_and_plan_node"
     print("Adversarial input detected. Routing to OBSERVABILITY.")
     return "observability_node"
 
@@ -953,8 +935,7 @@ def build_graph() -> Any:
     workflow = StateGraph(AgentState)
 
     workflow.add_node("detect_injection_node", detect_injection_node)
-    workflow.add_node("classifier_node", classifier_node)
-    workflow.add_node("planner_node", planner_node)
+    workflow.add_node("classify_and_plan_node", classify_and_plan_node)
     workflow.add_node("executor_node", executor_node)
     workflow.add_node("evaluator_node", evaluator_node)
     workflow.add_node("replanner_node", replanner_node)
@@ -967,8 +948,7 @@ def build_graph() -> Any:
         "detect_injection_node",
         route_after_injection,
     )
-    workflow.add_edge("classifier_node", "planner_node")
-    workflow.add_edge("planner_node", "executor_node")
+    workflow.add_edge("classify_and_plan_node", "executor_node")
     workflow.add_edge("executor_node", "evaluator_node")
     workflow.add_conditional_edges(
         "evaluator_node",

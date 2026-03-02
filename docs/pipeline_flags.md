@@ -54,10 +54,10 @@ Systematic audit of yellow/red flags across the codebase. Each flag has severity
 ## YELLOW FLAGS (open)
 
 ### Y2. Classifier always picks multi_hop for MC
-- **File**: `main.py` classifier_node, `skills/classify_and_route.md`
+- **File**: `main.py` classify_and_plan_node, `skills/classify_and_plan.md`
 - **Evidence**: 6/6 MC queries classified multi_hop. Only out-of-corpus got simple.
 - **Root cause**: Skill says "when in doubt, classify as multi_hop."
-- **Impact**: Every MC query costs 11 LLM calls instead of ~4. Not a correctness issue — may even help.
+- **Impact**: Every MC query costs 10 LLM calls instead of ~3. Not a correctness issue — may even help.
 - **Recommendation**: Accept. Safety margin is worth the cost on free-tier models.
 - **Status**: Accepted
 
