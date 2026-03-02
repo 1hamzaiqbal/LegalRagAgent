@@ -781,11 +781,6 @@ def route_after_injection(state: AgentState) -> Literal["classifier_node", "obse
     return "observability_node"
 
 
-def route_after_planner(state: AgentState) -> Literal["executor_node"]:
-    """Route after planner: always route to executor."""
-    return "executor_node"
-
-
 def route_after_evaluator(state: AgentState) -> Literal["executor_node", "replanner_node", "verify_answer_node"]:
     """3-way routing after evaluator:
     - executor_node: pending steps remain
@@ -874,10 +869,7 @@ def build_graph() -> Any:
         route_after_injection,
     )
     workflow.add_edge("classifier_node", "planner_node")
-    workflow.add_conditional_edges(
-        "planner_node",
-        route_after_planner,
-    )
+    workflow.add_edge("planner_node", "executor_node")
     workflow.add_edge("executor_node", "evaluator_node")
     workflow.add_conditional_edges(
         "evaluator_node",
