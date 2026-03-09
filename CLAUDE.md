@@ -78,7 +78,7 @@ Default: `Alibaba-NLP/gte-large-en-v1.5` (1024d, 434M params, 8192 token context
 
 ### Evaluator Threshold
 
-`EVAL_CONFIDENCE_THRESHOLD` sets the cosine similarity threshold for marking a research step as completed vs failed. Default `0.70` (calibrated for gte-large-en-v1.5, observed range 0.709-0.804). Previous default was 0.6 which was a no-op (0 failures in 24 traced steps). Old MiniLM default was `0.4`.
+`EVAL_CONFIDENCE_THRESHOLD` sets the cross-encoder logit threshold for marking a research step as completed vs failed. Code default is `0.0` (more likely relevant than not). Set to `0.70` for calibrated behavior with gte-large-en-v1.5 (observed passing range 0.709-0.804). Previous default was 0.6 which was a no-op (0 failures in 24 traced steps). Old MiniLM default was `0.4`.
 
 ### Retrieval Mode
 
@@ -91,7 +91,7 @@ Default: `Alibaba-NLP/gte-large-en-v1.5` (1024d, 434M params, 8192 token context
 Seven-node state machine with adaptive replanning, injection detection, answer verification, and observability:
 
 1. **detect_injection_node** — Screens input for adversarial prompt injection using `detect_prompt_injection.md` skill. Skippable via `SKIP_INJECTION_CHECK=1` env var (saves 1 LLM call for eval/testing). Unsafe inputs are rejected and routed to observability for metrics.
-2. **classify_and_plan_node** — Classifies objective as `simple` or `multi_hop` and generates the research plan in a single LLM call using `classify_and_plan.md` skill. **MC isolation**: strips answer choices before planning. Safety: if plan has >1 step, forces `multi_hop` regardless of LLM output.
+2. **classify_and_plan_node** — Classifies objective as `simple` or `multi_hop` and generates the research plan in a single LLM call using `classify_and_plan.md` skill. **MC passthrough**: MC choices are passed through to the planner unchanged (stripping is disabled — `main.py:439`). Safety: if plan has >1 step, forces `multi_hop` regardless of LLM output.
 3. **executor_node** — For each pending step: rewrites query into primary + 2 alternatives (`query_rewrite.md`, JSON output), multi-query retrieves from ChromaDB (`retrieve_documents_multi_query`, excludes doc_ids from prior steps for cross-step dedup), synthesizes answer with inline `[Source N]` citations in a single pass (`synthesize_and_cite.md`), computes confidence via cross-encoder scores
 4. **evaluator_node** — Marks steps completed or failed against a configurable confidence threshold (`EVAL_CONFIDENCE_THRESHOLD` env var, default 0.0 on cross-encoder logit scale). Accumulates step summaries into `accumulated_context`. Sets explicit failure message if all steps fail.
 5. **replanner_node** — (multi_hop only) Receives objective (MC choices stripped) + accumulated evidence, decides: `next_step` (add new research step), `retry` (rephrase failed step), or `complete` (aggregate final answer). Hard cap: 5 completed steps max. On persistent LLM failure, gracefully falls back to `complete` to preserve accumulated evidence.
@@ -109,9 +109,9 @@ Graph: `detect_injection → {classify_and_plan | observability}`; `classify_and
 
 ### Shared State (`AgentState`)
 
-TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query_type` ("simple"/"multi_hop"), `final_cited_answer`, `accumulated_context` (step summaries for replanner), `iteration_count` (loop guard, max 4), `injection_check` (safety result), `verification_result` (auto-pass dict), `initial_balance` (DeepSeek API spend tracking), and `run_metrics` (observability data including parse failures and has_answer).
+TypedDict with `global_objective`, `planning_table` (list of `PlanStep`), `query_type` ("simple"/"multi_hop"), `final_cited_answer`, `accumulated_context` (step summaries for replanner), `iteration_count` (loop guard, routes to verify_answer when >10), `injection_check` (safety result), `verification_result` (auto-pass dict), `initial_balance` (DeepSeek API spend tracking), and `run_metrics` (observability data including parse failures and has_answer).
 
-`PlanStep` model: `step_id` (float), `status` (pending/completed/failed), `phase` (str), `question` (str), `execution` (dict — stores `cited_answer`, `optimized_query`, `sources` (passage texts), `retrieved_doc_ids` (idx strings), `confidence_score`).
+`PlanStep` model: `step_id` (float), `planned_action` (str), `retrieval_question` (str), `expected_answer` (str), `expectation_achieved` (str), `status` (pending/completed/failed), `execution` (dict — stores `cited_answer`, `optimized_query`, `sources` (passage texts), `retrieved_doc_ids` (idx strings), `confidence_score`), `retry_count` (int).
 
 ### Skill System (skills/)
 
@@ -128,7 +128,7 @@ Archived: `classify_and_route.md` and `plan_synthesis.md` (replaced by `classify
 
 ### LLM Config (llm_config.py)
 
-- **Provider registry**: 21 providers across Google AI Studio, Groq, OpenRouter, Cerebras, Ollama — each with model name, API key env var, and rate limits (RPD/TPD)
+- **Provider registry**: 21 providers across DeepSeek, Google AI Studio (gemma-3-27b-it, gemini-2.5-flash, gemini-2.5-flash-lite), Groq (llama70b, llama8b, maverick, scout, gpt120b, kimi, qwen), OpenRouter, Cerebras, Ollama — each with model name, API key env var, and rate limits (RPD/TPD)
 - `get_llm()` — cached `ChatOpenAI` singleton resolved from `LLM_PROVIDER` env var (falls back to raw `LLM_BASE_URL`/`LLM_API_KEY`/`LLM_MODEL`)
 - `get_provider_info()` — returns current provider name, model, and rate limits (used by eval logging)
 - `list_providers()` — prints all providers with rate limits
@@ -148,7 +148,7 @@ Archived: `classify_and_route.md` and `plan_synthesis.md` (replaced by `classify
   - Deduplicates by `idx`, cross-encoder reranks the full pool against primary query
   - `exclude_ids` param filters out docs already retrieved in prior steps (cross-step dedup)
   - Bridges terminological gaps (e.g., "cancellation clause" also retrieves "illusory promise")
-- `compute_confidence(query, docs)` returns mean cross-encoder score from doc metadata (no extra computation — scores stored during reranking)
+- `compute_confidence(query, docs)` returns **max** cross-encoder score from doc metadata (no extra computation — scores stored during reranking)
 - `load_passages_to_chroma(csv_path, max_passages=0)` loads passages with batch progress reporting
 - Singletons: `get_vectorstore()`, `get_embeddings()`, `get_cross_encoder()` all cached
 
@@ -176,7 +176,7 @@ Archived: `classify_and_route.md` and `plan_synthesis.md` (replaced by `classify
 - **Gold passage**: The specific passage in the dataset that was used to write the answer for each QA pair (`gold_idx` field). A strict metric — requires the exact passage, not a similar one.
 - **MC Accuracy**: Does the pipeline's answer match the correct multiple-choice letter? Uses 3 strategies: text substring match, letter extraction regex (`**Answer: (X)**`), word overlap scoring.
 - **A+B rate**: Percentage of queries graded A or B (pipeline produces a useful, cited answer)
-- **Confidence**: Mean cosine similarity between query embedding and retrieved doc embeddings
+- **Confidence**: Max cross-encoder score (ms-marco-MiniLM raw logit) across retrieved docs. Positive = relevant, typical range -10 to +10. Threshold set via `EVAL_CONFIDENCE_THRESHOLD`.
 
 ### Known Eval Findings (as of 2026-02-23)
 
