@@ -22,7 +22,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Bypass the anti-injection prompt loop to save LLM calls/cost during eval
 os.environ.setdefault("SKIP_INJECTION_CHECK", "1")
 
-from main import build_graph, _get_deepseek_balance
+from main_old import build_graph, _get_deepseek_balance
 from llm_config import get_provider_info
 
 
@@ -262,7 +262,7 @@ def main():
     
     def worker_func(i, q):
         try:
-            from main import _get_metrics
+            from main_old import _get_metrics
             start_counts, _ = _get_metrics()
             start_calls = start_counts["count"]
             start_in = start_counts["input_chars"]

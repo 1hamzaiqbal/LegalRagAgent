@@ -5,11 +5,13 @@ import time
 import numpy as np
 import pandas as pd
 from typing import List, Dict, Any, Optional
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 from sentence_transformers import CrossEncoder
+from dotenv import load_dotenv
 
+load_dotenv()
 logger = logging.getLogger(__name__)
 
 CHROMA_DB_DIR = "./chroma_db"

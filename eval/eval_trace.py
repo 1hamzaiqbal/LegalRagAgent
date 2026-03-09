@@ -32,7 +32,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 os.environ.setdefault("SKIP_INJECTION_CHECK", "1")
 
-from main import (
+from main_old import (
     build_graph, _reset_llm_call_counter,
     skill_query_rewrite, _get_deepseek_balance
 )

@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Agentic Legal RAG system built on LangGraph. It uses a classify-plan-execute-evaluate loop to answer legal research questions by retrieving passages from a ChromaDB vector store of bar exam materials. LLM calls are made via `langchain-openai`'s `ChatOpenAI`, compatible with any OpenAI-compatible API (Google AI Studio, Groq, OpenRouter, Cerebras, Ollama, etc.).
 
+## Considerations
+* install all pacakges with uv in venv
+* don't need to the program code for now, user will handle it
+
 ## Commands
 
 ```bash
