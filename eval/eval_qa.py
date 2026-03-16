@@ -22,7 +22,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Bypass the anti-injection prompt loop to save LLM calls/cost during eval
 os.environ.setdefault("SKIP_INJECTION_CHECK", "1")
 
-from main_old import build_graph, _get_deepseek_balance
+from main import build_graph, _get_deepseek_balance
 from llm_config import get_provider_info
 
 
@@ -106,16 +106,21 @@ def run_single_query(app, q: dict):
         objective = f"{objective}\n\nAnswer choices:\n{choice_text}"
 
     initial_state = {
-        "global_objective": objective,
+        "agent_metadata": {
+            "provider": os.getenv("LLM_PROVIDER", "default"),
+            "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        },
+        "inputs": {"question": objective},
+        "run_config": {"max_steps": 5},
         "planning_table": [],
-        "query_type": "",
-        "final_cited_answer": "",
-        "accumulated_context": [],
-        "iteration_count": 0,
-        "injection_check": {},
-        "verification_result": {},
-        "memory_hit": {},
-        "run_metrics": {},
+        "evidence_store": [],
+        "final_answer": "",
+        "run_metrics": {
+            "total_llm_calls": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+        },
+        "audit_log": [],
     }
 
     start = time.time()
@@ -132,7 +137,7 @@ def run_single_query(app, q: dict):
     elapsed = time.time() - start
     fs = final_state or {}
     metrics = fs.get("run_metrics", {})
-    answer = fs.get("final_cited_answer", "")
+    answer = fs.get("final_answer", "")
     is_correct = _check_mc_correctness(answer, q.get("correct_answer", ""))
 
     return {
@@ -262,7 +267,7 @@ def main():
     
     def worker_func(i, q):
         try:
-            from main_old import _get_metrics
+            from main import _get_metrics
             start_counts, _ = _get_metrics()
             start_calls = start_counts["count"]
             start_in = start_counts["input_chars"]

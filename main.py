@@ -22,10 +22,13 @@ import os
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 import json
+import logging
 import math
 import re
+import requests
 import sys
 import time
+import tiktoken
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, TypedDict
 
@@ -35,6 +38,8 @@ from pydantic import BaseModel, Field
 
 from llm_config import get_llm, get_provider_info
 from rag_utils import compute_confidence, retrieve_documents_multi_query
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -71,6 +76,7 @@ class LegalAgentState(TypedDict):
     planning_table: List[PlanningStep]
     evidence_store: List[Dict[str, Any]]  # all retrieved passages (accumulated)
     final_answer: str
+    run_metrics: Dict[str, Any]         # iteration counts, token usage, cost
     audit_log: List[Dict[str, Any]]     # per-node trace entries
 
 
@@ -117,6 +123,51 @@ def _parse_json(text: str) -> Any:
     return None
 
 
+# ---------------------------------------------------------------------------
+# Metrics Tracking
+# ---------------------------------------------------------------------------
+
+class MetricsState:
+    def __init__(self):
+        self.llm_call_counter = {"count": 0, "input_chars": 0, "output_chars": 0}
+        self.parse_failure_count = 0
+
+
+_metrics_state = MetricsState()
+
+
+def _get_metrics():
+    return _metrics_state.llm_call_counter, _metrics_state.parse_failure_count
+
+
+def _reset_llm_call_counter():
+    _metrics_state.llm_call_counter = {"count": 0, "input_chars": 0, "output_chars": 0}
+    _metrics_state.parse_failure_count = 0
+
+
+def _get_deepseek_balance() -> Dict[str, Any]:
+    api_key = os.getenv("DEEPSEEK_API_KEY")
+    provider = os.getenv("LLM_PROVIDER", "").strip().lower()
+
+    if "deepseek" not in provider or not api_key:
+        return {"is_available": False}
+
+    try:
+        url = "https://api.deepseek.com/user/balance"
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        res = requests.get(url, headers=headers, timeout=10)
+        res.raise_for_status()
+        data = res.json()
+        data["is_available"] = True
+        return data
+    except Exception as e:
+        logger.warning(f"Failed to fetch DeepSeek balance: {e}")
+        return {"is_available": False}
+
+
 def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
     """Invoke the LLM with retry on transient errors (429, connection, timeout).
 
@@ -139,6 +190,18 @@ def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
                 ]
             response = llm.invoke(messages)
             content = response.content
+
+            # Track metrics
+            _metrics_state.llm_call_counter["count"] += 1
+            try:
+                enc = tiktoken.get_encoding("cl100k_base")
+                _metrics_state.llm_call_counter["input_chars"] += len(enc.encode(system_prompt + user_prompt))
+                _metrics_state.llm_call_counter["output_chars"] += len(enc.encode(content))
+            except Exception:
+                # Fallback to character counts if tiktoken fails
+                _metrics_state.llm_call_counter["input_chars"] += len(system_prompt) + len(user_prompt)
+                _metrics_state.llm_call_counter["output_chars"] += len(content)
+
             if label:
                 print(f"    [{label}] {len(content)} chars")
             return content
@@ -225,7 +288,7 @@ def _call_judge(
 
     if passages:
         passages_block = "\n\n".join(
-            f"[Passage {i + 1}] {p[:600]}" for i, p in enumerate(passages[:5])
+            f"[Passage {i + 1}] {p}" for i, p in enumerate(passages)
         )
     else:
         passages_block = "[No retrieved passages — evaluated against established legal doctrine]"
@@ -236,7 +299,7 @@ def _call_judge(
         f"ACTION TYPE: {step.action_type}\n"
         f"REWRITE ATTEMPT: {step.rewrite_attempt}\n\n"
         f"RETRIEVED PASSAGES:\n{passages_block}\n\n"
-        f"ANSWER DRAFT:\n{result[:800]}"
+        f"ANSWER DRAFT:\n{result}"
     )
 
     raw = _llm_call(load_skill(skill_name), user_prompt, label=f"judge/{skill_name}")
@@ -292,7 +355,9 @@ def _execute_rag_search(
     Returns (result_text, new_evidence, raw_logit).
     """
     # --- Query rewrite ---
+    question = state["inputs"]["question"]
     rewrite_prompt = (
+        f"Original legal research question: {question}\n\n"
         f"Sub-question: {step.sub_question}\n"
         f"Authority target: {step.authority_target}\n"
         f"Retrieval hints: {', '.join(step.retrieval_hints) if step.retrieval_hints else 'none'}"
@@ -305,7 +370,7 @@ def _execute_rag_search(
     else:
         queries = [step.sub_question]
 
-    print(f"    Primary query: {queries[0][:80]}")
+    print(f"    Primary query: {queries[0]}")
 
     # --- Retrieval with cross-step deduplication ---
     prior_ids: set = set()
@@ -340,6 +405,7 @@ def _execute_rag_search(
     # --- Sub-answer synthesis ---
     evidence_block = "\n\n".join(passages) if passages else "[No passages retrieved]"
     synth_prompt = (
+        f"Original legal research question: {question}\n\n"
         f"Research sub-question: {step.sub_question}\n\n"
         f"Evidence passages:\n{evidence_block}"
     )
@@ -353,6 +419,7 @@ def _execute_rag_search(
 
 def _execute_web_search(
     step: PlanningStep,
+    state: LegalAgentState,
 ) -> tuple[str, List[Dict[str, Any]], float]:
     """Search the web via DuckDuckGo and synthesize a cited sub-answer.
 
@@ -364,9 +431,11 @@ def _execute_web_search(
     if not snippets:
         return "[No web results found]", [], 0.0
 
+    question = state["inputs"]["question"]
     passages = [f"[WebResult {i + 1}] {s}" for i, s in enumerate(snippets)]
     evidence_block = "\n\n".join(passages)
     synth_prompt = (
+        f"Original legal research question: {question}\n\n"
         f"Research sub-question: {step.sub_question}\n\n"
         f"Web search results:\n{evidence_block}"
     )
@@ -421,7 +490,7 @@ def planner_node(state: LegalAgentState) -> dict:
 
     print(f"  Plan ({len(steps)} step{'s' if len(steps) != 1 else ''}):")
     for s in steps:
-        print(f"    Step {s.step_id} [{s.action_type}]: {s.sub_question[:80]}")
+        print(f"    Step {s.step_id} [{s.action_type}]: {s.sub_question}")
 
     return {
         "planning_table": steps,
@@ -463,13 +532,13 @@ def executor_node(state: LegalAgentState) -> dict:
         print("  No pending steps.")
         return {}
 
-    print(f"  Step {current.step_id} [{current.action_type}] (rewrite_attempt={current.rewrite_attempt}): {current.sub_question[:80]}")
+    print(f"  Step {current.step_id} [{current.action_type}] (rewrite_attempt={current.rewrite_attempt}): {current.sub_question}")
 
     # --- Route to appropriate execution strategy ---
     if current.action_type == "direct_answer":
         result, new_evidence, raw_logit = _execute_direct_answer(current, state)
     elif current.action_type == "web_search":
-        result, new_evidence, raw_logit = _execute_web_search(current)
+        result, new_evidence, raw_logit = _execute_web_search(current, state)
     else:  # rag_search (default)
         result, new_evidence, raw_logit = _execute_rag_search(
             current, state, table, evidence_store
@@ -480,11 +549,11 @@ def executor_node(state: LegalAgentState) -> dict:
     print(f"  Confidence: {confidence:.3f} (raw logit: {raw_logit:.3f}) [for analysis only]")
 
     # --- Judge evaluation ---
-    passage_texts = [ev["text"] for ev in new_evidence[:5]]
+    passage_texts = [ev["text"] for ev in new_evidence]
     verdict = _call_judge(current, result, passage_texts, question)
-    print(f"  Judge: sufficient={verdict['sufficient']} | {verdict.get('reason', '')[:100]}")
+    print(f"  Judge: sufficient={verdict['sufficient']} | {verdict.get('reason', '')}")
     if verdict.get("suggested_rewrite"):
-        print(f"  Judge rewrite suggestion: {verdict['suggested_rewrite'][:80]}")
+        print(f"  Judge rewrite suggestion: {verdict['suggested_rewrite']}")
 
     # --- Update the planning table ---
     new_table = [
@@ -535,7 +604,7 @@ def _replanner_llm_decide(
 
     evidence_summary = "\n\n".join(
         f"Step {s.step_id} [{s.authority_target or 'research'}] ({s.action_type}):\n"
-        f"Q: {s.sub_question}\nA: {s.result[:500]}"
+        f"Q: {s.sub_question}\nA: {s.result}"
         for s in completed
     )
     pending_summary = (
@@ -549,7 +618,7 @@ def _replanner_llm_decide(
         f"LAST STEP (Step {last.step_id}):\n"
         f"Sub-question: {last.sub_question}\n"
         f"Action type: {last.action_type}\n"
-        f"Result: {last.result[:600]}\n\n"
+        f"Result: {last.result}\n\n"
         f"PENDING STEPS REMAINING:\n{pending_summary}\n\n"
         f"Completed: {len(completed)} / {max_steps} max"
     )
@@ -564,7 +633,7 @@ def _replanner_llm_decide(
     action = parsed.get("action", "next" if pending else "complete")
     reasoning = parsed.get("reasoning", "")
     revised_q = parsed.get("revised_question", "")
-    print(f"  LLM replanner: {action} — {reasoning[:100]}")
+    print(f"  LLM replanner: {action} — {reasoning}")
     return action, reasoning, revised_q
 
 
@@ -629,9 +698,9 @@ def replanner_node(state: LegalAgentState) -> dict:
             )
             _insert_retry(new_table, retry_step)
             action = "retry"
-            reasoning = f"rag_search rewrite (attempt 1): {revised_q[:60]}"
+            reasoning = f"rag_search rewrite (attempt 1): {revised_q}"
             print(f"  Escalation: rag_search → rewrite (step {retry_step.step_id})")
-            print(f"  Judge reason: {verdict.get('reason', '')[:100]}")
+            print(f"  Judge reason: {verdict.get('reason', '')}")
 
         elif last.action_type == "rag_search" and last.rewrite_attempt >= 1:
             # Second RAG failure → escalate to web_search
@@ -648,7 +717,7 @@ def replanner_node(state: LegalAgentState) -> dict:
             action = "retry"
             reasoning = "rag_search exhausted → escalating to web_search"
             print(f"  Escalation: rag_search → web_search (step {retry_step.step_id})")
-            print(f"  Judge reason: {verdict.get('reason', '')[:100]}")
+            print(f"  Judge reason: {verdict.get('reason', '')}")
 
         elif last.action_type == "web_search":
             # Web search failure → fall back to direct_answer with uncertainty flag
@@ -665,7 +734,7 @@ def replanner_node(state: LegalAgentState) -> dict:
             action = "retry"
             reasoning = "web_search failed → falling back to direct_answer with uncertainty flagging"
             print(f"  Escalation: web_search → direct_answer (step {retry_step.step_id})")
-            print(f"  Judge reason: {verdict.get('reason', '')[:100]}")
+            print(f"  Judge reason: {verdict.get('reason', '')}")
 
     # --- LLM decision when judge is satisfied or escalation handled ---
     if action is None:
@@ -694,7 +763,7 @@ def replanner_node(state: LegalAgentState) -> dict:
                     retry_of=last.step_id,
                 )
                 _insert_retry(new_table, retry_step)
-                print(f"  LLM retry step {retry_step.step_id}: {retry_step.sub_question[:60]}")
+                print(f"  LLM retry step {retry_step.step_id}: {retry_step.sub_question}")
 
     return {
         "planning_table": new_table,
@@ -736,8 +805,8 @@ def synthesizer_node(state: LegalAgentState) -> dict:
     # Build an evidence index the synthesizer can cite by number
     evidence_index = "\n".join(
         f"[Evidence {i + 1}] (step={ev['step_id']}, source={ev['source']}): "
-        f"{ev['text'][:220]}..."
-        for i, ev in enumerate(evidence_store[:25])
+        f"{ev['text']}"
+        for i, ev in enumerate(evidence_store)
     )
 
     user_prompt = (
@@ -843,11 +912,16 @@ def run(question: str, max_steps: int = 5) -> LegalAgentState:
         "planning_table": [],
         "evidence_store": [],
         "final_answer": "",
+        "run_metrics": {
+            "total_llm_calls": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+        },
         "audit_log": [],
     }
 
     print(f"\n{'=' * 80}")
-    print(f"QUESTION: {question[:120]}")
+    print(f"QUESTION: {question}")
     print(f"{'=' * 80}")
 
     result = graph.invoke(initial_state)

@@ -1,0 +1,375 @@
+COMMAND RUN: uv run python eval/eval_qa.py 5
+============================================================
+
+
+================================================================================
+QA EVALUATION (5 QUERIES)
+================================================================================
+
+Provider: or-gemma27b | Model: google/gemma-3-27b-it
+[rag_utils] Loading embedding model: sentence-transformers/all-MiniLM-L6-v2
+
+Evaluating 5 questions ...
+
+[1/5] Evaluating qa_nan_199...
+
+--- PLANNER ---
+    [planner] 1400 chars
+  Plan (4 steps):
+    Step 1 [rag_search]: What is the standard of care owed by a mechanic or garage to a customer regardin
+    Step 2 [rag_search]: What constitutes negligence in the context of a professional service, like a veh
+    Step 3 [rag_search]: What is the doctrine of *res ipsa loquitur* and when does it apply in cases invo
+    Step 4 [rag_search]: What is the concept of proximate cause and how does it apply to determine liabil
+
+--- EXECUTOR ---
+  Step 1 [rag_search] (rewrite_attempt=0): What is the standard of care owed by a mechanic or garage to a customer regardin
+    [executor/rewrite] 376 chars
+    Primary query: mechanic standard of care vehicle inspection and repair duty of care negligence 
+    Retrieved 5 passage(s)
+    [executor/synth] 1307 chars
+  Confidence: 0.522 (raw logit: 0.089) [for analysis only]
+    [judge/judge] 328 chars
+  Judge: sufficient=True | The passages establish the general negligence framework and the standard of care for professionals, 
+
+--- REPLANNER ---
+    [replanner] 469 chars
+  LLM replanner: retry — The result provides a general definition of negligence and the standard of care for professionals, b
+  LLM retry step 15: What is the standard of care for mechanics inspecting and ce
+  → executor
+
+--- EXECUTOR ---
+  Step 15 [rag_search] (rewrite_attempt=0): What is the standard of care for mechanics inspecting and certifying the safety 
+    [executor/rewrite] 366 chars
+    Primary query: mechanic standard of care vehicle brake inspection safety certification duty of 
+    Retrieved 5 passage(s)
+    [executor/synth] 1338 chars
+  Confidence: 0.025 (raw logit: -3.669) [for analysis only]
+    [judge/judge] 300 chars
+  Judge: sufficient=True | The passages establish that negligent inspection follows general negligence principles (duty, breach
+
+--- REPLANNER ---
+    [replanner] 376 chars
+  LLM replanner: next — The retrieved evidence establishes the general elements of negligence and the need for expert testim
+  → executor
+
+--- EXECUTOR ---
+  Step 2 [rag_search] (rewrite_attempt=0): What constitutes negligence in the context of a professional service, like a veh
+    [executor/rewrite] 379 chars
+    Primary query: professional negligence standard of care breach of duty expert testimony duty of
+    Retrieved 5 passage(s)
+    [executor/synth] 1228 chars
+  Confidence: 0.622 (raw logit: 0.500) [for analysis only]
+    [judge/judge] 321 chars
+  Judge: sufficient=True | The passages define negligence and its elements (duty, breach, causation, damages) and specifically 
+
+--- REPLANNER ---
+    [replanner] 363 chars
+  LLM replanner: next — The retrieved evidence establishes the general elements of negligence, which is relevant to the ques
+  → executor
+
+--- EXECUTOR ---
+  Step 3 [rag_search] (rewrite_attempt=0): What is the doctrine of *res ipsa loquitur* and when does it apply in cases invo
+    [executor/rewrite] 351 chars
+    Primary query: res ipsa loquitur negligence inference mechanical failure exclusive control prox
+    Retrieved 5 passage(s)
+    [executor/synth] 1633 chars
+  Confidence: 0.985 (raw logit: 4.169) [for analysis only]
+    [judge/judge] 311 chars
+  Judge: sufficient=True | The passages directly define *res ipsa loquitur* and outline its elements, providing a clear explana
+
+--- REPLANNER ---
+    [replanner] 366 chars
+  LLM replanner: next — The research has established the elements of negligence and the potential application of *res ipsa l
+  → executor
+
+--- EXECUTOR ---
+  Step 4 [rag_search] (rewrite_attempt=0): What is the concept of proximate cause and how does it apply to determine liabil
+    [executor/rewrite] 350 chars
+    Primary query: proximate cause tort liability causation in fact foreseeability intervening caus
+    Retrieved 5 passage(s)
+    [executor/synth] 1734 chars
+  Confidence: 0.997 (raw logit: 5.802) [for analysis only]
+    [judge/judge] 290 chars
+  Judge: sufficient=True | The passages directly define and explain the concept of proximate cause within the context of neglig
+
+--- REPLANNER ---
+  Max steps (5) reached → complete
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 2907 chars
+  Final answer: 2907 chars
+  -> Result: CORRECT | 231.9s | TOTAL: 21 calls (21 this q) | IN: 35889 tokens (35889 this q) | OUT: 3546 tokens (3546 this q)
+[2/5] Evaluating qa_nan_422...
+
+--- PLANNER ---
+    [planner] 1353 chars
+  Plan (4 steps):
+    Step 1 [rag_search]: What is the standard for establishing negligence, including duty, breach, causat
+    Step 2 [rag_search]: How does the doctrine of proximate cause apply when multiple causes contribute t
+    Step 3 [rag_search]: What is the effect of a plaintiff's own negligence on recovery in a negligence c
+    Step 4 [rag_search]: Does an intervening cause relieve a tortfeasor of liability?
+
+--- EXECUTOR ---
+  Step 1 [rag_search] (rewrite_attempt=0): What is the standard for establishing negligence, including duty, breach, causat
+    [executor/rewrite] 371 chars
+    Primary query: negligence elements duty of care breach of duty causation damages standard of ca
+    Retrieved 5 passage(s)
+    [executor/synth] 1519 chars
+  Confidence: 0.988 (raw logit: 4.404) [for analysis only]
+    [judge/judge] 307 chars
+  Judge: sufficient=True | The passages clearly and directly state the elements of a negligence claim (duty, breach, causation,
+
+--- REPLANNER ---
+    [replanner] 296 chars
+  LLM replanner: next — Step 1 established the elements of negligence, but the original question requires analysis of proxim
+  → executor
+
+--- EXECUTOR ---
+  Step 2 [rag_search] (rewrite_attempt=0): How does the doctrine of proximate cause apply when multiple causes contribute t
+    [executor/rewrite] 374 chars
+    Primary query: proximate cause multiple causes concurrent cause substantial factor intervening 
+    Retrieved 5 passage(s)
+    [executor/synth] 1619 chars
+  Confidence: 0.997 (raw logit: 5.712) [for analysis only]
+    [judge/judge] 284 chars
+  Judge: sufficient=True | The passages directly address the doctrine of proximate cause and specifically discuss how it applie
+
+--- REPLANNER ---
+    [replanner] 355 chars
+  LLM replanner: next — The retrieved information establishes the elements of negligence and the application of proximate ca
+  → executor
+
+--- EXECUTOR ---
+  Step 3 [rag_search] (rewrite_attempt=0): What is the effect of a plaintiff's own negligence on recovery in a negligence c
+    [executor/rewrite] 383 chars
+    Primary query: contributory negligence comparative negligence plaintiff's negligence recovery d
+    Retrieved 5 passage(s)
+    [executor/synth] 1496 chars
+  Confidence: 0.999 (raw logit: 7.395) [for analysis only]
+    [judge/judge] 286 chars
+  Judge: sufficient=True | The passages directly address the effect of a plaintiff's negligence on recovery in a negligence cla
+
+--- REPLANNER ---
+    [replanner] 340 chars
+  LLM replanner: next — The retrieved information establishes the elements of negligence, proximate cause, and comparative n
+  → executor
+
+--- EXECUTOR ---
+  Step 4 [rag_search] (rewrite_attempt=0): Does an intervening cause relieve a tortfeasor of liability?
+    [executor/rewrite] 374 chars
+    Primary query: intervening cause proximate cause superseding cause tort liability foreseeabilit
+    Retrieved 5 passage(s)
+    [executor/synth] 1249 chars
+  Confidence: 0.968 (raw logit: 3.407) [for analysis only]
+    [judge/judge] 282 chars
+  Judge: sufficient=True | The passages discuss proximate cause and intervening forces, directly addressing whether an interven
+
+--- REPLANNER ---
+    [replanner] 313 chars
+  LLM replanner: complete — The retrieved information on negligence, proximate cause, comparative negligence, and intervening ca
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 2807 chars
+  Final answer: 2807 chars
+  -> Result: CORRECT | 189.2s | TOTAL: 39 calls (18 this q) | IN: 63811 tokens (27922 this q) | OUT: 6505 tokens (2959 this q)
+[3/5] Evaluating qa_realprop_695...
+
+--- PLANNER ---
+    [planner] 1314 chars
+  Plan (4 steps):
+    Step 1 [rag_search]: What is the scope of a general warranty deed's covenants, specifically regarding
+    Step 2 [rag_search]: What constitutes a 'material defect' in title that would give rise to a breach o
+    Step 3 [rag_search]: Does a government regulation prohibiting a use of property constitute a defect i
+    Step 4 [rag_search]: What is the duty of a seller to disclose known defects about the property to a b
+
+--- EXECUTOR ---
+  Step 1 [rag_search] (rewrite_attempt=0): What is the scope of a general warranty deed's covenants, specifically regarding
+    [executor/rewrite] 410 chars
+    Primary query: general warranty deed covenants encumbrances title defects breach of warranty qu
+    Retrieved 5 passage(s)
+    [executor/synth] 1204 chars
+  Confidence: 0.997 (raw logit: 5.708) [for analysis only]
+    [judge/judge] 272 chars
+  Judge: sufficient=True | The passages directly define the covenants within a general warranty deed, including the covenant ag
+
+--- REPLANNER ---
+    [replanner] 354 chars
+  LLM replanner: next — The first step established the basics of warranty deed covenants, but we still need to determine if 
+  → executor
+
+--- EXECUTOR ---
+  Step 2 [rag_search] (rewrite_attempt=0): What constitutes a 'material defect' in title that would give rise to a breach o
+    [executor/rewrite] 326 chars
+    Primary query: material defect title breach warranty substantial impairment marketable title re
+    Retrieved 5 passage(s)
+    [executor/synth] 1450 chars
+  Confidence: 0.956 (raw logit: 3.072) [for analysis only]
+    [judge/judge] 304 chars
+  Judge: sufficient=True | The passages define 'marketable title' and identify several examples of defects that render title un
+
+--- REPLANNER ---
+    [replanner] 362 chars
+  LLM replanner: next — The retrieved information defines 'material defect' and 'marketable title', but doesn't address whet
+  → executor
+
+--- EXECUTOR ---
+  Step 3 [rag_search] (rewrite_attempt=0): Does a government regulation prohibiting a use of property constitute a defect i
+    [executor/rewrite] 345 chars
+    Primary query: warranty deed title defect government regulation zoning ordinance property use d
+    Retrieved 5 passage(s)
+    [executor/synth] 857 chars
+  Confidence: 0.419 (raw logit: -0.326) [for analysis only]
+    [judge/judge] 375 chars
+  Judge: sufficient=True | Passages 2 and 3 directly address the concept of 'marketable title' and defects in title under a war
+
+--- REPLANNER ---
+    [replanner] 390 chars
+  LLM replanner: next — The retrieved information addresses warranty deeds and defects in title, but doesn't fully resolve w
+  → executor
+
+--- EXECUTOR ---
+  Step 4 [rag_search] (rewrite_attempt=0): What is the duty of a seller to disclose known defects about the property to a b
+    [executor/rewrite] 374 chars
+    Primary query: seller disclosure duty latent defect property condition fraudulent concealment c
+    Retrieved 5 passage(s)
+    [executor/synth] 1409 chars
+  Confidence: 0.991 (raw logit: 4.642) [for analysis only]
+    [judge/judge] 306 chars
+  Judge: sufficient=True | The passages directly address the duty of a seller to disclose defects, outlining the caveat emptor 
+
+--- REPLANNER ---
+    [replanner] 417 chars
+  LLM replanner: complete — The research has covered warranty deeds, defects in title, the impact of governmental regulations, a
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 2383 chars
+  Final answer: 2383 chars
+  -> Result: WRONG | 154.9s | TOTAL: 57 calls (18 this q) | IN: 92237 tokens (28426 this q) | OUT: 9326 tokens (2821 this q)
+[4/5] Evaluating qa_nan_751...
+
+--- PLANNER ---
+    [planner] 1381 chars
+  Plan (4 steps):
+    Step 1 [rag_search]: What is the scope of federal judicial power under Article III of the U.S. Consti
+    Step 2 [rag_search]: What is the Eleventh Amendment and what limitations does it place on federal cou
+    Step 3 [rag_search]: Can Congress expand or restrict the original jurisdiction of the Supreme Court?
+    Step 4 [rag_search]: What constitutes an advisory opinion, and why are federal courts prohibited from
+
+--- EXECUTOR ---
+  Step 1 [rag_search] (rewrite_attempt=0): What is the scope of federal judicial power under Article III of the U.S. Consti
+    [executor/rewrite] 399 chars
+    Primary query: Article III judicial power case or controversy standing federal courts federal j
+    Retrieved 5 passage(s)
+    [executor/synth] 1548 chars
+  Confidence: 0.985 (raw logit: 4.164) [for analysis only]
+    [judge/judge] 295 chars
+  Judge: sufficient=True | The passages directly address the scope of federal judicial power as defined in Article III of the C
+
+--- REPLANNER ---
+    [replanner] 271 chars
+  LLM replanner: next — Step 1 established the basic framework of Article III judicial power; the original question involves
+  → executor
+
+--- EXECUTOR ---
+  Step 2 [rag_search] (rewrite_attempt=0): What is the Eleventh Amendment and what limitations does it place on federal cou
+    [executor/rewrite] 375 chars
+    Primary query: Eleventh Amendment sovereign immunity state immunity federal court jurisdiction 
+    Retrieved 5 passage(s)
+    [executor/synth] 1513 chars
+  Confidence: 0.998 (raw logit: 6.388) [for analysis only]
+    [judge/judge] 278 chars
+  Judge: sufficient=True | The passages clearly explain the Eleventh Amendment's general prohibition on federal court jurisdict
+
+--- REPLANNER ---
+    [replanner] 409 chars
+  LLM replanner: next — The retrieved information on the Eleventh Amendment is relevant to the question of whether Congress 
+  → executor
+
+--- EXECUTOR ---
+  Step 3 [rag_search] (rewrite_attempt=0): Can Congress expand or restrict the original jurisdiction of the Supreme Court?
+    [executor/rewrite] 413 chars
+    Primary query: congressional power Article III federal court jurisdiction original jurisdiction
+    Retrieved 5 passage(s)
+    [executor/synth] 1330 chars
+  Confidence: 0.992 (raw logit: 4.823) [for analysis only]
+    [judge/judge] 348 chars
+  Judge: sufficient=True | Passages 1 and 5 directly address Congress's power to expand or restrict the Supreme Court's jurisdi
+
+--- REPLANNER ---
+    [replanner] 389 chars
+  LLM replanner: next — The retrieved information establishes the scope of federal judicial power, the Eleventh Amendment's 
+  → executor
+
+--- EXECUTOR ---
+  Step 4 [rag_search] (rewrite_attempt=0): What constitutes an advisory opinion, and why are federal courts prohibited from
+    [executor/rewrite] 372 chars
+    Primary query: advisory opinion doctrine case or controversy requirement justiciability federal
+    Retrieved 5 passage(s)
+    [executor/synth] 1449 chars
+  Confidence: 0.987 (raw logit: 4.362) [for analysis only]
+    [judge/judge] 275 chars
+  Judge: sufficient=True | The passages directly address what constitutes an advisory opinion (a non-binding judgment) and the 
+
+--- REPLANNER ---
+    [replanner] 344 chars
+  LLM replanner: complete — The retrieved information regarding Article III judicial power, the Eleventh Amendment, congressiona
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 2893 chars
+  Final answer: 2893 chars
+  -> Result: CORRECT | 133.1s | TOTAL: 75 calls (18 this q) | IN: 119906 tokens (27669 this q) | OUT: 12208 tokens (2882 this q)
+[5/5] Evaluating qa_nan_388...
+
+--- PLANNER ---
+    [planner] 1518 chars
+  Plan (4 steps):
+    Step 1 [rag_search]: What is the standard for evaluating state laws that substantially affect interst
+    Step 2 [rag_search]: Does the Constitution recognize a fundamental right to contraception, particular
+    Step 3 [rag_search]: What is the Privileges and Immunities Clause of the Fourteenth Amendment and how
+    Step 4 [rag_search]: How has the Supreme Court addressed First Amendment challenges to laws regulatin
+
+--- EXECUTOR ---
+  Step 1 [rag_search] (rewrite_attempt=0): What is the standard for evaluating state laws that substantially affect interst
+    [executor/rewrite] 372 chars
+    Primary query: dormant commerce clause substantial effect on interstate commerce undue burden d
+    Retrieved 5 passage(s)
+    [executor/synth] 1540 chars
+  Confidence: 0.999 (raw logit: 7.159) [for analysis only]
+    [judge/judge] 316 chars
+  Judge: sufficient=True | The passages directly address the standard for evaluating state laws under the Commerce Clause, expl
+
+--- REPLANNER ---
+    [replanner] LLM error: Error code: 500 - {'error': {'message': 'Internal Server Error', 'code': 500}}
+  -> Result: ERROR | 56.6s | TOTAL: 79 calls (4 this q) | IN: 125769 tokens (5863 this q) | OUT: 13016 tokens (808 this q)
+  -> Error: Error code: 500 - {'error': {'message': 'Internal Server Error', 'code': 500}}
+
+
+================================================================================
+FINAL QA BENCHMARK REPORT
+================================================================================
+--- EXPERIMENT SETTINGS ---
+Embedding Model:      sentence-transformers/all-MiniLM-L6-v2
+LLM Provider/Model:   or-gemma27b / google/gemma-3-27b-it
+Confidence Threshold: 0.0 (cross-encoder logits)
+
+--- STATISTICS ---
+Accuracy:             3/5 (60.0%)
+Failed to execute:    1
+Total time elapsed:   765.7s
+Total LLM API Calls:  79
+Avg Input Tokens:     25153 per query
+Avg Output Tokens:    2603 per query
+--------------------------------------------------------------------------------
+Label                          Result       Time  LLM
+--------------------------------------------------------------------------------
+qa_nan_199                     PASS       231.9s   21
+qa_nan_388                     ERR         56.6s    4
+qa_nan_422                     PASS       189.2s   18
+qa_nan_751                     PASS       133.1s   18
+qa_realprop_695                FAIL       154.9s   18
+================================================================================
+

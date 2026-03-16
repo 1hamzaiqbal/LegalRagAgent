@@ -20,7 +20,7 @@ import re
 # Add parent directory to sys.path to allow absolute imports from root
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from main_old import _get_deepseek_balance, _llm_call, _get_metrics
+from main import _get_deepseek_balance, _llm_call, _get_metrics
 from llm_config import get_provider_info
 
 
