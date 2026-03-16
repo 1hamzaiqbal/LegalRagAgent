@@ -29,7 +29,7 @@ import requests
 import sys
 import time
 import tiktoken
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Literal, Optional, TypedDict
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -235,7 +235,7 @@ def _normalise_confidence(raw_logit: float) -> float:
 
 def _log(state: LegalAgentState, entry: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Return updated audit_log list with a new timestamped entry appended."""
-    entry.setdefault("timestamp", datetime.utcnow().isoformat())
+    entry.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
     return state.get("audit_log", []) + [entry]
 
 
@@ -253,15 +253,29 @@ def _insert_retry(table: List[PlanningStep], retry_step: PlanningStep) -> None:
 # ---------------------------------------------------------------------------
 
 def web_search(query: str, k: int = 5) -> List[str]:
-    """DuckDuckGo text search — only place DDGS is called. Swap for MCP later.
+    """DDGS text search — only place the web-search client is called.
 
     Returns a list of result body strings (empty list on error).
     """
     try:
-        from duckduckgo_search import DDGS
+        try:
+            from ddgs import DDGS
+        except ImportError:
+            # Backward-compatible fallback for older environments.
+            from duckduckgo_search import DDGS
+
         with DDGS() as ddgs:
             results = list(ddgs.text(query, max_results=k))
-        return [r["body"] for r in results if r.get("body")]
+
+        snippets = []
+        for r in results:
+            title = (r.get("title") or "").strip()
+            body = (r.get("body") or "").strip()
+            href = (r.get("href") or "").strip()
+            parts = [part for part in [title, body, href] if part]
+            if parts:
+                snippets.append("\n".join(parts))
+        return snippets
     except Exception as exc:
         print(f"    [web_search] Error: {exc}")
         return []
@@ -427,6 +441,7 @@ def _execute_web_search(
     """
     snippets = web_search(step.sub_question, k=5)
     print(f"    Web results: {len(snippets)} snippet(s)")
+    print(f"results: {snippets}")
 
     if not snippets:
         return "[No web results found]", [], 0.0
@@ -905,7 +920,7 @@ def run(question: str, max_steps: int = 5) -> LegalAgentState:
         "agent_metadata": {
             "provider": provider.get("provider", "unknown"),
             "model": provider.get("model", "unknown"),
-            "started_at": datetime.utcnow().isoformat(),
+            "started_at": datetime.now(timezone.utc).isoformat(),
         },
         "inputs": {"question": question},
         "run_config": {"max_steps": max_steps},

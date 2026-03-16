@@ -30,7 +30,7 @@ Fields:
 - **action_type**: Execution strategy — choose one of:
   - `"rag_search"` — answer requires specific passages from the legal corpus (statutes, case text, bar exam material, jurisdiction-specific rules). **Default choice for most legal doctrine questions.**
   - `"direct_answer"` — sub-question targets core, universally-accepted legal doctrine the model can reliably reason about from training (e.g., basic tort elements, fundamental contract rules, general constitutional principles). Only use when the answer does NOT depend on specific statutory text, recent developments, or jurisdiction-specific variations.
-  - `"web_search"` — information is clearly time-sensitive (recent legislation, current case outcomes), explicitly not in the legal corpus, or is a factual (non-doctrinal) question. Rare — default to `rag_search` when in doubt.
+  - `"web_search"` — information is clearly time-sensitive (recent legislation, current case outcomes), explicitly not in the legal corpus, or is a factual (non-doctrinal) question. Use it whenever the answer depends on current or out-of-corpus facts.
 
 ## Action Type Decision Logic
 
