@@ -1,0 +1,106 @@
+COMMAND RUN: uv run python eval/eval_qa.py 5
+============================================================
+
+
+================================================================================
+QA EVALUATION (5 QUERIES)
+================================================================================
+
+Provider: deepseek-reasoner | Model: deepseek-reasoner
+[rag_utils] Loading embedding model: sentence-transformers/all-MiniLM-L6-v2
+
+Evaluating 5 questions ...
+
+[1/5] Evaluating qa_nan_199...
+
+--- PLANNER ---
+Traceback (most recent call last):
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/eval/eval_qa.py", line 370, in <module>
+    main()
+    ~~~~^^
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/eval/eval_qa.py", line 310, in main
+    results.append(worker_func(i, q))
+                   ~~~~~~~~~~~^^^^^^
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/eval/eval_qa.py", line 278, in worker_func
+    res = run_single_query(app, q)
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/eval/eval_qa.py", line 131, in run_single_query
+    for output in app.stream(initial_state):
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/langgraph/pregel/main.py", line 2669, in stream
+    for _ in runner.tick(
+             ~~~~~~~~~~~^
+        [t for t in loop.tasks.values() if not t.writes],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        schedule_task=loop.accept_push,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ):
+    ^
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/langgraph/pregel/_runner.py", line 167, in tick
+    run_with_retry(
+    ~~~~~~~~~~~~~~^
+        t,
+        ^^
+    ...<10 lines>...
+        },
+        ^^
+    )
+    ^
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/langgraph/pregel/_retry.py", line 71, in run_with_retry
+    return task.proc.invoke(task.input, config)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/langgraph/_internal/_runnable.py", line 656, in invoke
+    input = context.run(step.invoke, input, config, **kwargs)
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/langgraph/_internal/_runnable.py", line 400, in invoke
+    ret = self.func(*args, **kwargs)
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/main.py", line 465, in planner_node
+    raw = _llm_call(load_skill("planner"), f"Legal research question:\n{question}", label="planner")
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/main.py", line 177, in _llm_call
+    llm = get_llm()
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/llm_config.py", line 86, in get_llm
+    return ChatOpenAI(
+        base_url=base_url,
+    ...<4 lines>...
+        max_retries=0,
+    )
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/langchain_core/load/serializable.py", line 118, in __init__
+    super().__init__(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/pydantic/main.py", line 250, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/langchain_openai/chat_models/base.py", line 1050, in validate_environment
+    self.client = self.root_client.chat.completions
+                  ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.9_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/functools.py", line 1026, in __get__
+    val = self.func(instance)
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/openai/_client.py", line 189, in chat
+    from .resources.chat import Chat
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/openai/resources/__init__.py", line 3, in <module>
+    from .beta import (
+    ...<6 lines>...
+    )
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/openai/resources/beta/__init__.py", line 3, in <module>
+    from .beta import (
+    ...<6 lines>...
+    )
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/openai/resources/beta/beta.py", line 32, in <module>
+    from .realtime.realtime import (
+    ...<2 lines>...
+    )
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/openai/resources/beta/realtime/__init__.py", line 3, in <module>
+    from .realtime import (
+    ...<6 lines>...
+    )
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/openai/resources/beta/realtime/realtime.py", line 14, in <module>
+    from .sessions import (
+    ...<6 lines>...
+    )
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/openai/resources/beta/realtime/sessions.py", line 17, in <module>
+    from ....types.beta.realtime import session_create_params
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/openai/types/beta/realtime/__init__.py", line 56, in <module>
+    from .transcription_session_create_params import TranscriptionSessionCreateParams as TranscriptionSessionCreateParams
+  File "/Users/hansonli/Desktop/adaptive-plan-and-solve-agent/.venv/lib/python3.13/site-packages/openai/types/beta/realtime/transcription_session_create_params.py", line 92, in <module>
+    class InputAudioNoiseReduction(TypedDict, total=False):
+    ...<5 lines>...
+        """
+KeyboardInterrupt

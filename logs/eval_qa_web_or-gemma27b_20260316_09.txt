@@ -1,0 +1,332 @@
+COMMAND RUN: uv run python eval/eval_qa.py 10 --suite web
+============================================================
+
+
+================================================================================
+QA EVALUATION (10 QUERIES, SUITE=web)
+================================================================================
+
+Provider: or-gemma27b | Model: google/gemma-3-27b-it
+
+Evaluating 10 questions ...
+
+[1/10] Evaluating web_legal_attorney_general_20260316...
+
+--- PLANNER ---
+    [planner] 365 chars
+  Plan (1 step):
+    Step 1 [web_search]: Who is currently serving as the Attorney General of the United States as of March 16, 2026?
+
+--- EXECUTOR ---
+  Step 1 [web_search] (rewrite_attempt=0): Who is currently serving as the Attorney General of the United States as of March 16, 2026?
+    Web results: 5 snippet(s)
+    [executor/web] 1032 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/judge] 240 chars
+  Judge: sufficient=False | The passages define the role of the Attorney General but do not provide information about who holds the position as of March 16, 2026, which is a future date.
+
+--- REPLANNER ---
+  Escalation: web_search → direct_answer (step 15)
+  Judge reason: The passages define the role of the Attorney General but do not provide information about who holds the position as of March 16, 2026, which is a future date.
+  → executor
+
+--- EXECUTOR ---
+  Step 15 [direct_answer] (rewrite_attempt=0): Who is currently serving as the Attorney General of the United States as of March 16, 2026?
+    [executor/direct] 531 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/verifier] 226 chars
+  Judge: sufficient=True | The answer correctly identifies that the provided information does not contain the answer to a future date and appropriately avoids speculation.
+
+--- REPLANNER ---
+    [replanner] 289 chars
+  LLM replanner: complete — Despite attempting both web search and direct answer, the system cannot determine the Attorney General as of a future date; the original question is unanswerable with available information, and no further research steps are pending.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 1783 chars
+  Final answer: 1783 chars
+  -> Result: WRONG | 40.8s | TOTAL: 7 calls (7 this q) | IN: 9454 tokens (9454 this q) | OUT: 984 tokens (984 this q)
+[2/10] Evaluating web_legal_solicitor_general_20260316...
+
+--- PLANNER ---
+    [planner] 343 chars
+  Plan (1 step):
+    Step 1 [web_search]: Who is currently serving as the Solicitor General of the United States as of March 16, 2026?
+
+--- EXECUTOR ---
+  Step 1 [web_search] (rewrite_attempt=0): Who is currently serving as the Solicitor General of the United States as of March 16, 2026?
+    Web results: 5 snippet(s)
+    [executor/web] 779 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/judge] 308 chars
+  Judge: sufficient=False | The passages identify past and current Solicitors General but do not provide information about who holds the position as of the specified future date (March 16, 2026). The answer draft correctly notes this gap in information.
+
+--- REPLANNER ---
+  Escalation: web_search → direct_answer (step 15)
+  Judge reason: The passages identify past and current Solicitors General but do not provide information about who holds the position as of the specified future date (March 16, 2026). The answer draft correctly notes this gap in information.
+  → executor
+
+--- EXECUTOR ---
+  Step 15 [direct_answer] (rewrite_attempt=0): Who is currently serving as the Solicitor General of the United States as of March 16, 2026?
+    [executor/direct] 360 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/verifier] 268 chars
+  Judge: sufficient=True | The answer correctly identifies that the question cannot be answered without external information and does not attempt to fabricate an answer, which is appropriate given the future date.
+
+--- REPLANNER ---
+    [replanner] 484 chars
+  LLM replanner: complete — Despite the direct answer step failing to find information about the future date, the initial web search identified Elizabeth Prelogar and Noel Francisco as past Solicitors General, and the question asks for the Solicitor General *as of* a future date, implying a continuation of service or a successor; without further steps, the best answer is still likely to be Elizabeth Prelogar, and the research has effectively stalled.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 1393 chars
+  Final answer: 1393 chars
+  -> Result: WRONG | 26.7s | TOTAL: 14 calls (7 this q) | IN: 18308 tokens (8854 this q) | OUT: 1852 tokens (868 this q)
+[3/10] Evaluating web_legal_sec_chair_20260316...
+
+--- PLANNER ---
+    [planner] 380 chars
+  Plan (1 step):
+    Step 1 [web_search]: Who is currently serving as Chair of the U.S. Securities and Exchange Commission as of March 16, 2026?
+
+--- EXECUTOR ---
+  Step 1 [web_search] (rewrite_attempt=0): Who is currently serving as Chair of the U.S. Securities and Exchange Commission as of March 16, 2026?
+    Web results: 5 snippet(s)
+    [executor/web] 458 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/judge] 303 chars
+  Judge: sufficient=False | The passages describe the structure of the SEC and how the chair is appointed, but do not state who the current chair is as of March 16, 2026. The answer draft explicitly states the evidence does not answer the question.
+
+--- REPLANNER ---
+  Escalation: web_search → direct_answer (step 15)
+  Judge reason: The passages describe the structure of the SEC and how the chair is appointed, but do not state who the current chair is as of March 16, 2026. The answer draft explicitly states the evidence does not answer the question.
+  → executor
+
+--- EXECUTOR ---
+  Step 15 [direct_answer] (rewrite_attempt=0): Who is currently serving as Chair of the U.S. Securities and Exchange Commission as of March 16, 2026?
+    [executor/direct] 542 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/verifier] 256 chars
+  Judge: sufficient=True | The answer correctly identifies the limitation of the available information and acknowledges that it cannot determine the future status of the SEC Chair as of March 16, 2026.
+
+--- REPLANNER ---
+    [replanner] 264 chars
+  LLM replanner: complete — Despite multiple attempts, no information about the SEC Chair as of March 16, 2026, could be found; the original question is unanswerable with available evidence, and there are no remaining steps to execute.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 1361 chars
+  Final answer: 1361 chars
+  -> Result: WRONG | 32.3s | TOTAL: 21 calls (7 this q) | IN: 27595 tokens (9287 this q) | OUT: 2688 tokens (836 this q)
+[4/10] Evaluating web_legal_ftc_chair_20260316...
+
+--- PLANNER ---
+    [planner] 342 chars
+  Plan (1 step):
+    Step 1 [web_search]: Who is currently serving as Chair of the Federal Trade Commission as of March 16, 2026?
+
+--- EXECUTOR ---
+  Step 1 [web_search] (rewrite_attempt=0): Who is currently serving as Chair of the Federal Trade Commission as of March 16, 2026?
+    Web results: 5 snippet(s)
+    [executor/web] 873 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/judge] 242 chars
+  Judge: sufficient=True | The passages consistently identify Andrew N. Ferguson as the Chairman of the Federal Trade Commission as of March 16, 2026, directly answering the sub-question.
+
+--- REPLANNER ---
+    [replanner] 293 chars
+  LLM replanner: complete — The original question asks for the FTC Chair as of March 16, 2026, and the research has definitively identified Andrew N. Ferguson as holding that position with multiple sources confirming this information; no further steps are needed.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 1310 chars
+  Final answer: 1310 chars
+  -> Result: CORRECT | 25.0s | TOTAL: 26 calls (5 this q) | IN: 35055 tokens (7460 this q) | OUT: 3465 tokens (777 this q)
+[5/10] Evaluating web_legal_fda_commissioner_20260316...
+
+--- PLANNER ---
+    [planner] 362 chars
+  Plan (1 step):
+    Step 1 [web_search]: Who is currently serving as the Commissioner of Food and Drugs at the FDA as of March 16, 2026?
+
+--- EXECUTOR ---
+  Step 1 [web_search] (rewrite_attempt=0): Who is currently serving as the Commissioner of Food and Drugs at the FDA as of March 16, 2026?
+    Web results: 5 snippet(s)
+    [executor/web] 747 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/judge] 279 chars
+  Judge: sufficient=True | The retrieved passages consistently identify Martin A. Makary as the Commissioner of Food and Drugs, with sources indicating he began serving in 2025, which covers the target date of March 16, 2026.
+
+--- REPLANNER ---
+    [replanner] 220 chars
+  LLM replanner: complete — The web search directly answered the original question, identifying Martin A. Makary as the FDA Commissioner as of March 16, 2026, and no further steps are needed.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 1251 chars
+  Final answer: 1251 chars
+  -> Result: CORRECT | 24.3s | TOTAL: 31 calls (5 this q) | IN: 42588 tokens (7533 this q) | OUT: 4202 tokens (737 this q)
+[6/10] Evaluating web_general_president_20260316...
+
+--- PLANNER ---
+    [planner] 358 chars
+  Plan (1 step):
+    Step 1 [web_search]: Who is currently serving as President of the United States as of March 16, 2026?
+
+--- EXECUTOR ---
+  Step 1 [web_search] (rewrite_attempt=0): Who is currently serving as President of the United States as of March 16, 2026?
+    Web results: 5 snippet(s)
+    [executor/web] 815 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/judge] 245 chars
+  Judge: sufficient=True | Passages 3 and 5 directly state that Donald Trump is serving as President of the United States as of March 16, 2026, providing a direct answer to the sub-question.
+
+--- REPLANNER ---
+    [replanner] 238 chars
+  LLM replanner: complete — The retrieved evidence directly answers the original question, identifying Donald Trump as the President of the United States as of March 16, 2026, and no further steps are needed.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 1244 chars
+  Final answer: 1244 chars
+  -> Result: CORRECT | 31.9s | TOTAL: 36 calls (5 this q) | IN: 50326 tokens (7738 this q) | OUT: 4946 tokens (744 this q)
+[7/10] Evaluating web_general_super_bowl_lx_20260316...
+
+--- PLANNER ---
+    [planner] 326 chars
+  Plan (1 step):
+    Step 1 [web_search]: What was the final outcome of Super Bowl LX, played on February 8, 2026?
+
+--- EXECUTOR ---
+  Step 1 [web_search] (rewrite_attempt=0): What was the final outcome of Super Bowl LX, played on February 8, 2026?
+    Web results: 5 snippet(s)
+    [executor/web] 743 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/judge] 265 chars
+  Judge: sufficient=False | The passages confirm the date and location of Super Bowl LX, and state Seattle won, but do not identify the opposing team or the final outcome in terms of the answer choices provided.
+
+--- REPLANNER ---
+  Escalation: web_search → direct_answer (step 15)
+  Judge reason: The passages confirm the date and location of Super Bowl LX, and state Seattle won, but do not identify the opposing team or the final outcome in terms of the answer choices provided.
+  → executor
+
+--- EXECUTOR ---
+  Step 15 [direct_answer] (rewrite_attempt=0): What was the final outcome of Super Bowl LX, played on February 8, 2026?
+    [executor/direct] 457 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/verifier] 233 chars
+  Judge: sufficient=True | The answer accurately reflects the information provided in the prompt, stating that the outcome of the Super Bowl is unknown based on the given context.
+
+--- REPLANNER ---
+    [replanner] 322 chars
+  LLM replanner: complete — The research has confirmed that as of March 16, 2026, the result of Super Bowl LX (played February 8, 2026) is unknown, meaning none of the answer choices can be definitively confirmed as correct based on available information, thus answering the original question.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 1362 chars
+  Final answer: 1362 chars
+  -> Result: WRONG | 40.1s | TOTAL: 43 calls (7 this q) | IN: 59541 tokens (9215 this q) | OUT: 5852 tokens (906 this q)
+[8/10] Evaluating web_general_oscars_best_picture_20260316...
+
+--- PLANNER ---
+    [planner] 339 chars
+  Plan (1 step):
+    Step 1 [web_search]: What film won the Best Picture award at the 98th Academy Awards ceremony?
+
+--- EXECUTOR ---
+  Step 1 [web_search] (rewrite_attempt=0): What film won the Best Picture award at the 98th Academy Awards ceremony?
+    Web results: 5 snippet(s)
+    [executor/web] 1444 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/judge] 237 chars
+  Judge: sufficient=True | All retrieved passages consistently state that 'One Battle After Another' won Best Picture at the 98th Academy Awards, directly answering the sub-question.
+
+--- REPLANNER ---
+    [replanner] 305 chars
+  LLM replanner: complete — The original question asks for the Best Picture winner at the 98th Academy Awards, and the research has definitively identified 'One Battle After Another' as the winner with multiple sources confirming this information; no further steps are needed.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 1397 chars
+  Final answer: 1397 chars
+  -> Result: CORRECT | 32.4s | TOTAL: 48 calls (5 this q) | IN: 68017 tokens (8476 this q) | OUT: 6762 tokens (910 this q)
+[9/10] Evaluating web_general_nobel_peace_20260316...
+
+--- PLANNER ---
+    [planner] 308 chars
+  Plan (1 step):
+    Step 1 [web_search]: Who was awarded the Nobel Peace Prize in 2025 as of March 16, 2026?
+
+--- EXECUTOR ---
+  Step 1 [web_search] (rewrite_attempt=0): Who was awarded the Nobel Peace Prize in 2025 as of March 16, 2026?
+    Web results: 5 snippet(s)
+    [executor/web] 904 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/judge] 215 chars
+  Judge: sufficient=True | All passages consistently state that Maria Corina Machado was awarded the 2025 Nobel Peace Prize, directly answering the sub-question.
+
+--- REPLANNER ---
+    [replanner] 257 chars
+  LLM replanner: complete — The original question asks who won the 2025 Nobel Peace Prize as of March 16, 2026, and the retrieved information directly answers this question with high confidence, making further steps unnecessary.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 1363 chars
+  Final answer: 1363 chars
+  -> Result: CORRECT | 23.9s | TOTAL: 53 calls (5 this q) | IN: 75953 tokens (7936 this q) | OUT: 7528 tokens (766 this q)
+[10/10] Evaluating web_general_world_series_20260316...
+
+--- PLANNER ---
+    [planner] 316 chars
+  Plan (1 step):
+    Step 1 [web_search]: What were the final results of the 2025 Major League Baseball World Series?
+
+--- EXECUTOR ---
+  Step 1 [web_search] (rewrite_attempt=0): What were the final results of the 2025 Major League Baseball World Series?
+    Web results: 5 snippet(s)
+    [executor/web] 1520 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/judge] 232 chars
+  Judge: sufficient=True | The passages directly and consistently state that the Los Angeles Dodgers won the 2025 World Series against the Toronto Blue Jays with a score of 4-3.
+
+--- REPLANNER ---
+    [replanner] 250 chars
+  LLM replanner: complete — The original question asks for the 2025 World Series winner, and the retrieved information definitively states the Los Angeles Dodgers won, answering the question without needing further steps.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 1398 chars
+  Final answer: 1398 chars
+  -> Result: CORRECT | 42.8s | TOTAL: 58 calls (5 this q) | IN: 84118 tokens (8165 this q) | OUT: 8416 tokens (888 this q)
+
+
+================================================================================
+FINAL QA BENCHMARK REPORT
+================================================================================
+--- EXPERIMENT SETTINGS ---
+Embedding Model:      sentence-transformers/all-MiniLM-L6-v2
+LLM Provider/Model:   or-gemma27b / google/gemma-3-27b-it
+Confidence Threshold: 0.0 (cross-encoder logits)
+
+--- STATISTICS ---
+Accuracy:             6/10 (60.0%)
+Failed to execute:    0
+Total time elapsed:   320.2s
+Total LLM API Calls:  58
+Avg Input Tokens:     8411 per query
+Avg Output Tokens:    841 per query
+--------------------------------------------------------------------------------
+Label                          Result       Time  LLM
+--------------------------------------------------------------------------------
+web_general_nobel_peace_20260316 PASS        23.9s    5
+web_general_oscars_best_picture_20260316 PASS        32.4s    5
+web_general_president_20260316 PASS        31.9s    5
+web_general_super_bowl_lx_20260316 FAIL        40.1s    7
+web_general_world_series_20260316 PASS        42.8s    5
+web_legal_attorney_general_20260316 FAIL        40.8s    7
+web_legal_fda_commissioner_20260316 PASS        24.3s    5
+web_legal_ftc_chair_20260316   PASS        25.0s    5
+web_legal_sec_chair_20260316   FAIL        32.3s    7
+web_legal_solicitor_general_20260316 FAIL        26.7s    7
+================================================================================
+

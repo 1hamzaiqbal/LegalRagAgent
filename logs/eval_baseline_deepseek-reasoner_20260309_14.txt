@@ -1,0 +1,36 @@
+COMMAND RUN: uv run python eval/eval_baseline.py 1
+============================================================
+
+
+================================================================================
+BASELINE LLM EVALUATION (1 QUERIES)
+================================================================================
+
+Provider: deepseek-reasoner | Model: deepseek-reasoner
+
+Evaluating 1 questions (Sequential Baseline)...
+
+[1/1] Evaluating qa_nan_199...
+  -> Result: CORRECT (Ans: B, Chose: B) | 55.0s | TOTAL: 1 calls (1 this q) | IN: 409 tokens (409 this q) | OUT: 156 tokens (156 this q)
+
+
+================================================================================
+FINAL BASELINE BENCHMARK REPORT
+================================================================================
+--- EXPERIMENT SETTINGS ---
+LLM Provider/Model:   deepseek-reasoner / deepseek-reasoner
+
+--- STATISTICS ---
+Accuracy:             1/1 (100.0%)
+Failed to execute:    0
+Total time elapsed:   55.0s
+Total LLM API Calls:  1
+Avg Input Tokens:     409 per query
+Avg Output Tokens:    156 per query
+Total API cost:       0.0100 CNY
+--------------------------------------------------------------------------------
+Label                          Result     Ans   Chose   Time  LLM
+--------------------------------------------------------------------------------
+qa_nan_199                     PASS       B     B      55.0s    1
+================================================================================
+

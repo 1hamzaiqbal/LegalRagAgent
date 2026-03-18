@@ -8,6 +8,12 @@ Usage:
   uv run python load_corpus.py curated 2000 # Gold passages + 2000 padding (~3K)
 """
 
+# Windows: prevent OpenMP segfault when PyTorch and sentence-transformers
+# each load their own OpenMP runtime (libiomp5md.dll conflict).
+# Must be set before any torch/transformers import.
+import os
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+
 import sys
 import time
 import pandas as pd

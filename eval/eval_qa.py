@@ -4,8 +4,9 @@ Tests exactly N randomly sampled questions from the BarExam QA dataset
 using a fixed random seed for consistent benchmarks across runs.
 
 Usage:
-  uv run python eval_qa.py 20              # Evaluate 20 questions
-  uv run python eval_qa.py 50 --parallel 5 # Evaluate 50 in parallel with 5 workers
+  uv run python eval_qa.py 20                  # Evaluate 20 bar-exam questions
+  uv run python eval_qa.py 50 --parallel 5     # Evaluate 50 questions with 5 workers
+  uv run python eval_qa.py 10 --suite web      # Evaluate fixed web-search benchmark
 """
 
 import os
@@ -24,6 +25,7 @@ os.environ.setdefault("SKIP_INJECTION_CHECK", "1")
 
 from main import build_graph, _get_deepseek_balance
 from llm_config import get_provider_info
+from eval.web_search_suite import select_web_search_queries
 
 
 def _load_qa_with_gold() -> pd.DataFrame:
@@ -106,16 +108,21 @@ def run_single_query(app, q: dict):
         objective = f"{objective}\n\nAnswer choices:\n{choice_text}"
 
     initial_state = {
-        "global_objective": objective,
+        "agent_metadata": {
+            "provider": os.getenv("LLM_PROVIDER", "default"),
+            "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        },
+        "inputs": {"question": objective},
+        "run_config": {"max_steps": 5},
         "planning_table": [],
-        "query_type": "",
-        "final_cited_answer": "",
-        "accumulated_context": [],
-        "iteration_count": 0,
-        "injection_check": {},
-        "verification_result": {},
-        "memory_hit": {},
-        "run_metrics": {},
+        "evidence_store": [],
+        "final_answer": "",
+        "run_metrics": {
+            "total_llm_calls": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+        },
+        "audit_log": [],
     }
 
     start = time.time()
@@ -132,7 +139,7 @@ def run_single_query(app, q: dict):
     elapsed = time.time() - start
     fs = final_state or {}
     metrics = fs.get("run_metrics", {})
-    answer = fs.get("final_cited_answer", "")
+    answer = fs.get("final_answer", "")
     is_correct = _check_mc_correctness(answer, q.get("correct_answer", ""))
 
     return {
@@ -150,6 +157,14 @@ def run_single_query(app, q: dict):
 def main():
     # Parse arguments
     args = sys.argv[1:]
+
+    suite = "bar"
+    if "--suite" in args:
+        idx = args.index("--suite")
+        suite = args[idx + 1].strip().lower()
+        args = args[:idx] + args[idx + 2:]
+    if suite not in {"bar", "web"}:
+        raise ValueError(f"Unsupported suite: {suite}. Expected 'bar' or 'web'.")
     
     parallel_workers = 1
     if "--parallel" in args:
@@ -168,7 +183,8 @@ def main():
     provider_name = os.getenv("LLM_PROVIDER", "default").strip().lower()
     os.makedirs("logs", exist_ok=True)
     timestamp = time.strftime("%Y%m%d_%H")
-    run_log_file = f"logs/eval_qa_{provider_name}_{timestamp}.txt"
+    suite_suffix = "" if suite == "bar" else f"_{suite}"
+    run_log_file = f"logs/eval_qa{suite_suffix}_{provider_name}_{timestamp}.txt"
     
     import re
     completed_queries = {}
@@ -230,7 +246,7 @@ def main():
         print(f"Failed to setup file logger: {e}")
 
     print(f"\n{'='*80}")
-    print(f"QA EVALUATION ({n} QUERIES)")
+    print(f"QA EVALUATION ({n} QUERIES, SUITE={suite})")
     print(f"{'='*80}\n")
     
     # Capture initial balance
@@ -244,7 +260,7 @@ def main():
     pinfo = get_provider_info()
     print(f"Provider: {pinfo['provider']} | Model: {pinfo['model']}")
 
-    queries = select_qa_queries(n)
+    queries = select_qa_queries(n) if suite == "bar" else select_web_search_queries(n)
     app = build_graph()
     
     queries_to_run = [q for q in queries if q["label"] not in completed_queries]

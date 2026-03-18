@@ -343,7 +343,7 @@ def _select_pipeline_queries():
 
 def phase2_pipeline(max_queries: int = None, parallel_workers: int = 1):
     """Run the full pipeline on diverse questions and evaluate end-to-end."""
-    from main import build_graph, _reset_llm_call_counter, _get_deepseek_balance
+    from main_old import build_graph, _reset_llm_call_counter, _get_deepseek_balance
     from rag_utils import retrieve_documents
     from llm_config import get_provider_info
 
@@ -495,7 +495,7 @@ def phase2_pipeline(max_queries: int = None, parallel_workers: int = 1):
     # Calculate total cost for the eval run
     cost_strs = []
     if initial_balance.get("is_available"):
-        from main import _get_deepseek_balance
+        from main_old import _get_deepseek_balance
         final_balance = _get_deepseek_balance()
         if final_balance.get("is_available"):
             for fin_info in final_balance.get("balance_infos", []):

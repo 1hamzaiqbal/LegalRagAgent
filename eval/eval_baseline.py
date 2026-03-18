@@ -6,8 +6,9 @@ This script bypasses LangGraph entirely and asks the LLM the question directly,
 acting as a baseline to measure the RAG pipeline against.
 
 Usage:
-  uv run python eval_baseline.py 20              # Evaluate 20 questions
-  uv run python eval_baseline.py 100 --continue   # Resume from log
+  uv run python eval_baseline.py 20                 # Evaluate 20 bar-exam questions
+  uv run python eval_baseline.py 10 --suite web     # Evaluate fixed web-search benchmark
+  uv run python eval_baseline.py 100 --continue     # Resume from log
 """
 
 import os
@@ -22,6 +23,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from main import _get_deepseek_balance, _llm_call, _get_metrics
 from llm_config import get_provider_info
+from eval.web_search_suite import select_web_search_queries
 
 
 def _load_qa_with_gold() -> pd.DataFrame:
@@ -156,6 +158,14 @@ def run_baseline_query(q: dict):
 def main():
     # Parse arguments
     args = sys.argv[1:]
+
+    suite = "bar"
+    if "--suite" in args:
+        idx = args.index("--suite")
+        suite = args[idx + 1].strip().lower()
+        args = args[:idx] + args[idx + 2:]
+    if suite not in {"bar", "web"}:
+        raise ValueError(f"Unsupported suite: {suite}. Expected 'bar' or 'web'.")
     
     continue_eval = False
     if "--continue" in args:
@@ -168,7 +178,8 @@ def main():
     provider_name = os.getenv("LLM_PROVIDER", "default").strip().lower()
     os.makedirs("logs", exist_ok=True)
     timestamp = time.strftime("%Y%m%d_%H")
-    run_log_file = f"logs/eval_baseline_{provider_name}_{timestamp}.txt"
+    suite_suffix = "" if suite == "bar" else f"_{suite}"
+    run_log_file = f"logs/eval_baseline{suite_suffix}_{provider_name}_{timestamp}.txt"
     
     completed_queries = {}
     if continue_eval and os.path.exists(run_log_file):
@@ -211,6 +222,7 @@ def main():
         print(f"Failed to setup file logger: {e}")
 
     def log_and_print(msg: str):
+        print('='*50)
         print(msg)
         try:
             with open(run_log_file, "a", encoding="utf-8") as f:
@@ -220,7 +232,7 @@ def main():
             pass
 
     log_and_print(f"\n{'='*80}")
-    log_and_print(f"BASELINE LLM EVALUATION ({n} QUERIES)")
+    log_and_print(f"BASELINE LLM EVALUATION ({n} QUERIES, SUITE={suite})")
     log_and_print(f"{'='*80}\n")
     
     # Capture initial balance
@@ -234,7 +246,7 @@ def main():
     pinfo = get_provider_info()
     log_and_print(f"Provider: {pinfo['provider']} | Model: {pinfo['model']}")
 
-    queries = select_qa_queries(n)
+    queries = select_qa_queries(n) if suite == "bar" else select_web_search_queries(n)
     queries_to_run = [q for q in queries if q["label"] not in completed_queries]
     
     if continue_eval:
