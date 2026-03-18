@@ -259,36 +259,59 @@ def _insert_retry(table: List[PlanningStep], retry_step: PlanningStep) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 3. Web Search Wrapper
+# 3. Web Search + Scrape
 # ---------------------------------------------------------------------------
 
-def web_search(query: str, k: int = 5) -> List[str]:
-    """DDGS text search — only place the web-search client is called.
-
-    Returns a list of result body strings (empty list on error).
-    """
+def web_search(query: str, k: int = 5) -> List[Dict[str, str]]:
+    """DuckDuckGo text search. Returns list of {title, body, href} dicts."""
     try:
         try:
             from ddgs import DDGS
         except ImportError:
-            # Backward-compatible fallback for older environments.
             from duckduckgo_search import DDGS
 
         with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=k))
+            raw = list(ddgs.text(query, max_results=k))
 
-        snippets = []
-        for r in results:
+        results = []
+        for r in raw:
             title = (r.get("title") or "").strip()
             body = (r.get("body") or "").strip()
             href = (r.get("href") or "").strip()
-            parts = [part for part in [title, body, href] if part]
-            if parts:
-                snippets.append("\n".join(parts))
-        return snippets
+            if body or title:
+                results.append({"title": title, "body": body, "href": href})
+        return results
     except Exception as exc:
         print(f"    [web_search] Error: {exc}")
         return []
+
+
+def _enrich_with_scraper(search_results: List[Dict[str, str]],
+                         max_scrape: int = 2) -> List[Dict[str, str]]:
+    """Scrape full page content from top search result URLs.
+
+    Returns enriched results: original snippet results + scraped full-text
+    results (marked with source='scraped'). Scraping failures are silently
+    skipped — the original snippets are always available as fallback.
+    """
+    from web_scraper import scrape_urls
+
+    urls = [r["href"] for r in search_results if r.get("href")]
+    if not urls:
+        return search_results
+
+    scraped = scrape_urls(urls, max_results=max_scrape, max_chars=6000)
+    print(f"    Scraped {len(scraped)}/{len(urls)} URLs successfully")
+
+    enriched = list(search_results)
+    for s in scraped:
+        enriched.append({
+            "title": s["title"],
+            "body": s["text"],
+            "href": s["url"],
+            "source": "scraped",
+        })
+    return enriched
 
 
 # ---------------------------------------------------------------------------
@@ -395,6 +418,9 @@ def _execute_rag_search(
         queries = [step.sub_question]
 
     print(f"    Primary query: {queries[0]}")
+    if len(queries) > 1:
+        for j, alt in enumerate(queries[1:], 1):
+            print(f"    Alt query {j}: {alt}")
 
     # --- Retrieval with cross-step deduplication ---
     prior_ids: set = set()
@@ -445,18 +471,39 @@ def _execute_web_search(
     step: PlanningStep,
     state: LegalAgentState,
 ) -> tuple[str, List[Dict[str, Any]], float]:
-    """Search the web via DuckDuckGo and synthesize a cited sub-answer.
+    """Search the web via DuckDuckGo, scrape top URLs, and synthesize.
+
+    Two-stage: DuckDuckGo finds results (snippets + URLs), then the scraper
+    fetches full page content from the top 2 URLs. Both snippets and scraped
+    text are passed to the synthesizer as evidence.
 
     Returns (result_text, new_evidence, raw_logit).
     """
-    snippets = web_search(step.sub_question, k=5)
-    print(f"    Web results: {len(snippets)} snippet(s)")
+    search_results = web_search(step.sub_question, k=5)
+    print(f"    Web results: {len(search_results)} result(s)")
+    for j, r in enumerate(search_results, 1):
+        print(f"      [{j}] {r.get('title', '(no title)')}")
+        if r.get("href"):
+            print(f"          {r['href']}")
 
-    if not snippets:
+    if not search_results:
         return "[No web results found]", [], 0.0
 
+    # Enrich with full page content from top URLs
+    enriched = _enrich_with_scraper(search_results, max_scrape=2)
+
     question = state["inputs"]["question"]
-    passages = [f"[WebResult {i + 1}] {s}" for i, s in enumerate(snippets)]
+    passages = []
+    for i, r in enumerate(enriched, 1):
+        source_tag = "Scraped" if r.get("source") == "scraped" else "Snippet"
+        title = r.get("title", "")
+        body = r.get("body", "")
+        href = r.get("href", "")
+        header = f"[WebResult {i}] ({source_tag}) {title}"
+        if href:
+            header += f"\nURL: {href}"
+        passages.append(f"{header}\n{body}")
+
     evidence_block = "\n\n".join(passages)
     synth_prompt = (
         f"Original legal research question: {question}\n\n"
@@ -468,15 +515,15 @@ def _execute_web_search(
     new_evidence = [
         {
             "idx": f"web_{step.step_id}_{i}",
-            "text": s,
-            "source": "web",
+            "text": r.get("body", ""),
+            "source": "web_scraped" if r.get("source") == "scraped" else "web_snippet",
             "step_id": step.step_id,
-            "cross_encoder_score": 0.0,  # no cross-encoder for web results
+            "cross_encoder_score": 0.0,
         }
-        for i, s in enumerate(snippets)
+        for i, r in enumerate(enriched)
     ]
 
-    return result, new_evidence, 0.0  # no cross-encoder logit for web
+    return result, new_evidence, 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -953,22 +1000,35 @@ def run(question: str, max_steps: int = 5) -> LegalAgentState:
     print(f"{'=' * 80}")
     print(result.get("final_answer", "(no answer generated)"))
 
+    # LLM call metrics
+    llm_counts = _get_metrics()
+
     print(f"\n{'=' * 80}")
     print("RUN SUMMARY")
     print(f"{'=' * 80}")
     print(f"Steps completed : {len(completed_steps)}")
     print(f"Evidence pieces : {evidence_count}")
-    print(f"Audit entries   : {len(result.get('audit_log', []))}")
+    print(f"LLM calls       : {llm_counts['count']}")
+    print(f"Tokens (in/out) : {llm_counts['input_tokens']:,} / {llm_counts['output_tokens']:,}")
 
     print("\nStep breakdown:")
     for s in result.get("planning_table", []):
-        verdict = s.judge_verdict or {}
-        sufficient_str = "ok" if verdict.get("sufficient", True) else "insufficient"
-        print(
-            f"  Step {s.step_id:>4} [{s.action_type:<14}] retry={s.rewrite_attempt} "
-            f"status={s.status:<10} conf={s.confidence:.3f} [analysis only] "
-            f"judge={sufficient_str}"
-        )
+        if s.status == STATUS_PENDING:
+            print(f"  Step {s.step_id:>4} [{s.action_type:<14}] status=pending (skipped)")
+        else:
+            verdict = s.judge_verdict or {}
+            judge_str = "ok" if verdict.get("sufficient", True) else "insufficient"
+            src_counts = {}
+            for ev in result.get("evidence_store", []):
+                if ev.get("step_id") == s.step_id:
+                    src = ev.get("source", "unknown")
+                    src_counts[src] = src_counts.get(src, 0) + 1
+            src_summary = ", ".join(f"{v} {k}" for k, v in src_counts.items()) if src_counts else "none"
+            print(
+                f"  Step {s.step_id:>4} [{s.action_type:<14}] "
+                f"conf={s.confidence:.3f} judge={judge_str} "
+                f"evidence=[{src_summary}]"
+            )
     print(f"{'=' * 80}\n")
 
     return result
