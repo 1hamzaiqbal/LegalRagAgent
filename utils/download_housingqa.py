@@ -1,7 +1,7 @@
 """Download the HousingQA dataset from HuggingFace.
 
-Downloads statute corpus and QA pairs from reglab/housing_qa.
-Saves to datasets/housing_qa/ in CSV format for compatibility with load_corpus.py.
+Downloads statute corpus and QA pairs directly from reglab/housing_qa.
+Saves to datasets/housing_qa/ in CSV format.
 
 Usage:
   uv run python utils/download_housingqa.py          # Download all splits
@@ -10,12 +10,16 @@ Usage:
 
 import os
 import sys
+import zipfile
+import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 DATA_DIR = "datasets/housing_qa"
 STATUTES_CSV = os.path.join(DATA_DIR, "statutes.csv")
 QUESTIONS_CSV = os.path.join(DATA_DIR, "questions.csv")
+
+REPO_BASE = "https://huggingface.co/datasets/reglab/housing_qa/resolve/main/data"
 
 
 def check_data():
@@ -36,48 +40,89 @@ def check_data():
 
 def download():
     """Download HousingQA from HuggingFace and save to datasets/housing_qa/."""
-    from datasets import load_dataset
+    import pandas as pd
+    from huggingface_hub import hf_hub_download
 
     os.makedirs(DATA_DIR, exist_ok=True)
 
-    # --- Statute corpus (retrieval passages) ---
-    print("Downloading statute corpus from reglab/housing_qa...")
-    statutes = load_dataset("reglab/housing_qa", "statutes", split="corpus")
-    print(f"  Loaded {len(statutes)} statutes")
+    # --- Statutes (the retrieval corpus) ---
+    print("Downloading statutes corpus from reglab/housing_qa...")
+    zip_path = hf_hub_download(
+        repo_id="reglab/housing_qa",
+        filename="data/statutes.tsv.zip",
+        repo_type="dataset",
+    )
 
-    # Convert to DataFrame and save as CSV
-    # Rename fields to match barexam_qa format: idx, text, source
-    df_statutes = statutes.to_pandas()
-    df_statutes = df_statutes.rename(columns={"text": "text"})
-    # Add source column for compatibility
+    print("  Extracting statutes TSV...")
+    with zipfile.ZipFile(zip_path, 'r') as zf:
+        # Find the TSV file inside the zip
+        tsv_names = [n for n in zf.namelist() if n.endswith('.tsv')]
+        if not tsv_names:
+            raise RuntimeError(f"No TSV found in zip: {zf.namelist()}")
+        tsv_name = tsv_names[0]
+        zf.extract(tsv_name, DATA_DIR)
+        extracted_path = os.path.join(DATA_DIR, tsv_name)
+
+    print("  Converting TSV to CSV...")
+    df_statutes = pd.read_csv(extracted_path, sep='\t')
+    # Add source column for pipeline compatibility
     df_statutes["source"] = "housing_statute"
     df_statutes.to_csv(STATUTES_CSV, index=False)
-    print(f"  Saved {len(df_statutes)} statutes to {STATUTES_CSV}")
+    print(f"  Saved {len(df_statutes):,} statutes to {STATUTES_CSV}")
 
-    # --- QA pairs (with gold statute labels) ---
+    # Cleanup extracted TSV
+    if os.path.exists(extracted_path) and extracted_path != STATUTES_CSV:
+        os.remove(extracted_path)
+
+    # --- Questions (QA pairs with gold statute labels) ---
     print("\nDownloading QA pairs from reglab/housing_qa...")
-    questions = load_dataset("reglab/housing_qa", "questions", split="test")
-    print(f"  Loaded {len(questions)} QA pairs")
+    q_zip_path = hf_hub_download(
+        repo_id="reglab/housing_qa",
+        filename="data/questions.json.zip",
+        repo_type="dataset",
+    )
 
-    df_questions = questions.to_pandas()
+    print("  Extracting questions JSON...")
+    with zipfile.ZipFile(q_zip_path, 'r') as zf:
+        json_names = [n for n in zf.namelist() if n.endswith('.json')]
+        json_name = json_names[0]
+        zf.extract(json_name, DATA_DIR)
+        extracted_json = os.path.join(DATA_DIR, json_name)
 
-    # Extract gold statute indices from the nested structure
-    def extract_gold_idxs(statutes_list):
-        if not statutes_list:
-            return ""
-        return ",".join(str(s["statute_idx"]) for s in statutes_list if "statute_idx" in s)
+    with open(extracted_json, 'r', encoding='utf-8') as f:
+        questions_data = json.load(f)
 
-    df_questions["gold_idx"] = df_questions["statutes"].apply(extract_gold_idxs)
+    # Flatten the nested structure to a DataFrame
+    rows = []
+    for q in questions_data:
+        gold_idxs = []
+        if q.get("statutes"):
+            gold_idxs = [str(s["statute_idx"]) for s in q["statutes"] if "statute_idx" in s]
+        rows.append({
+            "idx": q["idx"],
+            "state": q.get("state", ""),
+            "question": q.get("question", ""),
+            "answer": q.get("answer", ""),
+            "gold_idx": ",".join(gold_idxs),
+            "question_group": q.get("question_group", 0),
+        })
+
+    df_questions = pd.DataFrame(rows)
     df_questions.to_csv(QUESTIONS_CSV, index=False)
-    print(f"  Saved {len(df_questions)} QA pairs to {QUESTIONS_CSV}")
+    print(f"  Saved {len(df_questions):,} QA pairs to {QUESTIONS_CSV}")
+
+    # Cleanup extracted JSON
+    if os.path.exists(extracted_json) and extracted_json != QUESTIONS_CSV:
+        os.remove(extracted_json)
 
     print(f"\nDone! Files saved to {DATA_DIR}/")
     print(f"\nDataset summary:")
     print(f"  Statutes (corpus):  {len(df_statutes):,} passages")
     print(f"  Questions (QA):     {len(df_questions):,} pairs")
-    print(f"  States covered:     {df_statutes['state'].nunique()}")
+    if "state" in df_statutes.columns:
+        print(f"  States covered:     {df_statutes['state'].nunique()}")
     print(f"\nNext step:")
-    print(f"  uv run python utils/load_corpus.py housing 200000  # Load 200K statutes")
+    print(f"  uv run python utils/load_corpus.py housing    # Embed all statutes")
 
 
 def main():
