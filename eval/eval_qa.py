@@ -12,91 +12,17 @@ Usage:
 import os
 import sys
 import time
-import concurrent.futures
-import threading
-import io
-import pandas as pd
+import re
 
 # Add parent directory to sys.path to allow absolute imports from root
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Bypass the anti-injection prompt loop to save LLM calls/cost during eval
-os.environ.setdefault("SKIP_INJECTION_CHECK", "1")
-
-from main import build_graph, _get_deepseek_balance
+from main import build_graph, _get_metrics
 from llm_config import get_provider_info
+from eval.eval_utils import (
+    select_qa_queries, check_mc_correctness, capture_balance, compute_cost,
+)
 from eval.web_search_suite import select_web_search_queries
-
-
-def _load_qa_with_gold() -> pd.DataFrame:
-    """Load QA pairs whose gold passages exist in the current vector store."""
-    from rag_utils import get_vectorstore
-    vs = get_vectorstore()
-    corpus_size = vs._collection.count()
-    qa = pd.read_csv("datasets/barexam_qa/qa/qa.csv")
-    passages = pd.read_csv("datasets/barexam_qa/barexam_qa_train.csv", nrows=corpus_size)
-    passage_ids = set(passages["idx"].tolist())
-    qa_in = qa[qa["gold_idx"].isin(passage_ids)].copy()
-    
-    # Build complete question text
-    def _full_q(row):
-        prompt = str(row["prompt"]) if pd.notna(row["prompt"]) else ""
-        q = str(row["question"])
-        return (prompt + " " + q).strip()
-    
-    qa_in["full_q"] = qa_in.apply(_full_q, axis=1)
-    return qa_in
-
-
-def select_qa_queries(n: int = 10):
-    """Select a deterministic random sample of questions using a fixed seed."""
-    qa = _load_qa_with_gold()
-    queries = []
-
-    # Sample 'n' questions deterministically to keep benchmarks fair
-    sampled_qa = qa.sample(n=min(n, len(qa)), random_state=42)
-
-    for i, row in sampled_qa.iterrows():
-        subj_name = str(row["subject"]).lower().replace(" ", "").replace(".", "")
-        queries.append({
-            "label": f"qa_{subj_name}_{i}",
-            "question": row["full_q"],
-            "gold_idx": row["gold_idx"],
-            "correct_answer": row["answer"],
-            "choices": {
-                "A": str(row["choice_a"]) if pd.notna(row["choice_a"]) else "",
-                "B": str(row["choice_b"]) if pd.notna(row["choice_b"]) else "",
-                "C": str(row["choice_c"]) if pd.notna(row["choice_c"]) else "",
-                "D": str(row["choice_d"]) if pd.notna(row["choice_d"]) else "",
-            },
-            "subject": row["subject"],
-        })
-
-    return queries
-
-
-def _check_mc_correctness(answer: str, correct_letter: str) -> bool:
-    """Simple check if the pipeline's answer correctly selects the multiple-choice letter."""
-    if not correct_letter or not answer:
-        return False
-
-    import re
-    answer_lower = answer.lower()
-
-    # Search for explicit selection of the correct letter
-    letter_patterns = [
-        rf'\*\*answer:\s*\({correct_letter}\)\*\*',
-        rf'\banswer\s+is\s+\(?{correct_letter}\)?\b',
-        rf'\bcorrect\s+answer[:\s]+\(?{correct_letter}\)?\b',
-        rf'\b\({correct_letter}\)\s+is\s+correct\b',
-        rf'\boption\s+\(?{correct_letter}\)?\s+is\s+correct\b',
-        rf'\bselect(?:ing|ed|s)?\s+\(?{correct_letter}\)?\b',
-    ]
-    for pat in letter_patterns:
-        if re.search(pat, answer_lower, re.IGNORECASE):
-            return True
-
-    return False
 
 
 def run_single_query(app, q: dict):
@@ -117,18 +43,13 @@ def run_single_query(app, q: dict):
         "planning_table": [],
         "evidence_store": [],
         "final_answer": "",
-        "run_metrics": {
-            "total_llm_calls": 0,
-            "input_tokens": 0,
-            "output_tokens": 0,
-        },
         "audit_log": [],
     }
 
     start = time.time()
     final_state = None
     error = None
-    
+
     try:
         for output in app.stream(initial_state):
             for node_name, node_state in output.items():
@@ -138,18 +59,17 @@ def run_single_query(app, q: dict):
 
     elapsed = time.time() - start
     fs = final_state or {}
-    metrics = fs.get("run_metrics", {})
     answer = fs.get("final_answer", "")
-    is_correct = _check_mc_correctness(answer, q.get("correct_answer", ""))
+    is_correct = check_mc_correctness(answer, q.get("correct_answer", ""))
 
     return {
         "label": q["label"],
         "subject": q["subject"],
         "elapsed_sec": round(elapsed, 1),
         "error": error,
-        "llm_calls": metrics.get("total_llm_calls", 0),
-        "input_chars": metrics.get("input_tokens", 0),
-        "output_chars": metrics.get("output_tokens", 0),
+        "llm_calls": 0,
+        "input_chars": 0,
+        "output_chars": 0,
         "is_correct": is_correct
     }
 
@@ -250,11 +170,7 @@ def main():
     print(f"{'='*80}\n")
     
     # Capture initial balance
-    initial_balance = _get_deepseek_balance()
-    initial_totals = {}
-    if initial_balance.get("is_available"):
-        for info in initial_balance.get("balance_infos", []):
-            initial_totals[info.get("currency")] = float(info.get("total_balance", 0.0))
+    _, initial_totals = capture_balance()
 
     # Log provider info
     pinfo = get_provider_info()
@@ -279,10 +195,10 @@ def main():
     def worker_func(i, q):
         try:
             from main import _get_metrics
-            start_counts, _ = _get_metrics()
+            start_counts = _get_metrics()
             start_calls = start_counts["count"]
-            start_in = start_counts["input_chars"]
-            start_out = start_counts["output_chars"]
+            start_in = start_counts["input_tokens"]
+            start_out = start_counts["output_tokens"]
 
             print(f"[{i+1}/{n}] Evaluating {q['label']}...")
             
@@ -290,10 +206,10 @@ def main():
 
             mc_tag = "CORRECT" if res["is_correct"] else ("ERROR" if res["error"] else "WRONG")
             
-            end_counts, _ = _get_metrics()
+            end_counts = _get_metrics()
             end_calls = end_counts["count"]
-            end_in = end_counts["input_chars"]
-            end_out = end_counts["output_chars"]
+            end_in = end_counts["input_tokens"]
+            end_out = end_counts["output_tokens"]
 
             q_calls = end_calls - start_calls
             q_in = end_in - start_in
@@ -331,19 +247,7 @@ def main():
     accuracy = correct / len(queries) * 100 if queries else 0
 
     # Evaluate Cost
-    cost_strs = []
-    if initial_balance.get("is_available"):
-        final_balance = _get_deepseek_balance()
-        if final_balance.get("is_available"):
-            for fin_info in final_balance.get("balance_infos", []):
-                currency = fin_info.get("currency")
-                fin_tot = float(fin_info.get("total_balance", 0.0))
-                init_tot = initial_totals.get(currency, 0.0)
-                spent = init_tot - fin_tot
-                if spent > 0.0001:
-                    cost_strs.append(f"{spent:.4f} {currency}")
-                elif init_tot > 0:
-                    cost_strs.append(f"< 0.01 {currency}")
+    cost_strs = compute_cost(initial_totals)
 
     # Evaluate Stats
     total_api_calls = sum(r["llm_calls"] for r in results)

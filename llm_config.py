@@ -80,8 +80,13 @@ def get_provider_info() -> dict:
 
 
 @functools.lru_cache(maxsize=4)
-def get_llm(temperature: float = 0.0) -> ChatOpenAI:
-    """Returns a cached ChatOpenAI instance configured from environment variables."""
+def get_llm(temperature: float = 0.0, _provider: str = "") -> ChatOpenAI:
+    """Returns a cached ChatOpenAI instance configured from environment variables.
+
+    The _provider param is resolved automatically from LLM_PROVIDER and included
+    in the cache key so that switching providers mid-process returns a fresh client.
+    Callers should not pass _provider directly — use the wrapper below.
+    """
     base_url, api_key, model = _resolve_provider()
     return ChatOpenAI(
         base_url=base_url,
@@ -91,6 +96,15 @@ def get_llm(temperature: float = 0.0) -> ChatOpenAI:
         timeout=300,
         max_retries=0,
     )
+
+
+# Re-wrap so callers don't need to pass _provider manually
+_get_llm_cached = get_llm
+
+def get_llm(temperature: float = 0.0) -> ChatOpenAI:
+    """Returns a cached ChatOpenAI instance, keyed on (temperature, provider)."""
+    provider = os.getenv("LLM_PROVIDER", "").strip().lower()
+    return _get_llm_cached(temperature=temperature, _provider=provider)
 
 
 def list_providers():

@@ -1,11 +1,11 @@
 """Load the full bar exam passage corpus into ChromaDB.
 
 Usage:
-  uv run python load_corpus.py              # Load all ~220K passages
-  uv run python load_corpus.py 10000        # Load first 10K passages (faster test)
-  uv run python load_corpus.py status       # Check current collection size
-  uv run python load_corpus.py curated      # Gold passages + 500 padding (~1.5K)
-  uv run python load_corpus.py curated 2000 # Gold passages + 2000 padding (~3K)
+  uv run python utils/load_corpus.py              # Load all ~220K passages
+  uv run python utils/load_corpus.py 10000        # Load first 10K passages (faster test)
+  uv run python utils/load_corpus.py status       # Check current collection size
+  uv run python utils/load_corpus.py curated      # Gold passages + 500 padding (~1.5K)
+  uv run python utils/load_corpus.py curated 2000 # Gold passages + 2000 padding (~3K)
 """
 
 # Windows: prevent OpenMP segfault when PyTorch and sentence-transformers
@@ -16,6 +16,9 @@ os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 import sys
 import time
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import pandas as pd
 from rag_utils import load_passages_to_chroma, get_vectorstore
 

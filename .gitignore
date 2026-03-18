@@ -18,6 +18,11 @@ uv.lock
 # Personal notes
 agentic_ideas/
 
-# Editor
+# Generated artifacts
+logs/
+case_studies/
+
+# Editor / OS
 *~
 *.swp
+.DS_Store

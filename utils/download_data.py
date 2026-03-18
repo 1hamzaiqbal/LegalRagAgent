@@ -1,8 +1,8 @@
 """Download the barexam_qa dataset from HuggingFace.
 
 Usage:
-  uv run python download_data.py          # Download passages + QA splits
-  uv run python download_data.py --check  # Check if data already exists
+  uv run python utils/download_data.py          # Download passages + QA splits
+  uv run python utils/download_data.py --check  # Check if data already exists
 
 Downloads from: https://huggingface.co/datasets/reglab/barexam_qa
 Directly downloads TSV/CSV files to bypass broken HF loading scripts.
@@ -94,8 +94,8 @@ def download():
 
     print(f"\nDone! Files saved to {DATA_DIR}/")
     print("\nNext steps:")
-    print("  uv run python load_corpus.py curated   # Fast: ~1.5K passages, ~3 min")
-    print("  uv run python load_corpus.py 20000      # Full: 20K passages, ~30 min")
+    print("  uv run python utils/load_corpus.py curated   # Fast: ~1.5K passages, ~3 min")
+    print("  uv run python utils/load_corpus.py 20000      # Full: 20K passages, ~30 min")
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--check":
@@ -103,7 +103,7 @@ def main():
         if check_data():
             print("\nAll data files present.")
         else:
-            print("\nSome files missing. Run: uv run python download_data.py")
+            print("\nSome files missing. Run: uv run python utils/download_data.py")
         return
 
     if os.path.isfile(PASSAGES_CSV):

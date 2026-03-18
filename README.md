@@ -1,14 +1,14 @@
 # LegalRagAgent
 
-Agentic Legal RAG system built on LangGraph. Uses a **classify-plan-execute-evaluate** loop to answer legal research questions by retrieving passages from a ChromaDB vector store of bar exam materials.
+Agentic Legal RAG system built on LangGraph. Uses a **plan-and-execute** loop to answer legal research questions by retrieving passages from a ChromaDB vector store of bar exam materials.
 
 ## Setup
 
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/1hamzaiqbal/LegalRagAgent.git
-cd LegalRagAgent
+git clone https://github.com/shrango/adaptive-plan-and-solve-agent.git
+cd adaptive-plan-and-solve-agent
 uv sync
 ```
 
@@ -21,109 +21,95 @@ cp .env.example .env
 # Edit .env — add your API key for at least one provider
 ```
 
-Default provider: **Google AI Studio** (Gemma 3 27B, 14.4K requests/day free). Get a key at [aistudio.google.com](https://aistudio.google.com/apikey).
-
-Other free-tier options: Groq, OpenRouter, Cerebras. Run `uv run python llm_config.py` to see all providers.
+Default provider: **DeepSeek** (pay-per-use, no TPM cap). Other options: Google AI Studio, Groq, OpenRouter, Cerebras, Ollama. Run `uv run python llm_config.py` to see all providers.
 
 ### 3. Download dataset
 
 ```bash
-uv run python download_data.py
+uv run python utils/download_data.py
 ```
 
 Downloads the [reglab/barexam_qa](https://huggingface.co/datasets/reglab/barexam_qa) dataset from HuggingFace (~686K bar exam passages + QA pairs). Saved to `datasets/barexam_qa/` (gitignored).
 
-To check if data is already present: `uv run python download_data.py --check`
-
 ### 4. Build vector store
 
 ```bash
-uv run python load_corpus.py curated        # Fast: ~1.5K passages, ~3 min
-uv run python load_corpus.py 20000          # Full eval: 20K passages, ~30 min
-uv run python load_corpus.py status         # Check current collection size
+uv run python utils/load_corpus.py curated        # Fast: ~1.5K passages, ~3 min
+uv run python utils/load_corpus.py 20000           # Full eval: 20K passages, ~30 min
+uv run python utils/load_corpus.py status          # Check current collection size
 ```
 
-run ```bash Remove-Item -Recurse -Force chroma_db``` to remove the vector store and build it again if updating embedding model
-
-The first run downloads the embedding model (`gte-large-en-v1.5`, ~1.7 GB). Subsequent runs use the cached model. Set `HF_HUB_OFFLINE=1` after the first download to skip network checks.
-
-GPU note: `sentence-transformers` auto-detects CUDA. For GPU embedding on WSL, ensure PyTorch has CUDA support: `uv pip install torch --index-url https://download.pytorch.org/whl/cu121`.
+To rebuild from scratch, delete `chroma_db/` first. The first run downloads the embedding model (`gte-large-en-v1.5`, ~1.7 GB). Set `HF_HUB_OFFLINE=1` after first download to skip network checks.
 
 ### 5. Run the agent
 
 ```bash
 uv run python main.py simple       # "What are the elements of a negligence claim?"
-uv run python main.py multi_hop    # Constitutional rights + 4th/5th Amendment scenario
+uv run python main.py multi_hop    # Fourth Amendment suppression scenario
 uv run python main.py medium       # Preliminary injunction standard
 ```
 
 ## Architecture
 
-Seven-node LangGraph state machine with adaptive replanning, injection detection, and MC answer selection.
+Four-node LangGraph state machine with adaptive replanning and judge-driven control flow.
 
-![LangGraph Pipeline](graph.png)
+```
+START → planner → executor → replanner ─┬─→ executor  (next/retry)
+                                         └─→ synthesizer → END
+```
 
-- **Injection Check**: Screens for adversarial prompts (skippable via `SKIP_INJECTION_CHECK=1`)
-- **Classify & Plan**: Classifies query as `simple` or `multi_hop` and generates the research plan in a single LLM call. Strips MC answer choices before planning.
-- **Executor**: Per step — rewrites query into primary + 2 alternatives, multi-query retrieves from ChromaDB (with cross-step dedup), synthesizes answer with inline `[Query X][Source N]` citations
-- **Evaluator**: Checks confidence against threshold (`EVAL_CONFIDENCE_THRESHOLD`, default 0.0 on cross-encoder logit scale). Accumulates step summaries for replanner.
-- **Replanner**: (multi_hop only) Adaptively adds research steps based on accumulated evidence. Hard cap: 5 completed steps.
-- **MC Select**: For MC questions, applies accumulated research to select answer letter. Non-MC passes through.
-- **Observability**: Prints run metrics (LLM calls, confidence, steps, timing).
+- **Planner**: Decomposes question into 2-5 research steps, each with an action type (`rag_search`, `web_search`, or `direct_answer`)
+- **Executor**: Per step — rewrites query into primary + 2 alternatives, hybrid retrieves from ChromaDB (BM25 + bi-encoder → cross-encoder rerank), synthesizes cited sub-answer. LLM judge evaluates retrieval sufficiency.
+- **Replanner**: Deterministic escalation on failure (rag → rewrite → web → direct_answer). LLM decides next/complete/retry when judge is satisfied. Hard cap: 5 completed steps.
+- **Synthesizer**: Aggregates all research into a final IRAC-style answer with `[Evidence N]` citations.
 
-### Skills (6 prompt files in `skills/`)
+### Skills (7 prompt files in `skills/`)
 
 | Skill | Purpose |
 |-------|---------|
-| `classify_and_plan.md` | Classify query complexity + generate research plan (1 LLM call) |
-| `query_rewrite.md` | Rewrite into primary + 2 alternative queries (JSON) |
-| `synthesize_and_cite.md` | Synthesize answer with inline `[Source N]` citations |
-| `adaptive_replan.md` | Decide next research step from accumulated evidence |
-| `detect_prompt_injection.md` | Screen for adversarial prompts |
-| `verify_answer.md` | Cross-check answer against evidence (retained for future use) |
+| `planner.md` | Decompose question into research steps with action types |
+| `query_rewriter.md` | Rewrite sub-question into primary + 2 alternative queries |
+| `synthesize_and_cite.md` | Per-step cited synthesis with `[Source N]` format |
+| `judge.md` | Evaluate retrieval sufficiency for rag/web steps |
+| `verifier.md` | Evaluate direct_answer grounding in doctrine |
+| `replanner.md` | Decide next/complete/retry from accumulated evidence |
+| `synthesizer.md` | Final IRAC synthesis with `[Evidence N]` citations |
 
-See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for full node-by-node reference, state schema, and annotated case studies.
+### Retrieval
+
+Hybrid BM25 + dense retrieval with cross-encoder reranking:
+1. BM25 (keyword, `rank-bm25`) retrieves top-20 candidates
+2. Bi-encoder (`gte-large-en-v1.5`) retrieves top-20 candidates
+3. Pool + deduplicate by passage ID
+4. Cross-encoder (`ms-marco-MiniLM-L-6-v2`) reranks to top 5
 
 ## Evaluation
 
 ```bash
-uv run python eval/eval_qa.py 100                     # Run full QA evaluation on 100 queries
-uv run python eval/eval_qa.py 100 --continue          # Resume an interrupted evaluation from log file
-
+uv run python eval/eval_qa.py 50                    # QA eval on 50 questions
+uv run python eval/eval_qa.py 100 --continue         # Resume interrupted eval
+uv run python eval/eval_baseline.py 50               # Direct-LLM baseline
+uv run python eval/eval_reranker.py                   # Retrieval A/B test
+uv run python eval/eval_retrieval.py                  # BM25 vs dense vs hybrid comparison
 ```
-
-### Latest Results (Gemma 3 27B, 20K passages)
-
-| Query | MC | Steps | Conf | LLM calls |
-|---|---|---|---|---|
-| torts | Y | 3c/0f | 0.773 | 11 |
-| contracts | Y | 3c/0f | 0.773 | 11 |
-| crimlaw | N | 3c/0f | 0.721 | 11 |
-| evidence | Y | 3c/0f | 0.790 | 11 |
-| constlaw | N | 0c/3f | — | 11 |
-| realprop | Y | 3c/0f | 0.775 | 11 |
-
-MC accuracy: 4/6. 100% passage diversity across all steps.
 
 ## Project Structure
 
 ```
-main.py               # LangGraph pipeline (8 nodes, routing, state)
-rag_utils.py           # Embeddings, ChromaDB, retrieval, reranker
-llm_config.py          # Provider registry (21 providers), LLM singleton
-load_corpus.py         # Load passages into ChromaDB
-download_data.py       # Download dataset from HuggingFace
-skills/                # 7 markdown prompt files (~1700 words total)
+main.py                # LangGraph pipeline (4 nodes, routing, state)
+rag_utils.py           # Hybrid retrieval: BM25 + dense + cross-encoder reranking
+llm_config.py          # Provider registry, LLM singleton
+skills/                # 7 prompt files
 eval/                  # Evaluation scripts
   eval_qa.py           # Full QA evaluation on N queries
-  eval_comprehensive.py # Two-phase eval (retrieval + pipeline)
-  eval_trace.py        # Per-query diagnostics with --save for case studies
-  eval_reranker.py     # Bi-encoder vs cross-encoder A/B test
   eval_baseline.py     # No-RAG baseline for comparison
-logs/                  # Eval output logs (.txt files)
-docs/                  # Internal reference documentation
-  ARCHITECTURE.md      # Full node reference, case studies, state schema
-  pipeline_flags.md    # Known issues audit with severity ratings
-case_studies/          # JSON traces from eval_trace.py --save
-archive/               # Old skill designs (not used by pipeline)
+  eval_reranker.py     # Retrieval A/B test
+  eval_retrieval.py    # BM25 vs dense vs hybrid comparison
+  eval_utils.py        # Shared eval utilities
+  web_search_suite.py  # Web search query definitions
+utils/                 # Setup and utility scripts
+  download_data.py     # Download dataset from HuggingFace
+  load_corpus.py       # Load passages into ChromaDB
+  render_graph.py      # Graph visualization
+  cudacheck.py         # GPU availability check
 ```

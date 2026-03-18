@@ -21,6 +21,7 @@ All system prompts are loaded from skills/*.md at runtime.
 import os
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
+import functools
 import json
 import logging
 import math
@@ -40,11 +41,23 @@ from llm_config import get_llm, get_provider_info
 from rag_utils import compute_confidence, retrieve_documents_multi_query
 
 logger = logging.getLogger(__name__)
+_TIKTOKEN_ENC = tiktoken.get_encoding("cl100k_base")
 
 
 # ---------------------------------------------------------------------------
-# 1. Data Models
+# 1. Constants & Data Models
 # ---------------------------------------------------------------------------
+
+# Action types — used by planner, executor, replanner, and escalation logic
+ACTION_RAG = "rag_search"
+ACTION_WEB = "web_search"
+ACTION_DIRECT = "direct_answer"
+
+# Step statuses
+STATUS_PENDING = "pending"
+STATUS_COMPLETED = "completed"
+STATUS_FAILED = "failed"
+
 
 class PlanningStep(BaseModel):
     """A single research step in the planning table."""
@@ -55,11 +68,11 @@ class PlanningStep(BaseModel):
     retrieval_hints: List[str] = Field(default_factory=list)
 
     # Action routing — assigned by planner, updated by replanner on escalation
-    action_type: Literal["direct_answer", "rag_search", "web_search"] = "rag_search"
+    action_type: Literal["direct_answer", "rag_search", "web_search"] = ACTION_RAG
     # Tracks how many times this step's query has been rewritten (not a new action type)
     rewrite_attempt: int = 0
 
-    status: Literal["pending", "completed", "failed"] = "pending"
+    status: Literal["pending", "completed", "failed"] = STATUS_PENDING
     result: str = ""
     confidence: float = 0.0  # for logging only — not used for control flow
     evidence_ids: List[str] = Field(default_factory=list)
@@ -76,7 +89,6 @@ class LegalAgentState(TypedDict):
     planning_table: List[PlanningStep]
     evidence_store: List[Dict[str, Any]]  # all retrieved passages (accumulated)
     final_answer: str
-    run_metrics: Dict[str, Any]         # iteration counts, token usage, cost
     audit_log: List[Dict[str, Any]]     # per-node trace entries
 
 
@@ -84,8 +96,9 @@ class LegalAgentState(TypedDict):
 # 2. Core Helpers
 # ---------------------------------------------------------------------------
 
+@functools.lru_cache(maxsize=8)
 def load_skill(name: str) -> str:
-    """Load a skill prompt from skills/<name>.md."""
+    """Load a skill prompt from skills/<name>.md (cached after first read)."""
     path = os.path.join("skills", f"{name}.md")
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -129,20 +142,18 @@ def _parse_json(text: str) -> Any:
 
 class MetricsState:
     def __init__(self):
-        self.llm_call_counter = {"count": 0, "input_chars": 0, "output_chars": 0}
-        self.parse_failure_count = 0
+        self.llm_call_counter = {"count": 0, "input_tokens": 0, "output_tokens": 0}
 
 
 _metrics_state = MetricsState()
 
 
 def _get_metrics():
-    return _metrics_state.llm_call_counter, _metrics_state.parse_failure_count
+    return _metrics_state.llm_call_counter
 
 
 def _reset_llm_call_counter():
-    _metrics_state.llm_call_counter = {"count": 0, "input_chars": 0, "output_chars": 0}
-    _metrics_state.parse_failure_count = 0
+    _metrics_state.llm_call_counter = {"count": 0, "input_tokens": 0, "output_tokens": 0}
 
 
 def _get_deepseek_balance() -> Dict[str, Any]:
@@ -194,13 +205,12 @@ def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
             # Track metrics
             _metrics_state.llm_call_counter["count"] += 1
             try:
-                enc = tiktoken.get_encoding("cl100k_base")
-                _metrics_state.llm_call_counter["input_chars"] += len(enc.encode(system_prompt + user_prompt))
-                _metrics_state.llm_call_counter["output_chars"] += len(enc.encode(content))
+                _metrics_state.llm_call_counter["input_tokens"] += len(_TIKTOKEN_ENC.encode(system_prompt + user_prompt))
+                _metrics_state.llm_call_counter["output_tokens"] += len(_TIKTOKEN_ENC.encode(content))
             except Exception:
-                # Fallback to character counts if tiktoken fails
-                _metrics_state.llm_call_counter["input_chars"] += len(system_prompt) + len(user_prompt)
-                _metrics_state.llm_call_counter["output_chars"] += len(content)
+                # Fallback to rough char-based estimate if tiktoken fails
+                _metrics_state.llm_call_counter["input_tokens"] += len(system_prompt) + len(user_prompt)
+                _metrics_state.llm_call_counter["output_tokens"] += len(content)
 
             if label:
                 print(f"    [{label}] {len(content)} chars")
@@ -242,7 +252,7 @@ def _log(state: LegalAgentState, entry: Dict[str, Any]) -> List[Dict[str, Any]]:
 def _insert_retry(table: List[PlanningStep], retry_step: PlanningStep) -> None:
     """Insert retry_step before the first pending step (mutates table in place)."""
     first_pending_idx = next(
-        (i for i, s in enumerate(table) if s.status == "pending"),
+        (i for i, s in enumerate(table) if s.status == STATUS_PENDING),
         len(table),
     )
     table.insert(first_pending_idx, retry_step)
@@ -298,7 +308,7 @@ def _call_judge(
 
     Returns a dict with keys: sufficient (bool), reason (str), suggested_rewrite (str|None).
     """
-    skill_name = "verifier" if step.action_type == "direct_answer" else "judge"
+    skill_name = "verifier" if step.action_type == ACTION_DIRECT else "judge"
 
     if passages:
         passages_block = "\n\n".join(
@@ -376,7 +386,7 @@ def _execute_rag_search(
         f"Authority target: {step.authority_target}\n"
         f"Retrieval hints: {', '.join(step.retrieval_hints) if step.retrieval_hints else 'none'}"
     )
-    raw_rewrite = _llm_call(load_skill("executor"), rewrite_prompt, label="executor/rewrite")
+    raw_rewrite = _llm_call(load_skill("query_rewriter"), rewrite_prompt, label="executor/rewrite")
     parsed_rewrite = _parse_json(raw_rewrite)
 
     if parsed_rewrite and "primary" in parsed_rewrite:
@@ -441,7 +451,6 @@ def _execute_web_search(
     """
     snippets = web_search(step.sub_question, k=5)
     print(f"    Web results: {len(snippets)} snippet(s)")
-    print(f"results: {snippets}")
 
     if not snippets:
         return "[No web results found]", [], 0.0
@@ -495,7 +504,7 @@ def planner_node(state: LegalAgentState) -> dict:
                     sub_question=s.get("sub_question", question),
                     authority_target=s.get("authority_target", ""),
                     retrieval_hints=s.get("retrieval_hints", []),
-                    action_type=s.get("action_type", "rag_search"),
+                    action_type=s.get("action_type", ACTION_RAG),
                 ))
             else:
                 steps.append(PlanningStep(step_id=i + 1, sub_question=str(s)))
@@ -542,7 +551,7 @@ def executor_node(state: LegalAgentState) -> dict:
     evidence_store = list(state.get("evidence_store", []))
     question = state["inputs"]["question"]
 
-    current = next((s for s in table if s.status == "pending"), None)
+    current = next((s for s in table if s.status == STATUS_PENDING), None)
     if current is None:
         print("  No pending steps.")
         return {}
@@ -550,9 +559,9 @@ def executor_node(state: LegalAgentState) -> dict:
     print(f"  Step {current.step_id} [{current.action_type}] (rewrite_attempt={current.rewrite_attempt}): {current.sub_question}")
 
     # --- Route to appropriate execution strategy ---
-    if current.action_type == "direct_answer":
+    if current.action_type == ACTION_DIRECT:
         result, new_evidence, raw_logit = _execute_direct_answer(current, state)
-    elif current.action_type == "web_search":
+    elif current.action_type == ACTION_WEB:
         result, new_evidence, raw_logit = _execute_web_search(current, state)
     else:  # rag_search (default)
         result, new_evidence, raw_logit = _execute_rag_search(
@@ -573,7 +582,7 @@ def executor_node(state: LegalAgentState) -> dict:
     # --- Update the planning table ---
     new_table = [
         s.model_copy(update={
-            "status": "completed",
+            "status": STATUS_COMPLETED,
             "result": result,
             "confidence": confidence,  # for logging only — not used for control flow
             "evidence_ids": [ev["idx"] for ev in new_evidence],
@@ -673,9 +682,9 @@ def replanner_node(state: LegalAgentState) -> dict:
     table = state["planning_table"]
     question = state["inputs"]["question"]
 
-    completed = [s for s in table if s.status == "completed"]
-    pending = [s for s in table if s.status == "pending"]
-    last = next((s for s in reversed(table) if s.status == "completed"), None)
+    completed = [s for s in table if s.status == STATUS_COMPLETED]
+    pending = [s for s in table if s.status == STATUS_PENDING]
+    last = next((s for s in reversed(table) if s.status == STATUS_COMPLETED), None)
 
     if last is None:
         print("  No completed steps — completing immediately.")
@@ -697,9 +706,9 @@ def replanner_node(state: LegalAgentState) -> dict:
     reasoning: str = ""
 
     # --- Deterministic escalation when judge says insufficient ---
-    if not sufficient and last.action_type != "direct_answer":
+    if not sufficient and last.action_type != ACTION_DIRECT:
 
-        if last.action_type == "rag_search" and last.rewrite_attempt == 0:
+        if last.action_type == ACTION_RAG and last.rewrite_attempt == 0:
             # First RAG failure → rewrite query, stay rag_search
             revised_q = verdict.get("suggested_rewrite") or last.sub_question
             retry_step = PlanningStep(
@@ -707,7 +716,7 @@ def replanner_node(state: LegalAgentState) -> dict:
                 sub_question=revised_q,
                 authority_target=last.authority_target,
                 retrieval_hints=last.retrieval_hints,
-                action_type="rag_search",
+                action_type=ACTION_RAG,
                 rewrite_attempt=1,
                 retry_of=last.step_id,
             )
@@ -717,14 +726,14 @@ def replanner_node(state: LegalAgentState) -> dict:
             print(f"  Escalation: rag_search → rewrite (step {retry_step.step_id})")
             print(f"  Judge reason: {verdict.get('reason', '')}")
 
-        elif last.action_type == "rag_search" and last.rewrite_attempt >= 1:
+        elif last.action_type == ACTION_RAG and last.rewrite_attempt >= 1:
             # Second RAG failure → escalate to web_search
             retry_step = PlanningStep(
                 step_id=last.step_id * 10 + 5,
                 sub_question=last.sub_question,
                 authority_target=last.authority_target,
                 retrieval_hints=last.retrieval_hints,
-                action_type="web_search",
+                action_type=ACTION_WEB,
                 rewrite_attempt=0,
                 retry_of=last.step_id,
             )
@@ -734,14 +743,14 @@ def replanner_node(state: LegalAgentState) -> dict:
             print(f"  Escalation: rag_search → web_search (step {retry_step.step_id})")
             print(f"  Judge reason: {verdict.get('reason', '')}")
 
-        elif last.action_type == "web_search":
+        elif last.action_type == ACTION_WEB:
             # Web search failure → fall back to direct_answer with uncertainty flag
             retry_step = PlanningStep(
                 step_id=last.step_id * 10 + 5,
                 sub_question=last.sub_question,
                 authority_target=last.authority_target,
                 retrieval_hints=last.retrieval_hints,
-                action_type="direct_answer",
+                action_type=ACTION_DIRECT,
                 rewrite_attempt=0,
                 retry_of=last.step_id,
             )
@@ -753,7 +762,7 @@ def replanner_node(state: LegalAgentState) -> dict:
 
     # --- LLM decision when judge is satisfied or escalation handled ---
     if action is None:
-        if not sufficient and last.action_type == "direct_answer":
+        if not sufficient and last.action_type == ACTION_DIRECT:
             print(f"  direct_answer insufficient (no further escalation) — deferring to LLM")
 
         llm_action, reasoning, revised_q = _replanner_llm_decide(
@@ -810,7 +819,7 @@ def synthesizer_node(state: LegalAgentState) -> dict:
     evidence_store = state.get("evidence_store", [])
     question = state["inputs"]["question"]
 
-    completed = [s for s in table if s.status == "completed"]
+    completed = [s for s in table if s.status == STATUS_COMPLETED]
 
     step_summaries = "\n\n".join(
         f"### Research Step {s.step_id} ({s.action_type}): {s.sub_question}\n{s.result}"
@@ -857,7 +866,7 @@ def route_after_replanner(
     )
     action = last_replan.get("action", "next") if last_replan else "next"
 
-    has_pending = any(s.status == "pending" for s in state.get("planning_table", []))
+    has_pending = any(s.status == STATUS_PENDING for s in state.get("planning_table", []))
 
     if action == "complete" or not has_pending:
         print("  → synthesizer")
@@ -927,11 +936,6 @@ def run(question: str, max_steps: int = 5) -> LegalAgentState:
         "planning_table": [],
         "evidence_store": [],
         "final_answer": "",
-        "run_metrics": {
-            "total_llm_calls": 0,
-            "input_tokens": 0,
-            "output_tokens": 0,
-        },
         "audit_log": [],
     }
 
@@ -941,7 +945,7 @@ def run(question: str, max_steps: int = 5) -> LegalAgentState:
 
     result = graph.invoke(initial_state)
 
-    completed_steps = [s for s in result.get("planning_table", []) if s.status == "completed"]
+    completed_steps = [s for s in result.get("planning_table", []) if s.status == STATUS_COMPLETED]
     evidence_count = len(result.get("evidence_store", []))
 
     print(f"\n{'=' * 80}")
