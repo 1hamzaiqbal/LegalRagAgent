@@ -99,6 +99,7 @@ uv run python eval/eval_retrieval.py                  # BM25 vs dense vs hybrid 
 main.py                # LangGraph pipeline (4 nodes, routing, state)
 rag_utils.py           # Hybrid retrieval: BM25 + dense + cross-encoder reranking
 llm_config.py          # Provider registry, LLM singleton
+web_scraper.py         # Web page text extraction (trafilatura) for web_search steps
 skills/                # 7 prompt files
 eval/                  # Evaluation scripts
   eval_qa.py           # Full QA evaluation on N queries

@@ -23,7 +23,7 @@ START → planner_node → executor_node → replanner_node ─┬─→ executo
 
 **executor_node** — Executes the first pending step:
 - `rag_search`: LLM query rewrite (`skills/query_rewriter.md`) → multi-query ChromaDB retrieval with cross-step dedup → cited synthesis (`skills/synthesize_and_cite.md`)
-- `web_search`: DuckDuckGo search → cited synthesis
+- `web_search`: DuckDuckGo search → scrape top 2 URLs via `web_scraper.py` (trafilatura) → cited synthesis from snippets + full page text
 - `direct_answer`: LLM answers from doctrine (no retrieval) → synthesis
 
 After execution, an LLM judge evaluates retrieval sufficiency (`skills/judge.md` for retrieval steps, `skills/verifier.md` for direct_answer). The judge verdict drives replanner escalation. Confidence (cross-encoder logit, sigmoid-normalized) is logged but not used for control flow.
@@ -47,7 +47,6 @@ Hard cap: `max_steps` (default 5) completed steps.
 - `planning_table` — list of `PlanningStep`
 - `evidence_store` — accumulated retrieved passages (all steps)
 - `final_answer` — synthesizer output
-- `run_metrics` — LLM call counts, token usage
 - `audit_log` — per-node trace entries with timestamps
 
 `PlanningStep` fields: `step_id`, `sub_question`, `authority_target`, `retrieval_hints`, `action_type`, `rewrite_attempt`, `status`, `result`, `confidence`, `evidence_ids`, `retry_of`, `judge_verdict`.
@@ -86,7 +85,7 @@ Caveat: `load_passages_to_chroma()` skips reload when existing count >= desired.
 Source of truth: `llm_config.py`
 
 - Provider selection via `LLM_PROVIDER` env var. Falls back to `LLM_BASE_URL`/`LLM_API_KEY`/`LLM_MODEL`.
-- `get_llm()` returns a cached `ChatOpenAI` instance (LRU cache keyed on temperature only — does not invalidate on provider change mid-session).
+- `get_llm()` returns a cached `ChatOpenAI` instance (LRU cache keyed on temperature + provider).
 - `_llm_call()` in main.py adds retry handling (3 attempts for transient 429/connection/timeout errors) and merges system+user messages for Gemma models.
 - Run `uv run python llm_config.py` to list all providers with rate limits.
 
@@ -132,6 +131,7 @@ uv run python llm_config.py
 | `eval/eval_qa.py` | Main eval: N random QA pairs, MC accuracy, cost tracking |
 | `eval/eval_baseline.py` | Direct-LLM baseline (no RAG, no LangGraph) |
 | `eval/eval_reranker.py` | Retrieval-only A/B: bi-encoder vs cross-encoder |
+| `eval/eval_retrieval.py` | BM25 vs dense vs hybrid retrieval comparison |
 
 ## Data (gitignored)
 
@@ -145,3 +145,4 @@ uv run python llm_config.py
 - `main.py` is the source of truth for the pipeline. Verify architecture claims here before updating docs or skills.
 - If you change step schema or routing, audit both `main.py` and the skill prompt contracts in `skills/`.
 - `_get_metrics()`, `_reset_llm_call_counter()`, `_get_deepseek_balance()` are defined in main.py and exported to eval scripts.
+- `web_scraper.py` is a standalone module (testable via CLI) imported by main.py for web_search steps.

@@ -43,6 +43,9 @@ from rag_utils import compute_confidence, retrieve_documents_multi_query
 logger = logging.getLogger(__name__)
 _TIKTOKEN_ENC = tiktoken.get_encoding("cl100k_base")
 
+# Logging verbosity — set via --verbose CLI flag or VERBOSE=1 env var
+VERBOSE = os.getenv("VERBOSE", "0") == "1"
+
 
 # ---------------------------------------------------------------------------
 # 1. Constants & Data Models
@@ -213,7 +216,12 @@ def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
                 _metrics_state.llm_call_counter["output_tokens"] += len(content)
 
             if label:
-                print(f"    [{label}] {len(content)} chars")
+                if VERBOSE:
+                    in_tok = len(_TIKTOKEN_ENC.encode(system_prompt + user_prompt))
+                    out_tok = len(_TIKTOKEN_ENC.encode(content))
+                    print(f"    [{label}] {len(content)} chars ({in_tok} in / {out_tok} out tokens)")
+                else:
+                    print(f"    [{label}] {len(content)} chars")
             return content
 
         except Exception as exc:
@@ -443,14 +451,19 @@ def _execute_rag_search(
         text = doc.page_content
         source = doc.metadata.get("source", "unknown")
         idx = str(doc.metadata.get("idx", f"step{step.step_id}_{i}"))
+        ce_score = doc.metadata.get("cross_encoder_score", 0.0)
         passages.append(f"[Source {i}] ({source})\n{text}")
         new_evidence.append({
             "idx": idx,
             "text": text,
             "source": source,
             "step_id": step.step_id,
-            "cross_encoder_score": doc.metadata.get("cross_encoder_score", 0.0),
+            "cross_encoder_score": ce_score,
         })
+        if VERBOSE:
+            preview = text[:300].replace('\n', ' ')
+            print(f"      [{i}] idx={idx} source={source} ce_score={ce_score:.3f}")
+            print(f"          {preview}{'...' if len(text) > 300 else ''}")
 
     # --- Sub-answer synthesis ---
     evidence_block = "\n\n".join(passages) if passages else "[No passages retrieved]"
@@ -460,6 +473,10 @@ def _execute_rag_search(
         f"Evidence passages:\n{evidence_block}"
     )
     result = _llm_call(load_skill("synthesize_and_cite"), synth_prompt, label="executor/synth")
+    if VERBOSE:
+        print(f"    --- Sub-answer ---")
+        print(f"    {result[:500]}{'...' if len(result) > 500 else ''}")
+        print(f"    --- End sub-answer ---")
 
     # --- Raw confidence logit for logging ---
     raw_logit = compute_confidence(queries[0], docs) if docs else 0.0
@@ -503,6 +520,11 @@ def _execute_web_search(
         if href:
             header += f"\nURL: {href}"
         passages.append(f"{header}\n{body}")
+        if VERBOSE:
+            char_count = len(body)
+            preview = body[:400].replace('\n', ' ')
+            print(f"      [{i}] ({source_tag}) {title} [{char_count} chars]")
+            print(f"          {preview}{'...' if char_count > 400 else ''}")
 
     evidence_block = "\n\n".join(passages)
     synth_prompt = (
@@ -511,6 +533,10 @@ def _execute_web_search(
         f"Web search results:\n{evidence_block}"
     )
     result = _llm_call(load_skill("synthesize_and_cite"), synth_prompt, label="executor/web")
+    if VERBOSE:
+        print(f"    --- Sub-answer ---")
+        print(f"    {result[:500]}{'...' if len(result) > 500 else ''}")
+        print(f"    --- End sub-answer ---")
 
     new_evidence = [
         {
@@ -1035,6 +1061,10 @@ def run(question: str, max_steps: int = 5) -> LegalAgentState:
 
 
 if __name__ == "__main__":
-    query_key = sys.argv[1] if len(sys.argv) > 1 else "simple"
+    args = sys.argv[1:]
+    if "--verbose" in args:
+        VERBOSE = True
+        args.remove("--verbose")
+    query_key = args[0] if args else "simple"
     question = DEMO_QUERIES.get(query_key, DEMO_QUERIES["simple"])
     run(question)
