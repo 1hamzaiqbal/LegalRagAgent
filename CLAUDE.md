@@ -4,7 +4,7 @@ Source-of-truth context for working in this codebase. Verify claims against `mai
 
 ## Project Summary
 
-Legal RAG agent over the `reglab/barexam_qa` corpus. Built on LangGraph with a plan-and-execute workflow: decompose a legal question into sub-questions, retrieve passages from ChromaDB, synthesize cited sub-answers, and aggregate into a final IRAC-style response.
+Legal RAG agent over the `reglab/barexam_qa` and `reglab/housing_qa` corpora. Built on LangGraph with a plan-and-execute workflow: decompose a legal question into sub-questions, retrieve passages from ChromaDB, synthesize cited sub-answers, and aggregate into a final IRAC-style response.
 
 ## Runtime Architecture
 
@@ -51,6 +51,12 @@ Hard cap: `max_steps` (default 5) completed steps.
 
 `PlanningStep` fields: `step_id`, `sub_question`, `authority_target`, `retrieval_hints`, `action_type`, `rewrite_attempt`, `status`, `result`, `confidence`, `evidence_ids`, `retry_of`, `judge_verdict`.
 
+### Logging
+
+Two modes controlled by `--verbose` CLI flag or `VERBOSE=1` env var:
+- **Compact** (default): step breakdown with evidence source counts, LLM call/token totals
+- **Verbose**: full passage text with cross-encoder scores, query rewrite alternatives, web search URLs and scraped content previews, sub-answer previews, per-LLM-call token counts
+
 ## Skills
 
 7 prompt files in `skills/`, all loaded by `main.py`:
@@ -69,16 +75,16 @@ Hard cap: `max_steps` (default 5) completed steps.
 
 Source of truth: `rag_utils.py`
 
-- **Vector store**: ChromaDB persisted to `./chroma_db/`, collection `legal_passages`
+- **Vector store**: ChromaDB persisted to `./chroma_db/`
+  - `legal_passages`: 686,324 barexam passages
+  - `housing_statutes`: 1,837,403 housing statutes
 - **Embedding model**: `Alibaba-NLP/gte-large-en-v1.5` (1024d, 8192 tokens). Configurable via `EMBEDDING_MODEL` env var.
 - **Cross-encoder reranker**: `cross-encoder/ms-marco-MiniLM-L-6-v2`
-- **Hybrid retrieval** (default): BM25 (keyword) + bi-encoder (semantic) candidates pooled, deduplicated by `idx`, cross-encoder reranks to top k. BM25 catches exact legal terms embeddings miss; bi-encoder catches semantic matches BM25 misses.
-- **BM25 index**: Built lazily on first retrieval from ChromaDB corpus (~8s for 20K passages), cached in memory. Uses `rank-bm25` (BM25Okapi).
+- **Hybrid retrieval** (default): BM25 (keyword) + bi-encoder (semantic) candidates pooled, deduplicated by `idx`, cross-encoder reranks to top k
+- **BM25 index**: Built lazily on first retrieval from ChromaDB corpus, cached in memory. Uses `rank-bm25` (BM25Okapi).
 - **Multi-query retrieval**: pools BM25 + dense candidates across all query variants, deduplicates, cross-encoder reranks against primary query
 - **Cross-step dedup**: `exclude_ids` parameter filters out passages already retrieved in prior steps
 - **Confidence**: `compute_confidence()` returns max cross-encoder score (raw logit). Converted to [0,1] via sigmoid in main.py. For logging only.
-
-Caveat: `load_passages_to_chroma()` skips reload when existing count >= desired. Switching to a smaller corpus requires clearing `chroma_db/`.
 
 ## LLM Configuration
 
@@ -100,25 +106,33 @@ uv sync
 # Configure
 cp .env.example .env   # then add API keys
 
-# Download dataset
-uv run python utils/download_data.py
-uv run python utils/download_data.py --check
+# Download datasets
+uv run python utils/download_data.py               # BarExam QA
+uv run python utils/download_housingqa.py           # HousingQA
 
-# Build vector store
-uv run python utils/load_corpus.py curated        # ~1.5K passages, ~3 min
-uv run python utils/load_corpus.py 20000          # 20K passages, ~30 min
-uv run python utils/load_corpus.py status         # Check current size
+# Build vector stores (GPU-optimized)
+uv run python utils/fast_embed.py barexam           # Full barexam (~2.2 hr on RTX 3070)
+uv run python utils/fast_embed.py housing           # Full housing (~6 hr on RTX 3070)
+uv run python utils/fast_embed.py housing --resume  # Resume interrupted embedding
+uv run python utils/fast_embed.py status            # Check collection sizes
+
+# Or use LangChain loader for smaller subsets
+uv run python utils/load_corpus.py curated          # Gold passages + padding (~3 min)
+uv run python utils/load_corpus.py 20000            # First 20K passages (~30 min)
+uv run python utils/load_corpus.py status           # Check sizes
 
 # Run agent
-uv run python main.py simple       # "What are the elements of a negligence claim?"
-uv run python main.py multi_hop    # Fourth Amendment suppression scenario
-uv run python main.py medium       # Preliminary injunction standard
+uv run python main.py simple                        # Simple doctrinal question
+uv run python main.py multi_hop                      # Multi-step reasoning
+uv run python main.py medium                         # Medium complexity
+uv run python main.py simple --verbose               # Verbose output
 
 # Eval
 uv run python eval/eval_qa.py 50                    # QA eval on 50 questions
 uv run python eval/eval_qa.py 100 --continue         # Resume interrupted eval
 uv run python eval/eval_baseline.py 50               # Direct-LLM baseline
-uv run python eval/eval_reranker.py                   # Bi-encoder vs cross-encoder A/B
+uv run python eval/eval_reranker.py                   # Retrieval A/B test
+uv run python eval/eval_retrieval.py                  # BM25 vs dense vs hybrid comparison
 
 # List providers
 uv run python llm_config.py
@@ -133,9 +147,19 @@ uv run python llm_config.py
 | `eval/eval_reranker.py` | Retrieval-only A/B: bi-encoder vs cross-encoder |
 | `eval/eval_retrieval.py` | BM25 vs dense vs hybrid retrieval comparison |
 
+## Datasets
+
+| Dataset | Collection | Docs | QA format | Source |
+|---|---|---|---|---|
+| BarExam QA | `legal_passages` | 686,324 | MC (A-D) | `reglab/barexam_qa` |
+| HousingQA | `housing_statutes` | 1,837,403 | Yes/No | `reglab/housing_qa` |
+
+HousingQA has per-state jurisdiction scoping — each question targets a specific state's statutes. The `state` field is stored in ChromaDB metadata for filtered retrieval.
+
 ## Data (gitignored)
 
-- `datasets/barexam_qa/` — Passage CSVs and QA splits (from HuggingFace `reglab/barexam_qa`)
+- `datasets/barexam_qa/` — Passage CSVs and QA splits
+- `datasets/housing_qa/` — Statute CSVs and QA pairs
 - `chroma_db/` — Persisted ChromaDB vector store
 - `logs/` — Eval output logs
 - `case_studies/` — JSON traces (if generated)
@@ -146,3 +170,4 @@ uv run python llm_config.py
 - If you change step schema or routing, audit both `main.py` and the skill prompt contracts in `skills/`.
 - `_get_metrics()`, `_reset_llm_call_counter()`, `_get_deepseek_balance()` are defined in main.py and exported to eval scripts.
 - `web_scraper.py` is a standalone module (testable via CLI) imported by main.py for web_search steps.
+- `utils/fast_embed.py` bypasses LangChain for bulk embedding — uses sentence-transformers directly with fp16 + chunked processing to avoid OOM. Supports `--resume` for interrupted runs.

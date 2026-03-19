@@ -1,6 +1,6 @@
 # LegalRagAgent
 
-Agentic Legal RAG system built on LangGraph. Uses a **plan-and-execute** loop to answer legal research questions by retrieving passages from a ChromaDB vector store of bar exam materials.
+Agentic Legal RAG system built on LangGraph. Uses a **plan-and-execute** loop to answer legal research questions by retrieving passages from ChromaDB vector stores of bar exam materials and housing statutes.
 
 ## Setup
 
@@ -23,30 +23,35 @@ cp .env.example .env
 
 Default provider: **DeepSeek** (pay-per-use, no TPM cap). Other options: Google AI Studio, Groq, OpenRouter, Cerebras, Ollama. Run `uv run python llm_config.py` to see all providers.
 
-### 3. Download dataset
+### 3. Download datasets
 
 ```bash
-uv run python utils/download_data.py
+uv run python utils/download_data.py           # BarExam QA (~686K passages)
+uv run python utils/download_housingqa.py       # HousingQA (~1.84M statutes)
 ```
 
-Downloads the [reglab/barexam_qa](https://huggingface.co/datasets/reglab/barexam_qa) dataset from HuggingFace (~686K bar exam passages + QA pairs). Saved to `datasets/barexam_qa/` (gitignored).
-
-### 4. Build vector store
+### 4. Build vector stores
 
 ```bash
-uv run python utils/load_corpus.py curated        # Fast: ~1.5K passages, ~3 min
-uv run python utils/load_corpus.py 20000           # Full eval: 20K passages, ~30 min
-uv run python utils/load_corpus.py status          # Check current collection size
+# Fast embedding (bypasses LangChain, uses GPU fp16 batching)
+uv run python utils/fast_embed.py barexam       # Full barexam corpus (~2.2 hr)
+uv run python utils/fast_embed.py housing       # Full housing statutes (~6 hr)
+uv run python utils/fast_embed.py status        # Check collection sizes
+
+# Or use the LangChain loader for smaller subsets
+uv run python utils/load_corpus.py curated      # Gold passages + padding (~3 min)
+uv run python utils/load_corpus.py 20000        # First 20K passages (~30 min)
 ```
 
-To rebuild from scratch, delete `chroma_db/` first. The first run downloads the embedding model (`gte-large-en-v1.5`, ~1.7 GB). Set `HF_HUB_OFFLINE=1` after first download to skip network checks.
+To rebuild from scratch, delete `chroma_db/` first. Set `HF_HUB_OFFLINE=1` after first download to skip network checks.
 
 ### 5. Run the agent
 
 ```bash
-uv run python main.py simple       # "What are the elements of a negligence claim?"
-uv run python main.py multi_hop    # Fourth Amendment suppression scenario
-uv run python main.py medium       # Preliminary injunction standard
+uv run python main.py simple                    # "What are the elements of a negligence claim?"
+uv run python main.py multi_hop                  # Fourth Amendment suppression scenario
+uv run python main.py medium                     # Preliminary injunction standard
+uv run python main.py simple --verbose           # Full passage text, token counts, sub-answers
 ```
 
 ## Architecture
@@ -59,7 +64,7 @@ START → planner → executor → replanner ─┬─→ executor  (next/retry)
 ```
 
 - **Planner**: Decomposes question into 2-5 research steps, each with an action type (`rag_search`, `web_search`, or `direct_answer`)
-- **Executor**: Per step — rewrites query into primary + 2 alternatives, hybrid retrieves from ChromaDB (BM25 + bi-encoder → cross-encoder rerank), synthesizes cited sub-answer. LLM judge evaluates retrieval sufficiency.
+- **Executor**: Per step — rewrites query into primary + 2 alternatives, hybrid retrieves from ChromaDB (BM25 + bi-encoder → cross-encoder rerank), synthesizes cited sub-answer. LLM judge evaluates retrieval sufficiency. For web_search steps, DuckDuckGo finds URLs then trafilatura scrapes full page content.
 - **Replanner**: Deterministic escalation on failure (rag → rewrite → web → direct_answer). LLM decides next/complete/retry when judge is satisfied. Hard cap: 5 completed steps.
 - **Synthesizer**: Aggregates all research into a final IRAC-style answer with `[Evidence N]` citations.
 
@@ -82,6 +87,13 @@ Hybrid BM25 + dense retrieval with cross-encoder reranking:
 2. Bi-encoder (`gte-large-en-v1.5`) retrieves top-20 candidates
 3. Pool + deduplicate by passage ID
 4. Cross-encoder (`ms-marco-MiniLM-L-6-v2`) reranks to top 5
+
+### Datasets
+
+| Dataset | Corpus size | QA pairs | Domain |
+|---------|-------------|----------|--------|
+| [BarExam QA](https://huggingface.co/datasets/reglab/barexam_qa) | 686K passages | MC (A-D) | Bar exam (all subjects) |
+| [HousingQA](https://huggingface.co/datasets/reglab/housing_qa) | 1.84M statutes | 6,853 Yes/No | Housing law (51 jurisdictions) |
 
 ## Evaluation
 
@@ -109,8 +121,10 @@ eval/                  # Evaluation scripts
   eval_utils.py        # Shared eval utilities
   web_search_suite.py  # Web search query definitions
 utils/                 # Setup and utility scripts
-  download_data.py     # Download dataset from HuggingFace
-  load_corpus.py       # Load passages into ChromaDB
+  download_data.py     # Download BarExam QA from HuggingFace
+  download_housingqa.py # Download HousingQA from HuggingFace
+  fast_embed.py        # GPU-optimized bulk embedding (fp16, chunked)
+  load_corpus.py       # LangChain-based corpus loader (smaller subsets)
   render_graph.py      # Graph visualization
   cudacheck.py         # GPU availability check
 ```

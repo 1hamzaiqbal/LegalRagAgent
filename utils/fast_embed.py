@@ -8,6 +8,7 @@ Usage:
   uv run python utils/fast_embed.py barexam 50000     # First 50K barexam passages
   uv run python utils/fast_embed.py housing            # Full housing statutes (1.84M)
   uv run python utils/fast_embed.py housing 200000     # First 200K housing statutes
+  uv run python utils/fast_embed.py housing --resume   # Resume interrupted embedding
   uv run python utils/fast_embed.py status             # Check collection sizes
 """
 
@@ -42,7 +43,7 @@ CORPORA = {
 EMBED_CHUNK = 10000
 
 
-def embed_corpus(corpus_name: str, max_passages: int = 0):
+def embed_corpus(corpus_name: str, max_passages: int = 0, resume: bool = False):
     """Embed a corpus in memory-safe chunks: embed chunk → insert → free → repeat."""
     from sentence_transformers import SentenceTransformer
     import torch
@@ -83,17 +84,25 @@ def embed_corpus(corpus_name: str, max_passages: int = 0):
     dim = model.get_sentence_embedding_dimension()
     print(f"  Model loaded, dimension: {dim}, max_seq_length: {model.max_seq_length}")
 
-    # Initialize ChromaDB — clear and recreate
+    # Initialize ChromaDB
     client = chromadb.PersistentClient(path=CHROMA_DB_DIR)
-    try:
-        client.delete_collection(config["collection"])
-        print(f"  Cleared existing collection '{config['collection']}'")
-    except Exception:
-        pass
-    collection = client.create_collection(
-        name=config["collection"],
-        metadata={"hnsw:space": "cosine"},
-    )
+    if resume:
+        collection = client.get_or_create_collection(
+            name=config["collection"],
+            metadata={"hnsw:space": "cosine"},
+        )
+        existing = collection.count()
+        print(f"  Resuming: {existing:,} docs already in collection")
+    else:
+        try:
+            client.delete_collection(config["collection"])
+            print(f"  Cleared existing collection '{config['collection']}'")
+        except Exception:
+            pass
+        collection = client.create_collection(
+            name=config["collection"],
+            metadata={"hnsw:space": "cosine"},
+        )
 
     # Process in chunks: embed → insert → free
     gpu_batch = 128
@@ -107,6 +116,11 @@ def embed_corpus(corpus_name: str, max_passages: int = 0):
 
         texts = chunk_df[text_col].astype(str).tolist()
         idxs = chunk_df[idx_col].astype(str).tolist()
+        batch_ids = [f"doc_{idx}" for idx in idxs]
+
+        # Skip already-inserted chunks when resuming
+        if resume and chunk_end <= existing:
+            continue
 
         # Build metadata
         metadatas = []
@@ -128,7 +142,6 @@ def embed_corpus(corpus_name: str, max_passages: int = 0):
 
         # Insert into ChromaDB
         t0 = time.time()
-        batch_ids = [f"doc_{idx}" for idx in idxs]
         embeddings_list = embeddings.tolist()
 
         # ChromaDB add in sub-batches of 5000
@@ -179,8 +192,10 @@ def main():
         return
 
     corpus_name = args[0]
-    max_passages = int(args[1]) if len(args) > 1 else 0
-    embed_corpus(corpus_name, max_passages)
+    resume = "--resume" in args
+    remaining = [a for a in args[1:] if a != "--resume"]
+    max_passages = int(remaining[0]) if remaining else 0
+    embed_corpus(corpus_name, max_passages, resume=resume)
 
 
 if __name__ == "__main__":
