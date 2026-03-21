@@ -89,6 +89,7 @@ class LegalAgentState(TypedDict):
     agent_metadata: Dict[str, Any]      # provider, model, call counts, timestamps
     inputs: Dict[str, Any]              # original question and any runtime inputs
     run_config: Dict[str, Any]          # max_steps, flags
+    collections: List[str]              # which ChromaDB collections to search
     planning_table: List[PlanningStep]
     evidence_store: List[Dict[str, Any]]  # all retrieved passages (accumulated)
     final_answer: str
@@ -337,7 +338,11 @@ def _call_judge(
     Uses skills/judge.md for rag_search / web_search steps.
     Uses skills/verifier.md for direct_answer steps (no retrieved passages).
 
-    Returns a dict with keys: sufficient (bool), reason (str), suggested_rewrite (str|None).
+    Returns a dict with keys:
+      sufficient: "full" | "partial" | False
+      reason: str
+      missing: str | None (what's missing, for partial verdicts)
+      suggested_rewrite: str | None
     """
     skill_name = "verifier" if step.action_type == ACTION_DIRECT else "judge"
 
@@ -361,16 +366,26 @@ def _call_judge(
     parsed = _parse_json(raw)
 
     if not parsed or "sufficient" not in parsed:
-        # Fail-open: default to sufficient to avoid infinite loops on parse errors
         return {
-            "sufficient": True,
-            "reason": f"parse failure ({skill_name}) — defaulting to sufficient",
+            "sufficient": "full",
+            "reason": f"parse failure ({skill_name}) — defaulting to full",
+            "missing": None,
             "suggested_rewrite": None,
         }
 
+    # Normalize the sufficient field: "full", "partial", or False
+    raw_suf = parsed.get("sufficient", "full")
+    if raw_suf == "partial":
+        sufficient = "partial"
+    elif raw_suf in (True, "full", "true"):
+        sufficient = "full"
+    else:
+        sufficient = False
+
     return {
-        "sufficient": bool(parsed.get("sufficient", True)),
+        "sufficient": sufficient,
         "reason": str(parsed.get("reason", "")),
+        "missing": parsed.get("missing") or None,
         "suggested_rewrite": parsed.get("suggested_rewrite") or None,
     }
 
@@ -437,12 +452,27 @@ def _execute_rag_search(
     for ev in evidence_store:
         prior_ids.add(ev.get("idx", ""))
 
-    docs = retrieve_documents_multi_query(
-        queries=queries,
-        k=5,
-        exclude_ids=prior_ids if prior_ids else None,
-    )
-    print(f"    Retrieved {len(docs)} passage(s)")
+    # Retrieve from all routed collections
+    collections = state.get("collections", ["legal_passages"])
+    all_docs = []
+    for coll_name in collections:
+        from rag_utils import get_vectorstore as _get_vs
+        vs = _get_vs(collection_name=coll_name)
+        coll_docs = retrieve_documents_multi_query(
+            queries=queries,
+            k=5,
+            exclude_ids=prior_ids if prior_ids else None,
+            vectorstore=vs,
+        )
+        all_docs.extend(coll_docs)
+
+    # If multiple collections, re-rank the combined pool
+    if len(collections) > 1 and len(all_docs) > 5:
+        from rag_utils import rerank_with_cross_encoder
+        all_docs = rerank_with_cross_encoder(queries[0], all_docs, top_k=5)
+
+    docs = all_docs
+    print(f"    Retrieved {len(docs)} passage(s) from {collections}")
 
     # --- Build numbered evidence passages ---
     passages: List[str] = []
@@ -553,7 +583,58 @@ def _execute_web_search(
 
 
 # ---------------------------------------------------------------------------
-# 6. Node: Planner
+# 6. Node: Collection Router
+# ---------------------------------------------------------------------------
+
+# Available collections and their descriptions for the router
+COLLECTIONS_REGISTRY = {
+    "legal_passages": "Bar exam study materials, case law, and legal doctrine (torts, contracts, property, constitutional law, criminal law, evidence, etc.)",
+    "housing_statutes": "US housing statutes across all 50 states — landlord-tenant law, eviction, security deposits, habitability, lease termination, rent control",
+}
+
+_ROUTER_PROMPT = f"""You are a legal research router. Given a legal question, decide which document collection(s) to search.
+
+Available collections:
+{chr(10).join(f'- "{name}": {desc}' for name, desc in COLLECTIONS_REGISTRY.items())}
+
+Return ONLY valid JSON — no prose, no markdown fences:
+{{"collections": ["collection_name_1"]}}
+
+Rules:
+- Choose the collection(s) most likely to contain relevant passages for this question.
+- Most questions need only ONE collection. Use multiple only if the question clearly spans both domains.
+- If uncertain, default to "legal_passages" (it has the broadest coverage).
+"""
+
+
+def router_node(state: LegalAgentState) -> dict:
+    """Lightweight LLM call to decide which ChromaDB collection(s) to search."""
+    print("\n--- ROUTER ---")
+    question = state["inputs"]["question"]
+
+    raw = _llm_call(_ROUTER_PROMPT, question, label="router")
+    parsed = _parse_json(raw)
+
+    if parsed and "collections" in parsed:
+        collections = [c for c in parsed["collections"] if c in COLLECTIONS_REGISTRY]
+    else:
+        collections = []
+
+    if not collections:
+        collections = ["legal_passages"]
+
+    print(f"  Collections: {collections}")
+    return {
+        "collections": collections,
+        "audit_log": _log(state, {
+            "node": "router",
+            "collections": collections,
+        }),
+    }
+
+
+# ---------------------------------------------------------------------------
+# 7. Node: Planner
 # ---------------------------------------------------------------------------
 
 def planner_node(state: LegalAgentState) -> dict:
@@ -649,6 +730,8 @@ def executor_node(state: LegalAgentState) -> dict:
     passage_texts = [ev["text"] for ev in new_evidence]
     verdict = _call_judge(current, result, passage_texts, question)
     print(f"  Judge: sufficient={verdict['sufficient']} | {verdict.get('reason', '')}")
+    if verdict.get("missing"):
+        print(f"  Judge missing: {verdict['missing']}")
     if verdict.get("suggested_rewrite"):
         print(f"  Judge rewrite suggestion: {verdict['suggested_rewrite']}")
 
@@ -738,18 +821,18 @@ def replanner_node(state: LegalAgentState) -> dict:
     """Evaluate the last completed step and decide next action.
 
     Escalation chain (deterministic — no LLM call):
-      1. rag_search + sufficient=False + rewrite_attempt==0
-           → rewrite query, stay rag_search, rewrite_attempt=1
-      2. rag_search + sufficient=False + rewrite_attempt>=1
-           → escalate action_type to web_search, rewrite_attempt=0
-      3. web_search + sufficient=False
-           → escalate action_type to direct_answer, rewrite_attempt=0
-      4. direct_answer + sufficient=False
-           → log uncertainty, continue to LLM decision (next/complete)
+      Only triggers on judge verdict False (not "partial").
+      1. rag_search + False + rewrite_attempt==0 → rewrite query
+      2. rag_search + False + rewrite_attempt>=1 → escalate to web_search
+      3. web_search + False → escalate to direct_answer
+      4. direct_answer + False → defer to LLM
 
-    When judge says sufficient (or fallback):
+    When judge says "full" or "partial":
+      → "partial" evidence is kept (the synthesizer can work with it)
       → LLM (skills/replanner.md) decides next / complete.
-      → LLM retry is still honoured (once) as a fallback.
+
+    Step budget: only non-retry steps count toward max_steps.
+    Retry/escalation steps (retry_of != None) are free.
     """
     print("\n--- REPLANNER ---")
     table = state["planning_table"]
@@ -765,21 +848,29 @@ def replanner_node(state: LegalAgentState) -> dict:
             "node": "replanner", "action": "complete", "reason": "no completed steps",
         })}
 
-    max_steps = state.get("run_config", {}).get("max_steps", 5)
-    if len(completed) >= max_steps:
-        print(f"  Max steps ({max_steps}) reached → complete")
+    # Step budget: only original steps count, not retries/escalations
+    max_steps = state.get("run_config", {}).get("max_steps", 7)
+    original_completed = [s for s in completed if s.retry_of is None]
+    if len(original_completed) >= max_steps:
+        print(f"  Max original steps ({max_steps}) reached → complete")
         return {"audit_log": _log(state, {
             "node": "replanner", "action": "complete", "reason": "max_steps",
         })}
 
-    verdict = last.judge_verdict or {"sufficient": True, "reason": "no verdict stored"}
-    sufficient = verdict.get("sufficient", True)
+    verdict = last.judge_verdict or {"sufficient": "full", "reason": "no verdict stored"}
+    sufficient = verdict.get("sufficient", "full")
     new_table = list(table)
     action: Optional[str] = None
     reasoning: str = ""
 
-    # --- Deterministic escalation when judge says insufficient ---
-    if not sufficient and last.action_type != ACTION_DIRECT:
+    # "partial" = keep evidence and move on (no escalation)
+    if sufficient == "partial":
+        missing = verdict.get("missing", "")
+        print(f"  Partial evidence accepted — missing: {missing}")
+        # Fall through to LLM decision (next/complete) like "full"
+
+    # --- Deterministic escalation when judge says False (not partial) ---
+    if sufficient is False and last.action_type != ACTION_DIRECT:
 
         if last.action_type == ACTION_RAG and last.rewrite_attempt == 0:
             # First RAG failure → rewrite query, stay rag_search
@@ -835,7 +926,7 @@ def replanner_node(state: LegalAgentState) -> dict:
 
     # --- LLM decision when judge is satisfied or escalation handled ---
     if action is None:
-        if not sufficient and last.action_type == ACTION_DIRECT:
+        if sufficient is False and last.action_type == ACTION_DIRECT:
             print(f"  direct_answer insufficient (no further escalation) — deferring to LLM")
 
         llm_action, reasoning, revised_q = _replanner_llm_decide(
@@ -956,13 +1047,15 @@ def build_graph() -> Any:
     """Compile the plan-and-execute LangGraph state machine."""
     workflow = StateGraph(LegalAgentState)
 
+    workflow.add_node("router_node", router_node)
     workflow.add_node("planner_node", planner_node)
     workflow.add_node("executor_node", executor_node)
     workflow.add_node("replanner_node", replanner_node)
     workflow.add_node("synthesizer_node", synthesizer_node)
 
     # Fixed edges
-    workflow.add_edge(START, "planner_node")
+    workflow.add_edge(START, "router_node")
+    workflow.add_edge("router_node", "planner_node")
     workflow.add_edge("planner_node", "executor_node")
     workflow.add_edge("executor_node", "replanner_node")
     workflow.add_edge("synthesizer_node", END)
@@ -993,7 +1086,7 @@ DEMO_QUERIES = {
 }
 
 
-def run(question: str, max_steps: int = 5) -> LegalAgentState:
+def run(question: str, max_steps: int = 7) -> LegalAgentState:
     """Run the plan-and-execute agent and return the final state."""
     graph = build_graph()
     provider = get_provider_info()
@@ -1006,6 +1099,7 @@ def run(question: str, max_steps: int = 5) -> LegalAgentState:
         },
         "inputs": {"question": question},
         "run_config": {"max_steps": max_steps},
+        "collections": [],  # populated by router_node
         "planning_table": [],
         "evidence_store": [],
         "final_answer": "",
@@ -1043,7 +1137,8 @@ def run(question: str, max_steps: int = 5) -> LegalAgentState:
             print(f"  Step {s.step_id:>4} [{s.action_type:<14}] status=pending (skipped)")
         else:
             verdict = s.judge_verdict or {}
-            judge_str = "ok" if verdict.get("sufficient", True) else "insufficient"
+            suf = verdict.get("sufficient", "full")
+            judge_str = "full" if suf == "full" else ("partial" if suf == "partial" else "insufficient")
             src_counts = {}
             for ev in result.get("evidence_store", []):
                 if ev.get("step_id") == s.step_id:

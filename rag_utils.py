@@ -133,7 +133,7 @@ def load_passages_to_chroma(passages_csv_path: str, max_passages: int = 0,
 # BM25 index
 # ---------------------------------------------------------------------------
 
-_bm25_index: Dict[str, any] = {}
+_bm25_indices: Dict[str, Dict] = {}  # keyed by collection name
 
 
 def _tokenize(text: str) -> List[str]:
@@ -141,14 +141,26 @@ def _tokenize(text: str) -> List[str]:
     return re.findall(r"[a-z0-9]+", text.lower())
 
 
-def get_bm25_index(vectorstore: Chroma = None) -> Dict:
-    """Build or return cached BM25 index from the ChromaDB corpus."""
-    if _bm25_index.get("bm25") is not None:
-        return _bm25_index
+BM25_MAX_CORPUS = 1_000_000  # Skip BM25 for collections larger than this
 
+
+def get_bm25_index(vectorstore: Chroma = None) -> Dict:
+    """Build or return cached BM25 index for a specific collection."""
     vs = vectorstore or get_vectorstore()
     collection = vs._collection
+    coll_name = collection.name
+
+    if coll_name in _bm25_indices:
+        return _bm25_indices[coll_name]
+
     count = collection.count()
+
+    if count > BM25_MAX_CORPUS:
+        raise RuntimeError(
+            f"Collection has {count:,} docs (>{BM25_MAX_CORPUS:,}). "
+            f"BM25 index skipped to avoid OOM. Using dense-only retrieval."
+        )
+
     print(f"[rag_utils] Building BM25 index from {count} passages...")
 
     all_docs = []
@@ -166,10 +178,10 @@ def get_bm25_index(vectorstore: Chroma = None) -> Dict:
             tokenized_corpus.append(_tokenize(text))
 
     bm25 = BM25Okapi(tokenized_corpus)
-    _bm25_index["bm25"] = bm25
-    _bm25_index["docs"] = all_docs
-    print(f"[rag_utils] BM25 index built ({count} docs)")
-    return _bm25_index
+    index = {"bm25": bm25, "docs": all_docs}
+    _bm25_indices[coll_name] = index
+    print(f"[rag_utils] BM25 index built ({count} docs) for '{coll_name}'")
+    return index
 
 
 def _retrieve_bm25(query: str, k: int, exclude_ids: set = None,
@@ -229,15 +241,20 @@ def retrieve_documents(query: str, k: int = 5, exclude_ids: set = None,
 
     Both first-stage retrievers fetch k*4 candidates each. The combined pool
     is deduplicated by idx, then the cross-encoder picks the best k.
+    Falls back to dense-only if BM25 index build fails (e.g., OOM on large corpora).
     """
     vs = vectorstore or get_vectorstore()
     fetch_k = k * 4
 
-    candidates = _pool_and_dedup([
-        _retrieve_dense(query, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs),
-        _retrieve_bm25(query, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs),
-    ])
+    dense_docs = _retrieve_dense(query, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs)
 
+    try:
+        bm25_docs = _retrieve_bm25(query, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs)
+    except Exception as e:
+        logger.warning("BM25 retrieval failed (falling back to dense-only): %s", e)
+        bm25_docs = []
+
+    candidates = _pool_and_dedup([dense_docs, bm25_docs])
     return rerank_with_cross_encoder(query, candidates, top_k=k)
 
 
@@ -262,7 +279,10 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
     all_lists = []
     for q in queries:
         all_lists.append(_retrieve_dense(q, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs))
-        all_lists.append(_retrieve_bm25(q, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs))
+        try:
+            all_lists.append(_retrieve_bm25(q, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs))
+        except Exception as e:
+            logger.warning("BM25 multi-query failed (dense-only for this variant): %s", e)
 
     candidates = _pool_and_dedup(all_lists)
     return rerank_with_cross_encoder(queries[0], candidates, top_k=k)

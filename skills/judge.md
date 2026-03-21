@@ -6,7 +6,7 @@ You are evaluating whether a set of retrieved passages (from a legal corpus or w
 
 You are NOT evaluating the final answer quality. You are evaluating one thing: **did the retrieval surface evidence that directly supports this sub-question?**
 
-In this project, your decision controls whether the system stays in `rag_search` or escalates to a fallback path. Be conservative about calling retrieval "sufficient" when the passages do not actually answer the targeted sub-question.
+In this project, your decision controls whether the system keeps the evidence and moves on, or escalates to a fallback retrieval path.
 
 ## Input You Receive
 
@@ -36,51 +36,71 @@ Return ONLY valid JSON — no prose, no markdown fences:
 
 ```json
 {
-  "sufficient": true,
-  "reason": "One sentence explaining why the passages are or are not sufficient for this sub-question.",
+  "sufficient": "full",
+  "reason": "One sentence explaining the verdict.",
+  "missing": null,
   "suggested_rewrite": null
 }
 ```
 
-- `sufficient`: `true` if the passages meaningfully address the sub-question; `false` if they miss the key doctrine or are too tangential.
+- `sufficient`: One of three values:
+  - `"full"` — the passages comprehensively address the sub-question.
+  - `"partial"` — the passages address some aspects of the sub-question but are missing specific components. The evidence found IS useful and should be kept, but there are identifiable gaps.
+  - `false` — the passages miss the key doctrine entirely or are too tangential to be useful.
 - `reason`: Brief explanation tied to the specific sub-question and passages. Do not reference confidence scores.
-- `suggested_rewrite`: If `sufficient` is `false` **and** `action_type` is `rag_search`, provide an alternative query phrasing that is more abstract, uses different legal terminology, or targets a related concept that may appear in the corpus. Set to `null` if `sufficient` is `true` or if action_type is `web_search`.
+- `missing`: If `sufficient` is `"partial"`, briefly state what specific information is missing (e.g., "missing the standard for breach" or "covers the rule but not the exceptions"). Set to `null` for `"full"` or `false`.
+- `suggested_rewrite`: If `sufficient` is `false` **and** `action_type` is `rag_search`, provide an alternative query phrasing. Set to `null` otherwise.
 
 ## Decision Guidelines
 
-- **Do not err toward sufficient by default.** Return `true` only when the passages materially answer the sub-question. If they are merely adjacent, weakly related, or missing the key rule/fact, return `false`.
+- **Use `"partial"` for imperfect but useful evidence.** If the passages describe the applicable standard, its requirements, and how it applies — but don't provide a complete enumeration of every element — that is `"partial"`, not `false`. The synthesizer can work with partial evidence from multiple steps.
+- **Not all doctrines have enumerable elements.** Some legal concepts (implied warranties, equitable defenses, standards of review) are described in terms of standards, factors, or requirements rather than a numbered checklist. Passages that describe the applicable standard and its requirements ARE sufficient — do not reject them for lacking a numbered-elements format.
+- **Do not err toward `"full"` by default.** Return `"full"` only when the passages materially answer the sub-question. If they are merely adjacent, weakly related, or missing the key rule/fact, return `false`.
 - **Answer draft is a signal, not the arbiter.** A fluent-sounding answer can be hallucinated from thin passages. Read the passages themselves.
 - **Do not penalize low passage count** if the passages retrieved are highly relevant. Two directly on-point passages are sufficient.
-- **Treat hedged non-answers as evidence of insufficiency.** If the answer draft mainly says things like "the evidence does not directly address," "the passages do not state," "however, related authority suggests," or otherwise relies on analogy rather than direct support, that usually means `sufficient: false`.
-- **Tangential overlap is not enough.** Shared keywords, same legal subject area, or general background doctrine do not make a retrieval sufficient unless they answer the step's actual question.
+- **Treat hedged non-answers as evidence of insufficiency.** If the answer draft mainly says things like "the evidence does not directly address," that usually means `false`.
+- **Tangential overlap is not enough.** Shared keywords or general background doctrine do not make a retrieval sufficient unless they answer the step's actual question.
 - **For current, recent, or out-of-corpus facts**, if the retrieved passages do not contain the needed factual answer, return `false` so the system can escalate.
 - **Web search results**: Apply the same criteria but do not provide `suggested_rewrite` (web_search escalation is handled by the replanner).
 
 ## Examples
 
-Example 1 — Sufficient:
+Example 1 — Full:
 ```json
 {
-  "sufficient": true,
+  "sufficient": "full",
   "reason": "Passages [1] and [2] directly state the elements of negligence (duty, breach, causation, damages) at the doctrine level.",
+  "missing": null,
   "suggested_rewrite": null
 }
 ```
 
-Example 2 — Insufficient, with rewrite suggestion:
+Example 2 — Partial (useful but incomplete):
+```json
+{
+  "sufficient": "partial",
+  "reason": "Passages identify the implied warranty of workmanlike quality, its applicability to remodels, and its common-law enforceability, but do not specify the standard for proving a breach.",
+  "missing": "standard or test for establishing breach of the implied warranty",
+  "suggested_rewrite": null
+}
+```
+
+Example 3 — Insufficient:
 ```json
 {
   "sufficient": false,
-  "reason": "Passages discuss vehicle traffic laws and speeding penalties, not the Fourth Amendment automobile exception — the key doctrine for this sub-question.",
+  "reason": "Passages discuss vehicle traffic laws and speeding penalties, not the Fourth Amendment automobile exception.",
+  "missing": null,
   "suggested_rewrite": "automobile exception warrantless search probable cause Carroll doctrine Fourth Amendment vehicle"
 }
 ```
 
-Example 3 — Insufficient, web search (no rewrite):
+Example 4 — Insufficient, web search (no rewrite):
 ```json
 {
   "sufficient": false,
   "reason": "Web results are news articles about a specific case and do not state the general legal rule for preliminary injunction standards.",
+  "missing": null,
   "suggested_rewrite": null
 }
 ```
