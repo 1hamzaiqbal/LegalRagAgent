@@ -48,6 +48,7 @@ def select_qa_queries(n: int = 10):
                 "D": str(row["choice_d"]) if pd.notna(row["choice_d"]) else "",
             },
             "subject": row["subject"],
+            "gold_passage": str(row["gold_passage"]) if pd.notna(row.get("gold_passage")) else "",
         })
 
     return queries

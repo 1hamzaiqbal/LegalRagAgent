@@ -64,14 +64,27 @@ def run_bm25_query(q: dict):
     retrieved_ids = [str(doc.metadata.get("idx", "")) for doc in docs] if not error else []
     gold_retrieved = gold_idx in retrieved_ids
 
+    # Check for partial gold passage match (substring overlap)
+    gold_partial = False
+    if not error and gold_idx:
+        gold_text = str(q.get("gold_passage", ""))[:200] if "gold_passage" in q else ""
+        for doc in docs:
+            if gold_text and gold_text[:100] in doc.page_content:
+                gold_partial = True
+                break
+
     return {
         "label": q["label"],
         "subject": q["subject"],
         "elapsed_sec": round(elapsed, 1),
         "error": error,
         "is_correct": is_correct,
+        "correct_answer": q.get("correct_answer", ""),
         "gold_retrieved": gold_retrieved,
+        "gold_partial": gold_partial,
         "retrieved_ids": retrieved_ids,
+        "llm_response": answer,
+        "question": q["question"][:200],
     }
 
 
@@ -130,6 +143,14 @@ def main():
             gold = "gold=Y" if r.get("gold_retrieved") else "gold=N"
             f.write(f"{r['label']:<30} {status:<6} {gold}\n")
     print(f"Log saved to {log_file}")
+
+    # Save detailed JSONL
+    import json
+    detail_file = log_file.replace(".txt", "_detail.jsonl")
+    with open(detail_file, "w", encoding="utf-8") as f:
+        for r in results:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    print(f"Detail log saved to {detail_file}")
 
 
 if __name__ == "__main__":

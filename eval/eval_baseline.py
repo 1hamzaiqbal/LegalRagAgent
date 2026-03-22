@@ -37,10 +37,8 @@ def run_baseline_query(q: dict):
         objective = f"{objective}\n\nAnswer choices:\n{choice_text}"
 
     system_prompt = (
-        "You are an expert legal assistant. Answer the following multiple-choice question. "
-        "Format your response EXACTLY as:\n"
-        "**Answer: (X)**\n"
-        "Reasoning: [State your reasoning here]"
+        "Answer the following legal question. Reason through it step by step, "
+        "then give your final answer as **Answer: (X)**"
     )
 
     start = time.time()
@@ -65,7 +63,9 @@ def run_baseline_query(q: dict):
         "error": error,
         "is_correct": is_correct,
         "chosen_letter": chosen_letter,
-        "correct_letter": q.get("correct_answer", "")
+        "correct_letter": q.get("correct_answer", ""),
+        "llm_response": answer,
+        "question": q["question"][:200],
     }
 
 
@@ -248,6 +248,14 @@ def main():
         chose = r.get("chosen_letter", "?")
         log_and_print(f"{r['label']:<30} {status:<10} {ans:<5} {chose:<5} {r['elapsed_sec']:>5.1f}s {r['llm_calls']:>4}")
     log_and_print(f"{'='*80}\n")
+
+    # Save detailed JSONL
+    import json
+    detail_file = run_log_file.replace(".txt", "_detail.jsonl")
+    with open(detail_file, "w", encoding="utf-8") as f:
+        for r in results:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    log_and_print(f"Detail log saved to {detail_file}")
 
 
 if __name__ == "__main__":

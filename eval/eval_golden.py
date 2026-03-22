@@ -77,6 +77,10 @@ def run_golden_query(q: dict, gold_passages: dict):
         "elapsed_sec": round(elapsed, 1),
         "error": error,
         "is_correct": is_correct,
+        "question": q["question"],
+        "correct_answer": q.get("correct_answer", ""),
+        "llm_response": answer,
+        "gold_passage": gold_text[:500],
     }
 
 
@@ -128,7 +132,7 @@ def main():
     print(f"\nThis is the UPPER BOUND — perfect retrieval, 1 LLM call per query.")
     print(f"{'='*80}\n")
 
-    # Save to log
+    # Save summary log
     with open(log_file, "w", encoding="utf-8") as f:
         f.write(f"GOLDEN PASSAGE BASELINE | {n} queries | {provider_name}\n")
         f.write(f"Accuracy: {correct}/{len(queries)} ({accuracy:.1f}%)\n\n")
@@ -136,6 +140,14 @@ def main():
             status = "PASS" if r["is_correct"] else ("ERR" if r["error"] else "FAIL")
             f.write(f"{r['label']:<30} {status}\n")
     print(f"Log saved to {log_file}")
+
+    # Save detailed JSONL with full reasoning
+    import json
+    detail_file = log_file.replace(".txt", "_detail.jsonl")
+    with open(detail_file, "w", encoding="utf-8") as f:
+        for r in results:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    print(f"Detail log saved to {detail_file}")
 
 
 if __name__ == "__main__":
