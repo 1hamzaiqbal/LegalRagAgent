@@ -224,3 +224,201 @@ CORRECT gold=N (29.0s)
 CORRECT gold=N (66.9s)
     Primary: self-defense criminal law necessity defense reasonable force proportionality dea
 [55/100] qa_crimlaw_731...     [rewrite] 471 chars
+    [rag_rewrite] 2608 chars
+CORRECT gold=N (26.6s)
+    Primary: Sixth Amendment right to counsel Massiah doctrine deliberate elicitation informa
+[56/100] qa_nan_745...     [rewrite] 429 chars
+    [rag_rewrite] 5086 chars
+WRONG gold=N (40.9s)
+    Primary: hearsay rule exceptions business records exception FRE 803(6) regularly conducte
+[57/100] qa_crimlaw_850...     [rewrite] 412 chars
+    [rag_rewrite] 3387 chars
+CORRECT gold=N (30.3s)
+    Primary: common law murder malice aforethought depraved heart murder implied malice trans
+[58/100] qa_nan_377...     [rewrite] 389 chars
+    [rag_rewrite] 2804 chars
+CORRECT gold=Y (26.1s)
+    Primary: assignment of option contracts assignability consideration specific performance 
+[59/100] qa_nan_773...     [rewrite] 391 chars
+    [rag_rewrite] 2780 chars
+CORRECT gold=N (23.5s)
+    Primary: Miranda warnings custodial interrogation Fifth Amendment right to counsel waiver
+[60/100] qa_nan_265...     [rewrite] 460 chars
+    [rag_rewrite] 3023 chars
+CORRECT gold=N (27.3s)
+    Primary: burden of proof heat of passion manslaughter affirmative defense prosecution bey
+[61/100] qa_nan_316...     [rewrite] 403 chars
+    [rag_rewrite] 4488 chars
+WRONG gold=N (32.7s)
+    Primary: contributory negligence comparative fault proximate cause statutory violation pe
+[62/100] qa_nan_275...     [rewrite] 443 chars
+    [rag_rewrite] 3687 chars
+CORRECT gold=N (28.2s)
+    Primary: Miranda warnings custodial interrogation fruit of poisonous tree Fourth Amendmen
+[63/100] qa_evidence_910...     [rewrite] 440 chars
+    [rag_rewrite] 3320 chars
+CORRECT gold=N (28.7s)
+    Primary: proving prior conviction federal civil trial state court fraud conviction eviden
+[64/100] qa_nan_342...     [rewrite] 432 chars
+    [rag_rewrite] 2456 chars
+CORRECT gold=Y (25.3s)
+    Primary: contract assignment prohibition without consent breach of contract risk of loss 
+[65/100] qa_nan_198...     [rewrite] 438 chars
+    [rag_rewrite] 2384 chars
+CORRECT gold=N (23.4s)
+    Primary: negligence defense sudden emergency doctrine unavoidable accident brake failure 
+[66/100] qa_nan_63...     [rewrite] 403 chars
+    [rag_rewrite] 2273 chars
+WRONG gold=N (24.0s)
+    Primary: search warrant probable cause affidavit informant reliability stale information 
+[67/100] qa_constlaw_788...     [rewrite] 484 chars
+    [rag_rewrite] 1208 chars
+CORRECT gold=Y (18.6s)
+    Primary: Free Exercise Clause First Amendment generally applicable neutral law religious 
+[68/100] qa_torts_633...     [rewrite] 343 chars
+    [rag_rewrite] 4052 chars
+WRONG gold=N (33.5s)
+    Primary: strict liability abnormally dangerous activity ultrahazardous substances Rylands
+[69/100] qa_nan_762...     [rewrite] 419 chars
+    [rag_rewrite] 4072 chars
+CORRECT gold=N (36.4s)
+    Primary: subdivision plat map approval undesignated parcel building restrictions covenant
+[70/100] qa_nan_312...     [rewrite] 375 chars
+    [rag_rewrite] 2660 chars
+CORRECT gold=N (27.4s)
+    Primary: past consideration legal sufficiency moral obligation contract formation bargain
+[71/100] qa_contracts_839...     [rewrite] 408 chars
+    [rag_rewrite] 3182 chars
+CORRECT gold=N (31.6s)
+    Primary: contract assignment delegation rights duties assignor assignee liability persona
+[72/100] qa_nan_424...     [rewrite] 384 chars
+    [rag_rewrite] 3587 chars
+CORRECT gold=N (32.7s)
+    Primary: reimbursement for improvements made by defaulting buyer real estate contract pos
+[73/100] qa_nan_88...     [rewrite] 385 chars
+    [rag_rewrite] 2832 chars
+CORRECT gold=N (25.0s)
+    Primary: warrantless search consent landlord third party authority emergency exception ex
+[74/100] qa_nan_346...     [rewrite] 439 chars
+    [rag_rewrite] 3626 chars
+CORRECT gold=N (35.8s)
+    Primary: contract formation offer acceptance counteroffer rejection mirror image rule mai
+[75/100] qa_realprop_911...     [rewrite] 404 chars
+    [rag_rewrite] 4153 chars
+CORRECT gold=N (37.5s)
+    Primary: equitable servitude covenant running with land notice recording act mortgage pri
+[76/100] qa_constlaw_939...     [rewrite] 477 chars
+    [rag_rewrite] 3155 chars
+CORRECT gold=Y (28.6s)
+    Primary: public employee moonlighting restrictions constitutional analysis equal protecti
+[77/100] qa_crimlaw_658...     [rewrite] 419 chars
+    [rag_rewrite] 3793 chars
+WRONG gold=N (33.0s)
+    Primary: double jeopardy clause successive prosecution same offense Blockburger test coll
+[78/100] qa_contracts_538...     [rewrite] 424 chars
+    [rag_rewrite] 3425 chars
+CORRECT gold=N (30.8s)
+    Primary: reformation remedy contract reformation grounds mutual mistake scrivener's error
+[79/100] qa_constlaw_732...     [rewrite] 437 chars
+    [rag_rewrite] 2777 chars
+CORRECT gold=N (27.6s)
+    Primary: public employee First Amendment free speech Pickering balancing test government 
+[80/100] qa_evidence_786...     [rewrite] 447 chars
+    [rag_rewrite] 3348 chars
+CORRECT gold=N (30.3s)
+    Primary: attorney-client privilege crime-fraud exception future crime legal advice tax fr
+[81/100] qa_torts_684...     [rewrite] 395 chars
+    [rag_rewrite] 2154 chars
+CORRECT gold=N (23.3s)
+    Primary: private necessity defense trespass property damage intentional tort emergency pr
+[82/100] qa_constlaw_543...     [rewrite] 452 chars
+    [rag_rewrite] 4047 chars
+CORRECT gold=N (35.7s)
+    Primary: federal court jurisdiction declaratory judgment constitutionality state statute 
+[83/100] qa_realprop_568...     [rewrite] 401 chars
+    [rag_rewrite] 3770 chars
+CORRECT gold=N (34.8s)
+    Primary: equitable servitude running with the land notice actual constructive restrictive
+[84/100] qa_contracts_917...     [rewrite] 392 chars
+    [rag_rewrite] 4177 chars
+WRONG gold=N (35.7s)
+    Primary: implied warranty merchantability fitness particular purpose latent defect undisc
+[85/100] qa_evidence_830...     [rewrite] 416 chars
+    [rag_rewrite] 2249 chars
+CORRECT gold=N (24.6s)
+    Primary: character evidence admissibility prior bad acts propensity FRE 404(b) intent kno
+[86/100] qa_nan_235...     [rewrite] 472 chars
+    [rag_rewrite] 3782 chars
+CORRECT gold=N (37.2s)
+    Primary: First Amendment free speech constitutional defense blasphemy sacrilege statute o
+[87/100] qa_evidence_567...     [rewrite] 373 chars
+    [rag_rewrite] 2711 chars
+CORRECT gold=N (26.2s)
+    Primary: authentication of evidence FRE 901 letter authorship handwriting expert testimon
+[88/100] qa_evidence_522...     [rewrite] 426 chars
+    [rag_rewrite] 2735 chars
+CORRECT gold=Y (27.5s)
+    Primary: hearsay exception excited utterance present sense impression spontaneous declara
+[89/100] qa_nan_168...     [rewrite] 417 chars
+    [rag_rewrite] 3091 chars
+CORRECT gold=Y (29.5s)
+    Primary: subsequent remedial measures evidence admissibility relevance negligence liabili
+[90/100] qa_evidence_513...     [rewrite] 414 chars
+    [rag_rewrite] 2192 chars
+CORRECT gold=N (24.8s)
+    Primary: physician-patient privilege federal court state law Erie doctrine choice of law 
+[91/100] qa_crimlaw_810...     [rewrite] 357 chars
+    [rag_rewrite] 3422 chars
+CORRECT gold=N (31.8s)
+    Primary: common law forgery elements false writing intent to defraud uttering forged inst
+[92/100] qa_nan_286...     [rewrite] 369 chars
+    [rag_rewrite] 3929 chars
+CORRECT gold=N (33.7s)
+    Primary: prima facie negligence elements duty breach causation damages manufacturer produ
+[93/100] qa_constlaw_493...     [rewrite] 491 chars
+    [rag_rewrite] 2854 chars
+CORRECT gold=N (29.0s)
+    Primary: Congressional authority constitutional power commerce clause interstate commerce
+[94/100] qa_evidence_603...     [rewrite] 394 chars
+    [rag_rewrite] 2152 chars
+CORRECT gold=N (24.1s)
+    Primary: best evidence rule original document requirement secondary evidence admissibilit
+[95/100] qa_nan_332...     [rewrite] 449 chars
+    [rag_rewrite] 3854 chars
+WRONG gold=N (36.9s)
+    Primary: Free Exercise Clause First Amendment strict scrutiny compelling state interest n
+[96/100] qa_constlaw_707...     [rewrite] 401 chars
+    [rag_rewrite] 3045 chars
+CORRECT gold=N (28.0s)
+    Primary: municipal residency requirement constitutionality candidate eligibility standing
+[97/100] qa_nan_72...     [rewrite] 454 chars
+    [rag_rewrite] 5451 chars
+CORRECT gold=N (45.4s)
+    Primary: hearsay rule exceptions present sense impression excited utterance statement aga
+[98/100] qa_torts_544...     [rewrite] 412 chars
+    [rag_rewrite] 2575 chars
+CORRECT gold=N (26.5s)
+    Primary: assault tort elements intentional apprehension imminent harmful offensive contac
+[99/100] qa_nan_44...     [rewrite] 509 chars
+    [rag_rewrite] 2862 chars
+CORRECT gold=N (29.6s)
+    Primary: strict products liability tort manufacturer distributor defective product unreas
+[100/100] qa_contracts_949...     [rewrite] 401 chars
+    [rag_rewrite] 2697 chars
+CORRECT gold=N (28.7s)
+    Primary: perfect tender rule UCC 2-601 nonconforming goods buyer rights rejection accepta
+
+================================================================================
+RAG WITH QUERY REWRITE RESULTS
+================================================================================
+Accuracy:          80/100 (80.0%)
+Gold Recall@5:     8/100 (8.0%)
+Errors:            0
+Avg time/query:    33.8s
+Cost:              0.0900 USD
+
+This is RAG + QUERY REWRITE — 2 LLM calls per query (rewrite + answer), no agent.
+================================================================================
+
+Log saved to logs/eval_rag_rewrite_deepseek_20260322_20.txt
+Detail log saved to logs/eval_rag_rewrite_deepseek_20260322_20_detail.jsonl
