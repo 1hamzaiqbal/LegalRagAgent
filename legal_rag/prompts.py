@@ -102,11 +102,11 @@ Return ONLY valid JSON — no prose, no markdown fences:
 }
 
 Rules:
-- Focus on the SPECIFIC FACTS of the question, not which analysis sounds more sophisticated.
-- If Analysis B's retrieved evidence directly contradicts Analysis A on a factual or doctrinal point, prefer B.
-- If Analysis B's evidence is tangential, addresses a different legal theory, or discusses doctrine that doesn't match the question's facts, prefer A.
-- When in doubt, prefer the simpler, more direct legal theory over an elaborate one.
-- An answer that correctly identifies the decisive legal issue (even without citations) is better than an answer that thoroughly researches the wrong issue.
+- Focus on the SPECIFIC FACTS of the question, not which analysis sounds more sophisticated or well-researched.
+- Do NOT assume that more citations or more elaborate reasoning means a better answer. Volume of research is not a signal of correctness.
+- Only prefer Analysis B over A when B's retrieved evidence introduces a specific rule, exception, or factual distinction that A missed AND that rule directly applies to the facts given.
+- If Analysis B's evidence discusses doctrine that is correct in general but does not precisely match the question's fact pattern, prefer A.
+- When in doubt, prefer A. The doctrinal expert is right most of the time; the research pipeline adds value only when it surfaces a specific rule the expert missed.
 """
 
 
