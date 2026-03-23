@@ -4,7 +4,7 @@ Source-of-truth context for working in this codebase. Verify claims against `leg
 
 ## Project Summary
 
-Legal RAG agent over the `reglab/barexam_qa` and `reglab/housing_qa` corpora. The branch uses a profile-driven round executor that supports sequential and true-parallel step execution, structured run artifacts, and curated playtests before large evaluations.
+Legal RAG agent over the `reglab/barexam_qa` and `reglab/housing_qa` corpora. The branch is moving toward a profile-driven round executor that supports sequential and true-parallel step execution, structured run artifacts, and curated playtests before large evaluations.
 
 ## Runtime Architecture
 
@@ -19,22 +19,19 @@ Primary source of truth:
 ### Graph
 
 ```text
-START -> llm_snap_node -> router_node -> planner_node -> execute_round_node
-                                                             |
-                                                             v
-                                                     synthesizer_node
-                                                     (MC adjudicator
-                                                      + arbitration
-                                                      if snap != pipeline)
-                                                             |
-                                                   terminal? v
-                                                       replanner_node
-                                                             |
-                                                             v
-                                                       planner_node
+START -> router_node -> planner_node -> execute_round_node
+                                           |
+                                           v
+                                   synthesizer_node
+                                           |
+                               incomplete? v
+                                     replanner_node
+                                           |
+                                           v
+                                     planner_node
 ```
 
-`llm_snap_node` produces a quick LLM-only answer (1 call, no retrieval) before the pipeline runs. The synthesizer compares its MC answer against the snap; if they disagree, an adversarial arbitration step picks the better-supported answer. `route_after_execution_round()` controls whether execution loops again immediately or hands off to the synthesizer. `route_after_synthesizer()` decides whether to end or create another research round.
+`route_after_execution_round()` controls whether execution loops again immediately or hands off to the synthesizer. `route_after_synthesizer()` decides whether to end or create another research round.
 
 ### Profiles
 
@@ -51,11 +48,6 @@ The runtime is profile-driven. Current named profiles:
 
 ### Nodes
 
-**llm_snap_node**
-- Runs a single LLM-only call (no retrieval) to get a quick baseline answer.
-- Stores `llm_snap_answer` and `llm_snap_letter` in state for later arbitration.
-- Cost: 1 LLM call. Runs before any retrieval or planning.
-
 **router_node**
 - Chooses which ChromaDB collection(s) to search.
 - Current registry: `legal_passages`, `housing_statutes`.
@@ -63,7 +55,7 @@ The runtime is profile-driven. Current named profiles:
 
 **planner_node**
 - Decomposes the research question into `PlanningStep`s.
-- Outputs up to 5 steps initially and up to 3 follow-up steps per replanning round.
+- Outputs up to 5 steps.
 - Each step carries `sub_question`, `authority_target`, `retrieval_hints`, `action_type`, and `max_retries`.
 - Falls back to a single `rag_search` step on parse failure.
 - On follow-up rounds, reads `replanning_brief` and appends only new steps instead of replacing completed history.
@@ -77,10 +69,8 @@ The runtime is profile-driven. Current named profiles:
 
 **synthesizer_node**
 - Aggregates completed step results into the final answer using `skills/synthesizer.md`.
-- For MC questions: runs MC adjudicator to force an explicit letter choice, then compares against the LLM snap. If they disagree, runs an adversarial arbitration step that picks the better-supported answer (biased toward the snap when pipeline evidence is tangential).
 - Runs the completeness check unless disabled by profile.
-- Records both whether the question was actually answered and why the run stopped.
-- Current terminal reasons are `answered`, `max_rounds`, `stalled`, `loop_disabled`, and `parse_failure`.
+- Records `missing_topics` for the next round when incomplete.
 
 **replanner_node**
 - Distills completed work, weak spots, and `missing_topics` into a plain-language `replanning_brief`.
@@ -89,14 +79,15 @@ The runtime is profile-driven. Current named profiles:
 
 ### Round Semantics
 
-This branch is intentionally round-safe:
+This branch is intentionally moving toward round-safe execution:
 
-- sibling steps in the same round see the same immutable snapshot of prior state
-- sibling steps do not see each other's new evidence mid-round
+- sibling steps in the same round should see the same immutable snapshot of prior state
+- sibling steps should not see each other's new evidence mid-round
 - evidence dedup happens at merge time, not during sibling execution
 - per-step evidence IDs are preserved even when the canonical evidence store is deduplicated
-- replanning is driven by a compact follow-up brief, not by dumping raw evidence passages and traces into the planner prompt
-- fallback `direct_answer` results after failed retrieval are downgraded to `support_only` so they cannot silently masquerade as decisive authority
+- replanning should be driven by a compact follow-up brief, not by dumping raw evidence passages and traces into the planner prompt
+
+This is the key behavioral contract behind true parallelism.
 
 ### Per-Step Execution
 
@@ -113,7 +104,6 @@ Implemented in `_execute_step_with_escalation()` inside `legal_rag/step_executor
 
 `direct_answer`
 - Answer from model knowledge -> verifier
-- If reached only after retrieval failure, the result is retained as support but downgraded to `support_only`
 
 Per-step fallback is executor-local. Replanning happens only after synthesis/completeness identifies new missing topics.
 
@@ -128,9 +118,8 @@ Per-step fallback is executor-local. Replanning happens only after synthesis/com
 - `evidence_store` — canonical accumulated evidence
 - `final_answer` — synthesizer output
 - `audit_log` — structured node-level trace
-- `completeness_verdict` — synthesizer completeness and terminal result
+- `completeness_verdict` — synthesizer completeness result
 - `parallel_round` — current synthesis/replan round counter
-- `replanning_brief` — plain-language follow-up brief for the next planner pass
 - `step_traces` — structured per-step attempt traces
 - `run_artifact` — structured execution artifact payload
 
@@ -149,8 +138,6 @@ Per-step fallback is executor-local. Replanning happens only after synthesis/com
 - `evidence_ids`
 - `retry_of`
 - `judge_verdict`
-- `result_origin`
-- `support_level`
 
 ## Skills
 
@@ -193,8 +180,7 @@ Source of truth: `llm_config.py`
 
 - `--verbose` or `VERBOSE=1` enables token-count logging for LLM calls
 - `legal_rag/artifacts.py` writes structured run artifacts to `logs/run_artifacts/`
-- Artifacts capture profile name, graph mode, prompt versions, planning table, evidence store, completeness verdict, stop reason, audit log, and step traces
-- Eval detail rows include `artifact_path`, `parallel_rounds`, `collections`, `completeness_verdict`, `terminal_reason`, timings, and LLM metrics
+- Artifacts capture profile name, graph mode, prompt versions, planning table, evidence store, completeness verdict, audit log, and step traces
 
 ## Commands
 

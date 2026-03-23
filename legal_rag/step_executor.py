@@ -19,8 +19,6 @@ from .models import (
     PlanningStep,
     STATUS_COMPLETED,
     STATUS_PENDING,
-    SUPPORT_PRIMARY,
-    SUPPORT_SUPPORT_ONLY,
     STEP_MODE_PARALLEL,
 )
 from .retrieval import _execute_direct_answer, _execute_rag_search, _execute_web_search
@@ -55,7 +53,6 @@ def _summarise_attempt(
     evidence: List[Dict[str, Any]],
     verdict: Dict[str, Any],
     queries: Dict[str, Any] | None = None,
-    result: str = "",
 ) -> Dict[str, Any]:
     return {
         "action_type": action_type,
@@ -66,7 +63,6 @@ def _summarise_attempt(
         "evidence_count": len(evidence),
         "judge_verdict": verdict,
         "queries": queries or {},
-        "result_preview": " ".join((result or "").split())[:240],
     }
 
 
@@ -93,8 +89,6 @@ def _build_trace(
         "attempts": attempts,
         "final_status": final_step.status,
         "final_verdict": verdict,
-        "result_origin": final_step.result_origin,
-        "support_level": final_step.support_level,
         "evidence_ids": list(final_step.evidence_ids),
     }
 
@@ -196,22 +190,6 @@ def _execute_step_with_escalation(
         confidence = _normalise_confidence(raw_logit) if raw_logit != 0.0 else 0.0
         passage_texts = [item["text"] for item in new_evidence]
         verdict = execution_module._call_judge(current, result, passage_texts, question, profile)
-        verdict = dict(verdict)
-
-        is_fallback_direct = current.action_type == ACTION_DIRECT and any(
-            attempt.get("action_type") != ACTION_DIRECT for attempt in attempts
-        )
-        verdict.setdefault("support_level", SUPPORT_PRIMARY)
-        verdict.setdefault("result_origin", current.action_type)
-        if is_fallback_direct:
-            verdict["support_level"] = SUPPORT_SUPPORT_ONLY
-            verdict["result_origin"] = "fallback_direct_answer"
-            if verdict.get("sufficient") == "full":
-                reason = str(verdict.get("reason", "")).strip()
-                note = "Fallback direct answer after retrieval failure; treat this as supportive but not decisive."
-                verdict["sufficient"] = "partial"
-                verdict["reason"] = f"{reason} {note}".strip()
-                verdict["missing"] = verdict.get("missing") or "retrieved authority did not independently confirm the decisive doctrinal point"
 
         print(f"  [Step {current.step_id}] Confidence: {confidence:.3f}")
         print(f"  [Step {current.step_id}] Judge: sufficient={verdict['sufficient']} | {verdict.get('reason', '')}")
@@ -226,7 +204,6 @@ def _execute_step_with_escalation(
                 evidence=new_evidence,
                 verdict=verdict,
                 queries=query_trace,
-                result=result,
             )
         )
         all_new_evidence.extend(new_evidence)
@@ -238,8 +215,6 @@ def _execute_step_with_escalation(
                     "result": result,
                     "confidence": confidence,
                     "judge_verdict": verdict,
-                    "result_origin": str(verdict.get("result_origin") or current.action_type),
-                    "support_level": str(verdict.get("support_level") or SUPPORT_PRIMARY),
                 }
             )
             print(f"  [Step {current.step_id}] Completed (judge={verdict['sufficient']})")
@@ -285,8 +260,6 @@ def _execute_step_with_escalation(
             "result": result,
             "confidence": confidence,
             "judge_verdict": verdict,
-            "result_origin": str(verdict.get("result_origin") or current.action_type),
-            "support_level": str(verdict.get("support_level") or SUPPORT_PRIMARY),
         }
     )
     return StepExecutionResult(

@@ -22,7 +22,6 @@ from .artifacts import build_run_artifact, write_run_artifact
 from .core import _get_metrics
 from .execution import (
     execute_round_node,
-    llm_snap_node,
     planner_node,
     replanner_node,
     route_after_execution_round,
@@ -42,15 +41,13 @@ def build_graph(profile: str | ExperimentProfile = "full_parallel") -> Any:
         raise ValueError(f"Profile '{resolved.name}' does not use the LangGraph runtime")
 
     workflow = StateGraph(LegalAgentState)
-    workflow.add_node("llm_snap_node", llm_snap_node)
     workflow.add_node("router_node", router_node)
     workflow.add_node("planner_node", planner_node)
     workflow.add_node("execute_round_node", execute_round_node)
     workflow.add_node("synthesizer_node", synthesizer_node)
     workflow.add_node("replanner_node", replanner_node)
 
-    workflow.add_edge(START, "llm_snap_node")
-    workflow.add_edge("llm_snap_node", "router_node")
+    workflow.add_edge(START, "router_node")
     workflow.add_edge("router_node", "planner_node")
     workflow.add_edge("planner_node", "execute_round_node")
     workflow.add_conditional_edges(
@@ -96,8 +93,6 @@ def _initial_state(question: str, raw_question: str, profile: ExperimentProfile,
         "replanning_brief": "",
         "step_traces": [],
         "run_artifact": {},
-        "llm_snap_answer": "",
-        "llm_snap_letter": "",
     }
 
 
@@ -166,10 +161,6 @@ def _print_result(result: ExecutionResult) -> None:
     print(f"Steps completed : {sum(1 for step in result.planning_table if step.status == 'completed')}")
     print(f"Evidence pieces : {len(result.evidence_store)}")
     print(f"Rounds          : {result.parallel_round - 1}")
-    completeness = result.completeness_verdict or {}
-    print(f"Answered        : {'yes' if completeness.get('complete', True) else 'no'}")
-    if completeness.get("terminal_reason"):
-        print(f"Terminal reason : {completeness.get('terminal_reason')}")
     if result.artifact_path:
         print(f"Artifact        : {result.artifact_path}")
     print("\nStep breakdown:")
@@ -178,8 +169,6 @@ def _print_result(result: ExecutionResult) -> None:
         verdict = step.judge_verdict or {}
         sufficient = verdict.get("sufficient", "full")
         judge_label = "full" if sufficient == "full" else ("partial" if sufficient == "partial" else "insufficient")
-        support_level = getattr(step, "support_level", "primary")
-        origin = getattr(step, "result_origin", step.action_type)
         sources = {}
         for evidence_id in step.evidence_ids:
             evidence = evidence_map.get(evidence_id)
@@ -190,8 +179,7 @@ def _print_result(result: ExecutionResult) -> None:
         summary = ", ".join(f"{count} {src}" for src, count in sources.items()) if sources else "none"
         print(
             f"  Step {step.step_id:>4} [{step.action_type:<14}] "
-            f"conf={step.confidence:.3f} judge={judge_label} support={support_level} "
-            f"origin={origin} evidence=[{summary}]"
+            f"conf={step.confidence:.3f} judge={judge_label} evidence=[{summary}]"
         )
     print(f"{'=' * 80}\n")
 
