@@ -36,6 +36,24 @@ Rules:
 - If uncertain, default to "legal_passages" (it has the broadest coverage).
 """
 
+MC_ANSWER_PROMPT = """You are selecting the single best answer to a legal multiple-choice question.
+
+Return ONLY valid JSON — no prose, no markdown fences:
+
+{
+  "answer": "A",
+  "reasoning": "One short sentence explaining why this option is best supported."
+}
+
+Rules:
+- Choose exactly one of the listed answer letters.
+- Base the choice on the research findings and synthesized analysis, not on guesswork.
+- If the synthesized answer is partially uncertain, still choose the best-supported option from the listed choices.
+- Never answer with a free-form string like "none of the above" unless that is literally one of the answer choices.
+- Compare the actual text of the answer choices against the facts. An option can state a generally true doctrine and still be the wrong answer if another option fits the facts more precisely.
+- Prefer the option that best resolves the exam question as written, not the option that merely sounds most legally sophisticated.
+"""
+
 COMPLETENESS_CHECK_PROMPT = """You are evaluating whether the accumulated research evidence is sufficient to fully answer the original legal question.
 
 Given the original question, the research findings, and the synthesized answer, assess completeness.
@@ -58,6 +76,8 @@ Guidelines:
 - If the question is simple, one well-supported step is usually enough.
 - Be cautious about marking complete when a core issue is supported only by partial research or when a step explicitly names missing doctrine that would sharpen the element analysis.
 - A partial step can still be enough if the missing detail is peripheral, but not if the synthesized answer relies on that step for a decisive legal theory.
+- If the question includes answer choices, mark complete only when the research is strong enough to support one listed option and rule out the strongest competing options.
+- If a multiple-choice answer depends on a step marked `partial` or `false`, prefer another research round focused on that doctrinal gap rather than marking the run complete.
 - Maximum 3 rounds of research are allowed, so be conservative about requesting more.
 """
 
@@ -67,6 +87,7 @@ def inline_prompt_versions(profile: ExperimentProfile) -> Dict[str, str]:
     versions = {
         "router.inline": get_prompt_version("router.inline", ROUTER_PROMPT),
         "completeness.inline": get_prompt_version("completeness.inline", COMPLETENESS_CHECK_PROMPT),
+        "mc_answer.inline": get_prompt_version("mc_answer.inline", MC_ANSWER_PROMPT),
     }
     skill_names = ["planner", "synthesize_and_cite", "synthesizer"]
     if profile.use_query_rewrite:

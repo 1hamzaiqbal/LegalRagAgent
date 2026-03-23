@@ -31,7 +31,7 @@ After the IRAC body, append a `## Sources` section listing each cited evidence e
 
 3. **Step attribution when useful.** When different steps addressed different aspects, briefly attribute: "Regarding the duty element [Evidence 1][Evidence 2]…; on causation [Evidence 4]…"
 
-4. **Multiple-choice selection.** If the original question contains "Answer choices:", end your response with a blank line followed by: `**Answer: (X)**` selecting the letter best supported by your analysis. Use both the evidence and your legal knowledge to reason through the answer choices.
+4. **Multiple-choice selection.** If the original question contains "Answer choices:", end your response with a blank line followed by: `**Answer: (X)**` selecting the letter best supported by your analysis. Use the answer choices to compare the best-supported option against the strongest competing choices, and focus on which option best matches the specific facts and wording of the question, not just which option states a generally correct doctrine.
 
 5. **Respect weak-step signals.** If the provided step verdicts say a research step was only partial or identified a missing doctrinal gap, do not present that doctrine as fully established unless the evidence index itself clearly fills the gap. Qualify the point, note the uncertainty, or explain that established doctrine is supplementing an incomplete record.
 

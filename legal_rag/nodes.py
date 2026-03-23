@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Literal
 
 from .core import _llm_call, _parse_json, load_skill
@@ -14,7 +15,7 @@ from .models import (
     PlanningStep,
     STATUS_COMPLETED,
 )
-from .prompts import COLLECTIONS_REGISTRY, COMPLETENESS_CHECK_PROMPT, ROUTER_PROMPT
+from .prompts import COLLECTIONS_REGISTRY, COMPLETENESS_CHECK_PROMPT, MC_ANSWER_PROMPT, ROUTER_PROMPT
 from .state_utils import append_audit_log, profile_from_state, research_question_from_state, serialise_step
 
 
@@ -103,6 +104,48 @@ def _build_replanning_brief(state: LegalAgentState, final_answer: str) -> str:
     if weak_takeaways:
         sections.append("Weak or incomplete areas:\n" + "\n".join(weak_takeaways))
     return "\n\n".join(section for section in sections if section)
+
+
+def _extract_choice_letters(question: str) -> List[str]:
+    return re.findall(r"^\s*\(([A-Z])\)\s+", question, flags=re.MULTILINE)
+
+
+def _normalise_mc_answer(final_answer: str, answer_letter: str) -> str:
+    answer_block = f"**Answer: ({answer_letter})**"
+    if re.search(r"\*\*Answer:\s*\(", final_answer):
+        return re.sub(r"\*\*Answer:\s*\([^)]*\)\*\*", answer_block, final_answer, count=1)
+    return f"{final_answer.rstrip()}\n\n{answer_block}"
+
+
+def _adjudicate_multiple_choice(
+    *,
+    question: str,
+    step_summaries: str,
+    step_verdicts: str,
+    final_answer: str,
+) -> Dict[str, Any] | None:
+    valid_letters = _extract_choice_letters(question)
+    if not valid_letters:
+        return None
+
+    prompt = (
+        f"QUESTION WITH ANSWER CHOICES:\n{question}\n\n"
+        f"RESEARCH FINDINGS:\n{step_summaries}\n\n"
+        f"STEP VERDICTS:\n{step_verdicts or '(none)'}\n\n"
+        f"SYNTHESIZED ANALYSIS:\n{final_answer}\n\n"
+        f"Valid answer letters: {', '.join(valid_letters)}"
+    )
+    raw = _llm_call(MC_ANSWER_PROMPT, prompt, label="mc/answer")
+    parsed = _parse_json(raw)
+    if not parsed:
+        return None
+    answer = str(parsed.get("answer", "")).strip().upper()
+    if answer not in valid_letters:
+        return None
+    return {
+        "answer": answer,
+        "reasoning": str(parsed.get("reasoning", "")).strip(),
+    }
 
 
 def router_node(state: LegalAgentState) -> Dict[str, Any]:
@@ -276,6 +319,14 @@ def synthesizer_node(state: LegalAgentState) -> Dict[str, Any]:
         f"EVIDENCE INDEX (cite as [Evidence N]):\n{evidence_index}"
     )
     final_answer = execution_module._llm_call(load_skill("synthesizer"), user_prompt, label="synthesizer")
+    mc_decision = _adjudicate_multiple_choice(
+        question=question,
+        step_summaries=step_summaries,
+        step_verdicts=step_verdicts,
+        final_answer=final_answer,
+    )
+    if mc_decision:
+        final_answer = _normalise_mc_answer(final_answer, mc_decision["answer"])
     print(f"  Final answer: {len(final_answer)} chars")
 
     if not profile.use_completeness_loop:
@@ -324,6 +375,7 @@ def synthesizer_node(state: LegalAgentState) -> Dict[str, Any]:
                 "completed_steps": len(completed),
                 "parallel_round": parallel_round,
                 "completeness": completeness,
+                "mc_decision": mc_decision,
             },
         ),
     }

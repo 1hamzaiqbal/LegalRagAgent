@@ -2,6 +2,7 @@ from legal_rag.core import _parse_json
 from legal_rag.execution import _call_judge, planner_node, synthesizer_node
 from legal_rag.models import PlanningStep
 from legal_rag.profiles import get_profile
+from legal_rag.state_utils import research_question_from_state
 
 
 def _state():
@@ -58,6 +59,8 @@ def test_synthesizer_completeness_prompt_includes_step_verdicts(monkeypatch):
         prompts.append((label, user_prompt))
         if label == "synthesizer":
             return "Synthesized answer."
+        if label == "mc/answer":
+            return '{"answer": "A", "reasoning": "best supported"}'
         return '{"complete": true, "reasoning": "enough", "missing_topics": []}'
 
     state = _state()
@@ -80,3 +83,42 @@ def test_synthesizer_completeness_prompt_includes_step_verdicts(monkeypatch):
     assert "STEP VERDICTS" in completeness_prompt
     assert "judge=partial" in completeness_prompt
     assert "contractor-specific duty" in completeness_prompt
+
+
+def test_research_question_prefers_mc_objective():
+    state = _state()
+    state["inputs"]["question"] = "Question stem\n\nAnswer choices:\n  (A) One\n  (B) Two"
+    state["inputs"]["research_question"] = "Question stem"
+
+    assert research_question_from_state(state) == state["inputs"]["question"]
+
+
+def test_synthesizer_normalizes_mc_answer_with_adjudicator(monkeypatch):
+    def fake_exec_call(system_prompt, user_prompt, label=""):
+        if label == "synthesizer":
+            return "Analysis body.\n\n**Answer: (None of the choices are correct)**"
+        return '{"complete": true, "reasoning": "enough", "missing_topics": []}'
+
+    def fake_node_call(system_prompt, user_prompt, label=""):
+        assert label == "mc/answer"
+        return '{"answer": "B", "reasoning": "best supported"}'
+
+    state = _state()
+    state["inputs"]["question"] = "Question stem\n\nAnswer choices:\n  (A) One\n  (B) Two"
+    state["planning_table"] = [
+        PlanningStep(
+            step_id=1,
+            sub_question="What matters?",
+            action_type="rag_search",
+            status="completed",
+            result="Result.",
+            judge_verdict={"sufficient": "full", "reason": "complete"},
+        )
+    ]
+    state["evidence_store"] = [{"idx": "doc_1", "text": "Evidence text", "source": "mbe"}]
+
+    monkeypatch.setattr("legal_rag.execution._llm_call", fake_exec_call)
+    monkeypatch.setattr("legal_rag.nodes._llm_call", fake_node_call)
+
+    result = synthesizer_node(state)
+    assert result["final_answer"].endswith("**Answer: (B)**")

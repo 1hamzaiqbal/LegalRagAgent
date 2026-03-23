@@ -15,7 +15,10 @@ def profile_from_state(state: LegalAgentState) -> ExperimentProfile:
 
 def research_question_from_state(state: LegalAgentState) -> str:
     """Return the question nodes should use for planning and retrieval."""
-    return state["inputs"].get("research_question") or state["inputs"]["question"]
+    question = state["inputs"]["question"]
+    if "Answer choices:" in question:
+        return question
+    return state["inputs"].get("research_question") or question
 
 
 def append_audit_log(state: LegalAgentState, entry: Dict[str, Any]) -> List[Dict[str, Any]]:

@@ -66,7 +66,7 @@ Is the answer time-sensitive or requires current facts?
 
 3. **No superfluous steps.** Every step must contribute to answering the question.
 
-4. **Multiple-choice questions.** Plan research around the underlying legal doctrine — do not structure steps around evaluating answer choices.
+4. **Multiple-choice questions.** Use the answer choices to identify the doctrinal distinctions that will separate the best option from the strongest distractors. Do not create one step per answer choice or merely restate the options.
 
 5. **Prioritize critical steps.** Give higher `max_retries` to steps that are essential for answering the question, lower to supplementary steps.
 
