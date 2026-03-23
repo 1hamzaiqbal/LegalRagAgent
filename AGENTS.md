@@ -19,19 +19,22 @@ Primary source of truth:
 ### Graph
 
 ```text
-START -> router_node -> planner_node -> execute_round_node
-                                           |
-                                           v
-                                   synthesizer_node
-                                           |
-                                 terminal? v
-                                     replanner_node
-                                           |
-                                           v
-                                     planner_node
+START -> llm_snap_node -> router_node -> planner_node -> execute_round_node
+                                                             |
+                                                             v
+                                                     synthesizer_node
+                                                     (MC adjudicator
+                                                      + arbitration
+                                                      if snap != pipeline)
+                                                             |
+                                                   terminal? v
+                                                       replanner_node
+                                                             |
+                                                             v
+                                                       planner_node
 ```
 
-`route_after_execution_round()` controls whether execution loops again immediately or hands off to the synthesizer. `route_after_synthesizer()` decides whether to end or create another research round.
+`llm_snap_node` produces a quick LLM-only answer (1 call, no retrieval) before the pipeline runs. The synthesizer compares its MC answer against the snap; if they disagree, an adversarial arbitration step picks the better-supported answer. `route_after_execution_round()` controls whether execution loops again immediately or hands off to the synthesizer. `route_after_synthesizer()` decides whether to end or create another research round.
 
 ### Profiles
 
@@ -47,6 +50,11 @@ The runtime is profile-driven. Current named profiles:
 `full_seq` and `full_parallel` share the same runtime components. The difference is `step_execution_mode`, not a separate pipeline implementation.
 
 ### Nodes
+
+**llm_snap_node**
+- Runs a single LLM-only call (no retrieval) to get a quick baseline answer.
+- Stores `llm_snap_answer` and `llm_snap_letter` in state for later arbitration.
+- Cost: 1 LLM call. Runs before any retrieval or planning.
 
 **router_node**
 - Chooses which ChromaDB collection(s) to search.
@@ -69,6 +77,7 @@ The runtime is profile-driven. Current named profiles:
 
 **synthesizer_node**
 - Aggregates completed step results into the final answer using `skills/synthesizer.md`.
+- For MC questions: runs MC adjudicator to force an explicit letter choice, then compares against the LLM snap. If they disagree, runs an adversarial arbitration step that picks the better-supported answer (biased toward the snap when pipeline evidence is tangential).
 - Runs the completeness check unless disabled by profile.
 - Records both whether the question was actually answered and why the run stopped.
 - Current terminal reasons are `answered`, `max_rounds`, `stalled`, `loop_disabled`, and `parse_failure`.
