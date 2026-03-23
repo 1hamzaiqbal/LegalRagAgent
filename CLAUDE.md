@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Source-of-truth context for working in this codebase. Verify claims against `main.py` before relying on them.
+Source-of-truth context for working in this codebase. The runtime lives in the `legal_rag/` package; `main.py` is a thin CLI wrapper.
 
 ## Project Summary
 
@@ -8,42 +8,58 @@ Legal RAG agent over the `reglab/barexam_qa` and `reglab/housing_qa` corpora. Bu
 
 ## Runtime Architecture
 
-Source of truth: `main.py`
+Source of truth: `legal_rag/` package
+
+| Module | Responsibility |
+|---|---|
+| `legal_rag/runtime.py` | Graph building, `run_experiment()` entry point |
+| `legal_rag/nodes.py` | Graph node implementations (router, planner, synthesizer, replanner) |
+| `legal_rag/step_executor.py` | Round-safe parallel execution + per-step escalation |
+| `legal_rag/retrieval.py` | RAG/web/direct action execution + query rewriting |
+| `legal_rag/profiles.py` | 6 experiment profile definitions |
+| `legal_rag/prompts.py` | Inline prompts (router, MC adjudicator, completeness check) |
+| `legal_rag/models.py` | Core types: `PlanningStep`, `LegalAgentState`, `ExperimentProfile` |
+| `legal_rag/core.py` | LLM call wrapper, JSON parsing, skill loading, metrics |
+| `legal_rag/baselines.py` | `llm_only` and `rag_baseline` runners |
+| `legal_rag/artifacts.py` | Run artifact JSON persistence |
+| `main.py` | Thin CLI wrapper — delegates to `legal_rag/runtime.py` |
 
 ### Graph
 
 ```
-START → router_node → planner_node → parallel_executor_node → parallel_synthesizer_node
-                          ↑                                          |
-                          └── parallel_replanner_node ←──────────────┘ (if incomplete)
-                                                                     └→ END (if complete)
+START → router_node → planner_node → execute_round_node → synthesizer_node
+                          ↑                                      |
+                          └─── replanner_node ←──────────────────┘ (if incomplete)
+                                                                 └→ END (if complete)
 ```
 
 ### Nodes
 
-**router_node** — Lightweight LLM call to choose which ChromaDB collection(s) to search. Current registry: `legal_passages`, `housing_statutes`. Falls back to `legal_passages`.
+**router_node** (`nodes.py:151`) — Lightweight LLM call to choose which ChromaDB collection(s) to search. Current registry: `legal_passages`, `housing_statutes`. Falls back to `legal_passages`.
 
-**planner_node** — Decomposes the question into `PlanningStep`s. Outputs:
+**planner_node** (`nodes.py:181`) — Decomposes the question into `PlanningStep`s. Outputs:
 - `complexity`: `"simple"` / `"moderate"` / `"complex"` (LLM decides)
 - Steps: each with `sub_question`, `authority_target`, `retrieval_hints`, `action_type`, `max_retries`
 - Hard cap: 5 steps max. `max_retries` capped at 3.
 
 Loads `skills/planner.md`. Falls back to a single-step plan on parse failure.
 
-**parallel_executor_node** — Executes ALL pending steps, each with its own internal escalation chain via `_execute_step_with_escalation()`:
+**execute_round_node** (`step_executor.py:323`) — Executes ALL pending steps in parallel via `ThreadPoolExecutor`, each with its own internal escalation chain via `_execute_step_with_escalation()`:
 
 Per-step execution:
-- `rag_search`: LLM query rewrite → multi-query retrieval → cited synthesis → judge
+- `rag_search`: LLM query rewrite → multi-query retrieval → cross-encoder rerank → cited synthesis → judge
 - `web_search`: DuckDuckGo → scrape top 2 URLs (trafilatura) → cited synthesis → judge
-- `direct_answer`: LLM answers from doctrine (no retrieval) → judge
+- `direct_answer`: LLM answers from doctrine (no retrieval) → verifier
 
 Per-step escalation (if judge says insufficient, up to `max_retries`):
 - `rag_search` → rewrite query → `direct_answer` (web skipped for doctrinal queries)
 - `web_search` → `direct_answer`
 
-**parallel_synthesizer_node** — Aggregates all completed steps into an IRAC answer (`skills/synthesizer.md`), then runs a completeness check. If gaps identified, returns `missing_topics` and routes back to replanner. Max 3 rounds.
+Round-safe: takes snapshots of `planning_table` and `evidence_store` before parallel execution. Results merged via `_merge_round_results()` with evidence deduplication.
 
-**parallel_replanner_node** — Creates new `PlanningStep`s from the synthesizer's `missing_topics` and feeds them back to the executor.
+**synthesizer_node** (`nodes.py:289`) — Aggregates all completed steps into an IRAC answer (`skills/synthesizer.md`), then runs a completeness check. For MC questions, runs a separate MC adjudicator to force an explicit letter choice. If gaps identified, returns `missing_topics` and routes back to replanner. Max 3 rounds.
+
+**replanner_node** (`nodes.py:384`) — Creates new `PlanningStep`s from the synthesizer's `missing_topics` and feeds them back to the executor.
 
 ### Shared State (`LegalAgentState`)
 
@@ -68,12 +84,13 @@ Two modes controlled by `--verbose` CLI flag or `VERBOSE=1` env var:
 
 ## Skills
 
-6 prompt files in `skills/`, all loaded by `main.py`:
+7 prompt files in `skills/`, loaded by `legal_rag/core.py`:
 
 | Skill file | Loaded as | Purpose |
 |---|---|---|
 | `planner.md` | `planner` | Decompose question into research steps with complexity + max_retries |
 | `query_rewriter.md` | `query_rewriter` | Rewrite sub-question into primary + 2 alternative queries (JSON) |
+| `aspect_query_rewriter.md` | `aspect_query_rewriter` | Rewrite into rule/exception/application queries (aspect mode only) |
 | `synthesize_and_cite.md` | `synthesize_and_cite` | Per-step cited synthesis with `[Source N]` format |
 | `judge.md` | `judge` | Evaluate retrieval sufficiency (full/partial/insufficient) |
 | `verifier.md` | `verifier` | Evaluate direct_answer grounding in established doctrine |
@@ -123,30 +140,34 @@ uv run python utils/fast_embed.py status            # Check collection sizes
 
 # Run agent
 uv run python main.py simple                        # Simple doctrinal question
-uv run python main.py multi_hop                      # Multi-step reasoning
-uv run python main.py medium                         # Medium complexity
-uv run python main.py simple --verbose               # Verbose output
+uv run python main.py simple --verbose              # Verbose output
+uv run python main.py --profile rewrite_rag simple  # Use a specific profile
+uv run python main.py --question "literal question" # Custom question
+uv run python main.py --list-profiles               # Show available profiles
 
 # Evals
 uv run python eval/eval_baseline.py 100             # Direct-LLM baseline
 uv run python eval/eval_bm25_baseline.py 100        # Simple retrieve-and-answer baseline
 uv run python eval/eval_golden.py 100               # Golden-passage upper bound
 uv run python eval/eval_rag_rewrite.py 100          # RAG + query rewrite
-uv run python eval/eval_qa.py 100                   # Full pipeline eval
+uv run python eval/eval_qa.py 100                   # Full pipeline eval (default: full_parallel)
+uv run python eval/eval_qa.py 100 --profile full_parallel_aspect  # Specific profile
 
 # List providers
 uv run python llm_config.py
 ```
 
-## Current Reported Results (N=100, DeepSeek)
+## Results (N=100, BarExam QA, DeepSeek)
 
-| Method | Accuracy | Gold Recall@5 |
-|---|---|---|
-| LLM-only (no RAG) | 85% | n/a |
-| RAG + query rewrite | 80% | 8% |
-| Golden passage (upper bound) | 77% | n/a |
-| Simple RAG (raw question) | 70% | 0% |
-| Retrieval recall (no LLM) | n/a | 0% |
+| Method | Profile | Accuracy | Gold Recall@5 |
+|---|---|---|---|
+| LLM-only (no RAG) | `llm_only` | 85% | n/a |
+| RAG + query rewrite | `rewrite_rag` | 80% | 8% |
+| Golden passage (upper bound) | — | 77% | n/a |
+| Full parallel pipeline | `full_parallel` | 76% | 15% |
+| Simple RAG (raw question) | `simple_rag` | 70% | 0% |
+
+Baselines run 2026-03-22. Full parallel run 2026-03-23. See `logs/` for detailed per-question results.
 
 ## Eval Scripts
 
@@ -176,9 +197,9 @@ uv run python llm_config.py
 
 ## Editing Guidance
 
-- `main.py` is the source of truth for the pipeline. Verify architecture claims here before updating docs or skills.
-- If you change step schema or routing, audit both `main.py` and the skill prompt contracts in `skills/`.
-- `_get_metrics()`, `_reset_llm_call_counter()`, `_get_deepseek_balance()` are defined in main.py and exported to eval scripts.
-- `web_scraper.py` is a standalone module (testable via CLI) imported by main.py for web_search steps.
+- The `legal_rag/` package is the source of truth for the pipeline. `main.py` is a thin CLI wrapper.
+- If you change step schema or routing, audit `legal_rag/nodes.py`, `legal_rag/step_executor.py`, and the skill prompt contracts in `skills/`.
+- `_get_metrics()`, `_reset_llm_call_counter()`, `_get_deepseek_balance()` are defined in `legal_rag/core.py` and re-exported via `main.py` for eval scripts.
+- `web_scraper.py` is a standalone module (testable via CLI) imported by `legal_rag/retrieval.py` for web_search steps.
 - `utils/fast_embed.py` bypasses LangChain for bulk embedding — uses sentence-transformers with fp16 + chunked processing. Supports `--resume`.
 - Sequential pipeline code archived in branch `archive/sequential-pipeline`.
