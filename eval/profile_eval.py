@@ -70,7 +70,7 @@ def _resolve_output_paths(
                 detail_file,
                 detail_file.replace("_detail.jsonl", "_labels.json"),
             )
-    timestamp = time.strftime("%Y%m%d_%H")
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
     log_file = f"{stem}_{timestamp}.txt"
     return log_file, log_file.replace(".txt", "_detail.jsonl"), log_file.replace(".txt", "_labels.json")
 
