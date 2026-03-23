@@ -1,9 +1,11 @@
 """Render the current LangGraph workflow to graph.png."""
 
+import sys
 from pathlib import Path
 
-from main import build_graph
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
+from main import build_graph
 
 def main() -> None:
     app = build_graph()
