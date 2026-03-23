@@ -1,0 +1,8 @@
+
+================================================================================
+BM25 RAG BASELINE (100 QUERIES)
+================================================================================
+
+Provider: deepseek | Model: deepseek-chat
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+[1/100] qa_nan_199... [rag_utils] Building BM25 index from 686324 passages...

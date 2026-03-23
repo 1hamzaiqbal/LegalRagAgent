@@ -1,0 +1,753 @@
+==================================================
+
+================================================================================
+==================================================
+BASELINE LLM EVALUATION (100 QUERIES, SUITE=bar)
+==================================================
+================================================================================
+
+==================================================
+Provider: deepseek | Model: deepseek-chat
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+==================================================
+
+Evaluating 100 questions (Sequential Baseline)...
+
+==================================================
+[1/100] Evaluating qa_nan_199...
+    [eval_baseline] 2469 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 14.7s | TOTAL: 1 calls (1 this q) | IN: 396 tokens (396 this q) | OUT: 548 tokens (548 this q)
+==================================================
+[2/100] Evaluating qa_nan_422...
+    [eval_baseline] 2553 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 15.2s | TOTAL: 2 calls (1 this q) | IN: 606 tokens (210 this q) | OUT: 1117 tokens (569 this q)
+==================================================
+[3/100] Evaluating qa_realprop_695...
+    [eval_baseline] 3093 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 16.7s | TOTAL: 3 calls (1 this q) | IN: 882 tokens (276 this q) | OUT: 1774 tokens (657 this q)
+==================================================
+[4/100] Evaluating qa_nan_751...
+    [eval_baseline] 2299 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 12.9s | TOTAL: 4 calls (1 this q) | IN: 1101 tokens (219 this q) | OUT: 2287 tokens (513 this q)
+==================================================
+[5/100] Evaluating qa_nan_388...
+    [eval_baseline] 2952 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 14.8s | TOTAL: 5 calls (1 this q) | IN: 1268 tokens (167 this q) | OUT: 2891 tokens (604 this q)
+==================================================
+[6/100] Evaluating qa_torts_580...
+    [eval_baseline] 3896 chars
+==================================================
+  -> Result: WRONG (Ans: D, Chose: B) | 21.5s | TOTAL: 6 calls (1 this q) | IN: 1599 tokens (331 this q) | OUT: 3760 tokens (869 this q)
+==================================================
+[7/100] Evaluating qa_contracts_827...
+    [eval_baseline] 4077 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 25.2s | TOTAL: 7 calls (1 this q) | IN: 2017 tokens (418 this q) | OUT: 4747 tokens (987 this q)
+==================================================
+[8/100] Evaluating qa_crimlaw_530...
+    [eval_baseline] 4370 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 23.8s | TOTAL: 8 calls (1 this q) | IN: 2287 tokens (270 this q) | OUT: 5693 tokens (946 this q)
+==================================================
+[9/100] Evaluating qa_constlaw_494...
+    [eval_baseline] 2716 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 14.5s | TOTAL: 9 calls (1 this q) | IN: 2596 tokens (309 this q) | OUT: 6222 tokens (529 this q)
+==================================================
+[10/100] Evaluating qa_nan_174...
+    [eval_baseline] 3900 chars
+==================================================
+  -> Result: WRONG (Ans: B, Chose: C) | 22.7s | TOTAL: 10 calls (1 this q) | IN: 2894 tokens (298 this q) | OUT: 7098 tokens (876 this q)
+==================================================
+[11/100] Evaluating qa_nan_210...
+    [eval_baseline] 3032 chars
+==================================================
+  -> Result: WRONG (Ans: C, Chose: B) | 17.1s | TOTAL: 11 calls (1 this q) | IN: 3375 tokens (481 this q) | OUT: 7760 tokens (662 this q)
+==================================================
+[12/100] Evaluating qa_constlaw_529...
+    [eval_baseline] 1695 chars
+==================================================
+  -> Result: WRONG (Ans: C, Chose: ?) | 9.6s | TOTAL: 12 calls (1 this q) | IN: 3635 tokens (260 this q) | OUT: 8116 tokens (356 this q)
+==================================================
+[13/100] Evaluating qa_nan_59...
+    [eval_baseline] 3043 chars
+==================================================
+  -> Result: WRONG (Ans: B, Chose: D) | 16.6s | TOTAL: 13 calls (1 this q) | IN: 4124 tokens (489 this q) | OUT: 8758 tokens (642 this q)
+==================================================
+[14/100] Evaluating qa_crimlaw_909...
+    [eval_baseline] 3002 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 15.8s | TOTAL: 14 calls (1 this q) | IN: 4381 tokens (257 this q) | OUT: 9373 tokens (615 this q)
+==================================================
+[15/100] Evaluating qa_constlaw_703...
+    [eval_baseline] 3087 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 16.8s | TOTAL: 15 calls (1 this q) | IN: 4862 tokens (481 this q) | OUT: 10046 tokens (673 this q)
+==================================================
+[16/100] Evaluating qa_nan_76...
+    [eval_baseline] 3852 chars
+==================================================
+  -> Result: WRONG (Ans: D, Chose: A) | 23.9s | TOTAL: 16 calls (1 this q) | IN: 5296 tokens (434 this q) | OUT: 10869 tokens (823 this q)
+==================================================
+[17/100] Evaluating qa_realprop_890...
+    [eval_baseline] 3532 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 25.0s | TOTAL: 17 calls (1 this q) | IN: 5744 tokens (448 this q) | OUT: 11728 tokens (859 this q)
+==================================================
+[18/100] Evaluating qa_nan_351...
+    [eval_baseline] 3145 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 19.6s | TOTAL: 18 calls (1 this q) | IN: 6185 tokens (441 this q) | OUT: 12398 tokens (670 this q)
+==================================================
+[19/100] Evaluating qa_nan_107...
+    [eval_baseline] 2930 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 17.5s | TOTAL: 19 calls (1 this q) | IN: 6405 tokens (220 this q) | OUT: 12996 tokens (598 this q)
+==================================================
+[20/100] Evaluating qa_nan_412...
+    [eval_baseline] 3459 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 21.2s | TOTAL: 20 calls (1 this q) | IN: 6689 tokens (284 this q) | OUT: 13717 tokens (721 this q)
+==================================================
+[21/100] Evaluating qa_realprop_468...
+    [eval_baseline] 2579 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 17.2s | TOTAL: 21 calls (1 this q) | IN: 7002 tokens (313 this q) | OUT: 14307 tokens (590 this q)
+==================================================
+[22/100] Evaluating qa_crimlaw_673...
+    [eval_baseline] 3234 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 19.9s | TOTAL: 22 calls (1 this q) | IN: 7239 tokens (237 this q) | OUT: 15014 tokens (707 this q)
+==================================================
+[23/100] Evaluating qa_torts_485...
+    [eval_baseline] 4175 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 25.8s | TOTAL: 23 calls (1 this q) | IN: 7457 tokens (218 this q) | OUT: 15913 tokens (899 this q)
+==================================================
+[24/100] Evaluating qa_constlaw_481...
+    [eval_baseline] 5309 chars
+==================================================
+  -> Result: WRONG (Ans: A, Chose: B) | 29.3s | TOTAL: 24 calls (1 this q) | IN: 7791 tokens (334 this q) | OUT: 16960 tokens (1047 this q)
+==================================================
+[25/100] Evaluating qa_nan_23...
+    [eval_baseline] 2010 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 12.0s | TOTAL: 25 calls (1 this q) | IN: 8160 tokens (369 this q) | OUT: 17365 tokens (405 this q)
+==================================================
+[26/100] Evaluating qa_crimlaw_660...
+    [eval_baseline] 1708 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 10.7s | TOTAL: 26 calls (1 this q) | IN: 8367 tokens (207 this q) | OUT: 17715 tokens (350 this q)
+==================================================
+[27/100] Evaluating qa_evidence_527...
+    [eval_baseline] 2466 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 16.3s | TOTAL: 27 calls (1 this q) | IN: 8539 tokens (172 this q) | OUT: 18254 tokens (539 this q)
+==================================================
+[28/100] Evaluating qa_constlaw_826...
+    [eval_baseline] 2473 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 15.0s | TOTAL: 28 calls (1 this q) | IN: 9027 tokens (488 this q) | OUT: 18766 tokens (512 this q)
+==================================================
+[29/100] Evaluating qa_evidence_620...
+    [eval_baseline] 2219 chars
+==================================================
+  -> Result: WRONG (Ans: A, Chose: B) | 13.9s | TOTAL: 29 calls (1 this q) | IN: 9246 tokens (219 this q) | OUT: 19276 tokens (510 this q)
+==================================================
+[30/100] Evaluating qa_nan_30...
+    [eval_baseline] 2494 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 15.0s | TOTAL: 30 calls (1 this q) | IN: 9370 tokens (124 this q) | OUT: 19883 tokens (607 this q)
+==================================================
+[31/100] Evaluating qa_nan_940...
+    [eval_baseline] 2711 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 13.7s | TOTAL: 31 calls (1 this q) | IN: 9575 tokens (205 this q) | OUT: 20409 tokens (526 this q)
+==================================================
+[32/100] Evaluating qa_contracts_621...
+    [eval_baseline] 2966 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 17.8s | TOTAL: 32 calls (1 this q) | IN: 9876 tokens (301 this q) | OUT: 21058 tokens (649 this q)
+==================================================
+[33/100] Evaluating qa_nan_381...
+    [eval_baseline] 3159 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 16.6s | TOTAL: 33 calls (1 this q) | IN: 10171 tokens (295 this q) | OUT: 21708 tokens (650 this q)
+==================================================
+[34/100] Evaluating qa_nan_280...
+    [eval_baseline] 3014 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 15.7s | TOTAL: 34 calls (1 this q) | IN: 10591 tokens (420 this q) | OUT: 22347 tokens (639 this q)
+==================================================
+[35/100] Evaluating qa_nan_67...
+    [eval_baseline] 6470 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 39.3s | TOTAL: 35 calls (1 this q) | IN: 10785 tokens (194 this q) | OUT: 23905 tokens (1558 this q)
+==================================================
+[36/100] Evaluating qa_nan_136...
+    [eval_baseline] 2468 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 14.1s | TOTAL: 36 calls (1 this q) | IN: 11073 tokens (288 this q) | OUT: 24455 tokens (550 this q)
+==================================================
+[37/100] Evaluating qa_nan_296...
+    [eval_baseline] 3956 chars
+==================================================
+  -> Result: WRONG (Ans: B, Chose: A) | 22.1s | TOTAL: 37 calls (1 this q) | IN: 11477 tokens (404 this q) | OUT: 25337 tokens (882 this q)
+==================================================
+[38/100] Evaluating qa_nan_139...
+    [eval_baseline] 4322 chars
+==================================================
+  -> Result: WRONG (Ans: B, Chose: C) | 23.7s | TOTAL: 38 calls (1 this q) | IN: 11819 tokens (342 this q) | OUT: 26280 tokens (943 this q)
+==================================================
+[39/100] Evaluating qa_nan_405...
+    [eval_baseline] 3500 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 19.9s | TOTAL: 39 calls (1 this q) | IN: 12178 tokens (359 this q) | OUT: 27102 tokens (822 this q)
+==================================================
+[40/100] Evaluating qa_torts_734...
+    [eval_baseline] 2687 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 15.3s | TOTAL: 40 calls (1 this q) | IN: 12451 tokens (273 this q) | OUT: 27699 tokens (597 this q)
+==================================================
+[41/100] Evaluating qa_nan_39...
+    [eval_baseline] 5783 chars
+==================================================
+  -> Result: WRONG (Ans: B, Chose: A) | 32.8s | TOTAL: 41 calls (1 this q) | IN: 12760 tokens (309 this q) | OUT: 29022 tokens (1323 this q)
+==================================================
+[42/100] Evaluating qa_nan_333...
+    [eval_baseline] 2750 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 13.7s | TOTAL: 42 calls (1 this q) | IN: 12960 tokens (200 this q) | OUT: 29579 tokens (557 this q)
+==================================================
+[43/100] Evaluating qa_evidence_521...
+    [eval_baseline] 2304 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 12.0s | TOTAL: 43 calls (1 this q) | IN: 13167 tokens (207 this q) | OUT: 30065 tokens (486 this q)
+==================================================
+[44/100] Evaluating qa_contracts_629...
+    [eval_baseline] 2461 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 13.9s | TOTAL: 44 calls (1 this q) | IN: 13524 tokens (357 this q) | OUT: 30636 tokens (571 this q)
+==================================================
+[45/100] Evaluating qa_nan_86...
+    [eval_baseline] 2812 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 14.4s | TOTAL: 45 calls (1 this q) | IN: 13775 tokens (251 this q) | OUT: 31236 tokens (600 this q)
+==================================================
+[46/100] Evaluating qa_nan_314...
+    [eval_baseline] 3870 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 22.8s | TOTAL: 46 calls (1 this q) | IN: 14023 tokens (248 this q) | OUT: 32119 tokens (883 this q)
+==================================================
+[47/100] Evaluating qa_nan_213...
+    [eval_baseline] 2691 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 15.0s | TOTAL: 47 calls (1 this q) | IN: 14514 tokens (491 this q) | OUT: 32728 tokens (609 this q)
+==================================================
+[48/100] Evaluating qa_nan_260...
+    [eval_baseline] 2324 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 12.6s | TOTAL: 48 calls (1 this q) | IN: 14949 tokens (435 this q) | OUT: 33238 tokens (510 this q)
+==================================================
+[49/100] Evaluating qa_nan_70...
+    [eval_baseline] 4760 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 25.5s | TOTAL: 49 calls (1 this q) | IN: 15357 tokens (408 this q) | OUT: 34240 tokens (1002 this q)
+==================================================
+[50/100] Evaluating qa_nan_165...
+    [eval_baseline] 3002 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 17.2s | TOTAL: 50 calls (1 this q) | IN: 15657 tokens (300 this q) | OUT: 34903 tokens (663 this q)
+==================================================
+[51/100] Evaluating qa_nan_299...
+    [eval_baseline] 3134 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 14.3s | TOTAL: 51 calls (1 this q) | IN: 15873 tokens (216 this q) | OUT: 35487 tokens (584 this q)
+==================================================
+[52/100] Evaluating qa_nan_96...
+    [eval_baseline] 2885 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 16.6s | TOTAL: 52 calls (1 this q) | IN: 16119 tokens (246 this q) | OUT: 36149 tokens (662 this q)
+==================================================
+[53/100] Evaluating qa_nan_331...
+    [eval_baseline] 2414 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 13.6s | TOTAL: 53 calls (1 this q) | IN: 16375 tokens (256 this q) | OUT: 36670 tokens (521 this q)
+==================================================
+[54/100] Evaluating qa_crimlaw_870...
+    [eval_baseline] 7161 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 39.6s | TOTAL: 54 calls (1 this q) | IN: 16544 tokens (169 this q) | OUT: 38205 tokens (1535 this q)
+==================================================
+[55/100] Evaluating qa_crimlaw_731...
+    [eval_baseline] 3176 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 16.1s | TOTAL: 55 calls (1 this q) | IN: 16776 tokens (232 this q) | OUT: 38858 tokens (653 this q)
+==================================================
+[56/100] Evaluating qa_nan_745...
+    [eval_baseline] 4023 chars
+==================================================
+  -> Result: WRONG (Ans: D, Chose: ?) | 21.4s | TOTAL: 56 calls (1 this q) | IN: 17068 tokens (292 this q) | OUT: 39677 tokens (819 this q)
+==================================================
+[57/100] Evaluating qa_crimlaw_850...
+    [eval_baseline] 4938 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 26.1s | TOTAL: 57 calls (1 this q) | IN: 17300 tokens (232 this q) | OUT: 40710 tokens (1033 this q)
+==================================================
+[58/100] Evaluating qa_nan_377...
+    [eval_baseline] 3847 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 22.7s | TOTAL: 58 calls (1 this q) | IN: 17539 tokens (239 this q) | OUT: 41608 tokens (898 this q)
+==================================================
+[59/100] Evaluating qa_nan_773...
+    [eval_baseline] 3671 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 19.5s | TOTAL: 59 calls (1 this q) | IN: 17814 tokens (275 this q) | OUT: 42363 tokens (755 this q)
+==================================================
+[60/100] Evaluating qa_nan_265...
+    [eval_baseline] 2221 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 13.2s | TOTAL: 60 calls (1 this q) | IN: 18084 tokens (270 this q) | OUT: 42861 tokens (498 this q)
+==================================================
+[61/100] Evaluating qa_nan_316...
+    [eval_baseline] 3225 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 17.3s | TOTAL: 61 calls (1 this q) | IN: 18564 tokens (480 this q) | OUT: 43558 tokens (697 this q)
+==================================================
+[62/100] Evaluating qa_nan_275...
+    [eval_baseline] 2317 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 12.3s | TOTAL: 62 calls (1 this q) | IN: 18897 tokens (333 this q) | OUT: 44028 tokens (470 this q)
+==================================================
+[63/100] Evaluating qa_evidence_910...
+    [eval_baseline] 2428 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 13.3s | TOTAL: 63 calls (1 this q) | IN: 19064 tokens (167 this q) | OUT: 44571 tokens (543 this q)
+==================================================
+[64/100] Evaluating qa_nan_342...
+    [eval_baseline] 1987 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 12.5s | TOTAL: 64 calls (1 this q) | IN: 19301 tokens (237 this q) | OUT: 45065 tokens (494 this q)
+==================================================
+[65/100] Evaluating qa_nan_198...
+    [eval_baseline] 2412 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 13.6s | TOTAL: 65 calls (1 this q) | IN: 19692 tokens (391 this q) | OUT: 45605 tokens (540 this q)
+==================================================
+[66/100] Evaluating qa_nan_63...
+    [eval_baseline] 2974 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 16.9s | TOTAL: 66 calls (1 this q) | IN: 19947 tokens (255 this q) | OUT: 46238 tokens (633 this q)
+==================================================
+[67/100] Evaluating qa_constlaw_788...
+    [eval_baseline] 1873 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 9.6s | TOTAL: 67 calls (1 this q) | IN: 20287 tokens (340 this q) | OUT: 46626 tokens (388 this q)
+==================================================
+[68/100] Evaluating qa_torts_633...
+    [eval_baseline] 2614 chars
+==================================================
+  -> Result: WRONG (Ans: B, Chose: D) | 14.8s | TOTAL: 68 calls (1 this q) | IN: 20470 tokens (183 this q) | OUT: 47171 tokens (545 this q)
+==================================================
+[69/100] Evaluating qa_nan_762...
+    [eval_baseline] 2839 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 16.7s | TOTAL: 69 calls (1 this q) | IN: 20697 tokens (227 this q) | OUT: 47816 tokens (645 this q)
+==================================================
+[70/100] Evaluating qa_nan_312...
+    [eval_baseline] 2936 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 16.9s | TOTAL: 70 calls (1 this q) | IN: 20957 tokens (260 this q) | OUT: 48467 tokens (651 this q)
+==================================================
+[71/100] Evaluating qa_contracts_839...
+    [eval_baseline] 2553 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 15.0s | TOTAL: 71 calls (1 this q) | IN: 21343 tokens (386 this q) | OUT: 49037 tokens (570 this q)
+==================================================
+[72/100] Evaluating qa_nan_424...
+    [eval_baseline] 2963 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 16.5s | TOTAL: 72 calls (1 this q) | IN: 21719 tokens (376 this q) | OUT: 49702 tokens (665 this q)
+==================================================
+[73/100] Evaluating qa_nan_88...
+    [eval_baseline] 2915 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 14.8s | TOTAL: 73 calls (1 this q) | IN: 21995 tokens (276 this q) | OUT: 50314 tokens (612 this q)
+==================================================
+[74/100] Evaluating qa_nan_346...
+    [eval_baseline] 3108 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 19.9s | TOTAL: 74 calls (1 this q) | IN: 22278 tokens (283 this q) | OUT: 51095 tokens (781 this q)
+==================================================
+[75/100] Evaluating qa_realprop_911...
+    [eval_baseline] 4003 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 22.8s | TOTAL: 75 calls (1 this q) | IN: 22679 tokens (401 this q) | OUT: 52000 tokens (905 this q)
+==================================================
+[76/100] Evaluating qa_constlaw_939...
+    [eval_baseline] 3026 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 14.3s | TOTAL: 76 calls (1 this q) | IN: 22920 tokens (241 this q) | OUT: 52570 tokens (570 this q)
+==================================================
+[77/100] Evaluating qa_crimlaw_658...
+    [eval_baseline] 3377 chars
+==================================================
+  -> Result: WRONG (Ans: A, Chose: C) | 18.1s | TOTAL: 77 calls (1 this q) | IN: 23222 tokens (302 this q) | OUT: 53296 tokens (726 this q)
+==================================================
+[78/100] Evaluating qa_contracts_538...
+    [eval_baseline] 4216 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 22.0s | TOTAL: 78 calls (1 this q) | IN: 23480 tokens (258 this q) | OUT: 54206 tokens (910 this q)
+==================================================
+[79/100] Evaluating qa_constlaw_732...
+    [eval_baseline] 3350 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 17.8s | TOTAL: 79 calls (1 this q) | IN: 23873 tokens (393 this q) | OUT: 54920 tokens (714 this q)
+==================================================
+[80/100] Evaluating qa_evidence_786...
+    [eval_baseline] 1949 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 10.7s | TOTAL: 80 calls (1 this q) | IN: 24065 tokens (192 this q) | OUT: 55347 tokens (427 this q)
+==================================================
+[81/100] Evaluating qa_torts_684...
+    [eval_baseline] 2226 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 12.6s | TOTAL: 81 calls (1 this q) | IN: 24304 tokens (239 this q) | OUT: 55850 tokens (503 this q)
+==================================================
+[82/100] Evaluating qa_constlaw_543...
+    [eval_baseline] 3163 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 16.6s | TOTAL: 82 calls (1 this q) | IN: 24529 tokens (225 this q) | OUT: 56496 tokens (646 this q)
+==================================================
+[83/100] Evaluating qa_realprop_568...
+    [eval_baseline] 3299 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 18.2s | TOTAL: 83 calls (1 this q) | IN: 24832 tokens (303 this q) | OUT: 57237 tokens (741 this q)
+==================================================
+[84/100] Evaluating qa_contracts_917...
+    [eval_baseline] 3396 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 19.5s | TOTAL: 84 calls (1 this q) | IN: 25085 tokens (253 this q) | OUT: 58000 tokens (763 this q)
+==================================================
+[85/100] Evaluating qa_evidence_830...
+    [eval_baseline] 2594 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 14.4s | TOTAL: 85 calls (1 this q) | IN: 25261 tokens (176 this q) | OUT: 58562 tokens (562 this q)
+==================================================
+[86/100] Evaluating qa_nan_235...
+    [eval_baseline] 2899 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 14.7s | TOTAL: 86 calls (1 this q) | IN: 25761 tokens (500 this q) | OUT: 59159 tokens (597 this q)
+==================================================
+[87/100] Evaluating qa_evidence_567...
+    [eval_baseline] 1848 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 10.0s | TOTAL: 87 calls (1 this q) | IN: 25919 tokens (158 this q) | OUT: 59567 tokens (408 this q)
+==================================================
+[88/100] Evaluating qa_evidence_522...
+    [eval_baseline] 2391 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 13.2s | TOTAL: 88 calls (1 this q) | IN: 26083 tokens (164 this q) | OUT: 60107 tokens (540 this q)
+==================================================
+[89/100] Evaluating qa_nan_168...
+    [eval_baseline] 2369 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 13.1s | TOTAL: 89 calls (1 this q) | IN: 26282 tokens (199 this q) | OUT: 60654 tokens (547 this q)
+==================================================
+[90/100] Evaluating qa_evidence_513...
+    [eval_baseline] 1858 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 10.7s | TOTAL: 90 calls (1 this q) | IN: 26477 tokens (195 this q) | OUT: 61067 tokens (413 this q)
+==================================================
+[91/100] Evaluating qa_crimlaw_810...
+    [eval_baseline] 2226 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 12.9s | TOTAL: 91 calls (1 this q) | IN: 26807 tokens (330 this q) | OUT: 61556 tokens (489 this q)
+==================================================
+[92/100] Evaluating qa_nan_286...
+    [eval_baseline] 2896 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 14.9s | TOTAL: 92 calls (1 this q) | IN: 27160 tokens (353 this q) | OUT: 62171 tokens (615 this q)
+==================================================
+[93/100] Evaluating qa_constlaw_493...
+    [eval_baseline] 1987 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 10.9s | TOTAL: 93 calls (1 this q) | IN: 27342 tokens (182 this q) | OUT: 62587 tokens (416 this q)
+==================================================
+[94/100] Evaluating qa_evidence_603...
+    [eval_baseline] 2134 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 11.3s | TOTAL: 94 calls (1 this q) | IN: 27538 tokens (196 this q) | OUT: 63052 tokens (465 this q)
+==================================================
+[95/100] Evaluating qa_nan_332...
+    [eval_baseline] 3674 chars
+==================================================
+  -> Result: WRONG (Ans: B, Chose: A) | 18.9s | TOTAL: 95 calls (1 this q) | IN: 27726 tokens (188 this q) | OUT: 63846 tokens (794 this q)
+==================================================
+[96/100] Evaluating qa_constlaw_707...
+    [eval_baseline] 2305 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 12.3s | TOTAL: 96 calls (1 this q) | IN: 28056 tokens (330 this q) | OUT: 64324 tokens (478 this q)
+==================================================
+[97/100] Evaluating qa_nan_72...
+    [eval_baseline] 3030 chars
+==================================================
+  -> Result: CORRECT (Ans: C, Chose: C) | 17.5s | TOTAL: 97 calls (1 this q) | IN: 28238 tokens (182 this q) | OUT: 65006 tokens (682 this q)
+==================================================
+[98/100] Evaluating qa_torts_544...
+    [eval_baseline] 2215 chars
+==================================================
+  -> Result: CORRECT (Ans: B, Chose: B) | 12.1s | TOTAL: 98 calls (1 this q) | IN: 28416 tokens (178 this q) | OUT: 65497 tokens (491 this q)
+==================================================
+[99/100] Evaluating qa_nan_44...
+    [eval_baseline] 3141 chars
+==================================================
+  -> Result: CORRECT (Ans: A, Chose: A) | 17.5s | TOTAL: 99 calls (1 this q) | IN: 28943 tokens (527 this q) | OUT: 66179 tokens (682 this q)
+==================================================
+[100/100] Evaluating qa_contracts_949...
+    [eval_baseline] 2419 chars
+==================================================
+  -> Result: CORRECT (Ans: D, Chose: D) | 14.1s | TOTAL: 100 calls (1 this q) | IN: 29192 tokens (249 this q) | OUT: 66748 tokens (569 this q)
+==================================================
+
+
+================================================================================
+==================================================
+FINAL BASELINE BENCHMARK REPORT
+==================================================
+================================================================================
+==================================================
+--- EXPERIMENT SETTINGS ---
+==================================================
+LLM Provider/Model:   deepseek / deepseek-chat
+==================================================
+
+--- STATISTICS ---
+==================================================
+Accuracy:             85/100 (85.0%)
+==================================================
+Failed to execute:    0
+==================================================
+Total time elapsed:   1722.8s
+==================================================
+Total LLM API Calls:  100
+==================================================
+Avg Input Tokens:     291 per query
+==================================================
+Avg Output Tokens:    667 per query
+==================================================
+Total API cost:       0.0500 USD
+==================================================
+--------------------------------------------------------------------------------
+==================================================
+Label                          Result     Ans   Chose   Time  LLM
+==================================================
+--------------------------------------------------------------------------------
+==================================================
+qa_constlaw_481                FAIL       A     B      29.3s    1
+==================================================
+qa_constlaw_493                PASS       B     B      10.9s    1
+==================================================
+qa_constlaw_494                PASS       D     D      14.5s    1
+==================================================
+qa_constlaw_529                FAIL       C     ?       9.6s    1
+==================================================
+qa_constlaw_543                PASS       C     C      16.6s    1
+==================================================
+qa_constlaw_703                PASS       C     C      16.8s    1
+==================================================
+qa_constlaw_707                PASS       A     A      12.3s    1
+==================================================
+qa_constlaw_732                PASS       B     B      17.8s    1
+==================================================
+qa_constlaw_788                PASS       B     B       9.6s    1
+==================================================
+qa_constlaw_826                PASS       D     D      15.0s    1
+==================================================
+qa_constlaw_939                PASS       D     D      14.3s    1
+==================================================
+qa_contracts_538               PASS       A     A      22.0s    1
+==================================================
+qa_contracts_621               PASS       B     B      17.8s    1
+==================================================
+qa_contracts_629               PASS       C     C      13.9s    1
+==================================================
+qa_contracts_827               PASS       D     D      25.2s    1
+==================================================
+qa_contracts_839               PASS       D     D      15.0s    1
+==================================================
+qa_contracts_917               PASS       C     C      19.5s    1
+==================================================
+qa_contracts_949               PASS       D     D      14.1s    1
+==================================================
+qa_crimlaw_530                 PASS       A     A      23.8s    1
+==================================================
+qa_crimlaw_658                 FAIL       A     C      18.1s    1
+==================================================
+qa_crimlaw_660                 PASS       C     C      10.7s    1
+==================================================
+qa_crimlaw_673                 PASS       D     D      19.9s    1
+==================================================
+qa_crimlaw_731                 PASS       B     B      16.1s    1
+==================================================
+qa_crimlaw_810                 PASS       C     C      12.9s    1
+==================================================
+qa_crimlaw_850                 PASS       D     D      26.1s    1
+==================================================
+qa_crimlaw_870                 PASS       D     D      39.6s    1
+==================================================
+qa_crimlaw_909                 PASS       B     B      15.8s    1
+==================================================
+qa_evidence_513                PASS       D     D      10.7s    1
+==================================================
+qa_evidence_521                PASS       B     B      12.0s    1
+==================================================
+qa_evidence_522                PASS       B     B      13.2s    1
+==================================================
+qa_evidence_527                PASS       A     A      16.3s    1
+==================================================
+qa_evidence_567                PASS       C     C      10.0s    1
+==================================================
+qa_evidence_603                PASS       D     D      11.3s    1
+==================================================
+qa_evidence_620                FAIL       A     B      13.9s    1
+==================================================
+qa_evidence_786                PASS       C     C      10.7s    1
+==================================================
+qa_evidence_830                PASS       C     C      14.4s    1
+==================================================
+qa_evidence_910                PASS       D     D      13.3s    1
+==================================================
+qa_nan_107                     PASS       D     D      17.5s    1
+==================================================
+qa_nan_136                     PASS       C     C      14.1s    1
+==================================================
+qa_nan_139                     FAIL       B     C      23.7s    1
+==================================================
+qa_nan_165                     PASS       B     B      17.2s    1
+==================================================
+qa_nan_168                     PASS       D     D      13.1s    1
+==================================================
+qa_nan_174                     FAIL       B     C      22.7s    1
+==================================================
+qa_nan_198                     PASS       B     B      13.6s    1
+==================================================
+qa_nan_199                     PASS       B     B      14.7s    1
+==================================================
+qa_nan_210                     FAIL       C     B      17.1s    1
+==================================================
+qa_nan_213                     PASS       D     D      15.0s    1
+==================================================
+qa_nan_23                      PASS       D     D      12.0s    1
+==================================================
+qa_nan_235                     PASS       C     C      14.7s    1
+==================================================
+qa_nan_260                     PASS       C     C      12.6s    1
+==================================================
+qa_nan_265                     PASS       C     C      13.2s    1
+==================================================
+qa_nan_275                     PASS       D     D      12.3s    1
+==================================================
+qa_nan_280                     PASS       C     C      15.7s    1
+==================================================
+qa_nan_286                     PASS       D     D      14.9s    1
+==================================================
+qa_nan_296                     FAIL       B     A      22.1s    1
+==================================================
+qa_nan_299                     PASS       B     B      14.3s    1
+==================================================
+qa_nan_30                      PASS       D     D      15.0s    1
+==================================================
+qa_nan_312                     PASS       C     C      16.9s    1
+==================================================
+qa_nan_314                     PASS       A     A      22.8s    1
+==================================================
+qa_nan_316                     PASS       D     D      17.3s    1
+==================================================
+qa_nan_331                     PASS       B     B      13.6s    1
+==================================================
+qa_nan_332                     FAIL       B     A      18.9s    1
+==================================================
+qa_nan_333                     PASS       D     D      13.7s    1
+==================================================
+qa_nan_342                     PASS       D     D      12.5s    1
+==================================================
+qa_nan_346                     PASS       D     D      19.9s    1
+==================================================
+qa_nan_351                     PASS       A     A      19.6s    1
+==================================================
+qa_nan_377                     PASS       B     B      22.7s    1
+==================================================
+qa_nan_381                     PASS       A     A      16.6s    1
+==================================================
+qa_nan_388                     PASS       B     B      14.8s    1
+==================================================
+qa_nan_39                      FAIL       B     A      32.8s    1
+==================================================
+qa_nan_405                     PASS       A     A      19.9s    1
+==================================================
+qa_nan_412                     PASS       D     D      21.2s    1
+==================================================
+qa_nan_422                     PASS       D     D      15.2s    1
+==================================================
+qa_nan_424                     PASS       C     C      16.5s    1
+==================================================
+qa_nan_44                      PASS       A     A      17.5s    1
+==================================================
+qa_nan_59                      FAIL       B     D      16.6s    1
+==================================================
+qa_nan_63                      PASS       B     B      16.9s    1
+==================================================
+qa_nan_67                      PASS       C     C      39.3s    1
+==================================================
+qa_nan_70                      PASS       A     A      25.5s    1
+==================================================
+qa_nan_72                      PASS       C     C      17.5s    1
+==================================================
+qa_nan_745                     FAIL       D     ?      21.4s    1
+==================================================
+qa_nan_751                     PASS       D     D      12.9s    1
+==================================================
+qa_nan_76                      FAIL       D     A      23.9s    1
+==================================================
+qa_nan_762                     PASS       D     D      16.7s    1
+==================================================
+qa_nan_773                     PASS       C     C      19.5s    1
+==================================================
+qa_nan_86                      PASS       B     B      14.4s    1
+==================================================
+qa_nan_88                      PASS       B     B      14.8s    1
+==================================================
+qa_nan_940                     PASS       C     C      13.7s    1
+==================================================
+qa_nan_96                      PASS       C     C      16.6s    1
+==================================================
+qa_realprop_468                PASS       C     C      17.2s    1
+==================================================
+qa_realprop_568                PASS       A     A      18.2s    1
+==================================================
+qa_realprop_695                PASS       A     A      16.7s    1
+==================================================
+qa_realprop_890                PASS       A     A      25.0s    1
+==================================================
+qa_realprop_911                PASS       A     A      22.8s    1
+==================================================
+qa_torts_485                   PASS       D     D      25.8s    1
+==================================================
+qa_torts_544                   PASS       B     B      12.1s    1
+==================================================
+qa_torts_580                   FAIL       D     B      21.5s    1
+==================================================
+qa_torts_633                   FAIL       B     D      14.8s    1
+==================================================
+qa_torts_684                   PASS       A     A      12.6s    1
+==================================================
+qa_torts_734                   PASS       B     B      15.3s    1
+==================================================
+================================================================================
+

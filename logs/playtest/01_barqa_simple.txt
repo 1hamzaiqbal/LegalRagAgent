@@ -1,0 +1,87 @@
+================================================================================
+TEST 1: Simple barqa doctrinal
+================================================================================
+
+================================================================================
+QUESTION: What are the elements of adverse possession?
+================================================================================
+
+--- PLANNER ---
+    [planner] 766 chars (1368 in / 158 out tokens)
+  Plan (2 steps):
+    Step 1 [rag_search]: What are the required elements a claimant must prove to establish title by adverse possession?
+    Step 2 [rag_search]: What is the required statutory period of continuous possession for adverse possession claims?
+
+--- EXECUTOR ---
+  Step 1 [rag_search] (rewrite_attempt=0): What are the required elements a claimant must prove to establish title by adverse possession?
+    [executor/rewrite] 417 chars (912 in / 70 out tokens)
+    Primary query: adverse possession elements actual possession open notorious hostile continuous exclusive statutory period title acquisition
+    Alt query 1: requirements for prescriptive title hostile claim of right color of title tacking continuous possession property law
+    Alt query 2: elements to prove adverse possession actual exclusive open notorious hostile continuous statutory period real property
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+[rag_utils] Building BM25 index from 686324 passages...
+[rag_utils] BM25 index built (686324 docs)
+    Retrieved 5 passage(s)
+      [1] idx=mbe_2132 source=mbe ce_score=7.682
+          To establish title by adverse possession, the possession must be (i) actual and exclusive, (ii) open and notorious, (iii) adverse (hostile), and (iv) continuous throughout the statutory period. Exclusive possession generally means not sharing possession with the true owner or the general public. Pos...
+      [2] idx=mbe_2092 source=mbe ce_score=7.502
+          To establish title by adverse possession, the possession must be (i) actual and exclusive, (ii) open and notorious, (iii) adverse (hostile), and (iv) continuous throughout the statutory period. Exclusive possession generally means not sharing possession with the true owner or the general public. Pos...
+      [3] idx=mbe_2188 source=mbe ce_score=7.314
+          Establishing title by adverse possession requires the possessor to show (i) actual and exclusive possession that is (ii) open and notorious, (iii) adverse, and (iv) continuous for the statutory period. Constructive possession of part of a tract of land is sufficient to obtain title to the whole only...
+      [4] idx=mbe_2314 source=mbe ce_score=7.071
+          To establish title by adverse possession, the possessor must show (i) an actual entry giving exclusive possession that is (ii) open and notorious, (iii) adverse (hostile), and (iv) continuous throughout the statutory period. If the possessor uses the land in violation of a covenant for the limitatio...
+      [5] idx=mbe_1456 source=mbe ce_score=6.799
+          Adverse possession must be (i) open and notorious, (ii) actual and exclusive, (iii) continuous throughout the statutory period, and (iv) hostile (i.e., without the true owner's permission). Although government land generally cannot be obtained through adverse possession, such an action is permitted ...
+    [executor/synth] 2035 chars (1293 in / 452 out tokens)
+    --- Sub-answer ---
+    **Rule**: To establish title by adverse possession, a claimant's possession must meet four required elements for the statutory period [Source 1][Source 2][Source 3][Source 4][Source 5].
+
+**Elements**: The claimant must prove possession that is:
+1.  **Actual and Exclusive**: The claimant must have actual entry and possession, and not share possession with the true owner or the general public [Source 1][Source 2][Source 4]. Possession is exclusive if the claimant acts as the average owner would un...
+    --- End sub-answer ---
+  Confidence: 1.000 (raw logit: 7.682) [for analysis only]
+    [judge/judge] 330 chars (2428 in / 69 out tokens)
+  Judge: sufficient=True | All five passages directly state and define the four required elements of adverse possession (actual and exclusive, open and notorious, adverse/hostile, and continuous for the statutory period), providing doctrine-level support for the sub-question.
+
+--- REPLANNER ---
+    [replanner] 223 chars (2069 in / 47 out tokens)
+  LLM replanner: complete — Step 1 comprehensively retrieved the four core elements of adverse possession, which directly and fully answers the original question about what the elements are.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 3314 chars (2306 in / 664 out tokens)
+  Final answer: 3314 chars
+
+================================================================================
+FINAL ANSWER:
+================================================================================
+**Issue**: What must a claimant prove to acquire title to real property through adverse possession?
+
+**Rule**: To establish title by adverse possession, a claimant must prove their possession of the land was (1) actual and exclusive, (2) open and notorious, (3) adverse (hostile), and (4) continuous for the entire statutory period prescribed by law [Evidence 1][Evidence 2][Evidence 3][Evidence 4][Evidence 5].
+
+**Application**: Each element must be satisfied concurrently for the duration of the statutory period. "Actual and exclusive" possession requires a physical entry and control of the property, meaning the claimant does not share possession with the true owner or the general public [Evidence 1][Evidence 2][Evidence 4]. The exclusivity standard is whether the claimant used the land as the average owner would under the circumstances [Evidence 1][Evidence 2]. "Open and notorious" possession means the use is visible and apparent enough to put a reasonable true owner on notice of the claimant's occupation [Evidence 1][Evidence 2]. "Adverse" or "hostile" possession is established by showing the possession occurred without the true owner's permission or consent [Evidence 1][Evidence 2][Evidence 5]. Under the majority view, the claimant's subjective belief about ownership—whether they knew they were trespassing or mistakenly believed the land was theirs—is irrelevant to this element [Evidence 2][Evidence 3]. Finally, "continuous" possession requires an uninterrupted presence for the full statutory period, with the continuity judged by the standard of use an average owner would make of the property [Evidence 1][Evidence 2].
+
+The research also identifies two ancillary doctrines. First, constructive possession may apply where a claimant actually possesses only part of a tract; possession of the whole tract can be established if there is a reasonable proportion between the part actually possessed and the entire tract [Evidence 3]. Second, regarding the statutory period, an intervening disability of the true owner (e.g., one that arises after adverse possession has begun) does not toll or pause the limitations period. The statute is tolled only if the disability existed *before* the adverse possession commenced [Evidence 2].
+
+**Conclusion**: A claimant acquires title by adverse possession upon proving, for the uninterrupted statutory period, that their possession was actual, exclusive, open and notorious, and hostile to the true owner's title.
+
+## Sources
+- **Evidence 1**: Defines the four core elements and explains exclusive possession (not sharing with owner/public) and open/notorious possession (sufficient to put owner on notice).
+- **Evidence 2**: Reiterates the four elements, clarifies that subjective belief is irrelevant to hostility under the majority view, and states the rule on tolling (only disabilities existing before adverse possession begins toll the statute).
+- **Evidence 3**: Reiterates the four elements and adds the rule on constructive possession for part of a tract (requires reasonable proportion between part possessed and whole).
+- **Evidence 4**: Reiterates the four elements, emphasizing actual entry and exclusive possession.
+- **Evidence 5**: Reiterates the four elements, specifying that hostile possession means without the owner's permission.
+
+================================================================================
+RUN SUMMARY
+================================================================================
+Steps completed : 1
+Evidence pieces : 5
+LLM calls       : 6
+Tokens (in/out) : 10,376 / 1,460
+
+Step breakdown:
+  Step    1 [rag_search    ] conf=1.000 judge=ok evidence=[5 mbe]
+  Step    2 [rag_search    ] status=pending (skipped)
+================================================================================
+

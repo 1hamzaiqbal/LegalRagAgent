@@ -1,0 +1,9 @@
+BM25 RAG BASELINE | 5 queries | deepseek
+Accuracy: 4/5 (80.0%)
+Gold Recall@5: 0/5 (0.0%)
+
+qa_nan_199                     PASS   gold=N
+qa_nan_388                     PASS   gold=N
+qa_nan_422                     PASS   gold=N
+qa_nan_751                     PASS   gold=N
+qa_realprop_695                FAIL   gold=N

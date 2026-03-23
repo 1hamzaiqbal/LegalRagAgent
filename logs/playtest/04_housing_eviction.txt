@@ -1,0 +1,125 @@
+
+================================================================================
+QUESTION: What are the legal requirements for a landlord to evict a tenant in California? What notice must be given and what are the tenants defenses?
+================================================================================
+
+--- PLANNER ---
+    [planner] 1677 chars (1388 in / 350 out tokens)
+  Plan (4 steps):
+    Step 1 [rag_search]: What are the valid grounds for a landlord to initiate eviction proceedings against a tenant in California?
+    Step 2 [rag_search]: What type of notice must a California landlord provide to a tenant before filing an unlawful detainer lawsuit?
+    Step 3 [rag_search]: What procedural defenses can a tenant raise in response to an unlawful detainer action in California?
+    Step 4 [rag_search]: What substantive defenses based on landlord misconduct are available to tenants facing eviction in California?
+
+--- EXECUTOR ---
+  Step 1 [rag_search] (rewrite_attempt=0): What are the valid grounds for a landlord to initiate eviction proceedings against a tenant in California?
+    [executor/rewrite] 398 chars (941 in / 81 out tokens)
+    Primary query: California eviction grounds just cause requirements landlord tenant Civil Code 1946.2 AB 1482 Tenant Protection Act
+    Alt query 1: lawful termination tenancy at-fault no-fault eviction permissible reasons rent control jurisdiction
+    Alt query 2: tenant removal legal basis breach lease nonpayment nuisance illegal activity substantial renovation owner move-in
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+[rag_utils] Building BM25 index from 686324 passages...
+[rag_utils] BM25 index built (686324 docs)
+    Retrieved 5 passage(s)
+      [1] idx=caselaw_12515506_32 source=caselaw ce_score=-0.108
+          The Ordinance was enacted to protect individuals in landlord-tenant relationships: it protects tenants from excessive rent increases and provides a defense to eviction, while at the same time providing landlords with a fair and reasonable return on their investments. (§§ 151.01, 151.02.) The Ordinan...
+      [2] idx=caselaw_12515683_40 source=caselaw ce_score=-0.604
+          The Act confers upon property owners the right to leave the residential rental business unfettered not by all laws, but by local laws contrary to the Act. ( Gov. Code, § 7060.) To avail themselves of the right to evict under the Act, owners must comply with the requirements of the Act, as well as an...
+      [3] idx=caselaw_12515683_43 source=caselaw ce_score=-1.004
+          The law is clear that a tenant may defeat an eviction for non-payment of rent, for example, by showing that the owner has breached the warranty of habitability. (See Civ. Code, § 1942.4, subd. (a)(1) ; see also Code Civ. Proc., § 1174.2, subd. (a).) A tenant, however, may not defeat an Ellis Act evi...
+      [4] idx=caselaw_12515392_33 source=caselaw ce_score=-1.933
+          Thus, when a landlord refuses to accept rent that is one penny short of the required amount, without any legitimate intent other than to manufacture a default in order to evict a tenant, a tenant may assert the landlord's bad faith as an unlawful detainer defense. ( Strom , supra , 88 Cal.App.2d. at...
+      [5] idx=wex_1866 source=wex ce_score=-2.044
+          eviction: Introduction In common usage, eviction is defined as the process used by landlords to recover possession of leased real property from tenants who do not want to leave. Evictions are difficult, painful, and expensive for all parties involved. See also Landlord and Tenant Law. Sources of Law...
+    [executor/synth] 2669 chars (3123 in / 560 out tokens)
+    --- Sub-answer ---
+    **Rule**: A landlord in California may only evict a tenant for specific reasons authorized by law, and the tenant may raise certain defenses in an unlawful detainer action [Source 1].
+
+**Valid Grounds for Eviction**: Landlords are prohibited from evicting tenants except for specific reasons stated in applicable ordinances [Source 1]. More generally, landlords may legally evict tenants for: (1) not paying rent, (2) other non-trivial violations of the lease agreement, or (3) because the tenant's l...
+    --- End sub-answer ---
+  Confidence: 0.473 (raw logit: -0.108) [for analysis only]
+    [judge/judge] 416 chars (4361 in / 87 out tokens)
+  Judge: sufficient=False | The passages discuss defenses to eviction and procedural requirements but do not directly list or explain the specific statutory grounds for initiating eviction under California law (e.g., non-payment of rent, nuisance, illegal use, breach of lease).
+  Judge rewrite suggestion: California Civil Code grounds for eviction unlawful detainer causes of action CCP 1161
+
+--- REPLANNER ---
+  Escalation: rag_search → rewrite (step 15)
+  Judge reason: The passages discuss defenses to eviction and procedural requirements but do not directly list or explain the specific statutory grounds for initiating eviction under California law (e.g., non-payment of rent, nuisance, illegal use, breach of lease).
+  → executor
+
+--- EXECUTOR ---
+  Step 15 [rag_search] (rewrite_attempt=1): California Civil Code grounds for eviction unlawful detainer causes of action CCP 1161
+    [executor/rewrite] 420 chars (940 in / 87 out tokens)
+    Primary query: California eviction grounds just cause requirements Civil Code 1946.2 AB 1482 Tenant Protection Act unlawful detainer causes of action
+    Alt query 1: lawful termination tenancy notice requirements Code of Civil Procedure 1161 at-fault no-fault eviction defenses
+    Alt query 2: landlord tenant law lease termination material breach nonpayment of rent nuisance substantial violation habitability
+    Retrieved 5 passage(s)
+      [1] idx=caselaw_12515392_15 source=caselaw ce_score=1.409
+          A tenant is guilty of an unlawful detainer and may be properly evicted only when the landlord proves the tenant falls within at least one of the enumerated circumstances. In the case of failure to pay rent, the elements of the action are set forth in Code of Civil Procedure section 1161, subdivision...
+      [2] idx=wex_5297 source=wex ce_score=0.402
+          unlawful detainer: An unlawful detainer, also known as an eviction lawsuit, is a summary proceeding to determine the right to possession of real property. Moreover, the sole issue in an unlawful detainer action is possession of the premises, and no other issue may be tried without the consent of all...
+      [3] idx=caselaw_12515392_14 source=caselaw ce_score=0.205
+          A landlord must serve a tenant with a valid three-day notice in order to prevail in an unlawful detainer action. ( Code Civ. Proc., § 1161. subd. (2); Bevill v. Zoura (1994) 27 Cal.App.4th 694, 697, 32 Cal.Rptr.2d 635.) " 'It has long been recognized that the unlawful detainer statutes are to be str...
+      [4] idx=caselaw_12515387_70 source=caselaw ce_score=-0.478
+          Plaintiffs' position is that defendants' charging unreasonably high rent subjects them to liability in tort for intentional interference with property rights. There is not a clearly defined cause of action in tort in California for intentional interference with property rights. In Barkett v. Brucato...
+      [5] idx=caselaw_12515387_73 source=caselaw ce_score=-0.532
+          Although under California law there is no clearly defined cause of action for intentional interference with property rights absent a constructive eviction, the jury received a special instruction at trial that specified the elements of plaintiffs' interference cause of action as follows: 1. Plaintif...
+    [executor/synth] 2867 chars (1759 in / 607 out tokens)
+    --- Sub-answer ---
+    **Rule**: In California, a landlord may evict a tenant through an unlawful detainer action, a summary proceeding where the sole issue is the right to possession of the property [Source 2]. The statutes governing this action must be strictly followed [Source 3].
+
+**Grounds for Eviction (Causes of Action)**: A tenant is guilty of unlawful detainer only if the landlord proves the tenant falls within at least one enumerated statutory circumstance [Source 1]. Grounds include:
+1.  **Nonpayment of Rent...
+    --- End sub-answer ---
+  Confidence: 0.804 (raw logit: 1.409) [for analysis only]
+    [judge/judge] 283 chars (3042 in / 66 out tokens)
+  Judge: sufficient=True | Passages directly cite and explain California Code of Civil Procedure §1161 grounds for unlawful detainer, including nonpayment of rent, waste, and illegal use, along with the required three-day notice.
+
+--- REPLANNER ---
+    [replanner] 269 chars (3042 in / 52 out tokens)
+  LLM replanner: complete — The original question about eviction requirements, notice, and defenses is fully answerable from the accumulated evidence, which covers statutory grounds, specific notice periods, and a comprehensive list of tenant defenses.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 4363 chars (6166 in / 875 out tokens)
+  Final answer: 4363 chars
+
+================================================================================
+FINAL ANSWER:
+================================================================================
+**Issue**: What are the legal grounds, procedural notice requirements, and available tenant defenses for a landlord to lawfully evict a tenant in California?
+
+**Rule**: In California, a landlord may recover possession only through an unlawful detainer action, a summary proceeding where the sole issue is the right to possession [Evidence 7]. The statutes governing this action must be strictly followed [Evidence 8]. Valid grounds for eviction are limited to specific reasons authorized by law [Evidence 1]. The primary statutory grounds include: (1) default in the payment of rent; (2) commission of waste that permanently damages the property's market value; and (3) using the property for an illegal purpose [Evidence 6][Evidence 7]. A landlord may also evict a tenant under the Ellis Act to withdraw the property from the rental market, provided they comply with the Act's requirements [Evidence 2], or choose not to renew an expired lease [Evidence 5].
+
+**Application**: The procedural requirements and available defenses depend on the ground for eviction. For the most common action—nonpayment of rent—the landlord must prove five elements: (1) the tenant is in possession; (2) possession is without the landlord's permission; (3) the tenant is in default for non-payment; (4) the tenant was properly served with a written three-day notice stating the amount due; and (5) the default continues after the notice period expires [Evidence 6][Evidence 7]. Strict compliance with the three-day notice requirement is essential to prevail [Evidence 8]. For other grounds like lease violations, the research did not specify the precise notice period, but landlords must give a "Notice to Quit" that states the reason for eviction and what the tenant can do to avoid it [Evidence 5].
+
+Tenants have multiple affirmative defenses available. A tenant may raise violations of a local rent control or eviction ordinance as a defense [Evidence 1]. Specific defenses to a nonpayment action include showing the landlord breached the warranty of habitability [Evidence 3] or acted in bad faith by refusing to accept a timely tender of rent to manufacture a default [Evidence 4]. The defense of frustration of purpose is also available [Evidence 4]. Tenants may assert retaliatory eviction if the landlord acts because the tenant reported code violations or engaged in other protected activity [Evidence 5]. In an Ellis Act eviction, a tenant may defend by showing the owner did not have a bona fide intent to withdraw from the rental business [Evidence 2] or, for an elderly or disabled tenant, that the owner failed to continue the tenancy on the same terms and conditions during the notice period [Evidence 3]. The research did not address defenses specific to evictions for waste or illegal use.
+
+**Conclusion**: A California landlord may evict a tenant only for specific statutory grounds, primarily nonpayment of rent, waste, or illegal use, by initiating an unlawful detainer action and providing strict statutory notice. Tenants possess several affirmative defenses, including habitability breaches, landlord bad faith, retaliation, and violations of local ordinances or the Ellis Act's specific requirements.
+
+## Sources
+- **Evidence 1**: Prohibition on eviction except for specific reasons under local ordinance; ordinance violations as an affirmative defense.
+- **Evidence 2**: Ellis Act eviction requirements, including proper notice, bona fide intent to withdraw, and the "no-change" mandate for elderly/disabled tenants.
+- **Evidence 3**: Defense of breach of warranty of habitability for non-payment evictions; defense for elderly/disabled tenants against Ellis Act eviction if terms are changed.
+- **Evidence 4**: Defenses of landlord's bad faith refusal to accept rent and frustration of purpose.
+- **Evidence 5**: General grounds for eviction (non-payment, lease violation, non-renewal); retaliatory eviction defense; general notice requirement for a "Notice to Quit."
+- **Evidence 6**: Statutory definition of unlawful detainer for nonpayment of rent, including the three-day notice requirement.
+- **Evidence 7**: Unlawful detainer as a summary proceeding; lists grounds (nonpayment, waste, illegal use) and five elements for a nonpayment action.
+- **Evidence 8**: Requirement for strict compliance with unlawful detainer statutes and the three-day notice.
+
+================================================================================
+RUN SUMMARY
+================================================================================
+Steps completed : 2
+Evidence pieces : 10
+LLM calls       : 9
+Tokens (in/out) : 24,762 / 2,765
+
+Step breakdown:
+  Step    1 [rag_search    ] conf=0.473 judge=insufficient evidence=[4 caselaw, 1 wex]
+  Step   15 [rag_search    ] conf=0.804 judge=ok evidence=[4 caselaw, 1 wex]
+  Step    2 [rag_search    ] status=pending (skipped)
+  Step    3 [rag_search    ] status=pending (skipped)
+  Step    4 [rag_search    ] status=pending (skipped)
+================================================================================
+

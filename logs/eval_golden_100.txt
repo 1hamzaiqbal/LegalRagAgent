@@ -1,0 +1,220 @@
+
+================================================================================
+GOLDEN PASSAGE BASELINE (100 QUERIES)
+================================================================================
+
+Provider: deepseek | Model: deepseek-chat
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Gold passages loaded: 1149
+[1/100] qa_nan_199...     [golden] 535 chars
+CORRECT (4.0s)
+[2/100] qa_nan_422...     [golden] 749 chars
+CORRECT (4.9s)
+[3/100] qa_realprop_695...     [golden] 597 chars
+CORRECT (3.8s)
+[4/100] qa_nan_751...     [golden] 526 chars
+CORRECT (3.3s)
+[5/100] qa_nan_388...     [golden] 376 chars
+CORRECT (2.9s)
+[6/100] qa_torts_580...     [golden] 589 chars
+CORRECT (3.8s)
+[7/100] qa_contracts_827...     [golden] 586 chars
+CORRECT (3.9s)
+[8/100] qa_crimlaw_530...     [golden] 755 chars
+CORRECT (4.8s)
+[9/100] qa_constlaw_494...     [golden] 635 chars
+CORRECT (4.3s)
+[10/100] qa_nan_174...     [golden] 645 chars
+WRONG (4.0s)
+[11/100] qa_nan_210...     [golden] 440 chars
+WRONG (2.8s)
+[12/100] qa_constlaw_529...     [golden] 393 chars
+CORRECT (2.8s)
+[13/100] qa_nan_59...     [golden] 512 chars
+CORRECT (3.3s)
+[14/100] qa_crimlaw_909...     [golden] 535 chars
+CORRECT (3.6s)
+[15/100] qa_constlaw_703...     [golden] 754 chars
+CORRECT (4.9s)
+[16/100] qa_nan_76...     [golden] 724 chars
+CORRECT (4.4s)
+[17/100] qa_realprop_890...     [golden] 809 chars
+WRONG (4.7s)
+[18/100] qa_nan_351...     [golden] 730 chars
+WRONG (4.5s)
+[19/100] qa_nan_107...     [golden] 670 chars
+CORRECT (3.7s)
+[20/100] qa_nan_412...     [golden] 545 chars
+CORRECT (3.8s)
+[21/100] qa_realprop_468...     [golden] 615 chars
+CORRECT (4.6s)
+[22/100] qa_crimlaw_673...     [golden] 629 chars
+CORRECT (4.0s)
+[23/100] qa_torts_485...     [golden] 694 chars
+CORRECT (4.7s)
+[24/100] qa_constlaw_481...     [golden] 636 chars
+CORRECT (3.7s)
+[25/100] qa_nan_23...     [golden] 989 chars
+CORRECT (6.0s)
+[26/100] qa_crimlaw_660...     [golden] 852 chars
+CORRECT (4.6s)
+[27/100] qa_evidence_527...     [golden] 370 chars
+WRONG (2.9s)
+[28/100] qa_constlaw_826...     [golden] 584 chars
+CORRECT (3.8s)
+[29/100] qa_evidence_620...     [golden] 822 chars
+WRONG (5.2s)
+[30/100] qa_nan_30...     [golden] 381 chars
+CORRECT (3.1s)
+[31/100] qa_nan_940...     [golden] 538 chars
+CORRECT (3.5s)
+[32/100] qa_contracts_621...     [golden] 477 chars
+CORRECT (3.5s)
+[33/100] qa_nan_381...     [golden] 556 chars
+CORRECT (3.8s)
+[34/100] qa_nan_280...     [golden] 769 chars
+CORRECT (5.2s)
+[35/100] qa_nan_67...     [golden] 1001 chars
+CORRECT (7.6s)
+[36/100] qa_nan_136...     [golden] 793 chars
+CORRECT (6.0s)
+[37/100] qa_nan_296...     [golden] 728 chars
+CORRECT (4.7s)
+[38/100] qa_nan_139...     [golden] 601 chars
+WRONG (4.6s)
+[39/100] qa_nan_405...     [golden] 747 chars
+CORRECT (5.7s)
+[40/100] qa_torts_734...     [golden] 975 chars
+WRONG (6.6s)
+[41/100] qa_nan_39...     [golden] 834 chars
+WRONG (6.1s)
+[42/100] qa_nan_333...     [golden] 594 chars
+CORRECT (4.0s)
+[43/100] qa_evidence_521...     [golden] 635 chars
+CORRECT (4.2s)
+[44/100] qa_contracts_629...     [golden] 639 chars
+CORRECT (4.8s)
+[45/100] qa_nan_86...     [golden] 623 chars
+CORRECT (4.4s)
+[46/100] qa_nan_314...     [golden] 624 chars
+CORRECT (4.5s)
+[47/100] qa_nan_213...     [golden] 674 chars
+CORRECT (4.7s)
+[48/100] qa_nan_260...     [golden] 628 chars
+CORRECT (4.1s)
+[49/100] qa_nan_70...     [golden] 617 chars
+WRONG (4.3s)
+[50/100] qa_nan_165...     [golden] 551 chars
+WRONG (4.2s)
+[51/100] qa_nan_299...     [golden] 741 chars
+CORRECT (4.9s)
+[52/100] qa_nan_96...     [golden] 421 chars
+CORRECT (3.4s)
+[53/100] qa_nan_331...     [golden] 591 chars
+CORRECT (4.3s)
+[54/100] qa_crimlaw_870...     [golden] 1256 chars
+WRONG (7.6s)
+[55/100] qa_crimlaw_731...     [golden] 493 chars
+CORRECT (3.4s)
+[56/100] qa_nan_745...     [golden] 614 chars
+WRONG (4.2s)
+[57/100] qa_crimlaw_850...     [golden] 984 chars
+WRONG (7.1s)
+[58/100] qa_nan_377...     [golden] 614 chars
+CORRECT (4.6s)
+[59/100] qa_nan_773...     [golden] 732 chars
+WRONG (4.8s)
+[60/100] qa_nan_265...     [golden] 717 chars
+CORRECT (4.8s)
+[61/100] qa_nan_316...     [golden] 683 chars
+WRONG (4.8s)
+[62/100] qa_nan_275...     [golden] 813 chars
+CORRECT (4.7s)
+[63/100] qa_evidence_910...     [golden] 708 chars
+CORRECT (5.0s)
+[64/100] qa_nan_342...     [golden] 487 chars
+CORRECT (4.1s)
+[65/100] qa_nan_198...     [golden] 508 chars
+CORRECT (3.7s)
+[66/100] qa_nan_63...     [golden] 645 chars
+WRONG (4.6s)
+[67/100] qa_constlaw_788...     [golden] 529 chars
+CORRECT (3.0s)
+[68/100] qa_torts_633...     [golden] 793 chars
+WRONG (4.9s)
+[69/100] qa_nan_762...     [golden] 451 chars
+CORRECT (3.5s)
+[70/100] qa_nan_312...     [golden] 461 chars
+CORRECT (3.8s)
+[71/100] qa_contracts_839...     [golden] 745 chars
+CORRECT (5.1s)
+[72/100] qa_nan_424...     [golden] 527 chars
+CORRECT (4.8s)
+[73/100] qa_nan_88...     [golden] 759 chars
+CORRECT (5.4s)
+[74/100] qa_nan_346...     [golden] 796 chars
+CORRECT (5.6s)
+[75/100] qa_realprop_911...     [golden] 535 chars
+CORRECT (4.2s)
+[76/100] qa_constlaw_939...     [golden] 770 chars
+CORRECT (4.7s)
+[77/100] qa_crimlaw_658...     [golden] 515 chars
+WRONG (4.2s)
+[78/100] qa_contracts_538...     [golden] 628 chars
+CORRECT (3.7s)
+[79/100] qa_constlaw_732...     [golden] 906 chars
+CORRECT (5.8s)
+[80/100] qa_evidence_786...     [golden] 517 chars
+CORRECT (3.7s)
+[81/100] qa_torts_684...     [golden] 535 chars
+WRONG (4.0s)
+[82/100] qa_constlaw_543...     [golden] 541 chars
+CORRECT (3.7s)
+[83/100] qa_realprop_568...     [golden] 649 chars
+CORRECT (4.2s)
+[84/100] qa_contracts_917...     [golden] 509 chars
+CORRECT (3.9s)
+[85/100] qa_evidence_830...     [golden] 463 chars
+CORRECT (3.5s)
+[86/100] qa_nan_235...     [golden] 590 chars
+CORRECT (4.0s)
+[87/100] qa_evidence_567...     [golden] 628 chars
+CORRECT (4.5s)
+[88/100] qa_evidence_522...     [golden] 386 chars
+CORRECT (3.2s)
+[89/100] qa_nan_168...     [golden] 472 chars
+WRONG (3.2s)
+[90/100] qa_evidence_513...     [golden] 679 chars
+WRONG (4.2s)
+[91/100] qa_crimlaw_810...     [golden] 540 chars
+CORRECT (3.9s)
+[92/100] qa_nan_286...     [golden] 618 chars
+WRONG (3.7s)
+[93/100] qa_constlaw_493...     [golden] 454 chars
+CORRECT (3.1s)
+[94/100] qa_evidence_603...     [golden] 418 chars
+CORRECT (3.2s)
+[95/100] qa_nan_332...     [golden] 499 chars
+CORRECT (3.4s)
+[96/100] qa_constlaw_707...     [golden] 494 chars
+CORRECT (3.8s)
+[97/100] qa_nan_72...     [golden] 599 chars
+CORRECT (3.9s)
+[98/100] qa_torts_544...     [golden] 641 chars
+WRONG (4.1s)
+[99/100] qa_nan_44...     [golden] 685 chars
+CORRECT (4.4s)
+[100/100] qa_contracts_949...     [golden] 632 chars
+CORRECT (4.1s)
+
+================================================================================
+GOLDEN PASSAGE BASELINE RESULTS
+================================================================================
+Accuracy:          76/100 (76.0%)
+Errors:            0
+Cost:              0.0100 USD
+
+This is the UPPER BOUND — perfect retrieval, 1 LLM call per query.
+================================================================================
+
+Log saved to logs/eval_golden_deepseek_20260322_13.txt

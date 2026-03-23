@@ -19,7 +19,6 @@ uv.lock
 agentic_ideas/
 
 # Generated artifacts
-logs/
 case_studies/
 
 # Editor / OS

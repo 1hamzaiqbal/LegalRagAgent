@@ -1,0 +1,30 @@
+
+================================================================================
+GOLDEN PASSAGE BASELINE (5 QUERIES)
+================================================================================
+
+Provider: deepseek | Model: deepseek-chat
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Gold passages loaded: 1149
+[1/5] qa_nan_199...     [golden] 579 chars
+CORRECT (5.3s)
+[2/5] qa_nan_422...     [golden] 749 chars
+CORRECT (6.1s)
+[3/5] qa_realprop_695...     [golden] 597 chars
+CORRECT (4.4s)
+[4/5] qa_nan_751...     [golden] 526 chars
+CORRECT (4.0s)
+[5/5] qa_nan_388...     [golden] 376 chars
+CORRECT (3.0s)
+
+================================================================================
+GOLDEN PASSAGE BASELINE RESULTS
+================================================================================
+Accuracy:          5/5 (100.0%)
+Errors:            0
+Cost:              < 0.01 USD
+
+This is the UPPER BOUND — perfect retrieval, 1 LLM call per query.
+================================================================================
+
+Log saved to logs/eval_golden_deepseek_20260321_03.txt

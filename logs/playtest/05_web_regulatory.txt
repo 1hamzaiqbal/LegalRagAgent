@@ -1,0 +1,209 @@
+
+================================================================================
+QUESTION: What are the current federal regulations regarding ESG disclosure requirements for publicly traded companies?
+================================================================================
+
+--- PLANNER ---
+    [planner] 1623 chars (1376 in / 342 out tokens)
+  Plan (4 steps):
+    Step 1 [web_search]: What is the SEC's current regulatory framework for climate-related disclosures by public companies?
+    Step 2 [rag_search]: What ESG disclosure requirements exist under existing SEC rules for material information?
+    Step 3 [rag_search]: What are the federal requirements for disclosing board diversity and human capital management?
+    Step 4 [rag_search]: What ESG-related disclosure obligations exist under federal securities antifraud provisions?
+
+--- EXECUTOR ---
+  Step 1 [web_search] (rewrite_attempt=0): What is the SEC's current regulatory framework for climate-related disclosures by public companies?
+    Web results: 5 result(s)
+      [1] SEC Adopts Rules to Enhance and Standardize Climate-Related ...
+          https://www.sec.gov/newsroom/press-releases/2024-31
+      [2] Regulatory Climate Shift: Updates on the SEC Climate-Related ...
+          https://corpgov.law.harvard.edu/2025/09/30/regulatory-climate-shift-updates-on-the-sec-climate-related-disclosure-rules/
+      [3] SEC Climate Disclosure Guidance | Deloitte US
+          https://www.deloitte.com/us/en/services/audit-assurance/articles/sec-climate-disclosure-guidance.html
+      [4] SEC Climate Disclosure Rule FAQ - Ceres: Sustainability is ...
+          https://www.ceres.org/accelerator/regulation/sec
+      [5] The Enhancement and Standardization of Climate-Related ...
+          https://www.federalregister.gov/documents/2024/03/28/2024-05137/the-enhancement-and-standardization-of-climate-related-disclosures-for-investors
+    Scraped 2/5 URLs successfully
+      [1] (Snippet) SEC Adopts Rules to Enhance and Standardize Climate-Related ... [160 chars]
+          Mar 6, 2024 ·TheSecuritiesandExchangeCommissiontoday adopted rules to enhance and standardizeclimate-relateddisclosuresbypubliccompaniesand in public offerings.
+      [2] (Snippet) Regulatory Climate Shift: Updates on the SEC Climate-Related ... [276 chars]
+          Sep 30, 2025 ·Whileclimate-relatedrisk and emissionsdisclosurerequirements continue to advance on the state and international levels, the future of theSEC’sclimate-relatedriskdisclosurerulesremains uncertain, and, at least under thecurrentCommission, unlikely to move forward.
+      [3] (Snippet) SEC Climate Disclosure Guidance | Deloitte US [280 chars]
+          On March 6, 2024, theSECissued a final rule that requires registrants to provide comprehensiveclimatedisclosuresin their annual reports and registration statements. These requirements significantly expandclimate-relateddisclosuresand the need for developed reporting capabilities.
+      [4] (Snippet) SEC Climate Disclosure Rule FAQ - Ceres: Sustainability is ... [210 chars]
+          Jun 10, 2021 ·What is thecurrentstatus of the rule? TheSEC’sfinalruleonclimatedisclosurewas originally set to take effect in May 2024, but implementation is currently stayed by theSECpending ongoing litigation.
+      [5] (Snippet) The Enhancement and Standardization of Climate-Related ... [298 chars]
+          Mar 28, 2024 ·TheSecuritiesandExchangeCommission("Commission") is adopting amendments to its rules under the Securities Act of 1933 ("SecuritiesAct") andSecuritiesExchangeAct of 1934 ("Exchange Act") that will require registrants to provide certainclimate-relatedinformationin their registration...
+      [6] (Scraped) Regulatory Climate Shift: Updates on the SEC Climate-Related Disclosure Rules [6015 chars]
+          Anna Pinedo is a Partner, Liz Walsh is Counsel, and Carlos Juarez is a Law Clerk at Mayer Brown LLP. This post is based on their Mayer Brown memorandum. In March 2024, the Securities and Exchange Commission (the “SEC” or the “Commission”) adopted rules entitled The Enhancement and Standardization of Climate-Related Disclosures for Investors (the “Rules”), intended to standardize how public compani...
+      [7] (Scraped) SEC Climate Disclosure Guidance [2767 chars]
+          Link opens in a new tab opens in new window A landmark decision for climate disclosure requirements Heads Up: An analysis of the SEC’s ruling on climate-related risks Overview Resources for climate disclosures and ESG financial reporting Perspective On March 6, 2024, the SEC issued a final rule that requires registrants to provide comprehensive climate disclosures in their annual reports and regis...
+    [executor/web] 2604 chars (2807 in / 567 out tokens)
+    --- Sub-answer ---
+    The SEC adopted a final rule in March 2024 to enhance and standardize climate-related disclosures for public companies [Source 1][Source 3][Source 5][Source 6][Source 7]. However, the rule's implementation is currently stayed pending litigation, and the SEC has withdrawn its defense of the rule, making its future uncertain [Source 2][Source 4][Source 6].
+
+**Rule and Key Requirements**: The rule, titled *The Enhancement and Standardization of Climate-Related Disclosures for Investors*, amends SEC...
+    --- End sub-answer ---
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/judge] 321 chars (3767 in / 66 out tokens)
+  Judge: sufficient=True | The retrieved passages directly describe the SEC's March 2024 final rule establishing climate-related disclosure requirements, detail its key provisions, and explain its current stayed status due to litigation and SEC withdrawal of defense.
+
+--- REPLANNER ---
+    [replanner] 324 chars (2344 in / 63 out tokens)
+  LLM replanner: next — Step 1 provided comprehensive information on the SEC's climate disclosure rule, but the original question about broader federal ESG disclosure requirements requires examining other existing SEC rules on material information, board diversity, and antifraud provisions.
+  → executor
+
+--- EXECUTOR ---
+  Step 2 [rag_search] (rewrite_attempt=0): What ESG disclosure requirements exist under existing SEC rules for material information?
+    [executor/rewrite] 424 chars (926 in / 80 out tokens)
+    Primary query: SEC ESG disclosure requirements materiality Regulation S-K Item 101 risk factors MD&A material information climate change
+    Alt query 1: Environmental Social Governance mandatory disclosure financial materiality SEC guidance corporate sustainability reporting
+    Alt query 2: Regulation S-K Item 303 Item 105 material risk disclosure investor protection ESG factors financial statements
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+[rag_utils] Building BM25 index from 686324 passages...
+[rag_utils] BM25 index built (686324 docs)
+    Retrieved 5 passage(s)
+      [1] idx=caselaw_12532309_83 source=caselaw ce_score=3.093
+          Plaintiffs assert that Sky had an independent obligation under Items 303 and 503 of SEC Regulation S-K to disclose the state of the Japanese regulatory environment. In re Sunedison Secs. Litig., 300 F. Supp. 3d at 466-67 (finding that Item 303 creates a disclosure obligation under Section 11.) Item ...
+      [2] idx=wex_4476 source=wex ce_score=2.967
+          risk factors: Risk factors refer to Item 105 of Regulation S-K which requires the registrant’s management to discuss material risks to the registrant’s operations. Item 105 requires that the registrant write their risk factors in plain English and organize them logically with relevant headings. It d...
+      [3] idx=caselaw_12531012_67 source=caselaw ce_score=1.496
+          Plaintiffs allege that defendants violated the affirmative duties imposed by Item 303 of Regulation S-K by failing to disclose in the May 5th 10-Q that the risk set forth in Omega's stated "Risk Factors" - tenant bankruptcy or difficulty replacing a tenant - had materialized with respect to Orianna....
+      [4] idx=wex_2137 source=wex ce_score=1.265
+          Form S-1: Form S-1 is the registration statement that the Securities and Exchange Commission (SEC) requires domestic issuers to file in order to publicly offer new securities. That is, issuers file S-1s for initial public offerings (IPOs) and follow-on offerings of new securities.  Section 5 of the ...
+      [5] idx=caselaw_12522524_66 source=caselaw ce_score=1.072
+          Fourth , the investors allege that Pier 1 had a duty to disclose markdown risk under Item 303 of Regulation S-K, which directs companies, when filing with the SEC, to "[d]escribe any known trends or uncertainties ... that the registrant reasonably expects will have a material ... unfavorable impact ...
+    [executor/synth] 2538 chars (2098 in / 539 out tokens)
+    --- Sub-answer ---
+    Under existing SEC rules, ESG-related information must be disclosed if it is material. Regulation S-K establishes key disclosure requirements for registration statements and periodic reports [Source 4].
+
+**Material Trends and Uncertainties (Item 303):** Item 303 of Regulation S-K requires a company to "[d]escribe any known trends or uncertainties... that the registrant reasonably expects will have a material favorable or unfavorable effect on net sales or revenues or income from continuing opera...
+    --- End sub-answer ---
+  Confidence: 0.957 (raw logit: 3.093) [for analysis only]
+    [judge/judge] 431 chars (3316 in / 88 out tokens)
+  Judge: sufficient=False | The retrieved passages detail general SEC disclosure rules (Items 303, 105) for material trends and risks but do not connect these rules to ESG factors or provide examples of ESG-specific disclosure requirements.
+  Judge rewrite suggestion: ESG environmental social governance disclosure requirements materiality SEC Regulation S-K Item 303 Item 105 climate risk human capital board diversity
+
+--- REPLANNER ---
+  Escalation: rag_search → rewrite (step 25)
+  Judge reason: The retrieved passages detail general SEC disclosure rules (Items 303, 105) for material trends and risks but do not connect these rules to ESG factors or provide examples of ESG-specific disclosure requirements.
+  → executor
+
+--- EXECUTOR ---
+  Step 25 [rag_search] (rewrite_attempt=1): ESG environmental social governance disclosure requirements materiality SEC Regulation S-K Item 303 Item 105 climate risk human capital board diversity
+    [executor/rewrite] 507 chars (938 in / 87 out tokens)
+    Primary query: SEC ESG disclosure requirements materiality Regulation S-K Item 101 Item 105 Item 303 risk factors MD&A climate risk human capital board diversity
+    Alt query 1: federal securities law mandatory disclosure material information environmental social governance factors financial performance investor decision-making
+    Alt query 2: public company reporting obligations ESG materiality assessment financial statement footnotes business description risk management corporate governance
+    Retrieved 5 passage(s)
+      [1] idx=caselaw_12530297_56 source=caselaw ce_score=1.492
+          Plaintiffs' second omissions theory rests on a purported violation of Item 303 of Regulation S-K under the Securities Act of 1933, which "gives rise to specific duties to disclose." Panther Partners, Inc. v. Ikanos Commc'ns, Inc., 538 F.Supp.2d 662, 668 (S.D.N.Y. 2008). Item 303 imposes "the obligat...
+      [2] idx=wex_3146 source=wex ce_score=1.373
+          management discussion and analysis (MD&A): Management discussion and analysis (MD&A) refers to Item 303 of Regulation S-K which requires the registrant’s management to give a narrative discussion of the company’s financial performance.  Item 303(a) states that the objective of the management’s discu...
+      [3] idx=caselaw_12522524_59 source=caselaw ce_score=-0.519
+          (4) Item 303 of Regulation S-K required Smith and Turner to disclose "reasonably expect[ed]" markdown risk.
+      [4] idx=caselaw_12522376_121 source=caselaw ce_score=-1.389
+          We note that the Second Circuit has held "that Item 303 imposes the type of duty to speak that can, in appropriate cases, give rise to liability under Section 10(b)," because, given the mandatory nature of the regulations, "a reasonable investor would interpret the absence of an Item 303 disclosure ...
+      [5] idx=caselaw_12522376_91 source=caselaw ce_score=-1.575
+          Emphasizing precisely that difference, both the Third and the Ninth Circuits have rejected the very argument that the Retirement System makes here-namely, that a violation of Item 303 automatically gives rise to 10b-5 liability. In Oran v. Stafford , the Third Circuit refused to hold "that even if t...
+    [executor/synth] 2080 chars (1532 in / 442 out tokens)
+    --- Sub-answer ---
+    **Rule**: Item 303 of Regulation S-K imposes a mandatory duty on registrants to disclose known trends or uncertainties in the Management's Discussion and Analysis (MD&A) section of filings [Source 1] [Source 2]. The objective is to provide material information relevant to assessing the company's financial condition and results of operations [Source 2].
+
+**Disclosure Standard**: Disclosure under Item 303 is required when a trend, demand, commitment, event, or uncertainty is (1) presently known to...
+    --- End sub-answer ---
+  Confidence: 0.816 (raw logit: 1.492) [for analysis only]
+    [judge/judge] 484 chars (2652 in / 96 out tokens)
+  Judge: sufficient=False | The passages discuss the general framework of Item 303 for known trends and uncertainties but do not address ESG-specific disclosure requirements, climate risk, human capital, or board diversity as targeted in the sub-question.
+  Judge rewrite suggestion: ESG environmental social governance disclosure requirements SEC Regulation S-K climate risk human capital management board diversity materiality Item 101 Item 103 Item 105
+
+--- REPLANNER ---
+  Escalation: rag_search → web_search (step 255)
+  Judge reason: The passages discuss the general framework of Item 303 for known trends and uncertainties but do not address ESG-specific disclosure requirements, climate risk, human capital, or board diversity as targeted in the sub-question.
+  → executor
+
+--- EXECUTOR ---
+  Step 255 [web_search] (rewrite_attempt=0): ESG environmental social governance disclosure requirements materiality SEC Regulation S-K Item 303 Item 105 climate risk human capital board diversity
+    Web results: 5 result(s)
+      [1] ESG and SEC: Climate Disclosure Rule Update | EY - US
+          https://www.ey.com/en_us/insights/esg-reporting/esg-and-sec-climate-disclosure-rule-update
+      [2] SEC.gov | Regulation S-K and ESG Disclosures: An ...
+          https://www.sec.gov/newsroom/speeches-statements/lee-regulation-s-k-2020-08-26
+      [3] What Are ESG Rules? Disclosures, Compliance & Liability
+          https://legalclarity.org/what-are-esg-rules-disclosures-compliance-liability/
+      [4] Regulatory Shifts in ESG: What Comes Next for Companies?
+          https://corpgov.law.harvard.edu/2025/04/12/regulatory-shifts-in-esg-what-comes-next-for-companies/
+      [5] ESG, Overview - SEC Regulation of ESG Disclosures
+          https://www.bloomberglaw.com/external/document/XBRLB5FK000000/esg-overview-sec-regulation-of-esg-disclosures
+    Scraped 2/5 URLs successfully
+      [1] (Snippet) ESG and SEC: Climate Disclosure Rule Update | EY - US [212 chars]
+          Oct 14, 2025 ·That guidance identifies several elements of theSEC’s reporting framework whereclimateriskcould arise as amaterialissue requiringdisclosure(we include the references to the section ofRegulationS-K).
+      [2] (Snippet) SEC.gov | Regulation S-K and ESG Disclosures: An ... [180 chars]
+          Aug 26, 2020 ·Bothdiversityandclimateriskgenerally fall under the rubric ofEnvironmental,Social, andGovernanceorESGrisks.ESGinvesting is no longer just a matter of personal choice.
+      [3] (Snippet) What Are ESG Rules? Disclosures, Compliance & Liability [159 chars]
+          14 hours ago ·ESGrules require companies to accurately discloseenvironmental,social, andgovernancedata — and misleading disclosures can trigger real liability.
+      [4] (Snippet) Regulatory Shifts in ESG: What Comes Next for Companies? [184 chars]
+          Apr 12, 2025 ·This report analyzes the major US and internationalESGdisclosureregulationson corporate radars in 2025 and shares practical recommendations for governance and compliance.
+      [5] (Snippet) ESG, Overview - SEC Regulation of ESG Disclosures [204 chars]
+          TheSECincludes its substantive reportingrequirementsfor periodic reports inRegulationS-K.SECdisclosurerulesare based in the concept ofmateriality. Commission rules do not define the concept ofmateriality.
+      [6] (Scraped) ESG and SEC: Climate Disclosure Rule Update [3906 chars]
+          3. Aligning materiality – and financial disclosure The SEC disclosure framework continues to be grounded in financial materiality (as set out by the Supreme Court in Basic v. Levinson and TSC Industries v. Northway, Inc.), which is focused on the total mix of information from the perspective of a reasonable investor. Companies want to make sure that their approach to materiality is stable across r...
+      [7] (Scraped) What Are ESG Rules? Disclosures, Compliance & Liability [6015 chars]
+          What Are ESG Rules? Disclosures, Compliance & Liability ESG rules require companies to accurately disclose environmental, social, and governance data — and misleading disclosures can trigger real liability. ESG rules require companies to accurately disclose environmental, social, and governance data — and misleading disclosures can trigger real liability. ESG rules are federal and international re...
+    [executor/web] 2513 chars (2802 in / 527 out tokens)
+    --- Sub-answer ---
+    The current federal ESG disclosure framework for public companies is based on the existing materiality standard under the securities laws and specific items in Regulation S-K [Source 5][Source 6]. There is no standalone, prescriptive federal ESG rule in effect [Source 7].
+
+**Rule and Materiality Standard**: All SEC disclosure rules are grounded in the concept of financial materiality, which focuses on information important to a reasonable investor [Source 5][Source 6]. If an ESG-related issue is...
+    --- End sub-answer ---
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/judge] 390 chars (3709 in / 79 out tokens)
+  Judge: sufficient=True | The retrieved passages directly address the core components of the sub-question by detailing the SEC's materiality-based framework, referencing specific Regulation S-K items (e.g., Item 101 for human capital), explaining the status of climate disclosure rules, and discussing governance and liability for ESG disclosures.
+
+--- REPLANNER ---
+    [replanner] 315 chars (3923 in / 58 out tokens)
+  LLM replanner: complete — The accumulated evidence comprehensively addresses the original question by detailing the stayed SEC climate rule, the foundational materiality standard, and existing Regulation S-K requirements for climate, human capital, and governance, making further steps redundant.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 4312 chars (10060 in / 874 out tokens)
+  Final answer: 4312 chars
+
+================================================================================
+FINAL ANSWER:
+================================================================================
+**Issue**: What are the current federal regulations requiring publicly traded companies to disclose Environmental, Social, and Governance (ESG) information?
+
+**Rule**: The current federal regulatory framework for ESG disclosures is not a standalone, prescriptive rule but is grounded in the existing securities laws and the foundational concept of financial materiality [Evidence 22][Evidence 24]. Disclosure obligations arise primarily from specific items in Regulation S-K, which governs the non-financial statement content of SEC filings [Evidence 11][Evidence 22]. First, Item 303 of Regulation S-K requires a company to disclose in its Management’s Discussion and Analysis (MD&A) any known trends or uncertainties that management reasonably expects will have a material effect on financial condition or results of operations [Evidence 8][Evidence 13][Evidence 14]. Second, Item 105 requires the disclosure of material risks to the company's operations in a "risk factors" section, written in plain English [Evidence 9]. Third, Item 101 requires a description of human capital resources to the extent material to understanding the business [Evidence 24]. For climate-related risks specifically, the SEC's 2010 interpretive guidance remains applicable, identifying where such material issues must be disclosed under Regulation S-K [Evidence 18][Evidence 23]. All such disclosures are subject to the general anti-fraud provisions of the securities laws, and misleading statements can trigger liability [Evidence 20][Evidence 24].
+
+**Application**: Applying this framework, a publicly traded company must assess whether any specific ESG issue is financially material. An environmental trend like climate change, a social issue like workforce management, or a governance matter like board oversight must be disclosed if it meets the materiality thresholds under Items 303 or 105 [Evidence 8][Evidence 9]. For example, a known climate-related risk that is reasonably likely to affect future revenues must be discussed in the MD&A [Evidence 8][Evidence 13]. Material human capital issues, such as labor shortages critical to operations, must be described under Item 101, though no specific metrics are mandated [Evidence 24]. The research did not address a federal rule mandating specific board diversity disclosures. While the SEC adopted a dedicated climate disclosure rule in March 2024 requiring specific disclosures like material Scope 1 and Scope 2 greenhouse gas emissions [Evidence 1][Evidence 3][Evidence 7], that rule is not in effect. Its implementation is stayed due to litigation, and the SEC has withdrawn its defense, making its future under the current Commission unlikely [Evidence 2][Evidence 4][Evidence 6]. Therefore, companies currently rely on the principles-based, materiality-driven existing regulations.
+
+**Conclusion**: Currently, there is no prescriptive federal ESG disclosure rule in effect for publicly traded companies. Instead, ESG disclosures are required under existing SEC regulations—specifically Items 303, 105, and 101 of Regulation S-K—when the information is determined to be financially material to a reasonable investor. The SEC's 2024 climate-specific disclosure rule has been stayed and is not being defended, leaving the materiality-based framework as the governing standard.
+
+## Sources
+- **Evidence 1, 3, 5, 7**: The SEC's March 2024 final rule on climate-related disclosures and its specific requirements (e.g., Scope 1 & 2 emissions, governance).
+- **Evidence 2, 4, 6**: The stayed status and uncertain future of the 2024 climate rule due to litigation and the SEC's withdrawal of its defense.
+- **Evidence 8, 13, 14, 15**: The disclosure duty under Regulation S-K Item 303 for known trends or uncertainties reasonably likely to have material effects.
+- **Evidence 9**: The requirements for disclosing material risk factors under Regulation S-K Item 105.
+- **Evidence 11, 22**: The role of Regulation S-K in SEC filings and the foundation of disclosure rules in materiality.
+- **Evidence 18, 23**: The continued applicability of the SEC's 2010 climate guidance for material climate risk disclosures.
+- **Evidence 20, 24**: Liability for misleading ESG disclosures and the application of existing rules to material ESG issues, including human capital under Item 101.
+
+================================================================================
+RUN SUMMARY
+================================================================================
+Steps completed : 4
+Evidence pieces : 24
+LLM calls       : 14
+Tokens (in/out) : 42,250 / 3,908
+
+Step breakdown:
+  Step    1 [web_search    ] conf=0.000 judge=ok evidence=[5 web_snippet, 2 web_scraped]
+  Step    2 [rag_search    ] conf=0.957 judge=insufficient evidence=[3 caselaw, 2 wex]
+  Step   25 [rag_search    ] conf=0.816 judge=insufficient evidence=[4 caselaw, 1 wex]
+  Step  255 [web_search    ] conf=0.000 judge=ok evidence=[5 web_snippet, 2 web_scraped]
+  Step    3 [rag_search    ] status=pending (skipped)
+  Step    4 [rag_search    ] status=pending (skipped)
+================================================================================
+
