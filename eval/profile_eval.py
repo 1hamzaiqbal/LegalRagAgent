@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import glob
 import json
 import os
 import time
@@ -49,6 +50,67 @@ def _load_completed(detail_file: str) -> Dict[str, Dict]:
             record = json.loads(line)
             completed[record["label"]] = record
     return completed
+
+
+def _resolve_output_paths(
+    *,
+    log_prefix: str,
+    suite: str,
+    provider_name: str,
+    continue_eval: bool,
+) -> tuple[str, str, str]:
+    suite_suffix = "" if suite == "bar" else f"_{suite}"
+    stem = f"logs/{log_prefix}{suite_suffix}_{provider_name}"
+    if continue_eval:
+        candidates = glob.glob(f"{stem}_*_detail.jsonl")
+        if candidates:
+            detail_file = max(candidates, key=os.path.getmtime)
+            return (
+                detail_file.replace("_detail.jsonl", ".txt"),
+                detail_file,
+                detail_file.replace("_detail.jsonl", "_labels.json"),
+            )
+    timestamp = time.strftime("%Y%m%d_%H")
+    log_file = f"{stem}_{timestamp}.txt"
+    return log_file, log_file.replace(".txt", "_detail.jsonl"), log_file.replace(".txt", "_labels.json")
+
+
+def _build_summary_lines(
+    *,
+    report_title: str,
+    profile_name: str,
+    suite: str,
+    n: int,
+    results: List[Dict],
+    queries: List[Dict],
+    initial_totals: Dict[str, float],
+) -> List[str]:
+    correct = sum(1 for item in results if item["is_correct"])
+    errors = sum(1 for item in results if item["error"])
+    accuracy = correct / len(queries) * 100 if queries else 0.0
+    gold_hits = sum(1 for item in results if item.get("gold_retrieved"))
+    gold_rate = gold_hits / len(queries) * 100 if suite == "bar" and queries else 0.0
+    cost_strings = compute_cost(initial_totals)
+
+    lines = [
+        f"{report_title} | profile={profile_name} | suite={suite} | n={n}",
+        f"Accuracy: {correct}/{len(queries)} ({accuracy:.1f}%)",
+        f"Errors: {errors}",
+    ]
+    if suite == "bar":
+        lines.append(f"Gold Recall@5: {gold_hits}/{len(queries)} ({gold_rate:.1f}%)")
+    if cost_strings:
+        lines.append(f"Cost: {', '.join(cost_strings)}")
+    return lines
+
+
+def _write_summary_log(log_file: str, lines: List[str], results: List[Dict]) -> None:
+    with open(log_file, "w", encoding="utf-8") as handle:
+        handle.write("\n".join(lines) + "\n")
+        handle.write("-" * 80 + "\n")
+        for item in sorted(results, key=lambda row: row["label"]):
+            status = "PASS" if item["is_correct"] else ("ERR" if item["error"] else "FAIL")
+            handle.write(f"{item['label']:<30} {status:<6} {item['elapsed_sec']:>5.1f}s {item.get('llm_calls', 0):>4}\n")
 
 
 def evaluate_single_query(profile_name: str, q: Dict, *, write_run_artifact: bool) -> Dict:
@@ -125,11 +187,12 @@ def run_profile_evaluation(
         write_run_artifact = profile.kind == "full"
     provider_name = os.getenv("LLM_PROVIDER", "default").strip().lower()
     os.makedirs("logs", exist_ok=True)
-    timestamp = time.strftime("%Y%m%d_%H")
-    suite_suffix = "" if suite == "bar" else f"_{suite}"
-    log_file = f"logs/{log_prefix}{suite_suffix}_{provider_name}_{timestamp}.txt"
-    detail_file = log_file.replace(".txt", "_detail.jsonl")
-    labels_file = log_file.replace(".txt", "_labels.json")
+    log_file, detail_file, labels_file = _resolve_output_paths(
+        log_prefix=log_prefix,
+        suite=suite,
+        provider_name=provider_name,
+        continue_eval=continue_eval,
+    )
 
     completed = _load_completed(detail_file) if continue_eval else {}
     queries = _select_queries(suite, n, labels_path=labels_path)
@@ -170,35 +233,35 @@ def run_profile_evaluation(
             gold = " gold=Y" if result["gold_retrieved"] else " gold=N"
         print(f"{tag}{gold} ({result['elapsed_sec']}s)")
         results.append(result)
+        with open(detail_file, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps(result, ensure_ascii=False) + "\n")
+        lines = _build_summary_lines(
+            report_title=report_title,
+            profile_name=profile.name,
+            suite=suite,
+            n=n,
+            results=results,
+            queries=queries,
+            initial_totals=initial_totals,
+        )
+        _write_summary_log(log_file, lines, results)
 
-    correct = sum(1 for item in results if item["is_correct"])
-    errors = sum(1 for item in results if item["error"])
-    accuracy = correct / len(queries) * 100 if queries else 0.0
-    gold_hits = sum(1 for item in results if item.get("gold_retrieved"))
-    gold_rate = gold_hits / len(queries) * 100 if suite == "bar" and queries else 0.0
-    cost_strings = compute_cost(initial_totals)
-
-    lines = [
-        f"{report_title} | profile={profile.name} | suite={suite} | n={n}",
-        f"Accuracy: {correct}/{len(queries)} ({accuracy:.1f}%)",
-        f"Errors: {errors}",
-    ]
-    if suite == "bar":
-        lines.append(f"Gold Recall@5: {gold_hits}/{len(queries)} ({gold_rate:.1f}%)")
-    if cost_strings:
-        lines.append(f"Cost: {', '.join(cost_strings)}")
+    lines = _build_summary_lines(
+        report_title=report_title,
+        profile_name=profile.name,
+        suite=suite,
+        n=n,
+        results=results,
+        queries=queries,
+        initial_totals=initial_totals,
+    )
 
     print(f"\n{'=' * 80}")
     for line in lines:
         print(line)
     print(f"{'=' * 80}\n")
 
-    with open(log_file, "w", encoding="utf-8") as handle:
-        handle.write("\n".join(lines) + "\n")
-        handle.write("-" * 80 + "\n")
-        for item in sorted(results, key=lambda row: row["label"]):
-            status = "PASS" if item["is_correct"] else ("ERR" if item["error"] else "FAIL")
-            handle.write(f"{item['label']:<30} {status:<6} {item['elapsed_sec']:>5.1f}s {item.get('llm_calls', 0):>4}\n")
+    _write_summary_log(log_file, lines, results)
 
     with open(detail_file, "w", encoding="utf-8") as handle:
         for item in results:
