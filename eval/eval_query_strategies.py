@@ -17,10 +17,15 @@ import sys
 import time
 import json
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from ._path_setup import ensure_project_root_on_path
+except ImportError:
+    from _path_setup import ensure_project_root_on_path
+
+ensure_project_root_on_path()
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
-from main import _llm_call, _parse_json, load_skill
+from legal_rag import _llm_call, _parse_json, load_skill
 from rag_utils import (retrieve_documents_multi_query, rerank_with_cross_encoder,
                        retrieve_documents)
 from eval.eval_utils import select_qa_queries
@@ -32,6 +37,25 @@ from eval.eval_utils import select_qa_queries
 
 def strategy_raw(question: str, **kw) -> list[str]:
     """Strategy 0: Raw question, no rewriting at all."""
+    return [question]
+
+
+def _aspect_queries(question: str, *, label: str) -> list[str]:
+    prompt = (
+        f"Original legal research question: {question}\n\n"
+        f"Sub-question: {question}\n"
+        f"Authority target: legal doctrine\n"
+        f"Retrieval hints: none"
+    )
+    raw = _llm_call(load_skill("aspect_query_rewriter"), prompt, label=label)
+    parsed = _parse_json(raw)
+    if parsed:
+        queries = []
+        for key in ["rule", "exception", "application"]:
+            if key in parsed:
+                queries.append(parsed[key])
+        if queries:
+            return queries
     return [question]
 
 
@@ -52,27 +76,7 @@ def strategy_current(question: str, **kw) -> list[str]:
 
 def strategy_aspect(question: str, **kw) -> list[str]:
     """Strategy 2: Aspect-based — target different legal dimensions."""
-    prompt = f"""Given this legal question, generate THREE retrieval queries that each target a DIFFERENT legal aspect:
-
-1. **Rule query**: Target the governing rule, doctrine, or elements (textbook-level)
-2. **Exception query**: Target exceptions, defenses, or limitations to the rule
-3. **Application query**: Target how courts apply this rule to specific facts
-
-Return ONLY valid JSON:
-{{"rule": "...", "exception": "...", "application": "..."}}
-
-Question: {question}"""
-
-    raw = _llm_call(prompt, question, label="rewrite/aspect")
-    parsed = _parse_json(raw)
-    if parsed:
-        queries = []
-        for key in ["rule", "exception", "application"]:
-            if key in parsed:
-                queries.append(parsed[key])
-        if queries:
-            return queries
-    return [question]
+    return _aspect_queries(question, label="rewrite/aspect")
 
 
 def strategy_decompose(question: str, **kw) -> list[str]:
@@ -245,27 +249,7 @@ def strategy_interleave(question: str, **kw) -> list[str]:
     Returns queries with a special marker so evaluate_strategy_interleave can handle it.
     Note: We reuse the aspect prompt but the evaluation function handles interleaving.
     """
-    prompt = f"""Given this legal question, generate THREE retrieval queries that each target a DIFFERENT legal aspect. Use 10-15 words of dense legal keywords per query — NOT full sentences.
-
-1. **Rule query**: The governing rule, doctrine, or elements (textbook-level)
-2. **Exception query**: Exceptions, defenses, or limitations to the rule
-3. **Application query**: How courts apply this rule to specific facts
-
-Return ONLY valid JSON:
-{{"rule": "...", "exception": "...", "application": "..."}}
-
-Question: {question}"""
-
-    raw = _llm_call(prompt, question, label="rewrite/interleave")
-    parsed = _parse_json(raw)
-    if parsed:
-        queries = []
-        for key in ["rule", "exception", "application"]:
-            if key in parsed:
-                queries.append(parsed[key])
-        if queries:
-            return queries
-    return [question]
+    return _aspect_queries(question, label="rewrite/interleave")
 
 
 STRATEGIES = {

@@ -41,7 +41,7 @@ Return ONLY valid JSON — no prose, no markdown fences:
 
 - `sufficient`: `true` if the answer is grounded in established doctrine and contributes to the research goal; `false` if it appears fabricated, unhedged on contested points, or wholly irrelevant.
 - `reason`: Specific observation about grounding quality. Note any unsupported claims or missing uncertainty language.
-- `suggested_rewrite`: Always `null` for `direct_answer` steps — the replanner handles further escalation.
+- `suggested_rewrite`: Always `null` for `direct_answer` steps — any further fallback is handled by the executor path, not by replanning.
 
 ## Decision Guidelines
 

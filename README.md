@@ -1,6 +1,6 @@
 # LegalRagAgent
 
-Agentic Legal RAG system built on LangGraph. Uses a **plan-and-execute** loop with corpus routing, retrieval judging, and adaptive replanning to answer legal research questions over bar-exam materials and housing statutes.
+Legal RAG system for the `reglab/barexam_qa` and `reglab/housing_qa` corpora. The current branch is moving toward a profile-driven, round-safe plan-and-execute pipeline with true parallel step execution, structured run artifacts, and curated playtests for iteration before large evaluations.
 
 ## Setup
 
@@ -14,131 +14,219 @@ uv sync
 
 Requires Python 3.11-3.13 and [uv](https://docs.astral.sh/uv/).
 
-### 2. Configure LLM provider
+### 2. Configure an LLM provider
 
 ```bash
 cp .env.example .env
-# Edit .env — add your API key for at least one provider
+# Edit .env and add at least one provider API key
 ```
 
-Default provider: **DeepSeek** (pay-per-use, no TPM cap). Other options: Google AI Studio, Groq, OpenRouter, Cerebras, Ollama. Run `uv run python llm_config.py` to see all providers.
+Default provider: `deepseek`. Run `uv run python llm_config.py` to list configured providers.
 
 ### 3. Download datasets
 
 ```bash
-uv run python utils/download_data.py           # BarExam QA (~686K passages)
-uv run python utils/download_housingqa.py       # HousingQA (~1.84M statutes)
+uv run python utils/download_data.py
+uv run python utils/download_housingqa.py
 ```
 
 ### 4. Build vector stores
 
 ```bash
-# Fast embedding (bypasses LangChain, uses GPU fp16 batching)
-uv run python utils/fast_embed.py barexam       # Full barexam corpus (~2.2 hr)
-uv run python utils/fast_embed.py housing       # Full housing statutes (~6 hr)
-uv run python utils/fast_embed.py status        # Check collection sizes
-
-# Or use the LangChain loader for smaller subsets
-uv run python utils/load_corpus.py curated      # Gold passages + padding (~3 min)
-uv run python utils/load_corpus.py 20000        # First 20K passages (~30 min)
+uv run python utils/fast_embed.py barexam
+uv run python utils/fast_embed.py housing
+uv run python utils/fast_embed.py housing --resume
+uv run python utils/fast_embed.py status
 ```
 
-To rebuild from scratch, delete `chroma_db/` first. Set `HF_HUB_OFFLINE=1` after first download to skip network checks.
-
-### 5. Run the agent
+Optional smaller loader:
 
 ```bash
-uv run python main.py simple                    # "What are the elements of a negligence claim?"
-uv run python main.py multi_hop                  # Fourth Amendment suppression scenario
-uv run python main.py medium                     # Preliminary injunction standard
-uv run python main.py simple --verbose           # Full passage text, token counts, sub-answers
+uv run python utils/load_corpus.py curated
+uv run python utils/load_corpus.py 20000
 ```
 
-## Architecture
+## Running
 
-Five-node LangGraph state machine with collection routing, judge-driven control flow, and adaptive replanning.
-
-```
-START → router → planner → executor → replanner ─┬─→ executor  (next/retry)
-                                                  └─→ synthesizer → END
-```
-
-- **Router**: Chooses which ChromaDB collection(s) to search, typically `legal_passages` or `housing_statutes`
-- **Planner**: Decomposes the question into 2-5 research steps, each with an action type (`rag_search`, `web_search`, or `direct_answer`)
-- **Executor**: Per step — rewrites `rag_search` queries into primary + 2 alternatives, retrieves from the routed collection(s), synthesizes a cited sub-answer, and runs a judge/verifier
-- **Replanner**: Applies deterministic escalation on failure (`rag_search` rewrite → `web_search` → `direct_answer`) and uses an LLM to decide `next` / `retry` / `complete` when evidence is sufficient. Default budget: 7 original planned steps; retry/escalation steps do not count against the budget
-- **Synthesizer**: Aggregates all completed research into a final IRAC-style answer with `[Evidence N]` citations
-
-### Skills (7 prompt files in `skills/`)
-
-| Skill | Purpose |
-|-------|---------|
-| `planner.md` | Decompose question into research steps with action types |
-| `query_rewriter.md` | Rewrite sub-question into primary + 2 alternative queries |
-| `synthesize_and_cite.md` | Per-step cited synthesis with `[Source N]` format |
-| `judge.md` | Evaluate retrieval sufficiency for rag/web steps |
-| `verifier.md` | Evaluate direct_answer grounding in doctrine |
-| `replanner.md` | Decide next/complete/retry from accumulated evidence |
-| `synthesizer.md` | Final IRAC synthesis with `[Evidence N]` citations |
-
-### Retrieval
-
-Default `rag_search` retrieval is hybrid BM25 + dense retrieval with cross-encoder reranking:
-1. Query rewriter produces 1 primary query and 2 alternatives
-2. Bi-encoder (`gte-large-en-v1.5`) retrieves candidates for each query variant
-3. BM25 (`rank-bm25`) retrieves keyword candidates when collection size allows
-4. Pool + deduplicate by passage ID
-5. Cross-encoder (`ms-marco-MiniLM-L-6-v2`) reranks to top 5
-
-Current corpus-specific nuance:
-
-- `legal_passages` uses hybrid BM25 + dense retrieval
-- `housing_statutes` currently falls back to dense-only retrieval because BM25 is skipped for collections larger than 1,000,000 documents
-- `housing_statutes` documents store `state` and `citation` metadata, but the current runtime does not yet apply automatic state filtering or citation-aware retrieval
-
-### Datasets
-
-| Dataset | Corpus size | QA pairs | Domain |
-|---------|-------------|----------|--------|
-| [BarExam QA](https://huggingface.co/datasets/reglab/barexam_qa) | 686K passages | MC (A-D) | Bar exam (all subjects) |
-| [HousingQA](https://huggingface.co/datasets/reglab/housing_qa) | 1.84M statutes | 6,853 Yes/No | Housing law (51 jurisdictions) |
-
-## Evaluation
-
-Current presentation-facing evaluations:
+List profiles:
 
 ```bash
-uv run python eval/eval_baseline.py 100
+uv run python main.py --list-profiles
+```
+
+Run demo questions:
+
+```bash
+uv run python main.py simple --profile full_parallel
+uv run python main.py multi_hop --profile full_parallel
+uv run python main.py medium --profile full_seq
+uv run python main.py --question "What are the elements of adverse possession?" --profile full_parallel_aspect
+uv run python main.py simple --profile full_parallel --verbose
+```
+
+## Runtime Shape
+
+`main.py` is intentionally thin. The live runtime is split across:
+
+- `legal_rag/runtime.py` for graph construction and top-level execution
+- `legal_rag/nodes.py` for router, planner, synthesizer, and replanner graph nodes
+- `legal_rag/step_executor.py` for round execution and per-step escalation
+- `legal_rag/retrieval.py` for query construction, retrieval, and step-level answer generation
+- `legal_rag/execution.py` as a compatibility facade over those modules
+- `legal_rag/profiles.py` for named experiment profiles
+- `legal_rag/artifacts.py` for structured run logging
+
+Current full-profile graph:
+
+```text
+START -> router_node -> planner_node -> execute_round_node
+                                           |
+                                           v
+                                   synthesizer_node
+                                           |
+                               incomplete? v
+                                     replanner_node
+                                           |
+                                           v
+                                     planner_node
+```
+
+There are two important execution modes:
+
+- `full_seq`: executes one pending step per round, then loops until no pending steps remain before synthesis.
+- `full_parallel`: executes all pending steps from the same round snapshot, merges their results at a barrier, then synthesizes.
+
+### Node responsibilities
+
+- `router_node`: chooses the relevant collection set, usually `legal_passages` or `housing_statutes`
+- `planner_node`: turns the research question into 1-5 `PlanningStep`s, and on follow-up rounds appends only new steps using the replanning brief
+- `execute_round_node`: runs pending steps either sequentially or in parallel depending on profile
+- `synthesizer_node`: combines completed step results into the final answer and checks completeness
+- `replanner_node`: converts accumulated findings into a plain-language replanning brief and routes back to `planner_node`
+
+### Per-step behavior
+
+Each step owns its own escalation path inside the executor:
+
+- `rag_search`: retrieve, synthesize, judge, optionally rewrite, then fall back if allowed
+- `web_search`: search, scrape, synthesize, judge, then fall back if allowed
+- `direct_answer`: answer from model knowledge and verify grounding
+
+For `rag_strategy="aspect"`, one step generates three retrieval angles:
+
+- `rule`
+- `exception`
+- `application`
+
+Those aspect queries retrieve independently, are pooled and reranked, and then support one sub-answer for that step.
+
+### Round semantics
+
+The intended model on this branch is round-safe execution:
+
+- all sibling steps in the same round see the same immutable snapshot of prior state
+- sibling steps do not see each other's newly retrieved evidence mid-round
+- evidence is canonically deduplicated only at merge time
+- per-step evidence references and traces are preserved for synthesis and debugging
+- incomplete rounds feed a summarized replanning brief back into `planner_node` instead of dumping raw evidence/traces into the planner prompt
+
+## Profiles
+
+The current named profiles are:
+
+| Profile | Purpose |
+|---|---|
+| `llm_only` | Direct answer baseline |
+| `simple_rag` | Single-step retrieve-and-answer baseline |
+| `rewrite_rag` | Single-step RAG with synonym-style query rewrite |
+| `full_seq` | Full pipeline with sequential step execution |
+| `full_parallel` | Full pipeline with round-safe parallel step execution |
+| `full_parallel_aspect` | Full pipeline with round-safe parallel step execution and aspect-specialized retrieval |
+
+## Prompt Files
+
+Current prompt files in `skills/`:
+
+| Skill file | Purpose |
+|---|---|
+| `planner.md` | Generate research steps |
+| `query_rewriter.md` | Standard synonym-style rewrite queries |
+| `aspect_query_rewriter.md` | Rule / exception / application queries for aspect retrieval |
+| `synthesize_and_cite.md` | Step-level cited synthesis |
+| `judge.md` | Sufficiency judgment for retrieved evidence |
+| `verifier.md` | Grounding check for direct answers |
+| `synthesizer.md` | Final IRAC-style synthesis |
+
+## Retrieval
+
+Source of truth: `rag_utils.py`
+
+- ChromaDB persisted in `./chroma_db/`
+- `legal_passages`: 686,324 BarExam passages
+- `housing_statutes`: 1,837,403 housing statutes
+- Embedding model: `Alibaba-NLP/gte-large-en-v1.5`
+- Cross-encoder reranker: `cross-encoder/ms-marco-MiniLM-L-6-v2`
+- Hybrid retrieval: dense plus BM25 where the collection is small enough
+- BM25 is skipped above 1M docs, so `housing_statutes` is effectively dense-only
+
+## Evaluation and Playtests
+
+Profile-driven evals:
+
+```bash
+uv run python eval/eval_baseline.py 100 --suite bar
 uv run python eval/eval_bm25_baseline.py 100
-uv run python eval/eval_golden.py 100
+uv run python eval/eval_rag_rewrite.py 100
+uv run python eval/eval_qa.py 100 --profile full_parallel
+uv run python eval/eval_qa.py 100 --profile full_parallel_aspect
 ```
 
-Most recent current-system results:
+Curated playtests:
 
-- Direct LLM baseline: `85/100` in `logs/eval_baseline_deepseek_20260322_13.txt`
-- Simple retrieve-and-answer baseline: `70/100` in `logs/eval_bm25_baseline_deepseek_20260322_15.txt`
-- Golden-passage upper bound: `77/100` in `logs/eval_golden_deepseek_20260322_13.txt`
+```bash
+uv run python eval/run_playtests.py
+uv run python eval/run_playtests.py --profile full_parallel_aspect
+```
 
-Other scripts in `eval/` are exploratory or older and are not the current reported results for presentation.
+Local tests:
+
+```bash
+uv run pytest -q -s
+```
+
+## Historical Results
+
+These are earlier reported numbers from pre-redesign runs and should be rerun after the current branch stabilizes:
+
+| Method | Accuracy | Gold Recall@5 |
+|---|---|---|
+| LLM-only | 85% | n/a |
+| RAG + query rewrite | 80% | 8% |
+| Golden passage upper bound | 77% | n/a |
+| Simple RAG | 70% | 0% |
 
 ## Project Structure
 
-```
-main.py                # LangGraph pipeline (5 nodes, routing, state)
-rag_utils.py           # Retrieval: dense + BM25 when available + cross-encoder reranking
-llm_config.py          # Provider registry, LLM singleton
-web_scraper.py         # Web page text extraction (trafilatura) for web_search steps
-skills/                # 7 prompt files
-eval/                  # Evaluation scripts
-  eval_baseline.py     # Direct-LLM baseline
-  eval_bm25_baseline.py # Simple retrieve-and-answer baseline (uses current hybrid retriever)
-  eval_golden.py       # Golden-passage upper bound
-  ...                  # Additional exploratory / older eval scripts
-utils/                 # Setup and utility scripts
-  download_data.py     # Download BarExam QA from HuggingFace
-  download_housingqa.py # Download HousingQA from HuggingFace
-  fast_embed.py        # GPU-optimized bulk embedding (fp16, chunked)
-  load_corpus.py       # LangChain-based corpus loader (smaller subsets)
-  render_graph.py      # Graph visualization
-  cudacheck.py         # GPU availability check
+```text
+main.py                  # Thin CLI and compatibility wrapper
+legal_rag/
+  runtime.py             # Graph construction and top-level execution
+  execution.py           # Compatibility facade over the split runtime modules
+  nodes.py               # Router, planner, synthesizer, replanner graph nodes
+  step_executor.py       # Round execution and per-step escalation
+  retrieval.py           # Query building, retrieval, and per-step answer generation
+  prompts.py             # Inline router/completeness prompts and prompt-version helpers
+  state_utils.py         # Shared state serialization/logging helpers
+  profiles.py            # Experiment profiles
+  core.py                # LLM helpers, skill loading, parsing, metrics
+  artifacts.py           # Structured run artifacts
+  baselines.py           # Baseline profile runners
+rag_utils.py             # Dense/BM25 retrieval and reranking
+llm_config.py            # Provider configuration
+web_scraper.py           # DuckDuckGo scrape helper for web-search steps
+skills/                  # Prompt contracts used by the runtime
+eval/                    # Profile-driven eval scripts and retrieval experiments
+playtests/               # Curated manual regression cases
+tests/                   # Runtime and prompt-contract tests
+utils/                   # Data download, embedding, and utility scripts
 ```

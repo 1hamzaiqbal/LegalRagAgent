@@ -14,9 +14,14 @@ import sys
 import time
 import re
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from ._path_setup import ensure_project_root_on_path
+except ImportError:
+    from _path_setup import ensure_project_root_on_path
 
-from main import _llm_call, _get_metrics, _get_deepseek_balance
+ensure_project_root_on_path()
+
+from legal_rag import _get_metrics, _llm_call
 from llm_config import get_provider_info
 from eval.eval_utils import (
     select_qa_queries, check_mc_correctness, capture_balance, compute_cost,

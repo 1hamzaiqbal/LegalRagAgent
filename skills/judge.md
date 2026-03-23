@@ -61,7 +61,7 @@ Return ONLY valid JSON — no prose, no markdown fences:
 - **Treat hedged non-answers as evidence of insufficiency.** If the answer draft mainly says things like "the evidence does not directly address," that usually means `false`.
 - **Tangential overlap is not enough.** Shared keywords or general background doctrine do not make a retrieval sufficient unless they answer the step's actual question.
 - **For current, recent, or out-of-corpus facts**, if the retrieved passages do not contain the needed factual answer, return `false` so the system can escalate.
-- **Web search results**: Apply the same criteria but do not provide `suggested_rewrite` (web_search escalation is handled by the replanner).
+- **Web search results**: Apply the same criteria but do not provide `suggested_rewrite` because any further fallback is handled by the executor's escalation path, not by replanning.
 
 ## Examples
 

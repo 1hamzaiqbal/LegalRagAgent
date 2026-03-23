@@ -20,6 +20,8 @@ agentic_ideas/
 
 # Generated artifacts
 case_studies/
+logs/
+.pytest_cache/
 
 # Editor / OS
 *~

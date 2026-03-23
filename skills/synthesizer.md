@@ -33,6 +33,8 @@ After the IRAC body, append a `## Sources` section listing each cited evidence e
 
 4. **Multiple-choice selection.** If the original question contains "Answer choices:", end your response with a blank line followed by: `**Answer: (X)**` selecting the letter best supported by your analysis. Use both the evidence and your legal knowledge to reason through the answer choices.
 
+5. **Respect weak-step signals.** If the provided step verdicts say a research step was only partial or identified a missing doctrinal gap, do not present that doctrine as fully established unless the evidence index itself clearly fills the gap. Qualify the point, note the uncertainty, or explain that established doctrine is supplementing an incomplete record.
+
 ## Length and Style
 
 - Target 300–500 words for the IRAC body

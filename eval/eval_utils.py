@@ -1,5 +1,6 @@
 """Shared utilities for evaluation scripts."""
 
+import json
 import os
 import re
 import sys
@@ -28,30 +29,64 @@ def load_qa_with_gold() -> pd.DataFrame:
     return qa_in
 
 
+def _row_to_query(index, row) -> dict:
+    subj_name = str(row["subject"]).lower().replace(" ", "").replace(".", "")
+    return {
+        "label": f"qa_{subj_name}_{index}",
+        "question": row["full_q"],
+        "gold_idx": row["gold_idx"],
+        "correct_answer": row["answer"],
+        "choices": {
+            "A": str(row["choice_a"]) if pd.notna(row["choice_a"]) else "",
+            "B": str(row["choice_b"]) if pd.notna(row["choice_b"]) else "",
+            "C": str(row["choice_c"]) if pd.notna(row["choice_c"]) else "",
+            "D": str(row["choice_d"]) if pd.notna(row["choice_d"]) else "",
+        },
+        "subject": row["subject"],
+        "gold_passage": str(row["gold_passage"]) if pd.notna(row.get("gold_passage")) else "",
+    }
+
+
 def select_qa_queries(n: int = 10):
     """Select a deterministic random sample of questions using a fixed seed."""
     qa = load_qa_with_gold()
-    queries = []
     sampled_qa = qa.sample(n=min(n, len(qa)), random_state=42)
+    return [_row_to_query(index, row) for index, row in sampled_qa.iterrows()]
 
-    for i, row in sampled_qa.iterrows():
-        subj_name = str(row["subject"]).lower().replace(" ", "").replace(".", "")
-        queries.append({
-            "label": f"qa_{subj_name}_{i}",
-            "question": row["full_q"],
-            "gold_idx": row["gold_idx"],
-            "correct_answer": row["answer"],
-            "choices": {
-                "A": str(row["choice_a"]) if pd.notna(row["choice_a"]) else "",
-                "B": str(row["choice_b"]) if pd.notna(row["choice_b"]) else "",
-                "C": str(row["choice_c"]) if pd.notna(row["choice_c"]) else "",
-                "D": str(row["choice_d"]) if pd.notna(row["choice_d"]) else "",
-            },
-            "subject": row["subject"],
-            "gold_passage": str(row["gold_passage"]) if pd.notna(row.get("gold_passage")) else "",
-        })
 
-    return queries
+def select_qa_queries_by_labels(labels: list[str]) -> list[dict]:
+    """Return QA records in the exact label order requested."""
+    qa = load_qa_with_gold()
+    by_label = {}
+    for index, row in qa.iterrows():
+        query = _row_to_query(index, row)
+        by_label[query["label"]] = query
+    missing = [label for label in labels if label not in by_label]
+    if missing:
+        preview = ", ".join(missing[:5])
+        raise KeyError(f"Unknown QA labels: {preview}")
+    return [by_label[label] for label in labels]
+
+
+def load_eval_labels(path: str) -> list[str]:
+    """Load an ordered label list from a JSON, JSONL, or prior detail log."""
+    if path.endswith(".jsonl"):
+        labels = []
+        with open(path, "r", encoding="utf-8") as handle:
+            for line in handle:
+                if not line.strip():
+                    continue
+                labels.append(json.loads(line)["label"])
+        return labels
+
+    with open(path, "r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+
+    if isinstance(payload, list):
+        return [str(item) for item in payload]
+    if isinstance(payload, dict) and isinstance(payload.get("labels"), list):
+        return [str(item) for item in payload["labels"]]
+    raise ValueError(f"Unsupported label manifest format: {path}")
 
 
 MC_LETTER_PATTERNS = [

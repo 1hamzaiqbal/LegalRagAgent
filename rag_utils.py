@@ -1,7 +1,7 @@
-import functools
 import logging
 import os
 import re
+import threading
 import numpy as np
 import pandas as pd
 from typing import List, Dict
@@ -26,19 +26,40 @@ DEFAULT_EMBEDDING_MODEL = "Alibaba-NLP/gte-large-en-v1.5"
 # Model singletons
 # ---------------------------------------------------------------------------
 
-@functools.lru_cache(maxsize=1)
-def get_embeddings():
-    model_name = os.getenv("EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL)
-    print(f"[rag_utils] Loading embedding model: {model_name}")
-    return HuggingFaceEmbeddings(
-        model_name=model_name,
-        model_kwargs={"trust_remote_code": True},
-    )
+_embeddings_instance = None
+_embeddings_lock = threading.Lock()
 
-@functools.lru_cache(maxsize=1)
+
+def get_embeddings():
+    global _embeddings_instance
+    if _embeddings_instance is not None:
+        return _embeddings_instance
+
+    with _embeddings_lock:
+        if _embeddings_instance is None:
+            model_name = os.getenv("EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL)
+            print(f"[rag_utils] Loading embedding model: {model_name}")
+            _embeddings_instance = HuggingFaceEmbeddings(
+                model_name=model_name,
+                model_kwargs={"trust_remote_code": True},
+            )
+    return _embeddings_instance
+
+
+_cross_encoder_instance = None
+_cross_encoder_lock = threading.Lock()
+
+
 def get_cross_encoder():
     """Cached cross-encoder for reranking (ms-marco-MiniLM-L-6-v2)."""
-    return CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+    global _cross_encoder_instance
+    if _cross_encoder_instance is not None:
+        return _cross_encoder_instance
+
+    with _cross_encoder_lock:
+        if _cross_encoder_instance is None:
+            _cross_encoder_instance = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+    return _cross_encoder_instance
 
 
 def rerank_with_cross_encoder(
@@ -67,16 +88,21 @@ def rerank_with_cross_encoder(
 # ---------------------------------------------------------------------------
 
 _vectorstore_instances: Dict[str, Chroma] = {}
+_vectorstore_lock = threading.Lock()
 
 def get_vectorstore(collection_name: str = COLLECTION_NAME) -> Chroma:
     """Returns a Chroma vector store singleton for the given collection."""
-    if collection_name not in _vectorstore_instances:
-        embeddings = get_embeddings()
-        _vectorstore_instances[collection_name] = Chroma(
-            collection_name=collection_name,
-            embedding_function=embeddings,
-            persist_directory=CHROMA_DB_DIR,
-        )
+    if collection_name in _vectorstore_instances:
+        return _vectorstore_instances[collection_name]
+
+    with _vectorstore_lock:
+        if collection_name not in _vectorstore_instances:
+            embeddings = get_embeddings()
+            _vectorstore_instances[collection_name] = Chroma(
+                collection_name=collection_name,
+                embedding_function=embeddings,
+                persist_directory=CHROMA_DB_DIR,
+            )
     return _vectorstore_instances[collection_name]
 
 def load_passages_to_chroma(passages_csv_path: str, max_passages: int = 0,
@@ -134,6 +160,8 @@ def load_passages_to_chroma(passages_csv_path: str, max_passages: int = 0,
 # ---------------------------------------------------------------------------
 
 _bm25_indices: Dict[str, Dict] = {}  # keyed by collection name
+_bm25_locks: Dict[str, threading.Lock] = {}
+_bm25_locks_guard = threading.Lock()
 
 
 def _tokenize(text: str) -> List[str]:
@@ -142,6 +170,11 @@ def _tokenize(text: str) -> List[str]:
 
 
 BM25_MAX_CORPUS = 1_000_000  # Skip BM25 for collections larger than this
+
+
+def _get_bm25_lock(collection_name: str) -> threading.Lock:
+    with _bm25_locks_guard:
+        return _bm25_locks.setdefault(collection_name, threading.Lock())
 
 
 def get_bm25_index(vectorstore: Chroma = None) -> Dict:
@@ -153,35 +186,39 @@ def get_bm25_index(vectorstore: Chroma = None) -> Dict:
     if coll_name in _bm25_indices:
         return _bm25_indices[coll_name]
 
-    count = collection.count()
+    with _get_bm25_lock(coll_name):
+        if coll_name in _bm25_indices:
+            return _bm25_indices[coll_name]
 
-    if count > BM25_MAX_CORPUS:
-        raise RuntimeError(
-            f"Collection has {count:,} docs (>{BM25_MAX_CORPUS:,}). "
-            f"BM25 index skipped to avoid OOM. Using dense-only retrieval."
-        )
+        count = collection.count()
 
-    print(f"[rag_utils] Building BM25 index from {count} passages...")
+        if count > BM25_MAX_CORPUS:
+            raise RuntimeError(
+                f"Collection has {count:,} docs (>{BM25_MAX_CORPUS:,}). "
+                f"BM25 index skipped to avoid OOM. Using dense-only retrieval."
+            )
 
-    all_docs = []
-    tokenized_corpus = []
-    batch_size = 5000
-    for offset in range(0, count, batch_size):
-        batch = collection.get(
-            offset=offset,
-            limit=batch_size,
-            include=["documents", "metadatas"],
-        )
-        for text, meta in zip(batch["documents"], batch["metadatas"]):
-            doc = Document(page_content=text, metadata=meta)
-            all_docs.append(doc)
-            tokenized_corpus.append(_tokenize(text))
+        print(f"[rag_utils] Building BM25 index from {count} passages...")
 
-    bm25 = BM25Okapi(tokenized_corpus)
-    index = {"bm25": bm25, "docs": all_docs}
-    _bm25_indices[coll_name] = index
-    print(f"[rag_utils] BM25 index built ({count} docs) for '{coll_name}'")
-    return index
+        all_docs = []
+        tokenized_corpus = []
+        batch_size = 5000
+        for offset in range(0, count, batch_size):
+            batch = collection.get(
+                offset=offset,
+                limit=batch_size,
+                include=["documents", "metadatas"],
+            )
+            for text, meta in zip(batch["documents"], batch["metadatas"]):
+                doc = Document(page_content=text, metadata=meta)
+                all_docs.append(doc)
+                tokenized_corpus.append(_tokenize(text))
+
+        bm25 = BM25Okapi(tokenized_corpus)
+        index = {"bm25": bm25, "docs": all_docs}
+        _bm25_indices[coll_name] = index
+        print(f"[rag_utils] BM25 index built ({count} docs) for '{coll_name}'")
+        return index
 
 
 def _retrieve_bm25(query: str, k: int, exclude_ids: set = None,
@@ -236,7 +273,7 @@ def _pool_and_dedup(doc_lists: List[List[Document]]) -> List[Document]:
 # ---------------------------------------------------------------------------
 
 def retrieve_documents(query: str, k: int = 5, exclude_ids: set = None,
-                       vectorstore: Chroma = None) -> List[Document]:
+                       vectorstore: Chroma = None, use_bm25: bool = True) -> List[Document]:
     """Hybrid retrieval: BM25 + bi-encoder candidates → cross-encoder rerank.
 
     Both first-stage retrievers fetch k*4 candidates each. The combined pool
@@ -248,11 +285,12 @@ def retrieve_documents(query: str, k: int = 5, exclude_ids: set = None,
 
     dense_docs = _retrieve_dense(query, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs)
 
-    try:
-        bm25_docs = _retrieve_bm25(query, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs)
-    except Exception as e:
-        logger.warning("BM25 retrieval failed (falling back to dense-only): %s", e)
-        bm25_docs = []
+    bm25_docs = []
+    if use_bm25:
+        try:
+            bm25_docs = _retrieve_bm25(query, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs)
+        except Exception as e:
+            logger.warning("BM25 retrieval failed (falling back to dense-only): %s", e)
 
     candidates = _pool_and_dedup([dense_docs, bm25_docs])
     return rerank_with_cross_encoder(query, candidates, top_k=k)
@@ -260,7 +298,8 @@ def retrieve_documents(query: str, k: int = 5, exclude_ids: set = None,
 
 def retrieve_documents_multi_query(queries: List[str], k: int = 5,
                                    exclude_ids: set = None,
-                                   vectorstore: Chroma = None) -> List[Document]:
+                                   vectorstore: Chroma = None,
+                                   use_bm25: bool = True) -> List[Document]:
     """Multi-query hybrid retrieval: pool BM25 + dense across all query variants.
 
     Each query variant contributes candidates from both BM25 and bi-encoder.
@@ -271,7 +310,7 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
         return []
     if len(queries) == 1:
         return retrieve_documents(queries[0], k=k, exclude_ids=exclude_ids,
-                                  vectorstore=vectorstore)
+                                  vectorstore=vectorstore, use_bm25=use_bm25)
 
     vs = vectorstore or get_vectorstore()
     fetch_k = k * 3
@@ -279,10 +318,11 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
     all_lists = []
     for q in queries:
         all_lists.append(_retrieve_dense(q, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs))
-        try:
-            all_lists.append(_retrieve_bm25(q, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs))
-        except Exception as e:
-            logger.warning("BM25 multi-query failed (dense-only for this variant): %s", e)
+        if use_bm25:
+            try:
+                all_lists.append(_retrieve_bm25(q, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs))
+            except Exception as e:
+                logger.warning("BM25 multi-query failed (dense-only for this variant): %s", e)
 
     candidates = _pool_and_dedup(all_lists)
     return rerank_with_cross_encoder(queries[0], candidates, top_k=k)
