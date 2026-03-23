@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from .core import _llm_call
 from .nodes import (
+    llm_snap_node,
     planner_node,
     replanner_node,
     route_after_synthesizer,
@@ -45,6 +46,7 @@ __all__ = [
     "_execute_step_with_escalation",
     "_inline_prompt_versions",
     "execute_round_node",
+    "llm_snap_node",
     "planner_node",
     "replanner_node",
     "route_after_execution_round",

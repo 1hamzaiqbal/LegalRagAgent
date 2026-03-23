@@ -21,7 +21,14 @@ from .models import (
     TERMINAL_PARSE_FAILURE,
     TERMINAL_STALLED,
 )
-from .prompts import COLLECTIONS_REGISTRY, COMPLETENESS_CHECK_PROMPT, MC_ANSWER_PROMPT, ROUTER_PROMPT
+from .prompts import (
+    ARBITRATION_PROMPT,
+    COLLECTIONS_REGISTRY,
+    COMPLETENESS_CHECK_PROMPT,
+    LLM_SNAP_PROMPT,
+    MC_ANSWER_PROMPT,
+    ROUTER_PROMPT,
+)
 from .state_utils import append_audit_log, profile_from_state, research_question_from_state, serialise_step
 
 
@@ -265,6 +272,33 @@ def _adjudicate_multiple_choice(
     }
 
 
+def _extract_answer_letter(text: str) -> str:
+    """Extract a letter answer from LLM output like **Answer: (B)**."""
+    match = re.search(r"\*\*Answer:\s*\(([A-Z])\)\*\*", text)
+    if match:
+        return match.group(1)
+    match = re.search(r"Answer:\s*\(?([A-Z])\)?", text)
+    if match:
+        return match.group(1)
+    return ""
+
+
+def llm_snap_node(state: LegalAgentState) -> Dict[str, Any]:
+    """Quick LLM-only answer before any retrieval — provides a baseline for arbitration."""
+    from . import execution as execution_module
+
+    print("\n--- LLM SNAP ---")
+    question = state["inputs"]["question"]
+    answer = execution_module._llm_call(LLM_SNAP_PROMPT, question, label="llm_snap").strip()
+    letter = _extract_answer_letter(answer)
+    print(f"  LLM snap answer: {letter or '(no letter extracted)'}")
+    return {
+        "llm_snap_answer": answer,
+        "llm_snap_letter": letter,
+        "audit_log": append_audit_log(state, {"node": "llm_snap", "letter": letter}),
+    }
+
+
 def router_node(state: LegalAgentState) -> Dict[str, Any]:
     from . import execution as execution_module
 
@@ -446,6 +480,41 @@ def synthesizer_node(state: LegalAgentState) -> Dict[str, Any]:
     )
     if mc_decision:
         final_answer = _normalise_mc_answer(final_answer, mc_decision["answer"])
+
+    # --- Arbitration: compare pipeline answer with LLM snap ---
+    pipeline_letter = mc_decision["answer"] if mc_decision else _extract_answer_letter(final_answer)
+    snap_letter = state.get("llm_snap_letter", "")
+    snap_answer = state.get("llm_snap_answer", "")
+    arbitration_decision = None
+
+    if snap_letter and pipeline_letter and snap_letter != pipeline_letter:
+        print(f"  DISAGREEMENT: LLM snap={snap_letter}, pipeline={pipeline_letter} -> arbitrating")
+        arb_prompt = (
+            f"QUESTION:\n{question}\n\n"
+            f"ANALYSIS A (doctrinal reasoning, no retrieval):\n{snap_answer}\n\n"
+            f"ANALYSIS B (research pipeline with retrieved evidence):\n{final_answer}\n\n"
+            f"Analysis A chose: ({snap_letter})\n"
+            f"Analysis B chose: ({pipeline_letter})\n"
+        )
+        arb_raw = execution_module._llm_call(ARBITRATION_PROMPT, arb_prompt, label="arbitration")
+        arb_parsed = _parse_json(arb_raw)
+        if arb_parsed and arb_parsed.get("chosen") in ("A", "B"):
+            arbitration_decision = {
+                "chosen": arb_parsed["chosen"],
+                "reasoning": str(arb_parsed.get("reasoning", "")),
+                "snap_letter": snap_letter,
+                "pipeline_letter": pipeline_letter,
+            }
+            if arb_parsed["chosen"] == "A":
+                print(f"  Arbitrator chose LLM snap ({snap_letter}) over pipeline ({pipeline_letter}): {arb_parsed.get('reasoning', '')}")
+                final_answer = _normalise_mc_answer(final_answer, snap_letter)
+            else:
+                print(f"  Arbitrator kept pipeline ({pipeline_letter}): {arb_parsed.get('reasoning', '')}")
+        else:
+            print(f"  Arbitration parse failed -> keeping pipeline answer ({pipeline_letter})")
+    elif snap_letter and pipeline_letter:
+        print(f"  LLM snap and pipeline agree: ({pipeline_letter})")
+
     print(f"  Final answer: {len(final_answer)} chars")
 
     max_rounds = state.get("run_config", {}).get("max_parallel_rounds", 3)
@@ -518,6 +587,7 @@ def synthesizer_node(state: LegalAgentState) -> Dict[str, Any]:
                 "parallel_round": parallel_round,
                 "completeness": completeness,
                 "mc_decision": mc_decision,
+                "arbitration": arbitration_decision,
                 "terminal_reason": completeness.get("terminal_reason"),
             },
         ),
@@ -560,6 +630,7 @@ def route_after_synthesizer(state: LegalAgentState) -> Literal["replanner_node",
 
 
 __all__ = [
+    "llm_snap_node",
     "planner_node",
     "replanner_node",
     "route_after_synthesizer",

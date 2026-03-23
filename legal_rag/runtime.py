@@ -22,6 +22,7 @@ from .artifacts import build_run_artifact, write_run_artifact
 from .core import _get_metrics
 from .execution import (
     execute_round_node,
+    llm_snap_node,
     planner_node,
     replanner_node,
     route_after_execution_round,
@@ -41,13 +42,15 @@ def build_graph(profile: str | ExperimentProfile = "full_parallel") -> Any:
         raise ValueError(f"Profile '{resolved.name}' does not use the LangGraph runtime")
 
     workflow = StateGraph(LegalAgentState)
+    workflow.add_node("llm_snap_node", llm_snap_node)
     workflow.add_node("router_node", router_node)
     workflow.add_node("planner_node", planner_node)
     workflow.add_node("execute_round_node", execute_round_node)
     workflow.add_node("synthesizer_node", synthesizer_node)
     workflow.add_node("replanner_node", replanner_node)
 
-    workflow.add_edge(START, "router_node")
+    workflow.add_edge(START, "llm_snap_node")
+    workflow.add_edge("llm_snap_node", "router_node")
     workflow.add_edge("router_node", "planner_node")
     workflow.add_edge("planner_node", "execute_round_node")
     workflow.add_conditional_edges(
@@ -93,6 +96,8 @@ def _initial_state(question: str, raw_question: str, profile: ExperimentProfile,
         "replanning_brief": "",
         "step_traces": [],
         "run_artifact": {},
+        "llm_snap_answer": "",
+        "llm_snap_letter": "",
     }
 
 

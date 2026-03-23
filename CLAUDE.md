@@ -27,15 +27,17 @@ Source of truth: `legal_rag/` package
 ### Graph
 
 ```
-START → router_node → planner_node → execute_round_node → synthesizer_node
-                          ↑                                      |
-                          └─── replanner_node ←──────────────────┘ (if incomplete)
-                                                                 └→ END (if complete)
+START → llm_snap_node → router_node → planner_node → execute_round_node → synthesizer_node
+                                           ↑                                      |
+                                           └─── replanner_node ←──────────────────┘ (if incomplete)
+                                                                                  └→ END (if complete)
 ```
 
 ### Nodes
 
-**router_node** (`nodes.py:151`) — Lightweight LLM call to choose which ChromaDB collection(s) to search. Current registry: `legal_passages`, `housing_statutes`. Falls back to `legal_passages`.
+**llm_snap_node** (`nodes.py`) — Quick LLM-only answer (1 call, no retrieval) before the pipeline runs. Stores `llm_snap_answer` and `llm_snap_letter` in state. Used by the synthesizer's arbitration step to catch cases where the pipeline researches the wrong theory.
+
+**router_node** (`nodes.py`) — Lightweight LLM call to choose which ChromaDB collection(s) to search. Current registry: `legal_passages`, `housing_statutes`. Falls back to `legal_passages`.
 
 **planner_node** (`nodes.py:181`) — Decomposes the question into `PlanningStep`s. Outputs:
 - `complexity`: `"simple"` / `"moderate"` / `"complex"` (LLM decides)
@@ -57,7 +59,7 @@ Per-step escalation (if judge says insufficient, up to `max_retries`):
 
 Round-safe: takes snapshots of `planning_table` and `evidence_store` before parallel execution. Results merged via `_merge_round_results()` with evidence deduplication.
 
-**synthesizer_node** (`nodes.py:289`) — Aggregates all completed steps into an IRAC answer (`skills/synthesizer.md`), then runs a completeness check. For MC questions, runs a separate MC adjudicator to force an explicit letter choice. If gaps identified, returns `missing_topics` and routes back to replanner. Max 3 rounds.
+**synthesizer_node** (`nodes.py`) — Aggregates all completed steps into an IRAC answer (`skills/synthesizer.md`). For MC questions: (1) runs MC adjudicator to force an explicit letter choice, (2) if the pipeline's letter differs from the LLM snap, runs an **arbitration** step that compares both analyses and picks the better-supported answer. Then runs a completeness check. If gaps identified, returns `missing_topics` and routes back to replanner. Max 3 rounds.
 
 **replanner_node** (`nodes.py:384`) — Creates new `PlanningStep`s from the synthesizer's `missing_topics` and feeds them back to the executor.
 

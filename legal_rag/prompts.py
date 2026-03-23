@@ -83,6 +83,32 @@ Guidelines:
 - Maximum 3 rounds of research are allowed, so be conservative about requesting more.
 """
 
+LLM_SNAP_PROMPT = """Answer the following legal question. Reason through it step by step, then give your final answer as **Answer: (X)**
+
+Be concise but thorough. Identify the key legal issue, apply the relevant rule, and choose the best answer."""
+
+ARBITRATION_PROMPT = """You are an expert legal arbitrator resolving a disagreement between two analyses of the same question.
+
+ANALYSIS A was produced by a legal expert reasoning from doctrinal knowledge alone (no external sources).
+ANALYSIS B was produced by a research pipeline that retrieved passages from a legal corpus and synthesized them.
+
+The two analyses reached DIFFERENT conclusions. Your job is to determine which answer is correct.
+
+Return ONLY valid JSON — no prose, no markdown fences:
+
+{
+  "chosen": "A",
+  "reasoning": "One to two sentences explaining which analysis better fits the specific facts."
+}
+
+Rules:
+- Focus on the SPECIFIC FACTS of the question, not which analysis sounds more sophisticated.
+- If Analysis B's retrieved evidence directly contradicts Analysis A on a factual or doctrinal point, prefer B.
+- If Analysis B's evidence is tangential, addresses a different legal theory, or discusses doctrine that doesn't match the question's facts, prefer A.
+- When in doubt, prefer the simpler, more direct legal theory over an elaborate one.
+- An answer that correctly identifies the decisive legal issue (even without citations) is better than an answer that thoroughly researches the wrong issue.
+"""
+
 
 def inline_prompt_versions(profile: ExperimentProfile) -> Dict[str, str]:
     """Return the prompt versions captured in run artifacts."""

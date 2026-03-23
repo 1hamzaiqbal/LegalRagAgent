@@ -72,6 +72,8 @@ class LegalAgentState(TypedDict):
     replanning_brief: str
     step_traces: List[Dict[str, Any]]
     run_artifact: Dict[str, Any]
+    llm_snap_answer: str
+    llm_snap_letter: str
 
 
 @dataclass(frozen=True)
