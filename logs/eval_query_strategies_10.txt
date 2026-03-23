@@ -1,0 +1,242 @@
+
+================================================================================
+QUERY STRATEGY COMPARISON (10 questions, 5 strategies)
+================================================================================
+
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+
+────────────────────────────────────────────────────────────────────────────────
+[1/10] qa_nan_199
+  Q: Sand Company operated an installation for distributing sand and gravel. The installation was adjacen...
+  Gold: mbe_199
+[rag_utils] Building BM25 index from 686324 passages...
+[rag_utils] BM25 index built (686324 docs) for 'legal_passages'
+  raw          top=-2.061 mean=-2.901 no gold    [5 caselaw] (0.0s)
+    [rewrite/current] 432 chars
+  current      top= 3.089 mean= 1.985 no gold    [3 mbe, 2 caselaw] (4.3s)
+    q1: negligence liability mechanic garage repair inspection duty of care breach causa
+    q2: professional malpractice automobile repair standard of care misrepresentation re
+    [rewrite/aspect] 257 chars
+  aspect       top= 7.907 mean= 7.272 no gold    [1 mbe, 4 caselaw] (3.0s)
+    q1: negligence elements duty breach causation damages
+    q2: negligence defenses comparative fault assumption of risk intervening cause
+    [rewrite/decompose] 207 chars
+  decompose    top= 3.464 mean= 1.746 no gold    [5 caselaw] (2.4s)
+    q1: negligence duty of care mechanic inspection brakes foreseeable plaintiff third p
+    q2: proximate cause legal causation intervening superseding cause negligent inspecti
+    [rewrite/abstract] 367 chars
+  abstract     top= 5.436 mean= 4.406 no gold    [5 caselaw] (3.3s)
+    q1: Can a plaintiff injured by a third party's negligence prevail against a defendan
+    q2: negligence, duty of care, inspection, latent defect, proximate cause, intervenin
+
+────────────────────────────────────────────────────────────────────────────────
+[2/10] qa_nan_422
+  Q: Telco, a local telephone company, negligently allowed one of its telephone poles, located between a ...
+  Gold: mbe_416
+  raw          top=-3.924 mean=-4.221 no gold    [5 caselaw] (0.0s)
+    [rewrite/current] 381 chars
+  current      top= 7.204 mean= 5.728 no gold    [2 mbe, 3 caselaw] (3.7s)
+    q1: negligence proximate cause intervening superseding cause foreseeable risk duty o
+    q2: tort liability concurrent causation substantial factor test multiple defendants 
+    [rewrite/aspect] 268 chars
+  aspect       top= 8.395 mean= 7.559 no gold    [2 mbe, 3 caselaw] (3.3s)
+    q1: negligence elements duty breach causation damages proximate cause
+    q2: superseding intervening cause negligence defenses comparative fault
+    [rewrite/decompose] 170 chars
+  decompose    top= 8.406 mean= 7.905 no gold    [5 caselaw] (2.6s)
+    q1: negligence proximate cause superseding intervening cause tort law
+    q2: joint and several liability concurrent causation multiple tortfeasors negligence
+    [rewrite/abstract] 324 chars
+  abstract     top= 5.890 mean= 5.194 no gold    [2 mbe, 3 caselaw] (3.7s)
+    q1: Under what circumstances can multiple negligent acts be considered concurrent pr
+    q2: negligence, proximate cause, concurrent causation, intervening cause, supersedin
+
+────────────────────────────────────────────────────────────────────────────────
+[3/10] qa_realprop_695
+  Q: Seller owned Blackacre, improved with an aging four-story warehouse. The warehouse was built to the ...
+  Gold: mbe_680
+  raw          top=-2.206 mean=-2.813 no gold    [5 caselaw] (0.0s)
+    [rewrite/current] 443 chars
+  current      top= 1.956 mean= 0.236 no gold    [4 mbe, 1 wex] (4.3s)
+    q1: warranty deed breach of covenant against encumbrances latent defect property law
+    q2: real property sale rescission mutual mistake of fact substantial impairment valu
+    [rewrite/aspect] 238 chars
+  aspect       top= 9.214 mean= 7.468 no gold    [4 mbe, 1 caselaw] (3.4s)
+    q1: warranty deed covenants of title and quiet enjoyment
+    q2: patent defects or buyer's knowledge of encumbrances
+    [rewrite/decompose] 296 chars
+  decompose    top= 3.816 mean= 2.859 no gold    [4 mbe, 1 caselaw] (3.0s)
+    q1: warranty deed covenants implied warranty against encumbrances undisclosed munici
+    q2: property law latent defect material fact seller nondisclosure zoning code violat
+    [rewrite/abstract] 424 chars
+  abstract     top= 2.587 mean= 0.651 no gold    [1 wex, 4 caselaw] (3.7s)
+    q1: Does a seller's failure to disclose a known, material, and imminent government o
+    q2: warranty deed, covenant against encumbrances, latent defect, undisclosed governm
+
+────────────────────────────────────────────────────────────────────────────────
+[4/10] qa_nan_751
+  Q: Congress enacts a law providing that all disagreements between the United States and a state over fe...
+  Gold: mbe_731
+  raw          top= 0.192 mean=-0.411 no gold    [1 mbe, 1 wex, 3 caselaw] (0.0s)
+    [rewrite/current] 414 chars
+  current      top= 3.652 mean= 2.682 no gold    [1 wex, 4 caselaw] (4.0s)
+    q1: congressional power federal grant-in-aid disputes state federal relations Articl
+    q2: constitutional law federalism spending clause conditional grants judicial enforc
+    [rewrite/aspect] 285 chars
+  aspect       top= 7.423 mean= 6.572 no gold    [1 wex, 4 caselaw] (3.2s)
+    q1: Article III judicial power and finality of federal court judgments
+    q2: Congressional power to limit or modify federal court jurisdiction and judgments
+    [rewrite/decompose] 300 chars
+  decompose    top= 3.621 mean= 3.161 no gold    [1 wex, 4 caselaw] (3.1s)
+    q1: Article III judicial power finality of federal court judgments execution by exec
+    q2: separation of powers judicial review executive branch discretion to review court
+    [rewrite/abstract] 315 chars
+  abstract     top=-0.143 mean=-1.073 no gold    [5 caselaw] (3.5s)
+    q1: Is a statutory scheme that conditions execution of a federal court judgment on e
+    q2: separation of powers, Article III, judicial power, finality of judgments, execut
+
+────────────────────────────────────────────────────────────────────────────────
+[5/10] qa_nan_388
+  Q: A statute of the state of Lanape flatly bans the sale or distribution of contraceptive devices to mi...
+  Gold: mbe_383
+  raw          top=-0.474 mean=-3.454 no gold    [1 mbe, 4 caselaw] (0.0s)
+    [rewrite/current] 518 chars
+  current      top= 3.385 mean= 2.694 no gold    [1 wex, 4 caselaw] (3.7s)
+    q1: constitutional challenge state statute banning contraceptive sales to minors fun
+    q2: Fourteenth Amendment liberty interest reproductive autonomy minor access contrac
+    [rewrite/aspect] 364 chars
+  aspect       top= 4.433 mean= 3.254 no gold    [1 wex, 4 caselaw] (3.6s)
+    q1: Constitutional right to privacy and substantive due process regarding family and
+    q2: State interests in protecting health, safety, and welfare of minors, and parenta
+    [rewrite/decompose] 303 chars
+  decompose    top= 4.721 mean= 4.442 no gold    [1 wex, 4 caselaw] (3.1s)
+    q1: substantive due process right to privacy contraception minors fundamental rights
+    q2: equal protection clause gender discrimination contraception minors intermediate 
+    [rewrite/abstract] 324 chars
+  abstract     top= 2.177 mean=-0.405 no gold    [1 mbe, 4 caselaw] (3.6s)
+    q1: What is the strongest constitutional challenge to a state statute that prohibits
+    q2: substantive due process, right to privacy, contraception, minors, fundamental ri
+
+────────────────────────────────────────────────────────────────────────────────
+[6/10] qa_torts_580
+  Q: Prad entered Drug Store to make some purchases. As he was searching the aisles for various items, he...
+  Gold: mbe_569
+  raw          top=-0.394 mean=-1.767 no gold    [5 caselaw] (0.0s)
+    [rewrite/current] 430 chars
+  current      top= 4.300 mean= 3.687 no gold    [5 caselaw] (4.2s)
+    q1: premises liability land possessor duty of care invitee licensee trespasser open 
+    q2: attractive nuisance duty to warn known dangerous condition business invitee stan
+    [rewrite/aspect] 253 chars
+  aspect       top= 7.158 mean= 6.774 no gold    [2 mbe, 3 caselaw] (3.7s)
+    q1: duties of a land possessor to invitees licensees and trespassers
+    q2: comparative negligence assumption of risk open and obvious danger
+    [rewrite/decompose] 263 chars
+  decompose    top= 4.478 mean= 4.340 no gold    [1 mbe, 1 wex, 3 caselaw] (3.5s)
+    q1: land possessor duty of care to business invitee licensee trespasser classificati
+    q2: comparative negligence pure rule effect on plaintiff recovery contributory fault
+    [rewrite/abstract] 322 chars
+  abstract     top= 1.971 mean= 1.384 no gold    [5 caselaw] (4.1s)
+    q1: Under traditional common-law premises liability, what duty does a possessor owe 
+    q2: premises liability, land possessor duty, invitee, licensee, trespasser, open and
+
+────────────────────────────────────────────────────────────────────────────────
+[7/10] qa_contracts_827
+  Q: Bye Bye telegraphed Vendor on June 1, "At what price will you sell 100 of your QT- Model garbage-dis...
+  Gold: mbe_805
+  raw          top=-2.158 mean=-2.728 no gold    [5 caselaw] (0.0s)
+    [rewrite/current] 424 chars
+  current      top= 4.749 mean= 2.501 no gold    [2 mbe, 2 wex, 1 caselaw] (4.3s)
+    q1: contract formation offer acceptance counteroffer mirror image rule UCC 2-207 bat
+    q2: revocation of offer rejection counteroffer termination of offer mailbox rule fir
+    [rewrite/aspect] 278 chars
+  aspect       top= 4.376 mean= 2.622 no gold    [3 mbe, 2 caselaw] (3.6s)
+    q1: UCC 2-207 battle of the forms additional terms acceptance contract formation
+    q2: UCC 2-207(2) material alteration acceptance additional terms contract rejection
+    [rewrite/decompose] 253 chars
+  decompose    top= 4.376 mean= 2.622 no gold    [3 mbe, 2 caselaw] (3.5s)
+    q1: UCC 2-207 battle of the forms additional terms acceptance contract formation
+    q2: UCC 2-206 acceptance shipment prompt promise seasonable manner reasonable medium
+    [rewrite/abstract] 273 chars
+  abstract     top= 3.494 mean= 1.510 no gold    [2 mbe, 1 wex, 2 caselaw] (3.5s)
+    q1: When does a purported acceptance that adds or modifies terms constitute a counte
+    q2: UCC 2-207, acceptance, counteroffer, additional terms, material alteration, cont
+
+────────────────────────────────────────────────────────────────────────────────
+[8/10] qa_crimlaw_530
+  Q: Jack, a bank teller, was fired by Morgan, the president of the bank. Jack decided to take revenge ag...
+  Gold: mbe_519
+  raw          top=-1.204 mean=-1.538 no gold    [5 caselaw] (0.0s)
+    [rewrite/current] 414 chars
+  current      top= 3.240 mean= 3.012 no gold    [5 caselaw] (4.6s)
+    q1: felony murder rule accomplice liability causation intervening cause proximate ca
+    q2: agency theory conspiracy solicitation murder principal accessory causation super
+    [rewrite/aspect] 246 chars
+  aspect       top= 6.197 mean= 5.331 no gold    [2 mbe, 1 wex, 2 caselaw] (3.6s)
+    q1: felony murder rule elements and accomplice liability for murder
+    q2: defenses to felony murder such as withdrawal or causation breaking
+    [rewrite/decompose] 255 chars
+  decompose    top= 5.096 mean= 4.341 no gold    [5 caselaw] (3.0s)
+    q1: felony murder rule accomplice liability proximate cause intervening act
+    q2: criminal solicitation murder causation independent intervening superseding cause
+    [rewrite/abstract] 351 chars
+  abstract     top= 4.807 mean= 3.550 GOLD@2     [1 mbe, 4 caselaw] (3.9s)
+    q1: Under what circumstances can a defendant be held liable for murder when their wo
+    q2: felony murder, murder, accomplice liability, causation, proximate cause, interve
+
+────────────────────────────────────────────────────────────────────────────────
+[9/10] qa_constlaw_494
+  Q: After several well-publicized deaths caused by fires in products made from highly flammable fabrics,...
+  Gold: mbe_484
+  raw          top=-1.408 mean=-1.980 no gold    [5 caselaw] (0.0s)
+    [rewrite/current] 443 chars
+  current      top= 5.428 mean= 4.949 no gold    [3 mbe, 2 caselaw] (4.2s)
+    q1: state statute requiring product testing by specific private company constitution
+    q2: privileges and immunities clause equal protection discrimination against out-of-
+    [rewrite/aspect] 424 chars
+  aspect       top= 9.775 mean= 8.809 no gold    [4 mbe, 1 caselaw] (4.3s)
+    q1: Dormant Commerce Clause doctrine prohibiting state laws that discriminate agains
+    q2: Market participant exception where state acts as buyer or seller, or health and 
+    [rewrite/decompose] 208 chars
+  decompose    top= 8.358 mean= 7.815 no gold    [2 mbe, 3 caselaw] (3.1s)
+    q1: Dormant Commerce Clause discrimination against out-of-state economic interests s
+    q2: Due Process Clause arbitrary and capricious legislative action delegation to pri
+    [rewrite/abstract] 338 chars
+  abstract     top= 5.739 mean= 5.219 no gold    [1 mbe, 4 caselaw] (3.6s)
+    q1: Whether a state statute requiring product testing by a specific private company 
+    q2: Dormant Commerce Clause, discrimination, protectionism, private company, state s
+
+────────────────────────────────────────────────────────────────────────────────
+[10/10] qa_nan_174
+  Q: Householder resented the fact that joggers and walkers would sometimes come onto his property just b...
+  Gold: mbe_174
+  raw          top=-0.188 mean=-1.178 no gold    [5 caselaw] (0.0s)
+    [rewrite/current] 423 chars
+  current      top= 5.025 mean= 2.243 no gold    [4 mbe, 1 caselaw] (4.0s)
+    q1: landowner liability trespasser attractive nuisance premises liability duty of ca
+    q2: property owner duty to trespassers discovered trespasser licensees invitees stan
+    [rewrite/aspect] 282 chars
+  aspect       top= 6.557 mean= 4.739 no gold    [5 mbe] (3.4s)
+    q1: landowner liability for injuries to trespassers caused by artificial conditions 
+    q2: attractive nuisance doctrine or exceptions for discovered trespassers
+    [rewrite/decompose] 267 chars
+  decompose    top= 2.185 mean=-0.293 no gold    [2 mbe, 3 wex] (3.6s)
+    q1: landowner liability trespasser attractive nuisance trap spring gun
+    q2: negligence premises liability duty of care to trespassers discovered trespassers
+    [rewrite/abstract] 303 chars
+  abstract     top= 5.257 mean= 4.099 no gold    [3 mbe, 2 caselaw] (3.8s)
+    q1: What duty of care does a landowner owe to a trespasser regarding a domestic anim
+    q2: trespasser, landowner duty, domestic animal, dangerous propensity, strict liabil
+
+================================================================================
+STRATEGY COMPARISON SUMMARY
+================================================================================
+Strategy        Gold Recall  Avg Top Score  Avg Mean Score
+──────────────────────────────────────────────────────────
+raw              0/10  (   0%)                  -2.299
+current          0/10  (   0%)                   2.972
+aspect           0/10  (   0%)                   6.040
+decompose        0/10  (   0%)                   3.894
+abstract         1/10  (  10%)                   2.454
+================================================================================
+
+Detail log saved to logs/eval_query_strategies_20260322_22.jsonl
