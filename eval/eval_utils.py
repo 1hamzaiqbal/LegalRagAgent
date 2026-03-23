@@ -64,14 +64,17 @@ MC_LETTER_PATTERNS = [
 
 
 def extract_mc_letter(answer: str) -> str | None:
-    """Extract the MC letter (A-D) from an answer string, or None if not found."""
+    """Extract the MC letter (A-D) from an answer string, or None if not found.
+
+    Uses the LAST match if the LLM self-corrects mid-response.
+    """
     if not answer:
         return None
+    last_match = None
     for pat in MC_LETTER_PATTERNS:
-        m = re.search(pat, answer, re.IGNORECASE)
-        if m:
-            return m.group(1).upper()
-    return None
+        for m in re.finditer(pat, answer, re.IGNORECASE):
+            last_match = m.group(1).upper()
+    return last_match
 
 
 def check_mc_correctness(answer: str, correct_letter: str) -> bool:

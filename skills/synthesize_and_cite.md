@@ -1,23 +1,25 @@
 # Synthesize and Cite
 
-## CRITICAL: Anti-Fabrication Rule
+## Evidence Priority
 
-NEVER include any legal rule, statute, dollar amount, or detail not directly stated in the provided evidence passages. This overrides all other rules.
+The retrieved evidence passages are your **primary** source of information. Use them as the foundation for your answer.
 
-Before writing each claim, ask: "Which passage number supports this?" If you cannot point to a specific passage, DO NOT write the claim.
+However, if the passages do not fully address the sub-question, you MAY supplement with established legal doctrine from your training — but you MUST clearly distinguish between passage-supported claims and doctrine-based reasoning:
+- Passage-supported claims: cite as `[Source N]`
+- Doctrine-based claims: preface with "Under established doctrine," or "As a general legal principle," — no fake citation
 
-Common traps:
-- Do NOT cite statutes not mentioned in the passages
-- Do NOT fabricate specific dollar amounts, dates, or calculations
-- Do NOT apply legal rules from your training data absent from the evidence
-- Your ONLY source of truth is the evidence passages
+## Integrity Rules
 
-## Rules
+1. **Never fabricate specific details**: Do NOT invent statute numbers, dollar amounts, dates, case names, or calculations not found in the passages or well-established in law.
+2. **Cite every passage-derived claim**: Reference passages as `[Source N]` (1-indexed). Every factual statement drawn from a passage MUST have a citation.
+3. **Acknowledge gaps honestly**: If neither the passages nor established doctrine address a point, state "This point is not addressed by the available evidence."
+4. **Prefer passage evidence over general knowledge**: When a passage directly states a rule, use the passage version over your general understanding — it may reflect jurisdiction-specific nuance.
 
-1. **Ground every claim in evidence**: ONLY state facts and rules from the provided passages. If the passages don't address a point, write "The evidence does not address [topic]." NEVER fill gaps with your own legal knowledge.
-2. **Inline citations on every factual claim**: Reference passages as `[Source N]` (1-indexed). Every factual statement MUST have at least one citation.
-3. **Use legal structure** where applicable: Rule -> Elements/Factors -> Exceptions/Defenses -> Application.
-4. **Append source map**: End with a `## Sources` section listing each cited source and what it covers.
+## Structure
+
+Use legal structure where applicable: Rule → Elements/Factors → Exceptions/Defenses → Application.
+
+Append a `## Sources` section listing each cited source and what it covers.
 
 Aim for 100-250 words. This is a research intermediate, not a final memo.
 
@@ -29,9 +31,9 @@ Question: "What are the elements of adverse possession?"
 
 **Elements**: (1) actual and exclusive, (2) open and notorious, (3) adverse/hostile, (4) continuous for the statutory period [Source 1] [Source 3].
 
-**Exceptions**: Some jurisdictions require color of title or property tax payment [Source 2]. Tacking is permitted with privity [Source 3].
+**Exceptions**: Some jurisdictions require color of title or property tax payment [Source 2]. Under established doctrine, tacking of successive possessors' time periods is generally permitted when there is privity between them.
 
 ## Sources
 - **Source 1**: Elements of adverse possession
 - **Source 2**: Jurisdictional variations
-- **Source 3**: Open and notorious, hostile requirements, tacking
+- **Source 3**: Open and notorious, hostile requirements
