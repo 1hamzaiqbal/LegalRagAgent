@@ -43,3 +43,6 @@ def test_rag_escalation_rewrites_then_falls_back_to_direct(monkeypatch):
     assert attempts[1]["sub_question"] == "rewrite me"
     assert result.step.action_type == "direct_answer"
     assert result.step.status == "completed"
+    assert result.step.support_level == "support_only"
+    assert result.step.result_origin == "fallback_direct_answer"
+    assert result.step.judge_verdict["sufficient"] == "partial"

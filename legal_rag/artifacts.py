@@ -20,6 +20,7 @@ def build_run_artifact(
     raw_question: str | None = None,
 ) -> Dict[str, Any]:
     """Build a structured artifact from an execution result."""
+    completeness = result.completeness_verdict or {}
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "profile_name": result.profile.name,
@@ -32,7 +33,9 @@ def build_run_artifact(
         "collections": result.collections,
         "planning_table": [_serialise_step(step) for step in result.planning_table],
         "evidence_store": result.evidence_store,
-        "completeness_verdict": result.completeness_verdict,
+        "completeness_verdict": completeness,
+        "answered": completeness.get("complete", True),
+        "terminal_reason": completeness.get("terminal_reason"),
         "audit_log": result.audit_log,
         "replanning_brief": result.extra.get("replanning_brief", ""),
         "step_traces": result.run_artifact.get("step_traces", []),

@@ -51,6 +51,7 @@ Rules:
 - If the synthesized answer is partially uncertain, still choose the best-supported option from the listed choices.
 - Never answer with a free-form string like "none of the above" unless that is literally one of the answer choices.
 - Compare the actual text of the answer choices against the facts. An option can state a generally true doctrine and still be the wrong answer if another option fits the facts more precisely.
+- Explicitly weigh the strongest competing option before choosing the final letter.
 - Prefer the option that best resolves the exam question as written, not the option that merely sounds most legally sophisticated.
 """
 
@@ -78,6 +79,7 @@ Guidelines:
 - A partial step can still be enough if the missing detail is peripheral, but not if the synthesized answer relies on that step for a decisive legal theory.
 - If the question includes answer choices, mark complete only when the research is strong enough to support one listed option and rule out the strongest competing options.
 - If a multiple-choice answer depends on a step marked `partial` or `false`, prefer another research round focused on that doctrinal gap rather than marking the run complete.
+- If a multiple-choice answer depends mainly on a step marked `support=support_only` or `origin=fallback_direct_answer`, prefer another research round rather than treating the issue as fully resolved.
 - Maximum 3 rounds of research are allowed, so be conservative about requesting more.
 """
 

@@ -1,6 +1,6 @@
 # LegalRagAgent
 
-Legal RAG system for the `reglab/barexam_qa` and `reglab/housing_qa` corpora. The current branch is moving toward a profile-driven, round-safe plan-and-execute pipeline with true parallel step execution, structured run artifacts, and curated playtests for iteration before large evaluations.
+Legal RAG system for the `reglab/barexam_qa` and `reglab/housing_qa` corpora. The current branch uses a profile-driven, round-safe plan-and-execute pipeline with true parallel step execution, structured run artifacts, and curated playtests before larger evaluations.
 
 ## Setup
 
@@ -8,7 +8,7 @@ Legal RAG system for the `reglab/barexam_qa` and `reglab/housing_qa` corpora. Th
 
 ```bash
 git clone https://github.com/shrango/adaptive-plan-and-solve-agent.git
-cd adaptive-plan-and-solve-agent
+cd LegalRagAgent
 uv sync
 ```
 
@@ -84,7 +84,7 @@ START -> router_node -> planner_node -> execute_round_node
                                            v
                                    synthesizer_node
                                            |
-                               incomplete? v
+                               terminal?   v
                                      replanner_node
                                            |
                                            v
@@ -101,7 +101,7 @@ There are two important execution modes:
 - `router_node`: chooses the relevant collection set, usually `legal_passages` or `housing_statutes`
 - `planner_node`: turns the research question into 1-5 `PlanningStep`s, and on follow-up rounds appends only new steps using the replanning brief
 - `execute_round_node`: runs pending steps either sequentially or in parallel depending on profile
-- `synthesizer_node`: combines completed step results into the final answer and checks completeness
+- `synthesizer_node`: combines completed step results into the final answer, evaluates completeness, and records whether the run truly answered the question or merely stopped
 - `replanner_node`: converts accumulated findings into a plain-language replanning brief and routes back to `planner_node`
 
 ### Per-step behavior
@@ -122,13 +122,22 @@ Those aspect queries retrieve independently, are pooled and reranked, and then s
 
 ### Round semantics
 
-The intended model on this branch is round-safe execution:
+The runtime is intentionally round-safe:
 
 - all sibling steps in the same round see the same immutable snapshot of prior state
 - sibling steps do not see each other's newly retrieved evidence mid-round
 - evidence is canonically deduplicated only at merge time
 - per-step evidence references and traces are preserved for synthesis and debugging
 - incomplete rounds feed a summarized replanning brief back into `planner_node` instead of dumping raw evidence/traces into the planner prompt
+- fallback `direct_answer` results after failed retrieval are retained as support, but downgraded to support-only evidence instead of being treated as decisive authority
+
+The synthesizer can end a run for different reasons:
+
+- `answered`: the accumulated research is actually sufficient
+- `max_rounds`: the run hit the round cap while still incomplete
+- `stalled`: follow-up rounds stopped making meaningful progress
+
+These stop reasons are written into both the eval detail rows and the per-run artifact JSON.
 
 ## Profiles
 
@@ -194,9 +203,11 @@ Local tests:
 uv run pytest -q -s
 ```
 
+For the next rerun workflow, resume command, and log locations, see [docs/eval_runbook.md](/home/techguy227/grad/LegalRagAgent/docs/eval_runbook.md).
+
 ## Historical Results
 
-These are earlier reported numbers from pre-redesign runs and should be rerun after the current branch stabilizes:
+These are earlier reported numbers from pre-redesign runs and should be treated as historical baselines rather than current branch guarantees:
 
 | Method | Accuracy | Gold Recall@5 |
 |---|---|---|
@@ -229,4 +240,5 @@ eval/                    # Profile-driven eval scripts and retrieval experiments
 playtests/               # Curated manual regression cases
 tests/                   # Runtime and prompt-contract tests
 utils/                   # Data download, embedding, and utility scripts
+docs/                    # Runbooks and operational notes
 ```

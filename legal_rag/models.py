@@ -15,6 +15,15 @@ STATUS_PENDING = "pending"
 STATUS_COMPLETED = "completed"
 STATUS_FAILED = "failed"
 
+SUPPORT_PRIMARY = "primary"
+SUPPORT_SUPPORT_ONLY = "support_only"
+
+TERMINAL_ANSWERED = "answered"
+TERMINAL_MAX_ROUNDS = "max_rounds"
+TERMINAL_STALLED = "stalled"
+TERMINAL_LOOP_DISABLED = "loop_disabled"
+TERMINAL_PARSE_FAILURE = "parse_failure"
+
 STEP_MODE_SEQUENTIAL = "sequential"
 STEP_MODE_PARALLEL = "parallel"
 
@@ -42,6 +51,8 @@ class PlanningStep(BaseModel):
     evidence_ids: List[str] = Field(default_factory=list)
     retry_of: Optional[int] = None
     judge_verdict: Optional[Dict[str, Any]] = None
+    result_origin: str = ""
+    support_level: Literal["primary", "support_only"] = SUPPORT_PRIMARY
 
 
 class LegalAgentState(TypedDict):

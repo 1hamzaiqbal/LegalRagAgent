@@ -1,4 +1,4 @@
-from legal_rag.execution import planner_node, replanner_node
+from legal_rag.execution import planner_node, replanner_node, synthesizer_node
 from legal_rag.models import PlanningStep
 from legal_rag.profiles import get_profile
 
@@ -120,3 +120,59 @@ def test_planner_follow_up_parse_failure_falls_back_to_missing_topics(monkeypatc
     assert len(result["planning_table"]) == 2
     assert result["planning_table"][1].step_id == 2
     assert result["planning_table"][1].sub_question == "What exceptions limit suppression?"
+
+
+def test_synthesizer_stops_stalled_follow_up_rounds(monkeypatch):
+    state = _state()
+    state["parallel_round"] = 2
+    state["planning_table"] = [
+        PlanningStep(
+            step_id=1,
+            sub_question="What exception controls?",
+            status="completed",
+            result="Still uncertain.",
+            judge_verdict={"sufficient": "partial", "reason": "missing exception test", "missing": "exception test"},
+        ),
+        PlanningStep(
+            step_id=2,
+            sub_question="Which exception controls in this fact pattern?",
+            status="completed",
+            result="Still uncertain.",
+            judge_verdict={"sufficient": "partial", "reason": "same gap", "missing": "same gap"},
+        ),
+    ]
+    state["evidence_store"] = [{"idx": "doc_1", "text": "Evidence text", "source": "mbe"}]
+    state["audit_log"] = [
+        {"node": "executor_round", "canonical_evidence_entries": 12},
+        {"node": "replanner", "missing_topics": ["What exception controls in this fact pattern?"]},
+        {"node": "executor_round", "canonical_evidence_entries": 13},
+    ]
+    state["step_traces"] = [
+        {
+            "step_id": 1,
+            "round": 1,
+            "sub_question": "What exception controls in this fact pattern?",
+            "final_verdict": {"sufficient": "partial"},
+            "support_level": "primary",
+        },
+        {
+            "step_id": 2,
+            "round": 2,
+            "sub_question": "Which exception controls in this fact pattern?",
+            "final_verdict": {"sufficient": "partial"},
+            "support_level": "primary",
+        },
+    ]
+
+    def fake_llm_call(system_prompt, user_prompt, label=""):
+        if label == "synthesizer":
+            return "Synthesized answer."
+        return '{"complete": false, "reasoning": "same doctrinal gap remains", "missing_topics": ["What exception controls in this fact pattern?"]}'
+
+    monkeypatch.setattr("legal_rag.execution._llm_call", fake_llm_call)
+
+    result = synthesizer_node(state)
+
+    assert result["completeness_verdict"]["complete"] is False
+    assert result["completeness_verdict"]["terminal"] is True
+    assert result["completeness_verdict"]["terminal_reason"] == "stalled"

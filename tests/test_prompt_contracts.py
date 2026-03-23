@@ -1,5 +1,5 @@
 from legal_rag.core import _parse_json
-from legal_rag.execution import _call_judge, planner_node, synthesizer_node
+from legal_rag.execution import _call_judge, planner_node, route_after_synthesizer, synthesizer_node
 from legal_rag.models import PlanningStep
 from legal_rag.profiles import get_profile
 from legal_rag.state_utils import research_question_from_state
@@ -18,6 +18,7 @@ def _state():
         "audit_log": [],
         "completeness_verdict": {},
         "parallel_round": 1,
+        "replanning_brief": "",
         "step_traces": [],
         "run_artifact": {},
     }
@@ -122,3 +123,33 @@ def test_synthesizer_normalizes_mc_answer_with_adjudicator(monkeypatch):
 
     result = synthesizer_node(state)
     assert result["final_answer"].endswith("**Answer: (B)**")
+
+
+def test_synthesizer_marks_max_rounds_terminal_without_claiming_complete(monkeypatch):
+    def fake_exec_call(system_prompt, user_prompt, label=""):
+        if label == "synthesizer":
+            return "Analysis body."
+        return '{"complete": false, "reasoning": "missing a decisive exception", "missing_topics": ["What exception controls?"]}'
+
+    state = _state()
+    state["parallel_round"] = 3
+    state["planning_table"] = [
+        PlanningStep(
+            step_id=1,
+            sub_question="What is the governing rule?",
+            action_type="rag_search",
+            status="completed",
+            result="Rule result.",
+            judge_verdict={"sufficient": "partial", "reason": "missing exception", "missing": "exception"},
+        )
+    ]
+    state["evidence_store"] = [{"idx": "doc_1", "text": "Evidence text", "source": "mbe"}]
+
+    monkeypatch.setattr("legal_rag.execution._llm_call", fake_exec_call)
+
+    result = synthesizer_node(state)
+
+    assert result["completeness_verdict"]["complete"] is False
+    assert result["completeness_verdict"]["terminal"] is True
+    assert result["completeness_verdict"]["terminal_reason"] == "max_rounds"
+    assert route_after_synthesizer({"completeness_verdict": result["completeness_verdict"]}) == "__end__"

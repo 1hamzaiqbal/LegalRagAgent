@@ -14,6 +14,12 @@ from .models import (
     LegalAgentState,
     PlanningStep,
     STATUS_COMPLETED,
+    SUPPORT_PRIMARY,
+    TERMINAL_ANSWERED,
+    TERMINAL_LOOP_DISABLED,
+    TERMINAL_MAX_ROUNDS,
+    TERMINAL_PARSE_FAILURE,
+    TERMINAL_STALLED,
 )
 from .prompts import COLLECTIONS_REGISTRY, COMPLETENESS_CHECK_PROMPT, MC_ANSWER_PROMPT, ROUTER_PROMPT
 from .state_utils import append_audit_log, profile_from_state, research_question_from_state, serialise_step
@@ -32,6 +38,116 @@ def _truncate_for_brief(text: str, max_chars: int = 260) -> str:
     if len(collapsed) <= max_chars:
         return collapsed
     return collapsed[: max_chars - 3].rstrip() + "..."
+
+
+_SIMILARITY_STOPWORDS = {
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "of",
+    "to",
+    "for",
+    "in",
+    "on",
+    "under",
+    "when",
+    "does",
+    "is",
+    "are",
+    "be",
+    "what",
+    "which",
+    "whether",
+    "how",
+    "all",
+    "with",
+    "that",
+    "this",
+}
+
+
+def _similarity_tokens(text: str) -> set[str]:
+    tokens = {
+        token
+        for token in re.findall(r"[a-z0-9]+", (text or "").lower())
+        if len(token) > 2 and token not in _SIMILARITY_STOPWORDS
+    }
+    return tokens
+
+
+def _question_similarity(left: str, right: str) -> float:
+    left_tokens = _similarity_tokens(left)
+    right_tokens = _similarity_tokens(right)
+    if not left_tokens or not right_tokens:
+        return 0.0
+    return len(left_tokens & right_tokens) / len(left_tokens | right_tokens)
+
+
+def _best_similarity(target: str, candidates: List[str]) -> float:
+    if not candidates:
+        return 0.0
+    return max(_question_similarity(target, candidate) for candidate in candidates)
+
+
+def _last_replanner_topics(state: LegalAgentState) -> List[str]:
+    for entry in reversed(state.get("audit_log", [])):
+        if entry.get("node") == "replanner":
+            return [str(topic) for topic in entry.get("missing_topics", [])]
+    return []
+
+
+def _detect_round_stall(state: LegalAgentState, completeness: Dict[str, Any]) -> str | None:
+    missing_topics = [str(topic) for topic in completeness.get("missing_topics", [])]
+    if completeness.get("complete", True) or not missing_topics:
+        return None
+
+    parallel_round = int(state.get("parallel_round", 1) or 1)
+    if parallel_round <= 1:
+        return None
+
+    traces = state.get("step_traces", [])
+    current_round = [trace for trace in traces if int(trace.get("round", 0) or 0) == parallel_round]
+    previous_round = [trace for trace in traces if int(trace.get("round", 0) or 0) == parallel_round - 1]
+    if not current_round or not previous_round:
+        return None
+
+    prior_missing_topics = _last_replanner_topics(state)
+    current_questions = [str(trace.get("sub_question", "")) for trace in current_round]
+    previous_questions = [str(trace.get("sub_question", "")) for trace in previous_round]
+    duplicate_score = (
+        sum(_best_similarity(question, previous_questions) for question in current_questions) / len(current_questions)
+        if current_questions
+        else 0.0
+    )
+    missing_overlap = (
+        sum(_best_similarity(topic, prior_missing_topics) for topic in missing_topics) / len(missing_topics)
+        if prior_missing_topics and missing_topics
+        else 0.0
+    )
+
+    strong_new_steps = [
+        trace
+        for trace in current_round
+        if (trace.get("final_verdict") or {}).get("sufficient") == "full"
+        and trace.get("support_level", SUPPORT_PRIMARY) == SUPPORT_PRIMARY
+    ]
+
+    evidence_counts = [
+        int(entry.get("canonical_evidence_entries", 0) or 0)
+        for entry in state.get("audit_log", [])
+        if entry.get("node") == "executor_round"
+    ]
+    evidence_delta = evidence_counts[-1] - evidence_counts[-2] if len(evidence_counts) >= 2 else None
+
+    if strong_new_steps:
+        return None
+    if duplicate_score >= 0.7 and missing_overlap >= 0.7 and evidence_delta is not None and evidence_delta <= 6:
+        return "follow-up rounds are repeating near-duplicate questions without resolving the missing doctrinal gap"
+    if missing_overlap >= 0.85 and evidence_delta is not None and evidence_delta <= 2:
+        return "missing topics have not meaningfully changed and the latest round produced little new evidence"
+    return None
 
 
 def _format_attempt_path(trace: Dict[str, Any] | None) -> str:
@@ -81,14 +197,15 @@ def _build_replanning_brief(state: LegalAgentState, final_answer: str) -> str:
         if step.status != STATUS_COMPLETED:
             continue
         verdict = (step.judge_verdict or {}).get("sufficient", "full")
+        support_level = getattr(step, "support_level", SUPPORT_PRIMARY)
         base = f"Step {step.step_id}: {step.sub_question}"
-        if verdict == "full":
+        if verdict == "full" and support_level == SUPPORT_PRIMARY:
             strong_takeaways.append(f"- {base}. Takeaway: {_truncate_for_brief(step.result)}")
             continue
 
         reason = (step.judge_verdict or {}).get("missing") or (step.judge_verdict or {}).get("reason") or "coverage gap"
         weak_takeaways.append(
-            f"- {base}. Outcome: {verdict}. Gap: {_truncate_for_brief(str(reason), 180)}. "
+            f"- {base}. Outcome: {verdict}. Support level: {support_level}. Gap: {_truncate_for_brief(str(reason), 180)}. "
             f"Tried: {_format_attempt_path(trace_by_step.get(step.step_id))}."
         )
 
@@ -309,6 +426,8 @@ def synthesizer_node(state: LegalAgentState) -> Dict[str, Any]:
     step_verdicts = "\n".join(
         f"- Step {step.step_id} [{step.action_type}] {step.sub_question}: "
         f"judge={(step.judge_verdict or {}).get('sufficient', 'unknown')}; "
+        f"support={getattr(step, 'support_level', SUPPORT_PRIMARY)}; "
+        f"origin={getattr(step, 'result_origin', step.action_type or 'unknown')}; "
         f"gap={((step.judge_verdict or {}).get('missing') or (step.judge_verdict or {}).get('reason') or 'none')}"
         for step in completed
     )
@@ -329,38 +448,61 @@ def synthesizer_node(state: LegalAgentState) -> Dict[str, Any]:
         final_answer = _normalise_mc_answer(final_answer, mc_decision["answer"])
     print(f"  Final answer: {len(final_answer)} chars")
 
+    max_rounds = state.get("run_config", {}).get("max_parallel_rounds", 3)
     if not profile.use_completeness_loop:
-        completeness = {"complete": True, "reasoning": "completeness loop disabled by profile", "missing_topics": []}
+        completeness = {
+            "complete": True,
+            "terminal": True,
+            "terminal_reason": TERMINAL_LOOP_DISABLED,
+            "reasoning": "completeness loop disabled by profile",
+            "missing_topics": [],
+        }
     else:
-        max_rounds = state.get("run_config", {}).get("max_parallel_rounds", 3)
-        if parallel_round >= max_rounds:
-            print(f"  Max research rounds ({max_rounds}) reached -> marking complete")
-            completeness = {"complete": True, "reasoning": "max rounds reached", "missing_topics": []}
-        else:
-            prompt = (
-                f"ORIGINAL QUESTION:\n{question}\n\n"
-                f"RESEARCH FINDINGS:\n{step_summaries}\n\n"
-                f"STEP VERDICTS:\n{step_verdicts or '(none)'}\n\n"
-                f"SYNTHESIZED ANSWER:\n{final_answer}\n\n"
-                f"Research round: {parallel_round} of {max_rounds} max"
-            )
-            raw = execution_module._llm_call(COMPLETENESS_CHECK_PROMPT, prompt, label="completeness")
-            parsed = _parse_json(raw)
-            if parsed and "complete" in parsed:
-                completeness = {
-                    "complete": parsed.get("complete", True),
-                    "reasoning": parsed.get("reasoning", ""),
-                    "missing_topics": parsed.get("missing_topics", []),
-                }
+        prompt = (
+            f"ORIGINAL QUESTION:\n{question}\n\n"
+            f"RESEARCH FINDINGS:\n{step_summaries}\n\n"
+            f"STEP VERDICTS:\n{step_verdicts or '(none)'}\n\n"
+            f"SYNTHESIZED ANSWER:\n{final_answer}\n\n"
+            f"Research round: {parallel_round} of {max_rounds} max"
+        )
+        raw = execution_module._llm_call(COMPLETENESS_CHECK_PROMPT, prompt, label="completeness")
+        parsed = _parse_json(raw)
+        if parsed and "complete" in parsed:
+            completeness = {
+                "complete": bool(parsed.get("complete", True)),
+                "reasoning": str(parsed.get("reasoning", "")),
+                "missing_topics": parsed.get("missing_topics", []),
+            }
+            terminal_reason = None
+            if completeness["complete"]:
+                terminal_reason = TERMINAL_ANSWERED
             else:
-                completeness = {
-                    "complete": True,
-                    "reasoning": "parse failure — defaulting to complete",
-                    "missing_topics": [],
-                }
+                stall_reason = _detect_round_stall(state, completeness)
+                if stall_reason:
+                    reason = completeness.get("reasoning", "").strip()
+                    completeness["reasoning"] = f"{reason} Stopping because research stalled: {stall_reason}".strip()
+                    terminal_reason = TERMINAL_STALLED
+                elif parallel_round >= max_rounds:
+                    completeness["reasoning"] = (
+                        f"{completeness.get('reasoning', '').strip()} Stopping because the maximum research rounds were reached."
+                    ).strip()
+                    terminal_reason = TERMINAL_MAX_ROUNDS
+            completeness["terminal"] = terminal_reason is not None
+            completeness["terminal_reason"] = terminal_reason
+        else:
+            completeness = {
+                "complete": True,
+                "terminal": True,
+                "terminal_reason": TERMINAL_PARSE_FAILURE,
+                "reasoning": "parse failure — defaulting to complete",
+                "missing_topics": [],
+            }
 
     verdict = "COMPLETE" if completeness.get("complete", True) else "INCOMPLETE"
-    print(f"  Completeness: {verdict} — {completeness.get('reasoning', '')}")
+    terminal_suffix = ""
+    if completeness.get("terminal_reason"):
+        terminal_suffix = f" | terminal={completeness['terminal_reason']}"
+    print(f"  Completeness: {verdict}{terminal_suffix} — {completeness.get('reasoning', '')}")
     if completeness.get("missing_topics"):
         print(f"  Missing topics: {completeness['missing_topics']}")
 
@@ -376,6 +518,7 @@ def synthesizer_node(state: LegalAgentState) -> Dict[str, Any]:
                 "parallel_round": parallel_round,
                 "completeness": completeness,
                 "mc_decision": mc_decision,
+                "terminal_reason": completeness.get("terminal_reason"),
             },
         ),
     }
@@ -409,7 +552,7 @@ def replanner_node(state: LegalAgentState) -> Dict[str, Any]:
 
 def route_after_synthesizer(state: LegalAgentState) -> Literal["replanner_node", "__end__"]:
     completeness = state.get("completeness_verdict", {})
-    if completeness.get("complete", True):
+    if completeness.get("terminal", completeness.get("complete", True)):
         print("  -> END")
         return "__end__"
     print("  -> replanner")

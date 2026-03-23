@@ -121,6 +121,8 @@ def evaluate_single_query(profile_name: str, q: Dict, *, write_run_artifact: boo
     rewrite_queries: List[str] = []
     artifact_path = None
     completeness_verdict = {}
+    terminal = None
+    terminal_reason = None
     parallel_round = 0
     collections: List[str] = []
     run_timings = {}
@@ -140,6 +142,8 @@ def evaluate_single_query(profile_name: str, q: Dict, *, write_run_artifact: boo
         rewrite_queries = result.extra.get("rewrite_queries", [])
         artifact_path = result.artifact_path
         completeness_verdict = result.completeness_verdict
+        terminal = completeness_verdict.get("terminal")
+        terminal_reason = completeness_verdict.get("terminal_reason")
         parallel_round = max(0, result.parallel_round - 1)
         collections = result.collections
         run_timings = result.extra.get("timings", {})
@@ -164,6 +168,8 @@ def evaluate_single_query(profile_name: str, q: Dict, *, write_run_artifact: boo
         "parallel_rounds": parallel_round,
         "collections": collections,
         "completeness_verdict": completeness_verdict,
+        "terminal": terminal,
+        "terminal_reason": terminal_reason,
         "run_timings": run_timings,
         "run_llm_metrics": run_llm_metrics,
         "llm_response": final_answer,
