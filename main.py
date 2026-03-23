@@ -1,45 +1,16 @@
 """Plan-and-Execute Legal RAG Agent.
 
-<<<<<<< HEAD
-Architecture (follows LangGraph plan-and-execute pattern):
-  START → router → planner → executor → replanner → executor  (retry / next step)
-                                                   → synthesizer → END
-
-Five top-level nodes:
-  router      — chooses which ChromaDB collection(s) to search
-  planner     — decomposes the question into an ordered planning table
-  executor    — executes one step via direct_answer, rag_search, or web_search,
-                then runs the LLM judge / verifier
-  replanner   — applies deterministic escalation (rag→rewrite→web→direct),
-                then LLM for next/complete when judge says sufficient
-  synthesizer — aggregates all completed steps into a final IRAC answer
-=======
 Two execution modes (selected via PARALLEL_MODE=1 env var or --parallel CLI flag):
 
 Sequential mode (default):
   START → router → planner → executor → replanner → executor  (retry / next step)
                                                    → synthesizer → END
-  Four top-level nodes:
-    planner    — decomposes the question into an ordered planning table
-    executor   — executes one step via direct_answer, rag_search, or web_search,
-                 then runs LLM judge to evaluate sufficiency
-    replanner  — applies deterministic escalation (rag→rewrite→web→direct),
-                 then LLM for next/complete when judge says sufficient
-    synthesizer — aggregates all completed steps into a final IRAC answer
 
 Parallel mode (PARALLEL_MODE=1):
   START → router → planner → parallel_executor → parallel_synthesizer
                        ↑                               |
                        └── parallel_replanner ←────────┘ (if incomplete)
                                                        → END (if complete)
-  Key differences:
-    parallel_executor  — runs ALL pending steps at once, each with its own
-                         internal escalation chain (rag→rewrite→web→direct)
-    parallel_synthesizer — synthesizes + checks completeness; if gaps remain,
-                           routes back to replanner for another round (max 3)
-    parallel_replanner — generates new steps from missing topics identified
-                         by the synthesizer's completeness check
->>>>>>> 0defd83 (Add parallel executor architecture with completeness-based looping)
 
 All system prompts are loaded from skills/*.md at runtime.
 """
@@ -79,9 +50,6 @@ VERBOSE = os.getenv("VERBOSE", "0") == "1"
 # Parallel mode — set via PARALLEL_MODE=1 env var or --parallel CLI flag
 PARALLEL_MODE = os.getenv("PARALLEL_MODE", "0") == "1"
 
-# Parallel mode — set via PARALLEL_MODE=1 env var or --parallel CLI flag
-PARALLEL_MODE = os.getenv("PARALLEL_MODE", "0") == "1"
-
 
 # ---------------------------------------------------------------------------
 # 1. Constants & Data Models
@@ -108,6 +76,8 @@ class PlanningStep(BaseModel):
 
     # Action routing — assigned by planner, updated by replanner on escalation
     action_type: Literal["direct_answer", "rag_search", "web_search"] = ACTION_RAG
+    # Max retries before giving up on this step (set by planner based on importance)
+    max_retries: int = 2
     # Tracks how many times this step's query has been rewritten (not a new action type)
     rewrite_attempt: int = 0
 
@@ -690,8 +660,10 @@ def planner_node(state: LegalAgentState) -> dict:
     raw = _llm_call(load_skill("planner"), f"Legal research question:\n{question}", label="planner")
     parsed = _parse_json(raw)
 
+    complexity = "moderate"  # default
     steps: List[PlanningStep] = []
     if parsed and "steps" in parsed:
+        complexity = parsed.get("complexity", "moderate")
         for i, s in enumerate(parsed["steps"]):
             if isinstance(s, dict):
                 steps.append(PlanningStep(
@@ -700,6 +672,7 @@ def planner_node(state: LegalAgentState) -> dict:
                     authority_target=s.get("authority_target", ""),
                     retrieval_hints=s.get("retrieval_hints", []),
                     action_type=s.get("action_type", ACTION_RAG),
+                    max_retries=min(s.get("max_retries", 2), 3),  # cap at 3
                 ))
             else:
                 steps.append(PlanningStep(step_id=i + 1, sub_question=str(s)))
@@ -707,9 +680,14 @@ def planner_node(state: LegalAgentState) -> dict:
         print("  [planner] Parse failed — single-step fallback")
         steps = [PlanningStep(step_id=1, sub_question=question)]
 
-    print(f"  Plan ({len(steps)} step{'s' if len(steps) != 1 else ''}):")
+    # Hard cap: max 5 steps regardless of what the LLM returns
+    if len(steps) > 5:
+        print(f"  [planner] Capping {len(steps)} steps to 5")
+        steps = steps[:5]
+
+    print(f"  Complexity: {complexity} | Plan ({len(steps)} step{'s' if len(steps) != 1 else ''}):")
     for s in steps:
-        print(f"    Step {s.step_id} [{s.action_type}]: {s.sub_question}")
+        print(f"    Step {s.step_id} [{s.action_type}] (max_retries={s.max_retries}): {s.sub_question}")
 
     return {
         "planning_table": steps,
@@ -1077,9 +1055,10 @@ def _execute_step_with_escalation(
     question = state["inputs"]["question"]
     current = step.model_copy()
     all_new_evidence: List[Dict[str, Any]] = []
-    max_escalations = 4  # rag(0) → rag(rewrite) → web → direct
+    # Max attempts = 1 (initial) + max_retries (escalations), hard cap at 4
+    max_attempts = min(1 + current.max_retries, 4)
 
-    for escalation in range(max_escalations):
+    for escalation in range(max_attempts):
         print(f"\n  [Step {current.step_id}] Attempt {escalation + 1} [{current.action_type}] "
               f"(rewrite_attempt={current.rewrite_attempt}): {current.sub_question}")
 
@@ -1116,7 +1095,9 @@ def _execute_step_with_escalation(
             print(f"  [Step {current.step_id}] Completed (judge={verdict['sufficient']})")
             return updated, all_new_evidence
 
-        # --- Escalation logic (mirrors replanner_node deterministic escalation) ---
+        # --- Escalation logic ---
+        # RAG steps: rag → rewrite → direct_answer (skip web for doctrinal queries)
+        # Web steps: web → direct_answer
         if current.action_type == ACTION_RAG and current.rewrite_attempt == 0:
             # First RAG failure → rewrite query, stay rag_search
             revised_q = verdict.get("suggested_rewrite") or current.sub_question
@@ -1127,10 +1108,10 @@ def _execute_step_with_escalation(
             })
 
         elif current.action_type == ACTION_RAG and current.rewrite_attempt >= 1:
-            # Second RAG failure → escalate to web_search
-            print(f"  [Step {current.step_id}] Escalating: rag_search → web_search")
+            # Second RAG failure → fall back to direct_answer (LLM knows doctrine)
+            print(f"  [Step {current.step_id}] Escalating: rag_search → direct_answer")
             current = current.model_copy(update={
-                "action_type": ACTION_WEB,
+                "action_type": ACTION_DIRECT,
                 "rewrite_attempt": 0,
             })
 
@@ -1143,7 +1124,7 @@ def _execute_step_with_escalation(
             })
 
         elif current.action_type == ACTION_DIRECT:
-            # direct_answer also failed — mark as completed with whatever we have
+            # direct_answer also failed — keep whatever we have
             print(f"  [Step {current.step_id}] All escalations exhausted, keeping best result")
             break
 
@@ -1395,84 +1376,6 @@ def parallel_replanner_node(state: LegalAgentState) -> dict:
             "missing_topics": missing_topics,
         }),
     }
-
-
-# ---------------------------------------------------------------------------
-# 9b. Parallel Mode: Execute All Steps with Escalation
-# ---------------------------------------------------------------------------
-
-def _execute_step_with_escalation(
-    step: PlanningStep,
-    state: LegalAgentState,
-    table: List[PlanningStep],
-    evidence_store: List[Dict[str, Any]],
-) -> tuple[PlanningStep, List[Dict[str, Any]]]:
-    """Execute a single step with the full escalation chain (rag → rewrite → web → direct).
-
-    Mirrors the sequential executor+replanner loop but in a single function call,
-    so multiple steps can be executed independently.
-
-    Returns (updated_step, new_evidence_for_this_step).
-    """
-    question = state["inputs"]["question"]
-    current = step.model_copy()
-    all_new_evidence: List[Dict[str, Any]] = []
-    max_escalations = 4
-
-    for escalation in range(max_escalations):
-        print(f"\n  [Step {current.step_id}] Attempt {escalation + 1} [{current.action_type}] "
-              f"(rewrite_attempt={current.rewrite_attempt}): {current.sub_question}")
-
-        if current.action_type == ACTION_DIRECT:
-            result, new_evidence, raw_logit = _execute_direct_answer(current, state)
-        elif current.action_type == ACTION_WEB:
-            result, new_evidence, raw_logit = _execute_web_search(current, state)
-        else:
-            result, new_evidence, raw_logit = _execute_rag_search(
-                current, state, table, evidence_store + all_new_evidence
-            )
-
-        confidence = _normalise_confidence(raw_logit) if raw_logit != 0.0 else 0.0
-        print(f"  [Step {current.step_id}] Confidence: {confidence:.3f}")
-
-        passage_texts = [ev["text"] for ev in new_evidence]
-        verdict = _call_judge(current, result, passage_texts, question)
-        print(f"  [Step {current.step_id}] Judge: sufficient={verdict['sufficient']} | "
-              f"{verdict.get('reason', '')}")
-
-        all_new_evidence.extend(new_evidence)
-
-        if verdict["sufficient"] in ("full", "partial", True):
-            updated = current.model_copy(update={
-                "status": STATUS_COMPLETED,
-                "result": result,
-                "confidence": confidence,
-                "evidence_ids": [ev["idx"] for ev in all_new_evidence],
-                "judge_verdict": verdict,
-            })
-            print(f"  [Step {current.step_id}] Completed (judge={verdict['sufficient']})")
-            return updated, all_new_evidence
-
-        # Escalation
-        if current.action_type == ACTION_RAG and current.rewrite_attempt == 0:
-            revised_q = verdict.get("suggested_rewrite") or current.sub_question
-            print(f"  [Step {current.step_id}] Escalating: rag_search → rewrite")
-            current = current.model_copy(update={"sub_question": revised_q, "rewrite_attempt": 1})
-        elif current.action_type == ACTION_RAG and current.rewrite_attempt >= 1:
-            print(f"  [Step {current.step_id}] Escalating: rag_search → web_search")
-            current = current.model_copy(update={"action_type": ACTION_WEB, "rewrite_attempt": 0})
-        elif current.action_type == ACTION_WEB:
-            print(f"  [Step {current.step_id}] Escalating: web_search → direct_answer")
-            current = current.model_copy(update={"action_type": ACTION_DIRECT, "rewrite_attempt": 0})
-        elif current.action_type == ACTION_DIRECT:
-            print(f"  [Step {current.step_id}] All escalations exhausted")
-            break
-
-    updated = current.model_copy(update={
-        "status": STATUS_COMPLETED, "result": result, "confidence": confidence,
-        "evidence_ids": [ev["idx"] for ev in all_new_evidence], "judge_verdict": verdict,
-    })
-    return updated, all_new_evidence
 
 
 def parallel_executor_node(state: LegalAgentState) -> dict:

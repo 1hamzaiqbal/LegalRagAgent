@@ -1,0 +1,159 @@
+
+================================================================================
+QUESTION: What did the Supreme Court hold in Loper Bright Enterprises v. Raimondo regarding Chevron deference, and how does this affect existing administrative law precedents?
+MODE: PARALLEL
+================================================================================
+
+--- ROUTER ---
+    [router] 35 chars (203 in / 8 out tokens)
+  Collections: ['legal_passages']
+
+--- PLANNER ---
+    [planner] 1287 chars (1310 in / 289 out tokens)
+  Complexity: moderate | Plan (3 steps):
+    Step 1 [rag_search] (max_retries=2): What is the Chevron deference doctrine and its two-step framework?
+    Step 2 [web_search] (max_retries=2): What did the Supreme Court hold in Loper Bright Enterprises v. Raimondo regarding Chevron deference?
+    Step 3 [rag_search] (max_retries=1): What legal principles govern when courts should overrule prior administrative law precedents?
+
+--- PARALLEL EXECUTOR ---
+  Executing 3 step(s)
+
+  [Step 1] Attempt 1 [rag_search] (rewrite_attempt=0): What is the Chevron deference doctrine and its two-step framework?
+    [executor/rewrite] 400 chars (933 in / 73 out tokens)
+    Primary query: Chevron deference doctrine two-step framework statutory ambiguity agency interpretation administrative law judicial review
+    Alt query 1: administrative deference Chevron step one clear congressional intent step two reasonable agency construction
+    Alt query 2: judicial deference to agency statutory interpretation Skidmore deference Auer deference Chevron framework steps
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+[rag_utils] Building BM25 index from 686324 passages...
+[rag_utils] BM25 index built (686324 docs) for 'legal_passages'
+    Retrieved 5 passage(s) from ['legal_passages']
+      [1] idx=caselaw_12531448_6 source=caselaw ce_score=5.885
+          Separately, the two-step framework provided in Chevron, U.S.A., Inc. v. Natural Res. Def. Council, Inc., 467 U.S. 837, 842-45, 104 S.Ct. 2778, 81 L.Ed.2d 694 (1984), governs judicial review of Commerce's interpretation of the Tariff Act. See United States v. Eurodif S.A., 555 U.S. 305, 316, 129 S.Ct...
+      [2] idx=caselaw_12521806_80 source=caselaw ce_score=5.563
+          Under the two-step framework articulated in Chevron, U.S.A., Inc. v. Natural Resources Defense Council, Inc. , 467 U.S. 837, 104 S.Ct. 2778, 81 L.Ed.2d 694 (1984), a reviewing court will often defer to an agency's interpretation of an ambiguous statute administered by the agency. Id. at 843, 104 S.C...
+      [3] idx=caselaw_12577214_80 source=caselaw ce_score=5.348
+          Chevron U.S.A. v. Natural Resources Defense Council , 467 U.S. 837, 842, 104 S. Ct. 2778, 81 L. Ed. 2d 694 (1984), it is bound to apply an interpretive canon known as Chevron deference. Chevron involves a two-step inquiry. At the first step, the court interprets the statute "employing traditional to...
+      [4] idx=caselaw_12521487_51 source=caselaw ce_score=5.339
+          But to the extent there is any ambiguity, "when reviewing an agency's statutory interpretation under the APA's 'not in accordance with law' standard, ... [we] adhere to the familiar two-step test of Chevron ." Nw. Envtl. Advocates v. U.S. E.P.A. , 537 F.3d 1006, 1014 (9th Cir. 2008). Applying Chevro...
+      [5] idx=wex_801 source=wex ce_score=5.093
+          Chevron deference: One of the most important principles in administrative law, the “Chevron deference” was coined after a landmark case, Chevron U.S.A., Inc. v. Natural Resources Defense Council, Inc., 468 U.S. 837 (1984). The Chevron deference is referring to the doctrine of judicial deference give...
+    [executor/synth] 2173 chars (2271 in / 473 out tokens)
+    --- Sub-answer ---
+    **Rule**: The Chevron deference doctrine, established in *Chevron U.S.A., Inc. v. Natural Resources Defense Council, Inc.*, 467 U.S. 837 (1984), is a principle of judicial deference to administrative agencies' interpretations of statutes they administer [Source 5].
+
+**Two-Step Framework**: The doctrine involves a two-step inquiry [Source 1] [Source 3].
+1.  **Step One**: The court employs traditional tools of statutory construction to determine "whether Congress has directly spoken to the precise...
+    --- End sub-answer ---
+  [Step 1] Confidence: 0.997
+    [judge/judge] 290 chars (3624 in / 66 out tokens)
+  [Step 1] Judge: sufficient=full | Passages comprehensively define the Chevron deference doctrine and detail its two-step framework, including the threshold 'step zero' inquiry and the alternative Skidmore standard.
+  [Step 1] Completed (judge=full)
+
+  [Step 2] Attempt 1 [web_search] (rewrite_attempt=0): What did the Supreme Court hold in Loper Bright Enterprises v. Raimondo regarding Chevron deference?
+    Web results: 5 result(s)
+      [1] Loper Bright Enterprises v. Raimondo - Wikipedia
+          https://en.wikipedia.org/wiki/Loper_Bright_Enterprises_v._Raimondo
+      [2] 22-451 Loper Bright Enterprises v. Raimondo (06/28/2024)
+          https://www.supremecourt.gov/opinions/23pdf/22-451_7m58.pdf
+      [3] Loper Bright Enterprises v. Raimondo and the Future of Agency Interpretations of Law | Congress.gov | Library of Congress
+          https://www.congress.gov/crs-product/R48320
+      [4] Chevron overruled: In Loper Bright v. Raimondo, the Supreme Court reshapes the regulatory landscape | DLA Piper
+          https://www.dlapiper.com/en-us/insights/publications/2024/06/chevron-overruled-in-loper-bright-v-raimondo
+      [5] What Loper Bright Enterprises v. Raimondo Means for the Future of Chevron Deference - Yale Journal on Regulation
+          https://www.yalejreg.com/nc/what-loper-bright-enterprises-v-raimondo-means-for-the-future-of-chevron-deference/
+    Scraped 2/5 URLs successfully
+      [1] (Snippet) Loper Bright Enterprises v. Raimondo - Wikipedia [215 chars]
+          November 26, 2025 -Loper Bright Enterprises v. Raimondo, ... with its companion case, Relentless, Inc. v. Department of Commerce, itoverruled the principle of Chevron deference established in Chevron U.S.A., Inc....
+      [2] (Snippet) 22-451 Loper Bright Enterprises v. Raimondo (06/28/2024) [266 chars]
+          LOPER BRIGHT ENTERPRISES v. RAIMONDO ... Service, Inc. v. NLRB, 522 U. S. 359, 374). By doing so, a court upholds · the traditional conception of the judicial function that the APA adopts. Pp. 13–18. (c) The deference that Chevron requires of courts reviewing agency
+      [3] (Snippet) Loper Bright Enterprises v. Raimondo and the Future of Agency Interpretations of Law | Congress.gov | Library of Congress [249 chars]
+          December 31, 2024 -"Chevron is overruled": On June 28, 2024, the Supreme Court overruled the Chevron framework in Loper Bright Enterprises v. Raimondo, holding thatthe Chevron framework violated Section 706 of the Administrative Procedure Act (APA).
+      [4] (Snippet) Chevron overruled: In Loper Bright v. Raimondo, the Supreme Court reshapes the regulatory landscape | DLA Piper [188 chars]
+          June 28, 2024 -Under Chevron, a reviewing court ... agency rules and regulations. In the June 28, 2024 Loper Bright decision, a 6-3 Supreme Court majorityabolished the Chevron doctrine....
+      [5] (Snippet) What Loper Bright Enterprises v. Raimondo Means for the Future of Chevron Deference - Yale Journal on Regulation [297 chars]
+          July 2, 2024 -Short Answer, per Justice Gorsuch: “Today, the Court places a tombstone on Chevron no one can miss.” Today, in Loper Bright Enterprises v. Raimondo, the Supreme Courtoverruled the Chevron deference doctrine— the command from a 1984 decision that courts defer to federal agencies’ ...
+      [6] (Scraped) Loper Bright Enterprises v. Raimondo - Wikipedia [6015 chars]
+          Loper Bright Enterprises v. Raimondo | Loper Bright Enterprises v. Raimondo Relentless, Inc. v. Department of Commerce | | |---|---| | Argued January 17, 2024 Decided June 28, 2024 | | | Full case name | Loper Bright Enterprises, et al. v. Gina Raimondo, Secretary of Commerce, et al. Relentless, Inc. et al. v. Department of Commerce, et al. | | Docket nos. | 22-451 22-1219 | | Citations | 603 U.S....
+      [7] (Scraped) Loper Bright Enterprises v. Raimondo and the Future of Agency Interpretations of Law [6015 chars]
+          Loper Bright Enterprises v. Raimondo and the Future of Agency Interpretations of Law CRS PRODUCT (LIBRARY OF CONGRESS) Hide Overview| CRS Product Type: | Reports | |---|---| | CRS Product Number: | R48320 | | Topics: | Federal Government Management & Organization; Law, Constitution & Civil Liberties | | Publication Date: | 12/31/2024 | | Author: | Barczewski, Benjamin M. | Jump to Main Text of Rep...
+    [executor/web] 2152 chars (3796 in / 487 out tokens)
+    --- Sub-answer ---
+    **Holding**: In *Loper Bright Enterprises v. Raimondo*, the Supreme Court overruled the *Chevron* deference framework [Source 1][Source 3][Source 4][Source 5][Source 6]. The Court held that the *Chevron* framework violated Section 706 of the Administrative Procedure Act (APA) [Source 3][Source 7]. The APA requires courts to exercise their independent judgment in deciding whether an agency has acted within its statutory authority, and courts may not defer to an agency's interpretation of the law ...
+    --- End sub-answer ---
+  [Step 2] Confidence: 0.000
+    [judge/judge] 318 chars (4848 in / 70 out tokens)
+  [Step 2] Judge: sufficient=full | Multiple passages directly state the Supreme Court's holding that Chevron deference was overruled, with specific references to the violation of the APA and the requirement for courts to exercise independent judgment.
+  [Step 2] Completed (judge=full)
+
+  [Step 3] Attempt 1 [rag_search] (rewrite_attempt=0): What legal principles govern when courts should overrule prior administrative law precedents?
+    [executor/rewrite] 387 chars (940 in / 69 out tokens)
+    Primary query: stare decisis administrative law overruling precedent judicial review Chevron deference Loper Bright
+    Alt query 1: doctrinal stability factors overruling prior decisions administrative agency deference statutory interpretation
+    Alt query 2: judicial precedent overturning standards compelling justification special justification administrative law principles
+    Retrieved 5 passage(s) from ['legal_passages']
+      [1] idx=caselaw_12620765_278 source=caselaw ce_score=4.055
+          Kozel, Statutory Interpretation, Administrative Deference, and the Law of Stare Decisis, 97 Texas L. Rev. 1125, 1159 (2019) ; see Raso & Eskridge, Chevron as a Canon, Not a Precedent: An Empirical Study of What Motivates Justices in Agency Deference Cases, 110 Colum. L. Rev. 1727, 1765-1766 (2010) (...
+      [2] idx=caselaw_12510889_52 source=caselaw ce_score=3.079
+          Having thus provided a comprehensive review of the precedent that the state seeks to overrule, we must consider whether the prudential doctrine of stare decisis counsels against that action. Stare decisis "counsels that a court should not overrule its earlier decisions unless the most cogent reasons...
+      [3] idx=caselaw_12660055_63 source=caselaw ce_score=2.648
+          We have previously said that the Court should not frivolously overrule established precedent. "We follow the doctrine of stare decisis to promote judicial efficiency and consistency, encourage reliance on judicial decisions, and contribute to the integrity of the judicial process." Overruling preced...
+      [4] idx=caselaw_12620765_55 source=caselaw ce_score=1.992
+          If all that were not enough, stare decisis cuts strongly against Kisor's position. "Overruling precedent is never a small matter." Kimble v. Marvel Entertainment, LLC , 576 U. S. ----, ----, 135 S.Ct. 2401, 2409, 192 L.Ed.2d 463 (2015). Adherence to precedent is "a foundation stone of the rule of la...
+      [5] idx=wex_4809 source=wex ce_score=1.719
+          stare decisis: Stare decisis is the doctrine that courts will adhere to precedent in making their decisions. Stare decisis means “to stand by things decided” in Latin.   When a court faces a legal argument, if a previous court has ruled on the same or a closely related issue, then the court will mak...
+    [executor/synth] 2560 chars (1850 in / 557 out tokens)
+    --- Sub-answer ---
+    Based on the provided evidence, the legal principles governing when courts should overrule prior administrative law precedents are rooted in the doctrine of *stare decisis*, which is not an "inexorable command" but requires "special justification" for departure [Source 2][Source 4][Source 5].
+
+**Rule**: *Stare decisis* obligates courts to adhere to precedent to promote predictability, consistency, reliance on judicial decisions, and the integrity of the judicial process [Source 2][Source 3][Sour...
+    --- End sub-answer ---
+  [Step 3] Confidence: 0.983
+    [judge/judge] 565 chars (3288 in / 106 out tokens)
+  [Step 3] Judge: sufficient=partial | Passages provide comprehensive doctrine-level principles of stare decisis and general justifications for overruling precedent, but lack specific discussion of how these principles apply uniquely to administrative law precedents.
+  [Step 3] Completed (judge=partial)
+
+  Parallel execution complete: 3 step(s), 17 evidence pieces
+
+--- PARALLEL SYNTHESIZER ---
+    [synthesizer] 4345 chars (8685 in / 920 out tokens)
+  Final answer: 4345 chars
+    [completeness] 383 chars (1111 in / 78 out tokens)
+  Completeness: COMPLETE — The synthesized answer directly states the holding (overruling Chevron as incompatible with the APA), explains the new legal standard (independent judicial judgment with Skidmore consideration), and clarifies the effect on existing precedents (prospective application leaving prior decisions intact).
+  → END (research complete)
+
+================================================================================
+FINAL ANSWER:
+================================================================================
+**Issue**: Whether the Supreme Court's decision in *Loper Bright Enterprises v. Raimondo* overruled the *Chevron* deference doctrine and, if so, what effect this has on existing administrative law precedents.
+
+**Rule**: The *Chevron* deference doctrine, established in 1984, required courts to defer to a federal agency's reasonable interpretation of an ambiguous statute it administers [Evidence 5]. This involved a two-step framework: first, determining if Congress's intent was clear; if not, the court would defer to any permissible agency construction [Evidence 1][Evidence 3]. A threshold "step zero" inquiry determined whether *Chevron* applied based on congressional delegation and the formality of the agency's action [Evidence 2]. Where *Chevron* did not apply, courts could give an agency's interpretation persuasive weight under the *Skidmore* standard [Evidence 2][Evidence 5]. The principle of *stare decisis* generally obligates courts to adhere to precedent to promote predictability and reliance, requiring "special justification" for overruling, such as a precedent being unworkable or badly reasoned [Evidence 14][Evidence 16][Evidence 17].
+
+**Application**: In *Loper Bright Enterprises v. Raimondo*, the Supreme Court held that the *Chevron* framework violated Section 706 of the Administrative Procedure Act (APA) [Evidence 8][Evidence 11]. The Court ruled that the APA requires courts to exercise their independent judgment in deciding whether an agency has acted within its statutory authority and that courts may not defer to an agency's interpretation simply because a statute is ambiguous [Evidence 11]. Consequently, the Court explicitly overruled the 1984 precedent of *Chevron U.S.A., Inc. v. Natural Resources Defense Council, Inc.* [Evidence 6][Evidence 10][Evidence 11]. In place of *Chevron*, courts must now use their independent judgment to determine statutory meaning, though they may still give executive agency expertise consideration under the weaker *Skidmore* standard, where an interpretation's persuasiveness determines its weight [Evidence 11][Evidence 12].
+
+Regarding the effect on existing precedents, the Court's decision applies prospectively. The holding states that "existing rules and case law already decided under *Chevron* deference were to remain in place" [Evidence 11]. This means prior judicial decisions that relied on *Chevron* are not automatically invalidated. However, the overruling of such a foundational doctrine suggests a significant shift in the interpretive methodology courts must apply going forward. The Court's action aligns with recognized justifications for departing from *stare decisis*, as it found *Chevron* to be inconsistent with the APA's command for independent judicial judgment—a rationale that undermines the precedent's foundation [Evidence 12][Evidence 14]. Furthermore, scholarly commentary suggests that administrative deference regimes like *Chevron* have not been treated as binding precedents in the same manner as other substantive decisions, potentially making them more susceptible to overruling [Evidence 13].
+
+**Conclusion**: The Supreme Court in *Loper Bright* overruled the *Chevron* deference doctrine, holding it incompatible with the APA's requirement for independent judicial judgment. Existing case law decided under *Chevron* remains valid, but all future judicial review of agency statutory interpretations must be conducted de novo, with agency views considered only for their persuasive power under *Skidmore*.
+
+## Sources
+- **Evidence 1, 3, 5**: The core *Chevron* two-step framework and its requirement of deference to reasonable agency interpretations of ambiguous statutes.
+- **Evidence 2**: The "step zero" inquiry and the alternative *Skidmore* standard of persuasive weight.
+- **Evidence 6, 8, 10, 11**: The holding of *Loper Bright Enterprises v. Raimondo* that overruled *Chevron* as violating the APA and mandates independent judicial judgment.
+- **Evidence 11, 12**: The prospective application of *Loper Bright*, leaving existing *Chevron*-based decisions in place, and the shift to *Skidmore* weight for agency expertise.
+- **Evidence 13, 14, 16, 17**: The doctrine of *stare decisis* and the justifications for overruling precedent, including the notion that deference doctrines may not be treated as binding precedents.
+
+================================================================================
+RUN SUMMARY
+================================================================================
+Mode            : PARALLEL
+Steps completed : 3
+Evidence pieces : 17
+LLM calls       : 12
+Tokens (in/out) : 32,859 / 3,196
+Parallel rounds : 1
+
+Step breakdown:
+  Step    1 [rag_search    ] conf=0.997 judge=full evidence=[4 caselaw, 1 wex]
+  Step    2 [web_search    ] conf=0.000 judge=full evidence=[5 web_snippet, 2 web_scraped]
+  Step    3 [rag_search    ] conf=0.983 judge=partial evidence=[4 caselaw, 1 wex]
+================================================================================
+

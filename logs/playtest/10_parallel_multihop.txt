@@ -1,0 +1,182 @@
+================================================================================
+PARALLEL TEST: Multi-hop barqa
+================================================================================
+
+================================================================================
+QUESTION: A police officer stopped a vehicle without reasonable suspicion, found drugs during a warrantless search, and the defendant seeks suppression. What are the defendants strongest Fourth Amendment arguments and how would a court analyze application of the exclusionary rule?
+MODE: PARALLEL
+================================================================================
+
+--- ROUTER ---
+    [router] 35 chars (216 in / 8 out tokens)
+  Collections: ['legal_passages']
+
+--- PLANNER ---
+    [planner] 1637 chars (1405 in / 332 out tokens)
+  Plan (4 steps):
+    Step 1 [rag_search]: What level of suspicion is constitutionally required to justify a traffic stop under the Fourth Amendment?
+    Step 2 [rag_search]: What standard governs warrantless searches of automobiles and what exceptions apply?
+    Step 3 [rag_search]: What is the exclusionary rule and when does it require suppression of unlawfully obtained evidence?
+    Step 4 [rag_search]: What exceptions to the exclusionary rule might the prosecution argue, such as good faith or inevitable discovery?
+
+--- PARALLEL EXECUTOR ---
+  Executing 4 step(s)
+
+  [Step 1] Attempt 1 [rag_search] (rewrite_attempt=0): What level of suspicion is constitutionally required to justify a traffic stop under the Fourth Amendment?
+    [executor/rewrite] 374 chars (954 in / 68 out tokens)
+    Primary query: reasonable suspicion standard Fourth Amendment investigatory stop Terry stop articulable facts criminal activity
+    Alt query 1: constitutional justification traffic stop seizure probable cause versus reasonable suspicion totality of circumstances
+    Alt query 2: Terry v. Ohio stop and frisk reasonable belief officer safety investigatory detention
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+[rag_utils] Building BM25 index from 686324 passages...
+[rag_utils] BM25 index built (686324 docs) for 'legal_passages'
+    Retrieved 5 passage(s) from ['legal_passages']
+      [1] idx=caselaw_12541240_20 source=caselaw ce_score=7.960
+          The Fourth Amendment safeguards our persons, our property, and our peace by requiring that law enforcement first have a warrant supported by probable cause before executing searches or seizures. Robinson , 5 N.E.3d at 367. This mandate notwithstanding, one exception to the warrant and probable-cause...
+      [2] idx=caselaw_12520667_28 source=caselaw ce_score=7.241
+          The Fourth Amendment prohibits "unreasonable searches and seizures." U.S. CONST. amend. IV. Although searches generally require warrants supported by probable cause, officers may conduct brief investigatory stops under Terry v. Ohio , 392 U.S. 1, 88 S.Ct. 1868, 20 L.Ed.2d 889 (1968), if they have "r...
+      [3] idx=caselaw_12505879_12 source=caselaw ce_score=7.125
+          It is firmly established that, pursuant to Terry , "[o]fficers may conduct an investigatory stop if they have a reasonable suspicion based on specific and articulable facts that criminal activity may be occurring." Wade v. United States , 173 A.3d 87, 91 (D.C. 2017) (internal quotation marks omitted...
+      [4] idx=caselaw_12530001_77 source=caselaw ce_score=7.087
+          Turning to the first sub-part of prong two, Plaintiff identified controlling authority that specifically defines the rights at issue in this case. It is a bedrock principle of Fourth Amendment jurisprudence that police cannot conduct an investigatory stop without reasonable suspicion-based on articu...
+      [5] idx=caselaw_12654503_22 source=caselaw ce_score=6.931
+          The Fourth Amendment permits brief investigative stops ... when a law enforcement officer has a particularized and objective basis for suspecting the particular person stopped of criminal activity. The reasonable suspicion necessary to justify such a stop is dependent upon both the content of inform...
+    [executor/synth] 2081 chars (1795 in / 434 out tokens)
+    --- Sub-answer ---
+    **Rule**: The Fourth Amendment requires law enforcement to have a particularized and objective justification to conduct a brief investigatory stop, such as a traffic stop. This standard is "reasonable suspicion," which is less demanding than probable cause but requires more than an inchoate hunch [Source 1] [Source 2] [Source 5].
+
+**Required Level of Suspicion**: A traffic stop is a seizure and therefore must be based on "reasonable suspicion supported by articulable facts that criminal activity...
+    --- End sub-answer ---
+  [Step 1] Confidence: 1.000
+    [judge/judge] 363 chars (3110 in / 75 out tokens)
+  [Step 1] Judge: sufficient=full | All passages directly state and explain the 'reasonable suspicion' standard required for traffic stops under the Fourth Amendment, including its definition, required level of objective justification, and distinction from probable cause and mere hunches.
+  [Step 1] Completed (judge=full)
+
+  [Step 2] Attempt 1 [rag_search] (rewrite_attempt=0): What standard governs warrantless searches of automobiles and what exceptions apply?
+    [executor/rewrite] 421 chars (948 in / 72 out tokens)
+    Primary query: automobile exception warrantless search Fourth Amendment probable cause Carroll doctrine vehicle exigent circumstances
+    Alt query 1: warrant requirement exceptions motor vehicle search probable cause mobility exigency inventory search plain view
+    Alt query 2: constitutional search and seizure vehicle exception probable cause scope search incident to arrest consent
+    Retrieved 5 passage(s) from ['legal_passages']
+      [1] idx=caselaw_12531376_46 source=caselaw ce_score=6.738
+          The Supreme Court has long held that "a warrantless search of an automobile, based upon probable cause to believe that the vehicle contained evidence of crime in light of an exigency arising out of the likely disappearance of the vehicle, did not contravene the Warrant Clause of the Fourth Amendment...
+      [2] idx=caselaw_12510598_27 source=caselaw ce_score=6.261
+          Therefore, we hold that, in this Commonwealth, the law governing warrantless searches of motor vehicles is coextensive with federal law under the Fourth Amendment. The prerequisite for a warrantless search of a motor vehicle is probable cause to search; no exigency beyond the inherent mobility of a ...
+      [3] idx=caselaw_12543626_34 source=caselaw ce_score=6.097
+          ¶ 31 "A recognized exception to the fourth amendment's warrant requirement is the 'automobile exception,' which is based on the understanding that automobiles may be readily driven away often rendering it impossible for officers to obtain warrants for their search." People v. Contreras , 2014 IL App...
+      [4] idx=caselaw_12572598_54 source=caselaw ce_score=6.064
+          A vehicle's mobility is considered an exigent circumstance. Consequently, a subclass of the probable-cause-plus-exigent-circumstances exception is called the automobile exception. The automobile exception provides that a warrant is not required to search a vehicle as long as "probable cause exists t...
+      [5] idx=caselaw_12530998_37 source=caselaw ce_score=6.008
+          Under the "automobile exception" to the Fourth Amendment warrant requirement, police may conduct a warrantless search of a readily mobile motor vehicle if probable cause exists to believe the vehicle contains contraband or other evidence of a crime. See United States v. Navas , 597 F.3d 492, 497 (2d...
+    [executor/synth] 1832 chars (1687 in / 384 out tokens)
+    --- Sub-answer ---
+    **Rule**: The automobile exception permits a warrantless search of a vehicle if there is probable cause to believe it contains contraband or evidence of a crime [Source 1][Source 3][Source 5].
+
+**Standard and Exceptions**:
+*   **Probable Cause Requirement**: The prerequisite for a warrantless vehicle search is probable cause, defined as knowledge of facts sufficient to justify a reasonable belief that the vehicle contains evidence of criminal activity [Source 2][Source 3]. This is assessed under...
+    --- End sub-answer ---
+  [Step 2] Confidence: 0.999
+    [judge/judge] 285 chars (2952 in / 68 out tokens)
+  [Step 2] Judge: sufficient=full | All passages directly address the automobile exception, clearly stating the standard (probable cause) and explaining the exigency requirement (inherent mobility as a per se exigency).
+  [Step 2] Completed (judge=full)
+
+  [Step 3] Attempt 1 [rag_search] (rewrite_attempt=0): What is the exclusionary rule and when does it require suppression of unlawfully obtained evidence?
+    [executor/rewrite] 407 chars (955 in / 72 out tokens)
+    Primary query: exclusionary rule Fourth Amendment violation suppression remedy fruit of poisonous tree doctrine unlawfully obtained evidence
+    Alt query 1: constitutional remedy for illegal search and seizure good faith exception inevitable discovery attenuation doctrine
+    Alt query 2: judicially created deterrent rule suppression of evidence police misconduct Mapp v. Ohio warrant requirement
+    Retrieved 5 passage(s) from ['legal_passages']
+      [1] idx=caselaw_12544968_37 source=caselaw ce_score=8.492
+          ¶ 36 "The fruit-of-the-poisonous tree doctrine is an outgrowth of the exclusionary rule providing that 'the fourth amendment violation is deemed the "poisonous tree," and any evidence obtained by exploiting that violation is subject to suppression as the "fruit" of that poisonous tree.' " People v. ...
+      [2] idx=caselaw_12546193_24 source=caselaw ce_score=8.338
+          ¶ 22 "The fruit-of-the-poisonous-tree doctrine is an outgrowth of the exclusionary rule providing that 'the fourth amendment violation is deemed the "poisonous tree," and any evidence obtained by exploiting that violation is subject to suppression as the "fruit" of that poisonous tree.' " People v. ...
+      [3] idx=caselaw_12577159_18 source=caselaw ce_score=7.982
+          Suppression results from applying the exclusionary rule under which a court may suppress the "primary evidence obtained as a direct result of an illegal search or seizure" and "evidence later discovered and found to be derivative of an illegality," the so-called " 'fruit of the poisonous tree' " if ...
+      [4] idx=caselaw_12577147_46 source=caselaw ce_score=7.933
+          The attenuation doctrine is an exception to the exclusionary rule. Strieff , 136 S. Ct. at 2061. Under the exclusionary rule, if a criminal defendant challenges the State's use of evidence obtained in violation of the Fourth Amendment, a court may suppress the "primary evidence obtained as a direct ...
+      [5] idx=caselaw_12577158_15 source=caselaw ce_score=7.873
+          Under the exclusionary rule, if a criminal defendant challenges the State's use of evidence obtained in violation of the Fourth Amendment, a court may suppress the "primary evidence obtained as a direct result of an illegal search or seizure" and "evidence later discovered and found to be derivative...
+    [executor/synth] 2065 chars (2173 in / 426 out tokens)
+    --- Sub-answer ---
+    **Rule**: The exclusionary rule is a judicially created remedy that may require suppression of evidence obtained in violation of the Fourth Amendment [Source 2]. Its sole objective is to deter future Fourth Amendment violations [Source 2].
+
+**When Suppression is Required**: A court may suppress both the "primary evidence obtained as a direct result of an illegal search or seizure" and derivative evidence, known as the "fruit of the poisonous tree" [Source 3] [Source 4] [Source 5]. However, suppr...
+    --- End sub-answer ---
+  [Step 3] Confidence: 1.000
+    [judge/judge] 386 chars (3480 in / 79 out tokens)
+  [Step 3] Judge: sufficient=full | Passages comprehensively define the exclusionary rule as a deterrent remedy for Fourth Amendment violations, explain when suppression applies (to primary evidence and 'fruit of the poisonous tree'), and detail the conditions for triggering suppression based on police conduct.
+  [Step 3] Completed (judge=full)
+
+  [Step 4] Attempt 1 [rag_search] (rewrite_attempt=0): What exceptions to the exclusionary rule might the prosecution argue, such as good faith or inevitable discovery?
+    [executor/rewrite] 410 chars (954 in / 70 out tokens)
+    Primary query: exclusionary rule exceptions good faith inevitable discovery attenuation doctrine independent source Fourth Amendment suppression
+    Alt query 1: fruit of the poisonous tree doctrine limitations constitutional violations evidence admissibility Leon good faith
+    Alt query 2: purged taint exception inevitable discovery attenuation of taint independent source rule evidence suppression
+    Retrieved 5 passage(s) from ['legal_passages']
+      [1] idx=caselaw_12573435_113 source=caselaw ce_score=6.978
+          ¶ 73 The United States Supreme Court established a closely related subset of exceptions to the exclusionary rule under the Fourth Amendment to the United States Constitution. Those include the good faith exception, the inevitable discovery doctrine, and the attenuation doctrine. Our cases analyzing ...
+      [2] idx=caselaw_12522381_4 source=caselaw ce_score=5.863
+          Second , the district court erred in denying the Claimants' motion to suppress evidence obtained pursuant to a defective search warrant. We reverse the court's suppression order to the extent it applied the good-faith exception to the Fourth Amendment's exclusionary rule. The Government's failure to...
+      [3] idx=caselaw_12573435_24 source=caselaw ce_score=5.852
+          Id. (citation omitted) (quoting City of Seattle v. McCready, 123 Wash.2d 260, 267, 868 P.2d 134 (1994) ). This approach is reflected in several of our prior cases that considered federally recognized exceptions to the exclusionary rule on an independent state law basis without first conducting a Gun...
+      [4] idx=wex_1889 source=wex ce_score=5.613
+          exclusionary rule: Overview The exclusionary rule prevents the government from using most evidence gathered in violation of the United States Constitution.  The decision in Mapp v. Ohio established that the exclusionary rule applies to evidence gained from an unreasonable search or seizure in violat...
+      [5] idx=caselaw_12573434_8 source=caselaw ce_score=5.235
+          ¶6 "The exclusionary rule, which allows suppression of evidence obtained in violation of the Fourth Amendment, is a prudential doctrine invoked [solely] to deter future violations." Valenzuela II , 239 Ariz. at 308-09 ¶ 31, 371 P.3d at 636-37 (citing Davis v. United States , 564 U.S. 229, 236-37, 13...
+    [executor/synth] 3067 chars (2538 in / 587 out tokens)
+    --- Sub-answer ---
+    The prosecution would likely argue the good-faith exception and the inevitable discovery doctrine to prevent suppression of the drugs.
+
+**Good-Faith Exception**: Under federal law, this exception applies when police act with an objectively reasonable belief that their conduct is lawful, as the exclusionary rule's deterrent purpose is not served when police act in good faith [Source 4] [Source 5]. The exception covers reliance on a subsequently invalidated warrant, binding appellate precedent, or...
+    --- End sub-answer ---
+  [Step 4] Confidence: 0.999
+    [judge/judge] 311 chars (4006 in / 69 out tokens)
+  [Step 4] Judge: sufficient=full | Passages comprehensively identify and explain the key exceptions to the exclusionary rule (good faith, inevitable discovery, attenuation) at the doctrine level, including their legal standards and limitations.
+  [Step 4] Completed (judge=full)
+
+  Parallel execution complete: 4 step(s), 20 evidence pieces
+
+--- PARALLEL SYNTHESIZER ---
+    [synthesizer] 4808 chars (9044 in / 945 out tokens)
+  Final answer: 4808 chars
+    [completeness] 335 chars (1149 in / 68 out tokens)
+  Completeness: COMPLETE — The synthesized answer comprehensively addresses the defendant's strongest Fourth Amendment arguments (unlawful stop, fruit of the poisonous tree) and the court's analysis of the exclusionary rule, including key exceptions and their likely application.
+  → END (research complete)
+
+================================================================================
+FINAL ANSWER:
+================================================================================
+**Issue**: Whether evidence discovered during a warrantless vehicle search must be suppressed when the initial traffic stop was conducted without reasonable suspicion.
+
+**Rule**: The Fourth Amendment requires a traffic stop, a seizure, to be justified by reasonable suspicion—a particularized, objective basis supported by articulable facts that criminal activity may be afoot, assessed under the totality of the circumstances [Evidence 1][Evidence 2][Evidence 5]. A warrantless search of a vehicle is permissible under the automobile exception if police have probable cause to believe it contains contraband or evidence of a crime, as the vehicle's inherent mobility provides the requisite exigency [Evidence 6][Evidence 7][Evidence 9]. The exclusionary rule is a judicial remedy that may require suppression of evidence obtained in violation of the Fourth Amendment, including both primary evidence and its derivative "fruit of the poisonous tree" [Evidence 11][Evidence 13][Evidence 15]. Suppression is not automatic; the rule is triggered only when police conduct is "sufficiently deliberate that exclusion can meaningfully deter it," such as deliberate, reckless, or grossly negligent conduct [Evidence 14][Evidence 15]. Recognized exceptions that may prevent suppression include the good-faith exception, the inevitable discovery doctrine, and the attenuation doctrine [Evidence 11][Evidence 16][Evidence 19].
+
+**Application**: The defendant's strongest arguments are sequential. First, the initial stop was unconstitutional because the officer lacked the requisite reasonable suspicion, rendering the seizure unlawful [Evidence 3][Evidence 4]. Second, any search following this illegal stop is presumptively tainted as "fruit of the poisonous tree" [Evidence 11][Evidence 13]. Even if probable cause for the vehicle search existed independently, the discovery of that probable cause was likely a direct exploitation of the illegal stop, making the drugs subject to suppression.
+
+A court would analyze the exclusionary rule's application in two stages. First, it must determine if a Fourth Amendment violation occurred. Here, a stop without reasonable suspicion is a clear violation [Evidence 2][Evidence 4]. Second, the court would assess whether suppression is the appropriate remedy. The prosecution would likely argue for an exception. The good-faith exception is inapplicable because the officer's conduct—stopping a vehicle without any objective justification—was not based on a reasonable reliance on a warrant, statute, or binding precedent [Evidence 19][Evidence 20]. The attenuation doctrine would also likely fail given the direct temporal and causal link between the illegal stop and the discovery of the drugs [Evidence 19]. The prosecution's most plausible argument is the inevitable discovery doctrine, claiming the drugs would have been found through an independent, lawful investigation. However, they bear the burden of proving this by a preponderance of the evidence [Evidence 17], which would be difficult absent a pre-existing, independent investigation. Finally, the court must consider the nature of the police conduct. A stop without any articulable suspicion suggests at least grossly negligent, if not reckless, conduct, which is precisely the type of behavior the exclusionary rule is designed to deter [Evidence 14][Evidence 15].
+
+**Conclusion**: The defendant's strongest arguments are that the stop violated the Fourth Amendment due to a lack of reasonable suspicion and that the subsequently discovered drugs are the fruit of that unlawful seizure. A court would likely grant the motion to suppress because the constitutional violation is clear and no applicable exception to the exclusionary rule would justify admitting the evidence, given the apparent absence of objectively reasonable good faith or an independent, inevitable line of discovery.
+
+## Sources
+- **Evidence 1, 2, 3, 4, 5**: Establish that a traffic stop is a *Terry* seizure requiring reasonable suspicion based on specific, articulable facts, not a hunch.
+- **Evidence 6, 7, 9**: Define the automobile exception, permitting a warrantless vehicle search based on probable cause, with mobility as a per se exigency.
+- **Evidence 11, 13, 15**: Explain the exclusionary rule and the "fruit of the poisonous tree" doctrine, under which evidence from an illegal stop is subject to suppression.
+- **Evidence 14, 15**: Clarify that the exclusionary rule is triggered only by sufficiently deliberate police misconduct (deliberate, reckless, or grossly negligent).
+- **Evidence 16, 19, 20**: Detail exceptions to the exclusionary rule (good faith, inevitable discovery, attenuation) and note that the good-faith exception applies only when police act with an objectively reasonable belief their conduct is lawful.
+
+================================================================================
+RUN SUMMARY
+================================================================================
+Mode            : PARALLEL
+Steps completed : 4
+Evidence pieces : 20
+LLM calls       : 16
+Tokens (in/out) : 37,366 / 3,757
+Parallel rounds : 1
+
+Step breakdown:
+  Step    1 [rag_search    ] conf=1.000 judge=full evidence=[5 caselaw]
+  Step    2 [rag_search    ] conf=0.999 judge=full evidence=[5 caselaw]
+  Step    3 [rag_search    ] conf=1.000 judge=full evidence=[5 caselaw]
+  Step    4 [rag_search    ] conf=0.999 judge=full evidence=[4 caselaw, 1 wex]
+================================================================================
+
