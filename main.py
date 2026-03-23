@@ -1,5 +1,6 @@
 """Plan-and-Execute Legal RAG Agent.
 
+<<<<<<< HEAD
 Architecture (follows LangGraph plan-and-execute pattern):
   START → router → planner → executor → replanner → executor  (retry / next step)
                                                    → synthesizer → END
@@ -12,6 +13,33 @@ Five top-level nodes:
   replanner   — applies deterministic escalation (rag→rewrite→web→direct),
                 then LLM for next/complete when judge says sufficient
   synthesizer — aggregates all completed steps into a final IRAC answer
+=======
+Two execution modes (selected via PARALLEL_MODE=1 env var or --parallel CLI flag):
+
+Sequential mode (default):
+  START → router → planner → executor → replanner → executor  (retry / next step)
+                                                   → synthesizer → END
+  Four top-level nodes:
+    planner    — decomposes the question into an ordered planning table
+    executor   — executes one step via direct_answer, rag_search, or web_search,
+                 then runs LLM judge to evaluate sufficiency
+    replanner  — applies deterministic escalation (rag→rewrite→web→direct),
+                 then LLM for next/complete when judge says sufficient
+    synthesizer — aggregates all completed steps into a final IRAC answer
+
+Parallel mode (PARALLEL_MODE=1):
+  START → router → planner → parallel_executor → parallel_synthesizer
+                       ↑                               |
+                       └── parallel_replanner ←────────┘ (if incomplete)
+                                                       → END (if complete)
+  Key differences:
+    parallel_executor  — runs ALL pending steps at once, each with its own
+                         internal escalation chain (rag→rewrite→web→direct)
+    parallel_synthesizer — synthesizes + checks completeness; if gaps remain,
+                           routes back to replanner for another round (max 3)
+    parallel_replanner — generates new steps from missing topics identified
+                         by the synthesizer's completeness check
+>>>>>>> 0defd83 (Add parallel executor architecture with completeness-based looping)
 
 All system prompts are loaded from skills/*.md at runtime.
 """
@@ -22,6 +50,7 @@ All system prompts are loaded from skills/*.md at runtime.
 import os
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
+import concurrent.futures
 import functools
 import json
 import logging
@@ -46,6 +75,12 @@ _TIKTOKEN_ENC = tiktoken.get_encoding("cl100k_base")
 
 # Logging verbosity — set via --verbose CLI flag or VERBOSE=1 env var
 VERBOSE = os.getenv("VERBOSE", "0") == "1"
+
+# Parallel mode — set via PARALLEL_MODE=1 env var or --parallel CLI flag
+PARALLEL_MODE = os.getenv("PARALLEL_MODE", "0") == "1"
+
+# Parallel mode — set via PARALLEL_MODE=1 env var or --parallel CLI flag
+PARALLEL_MODE = os.getenv("PARALLEL_MODE", "0") == "1"
 
 
 # ---------------------------------------------------------------------------
@@ -95,6 +130,11 @@ class LegalAgentState(TypedDict):
     evidence_store: List[Dict[str, Any]]  # all retrieved passages (accumulated)
     final_answer: str
     audit_log: List[Dict[str, Any]]     # per-node trace entries
+    completeness_verdict: Dict[str, Any]  # parallel mode: synthesizer completeness check
+    parallel_round: int                   # parallel mode: current planner→executor round
+    # Parallel mode fields
+    completeness_verdict: Dict[str, Any]  # synthesizer completeness check result
+    parallel_round: int                   # tracks planner→executor→synthesizer iterations
 
 
 # ---------------------------------------------------------------------------
@@ -1018,6 +1058,601 @@ def synthesizer_node(state: LegalAgentState) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# 9b. Parallel Mode: Parallel Executor Node
+# ---------------------------------------------------------------------------
+
+def _execute_step_with_escalation(
+    step: PlanningStep,
+    state: LegalAgentState,
+    table: List[PlanningStep],
+    evidence_store: List[Dict[str, Any]],
+) -> tuple[PlanningStep, List[Dict[str, Any]]]:
+    """Execute a single step with the full escalation chain (rag → rewrite → web → direct).
+
+    This mirrors the sequential executor+replanner loop but runs it all within
+    a single function call, so multiple steps can be executed independently.
+
+    Returns (updated_step, new_evidence_for_this_step).
+    """
+    question = state["inputs"]["question"]
+    current = step.model_copy()
+    all_new_evidence: List[Dict[str, Any]] = []
+    max_escalations = 4  # rag(0) → rag(rewrite) → web → direct
+
+    for escalation in range(max_escalations):
+        print(f"\n  [Step {current.step_id}] Attempt {escalation + 1} [{current.action_type}] "
+              f"(rewrite_attempt={current.rewrite_attempt}): {current.sub_question}")
+
+        # --- Execute based on action type ---
+        if current.action_type == ACTION_DIRECT:
+            result, new_evidence, raw_logit = _execute_direct_answer(current, state)
+        elif current.action_type == ACTION_WEB:
+            result, new_evidence, raw_logit = _execute_web_search(current, state)
+        else:  # rag_search
+            result, new_evidence, raw_logit = _execute_rag_search(
+                current, state, table, evidence_store + all_new_evidence
+            )
+
+        confidence = _normalise_confidence(raw_logit) if raw_logit != 0.0 else 0.0
+        print(f"  [Step {current.step_id}] Confidence: {confidence:.3f}")
+
+        # --- Judge evaluation ---
+        passage_texts = [ev["text"] for ev in new_evidence]
+        verdict = _call_judge(current, result, passage_texts, question)
+        print(f"  [Step {current.step_id}] Judge: sufficient={verdict['sufficient']} | "
+              f"{verdict.get('reason', '')}")
+
+        all_new_evidence.extend(new_evidence)
+
+        # If judge says sufficient (full or partial), we're done with this step
+        if verdict["sufficient"] in ("full", "partial", True):
+            updated = current.model_copy(update={
+                "status": STATUS_COMPLETED,
+                "result": result,
+                "confidence": confidence,
+                "evidence_ids": [ev["idx"] for ev in all_new_evidence],
+                "judge_verdict": verdict,
+            })
+            print(f"  [Step {current.step_id}] Completed (judge={verdict['sufficient']})")
+            return updated, all_new_evidence
+
+        # --- Escalation logic (mirrors replanner_node deterministic escalation) ---
+        if current.action_type == ACTION_RAG and current.rewrite_attempt == 0:
+            # First RAG failure → rewrite query, stay rag_search
+            revised_q = verdict.get("suggested_rewrite") or current.sub_question
+            print(f"  [Step {current.step_id}] Escalating: rag_search → rewrite")
+            current = current.model_copy(update={
+                "sub_question": revised_q,
+                "rewrite_attempt": 1,
+            })
+
+        elif current.action_type == ACTION_RAG and current.rewrite_attempt >= 1:
+            # Second RAG failure → escalate to web_search
+            print(f"  [Step {current.step_id}] Escalating: rag_search → web_search")
+            current = current.model_copy(update={
+                "action_type": ACTION_WEB,
+                "rewrite_attempt": 0,
+            })
+
+        elif current.action_type == ACTION_WEB:
+            # Web search failure → fall back to direct_answer
+            print(f"  [Step {current.step_id}] Escalating: web_search → direct_answer")
+            current = current.model_copy(update={
+                "action_type": ACTION_DIRECT,
+                "rewrite_attempt": 0,
+            })
+
+        elif current.action_type == ACTION_DIRECT:
+            # direct_answer also failed — mark as completed with whatever we have
+            print(f"  [Step {current.step_id}] All escalations exhausted, keeping best result")
+            break
+
+    # All escalations exhausted — keep the last result
+    updated = current.model_copy(update={
+        "status": STATUS_COMPLETED,
+        "result": result,
+        "confidence": confidence,
+        "evidence_ids": [ev["idx"] for ev in all_new_evidence],
+        "judge_verdict": verdict,
+    })
+    return updated, all_new_evidence
+
+
+def parallel_executor_node(state: LegalAgentState) -> dict:
+    """Execute ALL pending planning steps, each with its own escalation chain.
+
+    In parallel mode, this replaces the sequential executor_node + replanner_node
+    loop. Each step independently runs: query rewrite → retrieve → synthesize → judge,
+    and if the judge says insufficient, escalates (rag → rewrite → web → direct)
+    within its own loop before returning.
+
+    Currently uses sequential execution (for deterministic debugging). True thread/
+    process parallelism can be enabled by switching to concurrent.futures below.
+    """
+    print("\n--- PARALLEL EXECUTOR ---")
+    table = state["planning_table"]
+    evidence_store = list(state.get("evidence_store", []))
+    question = state["inputs"]["question"]
+
+    pending = [s for s in table if s.status == STATUS_PENDING]
+    if not pending:
+        print("  No pending steps.")
+        return {}
+
+    print(f"  Executing {len(pending)} step(s) in parallel mode")
+
+    # --- Execute all pending steps ---
+    # Sequential execution for now. To enable true parallelism, uncomment the
+    # ThreadPoolExecutor block below and comment out the sequential block.
+    results: List[tuple[PlanningStep, List[Dict[str, Any]]]] = []
+
+    # Option A: Sequential execution (deterministic, easier to debug)
+    for step in pending:
+        updated_step, new_evidence = _execute_step_with_escalation(
+            step, state, table, evidence_store
+        )
+        results.append((updated_step, new_evidence))
+        # Accumulate evidence so later steps can deduplicate
+        evidence_store.extend(new_evidence)
+
+    # Option B: True parallel execution (uncomment to enable)
+    # with concurrent.futures.ThreadPoolExecutor(max_workers=len(pending)) as executor:
+    #     futures = {
+    #         executor.submit(
+    #             _execute_step_with_escalation,
+    #             step, state, table, evidence_store
+    #         ): step.step_id
+    #         for step in pending
+    #     }
+    #     for future in concurrent.futures.as_completed(futures):
+    #         updated_step, new_evidence = future.result()
+    #         results.append((updated_step, new_evidence))
+
+    # --- Build updated planning table ---
+    completed_ids = {r[0].step_id for r in results}
+    new_table = []
+    for s in table:
+        if s.step_id in completed_ids:
+            updated = next(r[0] for r in results if r[0].step_id == s.step_id)
+            new_table.append(updated)
+        else:
+            new_table.append(s)
+
+    # Collect all new evidence
+    all_new_evidence = []
+    for _, new_ev in results:
+        all_new_evidence.extend(new_ev)
+
+    completed_count = sum(1 for s in new_table if s.status == STATUS_COMPLETED)
+    print(f"\n  Parallel execution complete: {completed_count} step(s) completed, "
+          f"{len(all_new_evidence)} evidence pieces collected")
+
+    return {
+        "planning_table": new_table,
+        "evidence_store": state.get("evidence_store", []) + all_new_evidence,
+        "audit_log": _log(state, {
+            "node": "parallel_executor",
+            "steps_executed": len(pending),
+            "steps_completed": completed_count,
+            "evidence_collected": len(all_new_evidence),
+        }),
+    }
+
+
+# ---------------------------------------------------------------------------
+# 9c. Parallel Mode: Synthesizer with Completeness Check
+# ---------------------------------------------------------------------------
+
+_COMPLETENESS_CHECK_PROMPT = """You are evaluating whether the accumulated research evidence is sufficient to fully answer the original legal question.
+
+Given the original question, the research findings, and the synthesized answer, assess completeness.
+
+Return ONLY valid JSON — no prose, no markdown fences:
+
+{
+  "complete": true,
+  "reasoning": "One sentence explaining why the evidence is or is not sufficient.",
+  "missing_topics": []
+}
+
+Fields:
+- `complete`: true if the synthesized answer adequately addresses the original question; false if there are significant gaps that additional research could fill.
+- `reasoning`: Brief explanation of your assessment.
+- `missing_topics`: If complete is false, list 1-3 specific legal topics/doctrines that need additional research. Each should be a focused sub-question suitable for a new research step. Empty list if complete is true.
+
+Guidelines:
+- An answer does not need to be perfect to be complete. If the key legal rules, elements, and application are covered, it is complete.
+- Only mark incomplete if there is a clearly identifiable gap that would materially change the answer.
+- If the question is simple (single doctrine), the bar for completeness is low — one well-supported step is usually enough.
+- Do not mark incomplete just because more depth is theoretically possible. Mark incomplete only when the current answer would be misleading or materially deficient without the missing information.
+- Maximum 3 rounds of research are allowed, so be conservative about requesting more.
+"""
+
+
+def parallel_synthesizer_node(state: LegalAgentState) -> dict:
+    """Aggregate research and check completeness. In parallel mode, this replaces
+    synthesizer_node and adds a completeness verdict that can route back to planner.
+
+    Loads: skills/synthesizer.md for synthesis, then runs a separate completeness
+    check to decide whether to loop back for more research.
+    """
+    print("\n--- PARALLEL SYNTHESIZER ---")
+    table = state["planning_table"]
+    evidence_store = state.get("evidence_store", [])
+    question = state["inputs"]["question"]
+    parallel_round = state.get("parallel_round", 1)
+
+    completed = [s for s in table if s.status == STATUS_COMPLETED]
+
+    step_summaries = "\n\n".join(
+        f"### Research Step {s.step_id} ({s.action_type}): {s.sub_question}\n{s.result}"
+        for s in completed
+    )
+
+    # Build an evidence index the synthesizer can cite by number
+    evidence_index = "\n".join(
+        f"[Evidence {i + 1}] (step={ev['step_id']}, source={ev['source']}): "
+        f"{ev['text']}"
+        for i, ev in enumerate(evidence_store)
+    )
+
+    user_prompt = (
+        f"ORIGINAL QUESTION:\n{question}\n\n"
+        f"RESEARCH FINDINGS:\n{step_summaries}\n\n"
+        f"EVIDENCE INDEX (cite as [Evidence N]):\n{evidence_index}"
+    )
+
+    final_answer = _llm_call(load_skill("synthesizer"), user_prompt, label="synthesizer")
+    print(f"  Final answer: {len(final_answer)} chars")
+
+    # --- Completeness check ---
+    # Skip completeness check if we've hit the max rounds (3)
+    max_rounds = state.get("run_config", {}).get("max_parallel_rounds", 3)
+    if parallel_round >= max_rounds:
+        print(f"  Max parallel rounds ({max_rounds}) reached — marking complete")
+        completeness = {"complete": True, "reasoning": "max rounds reached", "missing_topics": []}
+    else:
+        completeness_prompt = (
+            f"ORIGINAL QUESTION:\n{question}\n\n"
+            f"RESEARCH FINDINGS:\n{step_summaries}\n\n"
+            f"SYNTHESIZED ANSWER:\n{final_answer}\n\n"
+            f"Research round: {parallel_round} of {max_rounds} max"
+        )
+        raw = _llm_call(_COMPLETENESS_CHECK_PROMPT, completeness_prompt, label="completeness_check")
+        parsed = _parse_json(raw)
+
+        if parsed and "complete" in parsed:
+            completeness = {
+                "complete": parsed.get("complete", True),
+                "reasoning": parsed.get("reasoning", ""),
+                "missing_topics": parsed.get("missing_topics", []),
+            }
+        else:
+            # Parse failure — default to complete to avoid infinite loops
+            completeness = {"complete": True, "reasoning": "parse failure — defaulting to complete", "missing_topics": []}
+
+    is_complete = completeness.get("complete", True)
+    print(f"  Completeness: {'COMPLETE' if is_complete else 'INCOMPLETE'} — {completeness.get('reasoning', '')}")
+    if not is_complete and completeness.get("missing_topics"):
+        print(f"  Missing topics: {completeness['missing_topics']}")
+
+    return {
+        "final_answer": final_answer,
+        "completeness_verdict": completeness,
+        "parallel_round": parallel_round + 1,
+        "audit_log": _log(state, {
+            "node": "parallel_synthesizer",
+            "completed_steps": len(completed),
+            "evidence_entries": len(evidence_store),
+            "parallel_round": parallel_round,
+            "completeness": completeness,
+        }),
+    }
+
+
+# ---------------------------------------------------------------------------
+# 9d. Parallel Mode: Replanner (generates additional steps from missing topics)
+# ---------------------------------------------------------------------------
+
+def parallel_replanner_node(state: LegalAgentState) -> dict:
+    """Generate new planning steps from the synthesizer's missing topics.
+
+    Called when the parallel synthesizer determines the evidence is incomplete.
+    Takes the missing_topics from the completeness verdict and creates new
+    PlanningStep entries with status=pending for the next executor round.
+    """
+    print("\n--- PARALLEL REPLANNER ---")
+    table = state["planning_table"]
+    completeness = state.get("completeness_verdict", {})
+    missing_topics = completeness.get("missing_topics", [])
+
+    if not missing_topics:
+        print("  No missing topics — nothing to replan")
+        return {}
+
+    # Find the max step_id so we can assign new unique IDs
+    max_id = max((s.step_id for s in table), default=0)
+
+    new_steps: List[PlanningStep] = []
+    for i, topic in enumerate(missing_topics, 1):
+        new_step = PlanningStep(
+            step_id=max_id + i,
+            sub_question=topic if isinstance(topic, str) else str(topic),
+            authority_target="",
+            retrieval_hints=[],
+            action_type=ACTION_RAG,
+        )
+        new_steps.append(new_step)
+        print(f"  New step {new_step.step_id}: {new_step.sub_question}")
+
+    print(f"  Added {len(new_steps)} new step(s) for round {state.get('parallel_round', 2)}")
+
+    return {
+        "planning_table": list(table) + new_steps,
+        "audit_log": _log(state, {
+            "node": "parallel_replanner",
+            "new_steps": len(new_steps),
+            "missing_topics": missing_topics,
+        }),
+    }
+
+
+# ---------------------------------------------------------------------------
+# 9b. Parallel Mode: Execute All Steps with Escalation
+# ---------------------------------------------------------------------------
+
+def _execute_step_with_escalation(
+    step: PlanningStep,
+    state: LegalAgentState,
+    table: List[PlanningStep],
+    evidence_store: List[Dict[str, Any]],
+) -> tuple[PlanningStep, List[Dict[str, Any]]]:
+    """Execute a single step with the full escalation chain (rag → rewrite → web → direct).
+
+    Mirrors the sequential executor+replanner loop but in a single function call,
+    so multiple steps can be executed independently.
+
+    Returns (updated_step, new_evidence_for_this_step).
+    """
+    question = state["inputs"]["question"]
+    current = step.model_copy()
+    all_new_evidence: List[Dict[str, Any]] = []
+    max_escalations = 4
+
+    for escalation in range(max_escalations):
+        print(f"\n  [Step {current.step_id}] Attempt {escalation + 1} [{current.action_type}] "
+              f"(rewrite_attempt={current.rewrite_attempt}): {current.sub_question}")
+
+        if current.action_type == ACTION_DIRECT:
+            result, new_evidence, raw_logit = _execute_direct_answer(current, state)
+        elif current.action_type == ACTION_WEB:
+            result, new_evidence, raw_logit = _execute_web_search(current, state)
+        else:
+            result, new_evidence, raw_logit = _execute_rag_search(
+                current, state, table, evidence_store + all_new_evidence
+            )
+
+        confidence = _normalise_confidence(raw_logit) if raw_logit != 0.0 else 0.0
+        print(f"  [Step {current.step_id}] Confidence: {confidence:.3f}")
+
+        passage_texts = [ev["text"] for ev in new_evidence]
+        verdict = _call_judge(current, result, passage_texts, question)
+        print(f"  [Step {current.step_id}] Judge: sufficient={verdict['sufficient']} | "
+              f"{verdict.get('reason', '')}")
+
+        all_new_evidence.extend(new_evidence)
+
+        if verdict["sufficient"] in ("full", "partial", True):
+            updated = current.model_copy(update={
+                "status": STATUS_COMPLETED,
+                "result": result,
+                "confidence": confidence,
+                "evidence_ids": [ev["idx"] for ev in all_new_evidence],
+                "judge_verdict": verdict,
+            })
+            print(f"  [Step {current.step_id}] Completed (judge={verdict['sufficient']})")
+            return updated, all_new_evidence
+
+        # Escalation
+        if current.action_type == ACTION_RAG and current.rewrite_attempt == 0:
+            revised_q = verdict.get("suggested_rewrite") or current.sub_question
+            print(f"  [Step {current.step_id}] Escalating: rag_search → rewrite")
+            current = current.model_copy(update={"sub_question": revised_q, "rewrite_attempt": 1})
+        elif current.action_type == ACTION_RAG and current.rewrite_attempt >= 1:
+            print(f"  [Step {current.step_id}] Escalating: rag_search → web_search")
+            current = current.model_copy(update={"action_type": ACTION_WEB, "rewrite_attempt": 0})
+        elif current.action_type == ACTION_WEB:
+            print(f"  [Step {current.step_id}] Escalating: web_search → direct_answer")
+            current = current.model_copy(update={"action_type": ACTION_DIRECT, "rewrite_attempt": 0})
+        elif current.action_type == ACTION_DIRECT:
+            print(f"  [Step {current.step_id}] All escalations exhausted")
+            break
+
+    updated = current.model_copy(update={
+        "status": STATUS_COMPLETED, "result": result, "confidence": confidence,
+        "evidence_ids": [ev["idx"] for ev in all_new_evidence], "judge_verdict": verdict,
+    })
+    return updated, all_new_evidence
+
+
+def parallel_executor_node(state: LegalAgentState) -> dict:
+    """Execute ALL pending planning steps, each with its own escalation chain."""
+    print("\n--- PARALLEL EXECUTOR ---")
+    table = state["planning_table"]
+    evidence_store = list(state.get("evidence_store", []))
+
+    pending = [s for s in table if s.status == STATUS_PENDING]
+    if not pending:
+        print("  No pending steps.")
+        return {}
+
+    print(f"  Executing {len(pending)} step(s)")
+
+    results: List[tuple[PlanningStep, List[Dict[str, Any]]]] = []
+    for step in pending:
+        updated_step, new_evidence = _execute_step_with_escalation(
+            step, state, table, evidence_store
+        )
+        results.append((updated_step, new_evidence))
+        evidence_store.extend(new_evidence)
+
+    completed_ids = {r[0].step_id for r in results}
+    new_table = [
+        next(r[0] for r in results if r[0].step_id == s.step_id)
+        if s.step_id in completed_ids else s
+        for s in table
+    ]
+
+    all_new_evidence = [ev for _, new_ev in results for ev in new_ev]
+    completed_count = sum(1 for s in new_table if s.status == STATUS_COMPLETED)
+    print(f"\n  Parallel execution complete: {completed_count} step(s), "
+          f"{len(all_new_evidence)} evidence pieces")
+
+    return {
+        "planning_table": new_table,
+        "evidence_store": state.get("evidence_store", []) + all_new_evidence,
+        "audit_log": _log(state, {
+            "node": "parallel_executor",
+            "steps_executed": len(pending),
+            "steps_completed": completed_count,
+            "evidence_collected": len(all_new_evidence),
+        }),
+    }
+
+
+# ---------------------------------------------------------------------------
+# 9c. Parallel Mode: Synthesizer with Completeness Check
+# ---------------------------------------------------------------------------
+
+_COMPLETENESS_CHECK_PROMPT = """You are evaluating whether the accumulated research evidence is sufficient to fully answer the original legal question.
+
+Return ONLY valid JSON:
+{"complete": true, "reasoning": "One sentence.", "missing_topics": []}
+
+- complete: true if the answer adequately addresses the question; false if significant gaps remain.
+- missing_topics: If false, list 1-3 specific sub-questions for additional research. Empty if true.
+
+Guidelines:
+- An answer does not need to be perfect. If key legal rules, elements, and application are covered, it is complete.
+- Only mark incomplete for clearly identifiable gaps that would materially change the answer.
+- Be conservative — max 3 rounds of research are allowed.
+"""
+
+
+def parallel_synthesizer_node(state: LegalAgentState) -> dict:
+    """Synthesize answer and check completeness. Can route back for more research."""
+    print("\n--- PARALLEL SYNTHESIZER ---")
+    table = state["planning_table"]
+    evidence_store = state.get("evidence_store", [])
+    question = state["inputs"]["question"]
+    parallel_round = state.get("parallel_round", 1)
+
+    completed = [s for s in table if s.status == STATUS_COMPLETED]
+
+    step_summaries = "\n\n".join(
+        f"### Research Step {s.step_id} ({s.action_type}): {s.sub_question}\n{s.result}"
+        for s in completed
+    )
+    evidence_index = "\n".join(
+        f"[Evidence {i + 1}] (step={ev['step_id']}, source={ev['source']}): {ev['text']}"
+        for i, ev in enumerate(evidence_store)
+    )
+
+    user_prompt = (
+        f"ORIGINAL QUESTION:\n{question}\n\n"
+        f"RESEARCH FINDINGS:\n{step_summaries}\n\n"
+        f"EVIDENCE INDEX (cite as [Evidence N]):\n{evidence_index}"
+    )
+
+    final_answer = _llm_call(load_skill("synthesizer"), user_prompt, label="synthesizer")
+    print(f"  Final answer: {len(final_answer)} chars")
+
+    # Completeness check
+    max_rounds = state.get("run_config", {}).get("max_parallel_rounds", 3)
+    if parallel_round >= max_rounds:
+        print(f"  Max rounds ({max_rounds}) reached — marking complete")
+        completeness = {"complete": True, "reasoning": "max rounds reached", "missing_topics": []}
+    else:
+        check_prompt = (
+            f"ORIGINAL QUESTION:\n{question}\n\n"
+            f"SYNTHESIZED ANSWER:\n{final_answer}\n\n"
+            f"Round: {parallel_round} of {max_rounds}"
+        )
+        raw = _llm_call(_COMPLETENESS_CHECK_PROMPT, check_prompt, label="completeness")
+        parsed = _parse_json(raw)
+        if parsed and "complete" in parsed:
+            completeness = {
+                "complete": parsed.get("complete", True),
+                "reasoning": parsed.get("reasoning", ""),
+                "missing_topics": parsed.get("missing_topics", []),
+            }
+        else:
+            completeness = {"complete": True, "reasoning": "parse failure", "missing_topics": []}
+
+    is_complete = completeness.get("complete", True)
+    print(f"  Completeness: {'COMPLETE' if is_complete else 'INCOMPLETE'} — "
+          f"{completeness.get('reasoning', '')}")
+    if not is_complete and completeness.get("missing_topics"):
+        print(f"  Missing: {completeness['missing_topics']}")
+
+    return {
+        "final_answer": final_answer,
+        "completeness_verdict": completeness,
+        "parallel_round": parallel_round + 1,
+        "audit_log": _log(state, {
+            "node": "parallel_synthesizer",
+            "completed_steps": len(completed),
+            "parallel_round": parallel_round,
+            "completeness": completeness,
+        }),
+    }
+
+
+def parallel_replanner_node(state: LegalAgentState) -> dict:
+    """Generate new steps from the synthesizer's missing topics."""
+    print("\n--- PARALLEL REPLANNER ---")
+    table = state["planning_table"]
+    completeness = state.get("completeness_verdict", {})
+    missing_topics = completeness.get("missing_topics", [])
+
+    if not missing_topics:
+        print("  No missing topics")
+        return {}
+
+    max_id = max((s.step_id for s in table), default=0)
+    new_steps = []
+    for i, topic in enumerate(missing_topics, 1):
+        new_step = PlanningStep(
+            step_id=max_id + i,
+            sub_question=topic if isinstance(topic, str) else str(topic),
+            action_type=ACTION_RAG,
+        )
+        new_steps.append(new_step)
+        print(f"  New step {new_step.step_id}: {new_step.sub_question}")
+
+    return {
+        "planning_table": list(table) + new_steps,
+        "audit_log": _log(state, {
+            "node": "parallel_replanner",
+            "new_steps": len(new_steps),
+            "missing_topics": missing_topics,
+        }),
+    }
+
+
+def route_after_parallel_synthesizer(
+    state: LegalAgentState,
+) -> Literal["parallel_replanner_node", "__end__"]:
+    """Route after parallel synthesizer: loop back if incomplete, else END."""
+    completeness = state.get("completeness_verdict", {})
+    if completeness.get("complete", True):
+        print("  → END (research complete)")
+        return "__end__"
+    print("  → parallel_replanner (evidence incomplete)")
+    return "parallel_replanner_node"
+
+
+# ---------------------------------------------------------------------------
 # 10. Routing
 # ---------------------------------------------------------------------------
 
@@ -1040,12 +1675,27 @@ def route_after_replanner(
     return "executor_node"
 
 
+def route_after_parallel_synthesizer(
+    state: LegalAgentState,
+) -> Literal["parallel_replanner_node", "__end__"]:
+    """Route after parallel synthesizer: loop back to planner if incomplete, else END."""
+    completeness = state.get("completeness_verdict", {})
+    is_complete = completeness.get("complete", True)
+
+    if is_complete:
+        print("  → END (research complete)")
+        return "__end__"
+    else:
+        print("  → parallel_replanner (evidence incomplete, generating new steps)")
+        return "parallel_replanner_node"
+
+
 # ---------------------------------------------------------------------------
 # 11. Graph
 # ---------------------------------------------------------------------------
 
 def build_graph() -> Any:
-    """Compile the plan-and-execute LangGraph state machine."""
+    """Compile the sequential plan-and-execute LangGraph state machine."""
     workflow = StateGraph(LegalAgentState)
 
     workflow.add_node("router_node", router_node)
@@ -1071,6 +1721,46 @@ def build_graph() -> Any:
     return workflow.compile()
 
 
+def build_parallel_graph() -> Any:
+    """Compile the parallel plan-and-execute LangGraph state machine.
+
+    Architecture:
+      START → router → planner → parallel_executor → parallel_synthesizer
+                          ↑                               |
+                          └── parallel_replanner ←────────┘ (if incomplete)
+                                                          └→ END (if complete)
+
+    Key differences from sequential mode:
+    - parallel_executor runs ALL pending steps at once (with internal escalation)
+    - parallel_synthesizer checks completeness and can loop back for more research
+    - No sequential replanner_node — escalation happens inside the parallel executor
+    """
+    workflow = StateGraph(LegalAgentState)
+
+    workflow.add_node("router_node", router_node)
+    workflow.add_node("planner_node", planner_node)
+    workflow.add_node("parallel_executor_node", parallel_executor_node)
+    workflow.add_node("parallel_synthesizer_node", parallel_synthesizer_node)
+    workflow.add_node("parallel_replanner_node", parallel_replanner_node)
+
+    # Fixed edges
+    workflow.add_edge(START, "router_node")
+    workflow.add_edge("router_node", "planner_node")
+    workflow.add_edge("planner_node", "parallel_executor_node")
+    workflow.add_edge("parallel_executor_node", "parallel_synthesizer_node")
+    # Replanner feeds back to executor for the new steps
+    workflow.add_edge("parallel_replanner_node", "parallel_executor_node")
+
+    # Conditional: parallel_synthesizer → END (complete) | parallel_replanner (incomplete)
+    workflow.add_conditional_edges(
+        "parallel_synthesizer_node",
+        route_after_parallel_synthesizer,
+        ["parallel_replanner_node", "__end__"],
+    )
+
+    return workflow.compile()
+
+
 # ---------------------------------------------------------------------------
 # 12. Runner
 # ---------------------------------------------------------------------------
@@ -1087,28 +1777,42 @@ DEMO_QUERIES = {
 }
 
 
-def run(question: str, max_steps: int = 7) -> LegalAgentState:
-    """Run the plan-and-execute agent and return the final state."""
-    graph = build_graph()
+def run(question: str, max_steps: int = 7, parallel: bool = False) -> LegalAgentState:
+    """Run the plan-and-execute agent and return the final state.
+
+    Args:
+        question: The legal research question to answer.
+        max_steps: Maximum number of original steps (sequential mode budget).
+        parallel: If True, use parallel executor architecture. Can also be
+                  enabled via PARALLEL_MODE=1 env var or --parallel CLI flag.
+    """
+    use_parallel = parallel or PARALLEL_MODE
+    graph = build_parallel_graph() if use_parallel else build_graph()
     provider = get_provider_info()
+    mode_str = "PARALLEL" if use_parallel else "SEQUENTIAL"
 
     initial_state: LegalAgentState = {
         "agent_metadata": {
             "provider": provider.get("provider", "unknown"),
             "model": provider.get("model", "unknown"),
             "started_at": datetime.now(timezone.utc).isoformat(),
+            "mode": mode_str,
         },
         "inputs": {"question": question},
-        "run_config": {"max_steps": max_steps},
+        "run_config": {"max_steps": max_steps, "max_parallel_rounds": 3},
         "collections": [],  # populated by router_node
         "planning_table": [],
         "evidence_store": [],
         "final_answer": "",
         "audit_log": [],
+        # Parallel mode fields (ignored in sequential mode)
+        "completeness_verdict": {},
+        "parallel_round": 1,
     }
 
     print(f"\n{'=' * 80}")
     print(f"QUESTION: {question}")
+    print(f"MODE: {mode_str}")
     print(f"{'=' * 80}")
 
     result = graph.invoke(initial_state)
@@ -1127,10 +1831,14 @@ def run(question: str, max_steps: int = 7) -> LegalAgentState:
     print(f"\n{'=' * 80}")
     print("RUN SUMMARY")
     print(f"{'=' * 80}")
+    print(f"Mode            : {mode_str}")
     print(f"Steps completed : {len(completed_steps)}")
     print(f"Evidence pieces : {evidence_count}")
     print(f"LLM calls       : {llm_counts['count']}")
     print(f"Tokens (in/out) : {llm_counts['input_tokens']:,} / {llm_counts['output_tokens']:,}")
+    if use_parallel:
+        rounds = result.get("parallel_round", 1) - 1  # -1 because it increments after last synth
+        print(f"Parallel rounds : {rounds}")
 
     print("\nStep breakdown:")
     for s in result.get("planning_table", []):
@@ -1161,6 +1869,9 @@ if __name__ == "__main__":
     if "--verbose" in args:
         VERBOSE = True
         args.remove("--verbose")
+    if "--parallel" in args:
+        PARALLEL_MODE = True
+        args.remove("--parallel")
     query_key = args[0] if args else "simple"
     question = DEMO_QUERIES.get(query_key, DEMO_QUERIES["simple"])
-    run(question)
+    run(question, parallel=PARALLEL_MODE)

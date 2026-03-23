@@ -1,0 +1,74 @@
+
+================================================================================
+QUESTION: What are the elements of a negligence claim?
+MODE: PARALLEL
+================================================================================
+
+--- ROUTER ---
+    [router] 35 chars
+  Collections: ['legal_passages']
+
+--- PLANNER ---
+    [planner] 364 chars
+  Plan (1 step):
+    Step 1 [rag_search]: What are the four elements a plaintiff must prove to establish a negligence claim?
+
+--- PARALLEL EXECUTOR ---
+  Executing 1 step(s)
+
+  [Step 1] Attempt 1 [rag_search] (rewrite_attempt=0): What are the four elements a plaintiff must prove to establish a negligence claim?
+    [executor/rewrite] 362 chars
+    Primary query: negligence elements duty breach causation damages reasonable person standard of care proximate cause
+    Alt query 1: tort liability prima facie case negligence duty of care breach actual cause legal cause harm
+    Alt query 2: fault liability elements plaintiff burden of proof negligence action foreseeability injury compensatory damages
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+[rag_utils] Building BM25 index from 686324 passages...
+[rag_utils] BM25 index built (686324 docs) for 'legal_passages'
+    Retrieved 5 passage(s) from ['legal_passages']
+    [executor/synth] 1706 chars
+  [Step 1] Confidence: 0.998
+    [judge/judge] 279 chars
+  [Step 1] Judge: sufficient=full | Passages [2], [4], and [5] explicitly list the four elements of a negligence claim (duty, breach, causation, damages) at the doctrine level, directly answering the sub-question.
+  [Step 1] Completed (judge=full)
+
+  Parallel execution complete: 1 step(s), 5 evidence pieces
+
+--- PARALLEL SYNTHESIZER ---
+    [synthesizer] 3053 chars
+  Final answer: 3053 chars
+    [completeness] 346 chars
+  Completeness: COMPLETE — The synthesized answer comprehensively identifies and explains all four universally recognized elements of a negligence claim (duty, breach, causation, damages), including sub-components like actual and proximate cause, and provides a clear application framework.
+  → END (research complete)
+
+================================================================================
+FINAL ANSWER:
+================================================================================
+**Issue**: What must a plaintiff prove to establish a prima facie claim for negligence?
+
+**Rule**: A plaintiff must prove four essential elements: (1) a duty of care owed by the defendant to the plaintiff, (2) a breach of that duty, (3) causation (both actual and proximate) of injury, and (4) damages [Evidence 2][Evidence 4][Evidence 5]. The duty is a legal obligation to conform to a specific standard of conduct for the protection of others against unreasonable risks [Evidence 1][Evidence 2]. Under established doctrine, this standard is generally that of a reasonably prudent person under similar circumstances [Evidence 2][Evidence 3]. Breach is the failure to conform to this required standard [Evidence 1][Evidence 3]. Causation requires the breach to be both the actual cause (cause in fact) and the proximate (legal) cause of the plaintiff's injury [Evidence 2][Evidence 5]. Finally, the plaintiff must have suffered actual damage to person or property [Evidence 2][Evidence 4].
+
+**Application**: These elements form a sequential framework for analyzing any negligence claim. The existence of a duty is the threshold question [Evidence 5]. Once duty is established, the plaintiff must demonstrate how the defendant's specific conduct fell below the standard of care, constituting a breach [Evidence 1][Evidence 3]. The plaintiff must then connect this breach to their harm through causation, proving both that the injury would not have occurred "but for" the breach (actual cause) and that the injury was a foreseeable consequence of the breach (proximate cause) [Evidence 2][Evidence 5]. The final element, damages, requires proof of a legally recognized injury; nominal damages are insufficient [Evidence 4]. While the core framework is consistent, its application can vary by context. For example, in a medical malpractice suit, expert testimony is typically required to articulate the standard of care and establish causation [Evidence 1].
+
+**Conclusion**: To succeed on a negligence claim, a plaintiff must prove, by a preponderance of the evidence, all four elements: duty, breach, causation, and damages.
+
+## Sources
+- **Evidence 1**: Outlines the three core elements for a negligence claim (duty, breach, proximate cause and injury), with specific application to medical-negligence requiring expert testimony.
+- **Evidence 2**: Explicitly states the four prima facie elements of negligence (duty, breach, actual and proximate causation, damages) and defines the general duty as that of an ordinary, prudent, reasonable person.
+- **Evidence 3**: Cites North Carolina law identifying the three elements of a negligence claim (duty, breach, proximate cause injury), defining negligence as a failure to exercise reasonable care.
+- **Evidence 4**: Identifies the four essential elements of a negligence cause of action: duty, breach, causation, and damages.
+- **Evidence 5**: Confirms the four elements under Utah law, specifying causation as both actual and proximate, and identifying duty as the threshold question in a negligence claim.
+
+================================================================================
+RUN SUMMARY
+================================================================================
+Mode            : PARALLEL
+Steps completed : 1
+Evidence pieces : 5
+LLM calls       : 7
+Tokens (in/out) : 9,802 / 1,360
+Parallel rounds : 1
+
+Step breakdown:
+  Step    1 [rag_search    ] conf=0.998 judge=full evidence=[4 caselaw, 1 mbe]
+================================================================================
+
