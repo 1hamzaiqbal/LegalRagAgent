@@ -91,6 +91,7 @@ def load_eval_labels(path: str) -> list[str]:
 
 MC_LETTER_PATTERNS = [
     r'\*\*answer:\s*\(([A-D])\)\*\*',
+    r'\banswer:\s*\(?([A-D])\)?\s*$',
     r'\banswer\s+is\s+\(?([A-D])\)?\b',
     r'\bcorrect\s+answer[:\s]+\(?([A-D])\)?\b',
     r'\b\(([A-D])\)\s+is\s+correct\b',
