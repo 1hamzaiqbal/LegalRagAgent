@@ -36,6 +36,7 @@ PROVIDERS = {
     # --- OpenRouter (free tier — weekly token limits, no RPD cap) ---
     "or-llama70b":        ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "meta-llama/llama-3.3-70b-instruct:free",     None, None),
     "or-gpt20b":          ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "openai/gpt-oss-20b:free",                    None, None),
+    "or-gemma4b":         ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-3-4b-it:free",             None, None),
     "or-gemma27b":        ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-3-27b-it",                 None, None),
     "or-qwen3-coder":     ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3-coder-480b-a35b:free",           None, None),
     "or-nemotron":        ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "nvidia/nemotron-nano-9b-v2:free",            None, None),
