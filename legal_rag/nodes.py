@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Literal
 
 from .core import _llm_call, _parse_json, load_skill
@@ -276,6 +277,28 @@ def synthesizer_node(state: LegalAgentState) -> Dict[str, Any]:
         f"EVIDENCE INDEX (cite as [Evidence N]):\n{evidence_index}"
     )
     final_answer = execution_module._llm_call(load_skill("synthesizer"), user_prompt, label="synthesizer")
+
+    # If the question has MC choices and the synthesis lacks an answer letter,
+    # run a focused extraction call to pick the best letter.
+    valid_letters = re.findall(r"^\s*\(([A-Z])\)\s+", question, flags=re.MULTILINE)
+    if valid_letters:
+        has_letter = bool(re.search(r"\*\*[Aa]nswer:\s*\(", final_answer) or
+                          re.search(r"[Aa]nswer:\s*\([A-Z]\)", final_answer))
+        if not has_letter:
+            mc_prompt = (
+                f"Based on this analysis, which answer is best?\n\n"
+                f"QUESTION:\n{question}\n\n"
+                f"ANALYSIS:\n{final_answer[-1500:]}\n\n"
+                f"Valid letters: {', '.join(valid_letters)}\n"
+                f"Reply with ONLY the letter, e.g. Answer: (B)"
+            )
+            mc_raw = execution_module._llm_call("Pick the single best answer letter.", mc_prompt, label="mc/extract")
+            mc_match = re.search(r"\(?([A-Z])\)?", mc_raw)
+            if mc_match and mc_match.group(1) in valid_letters:
+                letter = mc_match.group(1)
+                final_answer = f"{final_answer.rstrip()}\n\n**Answer: ({letter})**"
+                print(f"  MC extraction fallback -> ({letter})")
+
     print(f"  Final answer: {len(final_answer)} chars")
 
     if not profile.use_completeness_loop:
