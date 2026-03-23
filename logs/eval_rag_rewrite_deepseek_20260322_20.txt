@@ -1,0 +1,10 @@
+RAG WITH QUERY REWRITE | 5 queries | deepseek
+Accuracy: 4/5 (80.0%)
+Gold Recall@5: 0/5 (0.0%)
+Avg time/query: 71.9s
+
+qa_nan_199                     PASS   gold=N  primary: negligence liability mechanic inspection duty of care profes
+qa_nan_388                     PASS   gold=N  primary: constitutional challenge state statute banning contraceptive
+qa_nan_422                     PASS   gold=N  primary: negligence proximate cause intervening superseding cause for
+qa_nan_751                     PASS   gold=N  primary: Congressional power federal grant-in-aid disputes state fede
+qa_realprop_695                FAIL   gold=N  primary: warranty deed breach of covenant against encumbrances latent

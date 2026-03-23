@@ -1,0 +1,147 @@
+
+================================================================================
+QUESTION: What are the legal requirements for a landlord to evict a tenant in California?
+================================================================================
+
+--- ROUTER ---
+    [router] 37 chars
+  Collections: ['housing_statutes']
+
+--- PLANNER ---
+    [planner] 1488 chars
+  Plan (4 steps):
+    Step 1 [rag_search]: What are the permissible grounds for eviction under California landlord-tenant law?
+    Step 2 [rag_search]: What procedural requirements must a landlord follow to initiate an unlawful detainer action?
+    Step 3 [rag_search]: What are the notice requirements for different types of eviction grounds in California?
+    Step 4 [rag_search]: What defenses can tenants raise against eviction under California law?
+
+--- EXECUTOR ---
+  Step 1 [rag_search] (rewrite_attempt=0): What are the permissible grounds for eviction under California landlord-tenant law?
+    [executor/rewrite] 420 chars
+    Primary query: California eviction grounds permissible just cause eviction requirements Civil Code 1946.2 AB 1482 Tenant Protection Act
+    Alt query 1: California landlord-tenant law termination for cause nonpayment breach lease violation nuisance illegal activity
+    Alt query 2: California rent control eviction restrictions at-fault just cause no-fault just cause relocation assistance Ellis Act
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+BM25 multi-query failed (dense-only for this variant): Collection has 1,837,403 docs (>1,000,000). BM25 index skipped to avoid OOM. Using dense-only retrieval.
+BM25 multi-query failed (dense-only for this variant): Collection has 1,837,403 docs (>1,000,000). BM25 index skipped to avoid OOM. Using dense-only retrieval.
+BM25 multi-query failed (dense-only for this variant): Collection has 1,837,403 docs (>1,000,000). BM25 index skipped to avoid OOM. Using dense-only retrieval.
+    Retrieved 5 passage(s) from ['housing_statutes']
+    [executor/synth] 3148 chars
+  Confidence: 0.494 (raw logit: -0.022) [for analysis only]
+    [judge/judge] 301 chars
+  Judge: sufficient=full | Passage 4 is the controlling California Civil Code section 1946.2, which comprehensively enumerates all permissible 'just cause' grounds for eviction, including both at-fault and no-fault categories.
+
+--- REPLANNER ---
+    [replanner] 250 chars
+  LLM replanner: next — Step 1 provided the substantive grounds for eviction, but the original question about legal requirements still requires procedural steps, notice specifics, and tenant defenses to be fully answered.
+  → executor
+
+--- EXECUTOR ---
+  Step 2 [rag_search] (rewrite_attempt=0): What procedural requirements must a landlord follow to initiate an unlawful detainer action?
+    [executor/rewrite] 451 chars
+    Primary query: California unlawful detainer procedure landlord requirements notice to quit three-day notice summons and complaint service of process
+    Alt query 1: eviction process California residential tenancy termination notice requirements judicial proceeding landlord-tenant law
+    Alt query 2: summary proceeding possession action statutory notice periods grounds for eviction unlawful detainer lawsuit filing requirements
+BM25 multi-query failed (dense-only for this variant): Collection has 1,837,403 docs (>1,000,000). BM25 index skipped to avoid OOM. Using dense-only retrieval.
+BM25 multi-query failed (dense-only for this variant): Collection has 1,837,403 docs (>1,000,000). BM25 index skipped to avoid OOM. Using dense-only retrieval.
+BM25 multi-query failed (dense-only for this variant): Collection has 1,837,403 docs (>1,000,000). BM25 index skipped to avoid OOM. Using dense-only retrieval.
+    Retrieved 5 passage(s) from ['housing_statutes']
+    [executor/synth] 2481 chars
+  Confidence: 0.987 (raw logit: 4.357) [for analysis only]
+    [judge/judge] 409 chars
+  Judge: sufficient=False | All retrieved passages are from New Mexico, South Dakota, Maine, and a California-specific statute for elderly care facilities, not the general California unlawful detainer procedure.
+  Judge rewrite suggestion: California unlawful detainer procedural requirements notice to quit three day notice summons complaint service CCP 1161
+
+--- REPLANNER ---
+  Escalation: rag_search → rewrite (step 25)
+  Judge reason: All retrieved passages are from New Mexico, South Dakota, Maine, and a California-specific statute for elderly care facilities, not the general California unlawful detainer procedure.
+  → executor
+
+--- EXECUTOR ---
+  Step 25 [rag_search] (rewrite_attempt=1): California unlawful detainer procedural requirements notice to quit three day notice summons complaint service CCP 1161
+    [executor/rewrite] 448 chars
+    Primary query: California unlawful detainer procedure notice to quit three-day notice summons complaint service CCP 1161 landlord tenant eviction
+    Alt query 1: summary eviction process unlawful detainer action statutory notice requirements service of process Code of Civil Procedure 1161
+    Alt query 2: tenant removal legal process notice period grounds for eviction unlawful detainer lawsuit California landlord-tenant law
+BM25 multi-query failed (dense-only for this variant): Collection has 1,837,403 docs (>1,000,000). BM25 index skipped to avoid OOM. Using dense-only retrieval.
+BM25 multi-query failed (dense-only for this variant): Collection has 1,837,403 docs (>1,000,000). BM25 index skipped to avoid OOM. Using dense-only retrieval.
+BM25 multi-query failed (dense-only for this variant): Collection has 1,837,403 docs (>1,000,000). BM25 index skipped to avoid OOM. Using dense-only retrieval.
+    Retrieved 5 passage(s) from ['housing_statutes']
+    [executor/synth] 2156 chars
+  Confidence: 0.697 (raw logit: 0.832) [for analysis only]
+    [judge/judge] 530 chars
+  Judge: sufficient=False | The retrieved passages discuss eviction procedures in Virginia, Connecticut, Nebraska, and Alabama, and a California data reporting statute, but none address California Code of Civil Procedure 1161 or the specific notice, summons, and complaint requirements for a California unlawful detainer.
+  Judge rewrite suggestion: California unlawful detainer notice requirements CCP 1161 three day notice to pay or quit summons complaint service process eviction steps
+
+--- REPLANNER ---
+  Escalation: rag_search → web_search (step 255)
+  Judge reason: The retrieved passages discuss eviction procedures in Virginia, Connecticut, Nebraska, and Alabama, and a California data reporting statute, but none address California Code of Civil Procedure 1161 or the specific notice, summons, and complaint requirements for a California unlawful detainer.
+  → executor
+
+--- EXECUTOR ---
+  Step 255 [web_search] (rewrite_attempt=0): California unlawful detainer procedural requirements notice to quit three day notice summons complaint service CCP 1161
+    Web results: 5 result(s)
+      [1] 3-Day Notice to Quit Rules in California - LegalClarity
+          https://legalclarity.org/3-day-notice-to-quit-rules-in-california/
+      [2] Eviction cases in California | California Courts | Self Help ...
+          https://selfhelp.courts.ca.gov/eviction
+      [3] CCP 1161(3) - California Code of Civil Procedure 1161(3 ...
+          https://www.attorneydavid.com/blog/ccp-11613-california-code-civil-procedure-11613-eviction-due-3-day-notice-cure-quit/
+      [4] 3-Day Notice to Pay Rent or Quit Requirements And Tips
+          https://schorr-law.com/is-your-3-day-notice-to-pay-rent-or-quit-valid/
+      [5] 3‑Day Notice to Perform Covenants or Quit - tenant-rights.com
+          https://tenant-rights.com/california/3day-notice-to-perform-covenants-or-quit
+    Scraped 2/5 URLs successfully
+    [executor/web] 2638 chars
+  Confidence: 0.000 (raw logit: 0.000) [for analysis only]
+    [judge/judge] 322 chars
+  Judge: sufficient=full | Passages comprehensively detail California's unlawful detainer procedural requirements, including the 3-day notice to quit content, service methods under CCP 1161, and the subsequent summons and complaint filing process.
+
+--- REPLANNER ---
+    [replanner] 324 chars
+  LLM replanner: complete — The research has gathered the core legal requirements for eviction in California: just cause grounds (Step 1) and the detailed unlawful detainer procedure including notice, filing, and court process (Step 255), which together provide a sufficient answer to the original question.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 5231 chars
+  Final answer: 5231 chars
+
+================================================================================
+FINAL ANSWER:
+================================================================================
+**Issue**: What legal requirements must a California landlord satisfy to lawfully evict a tenant?
+
+**Rule**: California law imposes two primary sets of requirements for a lawful eviction: (1) a substantive "just cause" ground for termination, and (2) strict adherence to procedural steps for notice and court filing.
+
+First, for tenancies where the tenant has continuously and lawfully occupied the property for 12 months (or 24 months under certain conditions), the landlord cannot terminate the tenancy without "just cause," which must be stated in the written termination notice [Evidence 4]. Just cause is divided into two categories. "At-fault just cause" includes tenant actions such as default in rent payment, breach of a material lease term, creating a nuisance, committing waste, criminal activity on the property, unlawful use, unauthorized subletting, or refusal to allow lawful entry [Evidence 4]. For curable at-fault violations, the landlord must first give notice with an opportunity to cure [Evidence 4]. "No-fault just cause" includes the owner's intent to occupy the property (with conditions for leases entered after specific dates), withdrawal of the property from the rental market, compliance with a government order to vacate, or intent to demolish or substantially remodel [Evidence 4]. For no-fault terminations, the landlord must provide relocation assistance or waive the final month's rent [Evidence 4].
+
+Second, these just cause requirements do not apply to several exempt property types, including transient hotels, certain single-family owner-occupied residences, housing built within the last 15 years, and others, provided specific notice requirements are met [Evidence 4]. Furthermore, if a local just cause ordinance was adopted on or before September 1, 2019, or is more protective than state law, the local ordinance applies instead [Evidence 4].
+
+Third, the procedural process for eviction, known as an unlawful detainer action, is mandatory. The landlord must begin by serving a proper written notice on the tenant [Evidence 21][Evidence 22]. For serious, incurable breaches like nuisance, waste, or unlawful use, a "3-Day Notice to Quit" is used, which demands the tenant vacate without an option to cure [Evidence 21]. This notice must include specific details: the full legal names of all tenants, the property address, a precise description of the breach, the termination date, and the landlord's signature [Evidence 21]. The notice must be served using an approved method: personal service (handing it to the tenant), substituted service (leaving it with a suitable person and mailing a copy), or "post and mail" service (posting it on the property and mailing a copy) [Evidence 21]. The three-day period to comply begins the day after personal service; for substituted or post-and-mail service, it begins the day the copy is mailed [Evidence 21].
+
+**Application**: To evict a tenant, a landlord must first determine if the tenancy is subject to just cause requirements based on the tenant's length of occupancy and the property's exempt status [Evidence 4]. If just cause applies, the landlord must identify a permissible at-fault or no-fault ground, provide any required opportunity to cure or relocation assistance, and state the cause in the termination notice [Evidence 4]. Regardless of just cause applicability, the landlord must then serve a legally sufficient written notice (such as a 3-Day Notice to Quit for incurable violations) following strict service rules [Evidence 21]. If the tenant does not comply by the notice deadline, the landlord may commence a court action by filing an Unlawful Detainer Complaint in Superior Court, attaching the notice and a Proof of Service [Evidence 21][Evidence 22]. The tenant must then be served with a summons and the complaint [Evidence 21]. A landlord cannot use "self-help" measures like changing locks or removing belongings; they must obtain a court judgment and a Writ of Possession, which instructs the sheriff to carry out the eviction [Evidence 22].
+
+**Conclusion**: A California landlord must (1) have a permissible "just cause" ground for termination if the tenancy is covered by state or local just cause laws, (2) serve a technically correct written notice using an approved service method, and (3) file and win an unlawful detainer lawsuit in court to obtain a writ for the sheriff to execute the eviction.
+
+## Sources
+- **Evidence 4**: The core California statute (Civil Code § 1946.2) defining the "just cause" requirement for terminating tenancies after 12/24 months, listing at-fault and no-fault grounds, procedural prerequisites (notice to cure, relocation assistance), numerous property-type exemptions, and the interaction with more protective local ordinances.
+- **Evidence 21**: Detailed requirements for a valid "3-Day Notice to Quit" in California, including required content, approved service methods (personal, substituted, post-and-mail), and the subsequent step of filing an Unlawful Detainer Complaint.
+- **Evidence 22**: Overview of the eviction process, emphasizing that a landlord must go through court and cannot use self-help, and that winning a case results in a Writ of Possession for the sheriff.
+
+================================================================================
+RUN SUMMARY
+================================================================================
+Steps completed : 4
+Evidence pieces : 22
+LLM calls       : 16
+Tokens (in/out) : 62,670 / 4,238
+
+Step breakdown:
+  Step    1 [rag_search    ] conf=0.494 judge=full evidence=[5 housing_statute]
+  Step    2 [rag_search    ] conf=0.987 judge=insufficient evidence=[5 housing_statute]
+  Step   25 [rag_search    ] conf=0.697 judge=insufficient evidence=[5 housing_statute]
+  Step  255 [web_search    ] conf=0.000 judge=full evidence=[5 web_snippet, 2 web_scraped]
+  Step    3 [rag_search    ] status=pending (skipped)
+  Step    4 [rag_search    ] status=pending (skipped)
+================================================================================
+

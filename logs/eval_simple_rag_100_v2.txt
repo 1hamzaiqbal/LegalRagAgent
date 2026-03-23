@@ -1,0 +1,223 @@
+
+================================================================================
+BM25 RAG BASELINE (100 QUERIES)
+================================================================================
+
+Provider: deepseek | Model: deepseek-chat
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+[1/100] qa_nan_199... [rag_utils] Building BM25 index from 686324 passages...
+[rag_utils] BM25 index built (686324 docs) for 'legal_passages'
+    [bm25_baseline] 1038 chars
+CORRECT gold=N (229.2s)
+[2/100] qa_nan_422...     [bm25_baseline] 1006 chars
+CORRECT gold=N (25.2s)
+[3/100] qa_realprop_695...     [bm25_baseline] 582 chars
+WRONG gold=N (31.4s)
+[4/100] qa_nan_751...     [bm25_baseline] 990 chars
+CORRECT gold=N (30.4s)
+[5/100] qa_nan_388...     [bm25_baseline] 950 chars
+CORRECT gold=N (21.5s)
+[6/100] qa_torts_580...     [bm25_baseline] 1326 chars
+CORRECT gold=N (41.2s)
+[7/100] qa_contracts_827...     [bm25_baseline] 719 chars
+CORRECT gold=N (47.0s)
+[8/100] qa_crimlaw_530...     [bm25_baseline] 691 chars
+WRONG gold=N (31.5s)
+[9/100] qa_constlaw_494...     [bm25_baseline] 878 chars
+CORRECT gold=N (38.0s)
+[10/100] qa_nan_174...     [bm25_baseline] 632 chars
+WRONG gold=N (33.4s)
+[11/100] qa_nan_210...     [bm25_baseline] 757 chars
+WRONG gold=N (54.1s)
+[12/100] qa_constlaw_529...     [bm25_baseline] 867 chars
+CORRECT gold=N (32.3s)
+[13/100] qa_nan_59...     [bm25_baseline] 923 chars
+CORRECT gold=N (63.8s)
+[14/100] qa_crimlaw_909...     [bm25_baseline] 970 chars
+CORRECT gold=N (35.8s)
+[15/100] qa_constlaw_703...     [bm25_baseline] 1097 chars
+CORRECT gold=N (64.2s)
+[16/100] qa_nan_76...     [bm25_baseline] 931 chars
+WRONG gold=N (58.2s)
+[17/100] qa_realprop_890...     [bm25_baseline] 892 chars
+WRONG gold=N (57.3s)
+[18/100] qa_nan_351...     [bm25_baseline] 746 chars
+WRONG gold=N (59.3s)
+[19/100] qa_nan_107...     [bm25_baseline] 1080 chars
+CORRECT gold=N (31.5s)
+[20/100] qa_nan_412...     [bm25_baseline] 720 chars
+CORRECT gold=N (36.1s)
+[21/100] qa_realprop_468...     [bm25_baseline] 988 chars
+CORRECT gold=N (43.1s)
+[22/100] qa_crimlaw_673...     [bm25_baseline] 678 chars
+CORRECT gold=N (31.0s)
+[23/100] qa_torts_485...     [bm25_baseline] 804 chars
+CORRECT gold=N (29.5s)
+[24/100] qa_constlaw_481...     [bm25_baseline] 1166 chars
+CORRECT gold=N (47.3s)
+[25/100] qa_nan_23...     [bm25_baseline] 933 chars
+CORRECT gold=N (48.2s)
+[26/100] qa_crimlaw_660...     [bm25_baseline] 854 chars
+CORRECT gold=N (26.2s)
+[27/100] qa_evidence_527...     [bm25_baseline] 847 chars
+CORRECT gold=N (20.2s)
+[28/100] qa_constlaw_826...     [bm25_baseline] 1212 chars
+CORRECT gold=N (68.7s)
+[29/100] qa_evidence_620...     [bm25_baseline] 748 chars
+CORRECT gold=N (25.4s)
+[30/100] qa_nan_30...     [bm25_baseline] 776 chars
+CORRECT gold=N (16.9s)
+[31/100] qa_nan_940...     [bm25_baseline] 810 chars
+CORRECT gold=N (24.6s)
+[32/100] qa_contracts_621...     [bm25_baseline] 918 chars
+CORRECT gold=N (36.2s)
+[33/100] qa_nan_381...     [bm25_baseline] 1259 chars
+CORRECT gold=N (36.7s)
+[34/100] qa_nan_280...     [bm25_baseline] 984 chars
+CORRECT gold=N (53.2s)
+[35/100] qa_nan_67...     [bm25_baseline] 1142 chars
+WRONG gold=N (24.9s)
+[36/100] qa_nan_136...     [bm25_baseline] 631 chars
+CORRECT gold=N (30.7s)
+[37/100] qa_nan_296...     [bm25_baseline] 840 chars
+WRONG gold=N (46.5s)
+[38/100] qa_nan_139...     [bm25_baseline] 775 chars
+WRONG gold=N (42.0s)
+[39/100] qa_nan_405...     [bm25_baseline] 932 chars
+CORRECT gold=N (41.7s)
+[40/100] qa_torts_734...     [bm25_baseline] 634 chars
+WRONG gold=N (32.6s)
+[41/100] qa_nan_39...     [bm25_baseline] 540 chars
+WRONG gold=N (35.9s)
+[42/100] qa_nan_333...     [bm25_baseline] 770 chars
+CORRECT gold=N (23.8s)
+[43/100] qa_evidence_521...     [bm25_baseline] 892 chars
+CORRECT gold=N (25.1s)
+[44/100] qa_contracts_629...     [bm25_baseline] 989 chars
+CORRECT gold=N (40.0s)
+[45/100] qa_nan_86...     [bm25_baseline] 1131 chars
+CORRECT gold=N (30.7s)
+[46/100] qa_nan_314...     [bm25_baseline] 554 chars
+WRONG gold=N (28.0s)
+[47/100] qa_nan_213...     [bm25_baseline] 1630 chars
+WRONG gold=N (56.1s)
+[48/100] qa_nan_260...     [bm25_baseline] 836 chars
+CORRECT gold=N (46.8s)
+[49/100] qa_nan_70...     [bm25_baseline] 760 chars
+WRONG gold=N (49.6s)
+[50/100] qa_nan_165...     [bm25_baseline] 764 chars
+WRONG gold=N (40.5s)
+[51/100] qa_nan_299...     [bm25_baseline] 1203 chars
+CORRECT gold=N (31.2s)
+[52/100] qa_nan_96...     [bm25_baseline] 1075 chars
+CORRECT gold=N (32.8s)
+[53/100] qa_nan_331...     [bm25_baseline] 660 chars
+CORRECT gold=N (33.5s)
+[54/100] qa_crimlaw_870...     [bm25_baseline] 1130 chars
+CORRECT gold=N (23.0s)
+[55/100] qa_crimlaw_731...     [bm25_baseline] 845 chars
+WRONG gold=N (28.1s)
+[56/100] qa_nan_745...     [bm25_baseline] 1000 chars
+WRONG gold=N (35.9s)
+[57/100] qa_crimlaw_850...     [bm25_baseline] 1497 chars
+WRONG gold=N (32.3s)
+[58/100] qa_nan_377...     [bm25_baseline] 757 chars
+CORRECT gold=N (28.7s)
+[59/100] qa_nan_773...     [bm25_baseline] 777 chars
+WRONG gold=N (37.2s)
+[60/100] qa_nan_265...     [bm25_baseline] 765 chars
+CORRECT gold=N (36.1s)
+[61/100] qa_nan_316...     [bm25_baseline] 551 chars
+WRONG gold=N (56.9s)
+[62/100] qa_nan_275...     [bm25_baseline] 853 chars
+CORRECT gold=N (40.7s)
+[63/100] qa_evidence_910...     [bm25_baseline] 1013 chars
+CORRECT gold=N (22.3s)
+[64/100] qa_nan_342...     [bm25_baseline] 2960 chars
+WRONG gold=N (39.7s)
+[65/100] qa_nan_198...     [bm25_baseline] 647 chars
+WRONG gold=N (47.8s)
+[66/100] qa_nan_63...     [bm25_baseline] 893 chars
+WRONG gold=N (30.0s)
+[67/100] qa_constlaw_788...     [bm25_baseline] 847 chars
+CORRECT gold=N (42.9s)
+[68/100] qa_torts_633...     [bm25_baseline] 662 chars
+WRONG gold=N (22.7s)
+[69/100] qa_nan_762...     [bm25_baseline] 834 chars
+CORRECT gold=N (27.5s)
+[70/100] qa_nan_312...     [bm25_baseline] 788 chars
+CORRECT gold=N (31.5s)
+[71/100] qa_contracts_839...     [bm25_baseline] 796 chars
+CORRECT gold=N (43.6s)
+[72/100] qa_nan_424...     [bm25_baseline] 816 chars
+CORRECT gold=N (43.6s)
+[73/100] qa_nan_88...     [bm25_baseline] 1437 chars
+CORRECT gold=N (39.9s)
+[74/100] qa_nan_346...     [bm25_baseline] 714 chars
+CORRECT gold=N (30.5s)
+[75/100] qa_realprop_911...     [bm25_baseline] 888 chars
+WRONG gold=N (47.0s)
+[76/100] qa_constlaw_939...     [bm25_baseline] 1056 chars
+CORRECT gold=N (30.4s)
+[77/100] qa_crimlaw_658...     [bm25_baseline] 534 chars
+WRONG gold=N (37.1s)
+[78/100] qa_contracts_538...     [bm25_baseline] 896 chars
+CORRECT gold=N (30.5s)
+[79/100] qa_constlaw_732...     [bm25_baseline] 1698 chars
+CORRECT gold=N (52.9s)
+[80/100] qa_evidence_786...     [bm25_baseline] 479 chars
+CORRECT gold=N (22.3s)
+[81/100] qa_torts_684...     [bm25_baseline] 819 chars
+WRONG gold=N (27.7s)
+[82/100] qa_constlaw_543...     [bm25_baseline] 927 chars
+CORRECT gold=N (28.1s)
+[83/100] qa_realprop_568...     [bm25_baseline] 986 chars
+CORRECT gold=N (36.6s)
+[84/100] qa_contracts_917...     [bm25_baseline] 964 chars
+CORRECT gold=N (30.1s)
+[85/100] qa_evidence_830...     [bm25_baseline] 617 chars
+CORRECT gold=N (21.5s)
+[86/100] qa_nan_235...     [bm25_baseline] 746 chars
+WRONG gold=N (54.4s)
+[87/100] qa_evidence_567...     [bm25_baseline] 1065 chars
+CORRECT gold=N (21.4s)
+[88/100] qa_evidence_522...     [bm25_baseline] 724 chars
+CORRECT gold=N (17.7s)
+[89/100] qa_nan_168...     [bm25_baseline] 921 chars
+CORRECT gold=N (24.4s)
+[90/100] qa_evidence_513...     [bm25_baseline] 901 chars
+CORRECT gold=N (23.5s)
+[91/100] qa_crimlaw_810...     [bm25_baseline] 717 chars
+CORRECT gold=N (38.3s)
+[92/100] qa_nan_286...     [bm25_baseline] 915 chars
+CORRECT gold=N (43.6s)
+[93/100] qa_constlaw_493...     [bm25_baseline] 824 chars
+CORRECT gold=N (22.0s)
+[94/100] qa_evidence_603...     [bm25_baseline] 641 chars
+CORRECT gold=N (23.1s)
+[95/100] qa_nan_332...     [bm25_baseline] 656 chars
+CORRECT gold=N (23.9s)
+[96/100] qa_constlaw_707...     [bm25_baseline] 1259 chars
+CORRECT gold=N (46.6s)
+[97/100] qa_nan_72...     [bm25_baseline] 732 chars
+CORRECT gold=N (20.5s)
+[98/100] qa_torts_544...     [bm25_baseline] 878 chars
+WRONG gold=N (20.0s)
+[99/100] qa_nan_44...     [bm25_baseline] 734 chars
+CORRECT gold=N (59.8s)
+[100/100] qa_contracts_949...     [bm25_baseline] 690 chars
+CORRECT gold=N (25.5s)
+
+================================================================================
+BM25 RAG BASELINE RESULTS
+================================================================================
+Accuracy:          70/100 (70.0%)
+Gold Recall@5:     0/100 (0.0%)
+Errors:            0
+Cost:              0.0400 USD
+
+This is SIMPLE RAG — 1 retrieval + 1 LLM call per query, no agent.
+================================================================================
+
+Log saved to logs/eval_bm25_baseline_deepseek_20260322_15.txt
+Detail log saved to logs/eval_bm25_baseline_deepseek_20260322_15_detail.jsonl

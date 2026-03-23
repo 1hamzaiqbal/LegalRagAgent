@@ -1,0 +1,32 @@
+
+================================================================================
+BM25 RAG BASELINE (5 QUERIES)
+================================================================================
+
+Provider: deepseek | Model: deepseek-chat
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+[1/5] qa_nan_199... [rag_utils] Building BM25 index from 686324 passages...
+[rag_utils] BM25 index built (686324 docs) for 'legal_passages'
+    [bm25_baseline] 901 chars
+CORRECT gold=N (211.4s)
+[2/5] qa_nan_422...     [bm25_baseline] 972 chars
+CORRECT gold=N (25.5s)
+[3/5] qa_realprop_695...     [bm25_baseline] 768 chars
+WRONG gold=N (31.7s)
+[4/5] qa_nan_751...     [bm25_baseline] 1002 chars
+CORRECT gold=N (28.2s)
+[5/5] qa_nan_388...     [bm25_baseline] 1055 chars
+CORRECT gold=N (21.5s)
+
+================================================================================
+BM25 RAG BASELINE RESULTS
+================================================================================
+Accuracy:          4/5 (80.0%)
+Gold Recall@5:     0/5 (0.0%)
+Errors:            0
+Cost:              < 0.01 USD
+
+This is SIMPLE RAG — 1 retrieval + 1 LLM call per query, no agent.
+================================================================================
+
+Log saved to logs/eval_bm25_baseline_deepseek_20260321_03.txt

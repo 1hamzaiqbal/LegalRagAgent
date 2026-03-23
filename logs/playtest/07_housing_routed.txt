@@ -1,0 +1,25 @@
+
+================================================================================
+QUESTION: What are the legal requirements for a landlord to evict a tenant in California?
+================================================================================
+
+--- ROUTER ---
+    [router] 37 chars
+  Collections: ['housing_statutes']
+
+--- PLANNER ---
+    [planner] 1576 chars
+  Plan (4 steps):
+    Step 1 [rag_search]: What are the permissible grounds for a landlord to terminate a tenancy in California?
+    Step 2 [rag_search]: What notice requirements must a landlord satisfy before filing an unlawful detainer action in California?
+    Step 3 [rag_search]: What procedural steps must a landlord follow to file and serve an unlawful detainer lawsuit in California?
+    Step 4 [rag_search]: What defenses can a tenant raise in an unlawful detainer action under California law?
+
+--- EXECUTOR ---
+  Step 1 [rag_search] (rewrite_attempt=0): What are the permissible grounds for a landlord to terminate a tenancy in California?
+    [executor/rewrite] 451 chars
+    Primary query: California landlord permissible grounds terminate tenancy just cause eviction Civil Code 1946.2 AB 1482 at-fault no-fault termination
+    Alt query 1: California residential tenancy termination lawful reasons eviction for-cause fault-based grounds rent control exemption
+    Alt query 2: California eviction legal requirements permissible justifications lease termination tenant protections unlawful detainer grounds
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+[rag_utils] Building BM25 index from 1837403 passages...

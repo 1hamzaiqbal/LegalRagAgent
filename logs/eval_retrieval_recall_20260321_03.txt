@@ -1,0 +1,14 @@
+RETRIEVAL RECALL | Recall@20 | 10 queries
+Recall@20: 0/10 (0.0%)
+MRR@20: 0.000
+
+qa_nan_199                     MISS     gold=mbe_199
+qa_nan_422                     MISS     gold=mbe_416
+qa_realprop_695                MISS     gold=mbe_680
+qa_nan_751                     MISS     gold=mbe_731
+qa_nan_388                     MISS     gold=mbe_383
+qa_torts_580                   MISS     gold=mbe_569
+qa_contracts_827               MISS     gold=mbe_805
+qa_crimlaw_530                 MISS     gold=mbe_519
+qa_constlaw_494                MISS     gold=mbe_484
+qa_nan_174                     MISS     gold=mbe_174

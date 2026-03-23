@@ -1,0 +1,35 @@
+
+================================================================================
+RETRIEVAL RECALL EVALUATION (Recall@5, 10 queries)
+================================================================================
+
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+[rag_utils] Building BM25 index from 686324 passages...
+[rag_utils] BM25 index built (686324 docs) for 'legal_passages'
+[1/10] qa_nan_199                MISS     gold=mbe_199              (187.7s)
+[2/10] qa_nan_422                MISS     gold=mbe_416              (18.8s)
+[3/10] qa_realprop_695           MISS     gold=mbe_680              (27.0s)
+[4/10] qa_nan_751                MISS     gold=mbe_731              (22.2s)
+[5/10] qa_nan_388                MISS     gold=mbe_383              (15.0s)
+[6/10] qa_torts_580              MISS     gold=mbe_569              (31.6s)
+[7/10] qa_contracts_827          MISS     gold=mbe_805              (39.6s)
+[8/10] qa_crimlaw_530            MISS     gold=mbe_519              (25.0s)
+[9/10] qa_constlaw_494           MISS     gold=mbe_484              (32.8s)
+[10/10] qa_nan_174                MISS     gold=mbe_174              (27.8s)
+
+================================================================================
+RETRIEVAL RECALL RESULTS
+================================================================================
+Recall@5:         0/10 (0.0%)
+MRR@5:            0.000
+Total queries:     10
+
+Per-subject Recall@5:
+  CONST. LAW                0/1 (0%)
+  CONTRACTS                 0/1 (0%)
+  CRIM. LAW                 0/1 (0%)
+  REAL PROP.                0/1 (0%)
+  TORTS                     0/1 (0%)
+================================================================================
+
+Log saved to logs/eval_retrieval_recall_20260321_03.txt

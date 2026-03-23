@@ -1,0 +1,122 @@
+
+================================================================================
+QUESTION: A man entered a store, pointed a toy gun at the cashier, and demanded money. The cashier, believing the gun was real, handed over the cash. The man was charged with robbery. Which of the following is the strongest argument for the defense?
+
+Answer choices:
+  (A) The gun was a toy and therefore not a dangerous weapon
+  (B) The cashier was not physically harmed
+  (C) The man did not use actual force
+  (D) The man lacked the specific intent to permanently deprive
+================================================================================
+
+--- PLANNER ---
+    [planner] 1215 chars (1467 in / 258 out tokens)
+  Plan (3 steps):
+    Step 1 [rag_search]: What are the elements of common law robbery, including the required use of force or intimidation?
+    Step 2 [rag_search]: Does the apparent dangerousness of an object satisfy the intimidation element of robbery if the victim believes it is real?
+    Step 3 [rag_search]: What is the specific intent required for robbery, particularly regarding the intent to permanently deprive?
+
+--- EXECUTOR ---
+  Step 1 [rag_search] (rewrite_attempt=0): What are the elements of common law robbery, including the required use of force or intimidation?
+    [executor/rewrite] 361 chars (1011 in / 67 out tokens)
+    Primary query: common law robbery elements force intimidation fear taking property from person or presence threat of immediate harm
+    Alt query 1: robbery larceny assault requirement actual constructive force putting victim in fear felony
+    Alt query 2: armed robbery dangerous weapon distinction aggravated robbery mens rea specific intent elements
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+[rag_utils] Building BM25 index from 686324 passages...
+[rag_utils] BM25 index built (686324 docs)
+    Retrieved 5 passage(s)
+      [1] idx=caselaw_12510801_112 source=caselaw ce_score=5.860
+          Spencer, 422 Md. at 428-29, 30 A.3d at 895 (cleaned up). This Court has discussed the "force or [a] threat of force" element of robbery as the "taking and carrying away of the personal property of another from his [or her] person or in his [or her] presence by violence or putting in fear." West, 312...
+      [2] idx=caselaw_12510801_141 source=caselaw ce_score=5.645
+          The essential elements of the crime of robbery are the "felonious taking and carrying away of the personal property of another, from his [or her] person or in his [or her] presence, by violence or putting in fear." Conyers v. State , 345 Md. 525, 558, 693 A.2d 781, 796 (1997) (citation omitted). Rob...
+      [3] idx=caselaw_12510801_89 source=caselaw ce_score=5.082
+          "Robbery is the taking and carrying away of property from [someone else] [someone's presence and control], by force or threat of force, with the intent to deprive the victim of the property." MPJI-Cr 4:28A (brackets in original). This Court has discussed robbery as the "taking and carrying away of t...
+      [4] idx=caselaw_12510801_175 source=caselaw ce_score=4.597
+          To the extent that distinctions are made between "force or threat of force" (also described as "intimidation" ) and "an act with the intent to place [the victim] in fear of immediate physical harm" ("act"), the following analysis of Coles v. State , 374 Md. 114, 821 A.2d 389 (2003), reveals that the...
+      [5] idx=caselaw_12655308_13 source=caselaw ce_score=4.421
+          Robbery with a dangerous weapon consists of the following elements: (1) the unlawful taking or an attempt to take personal property from the person or in the presence of another (2) by use or threatened use of a firearm or other dangerous weapon (3) whereby the life of a person is endangered or thre...
+    [executor/synth] 2379 chars (1470 in / 514 out tokens)
+    --- Sub-answer ---
+    **Rule**: Common law robbery requires the felonious taking and carrying away of personal property from another's person or presence by violence or putting in fear [Source 1] [Source 2] [Source 3]. This "force or threat of force" element distinguishes robbery from theft [Source 2].
+
+**Elements of Force or Threat**: The required force can be actual violence or constructive force (intimidation) [Source 2]. Constructive force or intimidation is sufficient if it compels the victim to part with the pr...
+    --- End sub-answer ---
+  Confidence: 0.997 (raw logit: 5.860) [for analysis only]
+    [judge/judge] 321 chars (2661 in / 75 out tokens)
+  Judge: sufficient=True | Passages [1], [2], and [3] directly state the elements of common law robbery, specifically defining it as taking property by violence or putting in fear, and explaining that constructive force (intimidation) satisfies the force requirement.
+
+--- REPLANNER ---
+    [replanner] 277 chars (2327 in / 54 out tokens)
+  LLM replanner: next — Step 1 established that intimidation satisfies robbery's force element, but pending steps about apparent dangerousness and specific intent are still needed to evaluate the defense arguments against the original question.
+  → executor
+
+--- EXECUTOR ---
+  Step 2 [rag_search] (rewrite_attempt=0): Does the apparent dangerousness of an object satisfy the intimidation element of robbery if the victim believes it is real?
+    [executor/rewrite] 399 chars (1020 in / 69 out tokens)
+    Primary query: robbery intimidation element apparent dangerousness simulated weapon reasonable belief victim fear force
+    Alt query 1: armed robbery constructive force doctrine apparent capability dangerous instrument victim perception criminal law
+    Alt query 2: larceny by threat assault element extortion fear of bodily harm simulated firearm criminal intent
+    Retrieved 5 passage(s)
+      [1] idx=caselaw_12510801_142 source=caselaw ce_score=6.069
+          In my view, the elements of assault of the intent to frighten variety are subsumed by the element of "threat of force" or intimidation, which is an essential element of robbery. See Coles , 374 Md. at 125-26, 821 A.2d at 396. The intimidation element of robbery, not unlike assault of the intent to f...
+      [2] idx=caselaw_12510801_114 source=caselaw ce_score=4.468
+          Significantly, under the robbery statute, case law discussing robbery, and Maryland Criminal Pattern Jury Instruction 4:28A, neither a victim's reasonable fear of immediate physical harm, the defendant's intent to create such a fear, nor the defendant's apparent ability to cause physical harm is an ...
+      [3] idx=caselaw_12510801_116 source=caselaw ce_score=3.923
+          I would answer that question in the negative, as not "all of the elements of" the offense of second-degree assault of the intent-to-frighten type "are included in" the offense of robbery. Abeokuto, 391 Md. at 353, 893 A.2d at 1055 (citation omitted). Indeed, as explained above, second-degree assault...
+      [4] idx=caselaw_12530958_64 source=caselaw ce_score=3.581
+          The key point of comparison between CPC § 211 and the federal robbery statutes is whether CPC § 211's "by means of fear or force," element, which includes "fear of unlawful harm to [the victim]'s property," see CPC § 212, is identical to or narrower than the "intimidation" element in the federal rob...
+      [5] idx=caselaw_12510801_143 source=caselaw ce_score=3.007
+          This Court's definition of intimidation or constructive force, an element of robbery, also makes clear it incorporates all of the elements of assault of the intent to frighten variety. See Coles , 374 Md. at 125-26, 821 A.2d at 396-97 (2003). In Coles , this Court concluded that there was sufficient...
+    [executor/synth] 3113 chars (2213 in / 658 out tokens)
+    --- Sub-answer ---
+    Based on the evidence, the apparent dangerousness of an object can satisfy the intimidation element of robbery if it creates a threat of force, even if the object is not actually dangerous. The key distinction is that robbery's "threat of force" or "putting in fear" element does **not** require the same specific elements as assault based on intent to frighten.
+
+**Rule**: Robbery requires the defendant to use "force or threat of force," which has been described as "violence or putting in fear" [S...
+    --- End sub-answer ---
+  Confidence: 0.998 (raw logit: 6.069) [for analysis only]
+    [judge/judge] 390 chars (3549 in / 76 out tokens)
+  Judge: sufficient=True | Passages directly address the intimidation element of robbery, explaining that a threat of force can be satisfied by conduct creating fear, and specifically discuss how apparent ability to harm relates to robbery versus assault, which directly supports answering the sub-question about apparent dangerousness.
+
+--- REPLANNER ---
+    [replanner] 290 chars (3147 in / 56 out tokens)
+  LLM replanner: complete — The research has established that intimidation with an apparent weapon satisfies robbery's force element, and the remaining step on specific intent is not needed to identify the strongest defense argument among the given choices.
+  → synthesizer
+
+--- SYNTHESIZER ---
+    [synthesizer] 3363 chars (4895 in / 708 out tokens)
+  Final answer: 3363 chars
+
+================================================================================
+FINAL ANSWER:
+================================================================================
+**Issue**: Whether the defendant's use of a toy gun to intimidate a cashier into handing over money provides a viable defense to a charge of common law robbery.
+
+**Rule**: Common law robbery is defined as the felonious taking and carrying away of personal property from another's person or presence by violence or putting in fear [Evidence 1][Evidence 2][Evidence 3]. The essential "force or threat of force" element distinguishes robbery from theft and can be satisfied by either actual violence or constructive force, also termed intimidation [Evidence 2]. Intimidation occurs when the defendant's conduct places the victim in fear, compelling them to part with their property [Evidence 2][Evidence 3]. Critically, to secure a robbery conviction, the State is **not** required to prove: (1) the victim reasonably feared *immediate* physical harm, (2) the defendant intended to create such fear, or (3) the defendant had the apparent ability to inflict physical harm [Evidence 7][Evidence 8]. A mere oral threat of force that puts another in fear can be sufficient [Evidence 8]. The research did not address the specific intent to permanently deprive.
+
+**Application**: The defendant's strongest defense must attack an element the prosecution is required to prove. Here, the prosecution must prove a taking by "force or threat of force." The evidence establishes that intimidation—putting the victim in fear—is sufficient to meet this element [Evidence 2][Evidence 3]. The cashier, believing the toy gun was real, handed over the cash, demonstrating the defendant's actions successfully placed the victim in fear. Under the governing law, the prosecution does **not** need to prove the object used for intimidation was actually dangerous, that the defendant intended to create fear of immediate harm, or that the defendant had the apparent ability to cause such harm [Evidence 7][Evidence 8]. Therefore, arguments based on the toy gun's nature (A), the absence of physical harm (B), or the lack of actual force (C) are not defenses, as they target elements not required for common law robbery. The evidence does not specify whether the prosecution must prove a specific intent to permanently deprive, so the strength of argument (D) cannot be assessed based on the provided research.
+
+**Conclusion**: Based solely on the provided evidence, none of the arguments (A), (B), or (C) constitute a valid defense to common law robbery because they challenge elements not required by law. The research did not address the specific intent element, so the viability of argument (D) is unknown. Among the arguments the evidence does address, (A), (B), and (C) are all legally insufficient.
+
+**Answer: (D)**
+
+## Sources
+- **Evidence 1 & 2 & 3**: Define common law robbery as a taking by violence or putting in fear, establishing the "force or threat of force" element.
+- **Evidence 2**: Specifies that force can be actual or constructive (intimidation) and that this element distinguishes robbery from theft.
+- **Evidence 7 & 8**: Clarify the elements the State is **not** required to prove for robbery, including reasonable fear of immediate harm, intent to create such fear, and apparent ability to harm. State that a mere oral threat can satisfy the threat-of-force element.
+- **Evidence 3 & 8**: Describe the "threat of force" element as intimidation or putting in fear.
+
+================================================================================
+RUN SUMMARY
+================================================================================
+Steps completed : 2
+Evidence pieces : 10
+LLM calls       : 10
+Tokens (in/out) : 23,760 / 2,535
+
+Step breakdown:
+  Step    1 [rag_search    ] conf=0.997 judge=ok evidence=[5 caselaw]
+  Step    2 [rag_search    ] conf=0.998 judge=ok evidence=[5 caselaw]
+  Step    3 [rag_search    ] status=pending (skipped)
+================================================================================
+
