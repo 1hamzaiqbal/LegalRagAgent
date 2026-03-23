@@ -10,14 +10,20 @@ Legal RAG agent over the `reglab/barexam_qa` and `reglab/housing_qa` corpora. Bu
 
 Source of truth: `main.py`
 
-### Graph (4 nodes)
+### Graph (5 nodes)
 
 ```
-START → planner_node → executor_node → replanner_node ─┬─→ executor_node  (next/retry)
-                                                        └─→ synthesizer_node → END  (complete)
+START → router_node → planner_node → executor_node → replanner_node ─┬─→ executor_node  (next/retry)
+                                                                      └─→ synthesizer_node → END  (complete)
 ```
 
 ### Nodes
+
+**router_node** — Chooses which ChromaDB collection(s) to search. Current registry:
+- `legal_passages`
+- `housing_statutes`
+
+Falls back to `legal_passages` on parse failure or uncertainty.
 
 **planner_node** — Decomposes the question into 2-5 ordered `PlanningStep`s. Each step has a `sub_question`, `authority_target`, `retrieval_hints`, and `action_type` (`rag_search` | `web_search` | `direct_answer`). Loads `skills/planner.md`. Falls back to a single-step plan on JSON parse failure.
 
@@ -35,7 +41,7 @@ After execution, an LLM judge evaluates retrieval sufficiency (`skills/judge.md`
    - `web_search` → escalate to `direct_answer`
 2. *LLM decision* (when judge says sufficient, or after direct_answer): `skills/replanner.md` decides `next` / `complete` / `retry`. Retry is honored once per step; further retries auto-advance.
 
-Hard cap: `max_steps` (default 5) completed steps.
+Step budget: `max_steps` defaults to 7 original planned steps. Retry / escalation steps (`retry_of != None`) do not count toward the budget.
 
 **synthesizer_node** — Aggregates all completed step results and the full evidence store into a final IRAC answer with `[Evidence N]` citations. Loads `skills/synthesizer.md`.
 
@@ -43,7 +49,8 @@ Hard cap: `max_steps` (default 5) completed steps.
 
 - `agent_metadata` — provider, model, timestamps
 - `inputs` — `{"question": "..."}`
-- `run_config` — `{"max_steps": 5}`
+- `run_config` — `{"max_steps": 7}`
+- `collections` — chosen search collection(s), populated by `router_node`
 - `planning_table` — list of `PlanningStep`
 - `evidence_store` — accumulated retrieved passages (all steps)
 - `final_answer` — synthesizer output
@@ -82,6 +89,7 @@ Source of truth: `rag_utils.py`
 - **Cross-encoder reranker**: `cross-encoder/ms-marco-MiniLM-L-6-v2`
 - **Hybrid retrieval** (default): BM25 (keyword) + bi-encoder (semantic) candidates pooled, deduplicated by `idx`, cross-encoder reranks to top k
 - **BM25 index**: Built lazily on first retrieval from ChromaDB corpus, cached in memory. Uses `rank-bm25` (BM25Okapi).
+- **BM25 corpus cap**: BM25 is skipped for collections larger than 1,000,000 docs, so `housing_statutes` currently uses dense-only fallback under the present code.
 - **Multi-query retrieval**: pools BM25 + dense candidates across all query variants, deduplicates, cross-encoder reranks against primary query
 - **Cross-step dedup**: `exclude_ids` parameter filters out passages already retrieved in prior steps
 - **Confidence**: `compute_confidence()` returns max cross-encoder score (raw logit). Converted to [0,1] via sigmoid in main.py. For logging only.
@@ -127,25 +135,32 @@ uv run python main.py multi_hop                      # Multi-step reasoning
 uv run python main.py medium                         # Medium complexity
 uv run python main.py simple --verbose               # Verbose output
 
-# Eval
-uv run python eval/eval_qa.py 50                    # QA eval on 50 questions
-uv run python eval/eval_qa.py 100 --continue         # Resume interrupted eval
-uv run python eval/eval_baseline.py 50               # Direct-LLM baseline
-uv run python eval/eval_reranker.py                   # Retrieval A/B test
-uv run python eval/eval_retrieval.py                  # BM25 vs dense vs hybrid comparison
+# Current presentation-facing evals
+uv run python eval/eval_baseline.py 100             # Direct-LLM baseline
+uv run python eval/eval_bm25_baseline.py 100        # Simple retrieve-and-answer baseline
+uv run python eval/eval_golden.py 100               # Golden-passage upper bound
 
 # List providers
 uv run python llm_config.py
 ```
 
+## Current Reported Results
+
+- Direct LLM baseline: `85/100` in `logs/eval_baseline_deepseek_20260322_13.txt`
+- Simple retrieve-and-answer baseline: `70/100` in `logs/eval_bm25_baseline_deepseek_20260322_15.txt`
+- Golden-passage upper bound: `77/100` in `logs/eval_golden_deepseek_20260322_13.txt`
+
 ## Eval Scripts
+
+Presentation-facing current evals:
 
 | Script | Notes |
 |---|---|
-| `eval/eval_qa.py` | Main eval: N random QA pairs, MC accuracy, cost tracking |
 | `eval/eval_baseline.py` | Direct-LLM baseline (no RAG, no LangGraph) |
-| `eval/eval_reranker.py` | Retrieval-only A/B: bi-encoder vs cross-encoder |
-| `eval/eval_retrieval.py` | BM25 vs dense vs hybrid retrieval comparison |
+| `eval/eval_bm25_baseline.py` | Simple retrieve-and-answer baseline using the current retriever |
+| `eval/eval_golden.py` | Golden-passage upper bound |
+
+Other scripts still present under `eval/` are exploratory or older and should not be treated as the current reported results unless rerun.
 
 ## Datasets
 
@@ -154,7 +169,7 @@ uv run python llm_config.py
 | BarExam QA | `legal_passages` | 686,324 | MC (A-D) | `reglab/barexam_qa` |
 | HousingQA | `housing_statutes` | 1,837,403 | Yes/No | `reglab/housing_qa` |
 
-HousingQA has per-state jurisdiction scoping — each question targets a specific state's statutes. The `state` field is stored in ChromaDB metadata for filtered retrieval.
+HousingQA has per-state jurisdiction scoping — each question targets a specific state's statutes. The `state` field is stored in ChromaDB metadata and is available for filtered retrieval, but the current runtime does not yet apply automatic state filtering.
 
 ## Data (gitignored)
 

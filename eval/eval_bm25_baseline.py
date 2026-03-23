@@ -1,8 +1,8 @@
-"""BM25-only RAG Baseline — simple retrieve-and-answer without the agent.
+"""Simple RAG baseline — single retrieve-and-answer without the agent.
 
-BM25 retrieves top-5 passages, appends them to the question, LLM answers
-directly. No planning, no judge, no replanner — just retrieve + answer.
-Shows what simple keyword RAG gets you vs the full agentic pipeline.
+Uses the current retriever (`retrieve_documents`), which means dense retrieval
+plus BM25 when available, followed by cross-encoder reranking. No planning, no
+judge, no replanner — just retrieve + answer.
 
 Usage:
   uv run python eval/eval_bm25_baseline.py 25
@@ -98,7 +98,7 @@ def main():
     log_file = f"logs/eval_bm25_baseline_{provider_name}_{timestamp}.txt"
 
     print(f"\n{'='*80}")
-    print(f"BM25 RAG BASELINE ({n} QUERIES)")
+    print(f"SIMPLE RAG BASELINE ({n} QUERIES)")
     print(f"{'='*80}\n")
 
     _, initial_totals = capture_balance()
@@ -124,7 +124,7 @@ def main():
     cost_strs = compute_cost(initial_totals)
 
     print(f"\n{'='*80}")
-    print("BM25 RAG BASELINE RESULTS")
+    print("SIMPLE RAG BASELINE RESULTS")
     print(f"{'='*80}")
     print(f"Accuracy:          {correct}/{len(queries)} ({accuracy:.1f}%)")
     print(f"Gold Recall@5:     {gold_hit}/{len(queries)} ({gold_rate:.1f}%)")
@@ -135,7 +135,7 @@ def main():
     print(f"{'='*80}\n")
 
     with open(log_file, "w", encoding="utf-8") as f:
-        f.write(f"BM25 RAG BASELINE | {n} queries | {provider_name}\n")
+        f.write(f"SIMPLE RAG BASELINE | {n} queries | {provider_name}\n")
         f.write(f"Accuracy: {correct}/{len(queries)} ({accuracy:.1f}%)\n")
         f.write(f"Gold Recall@5: {gold_hit}/{len(queries)} ({gold_rate:.1f}%)\n\n")
         for r in sorted(results, key=lambda x: x["label"]):

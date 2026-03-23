@@ -2,7 +2,13 @@
 
 Tests whether the gold passage (the passage used to write the answer in
 the dataset) appears in the top-k retrieved passages. Measures Recall@k
-for our hybrid retrieval system across the barexam QA dataset.
+for our retriever across the barexam QA dataset.
+
+Important scope note:
+- This evaluates direct question-to-passage retrieval using the full user
+  question as the query.
+- It does NOT evaluate the full agent path with planning, query rewriting,
+  step decomposition, or judge-driven retries.
 
 No LLM calls — pure retrieval evaluation.
 
@@ -57,6 +63,7 @@ def main():
             choice_text = "\n".join(f"  ({k_}) {v}" for k_, v in sorted(choices.items()) if v)
             question = f"{question}\n\nAnswer choices:\n{choice_text}"
 
+        # Direct retrieval benchmark: raw question -> retrieve_documents()
         t0 = time.time()
         docs = retrieve_documents(question, k=k)
         elapsed = time.time() - t0

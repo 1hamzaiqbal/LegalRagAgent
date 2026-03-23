@@ -6,6 +6,9 @@ Runs the same queries through each method and reports:
 - Timing
 - Which method surfaces unique high-quality passages
 
+This is a diagnostic comparison on hand-authored queries, not a standardized
+benchmark script for the current presentation results.
+
 Usage:
   uv run python eval/eval_retrieval.py
 """

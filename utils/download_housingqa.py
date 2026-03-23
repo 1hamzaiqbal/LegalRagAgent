@@ -122,7 +122,8 @@ def download():
     if "state" in df_statutes.columns:
         print(f"  States covered:     {df_statutes['state'].nunique()}")
     print(f"\nNext step:")
-    print(f"  uv run python utils/load_corpus.py housing    # Embed all statutes")
+    print(f"  uv run python utils/fast_embed.py housing    # Preferred full-corpus embedding path")
+    print(f"  uv run python utils/load_corpus.py housing   # Simpler alternative for smaller / exploratory runs")
 
 
 def main():

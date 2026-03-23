@@ -3,9 +3,15 @@
 Runs on a stratified sample of 100 QA pairs (evenly across subjects) to keep
 runtime under 30 minutes while still being statistically meaningful.
 
+Important scope note:
+- This script uses a restricted subset of QA examples whose gold passage is in
+  the first 1000 rows of the passage CSV.
+- Treat it as a targeted reranker A/B script, not a full-corpus retrieval
+  benchmark for the current system.
+
 Usage:
-  uv run python eval_reranker.py          # 100-query sample
-  uv run python eval_reranker.py 50       # 50-query sample (faster)
+  uv run python eval/eval_reranker.py          # 100-query sample
+  uv run python eval/eval_reranker.py 50       # 50-query sample (faster)
 """
 
 import sys
@@ -121,6 +127,7 @@ def main():
 
     # Load QA pairs
     qa = pd.read_csv("datasets/barexam_qa/qa/qa.csv")
+    # Keep the gold-passage pool intentionally small for this targeted A/B test.
     passages = pd.read_csv("datasets/barexam_qa/barexam_qa_train.csv", nrows=1000)
     passage_ids = set(passages["idx"].tolist())
     qa_in_store = qa[qa["gold_idx"].isin(passage_ids)].copy()

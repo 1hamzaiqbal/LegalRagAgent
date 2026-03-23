@@ -25,3 +25,4 @@ case_studies/
 *~
 *.swp
 .DS_Store
+.claude/worktrees/

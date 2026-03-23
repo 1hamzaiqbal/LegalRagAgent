@@ -94,8 +94,9 @@ def download():
 
     print(f"\nDone! Files saved to {DATA_DIR}/")
     print("\nNext steps:")
-    print("  uv run python utils/load_corpus.py curated   # Fast: ~1.5K passages, ~3 min")
-    print("  uv run python utils/load_corpus.py 20000      # Full: 20K passages, ~30 min")
+    print("  uv run python utils/fast_embed.py barexam    # Preferred full-corpus embedding path")
+    print("  uv run python utils/load_corpus.py curated   # Small curated subset, ~3 min")
+    print("  uv run python utils/load_corpus.py 20000      # First 20K passages, ~30 min")
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--check":

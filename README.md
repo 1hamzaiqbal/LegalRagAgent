@@ -1,6 +1,6 @@
 # LegalRagAgent
 
-Agentic Legal RAG system built on LangGraph. Uses a **plan-and-execute** loop to answer legal research questions by retrieving passages from ChromaDB vector stores of bar exam materials and housing statutes.
+Agentic Legal RAG system built on LangGraph. Uses a **plan-and-execute** loop with corpus routing, retrieval judging, and adaptive replanning to answer legal research questions over bar-exam materials and housing statutes.
 
 ## Setup
 
@@ -56,17 +56,18 @@ uv run python main.py simple --verbose           # Full passage text, token coun
 
 ## Architecture
 
-Four-node LangGraph state machine with adaptive replanning and judge-driven control flow.
+Five-node LangGraph state machine with collection routing, judge-driven control flow, and adaptive replanning.
 
 ```
-START → planner → executor → replanner ─┬─→ executor  (next/retry)
-                                         └─→ synthesizer → END
+START → router → planner → executor → replanner ─┬─→ executor  (next/retry)
+                                                  └─→ synthesizer → END
 ```
 
-- **Planner**: Decomposes question into 2-5 research steps, each with an action type (`rag_search`, `web_search`, or `direct_answer`)
-- **Executor**: Per step — rewrites query into primary + 2 alternatives, hybrid retrieves from ChromaDB (BM25 + bi-encoder → cross-encoder rerank), synthesizes cited sub-answer. LLM judge evaluates retrieval sufficiency. For web_search steps, DuckDuckGo finds URLs then trafilatura scrapes full page content.
-- **Replanner**: Deterministic escalation on failure (rag → rewrite → web → direct_answer). LLM decides next/complete/retry when judge is satisfied. Hard cap: 5 completed steps.
-- **Synthesizer**: Aggregates all research into a final IRAC-style answer with `[Evidence N]` citations.
+- **Router**: Chooses which ChromaDB collection(s) to search, typically `legal_passages` or `housing_statutes`
+- **Planner**: Decomposes the question into 2-5 research steps, each with an action type (`rag_search`, `web_search`, or `direct_answer`)
+- **Executor**: Per step — rewrites `rag_search` queries into primary + 2 alternatives, retrieves from the routed collection(s), synthesizes a cited sub-answer, and runs a judge/verifier
+- **Replanner**: Applies deterministic escalation on failure (`rag_search` rewrite → `web_search` → `direct_answer`) and uses an LLM to decide `next` / `retry` / `complete` when evidence is sufficient. Default budget: 7 original planned steps; retry/escalation steps do not count against the budget
+- **Synthesizer**: Aggregates all completed research into a final IRAC-style answer with `[Evidence N]` citations
 
 ### Skills (7 prompt files in `skills/`)
 
@@ -82,11 +83,18 @@ START → planner → executor → replanner ─┬─→ executor  (next/retry)
 
 ### Retrieval
 
-Hybrid BM25 + dense retrieval with cross-encoder reranking:
-1. BM25 (keyword, `rank-bm25`) retrieves top-20 candidates
-2. Bi-encoder (`gte-large-en-v1.5`) retrieves top-20 candidates
-3. Pool + deduplicate by passage ID
-4. Cross-encoder (`ms-marco-MiniLM-L-6-v2`) reranks to top 5
+Default `rag_search` retrieval is hybrid BM25 + dense retrieval with cross-encoder reranking:
+1. Query rewriter produces 1 primary query and 2 alternatives
+2. Bi-encoder (`gte-large-en-v1.5`) retrieves candidates for each query variant
+3. BM25 (`rank-bm25`) retrieves keyword candidates when collection size allows
+4. Pool + deduplicate by passage ID
+5. Cross-encoder (`ms-marco-MiniLM-L-6-v2`) reranks to top 5
+
+Current corpus-specific nuance:
+
+- `legal_passages` uses hybrid BM25 + dense retrieval
+- `housing_statutes` currently falls back to dense-only retrieval because BM25 is skipped for collections larger than 1,000,000 documents
+- `housing_statutes` documents store `state` and `citation` metadata, but the current runtime does not yet apply automatic state filtering or citation-aware retrieval
 
 ### Datasets
 
@@ -97,29 +105,35 @@ Hybrid BM25 + dense retrieval with cross-encoder reranking:
 
 ## Evaluation
 
+Current presentation-facing evaluations:
+
 ```bash
-uv run python eval/eval_qa.py 50                    # QA eval on 50 questions
-uv run python eval/eval_qa.py 100 --continue         # Resume interrupted eval
-uv run python eval/eval_baseline.py 50               # Direct-LLM baseline
-uv run python eval/eval_reranker.py                   # Retrieval A/B test
-uv run python eval/eval_retrieval.py                  # BM25 vs dense vs hybrid comparison
+uv run python eval/eval_baseline.py 100
+uv run python eval/eval_bm25_baseline.py 100
+uv run python eval/eval_golden.py 100
 ```
+
+Most recent current-system results:
+
+- Direct LLM baseline: `85/100` in `logs/eval_baseline_deepseek_20260322_13.txt`
+- Simple retrieve-and-answer baseline: `70/100` in `logs/eval_bm25_baseline_deepseek_20260322_15.txt`
+- Golden-passage upper bound: `77/100` in `logs/eval_golden_deepseek_20260322_13.txt`
+
+Other scripts in `eval/` are exploratory or older and are not the current reported results for presentation.
 
 ## Project Structure
 
 ```
-main.py                # LangGraph pipeline (4 nodes, routing, state)
-rag_utils.py           # Hybrid retrieval: BM25 + dense + cross-encoder reranking
+main.py                # LangGraph pipeline (5 nodes, routing, state)
+rag_utils.py           # Retrieval: dense + BM25 when available + cross-encoder reranking
 llm_config.py          # Provider registry, LLM singleton
 web_scraper.py         # Web page text extraction (trafilatura) for web_search steps
 skills/                # 7 prompt files
 eval/                  # Evaluation scripts
-  eval_qa.py           # Full QA evaluation on N queries
-  eval_baseline.py     # No-RAG baseline for comparison
-  eval_reranker.py     # Retrieval A/B test
-  eval_retrieval.py    # BM25 vs dense vs hybrid comparison
-  eval_utils.py        # Shared eval utilities
-  web_search_suite.py  # Web search query definitions
+  eval_baseline.py     # Direct-LLM baseline
+  eval_bm25_baseline.py # Simple retrieve-and-answer baseline (uses current hybrid retriever)
+  eval_golden.py       # Golden-passage upper bound
+  ...                  # Additional exploratory / older eval scripts
 utils/                 # Setup and utility scripts
   download_data.py     # Download BarExam QA from HuggingFace
   download_housingqa.py # Download HousingQA from HuggingFace

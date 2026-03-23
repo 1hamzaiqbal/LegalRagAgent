@@ -1,4 +1,4 @@
-"""Simple baseline QA evaluation script.
+"""Direct LLM baseline for the Legal RAG benchmark.
 
 Tests exactly N randomly sampled questions from the BarExam QA dataset
 using a fixed random seed for consistent benchmarks across runs.
@@ -6,9 +6,9 @@ This script bypasses LangGraph entirely and asks the LLM the question directly,
 acting as a baseline to measure the RAG pipeline against.
 
 Usage:
-  uv run python eval_baseline.py 20                 # Evaluate 20 bar-exam questions
-  uv run python eval_baseline.py 10 --suite web     # Evaluate fixed web-search benchmark
-  uv run python eval_baseline.py 100 --continue     # Resume from log
+  uv run python eval/eval_baseline.py 20                 # Evaluate 20 bar-exam questions
+  uv run python eval/eval_baseline.py 10 --suite web     # Evaluate fixed web-search benchmark
+  uv run python eval/eval_baseline.py 100 --continue     # Resume from log
 """
 
 import os

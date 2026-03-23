@@ -1,15 +1,16 @@
 """Plan-and-Execute Legal RAG Agent.
 
 Architecture (follows LangGraph plan-and-execute pattern):
-  START → planner → executor → replanner → executor  (retry / next step)
-                                          → synthesizer → END
+  START → router → planner → executor → replanner → executor  (retry / next step)
+                                                   → synthesizer → END
 
-Four top-level nodes:
-  planner    — decomposes the question into an ordered planning table
-  executor   — executes one step via direct_answer, rag_search, or web_search,
-               then runs LLM judge to evaluate sufficiency
-  replanner  — applies deterministic escalation (rag→rewrite→web→direct),
-               then LLM for next/complete when judge says sufficient
+Five top-level nodes:
+  router      — chooses which ChromaDB collection(s) to search
+  planner     — decomposes the question into an ordered planning table
+  executor    — executes one step via direct_answer, rag_search, or web_search,
+                then runs the LLM judge / verifier
+  replanner   — applies deterministic escalation (rag→rewrite→web→direct),
+                then LLM for next/complete when judge says sufficient
   synthesizer — aggregates all completed steps into a final IRAC answer
 
 All system prompts are loaded from skills/*.md at runtime.

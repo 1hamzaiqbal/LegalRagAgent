@@ -1,12 +1,15 @@
-"""Simple parallel QA evaluation script for the Legal RAG pipeline.
+"""Sequential QA evaluation script for the Legal RAG pipeline.
 
 Tests exactly N randomly sampled questions from the BarExam QA dataset
 using a fixed random seed for consistent benchmarks across runs.
 
+The script still accepts a `--parallel` flag for compatibility with older logs
+and CLI usage, but the current implementation runs sequentially.
+
 Usage:
-  uv run python eval_qa.py 20                  # Evaluate 20 bar-exam questions
-  uv run python eval_qa.py 50 --parallel 5     # Evaluate 50 questions with 5 workers
-  uv run python eval_qa.py 10 --suite web      # Evaluate fixed web-search benchmark
+  uv run python eval/eval_qa.py 20                  # Evaluate 20 bar-exam questions
+  uv run python eval/eval_qa.py 50 --parallel 5     # Flag accepted, execution is still sequential
+  uv run python eval/eval_qa.py 10 --suite web      # Evaluate fixed web-search benchmark
 """
 
 import os
@@ -188,7 +191,9 @@ def main():
     if len(queries_to_run) == 0:
         print("\nAll queries have already been completed!")
     else:
-        print(f"\nEvaluating {len(queries_to_run)} questions {'in parallel (' + str(parallel_workers) + ' threads) ' if parallel_workers > 1 else ''}...\n")
+        print(f"\nEvaluating {len(queries_to_run)} questions sequentially...\n")
+        if parallel_workers > 1:
+            print(f"Note: --parallel {parallel_workers} is accepted for compatibility, but this script currently runs sequentially.\n")
 
     results = list(completed_queries.values())
     eval_start_time = time.time()
@@ -233,7 +238,7 @@ def main():
             if hasattr(sys.stdout, 'flush_thread_buffer'):
                 sys.stdout.flush_thread_buffer()
 
-    # Run sequentially (parallelization disabled)
+    # Run sequentially. The parallel flag is currently informational only.
     for i, q in enumerate(queries_to_run):
         results.append(worker_func(i, q))
 
@@ -259,9 +264,9 @@ def main():
     print("FINAL QA BENCHMARK REPORT")
     print(f"{'='*80}")
     print("--- EXPERIMENT SETTINGS ---")
-    print(f"Embedding Model:      {os.getenv('EMBEDDING_MODEL', 'sentence-transformers/all-MiniLM-L6-v2')}")
+    print(f"Embedding Model:      {os.getenv('EMBEDDING_MODEL', 'Alibaba-NLP/gte-large-en-v1.5')}")
     print(f"LLM Provider/Model:   {os.getenv('LLM_PROVIDER', 'default')} / {pinfo['model']}")
-    print(f"Confidence Threshold: {os.getenv('EVAL_CONFIDENCE_THRESHOLD', '0.0')} (cross-encoder logits)")
+    print("Confidence Logging:   sigmoid-normalized max cross-encoder score (for tracing only)")
     print("\n--- STATISTICS ---")
     print(f"Accuracy:             {correct}/{len(queries)} ({accuracy:.1f}%)")
     print(f"Failed to execute:    {errors}")
