@@ -98,9 +98,10 @@ class LegalAgentState(TypedDict):
 # ---------------------------------------------------------------------------
 
 @functools.lru_cache(maxsize=8)
-def load_skill(name: str) -> str:
-    """Load a skill prompt from skills/<name>.md (cached after first read)."""
-    path = os.path.join("skills", f"{name}.md")
+def load_skill(name: str, _skill_dir: str = "") -> str:
+    """Load a skill prompt from <skill_dir>/<name>.md (cached after first read)."""
+    base = _skill_dir or os.getenv("SKILL_DIR", "skills")
+    path = os.path.join(base, f"{name}.md")
     try:
         with open(path, "r", encoding="utf-8") as f:
             return f.read()
