@@ -21,11 +21,13 @@ class EvalConfig:
 
 
 EVAL_MODES = {
-    "full_pipeline":    "Full agentic pipeline (planner → executor → synthesizer)",
-    "llm_only":         "Direct LLM answer, no retrieval",
-    "rag_rewrite":      "Query rewrite → hybrid retrieval → synthesize",
-    "rag_simple":       "Raw question → hybrid retrieval → synthesize",
-    "golden_passage":   "LLM answer with gold passage injected as context",
+    "full_pipeline":       "Full agentic pipeline (planner → executor → synthesizer)",
+    "llm_only":            "Direct LLM answer, no retrieval",
+    "rag_rewrite":         "Query rewrite → hybrid retrieval → synthesize",
+    "rag_simple":          "Raw question → hybrid retrieval → synthesize",
+    "golden_passage":      "LLM answer with gold passage injected as context",
+    "golden_arbitration":       "LLM answers naive, then reviews golden passage (neutral framing)",
+    "golden_arb_conservative":  "LLM answers naive, then reviews golden passage (biased toward keeping)",
 }
 
 
@@ -51,13 +53,14 @@ def load_questions(config: EvalConfig) -> pd.DataFrame:
 
 def extract_answer_mc(text: str) -> str | None:
     """Extract multiple-choice answer letter (A-D) from LLM response."""
+    # Strip markdown bold markers so **Answer:** (D) becomes Answer: (D)
+    cleaned = text.replace('*', '')
     patterns = [
-        r'\*\*(?:Answer|ANSWER)[:\s]*\(?([A-D])\)?',
         r'(?:Answer|ANSWER)[:\s]*\(?([A-D])\)?',
         r'\b([A-D])\b\s*(?:is correct|is the (?:best|correct|strongest))',
     ]
     for pattern in patterns:
-        matches = re.findall(pattern, text)
+        matches = re.findall(pattern, cleaned)
         if matches:
             return matches[-1]  # last match = conclusion
     return None

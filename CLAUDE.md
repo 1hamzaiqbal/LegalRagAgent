@@ -2,6 +2,10 @@
 
 Source-of-truth context for working in this codebase. Verify claims against `main.py` before relying on them.
 
+## Environment Note
+
+`uv` is at `~/.local/bin/uv` and is NOT on PATH in this shell. Always use `~/.local/bin/uv` (or set PATH) when running commands.
+
 ## Project Summary
 
 Legal RAG agent over the `reglab/barexam_qa` and `reglab/housing_qa` corpora. Built on LangGraph with a parallel plan-and-execute architecture: decompose a legal question into independent sub-questions, execute them with per-step escalation, synthesize a cited IRAC answer, and loop back if evidence is incomplete.
@@ -68,15 +72,13 @@ Two modes controlled by `--verbose` CLI flag or `VERBOSE=1` env var:
 
 ## Skills
 
-6 prompt files in `skills/`, all loaded by `main.py`:
+4 prompt files in `skills/`, loaded by `main.py`:
 
 | Skill file | Loaded as | Purpose |
 |---|---|---|
-| `planner.md` | `planner` | Decompose question into research steps with complexity + max_retries |
+| `planner.md` | `planner` | Decompose question into research steps |
 | `query_rewriter.md` | `query_rewriter` | Rewrite sub-question into primary + 2 alternative queries (JSON) |
 | `synthesize_and_cite.md` | `synthesize_and_cite` | Per-step cited synthesis with `[Source N]` format |
-| `judge.md` | `judge` | Evaluate retrieval sufficiency (full/partial/insufficient) |
-| `verifier.md` | `verifier` | Evaluate direct_answer grounding in established doctrine |
 | `synthesizer.md` | `synthesizer` | Final IRAC synthesis with `[Evidence N]` citations |
 
 ## Retrieval Stack

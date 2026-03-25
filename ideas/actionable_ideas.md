@@ -29,6 +29,27 @@ Ideas gathered from experiments, branch explorations, and analysis. Not yet impl
 - Already implemented but undertested — need cases where it actually fires
 - Max 3 rounds hardcoded
 
+### Context-Aware Decoding
+- Modify decoding to contrast output probabilities with/without retrieved context
+- LLM generates answer twice (with and without evidence), then amplifies tokens where context shifts the distribution
+- Could address the core problem: evidence either helps or is ignored, never actively harms
+- Research reference: Context-Aware Decoding (CAD) literature
+- Worth exploring once we have the golden arbitration baselines to compare against
+
+### Parallel Threads/Agents × Rounds Matrix
+- Systematically test how number of parallel agents and number of replanning rounds affect accuracy
+- Could isolate variables: fix rounds=1 and vary agents (1,2,3,5), then fix agents and vary rounds (1,2,3)
+- Current pipeline uses sequential execution despite "parallel" naming — need true parallelism first
+- Key question: does more retrieval/reasoning always help, or is there a diminishing/negative returns point?
+- Depends on true parallel execution (ThreadPoolExecutor) being implemented first
+
+## Pipeline Debias TODO (deferred until after golden baselines)
+
+- **`_execute_direct_answer`** uses `synthesize_and_cite` as system prompt but sends no evidence passages — skill says "evidence passages are provided" but none exist. Should use a simpler prompt or a dedicated direct-answer skill.
+- **Completeness check** in synthesizer_node says "Only say INCOMPLETE if there are critical gaps. Be conservative." — biases toward COMPLETE, replanning loop rarely fires. Test with neutral framing to see if more rounds help.
+- **`query_rewriter`** always generates 2 alternatives — no escape for simple questions. Extra queries may retrieve tangentially related but misleading passages. Consider letting LLM decide if alternatives are needed.
+- **`planner.md`** says "don't structure steps around answer choices" — blocks MC-aware research. Remove this line if testing MC-aware planning.
+
 ## Retrieval Ideas
 
 ### Aspect-Based Query Strategy

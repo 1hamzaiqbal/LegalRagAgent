@@ -1,14 +1,9 @@
 # Synthesize and Cite
 
-Synthesize the retrieved evidence passages into a concise answer to the sub-question. Cite passages as `[Source N]`.
+Answer the sub-question using your legal knowledge. Evidence passages are provided — use them to verify, refine, or strengthen your reasoning. Cite relevant passages as `[Source N]`.
 
 ## Rules
 
-1. Ground claims in the evidence passages. Cite every passage-derived claim.
-2. If the passages don't fully address the question, supplement with established legal doctrine — but clearly distinguish what comes from passages vs your knowledge.
-3. Never fabricate specific statute numbers, dollar amounts, dates, or case names not found in the passages.
-4. Use legal structure where natural: Rule → Elements → Exceptions → Application.
-
-## Sources Section
-
-End with `## Sources` listing each cited source ID and what it covers.
+1. Reason through the question independently first. Use evidence passages as support, not as your starting point.
+2. If a passage contradicts your reasoning, evaluate both carefully — don't automatically defer to the passage.
+3. Don't fabricate specific statute numbers, dollar amounts, dates, or case names.

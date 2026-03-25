@@ -18,6 +18,11 @@ load_dotenv()
 
 # Provider registry: name -> (base_url, api_key_env, model, rpd, tpd)
 PROVIDERS = {
+    # --- OpenAI ---
+    "gpt-4.1-nano":       ("https://api.openai.com/v1", "OPENAI_API_KEY", "gpt-4.1-nano",              None, None),
+    "gpt-4.1-mini":       ("https://api.openai.com/v1", "OPENAI_API_KEY", "gpt-4.1-mini",              None, None),
+    "gpt-5.4-nano":       ("https://api.openai.com/v1", "OPENAI_API_KEY", "gpt-5.4-nano",              None, None),
+    "gpt-5.4-mini":       ("https://api.openai.com/v1", "OPENAI_API_KEY", "gpt-5.4-mini",              None, None),
     # --- DeepSeek ---
     "deepseek":           ("https://api.deepseek.com", "DEEPSEEK_API_KEY", "deepseek-chat",            None, None),
     "deepseek-reasoner":  ("https://api.deepseek.com", "DEEPSEEK_API_KEY", "deepseek-reasoner",        None, None),
@@ -34,6 +39,9 @@ PROVIDERS = {
     "groq-gpt120b":       ("https://api.groq.com/openai/v1", "GROQ_API_KEY", "openai/gpt-oss-120b",                       1_000, 200_000),
     "groq-kimi":          ("https://api.groq.com/openai/v1", "GROQ_API_KEY", "moonshotai/kimi-k2-instruct",               1_000, 300_000),
     "groq-qwen":          ("https://api.groq.com/openai/v1", "GROQ_API_KEY", "qwen/qwen3-32b",                            1_000, 500_000),
+    # --- OpenRouter (paid) ---
+    "or-phi4":            ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "microsoft/phi-4",                       None, None),
+    "or-mistral-nemo":    ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "mistralai/mistral-nemo",                None, None),
     # --- OpenRouter (free tier — weekly token limits, no RPD cap) ---
     "or-llama70b":        ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "meta-llama/llama-3.3-70b-instruct:free",     None, None),
     "or-gpt20b":          ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "openai/gpt-oss-20b:free",                    None, None),

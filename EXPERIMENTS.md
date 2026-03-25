@@ -16,6 +16,34 @@ Running record of system changes and their eval results. Add new entries at the 
 
 ---
 
+### 2026-03-24 — Multi-model golden arbitration A/B (N=100)
+**Change:** Ran golden_passage and golden_arb_conservative on N=100 across two models to test if evidence helps weaker models and if the two-phase arbitration approach works at scale.
+**Config:** Llama 3.3 70B (Groq) and Llama 4 Scout 17B (Groq), N=100, seed=42
+**Results:**
+| Mode | Llama 70B | Scout 17B |
+|---|---|---|
+| llm_only | 64.0% | 64.0% |
+| golden_passage | **81.0%** (+17) | 73.0% (+9) |
+| golden_arb_conservative | **80.0%** (+16) | 71.0% (+7) |
+**Takeaway:** (1) Evidence massively helps models that don't already know the answers — +17 pts for 70B vs DeepSeek where evidence was neutral. (2) Larger models integrate evidence ~2x better than smaller ones (same baseline, double the lift). (3) Conservative arbitration closely tracks golden_passage (1-2 pts behind) for both model sizes — the two-phase architecture works. (4) Llama 70B is the right model for our A/B tests — strong enough to reason but weak enough for evidence to matter. (5) Scout is fast and cheap but less capable at evidence integration.
+**Next:** Test with *retrieved* passages instead of golden — does conservative arbitration protect the snap answer when evidence is noisy?
+**Commit:** TBD (uncommitted)
+
+### 2026-03-24 — Golden arbitration A/B + prompt debiasing (curated, N=28)
+**Change:** (1) Rewrote all evidence-facing prompts to "reason first, evidence supports" — removed deference bias from golden_passage, synthesize_and_cite.md, synthesizer.md. (2) Added two new eval modes: `golden_arbitration` (neutral) and `golden_arb_conservative` — LLM answers naively first, then reviews golden passage.
+**Config:** deepseek-chat, N=28 curated diagnostic set, 4 modes compared
+**Results:**
+| Mode | Accuracy | Latency/q | Calls/q | Notes |
+|---|---|---|---|---|
+| llm_only | 82.1% | 18.7s | 1 | Baseline (no evidence) |
+| golden_passage (reasoning-first) | 82.1% | 17.9s | 1 | New prompt — up from 77% on old "use passage" prompt (N=100) |
+| golden_arb_conservative | 82.1% | 25.3s | 2 | Snap + "don't change unless strong reason" |
+| golden_arb_neutral | 78.6% | 25.8s | 2 | Snap + neutral review |
+**Per-question flip analysis:** Arbitration correctly rescued mbe_1055 and mbe_1109 (snap wrong → evidence helped). But evidence actively misled on mbe_897 (both arb modes) and neutral framing lost mbe_935 by flipping a correct snap. mbe_806 and the nan question universally wrong.
+**Comparison:** All modes cluster at 82.1% on this small set (vs prior 85.7% golden / 78.6% llm_only on same set with old prompts). Conservative > neutral by 1 question.
+**Takeaway:** (1) Reasoning-first prompt fixed the "lazy LLM" golden passage regression — now tied with llm_only instead of below it. (2) Conservative arbitration framing is better than neutral — neutral is too willing to flip correct answers. (3) N=28 is too small for real separation; need N=100+. (4) Two-phase approach shows promise on specific questions but no top-line lift yet.
+**Commit:** TBD (uncommitted)
+
 ### 2026-03-23 — Gemma 4B full pipeline
 **Change:** Ran full parallel pipeline with Gemma 3 4B (via OpenRouter free tier)
 **Config:** gemma-3-4b-it, N=100, full_parallel profile

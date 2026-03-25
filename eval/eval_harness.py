@@ -90,13 +90,71 @@ def run_golden_passage(row: pd.Series, config: EvalConfig) -> dict:
         return run_llm_only(row, config)
 
     system = (
-        "You are a legal expert. Use the provided reference passage to answer "
-        "the multiple-choice question. Reason step by step, then give your "
-        "final answer as: Answer: (X)"
+        "You are a legal expert. Reason through the multiple-choice question "
+        "step by step. A reference passage is provided — use it to verify or "
+        "refine your reasoning, but think through the problem independently first. "
+        "Give your final answer as: Answer: (X)"
     )
     user = f"## Reference Passage\n{gold}\n\n## Question\n{question}"
     answer = _llm_call(system, user, label="golden_passage")
     return {"final_answer": answer}
+
+
+def _golden_arb_common(row: pd.Series, config: EvalConfig, arb_system: str, label_prefix: str) -> dict:
+    """Shared logic for golden arbitration variants."""
+    question = format_question_prompt(row)
+    gold = str(row.get("gold_passage", ""))
+    if not gold or gold == "nan":
+        return run_llm_only(row, config)
+
+    # Step 1: Naive LLM answer (the "snap")
+    snap_system = (
+        "You are a legal expert. Answer the multiple-choice question below. "
+        "Reason step by step, then give your final answer as: Answer: (X)"
+    )
+    snap_answer = _llm_call(snap_system, question, label=f"{label_prefix}/snap")
+    snap_letter = extract_answer_mc(snap_answer)
+
+    # Step 2: Show evidence and ask to confirm or revise
+    arb_user = (
+        f"## Your Previous Answer\n{snap_answer}\n\n"
+        f"## Reference Passage\n{gold}\n\n"
+        f"## Question\n{question}"
+    )
+    final_answer = _llm_call(arb_system, arb_user, label=f"{label_prefix}/arbitrate")
+    final_letter = extract_answer_mc(final_answer)
+
+    return {
+        "final_answer": final_answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "final_letter": final_letter,
+        "changed": snap_letter != final_letter,
+    }
+
+
+def run_golden_arbitration(row: pd.Series, config: EvalConfig) -> dict:
+    """LLM answers naively, then sees golden passage — neutral framing (no bias toward keeping/changing)."""
+    arb_system = (
+        "You are a legal expert. You previously answered a question based on your knowledge. "
+        "Now you are given a reference passage that may contain relevant legal authority. "
+        "Review the passage carefully against your previous reasoning. "
+        "Reason step by step, then give your final answer as: Answer: (X)"
+    )
+    return _golden_arb_common(row, config, arb_system, "golden_arb")
+
+
+def run_golden_arb_conservative(row: pd.Series, config: EvalConfig) -> dict:
+    """LLM answers naively, then sees golden passage — conservative framing (biased toward keeping original)."""
+    arb_system = (
+        "You are a legal expert. You previously answered a question based on your knowledge. "
+        "Now you are given a reference passage that may contain relevant legal authority. "
+        "Review the passage carefully. If the evidence supports your original answer, keep it. "
+        "If the evidence clearly points to a different answer, change it. "
+        "Do not change your answer unless the evidence gives you a strong reason to. "
+        "Reason step by step, then give your final answer as: Answer: (X)"
+    )
+    return _golden_arb_common(row, config, arb_system, "golden_arb_cons")
 
 
 def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
@@ -198,6 +256,8 @@ MODE_RUNNERS = {
     "rag_rewrite": run_rag_rewrite,
     "rag_simple": run_rag_simple,
     "golden_passage": run_golden_passage,
+    "golden_arbitration": run_golden_arbitration,
+    "golden_arb_conservative": run_golden_arb_conservative,
 }
 
 
