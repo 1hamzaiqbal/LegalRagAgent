@@ -29,14 +29,77 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 
 **N=200 validated baselines (Scout):** llm_only=69%, rag_simple=68%. Use N=200+ for final decisions.
 
-### HousingQA baselines (N=100, seed=42)
+### HousingQA baselines
 
-| Mode | Llama 70B | Scout 17B |
+| Mode | Llama 70B (N=100) | Llama 70B (N=200) | Scout 17B (N=100) |
+|---|---|---|---|
+| llm_only | 44% | 47% | 50% |
+| rag_snap_hyde | **61% (+17)** | **56% (+9)** | **54% (+4)** |
+
+Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has massive Yes-bias (80% pred Yes). Retrieval against housing_statutes (1.8M docs, dense-only) dramatically reduces this bias. N=200 validation shows +9pt lift (down from +17 at N=100, same pattern as BarExam).
+
+---
+
+### 2026-03-25 — Devil's advocate HyDE: counterevidence hurts more than it helps (76% vs 82%)
+
+**Hypothesis:** 50% of Snap-HyDE failures are confirmation bias loops. Generating a devil's advocate HyDE passage (opposing the snap answer) alongside the supporting passage should break this loop by introducing counterevidence.
+
+**Change:** Added `rag_devil_hyde` mode — snap answer → supporting HyDE + opposing HyDE → pool both retrievals → answer with evidence.
+
+**Config:** Llama 70B, N=100, seed=42, BarExam
+
+**Result:** **76%** (vs snap_hyde 82%, llm_only 64%)
+
+| Subject | Devil HyDE | Snap HyDE |
 |---|---|---|
-| llm_only | 44% | 50% |
-| rag_snap_hyde | **61% (+17)** | **54% (+4)** |
+| CONST. LAW | 100% | 100%* |
+| CONTRACTS | 83% | 83%* |
+| EVIDENCE | 86% | 86%* |
+| REAL PROP. | 50% | 75%* |
+| TORTS | 75% | 83%* |
+| CRIM. LAW | 67% | 67%* |
 
-Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has massive Yes-bias (80% pred Yes). Retrieval against housing_statutes (1.8M docs, dense-only) dramatically reduces this bias. RAG lift much larger for Llama (+17) than Scout (+4), paralleling BarExam pattern.
+**Verdict:** REFUTED — devil's advocate retrieval made things worse (-6pts). The counterevidence doesn't selectively fix confirmation bias; it introduces noise that confuses the model on questions it was already getting right. The cure is worse than the disease. On well-known doctrinal law, the model doesn't need to be second-guessed — it needs confirmation of its correct reasoning.
+
+**Commit:** TBD
+
+---
+
+### 2026-03-25 — Top-2 answer HyDE: slight improvement over devil's advocate but still below snap (79%)
+
+**Hypothesis:** Instead of generic counterevidence, retrieving for the model's second-choice answer would provide more targeted alternative evidence, helping on cases where the snap answer is a near-miss.
+
+**Change:** Added `rag_top2_hyde` mode — snap with top-2 reasoning → HyDE for primary answer + HyDE for second-choice → pool retrievals → answer.
+
+**Config:** Llama 70B, N=100, seed=42, BarExam
+
+**Result:** **79%** (vs snap_hyde 82%, devil_hyde 76%, llm_only 64%)
+
+**Verdict:** REFUTED — top-2 retrieval is better than devil's advocate (+3) but still worse than focused snap_hyde (-3). Providing evidence for two competing answers splits the model's attention. The lesson is consistent: focused, single-hypothesis retrieval outperforms diverse retrieval on this task. The model does best when given evidence aligned with its primary reasoning.
+
+**Commit:** TBD
+
+---
+
+### 2026-03-25 — HousingQA N=200 validation: 56% (down from 61% at N=100)
+
+**Hypothesis:** The +17pt RAG lift at N=100 holds at N=200.
+
+**Change:** Ran rag_snap_hyde and llm_only at N=200 on HousingQA.
+
+**Config:** Llama 70B, N=200, seed=42, housing_statutes collection
+
+**Result:**
+
+| Mode | N=100 | N=200 |
+|---|---|---|
+| llm_only | 44% | 47% |
+| rag_snap_hyde | 61% | **56%** |
+| RAG lift | +17 | **+9** |
+
+**Verdict:** MIXED — RAG still provides meaningful lift (+9pts at N=200), but the N=100 result was inflated. The +17pt figure was optimistic; +9 is the more reliable estimate. Same pattern as BarExam: N=100 samples tend to be easier. However, +9pts is still the largest validated RAG lift in the project, confirming that retrieval is most valuable when the LLM genuinely lacks domain knowledge.
+
+**Commit:** TBD
 
 ---
 

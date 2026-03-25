@@ -78,6 +78,24 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
                 "state the law directly."
             ),
         }
+        prompts["devil_hyde"] = (
+            "You are a legal textbook author specializing in housing law. A student has answered a legal question. "
+            "Your job is to play DEVIL'S ADVOCATE: write a short passage (2-3 sentences) from a legal reference "
+            "that would CHALLENGE or CONTRADICT the student's answer. Focus on the rule, exception, or statute "
+            "that supports the OPPOSITE conclusion. Write in reference style — state the law directly."
+        )
+        prompts["top2_snap"] = (
+            "You are a legal expert specializing in housing law. Answer the Yes/No question below. "
+            "Reason step by step. Identify what your FIRST choice answer is, and also what the ALTERNATIVE "
+            "answer would be and why someone might argue for it. "
+            "Give your final answer as: Answer: Yes or Answer: No"
+        )
+        prompts["top2_hyde"] = (
+            "You are a legal textbook author specializing in housing law. A student has answered a legal question. "
+            "Write a short passage (2-3 sentences) from a legal reference that would support the ALTERNATIVE "
+            "or SECOND-CHOICE answer — the answer the student considered but rejected. Focus on the specific "
+            "statute, regulation, or rule that would support that alternative. Write in reference style."
+        )
         return prompts.get(role, prompts["answer"])
     # BarExam defaults
     prompts = {
@@ -98,6 +116,24 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
             "would be most relevant to verifying or correcting this answer. Focus on the specific "
             "doctrine, rule, or exception at the heart of the question. Write in reference style — "
             "state the law directly."
+        ),
+        "devil_hyde": (
+            "You are a legal textbook author. A student has answered a legal question. "
+            "Your job is to play DEVIL'S ADVOCATE: write a short passage (2-3 sentences) from a legal reference "
+            "that would CHALLENGE or CONTRADICT the student's answer. Focus on the doctrine, rule, or exception "
+            "that supports the OPPOSITE conclusion. Write in reference style — state the law directly."
+        ),
+        "top2_snap": (
+            "You are a legal expert. Answer the multiple-choice question below. "
+            "Reason step by step. Identify what your FIRST choice answer is, and also what your SECOND choice "
+            "would be and why it's a plausible alternative. "
+            "Give your final answer as: Answer: (X)"
+        ),
+        "top2_hyde": (
+            "You are a legal textbook author. A student has answered a legal question with a multiple-choice selection. "
+            "Write a short passage (2-3 sentences) from a legal reference that would support the SECOND-CHOICE "
+            "answer — the answer the student considered but rejected. Focus on the specific doctrine, rule, or "
+            "exception that makes the alternative answer plausible. Write in reference style — state the law directly."
         ),
     }
     return prompts.get(role, prompts["answer"])
@@ -373,6 +409,87 @@ def run_rag_snap_hyde(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_rag_devil_hyde(row: pd.Series, config: EvalConfig) -> dict:
+    """Devil's advocate HyDE: retrieve for snap answer AND for the opposing answer, present both."""
+    question = _fmt(row, config)
+
+    # Step 1: Snap answer
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="devil_hyde/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Generate supporting HyDE passage (same as snap_hyde)
+    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
+    support_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="devil_hyde/support")
+
+    # Step 3: Generate devil's advocate HyDE passage (opposing the snap answer)
+    devil_system = _system_prompt(config, "devil_hyde")
+    devil_passage = _llm_call(devil_system, hyde_user, label="devil_hyde/oppose")
+
+    # Step 4: Retrieve with BOTH passages pooled
+    collection = _collection_for_config(config)
+    retrieval = _retrieve_and_format(row, [support_passage, devil_passage], k=5,
+                                     label_prefix="devil_hyde",
+                                     where=_where_from_config(config),
+                                     collection=collection)
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Step 5: Answer with evidence (direct — let model weigh both sides)
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="devil_hyde/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "support_passage": support_passage,
+        "devil_passage": devil_passage,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
+def run_rag_top2_hyde(row: pd.Series, config: EvalConfig) -> dict:
+    """Top-2 HyDE: snap answer identifies top 2 choices, generate HyDE for each, pool retrieval."""
+    question = _fmt(row, config)
+
+    # Step 1: Snap answer — ask for top 2 choices with reasoning
+    top2_system = _system_prompt(config, "top2_snap")
+    snap_answer = _llm_call(top2_system, question, label="top2_hyde/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Generate HyDE for primary answer
+    hyde_user_1 = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
+    hyde_1 = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user_1, label="top2_hyde/primary")
+
+    # Step 3: Generate HyDE for second-choice answer
+    top2_hyde_system = _system_prompt(config, "top2_hyde")
+    hyde_2 = _llm_call(top2_hyde_system, hyde_user_1, label="top2_hyde/secondary")
+
+    # Step 4: Retrieve with both HyDE passages
+    collection = _collection_for_config(config)
+    retrieval = _retrieve_and_format(row, [hyde_1, hyde_2], k=5,
+                                     label_prefix="top2_hyde",
+                                     where=_where_from_config(config),
+                                     collection=collection)
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Step 5: Answer with evidence
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="top2_hyde/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "hyde_primary": hyde_1,
+        "hyde_secondary": hyde_2,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
 def run_rag_hyde_arb(row: pd.Series, config: EvalConfig) -> dict:
     """HyDE retrieval + conservative arbitration: snap → HyDE retrieve → review."""
     question = _fmt(row, config)
@@ -535,6 +652,8 @@ MODE_RUNNERS = {
     "rag_hyde_arb": run_rag_hyde_arb,
     "rag_multi_hyde": run_rag_multi_hyde,
     "rag_snap_hyde": run_rag_snap_hyde,
+    "rag_devil_hyde": run_rag_devil_hyde,
+    "rag_top2_hyde": run_rag_top2_hyde,
 }
 
 
