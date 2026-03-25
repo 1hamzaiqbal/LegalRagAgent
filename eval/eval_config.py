@@ -31,6 +31,7 @@ EVAL_MODES = {
     "golden_arb_conservative":  "LLM answers naive, then reviews golden passage (biased toward keeping)",
     "rag_arbitration":          "LLM answers naive, then reviews retrieved passages (conservative)",
     "rag_hyde":                 "HyDE: LLM generates hypothetical answer, embeds it to retrieve",
+    "rag_hyde_arb":             "HyDE retrieval + snap-then-review arbitration (conservative)",
 }
 
 

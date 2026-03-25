@@ -242,6 +242,54 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_rag_hyde_arb(row: pd.Series, config: EvalConfig) -> dict:
+    """HyDE retrieval + conservative arbitration: snap → HyDE retrieve → review."""
+    question = format_question_prompt(row)
+
+    # Step 1: Snap answer
+    snap_system = (
+        "You are a legal expert. Answer the multiple-choice question below. "
+        "Reason step by step, then give your final answer as: Answer: (X)"
+    )
+    snap_answer = _llm_call(snap_system, question, label="hyde_arb/snap")
+    snap_letter = extract_answer_mc(snap_answer)
+
+    # Step 2: HyDE retrieval
+    hyde_passage = _hyde_query(question, label="hyde_arb/generate")
+    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="hyde_arb",
+                                     where=_where_from_config(config))
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Step 3: Arbitrate
+    arb_system = (
+        "You are a legal expert. You previously answered a question based on your knowledge. "
+        "Now you are given retrieved legal passages that may be relevant. "
+        "Review the passages carefully. If the evidence supports your original answer, keep it. "
+        "If the evidence clearly points to a different answer, change it. "
+        "Do not change your answer unless the evidence gives you a strong reason to. "
+        "Reason step by step, then give your final answer as: Answer: (X)"
+    )
+    arb_user = (
+        f"## Your Previous Answer\n{snap_answer}\n\n"
+        f"## Retrieved Passages\n{passage_block}\n\n"
+        f"## Question\n{question}"
+    )
+    final_answer = _llm_call(arb_system, arb_user, label="hyde_arb/arbitrate")
+    final_letter = extract_answer_mc(final_answer)
+
+    return {
+        "final_answer": final_answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "final_letter": final_letter,
+        "changed": snap_letter != final_letter,
+        "hyde_passage": hyde_passage,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
 _RAG_SYSTEM = (
     "You are a legal expert. Reason through the multiple-choice question "
     "step by step. Retrieved passages are provided — use them to verify or "
@@ -357,6 +405,7 @@ MODE_RUNNERS = {
     "golden_arb_conservative": run_golden_arb_conservative,
     "rag_arbitration": run_rag_arbitration,
     "rag_hyde": run_rag_hyde,
+    "rag_hyde_arb": run_rag_hyde_arb,
 }
 
 

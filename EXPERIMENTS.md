@@ -31,6 +31,18 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 
 ---
 
+### 2026-03-24 — HyDE + arbitration: helps weak models, hurts strong ones
+**Hypothesis:** Combining HyDE retrieval with conservative arbitration (snap → HyDE passages → review) would improve on direct HyDE by protecting the snap answer from misleading passages.
+**Change:** Added `rag_hyde_arb` eval mode.
+**Config:** Scout N=100, Llama 70B N=100, seed=42
+**Results:**
+| Mode | Scout | Llama 70B |
+|---|---|---|
+| rag_hyde (direct) | 69% | **75%** |
+| rag_hyde_arb | **71%** (+2) | 74% (-1) |
+**Verdict:** MIXED — arbitration helps Scout (+2, snap provides reasoning anchor) but slightly hurts Llama 70B (-1, conservative bias prevents using good passages). Optimal strategy is model-dependent: weaker models benefit from arbitration's protection, stronger models are better off seeing evidence directly.
+**Commit:** TBD
+
 ### 2026-03-24 — HyDE retrieval: best retrieval result, +11pts on Llama 70B
 **Hypothesis:** Questions and doctrinal answers live in different semantic spaces. Generating a hypothetical answer passage (HyDE) and embedding that instead of the question should bridge the gap and improve retrieval quality.
 **Change:** Added `rag_hyde` eval mode — LLM generates a textbook-style passage, embeds it for retrieval, then answers with retrieved evidence.
