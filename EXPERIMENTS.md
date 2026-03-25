@@ -31,6 +31,20 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 
 ---
 
+### 2026-03-24 — HyDE retrieval: best retrieval result, +11pts on Llama 70B
+**Hypothesis:** Questions and doctrinal answers live in different semantic spaces. Generating a hypothetical answer passage (HyDE) and embedding that instead of the question should bridge the gap and improve retrieval quality.
+**Change:** Added `rag_hyde` eval mode — LLM generates a textbook-style passage, embeds it for retrieval, then answers with retrieved evidence.
+**Config:** Scout N=200, Llama 70B N=100, seed=42, unfiltered collection
+**Results:**
+| Metric | rag_simple (Scout) | rag_hyde (Scout) | rag_simple (70B) | rag_hyde (70B) |
+|---|---|---|---|---|
+| Accuracy | 68% | 69% (+1) | 73% | **75%** (+2) |
+| Gold recall | 2% | 6% (3x) | — | — |
+| Mean max CE | -1.35 | **+0.56** | — | — |
+| % positive CE | 33% | **56%** | — | — |
+**Verdict:** CONFIRMED — HyDE dramatically improves retrieval quality (CE scores flip from negative to positive, gold recall triples). Accuracy gain is model-dependent: flat on Scout (can't use evidence well), +2pts on Llama 70B (75% is best retrieval result, captures 65% of golden passage value). The query-document semantic gap was the core retrieval problem.
+**Commit:** TBD
+
 ### 2026-03-24 — MBE source filter: better gold recall, worse accuracy
 **Hypothesis:** Filtering retrieval to MBE-only (2.3K docs) would improve accuracy by finding more relevant study material passages instead of caselaw.
 **Change:** Added `--source-filter` to eval harness, tested MBE-filtered retrieval.

@@ -206,6 +206,42 @@ def _rewrite_query(question: str, label: str = "rag_rewrite/rewrite") -> List[st
     return [question]
 
 
+def _hyde_query(question: str, label: str = "hyde/generate") -> str:
+    """Generate a hypothetical answer passage for embedding-based search (HyDE)."""
+    system = (
+        "You are a legal textbook author. Given a legal question, write a short "
+        "passage (2-3 sentences) that would appear in a study guide as the answer. "
+        "Write in the style of a legal reference — state the doctrine, rule, or "
+        "principle directly. Do not discuss the question itself or say 'the answer is'."
+    )
+    return _llm_call(system, question, label=label)
+
+
+def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
+    """HyDE: generate hypothetical answer passage, embed it, retrieve similar real passages."""
+    question = format_question_prompt(row)
+
+    # Step 1: Generate hypothetical passage
+    hyde_passage = _hyde_query(question, label="hyde/generate")
+
+    # Step 2: Retrieve using the hypothetical passage as query
+    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="hyde",
+                                     where=_where_from_config(config))
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Step 3: Answer with evidence
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_RAG_SYSTEM, user, label="hyde/answer")
+
+    return {
+        "final_answer": answer,
+        "hyde_passage": hyde_passage,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
 _RAG_SYSTEM = (
     "You are a legal expert. Reason through the multiple-choice question "
     "step by step. Retrieved passages are provided — use them to verify or "
@@ -320,6 +356,7 @@ MODE_RUNNERS = {
     "golden_arbitration": run_golden_arbitration,
     "golden_arb_conservative": run_golden_arb_conservative,
     "rag_arbitration": run_rag_arbitration,
+    "rag_hyde": run_rag_hyde,
 }
 
 
