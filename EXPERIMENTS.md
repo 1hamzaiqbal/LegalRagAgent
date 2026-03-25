@@ -38,6 +38,53 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 
 Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has massive Yes-bias (80% pred Yes). Retrieval against housing_statutes (1.8M docs, dense-only) dramatically reduces this bias. N=200 validation shows +9pt lift (down from +17 at N=100, same pattern as BarExam).
 
+### Cross-dataset generalizability (Llama 70B, seed=42)
+
+| Dataset | Format | Corpus size | llm_only | rag_snap_hyde | RAG lift | N |
+|---|---|---|---|---|---|---|
+| BarExam QA | 4-way MC | 686K | 64% | 76.5% | +12.5* | 200 |
+| HousingQA | Yes/No | 1.8M | 47% | 56% | **+9** | 200 |
+| CaseHOLD | 5-way MC | 50K | 72.5% | 71.0% | **-1.5** | 200 |
+| Legal-RAG-QA | Open-ended | 190 | 100%† | 99.3%† | -0.7 | 138 |
+| Australian Legal QA | Open-ended | 2.1K | 100%† | 100%† | 0 | 200 |
+
+*BarExam N=200 net RAG lift is ~zero (fixed 15, hurt 15). †LLM-as-judge scoring (too lenient — treats most answers as correct).
+
+**Key finding:** RAG helps only when the LLM genuinely lacks domain knowledge (HousingQA: obscure state statutes). On well-known domains (BarExam, criminal law, Australian QA) or tasks requiring citation matching (CaseHOLD), retrieval is neutral-to-harmful.
+
+---
+
+### 2026-03-25 — Cross-dataset generalizability: RAG helps only on unknown domains
+
+**Hypothesis:** Snap-HyDE's retrieval benefit generalizes across legal domains and task formats. Tested on 3 new datasets: CaseHOLD (5-way MC holding identification, 50K holdings corpus), Legal-RAG-QA (open-ended US criminal law, 190 passage corpus), and Australian Legal QA (open-ended Australian law, 2.1K passages).
+
+**Change:** Added 3 new datasets to eval harness with dataset-specific prompts, embeddings, and LLM-as-judge scoring for open-ended tasks.
+
+**Config:** Llama 70B, seed=42. CaseHOLD N=200, Legal-RAG-QA N=138 (full), Australian N=200.
+
+**Results:**
+
+| Dataset | llm_only | rag_snap_hyde | RAG lift |
+|---|---|---|---|
+| CaseHOLD (5-way MC) | 72.5% | 71.0% | **-1.5** |
+| Legal-RAG-QA (open) | 100%† | 99.3%† | -0.7 |
+| Australian Legal (open) | 100%† | 100%† | 0 |
+
+†LLM-as-judge scoring — likely too lenient for open-ended tasks.
+
+**Verdict:** REFUTED for generalizability. RAG does not help on these three new datasets:
+- **CaseHOLD**: Retrieval *hurts* (-1.5pts). The task is citation-to-holding matching, not factoid retrieval. The holdings corpus contains similar but wrong holdings that mislead the model.
+- **Legal-RAG-QA / Australian**: LLM already at ceiling (100%). These datasets don't test retrieval because the LLM can answer from training data alone. The LLM-as-judge is also too lenient for fine-grained evaluation.
+
+**Cross-dataset pattern (all 5 datasets):**
+- RAG lift is inversely proportional to LLM baseline accuracy
+- **HousingQA** (47% baseline): +9pt lift — LLM genuinely doesn't know state statutes
+- **BarExam** (64% baseline): ~0 net lift at N=200 — LLM knows doctrinal law
+- **CaseHOLD** (72.5% baseline): -1.5pt — task is matching, not knowledge retrieval
+- **Legal-RAG-QA / Australian** (100% baseline): 0 — LLM already at ceiling
+
+**Commit:** TBD
+
 ---
 
 ### 2026-03-25 — Devil's advocate HyDE: counterevidence hurts more than it helps (76% vs 82%)

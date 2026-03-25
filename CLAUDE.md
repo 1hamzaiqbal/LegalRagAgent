@@ -177,6 +177,9 @@ See EXPERIMENTS.md for full history, cross-model results, and per-subject breakd
 |---|---|---|---|---|
 | BarExam QA | `legal_passages` | 686,324 | MC (A-D) | `reglab/barexam_qa` |
 | HousingQA | `housing_statutes` | 1,837,403 | Yes/No | `reglab/housing_qa` |
+| Legal-RAG-QA | `legal_rag_passages` | 190 | Open-ended | `isaacus/legal-rag-qa` |
+| Australian Legal QA | `australian_legal` | 2,124 | Open-ended | `isaacus/open-australian-legal-qa` |
+| CaseHOLD | `casehold_holdings` | 50,291 | MC (A-E) | `coastalcph/lex_glue` (case_hold) |
 
 ## Data (gitignored)
 
