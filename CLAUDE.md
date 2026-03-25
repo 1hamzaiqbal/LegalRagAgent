@@ -129,38 +129,47 @@ uv run python main.py multi_hop                      # Multi-step reasoning
 uv run python main.py medium                         # Medium complexity
 uv run python main.py simple --verbose               # Verbose output
 
-# Evals
-uv run python eval/eval_baseline.py 100             # Direct-LLM baseline
-uv run python eval/eval_bm25_baseline.py 100        # Simple retrieve-and-answer baseline
-uv run python eval/eval_golden.py 100               # Golden-passage upper bound
-uv run python eval/eval_rag_rewrite.py 100          # RAG + query rewrite
-uv run python eval/eval_qa.py 100                   # Full pipeline eval
+# Evals (all via eval_harness.py)
+uv run python eval/eval_harness.py --mode llm_only --provider groq-llama70b --questions 100
+uv run python eval/eval_harness.py --mode rag_snap_hyde --provider groq-llama70b --questions 100
+uv run python eval/eval_harness.py --mode rag_snap_hyde --provider groq-llama70b --questions 100 --dataset housing
+uv run python eval/eval_harness.py --mode golden_passage --provider groq-llama70b --questions 100
 
 # List providers
 uv run python llm_config.py
 ```
 
-## Current Reported Results (N=100, DeepSeek)
+## Current Best Results
 
-| Method | Accuracy | Gold Recall@5 |
-|---|---|---|
-| LLM-only (no RAG) | 85% | n/a |
-| RAG + query rewrite | 80% | 8% |
-| Golden passage (upper bound) | 77% | n/a |
-| Simple RAG (raw question) | 70% | 0% |
-| Retrieval recall (no LLM) | n/a | 0% |
+### BarExam QA (Llama 70B, seed=42)
+
+| Method | N=100 | N=200 | Notes |
+|---|---|---|---|
+| llm_only | 64% | 64%* | baseline |
+| rag_snap_hyde | **82%** | **76.5%** | best approach; N=200 is reliable |
+| rag_devil_hyde | 76% | — | counterevidence hurts |
+| rag_top2_hyde | 79% | — | less focused = worse |
+| golden_passage | 81% | — | oracle upper bound |
+
+*llm_only is stable across N=100/200 for this model.
+
+### HousingQA (Llama 70B, seed=42)
+
+| Method | N=100 | N=200 | Notes |
+|---|---|---|---|
+| llm_only | 44% | 47% | massive Yes-bias |
+| rag_snap_hyde | **61%** | **56%** | largest validated RAG lift (+9) |
+
+See EXPERIMENTS.md for full history, cross-model results, and per-subject breakdowns.
 
 ## Eval Scripts
 
 | Script | Notes |
 |---|---|
-| `eval/eval_baseline.py` | Direct-LLM baseline (no RAG) |
-| `eval/eval_bm25_baseline.py` | Simple retrieve-and-answer baseline |
-| `eval/eval_golden.py` | Golden-passage upper bound |
-| `eval/eval_rag_rewrite.py` | RAG with query rewriting |
-| `eval/eval_qa.py` | Full pipeline eval |
-| `eval/eval_query_strategies.py` | Compare query rewriting strategies |
-| `eval/eval_retrieval_recall.py` | Gold passage retrieval recall |
+| `eval/eval_harness.py` | Unified multi-model harness (14 modes, 2 datasets) |
+| `eval/eval_config.py` | Config, question loading, answer extraction |
+| `eval/eval_analyze.py` | Post-hoc analysis of JSONL logs |
+| `eval/eval_qa.py` | Legacy full pipeline eval |
 
 ## Datasets
 
