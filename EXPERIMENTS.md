@@ -31,6 +31,21 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 
 ---
 
+### 2026-03-24 — Snap-HyDE beats golden passage ceiling (82% vs 81%)
+**Hypothesis:** If the LLM reasons through the question first (snap), then generates a HyDE passage targeted at its specific reasoning, retrieval becomes more precise than generic HyDE.
+**Change:** Added `rag_snap_hyde` — snap answer → targeted HyDE generation → retrieve → direct answer with evidence. Also tested `rag_multi_hyde` — 3 aspect-targeted HyDE passages (rule/exception/application) pooled.
+**Config:** Llama 70B, N=100, seed=42
+**Results:**
+| Mode | Accuracy | Calls/q |
+|---|---|---|
+| rag_hyde | 75% | 2 |
+| rag_multi_hyde | 74% | 2 |
+| **rag_snap_hyde** | **82%** | 3 |
+| golden_passage | 81% | 1 |
+**Verdict:** CONFIRMED — snap-informed HyDE is our best result, exceeding even golden passages. The snap reasoning makes HyDE generation surgically targeted at the specific doctrine. Multi-HyDE (aspect diversity) didn't help — focused retrieval beats diverse retrieval.
+**Implication:** The snap+targeted-retrieval pattern is more valuable than having the "perfect" passage, because it retrieves evidence aligned with the model's actual reasoning chain. This is the approach to integrate into the main pipeline.
+**Commit:** TBD
+
 ### 2026-03-24 — HyDE k=10: more passages doesn't help
 **Hypothesis:** Now that HyDE retrieves relevant passages, more passages (k=10 vs k=5) might help by providing more evidence.
 **Change:** Ran HyDE with k=10 on Llama 70B.

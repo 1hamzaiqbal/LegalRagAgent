@@ -32,6 +32,8 @@ EVAL_MODES = {
     "rag_arbitration":          "LLM answers naive, then reviews retrieved passages (conservative)",
     "rag_hyde":                 "HyDE: LLM generates hypothetical answer, embeds it to retrieve",
     "rag_hyde_arb":             "HyDE retrieval + snap-then-review arbitration (conservative)",
+    "rag_multi_hyde":           "Multi-HyDE: 3 hypothetical passages (rule/exception/application)",
+    "rag_snap_hyde":            "Snap-informed HyDE: answer first, then targeted retrieval",
 }
 
 

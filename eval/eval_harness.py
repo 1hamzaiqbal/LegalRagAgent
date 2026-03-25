@@ -242,6 +242,86 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_rag_multi_hyde(row: pd.Series, config: EvalConfig) -> dict:
+    """Multi-HyDE: generate 3 hypothetical passages (rule/exception/application), pool retrievals."""
+    question = format_question_prompt(row)
+
+    system = (
+        "You are a legal textbook author. Given a legal question, write THREE short passages "
+        "(2-3 sentences each) that would appear in a study guide, targeting different dimensions:\n"
+        "1. RULE: The governing legal rule or doctrine\n"
+        "2. EXCEPTION: Key exceptions, defenses, or limitations\n"
+        "3. APPLICATION: How the rule applies to specific facts\n\n"
+        "Write each passage in the style of a legal reference. Separate with blank lines. "
+        "Do not label them or discuss the question itself."
+    )
+    raw = _llm_call(system, question, label="multi_hyde/generate")
+
+    # Split into separate passages for retrieval, filter out empty
+    hyde_passages = [p.strip() for p in raw.split("\n\n") if p.strip() and len(p.strip()) > 30]
+    if not hyde_passages:
+        hyde_passages = [raw]
+
+    # Retrieve with each passage, pool results
+    retrieval = _retrieve_and_format(row, hyde_passages, k=5, label_prefix="multi_hyde",
+                                     where=_where_from_config(config))
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_RAG_SYSTEM, user, label="multi_hyde/answer")
+
+    return {
+        "final_answer": answer,
+        "hyde_passages": hyde_passages,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
+def run_rag_snap_hyde(row: pd.Series, config: EvalConfig) -> dict:
+    """Snap-informed HyDE: LLM answers first, then generates targeted HyDE passage based on its reasoning."""
+    question = format_question_prompt(row)
+
+    # Step 1: Snap answer
+    snap_system = (
+        "You are a legal expert. Answer the multiple-choice question below. "
+        "Reason step by step, then give your final answer as: Answer: (X)"
+    )
+    snap_answer = _llm_call(snap_system, question, label="snap_hyde/snap")
+    snap_letter = extract_answer_mc(snap_answer)
+
+    # Step 2: Generate HyDE passage informed by the snap reasoning
+    hyde_system = (
+        "You are a legal textbook author. A student has answered a legal question and provided "
+        "their reasoning. Write a short passage (2-3 sentences) from a legal reference that "
+        "would be most relevant to verifying or correcting this answer. Focus on the specific "
+        "doctrine, rule, or exception at the heart of the question. Write in reference style — "
+        "state the law directly."
+    )
+    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
+    hyde_passage = _llm_call(hyde_system, hyde_user, label="snap_hyde/generate")
+
+    # Step 3: Retrieve
+    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="snap_hyde",
+                                     where=_where_from_config(config))
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Step 4: Answer with evidence (direct, not arbitration — 70B does better without conservative bias)
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_RAG_SYSTEM, user, label="snap_hyde/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "hyde_passage": hyde_passage,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
 def run_rag_hyde_arb(row: pd.Series, config: EvalConfig) -> dict:
     """HyDE retrieval + conservative arbitration: snap → HyDE retrieve → review."""
     question = format_question_prompt(row)
@@ -406,6 +486,8 @@ MODE_RUNNERS = {
     "rag_arbitration": run_rag_arbitration,
     "rag_hyde": run_rag_hyde,
     "rag_hyde_arb": run_rag_hyde_arb,
+    "rag_multi_hyde": run_rag_multi_hyde,
+    "rag_snap_hyde": run_rag_snap_hyde,
 }
 
 
