@@ -29,6 +29,95 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 
 **N=200 validated baselines (Scout):** llm_only=69%, rag_simple=68%. Use N=200+ for final decisions.
 
+### HousingQA baselines (N=100, seed=42)
+
+| Mode | Llama 70B | Scout 17B |
+|---|---|---|
+| llm_only | 44% | 50% |
+| rag_snap_hyde | **61% (+17)** | **54% (+4)** |
+
+Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has massive Yes-bias (80% pred Yes). Retrieval against housing_statutes (1.8M docs, dense-only) dramatically reduces this bias. RAG lift much larger for Llama (+17) than Scout (+4), paralleling BarExam pattern.
+
+---
+
+### 2026-03-25 — N=200 BarExam Snap-HyDE validation: 76.5% (down from 82% at N=100)
+
+**Hypothesis:** The 82% N=100 result holds at N=200 for stability confirmation.
+
+**Change:** Ran rag_snap_hyde at N=200 on BarExam.
+
+**Config:** Llama 70B, N=200, seed=42
+
+**Result:** 153/200 = **76.5%** (vs 82% at N=100)
+
+By subject: EVIDENCE 82%, CONTRACTS 81%, CONST. LAW 79%, REAL PROP. 76%, TORTS 75%, CRIM. LAW 75%
+
+**Deep analysis:**
+
+| Subset | Snap (=LLM-only) | Final (Snap-HyDE) | RAG lift |
+|---|---|---|---|
+| First 100 (N=100 overlap) | 79% | 82% | +3 |
+| Extra 100 (harder questions) | 74% | 71% | **-3** |
+| Full 200 | 76.5% | 76.5% | **0** |
+
+Retrieval fixed 15 questions and hurt 15 — perfect net zero. The first 100 questions were an easier sample (snap=79%) than the extra 100 (snap=74%). On easier questions, retrieval helps (+3); on harder questions, it hurts (-3).
+
+**Verdict:** The N=100 result (82%) was inflated by an easier question sample. At N=200, Snap-HyDE's net retrieval contribution is zero — it shuffles which questions it gets right without improving overall accuracy. The 76.5% figure entirely comes from the snap step (LLM-only reasoning with step-by-step prompting).
+
+**Key implication:** The true RAG lift may be near zero for BarExam with strong models. The snap-step format itself (explicit step-by-step reasoning) provides the real value, not the retrieval. HousingQA (+17pt lift) is where retrieval genuinely helps — because the LLM doesn't know state-specific statutes.
+
+**Commit:** TBD
+
+---
+
+### 2026-03-25 — HousingQA: first eval on second corpus, massive RAG lift
+
+**Hypothesis:** Snap-HyDE's retrieval benefit generalizes from BarExam (MC, doctrinal law) to HousingQA (Yes/No, state-specific statute law). HousingQA should show even larger RAG lift because state-specific housing statutes are less likely to be in the LLM's training data.
+
+**Change:** Added `--dataset housing` support to eval_harness.py. Adapted prompts for Yes/No format, pointed retrieval at `housing_statutes` collection (1.8M docs, dense-only).
+
+**Config:** Llama 70B, N=100, seed=42, housing_statutes collection
+
+**Results:**
+
+| Mode | Accuracy | Yes Recall | No Recall | Yes-bias |
+|---|---|---|---|---|
+| llm_only | 44% | 85% | 23% | 80% pred Yes |
+| rag_snap_hyde | **61% (+17)** | 79% | 52% | 59% pred Yes |
+
+**Verdict:** CONFIRMED — Snap-HyDE generalizes to a completely different corpus and task format. The +17pt lift is the largest RAG improvement in the project (vs +7 on BarExam). Key finding: the LLM has a massive Yes-bias on housing questions (predicts Yes 80% of the time when only 34% are Yes). Retrieval grounds the model in actual statute text and more than doubles No recall (23% → 52%).
+
+**Cross-model results:**
+
+| Model | llm_only | rag_snap_hyde | Lift |
+|---|---|---|---|
+| Llama 70B | 44% | **61%** | **+17** |
+| Scout 17B | 50% | 54% | +4 |
+
+RAG lift scales with model capability (same pattern as BarExam). Scout's smaller lift may be because its snap reasoning is too shallow to generate targeted HyDE passages.
+
+**Commit:** TBD
+
+### 2026-03-25 — Error analysis: Snap-HyDE failure modes on BarExam
+
+**Hypothesis:** Understanding why Snap-HyDE fails on 18% of questions reveals whether failures are fixable with better retrieval or are fundamental reasoning limits.
+
+**Change:** Categorized all 18 failures from Snap-HyDE (Llama 70B, N=100, BarExam).
+
+**Results:**
+
+| Failure Category | Count | % | Description |
+|---|---|---|---|
+| Retrieval HURT | 4 | 22% | Snap had correct answer, evidence flipped it to wrong |
+| Model STUCK | 9 | 50% | Same wrong answer before and after retrieval |
+| Retrieval SHIFTED | 5 | 28% | Evidence changed answer but still wrong |
+
+Key stats: Snap accuracy=75%, retrieval fixed 11 questions but hurt 4 (net +7). Gold passage retrieved in only 2/18 failures. Avg max CE score: 4.14 (correct) vs 3.70 (wrong).
+
+**Verdict:** The dominant failure mode (50%) is a **confirmation bias loop** — wrong snap reasoning → wrong HyDE targeting wrong doctrine → retrieves confirming evidence → model doubles down. This is inherent to snap-informed retrieval. Potential mitigations: devil's advocate HyDE (retrieve for opposing answer) or top-2 answer retrieval.
+
+**Commit:** TBD
+
 ---
 
 ### 2026-03-24 — Snap-HyDE cross-model: best approach across all models

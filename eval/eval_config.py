@@ -19,6 +19,7 @@ class EvalConfig:
     verbose: bool = False
     tag: str = ""                     # optional label for the run
     source_filter: str = ""           # optional metadata filter, e.g. "mbe" to search MBE docs only
+    dataset: str = "barexam"          # "barexam" | "housing"
 
 
 EVAL_MODES = {
@@ -39,6 +40,9 @@ EVAL_MODES = {
 
 def load_questions(config: EvalConfig) -> pd.DataFrame:
     """Load questions based on config.questions: 'curated', 'full', or integer N."""
+    if config.dataset == "housing":
+        return _load_housing_questions(config)
+
     if config.questions == "curated":
         path = os.path.join(os.path.dirname(__file__), "question_sets", "curated_30.csv")
         if not os.path.exists(path):
@@ -49,6 +53,18 @@ def load_questions(config: EvalConfig) -> pd.DataFrame:
         return pd.read_csv(path)
 
     qa = pd.read_csv("datasets/barexam_qa/qa/qa.csv")
+
+    if config.questions == "full":
+        return qa.reset_index(drop=True)
+
+    n = int(config.questions)
+    return qa.sample(n=min(n, len(qa)), random_state=config.seed).reset_index(drop=True)
+
+
+def _load_housing_questions(config: EvalConfig) -> pd.DataFrame:
+    """Load HousingQA questions (Yes/No format)."""
+    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    qa = pd.read_csv(os.path.join(base, "datasets/housing_qa/questions.csv"))
 
     if config.questions == "full":
         return qa.reset_index(drop=True)
@@ -72,8 +88,29 @@ def extract_answer_mc(text: str) -> str | None:
     return None
 
 
-def format_question_prompt(row: pd.Series) -> str:
-    """Format a bar exam MC question into a standard prompt string."""
+def extract_answer_yn(text: str) -> str | None:
+    """Extract Yes/No answer from LLM response."""
+    cleaned = text.replace('*', '').strip()
+    patterns = [
+        r'(?:Answer|ANSWER)[:\s]*(Yes|No)\b',
+        r'(?:Final answer|FINAL ANSWER)[:\s]*(Yes|No)\b',
+    ]
+    for pattern in patterns:
+        matches = re.findall(pattern, cleaned, re.IGNORECASE)
+        if matches:
+            return matches[-1].capitalize()
+    # Fallback: last standalone Yes/No in the text
+    matches = re.findall(r'\b(Yes|No)\b', cleaned, re.IGNORECASE)
+    if matches:
+        return matches[-1].capitalize()
+    return None
+
+
+def format_question_prompt(row: pd.Series, dataset: str = "barexam") -> str:
+    """Format a question into a standard prompt string."""
+    if dataset == "housing":
+        return format_housing_prompt(row)
+
     parts = [str(row["question"])]
 
     choices = []
@@ -87,3 +124,12 @@ def format_question_prompt(row: pd.Series) -> str:
 
     parts.append("\nProvide your answer as: Answer: (X)")
     return "\n\n".join(parts)
+
+
+def format_housing_prompt(row: pd.Series) -> str:
+    """Format a HousingQA Yes/No question into a prompt string."""
+    state = str(row.get("state", ""))
+    question = str(row["question"])
+    prompt = f"Regarding {state} housing law:\n\n{question}"
+    prompt += "\n\nAnswer Yes or No. Provide your answer as: Answer: Yes or Answer: No"
+    return prompt

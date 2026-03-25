@@ -21,7 +21,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
-from eval_config import EvalConfig, EVAL_MODES, load_questions, extract_answer_mc, format_question_prompt
+from eval_config import EvalConfig, EVAL_MODES, load_questions, extract_answer_mc, extract_answer_yn, format_question_prompt
 from main import (
     run as run_pipeline,
     _llm_call,
@@ -38,9 +38,81 @@ from rag_utils import retrieve_documents_multi_query, get_vectorstore
 # Mode Runner Functions
 # ---------------------------------------------------------------------------
 
+def _fmt(row: pd.Series, config: EvalConfig) -> str:
+    """Format question prompt based on dataset."""
+    return format_question_prompt(row, dataset=config.dataset)
+
+
+def _extract_answer(text: str, config: EvalConfig) -> str | None:
+    """Extract answer using the right extractor for the dataset."""
+    if config.dataset == "housing":
+        return extract_answer_yn(text)
+    return extract_answer_mc(text)
+
+
+def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
+    """Get dataset-appropriate system prompt."""
+    if config.dataset == "housing":
+        prompts = {
+            "answer": (
+                "You are a legal expert specializing in housing law. Answer the Yes/No question below. "
+                "Reason step by step, then give your final answer as: Answer: Yes or Answer: No"
+            ),
+            "rag": (
+                "You are a legal expert specializing in housing law. Reason through the question "
+                "step by step. Retrieved passages are provided — use them to verify or "
+                "refine your reasoning, but think through the problem independently first. "
+                "Give your final answer as: Answer: Yes or Answer: No"
+            ),
+            "hyde": (
+                "You are a legal textbook author specializing in housing law. Given a legal question, "
+                "write a short passage (2-3 sentences) that would appear in a reference guide as the answer. "
+                "Write in the style of a legal reference — state the statute, rule, or "
+                "regulation directly. Do not discuss the question itself or say 'the answer is'."
+            ),
+            "snap_hyde": (
+                "You are a legal textbook author specializing in housing law. A student has answered a legal question "
+                "and provided their reasoning. Write a short passage (2-3 sentences) from a legal reference that "
+                "would be most relevant to verifying or correcting this answer. Focus on the specific "
+                "statute, regulation, or rule at the heart of the question. Write in reference style — "
+                "state the law directly."
+            ),
+        }
+        return prompts.get(role, prompts["answer"])
+    # BarExam defaults
+    prompts = {
+        "answer": (
+            "You are a legal expert. Answer the multiple-choice question below. "
+            "Reason step by step, then give your final answer as: Answer: (X)"
+        ),
+        "rag": _RAG_SYSTEM,
+        "hyde": (
+            "You are a legal textbook author. Given a legal question, write a short "
+            "passage (2-3 sentences) that would appear in a study guide as the answer. "
+            "Write in the style of a legal reference — state the doctrine, rule, or "
+            "principle directly. Do not discuss the question itself or say 'the answer is'."
+        ),
+        "snap_hyde": (
+            "You are a legal textbook author. A student has answered a legal question and provided "
+            "their reasoning. Write a short passage (2-3 sentences) from a legal reference that "
+            "would be most relevant to verifying or correcting this answer. Focus on the specific "
+            "doctrine, rule, or exception at the heart of the question. Write in reference style — "
+            "state the law directly."
+        ),
+    }
+    return prompts.get(role, prompts["answer"])
+
+
+def _collection_for_config(config: EvalConfig) -> str:
+    """Return the ChromaDB collection name for the dataset."""
+    if config.dataset == "housing":
+        return "housing_statutes"
+    return "legal_passages"
+
+
 def run_full_pipeline(row: pd.Series, config: EvalConfig) -> dict:
     """Run the full agentic pipeline and capture complete state."""
-    question = format_question_prompt(row)
+    question = format_question_prompt(row, dataset=config.dataset)
     result = run_pipeline(question, print_output=False)
 
     # Serialize PlanningStep objects
@@ -73,29 +145,19 @@ def run_full_pipeline(row: pd.Series, config: EvalConfig) -> dict:
 
 def run_llm_only(row: pd.Series, config: EvalConfig) -> dict:
     """Direct LLM answer with no retrieval."""
-    question = format_question_prompt(row)
-    system = (
-        "You are a legal expert. Answer the multiple-choice question below. "
-        "Reason step by step, then give your final answer as: Answer: (X)"
-    )
-    answer = _llm_call(system, question, label="llm_only")
+    question = _fmt(row, config)
+    answer = _llm_call(_system_prompt(config, "answer"), question, label="llm_only")
     return {"final_answer": answer}
 
 
 def run_golden_passage(row: pd.Series, config: EvalConfig) -> dict:
     """LLM answer with the gold passage injected as context."""
-    question = format_question_prompt(row)
+    question = _fmt(row, config)
     gold = str(row.get("gold_passage", ""))
     if not gold or gold == "nan":
-        # Fall back to llm_only if no gold passage
         return run_llm_only(row, config)
 
-    system = (
-        "You are a legal expert. Reason through the multiple-choice question "
-        "step by step. A reference passage is provided — use it to verify or "
-        "refine your reasoning, but think through the problem independently first. "
-        "Give your final answer as: Answer: (X)"
-    )
+    system = _system_prompt(config, "rag")
     user = f"## Reference Passage\n{gold}\n\n## Question\n{question}"
     answer = _llm_call(system, user, label="golden_passage")
     return {"final_answer": answer}
@@ -103,18 +165,14 @@ def run_golden_passage(row: pd.Series, config: EvalConfig) -> dict:
 
 def _golden_arb_common(row: pd.Series, config: EvalConfig, arb_system: str, label_prefix: str) -> dict:
     """Shared logic for golden arbitration variants."""
-    question = format_question_prompt(row)
+    question = _fmt(row, config)
     gold = str(row.get("gold_passage", ""))
     if not gold or gold == "nan":
         return run_llm_only(row, config)
 
     # Step 1: Naive LLM answer (the "snap")
-    snap_system = (
-        "You are a legal expert. Answer the multiple-choice question below. "
-        "Reason step by step, then give your final answer as: Answer: (X)"
-    )
-    snap_answer = _llm_call(snap_system, question, label=f"{label_prefix}/snap")
-    snap_letter = extract_answer_mc(snap_answer)
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label=f"{label_prefix}/snap")
+    snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Show evidence and ask to confirm or revise
     arb_user = (
@@ -123,7 +181,7 @@ def _golden_arb_common(row: pd.Series, config: EvalConfig, arb_system: str, labe
         f"## Question\n{question}"
     )
     final_answer = _llm_call(arb_system, arb_user, label=f"{label_prefix}/arbitrate")
-    final_letter = extract_answer_mc(final_answer)
+    final_letter = _extract_answer(final_answer, config)
 
     return {
         "final_answer": final_answer,
@@ -159,9 +217,10 @@ def run_golden_arb_conservative(row: pd.Series, config: EvalConfig) -> dict:
 
 
 def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
-                         label_prefix: str = "rag", where: dict = None) -> dict:
+                         label_prefix: str = "rag", where: dict = None,
+                         collection: str = "legal_passages") -> dict:
     """Shared retrieval + evidence formatting. Returns dict with passages, evidence_store, metadata."""
-    vs = get_vectorstore("legal_passages")
+    vs = get_vectorstore(collection)
     docs = retrieve_documents_multi_query(queries=queries, k=k, vectorstore=vs, where=where)
 
     passages = []
@@ -219,19 +278,20 @@ def _hyde_query(question: str, label: str = "hyde/generate") -> str:
 
 def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
     """HyDE: generate hypothetical answer passage, embed it, retrieve similar real passages."""
-    question = format_question_prompt(row)
+    question = _fmt(row, config)
 
     # Step 1: Generate hypothetical passage
-    hyde_passage = _hyde_query(question, label="hyde/generate")
+    hyde_passage = _llm_call(_system_prompt(config, "hyde"), question, label="hyde/generate")
 
     # Step 2: Retrieve using the hypothetical passage as query
     retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="hyde",
-                                     where=_where_from_config(config))
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
     # Step 3: Answer with evidence
     user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
-    answer = _llm_call(_RAG_SYSTEM, user, label="hyde/answer")
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="hyde/answer")
 
     return {
         "final_answer": answer,
@@ -244,7 +304,7 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
 
 def run_rag_multi_hyde(row: pd.Series, config: EvalConfig) -> dict:
     """Multi-HyDE: generate 3 hypothetical passages (rule/exception/application), pool retrievals."""
-    question = format_question_prompt(row)
+    question = _fmt(row, config)
 
     system = (
         "You are a legal textbook author. Given a legal question, write THREE short passages "
@@ -264,11 +324,12 @@ def run_rag_multi_hyde(row: pd.Series, config: EvalConfig) -> dict:
 
     # Retrieve with each passage, pool results
     retrieval = _retrieve_and_format(row, hyde_passages, k=5, label_prefix="multi_hyde",
-                                     where=_where_from_config(config))
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
     user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
-    answer = _llm_call(_RAG_SYSTEM, user, label="multi_hyde/answer")
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="multi_hyde/answer")
 
     return {
         "final_answer": answer,
@@ -281,35 +342,25 @@ def run_rag_multi_hyde(row: pd.Series, config: EvalConfig) -> dict:
 
 def run_rag_snap_hyde(row: pd.Series, config: EvalConfig) -> dict:
     """Snap-informed HyDE: LLM answers first, then generates targeted HyDE passage based on its reasoning."""
-    question = format_question_prompt(row)
+    question = _fmt(row, config)
 
     # Step 1: Snap answer
-    snap_system = (
-        "You are a legal expert. Answer the multiple-choice question below. "
-        "Reason step by step, then give your final answer as: Answer: (X)"
-    )
-    snap_answer = _llm_call(snap_system, question, label="snap_hyde/snap")
-    snap_letter = extract_answer_mc(snap_answer)
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_hyde/snap")
+    snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Generate HyDE passage informed by the snap reasoning
-    hyde_system = (
-        "You are a legal textbook author. A student has answered a legal question and provided "
-        "their reasoning. Write a short passage (2-3 sentences) from a legal reference that "
-        "would be most relevant to verifying or correcting this answer. Focus on the specific "
-        "doctrine, rule, or exception at the heart of the question. Write in reference style — "
-        "state the law directly."
-    )
     hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
-    hyde_passage = _llm_call(hyde_system, hyde_user, label="snap_hyde/generate")
+    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="snap_hyde/generate")
 
     # Step 3: Retrieve
     retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="snap_hyde",
-                                     where=_where_from_config(config))
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
     # Step 4: Answer with evidence (direct, not arbitration — 70B does better without conservative bias)
     user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
-    answer = _llm_call(_RAG_SYSTEM, user, label="snap_hyde/answer")
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="snap_hyde/answer")
 
     return {
         "final_answer": answer,
@@ -324,20 +375,17 @@ def run_rag_snap_hyde(row: pd.Series, config: EvalConfig) -> dict:
 
 def run_rag_hyde_arb(row: pd.Series, config: EvalConfig) -> dict:
     """HyDE retrieval + conservative arbitration: snap → HyDE retrieve → review."""
-    question = format_question_prompt(row)
+    question = _fmt(row, config)
 
     # Step 1: Snap answer
-    snap_system = (
-        "You are a legal expert. Answer the multiple-choice question below. "
-        "Reason step by step, then give your final answer as: Answer: (X)"
-    )
-    snap_answer = _llm_call(snap_system, question, label="hyde_arb/snap")
-    snap_letter = extract_answer_mc(snap_answer)
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="hyde_arb/snap")
+    snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: HyDE retrieval
-    hyde_passage = _hyde_query(question, label="hyde_arb/generate")
+    hyde_passage = _llm_call(_system_prompt(config, "hyde"), question, label="hyde_arb/generate")
     retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="hyde_arb",
-                                     where=_where_from_config(config))
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
     # Step 3: Arbitrate
@@ -355,7 +403,7 @@ def run_rag_hyde_arb(row: pd.Series, config: EvalConfig) -> dict:
         f"## Question\n{question}"
     )
     final_answer = _llm_call(arb_system, arb_user, label="hyde_arb/arbitrate")
-    final_letter = extract_answer_mc(final_answer)
+    final_letter = _extract_answer(final_answer, config)
 
     return {
         "final_answer": final_answer,
@@ -387,15 +435,16 @@ def _where_from_config(config: EvalConfig) -> dict | None:
 
 def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
     """Query rewrite → retrieval → answer with evidence."""
-    question = format_question_prompt(row)
+    question = _fmt(row, config)
     queries = _rewrite_query(question)
 
     retrieval = _retrieve_and_format(row, queries, k=5, label_prefix="rewrite",
-                                     where=_where_from_config(config))
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
     user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
-    answer = _llm_call(_RAG_SYSTEM, user, label="rag_rewrite/answer")
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="rag_rewrite/answer")
 
     return {
         "final_answer": answer,
@@ -408,15 +457,16 @@ def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
 
 def run_rag_simple(row: pd.Series, config: EvalConfig) -> dict:
     """Raw question → retrieval → answer with evidence (no rewrite)."""
-    question = format_question_prompt(row)
+    question = _fmt(row, config)
     raw_question = str(row["question"])
 
     retrieval = _retrieve_and_format(row, [raw_question], k=5, label_prefix="simple",
-                                     where=_where_from_config(config))
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
     user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
-    answer = _llm_call(_RAG_SYSTEM, user, label="rag_simple/answer")
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="rag_simple/answer")
 
     return {
         "final_answer": answer,
@@ -428,20 +478,17 @@ def run_rag_simple(row: pd.Series, config: EvalConfig) -> dict:
 
 def run_rag_arbitration(row: pd.Series, config: EvalConfig) -> dict:
     """LLM answers naively, then reviews retrieved passages (conservative framing)."""
-    question = format_question_prompt(row)
+    question = _fmt(row, config)
     queries = _rewrite_query(question, label="rag_arb/rewrite")
 
     # Step 1: Snap answer (no evidence)
-    snap_system = (
-        "You are a legal expert. Answer the multiple-choice question below. "
-        "Reason step by step, then give your final answer as: Answer: (X)"
-    )
-    snap_answer = _llm_call(snap_system, question, label="rag_arb/snap")
-    snap_letter = extract_answer_mc(snap_answer)
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="rag_arb/snap")
+    snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Retrieve
     retrieval = _retrieve_and_format(row, queries, k=5, label_prefix="rag_arb",
-                                     where=_where_from_config(config))
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
     # Step 3: Arbitrate with conservative framing
@@ -459,7 +506,7 @@ def run_rag_arbitration(row: pd.Series, config: EvalConfig) -> dict:
         f"## Question\n{question}"
     )
     final_answer = _llm_call(arb_system, arb_user, label="rag_arb/arbitrate")
-    final_letter = extract_answer_mc(final_answer)
+    final_letter = _extract_answer(final_answer, config)
 
     return {
         "final_answer": final_answer,
@@ -545,7 +592,8 @@ def run_eval(config: EvalConfig):
 
     print(f"\n{'=' * 70}")
     filter_str = f" | filter={config.source_filter}" if config.source_filter else ""
-    print(f"EVAL: {config.mode} | {provider_info['provider']} ({provider_info['model']}) | {n} questions{filter_str}")
+    dataset_str = f" | dataset={config.dataset}" if config.dataset != "barexam" else ""
+    print(f"EVAL: {config.mode} | {provider_info['provider']} ({provider_info['model']}) | {n} questions{dataset_str}{filter_str}")
     if config.skill_dir != "skills":
         print(f"Skills: {config.skill_dir}")
     if config.tag:
@@ -556,19 +604,25 @@ def run_eval(config: EvalConfig):
     correct = 0
     total_start = time.time()
 
+    is_housing = config.dataset == "housing"
+
     for i, row in qa.iterrows():
         _reset_llm_call_counter()
         q_start = time.time()
 
-        subject = str(row.get("subject", "unknown"))
+        subject = str(row.get("state" if is_housing else "subject", "unknown"))
         idx = str(row.get("idx", i))
-        label = f"qa_{subject}_{idx}"
-        gold = str(row["answer"]).strip().upper()
+        label = f"qa_{subject}_{idx}" if not is_housing else f"hqa_{subject}_{idx}"
+        gold = str(row["answer"]).strip()
+        if not is_housing:
+            gold = gold.upper()
+        else:
+            gold = gold.capitalize()  # Yes/No
 
         try:
             result = runner(row, config)
             answer_text = result.get("final_answer", "")
-            predicted = extract_answer_mc(answer_text)
+            predicted = _extract_answer(answer_text, config)
             is_correct = predicted == gold
             error = None
         except Exception as e:
@@ -598,10 +652,6 @@ def run_eval(config: EvalConfig):
             "subject": subject,
             "idx": idx,
             "question": str(row["question"]),
-            "choices": {
-                letter: str(row.get(f"choice_{letter.lower()}", ""))
-                for letter in "ABCD"
-            },
             "correct_answer": gold,
             "predicted_answer": predicted,
             "is_correct": is_correct,
@@ -610,12 +660,20 @@ def run_eval(config: EvalConfig):
             "llm_calls": metrics["count"],
             "input_tokens": metrics["input_tokens"],
             "output_tokens": metrics["output_tokens"],
-            "gold_passage": str(row.get("gold_passage", ""))[:500],
             "gold_idx": str(row.get("gold_idx", "")),
             "final_answer": answer_text,
             "mode": config.mode,
             "provider": config.provider,
+            "dataset": config.dataset,
         }
+        if is_housing:
+            record["state"] = str(row.get("state", ""))
+        else:
+            record["choices"] = {
+                letter: str(row.get(f"choice_{letter.lower()}", ""))
+                for letter in "ABCD"
+            }
+            record["gold_passage"] = str(row.get("gold_passage", ""))[:500]
         # Merge mode-specific fields (evidence_store, audit_log, etc.)
         for k, v in result.items():
             if k != "final_answer" and k not in record:
@@ -669,6 +727,7 @@ def run_eval(config: EvalConfig):
         "run_id": run_id,
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "mode": config.mode,
+        "dataset": config.dataset,
         "provider": provider_info["provider"],
         "model": provider_info["model"],
         "question_set": question_set,
@@ -722,6 +781,8 @@ def main():
                         help="Optional label for this run")
     parser.add_argument("--source-filter", default="",
                         help="Metadata source filter for retrieval, e.g. 'mbe' (default: none)")
+    parser.add_argument("--dataset", default="barexam", choices=["barexam", "housing"],
+                        help="Dataset to evaluate on (default: barexam)")
 
     args = parser.parse_args()
 
@@ -737,6 +798,7 @@ def main():
         verbose=args.verbose,
         tag=args.tag,
         source_filter=args.source_filter,
+        dataset=args.dataset,
     )
 
     run_eval(config)
