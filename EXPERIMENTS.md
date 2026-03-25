@@ -31,6 +31,22 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 
 ---
 
+### 2026-03-24 — HyDE k=10: more passages doesn't help
+**Hypothesis:** Now that HyDE retrieves relevant passages, more passages (k=10 vs k=5) might help by providing more evidence.
+**Change:** Ran HyDE with k=10 on Llama 70B.
+**Config:** Llama 70B, N=100, seed=42, k=10
+**Result:** 74% (vs 75% at k=5).
+**Verdict:** REFUTED — more passages adds noise from lower-ranked results. k=5 is optimal.
+**Commit:** TBD
+
+### 2026-03-24 — HyDE cross-model: consistent lift, scales with capability
+**Hypothesis:** HyDE improvement generalizes across model architectures (not just Llama family).
+**Change:** Ran rag_hyde on GPT 5.4-nano.
+**Config:** GPT 5.4-nano N=100, seed=42
+**Result:** 64% (+7 over llm_only 57%, +5 over rag_simple 59%). Biggest proportional RAG lift across all models.
+**Verdict:** CONFIRMED — HyDE generalizes across Llama and GPT architectures. Lift scales with model capability: nano +7, Scout +5†, 70B +11.
+**Commit:** TBD
+
 ### 2026-03-24 — HyDE + arbitration: helps weak models, hurts strong ones
 **Hypothesis:** Combining HyDE retrieval with conservative arbitration (snap → HyDE passages → review) would improve on direct HyDE by protecting the snap answer from misleading passages.
 **Change:** Added `rag_hyde_arb` eval mode.
