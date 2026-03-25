@@ -31,6 +31,19 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 
 ---
 
+### 2026-03-24 — Snap-HyDE cross-model: best approach across all models
+**Hypothesis:** Snap-HyDE's outsized lift on Llama 70B generalizes to weaker models.
+**Change:** Ran rag_snap_hyde on Scout and GPT 5.4-nano.
+**Config:** Scout N=100, GPT 5.4-nano N=100, seed=42
+**Results:**
+| Model | llm_only | golden | rag_hyde | snap_hyde |
+|---|---|---|---|---|
+| Llama 70B | 64% | 81% | 75% | **82%** |
+| Scout 17B | 64% | 73% | 69% | **71%** |
+| GPT 5.4-nano | 57% | — | 64% | **64%** |
+**Verdict:** CONFIRMED for strong models, MIXED for weak. Snap-hyde is best or tied-best across all models. The lift scales with model capability: the better the snap reasoning, the more targeted the HyDE passage, the better the retrieval. Nano's snap isn't detailed enough to improve over plain HyDE.
+**Commit:** TBD
+
 ### 2026-03-24 — Snap-HyDE beats golden passage ceiling (82% vs 81%)
 **Hypothesis:** If the LLM reasons through the question first (snap), then generates a HyDE passage targeted at its specific reasoning, retrieval becomes more precise than generic HyDE.
 **Change:** Added `rag_snap_hyde` — snap answer → targeted HyDE generation → retrieve → direct answer with evidence. Also tested `rag_multi_hyde` — 3 aspect-targeted HyDE passages (rule/exception/application) pooled.
