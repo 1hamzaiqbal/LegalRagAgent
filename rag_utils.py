@@ -245,10 +245,18 @@ def _retrieve_bm25(query: str, k: int, exclude_ids: set = None,
 
 
 def _retrieve_dense(query: str, k: int, exclude_ids: set = None,
-                    vectorstore: Chroma = None) -> List[Document]:
-    """First-stage bi-encoder retrieval. Returns raw candidates (no reranking)."""
+                    vectorstore: Chroma = None,
+                    where: Dict = None) -> List[Document]:
+    """First-stage bi-encoder retrieval. Returns raw candidates (no reranking).
+
+    Args:
+        where: Optional ChromaDB metadata filter, e.g. {"source": "mbe"}.
+    """
     vs = vectorstore or get_vectorstore()
-    retriever = vs.as_retriever(search_kwargs={"k": k})
+    search_kwargs = {"k": k}
+    if where:
+        search_kwargs["filter"] = where
+    retriever = vs.as_retriever(search_kwargs=search_kwargs)
     candidates = retriever.invoke(query)
     if exclude_ids:
         candidates = [d for d in candidates if d.metadata.get("idx", "") not in exclude_ids]
@@ -273,17 +281,21 @@ def _pool_and_dedup(doc_lists: List[List[Document]]) -> List[Document]:
 # ---------------------------------------------------------------------------
 
 def retrieve_documents(query: str, k: int = 5, exclude_ids: set = None,
-                       vectorstore: Chroma = None, use_bm25: bool = False) -> List[Document]:
+                       vectorstore: Chroma = None, use_bm25: bool = False,
+                       where: Dict = None) -> List[Document]:
     """Hybrid retrieval: BM25 + bi-encoder candidates → cross-encoder rerank.
 
-    Both first-stage retrievers fetch k*4 candidates each. The combined pool
+    Both first-stage retrievers fetch k*3 candidates each. The combined pool
     is deduplicated by idx, then the cross-encoder picks the best k.
     Falls back to dense-only if BM25 index build fails (e.g., OOM on large corpora).
+
+    Args:
+        where: Optional ChromaDB metadata filter, e.g. {"source": "mbe"}.
     """
     vs = vectorstore or get_vectorstore()
     fetch_k = k * 3
 
-    dense_docs = _retrieve_dense(query, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs)
+    dense_docs = _retrieve_dense(query, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs, where=where)
 
     bm25_docs = []
     if use_bm25:
@@ -299,25 +311,30 @@ def retrieve_documents(query: str, k: int = 5, exclude_ids: set = None,
 def retrieve_documents_multi_query(queries: List[str], k: int = 5,
                                    exclude_ids: set = None,
                                    vectorstore: Chroma = None,
-                                   use_bm25: bool = False) -> List[Document]:
+                                   use_bm25: bool = False,
+                                   where: Dict = None) -> List[Document]:
     """Multi-query hybrid retrieval: pool BM25 + dense across all query variants.
 
     Each query variant contributes candidates from both BM25 and bi-encoder.
     All candidates are pooled and deduplicated. The cross-encoder reranks the
     full pool against the PRIMARY query (first in list).
+
+    Args:
+        where: Optional ChromaDB metadata filter, e.g. {"source": "mbe"}.
     """
     if not queries:
         return []
     if len(queries) == 1:
         return retrieve_documents(queries[0], k=k, exclude_ids=exclude_ids,
-                                  vectorstore=vectorstore, use_bm25=use_bm25)
+                                  vectorstore=vectorstore, use_bm25=use_bm25,
+                                  where=where)
 
     vs = vectorstore or get_vectorstore()
     fetch_k = k * 3
 
     all_lists = []
     for q in queries:
-        all_lists.append(_retrieve_dense(q, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs))
+        all_lists.append(_retrieve_dense(q, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs, where=where))
         if use_bm25:
             try:
                 all_lists.append(_retrieve_bm25(q, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs))

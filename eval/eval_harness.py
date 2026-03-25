@@ -158,10 +158,11 @@ def run_golden_arb_conservative(row: pd.Series, config: EvalConfig) -> dict:
     return _golden_arb_common(row, config, arb_system, "golden_arb_cons")
 
 
-def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5, label_prefix: str = "rag") -> dict:
+def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
+                         label_prefix: str = "rag", where: dict = None) -> dict:
     """Shared retrieval + evidence formatting. Returns dict with passages, evidence_store, metadata."""
     vs = get_vectorstore("legal_passages")
-    docs = retrieve_documents_multi_query(queries=queries, k=k, vectorstore=vs)
+    docs = retrieve_documents_multi_query(queries=queries, k=k, vectorstore=vs, where=where)
 
     passages = []
     evidence_store = []
@@ -213,12 +214,20 @@ _RAG_SYSTEM = (
 )
 
 
+def _where_from_config(config: EvalConfig) -> dict | None:
+    """Build ChromaDB where filter from config.source_filter."""
+    if config.source_filter:
+        return {"source": config.source_filter}
+    return None
+
+
 def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
     """Query rewrite → retrieval → answer with evidence."""
     question = format_question_prompt(row)
     queries = _rewrite_query(question)
 
-    retrieval = _retrieve_and_format(row, queries, k=5, label_prefix="rewrite")
+    retrieval = _retrieve_and_format(row, queries, k=5, label_prefix="rewrite",
+                                     where=_where_from_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
     user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
@@ -238,7 +247,8 @@ def run_rag_simple(row: pd.Series, config: EvalConfig) -> dict:
     question = format_question_prompt(row)
     raw_question = str(row["question"])
 
-    retrieval = _retrieve_and_format(row, [raw_question], k=5, label_prefix="simple")
+    retrieval = _retrieve_and_format(row, [raw_question], k=5, label_prefix="simple",
+                                     where=_where_from_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
     user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
@@ -266,7 +276,8 @@ def run_rag_arbitration(row: pd.Series, config: EvalConfig) -> dict:
     snap_letter = extract_answer_mc(snap_answer)
 
     # Step 2: Retrieve
-    retrieval = _retrieve_and_format(row, queries, k=5, label_prefix="rag_arb")
+    retrieval = _retrieve_and_format(row, queries, k=5, label_prefix="rag_arb",
+                                     where=_where_from_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
     # Step 3: Arbitrate with conservative framing
@@ -365,7 +376,8 @@ def run_eval(config: EvalConfig):
     n = len(qa)
 
     print(f"\n{'=' * 70}")
-    print(f"EVAL: {config.mode} | {provider_info['provider']} ({provider_info['model']}) | {n} questions")
+    filter_str = f" | filter={config.source_filter}" if config.source_filter else ""
+    print(f"EVAL: {config.mode} | {provider_info['provider']} ({provider_info['model']}) | {n} questions{filter_str}")
     if config.skill_dir != "skills":
         print(f"Skills: {config.skill_dir}")
     if config.tag:
@@ -503,6 +515,7 @@ def run_eval(config: EvalConfig):
         "total_output_tokens": sum(r["output_tokens"] for r in results),
         "skill_dir": config.skill_dir,
         "tag": config.tag,
+        "source_filter": config.source_filter,
         "detail_log": detail_path,
         "git_commit": _git_commit_short(),
     }
@@ -539,6 +552,8 @@ def main():
                         help="Enable verbose logging")
     parser.add_argument("--tag", default="",
                         help="Optional label for this run")
+    parser.add_argument("--source-filter", default="",
+                        help="Metadata source filter for retrieval, e.g. 'mbe' (default: none)")
 
     args = parser.parse_args()
 
@@ -553,6 +568,7 @@ def main():
         skill_dir=args.skill_dir,
         verbose=args.verbose,
         tag=args.tag,
+        source_filter=args.source_filter,
     )
 
     run_eval(config)

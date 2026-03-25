@@ -18,6 +18,7 @@ class EvalConfig:
     skill_dir: str = "skills"
     verbose: bool = False
     tag: str = ""                     # optional label for the run
+    source_filter: str = ""           # optional metadata filter, e.g. "mbe" to search MBE docs only
 
 
 EVAL_MODES = {

@@ -31,6 +31,21 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 
 ---
 
+### 2026-03-24 — MBE source filter: better gold recall, worse accuracy
+**Hypothesis:** Filtering retrieval to MBE-only (2.3K docs) would improve accuracy by finding more relevant study material passages instead of caselaw.
+**Change:** Added `--source-filter` to eval harness, tested MBE-filtered retrieval.
+**Config:** Scout 17B, N=200, seed=42, rag_simple with `where={"source": "mbe"}`
+**Result:**
+| Metric | Unfiltered (686K) | MBE filter (2.3K) |
+|---|---|---|
+| Accuracy | 68% | **66%** (worse) |
+| Gold recall | 2% | 8% (4x better) |
+| Mean max CE | -1.35 | -2.54 (worse) |
+| % positive CE | 33% | 22% (worse) |
+**Verdict:** REFUTED — better gold recall doesn't mean better accuracy. MBE pool is too small/narrow for the embedding model to match well. Caselaw passages, while not gold, provide more semantically relevant content (higher CE scores) that the LLM uses for reasoning.
+**Implication:** The retrieval bottleneck is embedding quality, not corpus composition. The embedding model can't match legal questions to doctrinal answers even in a focused 2.3K collection. Need either better embeddings or a different retrieval approach.
+**Commit:** TBD
+
 ### 2026-03-24 — Root cause: gold passages drowned by 680K caselaw docs
 **Hypothesis:** Retrieval quality is bad because the collection mixes 2,318 MBE study passages with 678,612 caselaw passages (0.3% signal). Filtering to MBE-only should dramatically improve gold recall.
 **Change:** Analysis only — tested metadata filter `where={"source": "mbe"}` on retrieval.
