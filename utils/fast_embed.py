@@ -37,6 +37,24 @@ CORPORA = {
         "text_col": "text",
         "idx_col": "idx",
     },
+    "legal_rag": {
+        "csv": "datasets/legal_rag_qa/passages.csv",
+        "collection": "legal_rag_passages",
+        "text_col": "text",
+        "idx_col": "idx",
+    },
+    "australian": {
+        "csv": "datasets/australian_legal_qa/passages.csv",
+        "collection": "australian_legal",
+        "text_col": "text",
+        "idx_col": "idx",
+    },
+    "casehold": {
+        "csv": "datasets/casehold/holdings_corpus.csv",
+        "collection": "casehold_holdings",
+        "text_col": "text",
+        "idx_col": "idx",
+    },
 }
 
 # Process in chunks of this size to avoid OOM

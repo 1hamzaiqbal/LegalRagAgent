@@ -21,7 +21,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
-from eval_config import EvalConfig, EVAL_MODES, load_questions, extract_answer_mc, extract_answer_yn, format_question_prompt
+from eval_config import EvalConfig, EVAL_MODES, load_questions, extract_answer_mc, extract_answer_mc5, extract_answer_yn, format_question_prompt
 from main import (
     run as run_pipeline,
     _llm_call,
@@ -47,6 +47,10 @@ def _extract_answer(text: str, config: EvalConfig) -> str | None:
     """Extract answer using the right extractor for the dataset."""
     if config.dataset == "housing":
         return extract_answer_yn(text)
+    if config.dataset == "casehold":
+        return extract_answer_mc5(text)
+    if config.dataset in ("legal_rag", "australian"):
+        return text  # open-ended: return full text, scored by LLM judge
     return extract_answer_mc(text)
 
 
@@ -97,6 +101,56 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
             "statute, regulation, or rule that would support that alternative. Write in reference style."
         )
         return prompts.get(role, prompts["answer"])
+    if config.dataset == "casehold":
+        prompts = {
+            "answer": (
+                "You are a legal expert specializing in case law. Read the citing context from a court opinion "
+                "and determine which holding is most likely being referenced. "
+                "Reason step by step, then give your final answer as: Answer: (X)"
+            ),
+            "rag": (
+                "You are a legal expert specializing in case law. Reason through the question "
+                "step by step. Retrieved holdings are provided — use them to verify or "
+                "refine your reasoning, but think through the problem independently first. "
+                "Give your final answer as: Answer: (X)"
+            ),
+            "hyde": (
+                "You are a legal textbook author. Given a court opinion excerpt that cites a holding, "
+                "write a short passage (2-3 sentences) stating the likely holding being referenced. "
+                "Write in the style of a case holding — state the rule directly."
+            ),
+            "snap_hyde": (
+                "You are a legal textbook author. A student has identified what they think is the correct "
+                "holding for a citation. Write a short passage (2-3 sentences) from a legal reference "
+                "that would be most relevant to verifying this holding. Write in reference style."
+            ),
+        }
+        return prompts.get(role, prompts["answer"])
+    if config.dataset in ("legal_rag", "australian"):
+        domain = "criminal law" if config.dataset == "legal_rag" else "Australian law"
+        prompts = {
+            "answer": (
+                f"You are a legal expert specializing in {domain}. Answer the question below "
+                f"thoroughly and accurately. Provide a detailed answer."
+            ),
+            "rag": (
+                f"You are a legal expert specializing in {domain}. Reason through the question "
+                f"step by step. Retrieved passages are provided — use them to verify or "
+                f"refine your reasoning, but think through the problem independently first. "
+                f"Provide a detailed answer."
+            ),
+            "hyde": (
+                f"You are a legal textbook author specializing in {domain}. Given a legal question, "
+                f"write a short passage (2-3 sentences) that would appear in a reference guide as the answer. "
+                f"Write in the style of a legal reference — state the rule directly."
+            ),
+            "snap_hyde": (
+                f"You are a legal textbook author specializing in {domain}. A student has answered a legal question "
+                f"and provided their reasoning. Write a short passage (2-3 sentences) from a legal reference that "
+                f"would be most relevant to verifying or correcting this answer. Write in reference style."
+            ),
+        }
+        return prompts.get(role, prompts["answer"])
     # BarExam defaults
     prompts = {
         "answer": (
@@ -139,11 +193,40 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
     return prompts.get(role, prompts["answer"])
 
 
+DATASET_COLLECTIONS = {
+    "barexam": "legal_passages",
+    "housing": "housing_statutes",
+    "legal_rag": "legal_rag_passages",
+    "australian": "australian_legal",
+    "casehold": "casehold_holdings",
+}
+
+
+def _judge_open_answer(question: str, gold: str, predicted: str, config: EvalConfig) -> bool:
+    """Use LLM to judge whether an open-ended answer is correct.
+
+    Returns True if the predicted answer captures the key facts from the gold answer.
+    Uses a simple binary correct/incorrect judgment to keep scoring consistent.
+    """
+    judge_system = (
+        "You are a legal exam grader. Compare the student's answer to the reference answer. "
+        "Judge whether the student's answer captures the key legal facts, rules, and conclusions "
+        "from the reference answer. Minor differences in wording or additional context are acceptable. "
+        "The student's answer must get the core legal point RIGHT to be correct.\n\n"
+        "Respond with exactly one word: CORRECT or INCORRECT"
+    )
+    judge_user = (
+        f"## Question\n{question}\n\n"
+        f"## Reference Answer\n{gold}\n\n"
+        f"## Student's Answer\n{predicted}"
+    )
+    verdict = _llm_call(judge_system, judge_user, label="judge")
+    return "CORRECT" in verdict.upper()
+
+
 def _collection_for_config(config: EvalConfig) -> str:
     """Return the ChromaDB collection name for the dataset."""
-    if config.dataset == "housing":
-        return "housing_statutes"
-    return "legal_passages"
+    return DATASET_COLLECTIONS.get(config.dataset, "legal_passages")
 
 
 def run_full_pipeline(row: pd.Series, config: EvalConfig) -> dict:
@@ -723,26 +806,48 @@ def run_eval(config: EvalConfig):
     correct = 0
     total_start = time.time()
 
-    is_housing = config.dataset == "housing"
+    is_open_ended = config.dataset in ("legal_rag", "australian")
 
     for i, row in qa.iterrows():
         _reset_llm_call_counter()
         q_start = time.time()
 
-        subject = str(row.get("state" if is_housing else "subject", "unknown"))
-        idx = str(row.get("idx", i))
-        label = f"qa_{subject}_{idx}" if not is_housing else f"hqa_{subject}_{idx}"
-        gold = str(row["answer"]).strip()
-        if not is_housing:
-            gold = gold.upper()
+        # Dataset-specific labeling
+        if config.dataset == "housing":
+            subject = str(row.get("state", "unknown"))
+            label = f"hqa_{subject}_{row.get('idx', i)}"
+        elif config.dataset == "casehold":
+            subject = "casehold"
+            label = f"ch_{row.get('idx', i)}"
+        elif config.dataset == "legal_rag":
+            subject = "crim_law"
+            label = f"lrq_{row.get('idx', i)}"
+        elif config.dataset == "australian":
+            subject = str(row.get("jurisdiction", "unknown"))
+            label = f"aus_{subject}_{row.get('idx', i)}"
         else:
-            gold = gold.capitalize()  # Yes/No
+            subject = str(row.get("subject", "unknown"))
+            label = f"qa_{subject}_{row.get('idx', i)}"
+        idx = str(row.get("idx", i))
+
+        # Gold answer formatting
+        gold = str(row["answer"]).strip()
+        if config.dataset == "housing":
+            gold = gold.capitalize()
+        elif config.dataset in ("barexam", "casehold"):
+            gold = gold.upper()
+        # open-ended: gold stays as-is
 
         try:
             result = runner(row, config)
             answer_text = result.get("final_answer", "")
             predicted = _extract_answer(answer_text, config)
-            is_correct = predicted == gold
+
+            if is_open_ended:
+                is_correct = _judge_open_answer(row["question"], gold, answer_text, config)
+                result["judge_score"] = is_correct  # store for analysis
+            else:
+                is_correct = predicted == gold
             error = None
         except Exception as e:
             result = {}
@@ -758,21 +863,28 @@ def run_eval(config: EvalConfig):
             correct += 1
 
         status = "PASS" if is_correct else "FAIL"
-        print(
-            f"[{i+1}/{n}] {label:<35} {status:<6} "
-            f"gold={gold} pred={predicted} "
-            f"({elapsed:.1f}s, {metrics['count']} calls)",
-            flush=True,
-        )
+        if is_open_ended:
+            print(
+                f"[{i+1}/{n}] {label:<35} {status:<6} "
+                f"({elapsed:.1f}s, {metrics['count']} calls)",
+                flush=True,
+            )
+        else:
+            print(
+                f"[{i+1}/{n}] {label:<35} {status:<6} "
+                f"gold={gold} pred={predicted} "
+                f"({elapsed:.1f}s, {metrics['count']} calls)",
+                flush=True,
+            )
 
         # Build per-question record
         record = {
             "label": label,
             "subject": subject,
             "idx": idx,
-            "question": str(row["question"]),
-            "correct_answer": gold,
-            "predicted_answer": predicted,
+            "question": str(row["question"])[:500],
+            "correct_answer": gold[:500] if is_open_ended else gold,
+            "predicted_answer": str(predicted)[:500] if is_open_ended else predicted,
             "is_correct": is_correct,
             "error": error,
             "elapsed_sec": round(elapsed, 1),
@@ -780,13 +892,22 @@ def run_eval(config: EvalConfig):
             "input_tokens": metrics["input_tokens"],
             "output_tokens": metrics["output_tokens"],
             "gold_idx": str(row.get("gold_idx", "")),
-            "final_answer": answer_text,
+            "final_answer": answer_text[:500] if is_open_ended else answer_text,
             "mode": config.mode,
             "provider": config.provider,
             "dataset": config.dataset,
         }
-        if is_housing:
+        if config.dataset == "housing":
             record["state"] = str(row.get("state", ""))
+        elif config.dataset == "casehold":
+            record["choices"] = {
+                letter: str(row.get(f"choice_{letter.lower()}", ""))[:200]
+                for letter in "ABCDE"
+            }
+        elif config.dataset == "australian":
+            record["jurisdiction"] = str(row.get("jurisdiction", ""))
+        elif config.dataset == "legal_rag":
+            record["relevant_passages"] = str(row.get("relevant_passages", ""))
         else:
             record["choices"] = {
                 letter: str(row.get(f"choice_{letter.lower()}", ""))
@@ -900,7 +1021,8 @@ def main():
                         help="Optional label for this run")
     parser.add_argument("--source-filter", default="",
                         help="Metadata source filter for retrieval, e.g. 'mbe' (default: none)")
-    parser.add_argument("--dataset", default="barexam", choices=["barexam", "housing"],
+    parser.add_argument("--dataset", default="barexam",
+                        choices=["barexam", "housing", "legal_rag", "australian", "casehold"],
                         help="Dataset to evaluate on (default: barexam)")
 
     args = parser.parse_args()

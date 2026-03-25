@@ -19,7 +19,7 @@ class EvalConfig:
     verbose: bool = False
     tag: str = ""                     # optional label for the run
     source_filter: str = ""           # optional metadata filter, e.g. "mbe" to search MBE docs only
-    dataset: str = "barexam"          # "barexam" | "housing"
+    dataset: str = "barexam"          # "barexam" | "housing" | "legal_rag" | "australian" | "casehold"
 
 
 EVAL_MODES = {
@@ -44,6 +44,12 @@ def load_questions(config: EvalConfig) -> pd.DataFrame:
     """Load questions based on config.questions: 'curated', 'full', or integer N."""
     if config.dataset == "housing":
         return _load_housing_questions(config)
+    if config.dataset == "legal_rag":
+        return _load_generic_questions(config, "datasets/legal_rag_qa/questions.csv")
+    if config.dataset == "australian":
+        return _load_generic_questions(config, "datasets/australian_legal_qa/questions.csv")
+    if config.dataset == "casehold":
+        return _load_generic_questions(config, "datasets/casehold/test.csv")
 
     if config.questions == "curated":
         path = os.path.join(os.path.dirname(__file__), "question_sets", "curated_30.csv")
@@ -75,6 +81,18 @@ def _load_housing_questions(config: EvalConfig) -> pd.DataFrame:
     return qa.sample(n=min(n, len(qa)), random_state=config.seed).reset_index(drop=True)
 
 
+def _load_generic_questions(config: EvalConfig, csv_path: str) -> pd.DataFrame:
+    """Load questions from a CSV, sample N if requested."""
+    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    qa = pd.read_csv(os.path.join(base, csv_path))
+
+    if config.questions == "full":
+        return qa.reset_index(drop=True)
+
+    n = int(config.questions)
+    return qa.sample(n=min(n, len(qa)), random_state=config.seed).reset_index(drop=True)
+
+
 def extract_answer_mc(text: str) -> str | None:
     """Extract multiple-choice answer letter (A-D) from LLM response."""
     # Strip markdown bold markers so **Answer:** (D) becomes Answer: (D)
@@ -87,6 +105,20 @@ def extract_answer_mc(text: str) -> str | None:
         matches = re.findall(pattern, cleaned)
         if matches:
             return matches[-1]  # last match = conclusion
+    return None
+
+
+def extract_answer_mc5(text: str) -> str | None:
+    """Extract 5-way multiple-choice answer letter (A-E) from LLM response."""
+    cleaned = text.replace('*', '')
+    patterns = [
+        r'(?:Answer|ANSWER)[:\s]*\(?([A-E])\)?',
+        r'\b([A-E])\b\s*(?:is correct|is the (?:best|correct|strongest))',
+    ]
+    for pattern in patterns:
+        matches = re.findall(pattern, cleaned)
+        if matches:
+            return matches[-1]
     return None
 
 
@@ -112,6 +144,10 @@ def format_question_prompt(row: pd.Series, dataset: str = "barexam") -> str:
     """Format a question into a standard prompt string."""
     if dataset == "housing":
         return format_housing_prompt(row)
+    if dataset == "casehold":
+        return format_casehold_prompt(row)
+    if dataset in ("legal_rag", "australian"):
+        return format_open_prompt(row)
 
     parts = [str(row["question"])]
 
@@ -135,3 +171,28 @@ def format_housing_prompt(row: pd.Series) -> str:
     prompt = f"Regarding {state} housing law:\n\n{question}"
     prompt += "\n\nAnswer Yes or No. Provide your answer as: Answer: Yes or Answer: No"
     return prompt
+
+
+def format_casehold_prompt(row: pd.Series) -> str:
+    """Format a CaseHOLD 5-way MC question."""
+    context = str(row["question"])  # 'question' col holds citing context
+    choices = []
+    for letter in ["A", "B", "C", "D", "E"]:
+        col = f"choice_{letter.lower()}"
+        if col in row and pd.notna(row[col]):
+            choices.append(f"  ({letter}) {row[col]}")
+
+    prompt = (
+        f"The following excerpt from a court opinion cites a legal holding. "
+        f"Which of the following holdings is most likely being referenced?\n\n"
+        f"## Citing Context\n{context}\n\n"
+        f"## Holdings\n" + "\n".join(choices) +
+        f"\n\nProvide your answer as: Answer: (X)"
+    )
+    return prompt
+
+
+def format_open_prompt(row: pd.Series) -> str:
+    """Format an open-ended legal question (legal-rag-qa, australian)."""
+    question = str(row["question"])
+    return f"{question}\n\nProvide a detailed answer."
