@@ -43,7 +43,24 @@ Ideas gathered from experiments, branch explorations, and analysis. Not yet impl
 - Key question: does more retrieval/reasoning always help, or is there a diminishing/negative returns point?
 - Depends on true parallel execution (ThreadPoolExecutor) being implemented first
 
-## Pipeline Debias TODO (deferred until after golden baselines)
+## Next Experiments (priority order)
+
+### 1. Retrieval Quality (current bottleneck)
+- All CE scores are negative — cross-encoder considers every retrieved passage irrelevant
+- Rag_simple ≈ llm_only at N=200 (68% vs 69%) — passages aren't helping, just not hurting anymore
+- Golden passage gives +9 to +17 pts — the value is there if we can find relevant passages
+- **Sub-experiments:**
+  - Score thresholding: drop passages below CE=0, fall back to llm_only. Eliminates downside risk.
+  - Aspect-based queries: earlier test showed 2x better CE scores (6.0 vs 3.0). Never tested end-to-end.
+  - Vary k: 3 vs 5 vs 10 — more passages = more noise, or more chances to find something useful?
+  - Gold passage retrieval recall: what % of gold passages are even in the top-20/50/100 candidates before reranking?
+
+### 2. Cross-Model Validation
+- Query rewriting: no value on Scout, untested on 70B which may benefit differently
+- Score thresholding: test on all 3 models to confirm generalizes
+- Any finding on Scout should be validated on 70B before committing
+
+### 3. Pipeline Debias TODO (deferred)
 
 - **`_execute_direct_answer`** uses `synthesize_and_cite` as system prompt but sends no evidence passages — skill says "evidence passages are provided" but none exist. Should use a simpler prompt or a dedicated direct-answer skill.
 - **Completeness check** in synthesizer_node says "Only say INCOMPLETE if there are critical gaps. Be conservative." — biases toward COMPLETE, replanning loop rarely fires. Test with neutral framing to see if more rounds help.

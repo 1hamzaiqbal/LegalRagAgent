@@ -31,6 +31,19 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 
 ---
 
+### 2026-03-24 — Root cause: gold passages drowned by 680K caselaw docs
+**Hypothesis:** Retrieval quality is bad because the collection mixes 2,318 MBE study passages with 678,612 caselaw passages (0.3% signal). Filtering to MBE-only should dramatically improve gold recall.
+**Change:** Analysis only — tested metadata filter `where={"source": "mbe"}` on retrieval.
+**Config:** 20 questions, dense retrieval, gte-large-en-v1.5 embeddings
+**Result:**
+| Filter | Recall@1 | Recall@5 | Recall@10 |
+|---|---|---|---|
+| None (686K docs) | 0% | 0% | 0% |
+| MBE only (2.3K docs) | 5% | 10% | 15% |
+**Verdict:** CONFIRMED — caselaw passages are drowning the signal. MBE filter takes recall from 0% to 15%. Still low but proves the mechanism.
+**Implication:** Need to either (a) filter to MBE-only, (b) split collections, or (c) boost MBE results in reranking. This is the single biggest retrieval improvement available.
+**Commit:** bd09427
+
 ### 2026-03-24 — N=200 validation reveals sampling noise
 **Hypothesis:** The +5pt rag_simple lift over llm_only (69% vs 64%) would hold at larger sample size.
 **Change:** Ran both modes at N=200 on Scout.
