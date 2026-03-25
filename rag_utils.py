@@ -273,7 +273,7 @@ def _pool_and_dedup(doc_lists: List[List[Document]]) -> List[Document]:
 # ---------------------------------------------------------------------------
 
 def retrieve_documents(query: str, k: int = 5, exclude_ids: set = None,
-                       vectorstore: Chroma = None, use_bm25: bool = True) -> List[Document]:
+                       vectorstore: Chroma = None, use_bm25: bool = False) -> List[Document]:
     """Hybrid retrieval: BM25 + bi-encoder candidates → cross-encoder rerank.
 
     Both first-stage retrievers fetch k*4 candidates each. The combined pool
@@ -281,7 +281,7 @@ def retrieve_documents(query: str, k: int = 5, exclude_ids: set = None,
     Falls back to dense-only if BM25 index build fails (e.g., OOM on large corpora).
     """
     vs = vectorstore or get_vectorstore()
-    fetch_k = k * 4
+    fetch_k = k * 3
 
     dense_docs = _retrieve_dense(query, k=fetch_k, exclude_ids=exclude_ids, vectorstore=vs)
 
@@ -299,7 +299,7 @@ def retrieve_documents(query: str, k: int = 5, exclude_ids: set = None,
 def retrieve_documents_multi_query(queries: List[str], k: int = 5,
                                    exclude_ids: set = None,
                                    vectorstore: Chroma = None,
-                                   use_bm25: bool = True) -> List[Document]:
+                                   use_bm25: bool = False) -> List[Document]:
     """Multi-query hybrid retrieval: pool BM25 + dense across all query variants.
 
     Each query variant contributes candidates from both BM25 and bi-encoder.

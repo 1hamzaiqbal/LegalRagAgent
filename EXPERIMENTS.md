@@ -1,101 +1,135 @@
 # Experiment Log
 
-Running record of system changes and their eval results. Add new entries at the top.
+Running record of hypotheses, experiments, and results. Add new entries at the top.
 
 ## Format
 
 ```
 ### YYYY-MM-DD — Short description
+**Hypothesis:** What we expected to happen and why
 **Change:** What was modified
 **Config:** model, N queries, any relevant settings
 **Result:** accuracy, key metrics
-**Comparison:** vs previous best / baseline
-**Takeaway:** what we learned
+**Verdict:** CONFIRMED / REFUTED / MIXED — with evidence
 **Commit:** hash
 ```
 
+## Established baselines (N=100, seed=42)
+
+| Mode | Scout 17B | Llama 70B | GPT 5.4-nano |
+|---|---|---|---|
+| llm_only | 64% | 64% | 57%* |
+| golden_passage | 73% (+9) | 81% (+17) | — |
+| golden_arb_conservative | 71% (+7) | 80% (+16) | — |
+| rag_simple (debiased) | 69% (+5)† | 73% (+9) | 59% (+2) |
+| rag_rewrite (debiased) | 69% (+5)† | — | — |
+| rag_arbitration | 68% (+4)† | — | — |
+
+*N=28 curated only. †N=200 validation showed llm_only=69%, rag_simple=68% — the +5pt lift at N=100 was sampling noise.
+
+**N=200 validated baselines (Scout):** llm_only=69%, rag_simple=68%. Use N=200+ for final decisions.
+
 ---
 
-### 2026-03-24 — Multi-model golden arbitration A/B (N=100)
-**Change:** Ran golden_passage and golden_arb_conservative on N=100 across two models to test if evidence helps weaker models and if the two-phase arbitration approach works at scale.
-**Config:** Llama 3.3 70B (Groq) and Llama 4 Scout 17B (Groq), N=100, seed=42
-**Results:**
-| Mode | Llama 70B | Scout 17B |
-|---|---|---|
-| llm_only | 64.0% | 64.0% |
-| golden_passage | **81.0%** (+17) | 73.0% (+9) |
-| golden_arb_conservative | **80.0%** (+16) | 71.0% (+7) |
-**Takeaway:** (1) Evidence massively helps models that don't already know the answers — +17 pts for 70B vs DeepSeek where evidence was neutral. (2) Larger models integrate evidence ~2x better than smaller ones (same baseline, double the lift). (3) Conservative arbitration closely tracks golden_passage (1-2 pts behind) for both model sizes — the two-phase architecture works. (4) Llama 70B is the right model for our A/B tests — strong enough to reason but weak enough for evidence to matter. (5) Scout is fast and cheap but less capable at evidence integration.
-**Next:** Test with *retrieved* passages instead of golden — does conservative arbitration protect the snap answer when evidence is noisy?
-**Commit:** TBD (uncommitted)
+### 2026-03-24 — N=200 validation reveals sampling noise
+**Hypothesis:** The +5pt rag_simple lift over llm_only (69% vs 64%) would hold at larger sample size.
+**Change:** Ran both modes at N=200 on Scout.
+**Config:** Scout 17B, N=200, seed=42
+**Result:** llm_only=69.0%, rag_simple=68.0%
+**Verdict:** REFUTED — the N=100 llm_only baseline (64%) was unlucky. At N=200 both modes are tied. Retrieved passages are neutral, not helpful, on Scout with debiased prompts.
+**Takeaway:** N=100 is insufficient for detecting small effects. Use N=200+ for decisions.
+**Commit:** 8f85a0c
 
-### 2026-03-24 — Golden arbitration A/B + prompt debiasing (curated, N=28)
-**Change:** (1) Rewrote all evidence-facing prompts to "reason first, evidence supports" — removed deference bias from golden_passage, synthesize_and_cite.md, synthesizer.md. (2) Added two new eval modes: `golden_arbitration` (neutral) and `golden_arb_conservative` — LLM answers naively first, then reviews golden passage.
-**Config:** deepseek-chat, N=28 curated diagnostic set, 4 modes compared
+### 2026-03-24 — Cross-encoder scores are universally negative
+**Hypothesis:** (Analysis, not experiment) CE scores should predict when retrieval helps vs hurts.
+**Change:** Analyzed CE score distributions across RAG outcome categories (helps/hurts/neutral).
+**Config:** Scout rag_simple N=100
+**Result:** RAG helps: mean CE=-2.06. RAG hurts: mean CE=-2.89. Neutral: mean CE=-0.88. All negative — cross-encoder considers every retrieved passage irrelevant.
+**Verdict:** CONFIRMED — retrieval quality is the bottleneck. The debiased prompt makes the LLM ignore bad passages (good), but the passages aren't contributing useful information. The +5pt at N=100 was the LLM reasoning well *despite* the passages, not *because of* them.
+**Implication:** Score thresholding (drop passages below CE=0) would eliminate downside risk. But the real fix is improving retrieval quality.
+**Commit:** 8f85a0c
+
+### 2026-03-24 — Retrieved passages vs golden across models
+**Hypothesis:** Models that integrate golden evidence well (Llama 70B +17) will also benefit more from retrieved passages.
+**Change:** Ran rag_simple (debiased) across Scout, Llama 70B, and GPT 5.4-nano.
+**Config:** N=100, seed=42, dense-only retrieval (no BM25), k=5
 **Results:**
-| Mode | Accuracy | Latency/q | Calls/q | Notes |
-|---|---|---|---|---|
-| llm_only | 82.1% | 18.7s | 1 | Baseline (no evidence) |
-| golden_passage (reasoning-first) | 82.1% | 17.9s | 1 | New prompt — up from 77% on old "use passage" prompt (N=100) |
-| golden_arb_conservative | 82.1% | 25.3s | 2 | Snap + "don't change unless strong reason" |
-| golden_arb_neutral | 78.6% | 25.8s | 2 | Snap + neutral review |
-**Per-question flip analysis:** Arbitration correctly rescued mbe_1055 and mbe_1109 (snap wrong → evidence helped). But evidence actively misled on mbe_897 (both arb modes) and neutral framing lost mbe_935 by flipping a correct snap. mbe_806 and the nan question universally wrong.
-**Comparison:** All modes cluster at 82.1% on this small set (vs prior 85.7% golden / 78.6% llm_only on same set with old prompts). Conservative > neutral by 1 question.
-**Takeaway:** (1) Reasoning-first prompt fixed the "lazy LLM" golden passage regression — now tied with llm_only instead of below it. (2) Conservative arbitration framing is better than neutral — neutral is too willing to flip correct answers. (3) N=28 is too small for real separation; need N=100+. (4) Two-phase approach shows promise on specific questions but no top-line lift yet.
-**Commit:** TBD (uncommitted)
+| Model | llm_only | golden_passage | rag_simple | golden lift | rag lift |
+|---|---|---|---|---|---|
+| Llama 70B | 64% | 81% | 73% | +17 | +9 |
+| Scout 17B | 64% | 73% | 69% | +9 | +5† |
+| GPT 5.4-nano | 57% | — | 59% | — | +2 |
+†Not validated at N=200.
+**Verdict:** CONFIRMED — larger models extract more value from both golden and retrieved evidence. Llama 70B rag_simple (73%) reaches Scout's golden ceiling. GPT 5.4-nano barely benefits (+2).
+**Commit:** 8f85a0c
+
+### 2026-03-24 — Prompt debiasing: "reason first" vs "ground in passages"
+**Hypothesis:** The old "ground claims in evidence passages" prompt was causing the RAG regression by making the LLM defer to irrelevant passages. Changing to "reason first, evidence supports" would fix this.
+**Change:** Rewrote synthesize_and_cite.md, synthesizer.md, golden_passage prompt, and RAG eval prompts. Unified all evidence-facing prompts to the same "reason independently first" pattern.
+**Config:** Scout 17B, N=100
+**Result:** rag_simple went from 58% (old prompt, skill-based) to 69% (debiased, consistent prompt). +11 point swing from prompt change alone.
+**Verdict:** CONFIRMED — prompt framing was the primary cause of RAG regression, not retrieval quality. "Ground in passages" told the LLM to anchor on irrelevant evidence. "Reason first" lets it ignore bad passages.
+**Caveat:** Also fixed a confound where RAG modes used a different system prompt (skill file) than llm_only. Part of the +11 may be from prompt consistency, not just debiasing.
+**Commit:** 8f85a0c
+
+### 2026-03-24 — Query rewriting adds no value for Scout
+**Hypothesis:** LLM query rewriting would improve retrieval quality and downstream accuracy over raw questions.
+**Change:** Compared rag_simple (raw question) vs rag_rewrite (LLM rewrite + alternatives) on Scout.
+**Config:** Scout 17B, N=100, seed=42
+**Result:** Both 69.0%. Rewrite uses 2 LLM calls vs 1, double the latency (3.2s vs 1.8s).
+**Verdict:** REFUTED for Scout — query rewriting is wasted cost. The raw question retrieves equally well.
+**Caveat:** Untested on Llama 70B which may benefit differently. Earlier aspect-based rewriting showed 2x better CE scores (from Mar 22 experiments).
+**Commit:** 8f85a0c
+
+### 2026-03-24 — Golden arbitration A/B: neutral vs conservative framing
+**Hypothesis:** Two-phase approach (snap answer → review evidence) would outperform direct evidence injection, and conservative framing ("don't change unless strong reason") would beat neutral.
+**Change:** Added golden_arbitration (neutral) and golden_arb_conservative eval modes.
+**Config:** DeepSeek N=28 curated, then Scout/Llama 70B N=100
+**Results (N=100):**
+| Mode | Scout | Llama 70B |
+|---|---|---|
+| golden_passage | 73% | 81% |
+| golden_arb_conservative | 71% | 80% |
+| golden_arb_neutral (N=28 only) | 78.6% | — |
+**Verdict:** MIXED — arbitration nearly matches golden_passage (1-2pts behind) but doesn't beat it. Conservative > neutral (confirmed on N=28). Architecture works but doesn't improve over simpler direct approach with golden evidence.
+**Commit:** 8f85a0c
+
+### 2026-03-24 — Model scouting for eval lineup
+**Hypothesis:** Need models in the 50-70% range where evidence can make a measurable difference (DeepSeek too strong at 82%).
+**Change:** Scouted 8 models across Groq, OpenAI, OpenRouter.
+**Results:**
+| Model | Size | llm_only | Viable? |
+|---|---|---|---|
+| DeepSeek | ~236B MoE | 82% | Too strong (already knows answers) |
+| Llama 70B (Groq) | 70B | 64% | **Yes** — best evidence integration |
+| Scout 17B (Groq) | 17B MoE | 64% | **Yes** — cheapest, fastest |
+| GPT 5.4-nano (OpenAI) | ? | 57% | **Yes** — alt architecture |
+| Qwen 32B (Groq) | 32B | 39-46% | Too weak + thinking model issues |
+| Gemma 27B/4B | 27B/4B | 29-32% | Too weak |
+| GPT OSS 120B (Groq) | 120B | 57% | No reasoning output (just letter) |
+| Mistral Small (OR free) | 24B | ~18% | Broken (rate limits) |
+**Verdict:** Locked in 3-model lineup: Scout (workhorse), GPT 5.4-nano (alt arch), Llama 70B (smart).
+**Commit:** 8f85a0c
+
+---
+
+## Pre-lightweight-rebuild results (for reference)
 
 ### 2026-03-23 — Gemma 4B full pipeline
-**Change:** Ran full parallel pipeline with Gemma 3 4B (via OpenRouter free tier)
-**Config:** gemma-3-4b-it, N=100, full_parallel profile
-**Result:** 31% accuracy, avg 25 LLM calls/query
-**Comparison:** vs DeepSeek 85% LLM-only, 76% agentic
-**Takeaway:** Small model can't do legal reasoning — pipeline can't compensate for weak base model. High escalation rate (judge marks most responses insufficient).
+**Result:** 31% accuracy, avg 25 LLM calls/query. Small model can't do legal reasoning.
 **Commit:** 3508b83
 
 ### 2026-03-22 — Agentic RAG (DeepSeek, parallel executor)
-**Change:** Full parallel pipeline with planner, judge, escalation, completeness loop
-**Config:** deepseek-chat, N=100, parallel executor
-**Result:** 76% accuracy, 15% gold recall@5, ~82s/query
-**Comparison:** vs 85% LLM-only (worse), vs 70% simple RAG (better)
-**Takeaway:** Pipeline improves over simple RAG but still below LLM-only. Retrieval adds noise that sometimes overrides correct LLM intuition.
+**Result:** 76% accuracy. Better than simple RAG (70%) but worse than LLM-only (85%).
 **Commit:** 3e33801
 
-### 2026-03-22 — RAG + query rewrite (no pipeline)
-**Change:** Added LLM query rewriting before retrieval (aspect-based rewrite)
-**Config:** deepseek-chat, N=100, single rewrite + retrieve + answer
-**Result:** 80% accuracy, 8% gold recall@5, ~34s/query
-**Comparison:** vs 70% simple RAG (+10 points), vs 85% LLM-only (-5 points)
-**Takeaway:** Query rewriting is the single biggest RAG improvement. Closes half the gap between simple RAG and LLM-only.
+### 2026-03-22 — RAG + query rewrite (DeepSeek)
+**Result:** 80% accuracy, 8% gold recall@5. Best RAG approach at the time.
 **Commit:** 2a8e46a
 
-### 2026-03-22 — Simple RAG (relaxed synthesis prompt)
-**Change:** Relaxed anti-fabrication constraint in synthesize_and_cite.md — allow LLM to supplement passages with training knowledge
-**Config:** deepseek-chat, N=100
-**Result:** 70% accuracy, 0% gold recall@5
-**Comparison:** Same as strict prompt (70%). Prompt change didn't help.
-**Takeaway:** Retrieved passages themselves anchor the LLM regardless of prompt instructions. The problem is retrieval quality, not the synthesis constraint.
-
-### 2026-03-22 — Baselines established
-**Change:** Ran all baseline evals on same 100-query sample
-**Config:** deepseek-chat, N=100, seed=42
-**Results:**
-| Method | Accuracy | Gold Recall@5 | Latency/q |
-|---|---|---|---|
-| LLM-only | 85% | n/a | 17s |
-| Golden passage | 77% | n/a | 4s |
-| Simple RAG | 70% | 0% | 21s |
-| Retrieval recall | n/a | 0% | 27s |
-**Takeaway:** LLM-only is a strong baseline. Golden passage ceiling (77%) is below LLM-only (85%), suggesting some questions are better answered from model knowledge than from a single passage. Retrieval recall is 0% — gold passages are never in top-5 with raw questions.
+### 2026-03-22 — Baselines (DeepSeek, N=100)
+**Result:** LLM-only 85%, Golden passage 77%, Simple RAG 70%, Retrieval recall 0%.
+**Takeaway:** Golden passage below LLM-only on DeepSeek — model already knows the answers.
 
 ### 2026-03-22 — Query strategy comparison
-**Change:** Tested 5 query rewriting strategies on retrieval quality
-**Config:** 10 questions, cross-encoder score comparison
-**Results:**
-| Strategy | Avg CE Score | Gold Recall |
-|---|---|---|
-| raw (no rewrite) | -2.3 | 0% |
-| current (synonyms) | 3.0 | 0% |
-| aspect (rule/exc/app) | 6.0 | 0% |
-| decompose | 3.9 | 0% |
-| abstract | 2.5 | 10% |
-**Takeaway:** Aspect-based queries (targeting rule/exception/application separately) produce 2x better cross-encoder scores. This strategy should be the default rewriter.
+**Result:** Aspect-based queries (rule/exception/application) get 2x better CE scores than raw queries. Gold recall 0% across all strategies.

@@ -28,6 +28,7 @@ EVAL_MODES = {
     "golden_passage":      "LLM answer with gold passage injected as context",
     "golden_arbitration":       "LLM answers naive, then reviews golden passage (neutral framing)",
     "golden_arb_conservative":  "LLM answers naive, then reviews golden passage (biased toward keeping)",
+    "rag_arbitration":          "LLM answers naive, then reviews retrieved passages (conservative)",
 }
 
 

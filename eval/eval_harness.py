@@ -15,6 +15,7 @@ import json
 import os
 import subprocess
 import sys
+from typing import List
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -157,96 +158,145 @@ def run_golden_arb_conservative(row: pd.Series, config: EvalConfig) -> dict:
     return _golden_arb_common(row, config, arb_system, "golden_arb_cons")
 
 
-def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
-    """Query rewrite → hybrid retrieval → cited synthesis."""
-    question = format_question_prompt(row)
+def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5, label_prefix: str = "rag") -> dict:
+    """Shared retrieval + evidence formatting. Returns dict with passages, evidence_store, metadata."""
+    vs = get_vectorstore("legal_passages")
+    docs = retrieve_documents_multi_query(queries=queries, k=k, vectorstore=vs)
 
-    # Step 1: Query rewrite
+    passages = []
+    evidence_store = []
+    for i, doc in enumerate(docs, 1):
+        text = doc.page_content
+        idx = str(doc.metadata.get("idx", f"{label_prefix}_{i}"))
+        ce_score = doc.metadata.get("cross_encoder_score", 0.0)
+        passages.append(f"[Source {i}]\n{text}")
+        evidence_store.append({
+            "idx": idx,
+            "text": text,
+            "source": doc.metadata.get("source", "unknown"),
+            "cross_encoder_score": ce_score,
+        })
+
+    gold_idx = str(row.get("gold_idx", ""))
+    retrieved_ids = [ev["idx"] for ev in evidence_store]
+
+    return {
+        "passages": passages,
+        "evidence_store": evidence_store,
+        "retrieved_ids": retrieved_ids,
+        "gold_retrieved": gold_idx in retrieved_ids if gold_idx else False,
+        "max_ce_score": max((ev["cross_encoder_score"] for ev in evidence_store), default=0.0),
+    }
+
+
+def _rewrite_query(question: str, label: str = "rag_rewrite/rewrite") -> List[str]:
+    """LLM query rewrite → list of queries (primary + alternatives)."""
     rewrite_prompt = (
         f"Original legal research question: {question}\n\n"
         f"Sub-question: {question}\n"
         f"Authority target: \n"
         f"Retrieval hints: none"
     )
-    raw_rewrite = _llm_call(load_skill("query_rewriter"), rewrite_prompt, label="rag_rewrite/rewrite")
+    raw_rewrite = _llm_call(load_skill("query_rewriter"), rewrite_prompt, label=label)
     parsed = _parse_json(raw_rewrite)
 
     if parsed and "primary" in parsed:
-        queries = [parsed["primary"]] + parsed.get("alternatives", [])
-    else:
-        queries = [str(row["question"])]
+        return [parsed["primary"]] + parsed.get("alternatives", [])
+    return [question]
 
-    # Step 2: Retrieve
-    vs = get_vectorstore("legal_passages")
-    docs = retrieve_documents_multi_query(queries=queries, k=5, vectorstore=vs)
 
-    # Step 3: Build evidence context
-    passages = []
-    evidence_store = []
-    for i, doc in enumerate(docs, 1):
-        text = doc.page_content
-        idx = str(doc.metadata.get("idx", f"rewrite_{i}"))
-        ce_score = doc.metadata.get("cross_encoder_score", 0.0)
-        passages.append(f"[Source {i}]\n{text}")
-        evidence_store.append({
-            "idx": idx,
-            "text": text,
-            "source": doc.metadata.get("source", "unknown"),
-            "cross_encoder_score": ce_score,
-        })
+_RAG_SYSTEM = (
+    "You are a legal expert. Reason through the multiple-choice question "
+    "step by step. Retrieved passages are provided — use them to verify or "
+    "refine your reasoning, but think through the problem independently first. "
+    "Give your final answer as: Answer: (X)"
+)
 
-    # Step 4: Synthesize
-    synth_prompt = f"Sub-question: {question}\n\n## Evidence Passages\n\n" + "\n\n".join(passages)
-    answer = _llm_call(load_skill("synthesize_and_cite"), synth_prompt, label="rag_rewrite/synth")
 
-    gold_idx = str(row.get("gold_idx", ""))
-    retrieved_ids = [ev["idx"] for ev in evidence_store]
+def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
+    """Query rewrite → retrieval → answer with evidence."""
+    question = format_question_prompt(row)
+    queries = _rewrite_query(question)
+
+    retrieval = _retrieve_and_format(row, queries, k=5, label_prefix="rewrite")
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_RAG_SYSTEM, user, label="rag_rewrite/answer")
 
     return {
         "final_answer": answer,
-        "evidence_store": evidence_store,
-        "retrieved_ids": retrieved_ids,
-        "gold_retrieved": gold_idx in retrieved_ids if gold_idx else False,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
         "rewrite_queries": queries,
     }
 
 
 def run_rag_simple(row: pd.Series, config: EvalConfig) -> dict:
-    """Raw question → hybrid retrieval → cited synthesis (no rewrite)."""
+    """Raw question → retrieval → answer with evidence (no rewrite)."""
     question = format_question_prompt(row)
     raw_question = str(row["question"])
 
-    # Step 1: Retrieve with raw question
-    vs = get_vectorstore("legal_passages")
-    docs = retrieve_documents_multi_query(queries=[raw_question], k=5, vectorstore=vs)
+    retrieval = _retrieve_and_format(row, [raw_question], k=5, label_prefix="simple")
+    passage_block = "\n\n".join(retrieval["passages"])
 
-    # Step 2: Build evidence context
-    passages = []
-    evidence_store = []
-    for i, doc in enumerate(docs, 1):
-        text = doc.page_content
-        idx = str(doc.metadata.get("idx", f"simple_{i}"))
-        ce_score = doc.metadata.get("cross_encoder_score", 0.0)
-        passages.append(f"[Source {i}]\n{text}")
-        evidence_store.append({
-            "idx": idx,
-            "text": text,
-            "source": doc.metadata.get("source", "unknown"),
-            "cross_encoder_score": ce_score,
-        })
-
-    # Step 3: Synthesize
-    synth_prompt = f"Sub-question: {question}\n\n## Evidence Passages\n\n" + "\n\n".join(passages)
-    answer = _llm_call(load_skill("synthesize_and_cite"), synth_prompt, label="rag_simple/synth")
-
-    gold_idx = str(row.get("gold_idx", ""))
-    retrieved_ids = [ev["idx"] for ev in evidence_store]
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_RAG_SYSTEM, user, label="rag_simple/answer")
 
     return {
         "final_answer": answer,
-        "evidence_store": evidence_store,
-        "retrieved_ids": retrieved_ids,
-        "gold_retrieved": gold_idx in retrieved_ids if gold_idx else False,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
+def run_rag_arbitration(row: pd.Series, config: EvalConfig) -> dict:
+    """LLM answers naively, then reviews retrieved passages (conservative framing)."""
+    question = format_question_prompt(row)
+    queries = _rewrite_query(question, label="rag_arb/rewrite")
+
+    # Step 1: Snap answer (no evidence)
+    snap_system = (
+        "You are a legal expert. Answer the multiple-choice question below. "
+        "Reason step by step, then give your final answer as: Answer: (X)"
+    )
+    snap_answer = _llm_call(snap_system, question, label="rag_arb/snap")
+    snap_letter = extract_answer_mc(snap_answer)
+
+    # Step 2: Retrieve
+    retrieval = _retrieve_and_format(row, queries, k=5, label_prefix="rag_arb")
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Step 3: Arbitrate with conservative framing
+    arb_system = (
+        "You are a legal expert. You previously answered a question based on your knowledge. "
+        "Now you are given retrieved legal passages that may be relevant. "
+        "Review the passages carefully. If the evidence supports your original answer, keep it. "
+        "If the evidence clearly points to a different answer, change it. "
+        "Do not change your answer unless the evidence gives you a strong reason to. "
+        "Reason step by step, then give your final answer as: Answer: (X)"
+    )
+    arb_user = (
+        f"## Your Previous Answer\n{snap_answer}\n\n"
+        f"## Retrieved Passages\n{passage_block}\n\n"
+        f"## Question\n{question}"
+    )
+    final_answer = _llm_call(arb_system, arb_user, label="rag_arb/arbitrate")
+    final_letter = extract_answer_mc(final_answer)
+
+    return {
+        "final_answer": final_answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "final_letter": final_letter,
+        "changed": snap_letter != final_letter,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+        "rewrite_queries": queries,
+        "max_ce_score": retrieval["max_ce_score"],
     }
 
 
@@ -258,6 +308,7 @@ MODE_RUNNERS = {
     "golden_passage": run_golden_passage,
     "golden_arbitration": run_golden_arbitration,
     "golden_arb_conservative": run_golden_arb_conservative,
+    "rag_arbitration": run_rag_arbitration,
 }
 
 
