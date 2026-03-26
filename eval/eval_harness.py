@@ -722,6 +722,64 @@ def run_rag_arbitration(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_confidence_gated(row: pd.Series, config: EvalConfig) -> dict:
+    """Confidence-gated RAG: 3 snap answers vote; unanimous = skip RAG, disagreement = Snap-HyDE."""
+    question = _fmt(row, config)
+    is_open = config.dataset in ("legal_rag", "australian")
+
+    # Step 1: Take 3 snap answers
+    snaps = []
+    snap_letters = []
+    for k in range(3):
+        answer = _llm_call(_system_prompt(config, "answer"), question, label=f"conf_gate/snap_{k}")
+        letter = _extract_answer(answer, config)
+        snaps.append(answer)
+        snap_letters.append(letter)
+
+    # Step 2: Check consensus
+    from collections import Counter
+    vote_counts = Counter(snap_letters)
+    majority_answer, majority_count = vote_counts.most_common(1)[0]
+    unanimous = majority_count == 3
+    majority_idx = snap_letters.index(majority_answer)  # use this snap's reasoning
+
+    if unanimous:
+        # High confidence — skip RAG, return majority snap answer
+        return {
+            "final_answer": snaps[majority_idx],
+            "snap_answers": snaps,
+            "snap_letters": snap_letters,
+            "routed_to": "skip_rag",
+            "consensus": "unanimous",
+            "majority_answer": majority_answer,
+        }
+
+    # Step 3: Low confidence — apply Snap-HyDE using majority snap's reasoning
+    hyde_user = f"## Student's Answer and Reasoning\n{snaps[majority_idx]}\n\n## Original Question\n{question}"
+    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="conf_gate/hyde")
+
+    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="conf_gate",
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="conf_gate/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answers": snaps,
+        "snap_letters": snap_letters,
+        "routed_to": "snap_hyde",
+        "consensus": f"{majority_count}/3",
+        "majority_answer": majority_answer,
+        "hyde_passage": hyde_passage,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
 MODE_RUNNERS = {
     "full_pipeline": run_full_pipeline,
     "llm_only": run_llm_only,
@@ -737,6 +795,7 @@ MODE_RUNNERS = {
     "rag_snap_hyde": run_rag_snap_hyde,
     "rag_devil_hyde": run_rag_devil_hyde,
     "rag_top2_hyde": run_rag_top2_hyde,
+    "confidence_gated": run_confidence_gated,
 }
 
 

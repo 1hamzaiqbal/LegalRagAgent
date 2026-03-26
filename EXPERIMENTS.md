@@ -54,6 +54,42 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 
 ---
 
+### 2026-03-25 — Confidence-gated RAG: self-consistency routing beats always-on RAG
+
+**Hypothesis:** Using 3 snap answers as a confidence signal (unanimous = skip RAG, disagreement = apply Snap-HyDE) will outperform always-on RAG by avoiding cases where retrieval hurts.
+
+**Change:** Added `confidence_gated` eval mode. 3 snap answers vote; if unanimous, skip RAG. If disagreement, apply Snap-HyDE using majority snap's reasoning.
+
+**Config:** Llama 70B + Scout 17B, N=200, seed=42, BarExam + HousingQA + CaseHOLD
+
+**Results:**
+
+| Model | Dataset | llm_only | snap_hyde | maj_vote | conf_gated | skip% | RAG on uncertain |
+|---|---|---|---|---|---|---|---|
+| Llama 70B | BarExam | 64% | 76.5% | 76.5% | **79.0%** | 77% | +11pts |
+| Llama 70B | HousingQA | 47% | **56.0%** | 49.5% | 50.5% | 90% | +10pts |
+| Llama 70B | CaseHOLD | **72.5%** | 71.0% | 72.0% | **72.5%** | 90% | +5pts |
+| Scout 17B | BarExam | 69% | 71.0%* | 68.5% | **71.5%** | 60% | +7pts |
+| Scout 17B | HousingQA | 50% | **54.0%*** | 55.0% | 53.5% | 79% | -7pts |
+
+*N=100 baseline, not directly comparable.
+
+**Key findings:**
+
+1. **On BarExam (both models): confidence-gated is the best approach.** It beats always-on snap_hyde (+2.5 Llama, +0.5 Scout) and majority-vote-only (+2.5 Llama, +3.0 Scout). RAG provides +11pts on uncertain questions, correctly avoided on confident ones.
+
+2. **On HousingQA: always-on snap_hyde wins.** Confidence gating routes 90% to skip_rag because the model is *unanimously confident but wrong* (Yes-bias). Self-consistency detects factual uncertainty but not systematic bias.
+
+3. **On CaseHOLD: confidence gating matches llm_only, avoids RAG regression.** The gating correctly identifies that RAG doesn't help on this task (90% skip).
+
+4. **Scout routes more to RAG (40% on BarExam vs 23% Llama).** Weaker model = more disagreement = more retrieval triggered. This is the correct adaptive behavior.
+
+**Verdict:** CONFIRMED for factual uncertainty (BarExam), REFUTED for systematic bias (HousingQA). Self-consistency is a valid confidence signal that improves RAG routing on tasks where the model's errors are random rather than systematic. The optimal strategy depends on the error mode: random errors → confidence-gated, systematic bias → always-on RAG.
+
+**Commit:** TBD
+
+---
+
 ### 2026-03-25 — Cross-dataset generalizability: RAG helps only on unknown domains
 
 **Hypothesis:** Snap-HyDE's retrieval benefit generalizes across legal domains and task formats. Tested on 3 new datasets: CaseHOLD (5-way MC holding identification, 50K holdings corpus), Legal-RAG-QA (open-ended US criminal law, 190 passage corpus), and Australian Legal QA (open-ended Australian law, 2.1K passages).

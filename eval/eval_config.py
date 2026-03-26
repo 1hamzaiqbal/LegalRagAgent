@@ -37,6 +37,7 @@ EVAL_MODES = {
     "rag_snap_hyde":            "Snap-informed HyDE: answer first, then targeted retrieval",
     "rag_devil_hyde":           "Devil's advocate HyDE: retrieve for AND against snap answer",
     "rag_top2_hyde":            "Top-2 HyDE: retrieve for snap answer + second-choice answer",
+    "confidence_gated":         "Confidence-gated: 3 snap votes, unanimous=skip RAG, disagreement=Snap-HyDE",
 }
 
 
