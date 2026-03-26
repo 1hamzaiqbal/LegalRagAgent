@@ -38,6 +38,7 @@ EVAL_MODES = {
     "rag_devil_hyde":           "Devil's advocate HyDE: retrieve for AND against snap answer",
     "rag_top2_hyde":            "Top-2 HyDE: retrieve for snap answer + second-choice answer",
     "confidence_gated":         "Confidence-gated: 3 snap votes, unanimous=skip RAG, disagreement=Snap-HyDE",
+    "decompose":                "Decompose-then-answer: split into sub-questions, answer each, synthesize (no RAG)",
 }
 
 

@@ -722,6 +722,77 @@ def run_rag_arbitration(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_decompose(row: pd.Series, config: EvalConfig) -> dict:
+    """Decompose-then-answer: break question into sub-questions, answer each, synthesize."""
+    question = _fmt(row, config)
+
+    # Determine which decomposition variant to use (controlled by tag)
+    variant = "structured" if "structured" in (config.tag or "") else "natural"
+
+    if variant == "structured":
+        # Variant A: IRAC-structured decomposition
+        decompose_system = (
+            "You are a legal analyst. Given a legal question, identify the 2-3 key sub-issues "
+            "that must be resolved to answer it. Structure them as:\n"
+            "1. RULE: What is the governing legal rule or doctrine?\n"
+            "2. APPLICATION: How do the specific facts interact with the rule?\n"
+            "3. EXCEPTION: Are there any exceptions, defenses, or limitations that apply?\n\n"
+            "Output ONLY a JSON list of sub-questions, e.g.:\n"
+            '[\"What is the rule for...\", \"How do the facts...\", \"Are there exceptions...\"]'
+        )
+    else:
+        # Variant B: Natural decomposition — let model decide what matters
+        decompose_system = (
+            "You are a legal analyst. Given a legal question, identify the 2-3 key issues "
+            "you need to resolve to answer it correctly. Think about what makes this question "
+            "hard and what you'd need to figure out.\n\n"
+            "Output ONLY a JSON list of sub-questions, e.g.:\n"
+            '[\"Does X apply here?\", \"What is the standard for...\", \"Is there an exception when...\"]'
+        )
+
+    # Step 1: Decompose
+    raw_decomp = _llm_call(decompose_system, question, label="decompose/split")
+    sub_questions = _parse_json(raw_decomp)
+    if not isinstance(sub_questions, list) or not sub_questions:
+        # Fallback: if decomposition fails, just answer directly
+        sub_questions = [question]
+
+    # Cap at 3 sub-questions
+    sub_questions = sub_questions[:3]
+
+    # Step 2: Answer each sub-question independently
+    sub_answers = []
+    answer_system = _system_prompt(config, "answer")
+    for i, sq in enumerate(sub_questions):
+        # Give the sub-question in context of the original
+        sub_prompt = f"In the context of this question:\n{question}\n\nAddress this specific issue:\n{sq}"
+        sub_ans = _llm_call(answer_system, sub_prompt, label=f"decompose/sub_{i}")
+        sub_answers.append({"question": sq, "answer": sub_ans})
+
+    # Step 3: Synthesize sub-answers into final answer
+    synth_parts = []
+    for sa in sub_answers:
+        synth_parts.append(f"Issue: {sa['question']}\nAnalysis: {sa['answer']}")
+    synth_block = "\n\n".join(synth_parts)
+
+    synth_system = _system_prompt(config, "answer")
+    synth_user = (
+        f"You previously analyzed a legal question by breaking it into sub-issues. "
+        f"Now synthesize your analysis into a final answer.\n\n"
+        f"## Sub-Issue Analyses\n{synth_block}\n\n"
+        f"## Original Question\n{question}"
+    )
+    final_answer = _llm_call(synth_system, synth_user, label="decompose/synthesize")
+
+    return {
+        "final_answer": final_answer,
+        "variant": variant,
+        "sub_questions": sub_questions,
+        "sub_answers": [sa["answer"] for sa in sub_answers],
+        "num_sub_questions": len(sub_questions),
+    }
+
+
 def run_confidence_gated(row: pd.Series, config: EvalConfig) -> dict:
     """Confidence-gated RAG: 3 snap answers vote; unanimous = skip RAG, disagreement = Snap-HyDE."""
     question = _fmt(row, config)
@@ -796,6 +867,7 @@ MODE_RUNNERS = {
     "rag_devil_hyde": run_rag_devil_hyde,
     "rag_top2_hyde": run_rag_top2_hyde,
     "confidence_gated": run_confidence_gated,
+    "decompose": run_decompose,
 }
 
 
