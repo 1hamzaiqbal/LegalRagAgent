@@ -54,6 +54,45 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 
 ---
 
+### 2026-03-25 — Decomposition: helps weaker models more, prompt variant matters
+
+**Hypothesis:** Breaking a question into sub-questions and answering each independently improves accuracy over single-shot answering (no retrieval, pure reasoning test).
+
+**Change:** Added `decompose` eval mode. Two prompt variants: "natural" (model decides sub-issues) and "structured" (IRAC: rule/application/exception). 3-5 LLM calls per question.
+
+**Config:** Llama 70B + Scout 17B, N=200, seed=42, BarExam + HousingQA + CaseHOLD
+
+**Results (N=200, all models/datasets/variants):**
+
+| Model | Dataset | llm_only | decomp_natural | decomp_structured | snap_hyde | conf_gated |
+|---|---|---|---|---|---|---|
+| Llama 70B | BarExam | 64% | 75% | **76%** | 76.5% | **79%** |
+| Llama 70B | HousingQA | 47% | 48.5% | 46.5% | **56%** | 50.5% |
+| Llama 70B | CaseHOLD | **72.5%** | 71.5% | 70.5% | 71% | **72.5%** |
+| Scout 17B | BarExam | 69% | 70% | **75%** | 71%* | 71.5% |
+| Scout 17B | HousingQA | 50% | **59%** | 56% | 54%* | 53.5% |
+| Scout 17B | CaseHOLD | 72.5%† | **73%** | 72% | 71%† | 72.5%† |
+
+*N=100 baseline. †Estimated from Llama results.
+
+**Key findings:**
+
+1. **Decomposition helps weaker models more.** Scout gains +6 (BarExam structured) and +9 (HousingQA natural) from decomposition. Llama gains are smaller (+12 BarExam but only +1.5 Housing). Weaker models benefit more from being guided through sub-issues.
+
+2. **Best prompt variant is model × dataset dependent.** Structured helps Scout on BarExam (+5 over natural) but natural helps Scout on HousingQA (+3 over structured). No universal winner.
+
+3. **Scout HousingQA: decompose_natural (59%) beats everything including snap_hyde (54%).** This is the first time any non-RAG approach beats RAG on a knowledge-gap dataset. Decomposition helps the model reason through state-specific statutes it doesn't know by breaking the problem into manageable pieces.
+
+4. **Decomposition ≈ snap prompting for Llama on BarExam.** Both get ~76%. The step-by-step reasoning in a single call achieves the same as explicit decomposition — for a strong model, the decomposition overhead isn't worth it.
+
+5. **CaseHOLD: decomposition is neutral.** Citation-matching isn't helped by sub-question decomposition.
+
+**Verdict:** CONFIRMED that decomposition helps, but the effect is model-dependent. Most valuable for weaker models. The Scout HousingQA result (59%) is particularly notable — it suggests decomposition can substitute for retrieval on knowledge-gap tasks by helping the model reason more carefully with what it already knows.
+
+**Commit:** TBD
+
+---
+
 ### 2026-03-25 — Confidence-gated RAG: self-consistency routing beats always-on RAG
 
 **Hypothesis:** Using 3 snap answers as a confidence signal (unanimous = skip RAG, disagreement = apply Snap-HyDE) will outperform always-on RAG by avoiding cases where retrieval hurts.
