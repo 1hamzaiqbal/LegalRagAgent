@@ -113,6 +113,45 @@ CE thresholding depends on snap answer quality. For strong models on well-known 
 
 ---
 
+### 2026-03-27 — Atomic reasoning blocks: self-correction is destructive
+
+**Hypothesis:** A second LLM call for self-verification, double-checking, or adversarial debate will catch errors and improve accuracy over single-shot answers.
+
+**Change:** Added 3 eval modes: `self_verify` (snap → review for errors), `double_snap` (2 independent answers → agree=use, disagree=CE-threshold RAG), `snap_debate` (snap → adversarial critique).
+
+**Config:** Llama 70B + Scout 17B, N=200, seed=42, BarExam.
+
+**Results:**
+
+| Block | Llama 70B | Scout 17B | Calls | Type |
+|---|---|---|---|---|
+| llm_only (baseline) | 64% | 69% | 1 | — |
+| snap_hyde (baseline) | 76.5% | 71%* | 3 | w/ retrieval |
+| **ce_threshold** | **80.0%** | **71.5%** | 2-3 | w/ retrieval |
+| self_verify | 73.0% | **58.5%** | 2 | reasoning only |
+| double_snap | 74.0% | — | 2-4 | reasoning + optional RAG |
+| snap_debate | 72.0% | 64.0% | 2 | reasoning only |
+
+*N=100
+
+**Key findings:**
+
+1. **Self-correction is destructive for both models.** Llama loses 3-4pts (73% vs 76.5% snap), Scout loses 10.5pts (58.5% vs 69%). The review step introduces doubt that flips correct answers more than it fixes wrong ones.
+
+2. **Weaker models are hurt more.** Scout's 10.5pt drop from self-verify vs Llama's 3.5pt drop. Weaker models are more susceptible to second-guessing.
+
+3. **Double-snap with CE-threshold RAG doesn't help either.** 74.0% is below snap_hyde (76.5%). The 2-vote confidence signal is weaker than 3-vote (confidence_gated: 79%), and the CE fallback path has the same dead-zone problem.
+
+4. **Adversarial debate is the worst.** Framing the second call as a critical reviewer makes it even more likely to flip correct answers (72.0% Llama, 64.0% Scout).
+
+**Why self-correction fails on MC questions:** The model's initial reasoning on well-structured MC questions is already its best calibration. A review step has no new information — it's the same model re-reading the same question. It tends to rationalize changes rather than catch genuine errors. This is unlike retrieval, which provides external information that can genuinely shift the answer.
+
+**Verdict:** DISCARD all three. Second-guessing without new information is net-negative. The model's first-pass answer is better than any self-review variant. This strongly supports the ce_threshold approach: the improvement comes from *external information* (retrieved evidence above quality threshold), not from additional reasoning passes.
+
+**Commit:** included below
+
+---
+
 ### 2026-03-27 — Pipeline integration: planner+synthesizer overhead costs 4 points
 
 **Hypothesis:** Integrating HyDE + CE threshold into the full pipeline (router → planner → executor → synthesizer) will match standalone ce_threshold performance.

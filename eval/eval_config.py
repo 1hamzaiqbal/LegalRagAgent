@@ -44,6 +44,9 @@ EVAL_MODES = {
     "conf_ce_threshold":        "Confidence-gated + CE threshold: 3-vote gating, then CE threshold on RAG path",
     "snap_hyde_aspect":         "Snap-HyDE + aspect queries: HyDE passage + rule/exception queries for diverse retrieval",
     "ce_threshold_k3":          "CE-thresholded Snap-HyDE with k=3: fewer passages, higher quality",
+    "self_verify":              "Self-verification: snap answer then review for errors (2 calls, no RAG)",
+    "double_snap":              "Double-snap: two answers, agree=use, disagree=CE-threshold RAG (2-4 calls)",
+    "snap_debate":              "Snap-debate: snap then adversarial critique (2 calls, no RAG)",
 }
 
 

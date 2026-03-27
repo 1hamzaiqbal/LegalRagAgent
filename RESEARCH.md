@@ -141,44 +141,53 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 
 ### Completed experiments this session (2026-03-27)
 
-| Experiment | Result | Verdict |
-|---|---|---|
-| **CE threshold** (Tier 1 #1) | Llama 80.0%, Scout 71.5% | **KEEP** — new BarExam best |
-| CaseHOLD CE threshold | 71.0% (vs 72.5 baseline) | NEUTRAL — correctly avoids bad retrieval |
-| Combined conf+CE | 76.5% | **DISCARD** — double-filtering creates dead zones |
-| **Aspect queries** (Tier 1 #2) | 76.0% (vs 76.5 snap_hyde) | **DISCARD** — offline CE gains don't translate |
-| CE threshold k=3 | 79.0% (vs 80.0% k=5) | **DISCARD** — fewer passages marginally worse |
+| # | Experiment | Llama 70B | Scout 17B | Verdict |
+|---|---|---|---|---|
+| 1 | **CE threshold** (Tier 1 #1) | **80.0%** | 71.5% | **KEEP** — new BarExam best |
+| 2 | CaseHOLD CE threshold | 71.0% | — | NEUTRAL |
+| 3 | Combined conf+CE | 76.5% | — | **DISCARD** — destructive interference |
+| 4 | Aspect queries (Tier 1 #2) | 76.0% | — | **DISCARD** — offline gains don't translate |
+| 5 | CE threshold k=3 | 79.0% | — | **DISCARD** |
+| 6 | Pipeline integration (HyDE+CE) | 76.0% | — | DIAGNOSTIC — planner/synth cost -4pts |
+| 7 | Self-verification | 73.0% | 58.5% | **DISCARD** — second-guessing destroys accuracy |
+| 8 | Double-snap | 74.0% | — | **DISCARD** |
+| 9 | Snap-debate | 72.0% | 64.0% | **DISCARD** — adversarial review worst of all |
+| 10 | GPT 5.4 Mini llm_only | — | — | 74.0% (N=100) — strong baseline |
 
-### What we learned
-1. CE score thresholding at 4.0 is the new best for Llama BarExam (80.0%)
-2. Validated components don't always compose (conf+CE = 76.5%, worse than either alone)
-3. Offline retrieval metrics (CE scores) don't predict end-to-end accuracy improvements
-4. HyDE is already strong enough that adding aspect queries provides no marginal benefit
+### Key learnings (this session)
+1. **CE threshold (80.0%)** is the new best — skip RAG when evidence quality is low
+2. **Self-correction is destructive** — second-guessing without new info hurts both models (Llama -3pts, Scout -10pts)
+3. **Pipeline overhead costs 4pts** — planner decomposition + synthesizer recombination = lossy pipeline
+4. **Components interact** — conf+CE creates dead zones, validated blocks don't compose additively
+5. **Build from atoms, not from architecture** — proven: ce_threshold (atomic) > full_pipeline (architectural)
+6. **GPT 5.4 Mini baseline is 74%** — higher than Llama llm_only (64%), different model family for generalization testing
 
-**Next up: Tier 2 experiments (adaptive k, MC-aware research) when resources allow.**
+**Next: cross-model ce_threshold validation (GPT 5.4 Mini, others) when resources free up.**
 
 ---
 
 ## Session Handoff
 
 ### Last session (2026-03-27)
-- Set up research framework (RESEARCH.md), cleaned dead code, rewrote README
-- **Ran 5 experiments** (4 on Llama BarExam N=200, 1 on Scout BarExam N=200)
-- **1 KEEP**: CE threshold (80.0% Llama — new best)
-- **3 DISCARD**: combined conf+CE (76.5%), aspect queries (76.0%), CaseHOLD CE (71.0%, neutral)
-- **Key meta-insights**: validated components don't always compose; offline retrieval metrics don't predict accuracy; simulations are pessimistic vs actual runs
-- Tier 1 queue is now exhausted. Moving to Tier 2.
+- **10 experiments** total: 1 keep, 8 discard, 1 diagnostic
+- Set up research framework, cleaned code, rewrote README
+- New best: ce_threshold 80.0% (Llama BarExam)
+- Proved pipeline overhead costs -4pts (planner/synthesizer are net-negative)
+- Proved self-correction/debate are destructive (-3 to -10pts across models)
+- GPT 5.4 Mini baseline: 74% llm_only (strong, different model family)
+- Cerebras API returns empty responses (not usable)
 
 ### Next session: pick up here
-1. Check resource availability (`free -h`, `pgrep -a python`)
-2. Tier 2 #4: Adaptive k (confidence → retrieval depth)
-3. Tier 2 #5: MC choice-aware research (planner/synthesizer aware of answer choices)
-4. Consider: CE threshold + aspect queries on HousingQA (where retrieval helps most) — needs resources
-5. Consider: integrating ce_threshold into main.py pipeline as default behavior
+1. Check resources (`free -h`) — rl-on-rl monitor eating 11GB, RAG runs OOM
+2. **Priority: cross-model ce_threshold** — GPT 5.4 Mini (74% baseline, will RAG help or hurt a strong model?)
+3. **Priority: restructure main.py** — strip planner/synthesizer, make ce_threshold the base pipeline
+4. Tier 2: MC choice-aware (prompt change, no architecture), state filtering for HousingQA
+5. Consider: `groq-qwen` (Qwen3-32B) and `groq-kimi` (Kimi K2) as additional model diversity
 
 ### Blockers
-- rl-on-rl training uses ~10GB RAM — HousingQA OOMs, BarExam works (barely)
-- Groq rate limits: Llama 1K RPD / 100K TPD, Scout 1K RPD / 500K TPD
+- rl-on-rl monitor now using 11GB RAM — only 3.2GB free, RAG runs OOM
+- Groq rate limits: approaching daily limits on Llama (many runs today)
+- Cerebras API broken (empty responses)
 
 ---
 

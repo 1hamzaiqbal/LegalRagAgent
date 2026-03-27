@@ -1185,6 +1185,127 @@ def run_confidence_gated(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# Atomic Blocks — testing individual reasoning strategies
+# ---------------------------------------------------------------------------
+
+def run_self_verify(row: pd.Series, config: EvalConfig) -> dict:
+    """Self-verification: snap answer, then ask the model to review and correct it.
+    Tests whether a second pass catches errors. 2 LLM calls, no retrieval."""
+    question = _fmt(row, config)
+
+    # Step 1: Snap answer
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="verify/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Self-review
+    review_prompt = (
+        f"You previously answered a legal question. Review your answer carefully for errors "
+        f"in legal reasoning, missed elements, or incorrect conclusions. If you find an error, "
+        f"provide the corrected answer. If your answer is correct, restate it.\n\n"
+        f"## Your Previous Answer\n{snap_answer}\n\n"
+        f"## Original Question\n{question}"
+    )
+    verified = _llm_call(
+        "You are a careful legal reviewer. Check the answer for errors and correct if needed.",
+        review_prompt, label="verify/review"
+    )
+
+    return {
+        "final_answer": verified,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+    }
+
+
+def run_double_snap(row: pd.Series, config: EvalConfig) -> dict:
+    """Double-snap: two independent answers. If same → use it. If different → CE-threshold RAG.
+    Tests the cheapest confidence signal (2 calls when confident). 2-4 LLM calls."""
+    CE_THRESHOLD = 4.0
+    question = _fmt(row, config)
+
+    # Step 1: Two independent snap answers
+    snap1 = _llm_call(_system_prompt(config, "answer"), question, label="dsnap/snap1")
+    letter1 = _extract_answer(snap1, config)
+    snap2 = _llm_call(_system_prompt(config, "answer"), question, label="dsnap/snap2")
+    letter2 = _extract_answer(snap2, config)
+
+    if letter1 == letter2:
+        # Agreement — high confidence, skip RAG
+        return {
+            "final_answer": snap1,
+            "snap1": snap1, "snap2": snap2,
+            "letter1": letter1, "letter2": letter2,
+            "routed_to": "snap_agree",
+        }
+
+    # Step 2: Disagreement — CE-threshold RAG using snap1's reasoning
+    hyde_user = f"## Student's Answer and Reasoning\n{snap1}\n\n## Original Question\n{question}"
+    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="dsnap/hyde")
+
+    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="dsnap",
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
+
+    max_ce = retrieval["max_ce_score"]
+    if max_ce < CE_THRESHOLD:
+        return {
+            "final_answer": snap1,
+            "snap1": snap1, "snap2": snap2,
+            "letter1": letter1, "letter2": letter2,
+            "routed_to": "snap_ce_fallback",
+            "max_ce_score": max_ce,
+            "evidence_store": retrieval["evidence_store"],
+            "retrieved_ids": retrieval["retrieved_ids"],
+            "gold_retrieved": retrieval["gold_retrieved"],
+        }
+
+    passage_block = "\n\n".join(retrieval["passages"])
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="dsnap/answer")
+
+    return {
+        "final_answer": answer,
+        "snap1": snap1, "snap2": snap2,
+        "letter1": letter1, "letter2": letter2,
+        "routed_to": "rag",
+        "max_ce_score": max_ce,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
+def run_snap_debate(row: pd.Series, config: EvalConfig) -> dict:
+    """Snap-debate: snap answer, then a second call sees the first and critiques it.
+    Tests whether adversarial self-review improves over simple self-verification. 2 LLM calls."""
+    question = _fmt(row, config)
+
+    # Step 1: Snap answer
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="debate/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Adversarial review — explicitly look for errors
+    debate_prompt = (
+        f"A student answered a legal question. Your job is to find flaws in their reasoning. "
+        f"Look for: incorrect legal rules, missing elements, wrong conclusions, or misapplied "
+        f"standards. If you find errors, provide the correct answer with your reasoning. "
+        f"If the answer is genuinely correct, confirm it and explain why.\n\n"
+        f"## Student's Answer\n{snap_answer}\n\n"
+        f"## Original Question\n{question}"
+    )
+    debated = _llm_call(
+        "You are a law professor grading an exam. Be critical and precise.",
+        debate_prompt, label="debate/critique"
+    )
+
+    return {
+        "final_answer": debated,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+    }
+
+
 MODE_RUNNERS = {
     "full_pipeline": run_full_pipeline,
     "llm_only": run_llm_only,
@@ -1207,6 +1328,9 @@ MODE_RUNNERS = {
     "conf_ce_threshold": run_conf_ce_threshold,
     "snap_hyde_aspect": run_snap_hyde_aspect,
     "ce_threshold_k3": run_ce_threshold_k3,
+    "self_verify": run_self_verify,
+    "double_snap": run_double_snap,
+    "snap_debate": run_snap_debate,
 }
 
 
