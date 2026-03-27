@@ -113,6 +113,33 @@ CE thresholding depends on snap answer quality. For strong models on well-known 
 
 ---
 
+### 2026-03-27 — Pipeline integration: planner+synthesizer overhead costs 4 points
+
+**Hypothesis:** Integrating HyDE + CE threshold into the full pipeline (router → planner → executor → synthesizer) will match standalone ce_threshold performance.
+
+**Change:** Modified `_execute_rag_search` in `main.py` to use snap answer → HyDE → retrieve → CE threshold gating instead of query rewrite → retrieve → synthesize.
+
+**Config:** Llama 70B, N=200, seed=42, BarExam. Full pipeline via `full_pipeline` eval mode.
+
+**Result:** **76.0%** (vs 80.0% standalone ce_threshold, vs 76.5% snap_hyde)
+
+**Routing:** 94% of steps used snap answer (CE<4.0). Planner's sub-questions produce HyDE passages that retrieve worse evidence than the full question does.
+
+**Root cause:** Same as decompose_rag finding (-5pts). The planner decomposes questions into sub-questions that are less specific, producing worse HyDE passages. The synthesizer that recombines sub-answers is a lossy step. Together: -4pts.
+
+**Key data:**
+- Standalone ce_threshold: full question → snap → HyDE → CE gate → 80.0%
+- Pipeline: planner sub-Q → snap → HyDE → CE gate → synthesizer → 76.0%
+- The gap is entirely from planning decomposition + synthesis recombination
+
+**Verdict:** The pipeline's planner/synthesizer architecture is net-negative for BarExam MC questions. The correct approach is bottom-up: start from the proven atomic strategy (ce_threshold) and only add components that demonstrably help.
+
+**Implication for pipeline design:** Don't assume multi-step planning helps. For single-question tasks, the overhead of decomposition + recombination costs more than it gains. Planning may still help for genuinely multi-hop questions, but BarExam MC is not that.
+
+**Commit:** included below
+
+---
+
 ### 2026-03-27 — CE threshold k=3: fewer passages don't help
 
 **Hypothesis:** Using k=3 instead of k=5 with CE thresholding will reduce noise from lower-ranked passages and improve accuracy.

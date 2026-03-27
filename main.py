@@ -336,54 +336,65 @@ def _execute_rag_search(
 ) -> tuple[str, List[Dict[str, Any]], float]:
     """Retrieve passages from ChromaDB and synthesize a cited sub-answer.
 
+    Uses Snap-HyDE retrieval with CE threshold gating:
+    1. Snap answer the sub-question (get the LLM's reasoning first)
+    2. Generate a HyDE passage from the snap reasoning (targeted retrieval)
+    3. Retrieve using the HyDE passage as the query
+    4. CE threshold: if max cross-encoder score < 4.0, use snap answer directly
+    5. Otherwise, synthesize with the retrieved evidence
+
     Returns (result_text, new_evidence, raw_logit).
     """
-    # --- Query rewrite ---
+    CE_THRESHOLD = 4.0
     question = state["inputs"]["question"]
-    rewrite_prompt = (
-        f"Original legal research question: {question}\n\n"
-        f"Sub-question: {step.sub_question}\n"
-        f"Authority target: {step.authority_target}\n"
-        f"Retrieval hints: {', '.join(step.retrieval_hints) if step.retrieval_hints else 'none'}"
+
+    # --- Step 1: Snap answer ---
+    snap_prompt = (
+        f"Legal research question: {question}\n\n"
+        f"Sub-question: {step.sub_question}\n\n"
+        f"Provide a clear, well-reasoned answer based on your knowledge of legal doctrine."
     )
-    raw_rewrite = _llm_call(load_skill("query_rewriter"), rewrite_prompt, label="executor/rewrite")
-    parsed_rewrite = _parse_json(raw_rewrite)
+    snap_answer = _llm_call(
+        "You are a legal expert. Answer the question with clear reasoning.",
+        snap_prompt, label="executor/snap"
+    )
 
-    if parsed_rewrite and "primary" in parsed_rewrite:
-        queries = [parsed_rewrite["primary"]] + parsed_rewrite.get("alternatives", [])
-    else:
-        queries = [step.sub_question]
+    # --- Step 2: Generate HyDE passage ---
+    hyde_prompt = (
+        f"Based on the following legal analysis, write a short passage (2-3 paragraphs) "
+        f"that a legal textbook might contain about this topic. Include specific legal "
+        f"rules, elements, and standards.\n\n"
+        f"## Student's Answer and Reasoning\n{snap_answer}\n\n"
+        f"## Original Question\n{step.sub_question}"
+    )
+    hyde_passage = _llm_call(
+        "You are a legal textbook author. Write a factual passage covering the relevant legal doctrine.",
+        hyde_prompt, label="executor/hyde"
+    )
 
-    print(f"    Primary query: {queries[0]}")
-    if len(queries) > 1:
-        for j, alt in enumerate(queries[1:], 1):
-            print(f"    Alt query {j}: {alt}")
-
-    # --- Retrieval with cross-step deduplication ---
+    # --- Step 3: Retrieval with HyDE passage + cross-step deduplication ---
     prior_ids: set = set()
     for s in table:
         prior_ids.update(s.evidence_ids)
     for ev in evidence_store:
         prior_ids.add(ev.get("idx", ""))
 
-    # Retrieve from all routed collections
     collections = state.get("collections", ["legal_passages"])
     all_docs = []
     for coll_name in collections:
         from rag_utils import get_vectorstore as _get_vs
         vs = _get_vs(collection_name=coll_name)
         coll_docs = retrieve_documents_multi_query(
-            queries=queries,
+            queries=[hyde_passage],
             k=5,
             exclude_ids=prior_ids if prior_ids else None,
             vectorstore=vs,
         )
         all_docs.extend(coll_docs)
 
-    # If multiple collections, re-rank the combined pool
     if len(collections) > 1 and len(all_docs) > 5:
         from rag_utils import rerank_with_cross_encoder
-        all_docs = rerank_with_cross_encoder(queries[0], all_docs, top_k=5)
+        all_docs = rerank_with_cross_encoder(hyde_passage, all_docs, top_k=5)
 
     docs = all_docs
     print(f"    Retrieved {len(docs)} passage(s) from {collections}")
@@ -391,11 +402,13 @@ def _execute_rag_search(
     # --- Build numbered evidence passages ---
     passages: List[str] = []
     new_evidence: List[Dict[str, Any]] = []
+    max_ce = 0.0
     for i, doc in enumerate(docs, 1):
         text = doc.page_content
         source = doc.metadata.get("source", "unknown")
         idx = str(doc.metadata.get("idx", f"step{step.step_id}_{i}"))
         ce_score = doc.metadata.get("cross_encoder_score", 0.0)
+        max_ce = max(max_ce, ce_score)
         passages.append(f"[Source {i}] ({source})\n{text}")
         new_evidence.append({
             "idx": idx,
@@ -409,7 +422,13 @@ def _execute_rag_search(
             print(f"      [{i}] idx={idx} source={source} ce_score={ce_score:.3f}")
             print(f"          {preview}{'...' if len(text) > 300 else ''}")
 
-    # --- Sub-answer synthesis ---
+    # --- Step 4: CE threshold gating ---
+    if max_ce < CE_THRESHOLD:
+        print(f"    CE threshold: max_ce={max_ce:.2f} < {CE_THRESHOLD} → using snap answer")
+        return snap_answer, new_evidence, max_ce
+
+    # --- Step 5: Synthesize with evidence (above threshold) ---
+    print(f"    CE threshold: max_ce={max_ce:.2f} >= {CE_THRESHOLD} → using evidence")
     evidence_block = "\n\n".join(passages) if passages else "[No passages retrieved]"
     synth_prompt = (
         f"Original legal research question: {question}\n\n"
@@ -422,7 +441,7 @@ def _execute_rag_search(
         print(f"    {result[:500]}{'...' if len(result) > 500 else ''}")
         print(f"    --- End sub-answer ---")
 
-    return result, new_evidence, 0.0
+    return result, new_evidence, max_ce
 
 
 def _execute_web_search(
