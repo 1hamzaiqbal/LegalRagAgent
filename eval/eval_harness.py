@@ -944,6 +944,85 @@ def run_decompose_rag(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_conf_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
+    """Combined: confidence gating (3 snap votes) + CE threshold on the RAG path."""
+    CE_THRESHOLD = 4.0
+    question = _fmt(row, config)
+    is_open = config.dataset in ("legal_rag", "australian")
+
+    # Step 1: Take 3 snap answers
+    snaps = []
+    snap_letters = []
+    for k in range(3):
+        answer = _llm_call(_system_prompt(config, "answer"), question, label=f"conf_ce/snap_{k}")
+        letter = _extract_answer(answer, config)
+        snaps.append(answer)
+        snap_letters.append(letter)
+
+    # Step 2: Check consensus
+    from collections import Counter
+    vote_counts = Counter(snap_letters)
+    majority_answer, majority_count = vote_counts.most_common(1)[0]
+    unanimous = majority_count == 3
+    majority_idx = snap_letters.index(majority_answer)
+
+    if unanimous:
+        return {
+            "final_answer": snaps[majority_idx],
+            "snap_answers": snaps,
+            "snap_letters": snap_letters,
+            "routed_to": "skip_rag",
+            "consensus": "unanimous",
+            "majority_answer": majority_answer,
+        }
+
+    # Step 3: Low confidence — Snap-HyDE with CE threshold
+    hyde_user = f"## Student's Answer and Reasoning\n{snaps[majority_idx]}\n\n## Original Question\n{question}"
+    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="conf_ce/hyde")
+
+    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="conf_ce",
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
+
+    # Step 4: CE threshold — if evidence is low quality, use majority snap answer
+    max_ce = retrieval["max_ce_score"]
+    if max_ce < CE_THRESHOLD:
+        return {
+            "final_answer": snaps[majority_idx],
+            "snap_answers": snaps,
+            "snap_letters": snap_letters,
+            "routed_to": "snap_ce_fallback",
+            "consensus": f"{majority_count}/3",
+            "majority_answer": majority_answer,
+            "hyde_passage": hyde_passage,
+            "max_ce_score": max_ce,
+            "ce_threshold": CE_THRESHOLD,
+            "evidence_store": retrieval["evidence_store"],
+            "retrieved_ids": retrieval["retrieved_ids"],
+            "gold_retrieved": retrieval["gold_retrieved"],
+        }
+
+    # Step 5: Good evidence — answer with RAG
+    passage_block = "\n\n".join(retrieval["passages"])
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="conf_ce/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answers": snaps,
+        "snap_letters": snap_letters,
+        "routed_to": "rag",
+        "consensus": f"{majority_count}/3",
+        "majority_answer": majority_answer,
+        "hyde_passage": hyde_passage,
+        "max_ce_score": max_ce,
+        "ce_threshold": CE_THRESHOLD,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
 def run_confidence_gated(row: pd.Series, config: EvalConfig) -> dict:
     """Confidence-gated RAG: 3 snap answers vote; unanimous = skip RAG, disagreement = Snap-HyDE."""
     question = _fmt(row, config)
@@ -1021,6 +1100,7 @@ MODE_RUNNERS = {
     "decompose": run_decompose,
     "decompose_rag": run_decompose_rag,
     "ce_threshold": run_ce_threshold,
+    "conf_ce_threshold": run_conf_ce_threshold,
 }
 
 

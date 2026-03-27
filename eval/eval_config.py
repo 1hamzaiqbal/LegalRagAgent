@@ -41,6 +41,7 @@ EVAL_MODES = {
     "decompose":                "Decompose-then-answer: split into sub-questions, answer each, synthesize (no RAG)",
     "decompose_rag":            "Decompose + Snap-HyDE: sub-questions with per-issue retrieval, then synthesize",
     "ce_threshold":             "CE-thresholded Snap-HyDE: discard low-scoring evidence, fall back to snap answer",
+    "conf_ce_threshold":        "Confidence-gated + CE threshold: 3-vote gating, then CE threshold on RAG path",
 }
 
 

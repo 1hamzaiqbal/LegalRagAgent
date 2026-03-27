@@ -113,6 +113,38 @@ CE thresholding depends on snap answer quality. For strong models on well-known 
 
 ---
 
+### 2026-03-27 — CaseHOLD CE threshold validation + combined confidence+CE approach
+
+**Hypothesis 1:** CE threshold generalizes to CaseHOLD.
+**Result:** 71.0% (vs 72.5% baseline). 96% routed to snap_only because CaseHOLD holdings get very low CE scores. Effectively reduces to llm_only. **NEUTRAL** — threshold correctly avoids bad retrieval, slight noise from unused HyDE step.
+
+**Hypothesis 2:** Combining confidence gating (3-vote) with CE thresholding (skip bad evidence on RAG path) will beat either alone.
+**Result:** **76.5%** — worse than both ce_threshold (80.0%) and confidence_gated (79.0%).
+
+**Routing breakdown (Llama BarExam N=200):**
+
+| Route | Questions | Accuracy |
+|---|---|---|
+| skip_rag (unanimous) | 155 (78%) | 83.9% |
+| rag (CE >= 4.0) | 22 (11%) | 54.5% |
+| snap_ce_fallback (CE < 4.0) | 23 (11%) | **47.8%** |
+
+**Root cause:** The snap_ce_fallback path (uncertain snap + low CE → use snap anyway) is catastrophic at 47.8%. These are questions where the model disagrees AND retrieval is poor — falling back to snap when the model is uncertain is worse than using mediocre evidence. confidence_gated's strength is forcing RAG on uncertain questions; CE threshold removes that lifeline.
+
+**Verdict:** DISCARD. The two strategies address different failure modes and conflict when composed. CE threshold helps when snap is reliable (Llama BarExam); confidence gating helps when snap is uncertain. They don't compose — double filtering leaves "uncertain + bad evidence" with no good option.
+
+**Key lesson:** Not all validated components compose well. Each encodes a different assumption about what the model needs, and combining them can create dead zones where neither assumption holds. Test compositions, don't assume additivity.
+
+**Commit:** included below
+
+---
+
+### 2026-03-27 — CE score thresholding: skip RAG when retrieval quality is low
+
+(see above for full details)
+
+---
+
 ### 2026-03-26 — Decompose+RAG: combining decomposition with retrieval hurts
 
 **Hypothesis:** Decomposing a question into sub-questions and applying Snap-HyDE retrieval per sub-question will outperform either decomposition or RAG alone, by combining structured reasoning with targeted evidence.
