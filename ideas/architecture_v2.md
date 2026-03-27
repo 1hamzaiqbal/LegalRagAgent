@@ -1,6 +1,8 @@
-# Architecture v2 — Planning Table as Shared State
+# Architecture v2 — Planning Table as Shared State (ARCHIVED)
 
-Brainstorming notes. NOT implemented. Thinking through before building.
+> **ARCHIVED**: This design was never implemented. The research direction moved toward testing individual components in isolation rather than building a new architecture upfront. Active experiment queue is in `RESEARCH.md`.
+
+Brainstorming notes. NOT implemented.
 
 ## Core Idea
 

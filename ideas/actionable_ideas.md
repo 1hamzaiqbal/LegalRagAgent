@@ -1,14 +1,15 @@
-# Actionable Ideas
+# Actionable Ideas (ARCHIVED)
 
-Ideas gathered from experiments, branch explorations, and analysis. Not yet implemented — evaluate for interactions before building.
+> **Active experiment queue is in `RESEARCH.md`.** This file is kept as an archive of ideas and their status. Items marked with a queue reference have been migrated.
+
+Ideas gathered from experiments, branch explorations, and analysis.
 
 ## Architecture Ideas
 
-### LLM Snap + Adversarial Arbitration
+### LLM Snap + Adversarial Arbitration — IMPLEMENTED (snap_hyde, confidence_gated modes)
 - Before any retrieval, get the LLM's "gut instinct" answer (1 extra call)
 - After pipeline completes, if pipeline answer disagrees with snap, run an arbitration step
-- Targets the "RAG hurts performance" failure mode (85% LLM-only vs 76% agentic)
-- Cost: +1 LLM call always, +1 on ~17% disagreements
+- **Result: confidence_gated is best for BarExam (+15pt over llm_only)**
 - Source: `gemma-eval-fixes` branch, commit `935f45f`
 
 ### MC Choice-Aware Research
@@ -24,10 +25,9 @@ Ideas gathered from experiments, branch explorations, and analysis. Not yet impl
 - Risk: GPU contention on embedding model, need to test throughput
 - Code is already stubbed out (commented) in `_execute_step_with_escalation`
 
-### Synthesizer-Driven Replanning (Outer Loop)
+### Synthesizer-Driven Replanning (Outer Loop) — IMPLEMENTED
 - Synthesizer checks completeness and can send back for more research
-- Already implemented but undertested — need cases where it actually fires
-- Max 3 rounds hardcoded
+- Implemented, max 3 rounds hardcoded. Rarely fires (completeness check biases toward COMPLETE).
 
 ### Context-Aware Decoding
 - Modify decoding to contrast output probabilities with/without retrieved context
@@ -43,22 +43,15 @@ Ideas gathered from experiments, branch explorations, and analysis. Not yet impl
 - Key question: does more retrieval/reasoning always help, or is there a diminishing/negative returns point?
 - Depends on true parallel execution (ThreadPoolExecutor) being implemented first
 
-## Next Experiments (priority order)
+## Next Experiments (priority order) → MIGRATED to RESEARCH.md
 
-### 1. Retrieval Quality (current bottleneck)
-- All CE scores are negative — cross-encoder considers every retrieved passage irrelevant
-- Rag_simple ≈ llm_only at N=200 (68% vs 69%) — passages aren't helping, just not hurting anymore
-- Golden passage gives +9 to +17 pts — the value is there if we can find relevant passages
-- **Sub-experiments:**
-  - Score thresholding: drop passages below CE=0, fall back to llm_only. Eliminates downside risk.
-  - Aspect-based queries: earlier test showed 2x better CE scores (6.0 vs 3.0). Never tested end-to-end.
-  - Vary k: 3 vs 5 vs 10 — more passages = more noise, or more chances to find something useful?
-  - Gold passage retrieval recall: what % of gold passages are even in the top-20/50/100 candidates before reranking?
+### 1. Retrieval Quality → RESEARCH.md Tier 1 (#1 score thresholding, #2 aspect queries)
+- Score thresholding and aspect-based queries migrated as top-priority experiments.
+- Vary k absorbed into Tier 2 (#4 adaptive k).
+- Gold passage recall analysis: informational, not a standalone experiment.
 
 ### 2. Cross-Model Validation
-- Query rewriting: no value on Scout, untested on 70B which may benefit differently
-- Score thresholding: test on all 3 models to confirm generalizes
-- Any finding on Scout should be validated on 70B before committing
+- Integrated into experiment keep/discard rules: cross-model validation required before keeping.
 
 ### 3. Pipeline Debias TODO (deferred)
 
@@ -90,19 +83,17 @@ Ideas gathered from experiments, branch explorations, and analysis. Not yet impl
 
 ## Eval Infrastructure Ideas
 
-### Multi-Model Eval Framework
-- Kick off same eval across multiple models (DeepSeek, Gemma 4B, Llama, etc.)
-- Compare accuracy, latency, cost per model
-- Need lightweight profile system to swap models easily
+### Multi-Model Eval Framework — IMPLEMENTED (eval_harness.py)
+- `eval/eval_harness.py` supports 17 modes, 5 datasets, multiple providers via `--provider`
+- Groq (Llama 70B, Scout 17B), DeepSeek, GPT-nano tested
 
 ### Varied Question Sets
 - Current eval uses 100 random barqa questions — all MC format
 - Need: open-ended legal questions, multi-hop reasoning, jurisdiction-specific
 - HousingQA is Yes/No format — different eval adapter needed
 
-### Incremental Eval Checkpointing
-- Save results after each query so interrupted runs can resume
-- Already implemented in `gemma-eval-fixes` branch (commit `20a273c`)
+### Incremental Eval Checkpointing — IMPLEMENTED
+- Eval results saved incrementally. Implemented in `gemma-eval-fixes` branch (commit `20a273c`).
 
 ## Query Rewriting Strategies Tested
 

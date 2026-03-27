@@ -139,37 +139,114 @@ uv run python eval/eval_harness.py --mode golden_passage --provider groq-llama70
 uv run python llm_config.py
 ```
 
-## Current Best Results
+## Current Best Results (N=200, seed=42)
 
-### BarExam QA (Llama 70B, seed=42)
+### Llama 70B
 
-| Method | N=100 | N=200 | Notes |
+| Mode | BarExam | HousingQA | CaseHOLD |
 |---|---|---|---|
-| llm_only | 64% | 64%* | baseline |
-| rag_snap_hyde | **82%** | **76.5%** | best approach; N=200 is reliable |
-| rag_devil_hyde | 76% | — | counterevidence hurts |
-| rag_top2_hyde | 79% | — | less focused = worse |
-| golden_passage | 81% | — | oracle upper bound |
+| llm_only | 64% | 47% | 72.5% |
+| rag_snap_hyde | 76.5% | **56%** | 71% |
+| confidence_gated | **79%** | 50.5% | 72.5% |
+| decompose (natural) | 75% | 48.5% | 71.5% |
+| decompose (structured) | 76% | 46.5% | 70.5% |
 
-*llm_only is stable across N=100/200 for this model.
+### Scout 17B
 
-### HousingQA (Llama 70B, seed=42)
-
-| Method | N=100 | N=200 | Notes |
+| Mode | BarExam | HousingQA | CaseHOLD |
 |---|---|---|---|
-| llm_only | 44% | 47% | massive Yes-bias |
-| rag_snap_hyde | **61%** | **56%** | largest validated RAG lift (+9) |
+| llm_only | 69% | 50% | 72.5%* |
+| rag_snap_hyde | 71%** | 54%** | 71%* |
+| confidence_gated | 71.5% | 53.5% | 72.5%* |
+| decompose (natural) | 70% | **59%** | 73% |
+| decompose (structured) | **75%** | 56% | 72% |
 
-See EXPERIMENTS.md for full history, cross-model results, and per-subject breakdowns.
+*Estimated from Llama results. **N=100 baseline.
+
+### Key findings
+- **Confidence-gated is best for BarExam** (random errors → gating helps)
+- **Always-on snap_hyde is best for HousingQA** (systematic Yes-bias → gating skips 90%)
+- **Decomposition helps weaker models more** (Scout +9 on HousingQA natural)
+- **Counterevidence retrieval consistently hurts** (devil -6, top-2 -3)
+
+See EXPERIMENTS.md for full history, error analysis, and per-subject breakdowns.
 
 ## Eval Scripts
 
 | Script | Notes |
 |---|---|
-| `eval/eval_harness.py` | Unified multi-model harness (14 modes, 2 datasets) |
-| `eval/eval_config.py` | Config, question loading, answer extraction |
+| `eval/eval_harness.py` | Unified multi-model harness (17 modes, 5 datasets) |
+| `eval/eval_config.py` | Config, question loading, answer extraction, EVAL_MODES dict |
 | `eval/eval_analyze.py` | Post-hoc analysis of JSONL logs |
 | `eval/eval_qa.py` | Legacy full pipeline eval |
+
+## Running Evals
+
+### Environment requirements
+
+- **HuggingFace offline mode**: HF Hub may be unreachable from this network. Always set `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1` when running evals. The embedding model (`gte-large-en-v1.5`) is cached locally in `~/.cache/huggingface/hub/`.
+- **uv**: Must use `~/.local/bin/uv` (not on PATH).
+- **API keys**: All in `.env`. Groq, DeepSeek, Google, OpenRouter, OpenAI, Cerebras.
+
+### Launch pattern (IMPORTANT for agents)
+
+```bash
+# Single run (recommended — monitor before scaling up)
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 ~/.local/bin/uv run python eval/eval_harness.py \
+  --mode decompose_rag --provider groq-scout --questions 200 --dataset barexam
+
+# Background run — do NOT pipe through grep/tail (eats errors and buffers output)
+# Instead, run directly and redirect to a file:
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 nohup ~/.local/bin/uv run python eval/eval_harness.py \
+  --mode rag_snap_hyde --provider groq-llama70b --questions 200 --dataset barexam \
+  > /tmp/eval_run.log 2>&1 &
+```
+
+**Common pitfalls:**
+- Piping through `grep` or `tail` buffers stdout and hides errors — run failed silently
+- Launching 6+ concurrent Groq calls hits rate limits (Llama: 1K RPD / 100K TPD, Scout: 1K RPD / 500K TPD)
+- Parallel runs that share the same Groq model will contend on rate limits — run one per provider at a time
+- Detail log and experiments.jsonl are written at END of run (not incrementally) — killing mid-run loses all results
+
+### Groq rate limits
+
+| Provider | Model | RPD | TPD |
+|---|---|---|---|
+| groq-llama70b | llama-3.3-70b-versatile | 1,000 | 100,000 |
+| groq-scout | llama-4-scout-17b-16e-instruct | 1,000 | 500,000 |
+
+Decompose_rag uses ~8 LLM calls per question (split + 3×snap + 3×hyde + synthesize). N=200 = ~1,600 calls. Fits within 1K RPD only because retry logic spaces them out — but running 2 evals on the same model will exceed limits.
+
+### Monitoring a running eval
+
+```bash
+# Count completed questions in a background run's output
+grep -c "PASS\|FAIL" /tmp/eval_run.log
+
+# Current accuracy
+echo "$(grep -c PASS /tmp/eval_run.log) / $(grep -c 'PASS\|FAIL' /tmp/eval_run.log)"
+
+# Check for errors
+grep -i "error\|traceback\|rate.limit" /tmp/eval_run.log | tail -5
+
+# Watch for running eval processes
+pgrep -a python | grep eval
+```
+
+### Output files
+
+- **Detail log**: `logs/eval_{mode}_{provider}_{YYYYMMDD_HHMM}_detail.jsonl` — one JSON record per question
+- **Summary**: appended to `logs/experiments.jsonl` — one JSON record per run
+- Both written ONLY when run completes successfully
+
+### Analyzing results
+
+Use `eval/eval_analyze.py` for post-hoc analysis of JSONL detail logs.
+
+```bash
+# List all results for a mode
+python3 -c "import json; [print(f\"{d['timestamp']} {d['mode']:25s} {d['provider']:20s} acc={d['accuracy']}  N={d['n_questions']}\") for d in (json.loads(l) for l in open('logs/experiments.jsonl')) if 'decompose' in d.get('mode','')]"
+```
 
 ## Datasets
 
@@ -190,9 +267,10 @@ See EXPERIMENTS.md for full history, cross-model results, and per-subject breakd
 
 ## Editing Guidance
 
-- `main.py` is the source of truth for the pipeline. Verify architecture claims here before updating docs or skills.
+- `main.py` is the source of truth for the pipeline (all runtime logic is currently here). Verify architecture claims against it before updating docs.
 - If you change step schema or routing, audit both `main.py` and the skill prompt contracts in `skills/`.
-- `_get_metrics()`, `_reset_llm_call_counter()`, `_get_deepseek_balance()` are defined in main.py and exported to eval scripts.
 - `web_scraper.py` is a standalone module (testable via CLI) imported by main.py for web_search steps.
-- `utils/fast_embed.py` bypasses LangChain for bulk embedding — uses sentence-transformers with fp16 + chunked processing. Supports `--resume`.
+- `utils/fast_embed.py` bypasses LangChain for bulk embedding — sentence-transformers with fp16 + chunked processing. Supports `--resume`.
+- Branch `lightweight-rebuild` is the active development branch.
 - Sequential pipeline code archived in branch `archive/sequential-pipeline`.
+- See `RESEARCH.md` for current research state, experiment queue, and session handoff.

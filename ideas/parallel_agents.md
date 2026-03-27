@@ -1,4 +1,6 @@
-# Aspect-Specialized Retrieval (Parallel-Agent Future Work)
+# Aspect-Specialized Retrieval (ARCHIVED)
+
+> **ARCHIVED**: The lightweight version (prompt-only aspect query rewrite) is in `RESEARCH.md` Tier 1 #2. The full parallel-agent design is deferred until simpler approaches are exhausted.
 
 ## Concept
 
