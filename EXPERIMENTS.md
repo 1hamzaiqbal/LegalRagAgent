@@ -54,6 +54,65 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 
 ---
 
+### 2026-03-26 — Decompose+RAG: combining decomposition with retrieval hurts
+
+**Hypothesis:** Decomposing a question into sub-questions and applying Snap-HyDE retrieval per sub-question will outperform either decomposition or RAG alone, by combining structured reasoning with targeted evidence.
+
+**Change:** Added `decompose_rag` eval mode. Flow: decompose → for each sub-question: snap answer → HyDE passage → retrieve k=3 → synthesize all sub-answers + evidence.
+
+**Config:** Llama 70B + Scout 17B, N=200, seed=42, BarExam + CaseHOLD. HousingQA OOMs on 16GB RAM (1.8M doc collection too large).
+
+**Results:**
+
+| Model | Dataset | decompose_rag | decompose_best | snap_hyde | llm_only | conf_gated |
+|---|---|---|---|---|---|---|
+| Scout 17B | BarExam | 70.5% | 75% (struct) | 71%* | 69% | 71.5% |
+| Scout 17B | CaseHOLD | **73.5%** | 73% (nat) | 71%* | 72.5%* | 72.5%* |
+| Llama 70B | BarExam | 71.5% | 76% (struct) | 76.5% | 64% | **79%** |
+| Llama 70B | CaseHOLD | 70.5% | 71.5% (nat) | 71% | **72.5%** | **72.5%** |
+
+*N=100 or estimated from Llama results.
+
+**Sub-analysis — decomposition success vs accuracy:**
+
+| Model | Dataset | 1 sub-q (fallback) | 3 sub-q (decomposed) |
+|---|---|---|---|
+| Llama 70B | BarExam | 72.9% (107 Qs) | 69.9% (93 Qs) |
+| Scout 17B | BarExam | 69.2% (26 Qs) | 70.7% (174 Qs) |
+| Scout 17B | CaseHOLD | 75.7% (107 Qs) | 71.0% (93 Qs) |
+
+**Key finding:** Llama 70B fails to decompose BarExam questions 53% of the time (returns 11-char non-JSON, falls back to single question = basically snap_hyde with extra synthesis). When it does decompose, accuracy drops 3pts vs fallback.
+
+**Key findings:**
+
+1. **Decompose+RAG is strictly worse than simpler approaches.** On BarExam, it underperforms both decompose-only (by 4-5pts) and snap_hyde (by 5-6pts for Llama). Adding retrieval to decomposed sub-questions introduces noise without improving reasoning.
+
+2. **The synthesis step loses signal.** When Llama falls back to 1 sub-question (basically snap_hyde), it scores 72.9% — still below snap_hyde's 76.5%. The additional synthesis prompt that combines sub-answers + evidence is a lossy step.
+
+3. **CaseHOLD Scout is the one marginal win (+0.5%).** But this is within noise — and the fallback path (75.7%) outperforms the decomposed path (71.0%) even here.
+
+4. **Llama can't decompose MC questions.** The natural decomposition prompt returns very short non-JSON responses for 53% of BarExam questions. Scout succeeds 87% of the time. The MC format with choices confuses Llama's decomposition.
+
+**Per-question flip analysis (Llama BarExam, N=200):**
+
+| Comparison | decompose_rag broke | decompose_rag fixed | Net |
+|---|---|---|---|
+| vs snap_hyde | 30 | 20 | snap_hyde +10 |
+| vs confidence_gated | 26 | 11 | conf_gated +15 |
+
+Of the 30 questions snap_hyde got right that decompose_rag broke: 19 were fallback (1 sub-q), 11 were decomposed (3 sub-q). The synthesis step is the main damage source — even the fallback path (which is basically snap_hyde + unnecessary synthesis) loses 10 questions vs direct snap_hyde.
+
+**Cross-encoder analysis:**
+- BarExam CE scores: mean 3.27 (correct: 3.22, wrong: 3.56 — wrong answers have *higher* CE, meaning retrieved evidence actively misleads)
+- CaseHOLD CE scores: mean -2.78 (negative = mostly irrelevant passages)
+- Gold passage retrieval: only 10% on BarExam — the per-sub-question k=3 retrieval gets different (worse) passages than the single-query k=5
+
+**Verdict:** REFUTED — combining decomposition with retrieval is strictly worse than either alone. The added complexity doesn't help. The synthesis step is the main damage source. This reinforces the project's core finding: simpler is better, and components should be tested in isolation before combining.
+
+**Commit:** TBD
+
+---
+
 ### 2026-03-25 — Decomposition: helps weaker models more, prompt variant matters
 
 **Hypothesis:** Breaking a question into sub-questions and answering each independently improves accuracy over single-shot answering (no retrieval, pure reasoning test).

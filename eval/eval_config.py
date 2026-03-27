@@ -39,6 +39,7 @@ EVAL_MODES = {
     "rag_top2_hyde":            "Top-2 HyDE: retrieve for snap answer + second-choice answer",
     "confidence_gated":         "Confidence-gated: 3 snap votes, unanimous=skip RAG, disagreement=Snap-HyDE",
     "decompose":                "Decompose-then-answer: split into sub-questions, answer each, synthesize (no RAG)",
+    "decompose_rag":            "Decompose + Snap-HyDE: sub-questions with per-issue retrieval, then synthesize",
 }
 
 

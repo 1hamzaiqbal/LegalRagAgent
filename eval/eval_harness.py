@@ -793,6 +793,104 @@ def run_decompose(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_decompose_rag(row: pd.Series, config: EvalConfig) -> dict:
+    """Decompose + Snap-HyDE RAG: break into sub-questions, RAG each, synthesize with evidence."""
+    question = _fmt(row, config)
+
+    # Determine decomposition variant (controlled by tag)
+    variant = "structured" if "structured" in (config.tag or "") else "natural"
+
+    if variant == "structured":
+        decompose_system = (
+            "You are a legal analyst. Given a legal question, identify the 2-3 key sub-issues "
+            "that must be resolved to answer it. Structure them as:\n"
+            "1. RULE: What is the governing legal rule or doctrine?\n"
+            "2. APPLICATION: How do the specific facts interact with the rule?\n"
+            "3. EXCEPTION: Are there any exceptions, defenses, or limitations that apply?\n\n"
+            "Output ONLY a JSON list of sub-questions, e.g.:\n"
+            '[\"What is the rule for...\", \"How do the facts...\", \"Are there exceptions...\"]'
+        )
+    else:
+        decompose_system = (
+            "You are a legal analyst. Given a legal question, identify the 2-3 key issues "
+            "you need to resolve to answer it correctly. Think about what makes this question "
+            "hard and what you'd need to figure out.\n\n"
+            "Output ONLY a JSON list of sub-questions, e.g.:\n"
+            '[\"Does X apply here?\", \"What is the standard for...\", \"Is there an exception when...\"]'
+        )
+
+    # Step 1: Decompose
+    raw_decomp = _llm_call(decompose_system, question, label="decomp_rag/split")
+    sub_questions = _parse_json(raw_decomp)
+    if not isinstance(sub_questions, list) or not sub_questions:
+        sub_questions = [question]
+    sub_questions = sub_questions[:3]
+
+    # Step 2: For each sub-question — snap answer → HyDE → retrieve
+    sub_results = []
+    all_evidence = []
+    all_retrieved_ids = []
+    any_gold = False
+
+    for i, sq in enumerate(sub_questions):
+        sub_prompt = f"In the context of this question:\n{question}\n\nAddress this specific issue:\n{sq}"
+
+        # Snap answer this sub-question
+        sub_snap = _llm_call(_system_prompt(config, "answer"), sub_prompt, label=f"decomp_rag/snap_{i}")
+
+        # Generate HyDE passage from the sub-answer
+        hyde_user = f"## Student's Answer and Reasoning\n{sub_snap}\n\n## Original Question\n{sq}"
+        hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label=f"decomp_rag/hyde_{i}")
+
+        # Retrieve evidence for this sub-question
+        retrieval = _retrieve_and_format(row, [hyde_passage], k=3, label_prefix=f"decomp_rag_{i}",
+                                         where=_where_from_config(config),
+                                         collection=_collection_for_config(config))
+
+        sub_results.append({
+            "sub_question": sq,
+            "snap_answer": sub_snap,
+            "hyde_passage": hyde_passage,
+            "passages": retrieval["passages"],
+        })
+        all_evidence.extend(retrieval["evidence_store"])
+        all_retrieved_ids.extend(retrieval["retrieved_ids"])
+        if retrieval["gold_retrieved"]:
+            any_gold = True
+
+    # Step 3: Synthesize all sub-answers + evidence into final answer
+    synth_parts = []
+    for sr in sub_results:
+        evidence_block = "\n".join(sr["passages"]) if sr["passages"] else "(no evidence retrieved)"
+        synth_parts.append(
+            f"Issue: {sr['sub_question']}\n"
+            f"Analysis: {sr['snap_answer']}\n"
+            f"Supporting Evidence:\n{evidence_block}"
+        )
+    synth_block = "\n\n---\n\n".join(synth_parts)
+
+    synth_system = _system_prompt(config, "rag")
+    synth_user = (
+        f"You previously analyzed a legal question by breaking it into sub-issues. "
+        f"Each sub-issue has been analyzed and supporting evidence has been retrieved. "
+        f"Now synthesize everything into a final answer.\n\n"
+        f"## Sub-Issue Analyses with Evidence\n{synth_block}\n\n"
+        f"## Original Question\n{question}"
+    )
+    final_answer = _llm_call(synth_system, synth_user, label="decomp_rag/synthesize")
+
+    return {
+        "final_answer": final_answer,
+        "variant": variant,
+        "sub_questions": sub_questions,
+        "sub_answers": [sr["snap_answer"] for sr in sub_results],
+        "num_sub_questions": len(sub_questions),
+        "evidence_store": all_evidence,
+        "retrieved_ids": all_retrieved_ids,
+        "gold_retrieved": any_gold,
+    }
+
+
 def run_confidence_gated(row: pd.Series, config: EvalConfig) -> dict:
     """Confidence-gated RAG: 3 snap answers vote; unanimous = skip RAG, disagreement = Snap-HyDE."""
     question = _fmt(row, config)
@@ -868,6 +966,7 @@ MODE_RUNNERS = {
     "rag_top2_hyde": run_rag_top2_hyde,
     "confidence_gated": run_confidence_gated,
     "decompose": run_decompose,
+    "decompose_rag": run_decompose_rag,
 }
 
 
