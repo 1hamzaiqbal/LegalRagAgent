@@ -139,20 +139,22 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 
 ## Active Experiment
 
-**Completed: CE score thresholding (Tier 1 #1)** — 2026-03-27
+### Completed experiments this session (2026-03-27)
 
-Sprint contract:
-- Hypothesis: Skip RAG when max CE score < 4.0, use snap answer instead
-- Success criteria: BarExam > 76.5% (snap_hyde baseline)
-- Keep/discard: Keep if improvement without regression
+| Experiment | Result | Verdict |
+|---|---|---|
+| **CE threshold** (Tier 1 #1) | Llama 80.0%, Scout 71.5% | **KEEP** — new BarExam best |
+| CaseHOLD CE threshold | 71.0% (vs 72.5 baseline) | NEUTRAL — correctly avoids bad retrieval |
+| Combined conf+CE | 76.5% | **DISCARD** — double-filtering creates dead zones |
+| **Aspect queries** (Tier 1 #2) | 76.0% (vs 76.5 snap_hyde) | **DISCARD** — offline CE gains don't translate |
 
-Results:
-- **Llama 70B BarExam: 80.0%** — new best (was 79.0% confidence_gated)
-- **Scout 17B BarExam: 71.5%** — matches confidence_gated (71.5%)
-- Routing: Llama 44% snap-only / 56% RAG. Scout 66% snap-only / 34% RAG.
-- Verdict: **KEEP** for Llama. Neutral for Scout. Not validated on CaseHOLD/HousingQA yet.
+### What we learned
+1. CE score thresholding at 4.0 is the new best for Llama BarExam (80.0%)
+2. Validated components don't always compose (conf+CE = 76.5%, worse than either alone)
+3. Offline retrieval metrics (CE scores) don't predict end-to-end accuracy improvements
+4. HyDE is already strong enough that adding aspect queries provides no marginal benefit
 
-**Next up: Tier 1 #2 (aspect-based query rewrite) when resources allow.**
+**Next up: Tier 2 experiments (adaptive k, MC-aware research) when resources allow.**
 
 ---
 
@@ -160,19 +162,21 @@ Results:
 
 ### Last session (2026-03-27)
 - Set up research framework (RESEARCH.md), cleaned dead code, rewrote README
-- Ran Tier 1 #1 (CE score thresholding): Llama 80.0% (new best), Scout 71.5% (matches conf_gated)
-- Key insight: CE threshold is model-dependent. Llama routes 44% to snap-only; Scout 66%. Works because Llama snap is stronger (77% vs 69.7%)
-- Scout run OOM'd once at 45/200 (rl-on-rl memory contention), retried successfully after memory freed
-- Offline simulation was pessimistic for Scout (predicted 67%, got 71.5%) — always run actual experiments
+- **Ran 5 experiments** (4 on Llama BarExam N=200, 1 on Scout BarExam N=200)
+- **1 KEEP**: CE threshold (80.0% Llama — new best)
+- **3 DISCARD**: combined conf+CE (76.5%), aspect queries (76.0%), CaseHOLD CE (71.0%, neutral)
+- **Key meta-insights**: validated components don't always compose; offline retrieval metrics don't predict accuracy; simulations are pessimistic vs actual runs
+- Tier 1 queue is now exhausted. Moving to Tier 2.
 
 ### Next session: pick up here
 1. Check resource availability (`free -h`, `pgrep -a python`)
-2. If resources available: Tier 1 #2 (aspect-based query rewrite) — prompt-only change to `skills/query_rewriter.md`
-3. Also consider: combined approach (CE threshold + confidence gating)
-4. CaseHOLD validation of ce_threshold (50K collection, should fit in memory)
+2. Tier 2 #4: Adaptive k (confidence → retrieval depth)
+3. Tier 2 #5: MC choice-aware research (planner/synthesizer aware of answer choices)
+4. Consider: CE threshold + aspect queries on HousingQA (where retrieval helps most) — needs resources
+5. Consider: integrating ce_threshold into main.py pipeline as default behavior
 
 ### Blockers
-- rl-on-rl training uses ~10GB RAM — concurrent BarExam evals are tight but work, HousingQA OOMs
+- rl-on-rl training uses ~10GB RAM — HousingQA OOMs, BarExam works (barely)
 - Groq rate limits: Llama 1K RPD / 100K TPD, Scout 1K RPD / 500K TPD
 
 ---

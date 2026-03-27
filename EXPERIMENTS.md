@@ -113,6 +113,29 @@ CE thresholding depends on snap answer quality. For strong models on well-known 
 
 ---
 
+### 2026-03-27 — Aspect-based query rewrite: offline CE gains don't translate to accuracy
+
+**Hypothesis:** Adding rule/exception aspect queries alongside the HyDE passage will improve retrieval diversity and accuracy. Prior offline test showed 2x CE improvement (6.0 vs 3.0).
+
+**Change:** Added `snap_hyde_aspect` mode. Flow: snap → HyDE + aspect queries (rule, exception) → multi-query retrieval (pool + rerank) → answer.
+
+**Config:** Llama 70B, N=200, seed=42, BarExam.
+
+**Results:** **76.0%** (vs snap_hyde 76.5%)
+
+**Analysis:**
+- Max CE scores slightly better: 4.30 (aspect) vs 4.15 (snap_hyde) — but far less than the offline 2x
+- Flip analysis: broke 16, fixed 15 → net -1
+- 4 LLM calls (vs 3 for snap_hyde) for no accuracy gain
+
+**Why the offline 2x didn't translate:** The offline test compared aspect queries vs raw synonym queries (no HyDE). When HyDE is already in the mix, the HyDE passage provides strong embedding-level similarity that aspect queries can't improve much. The 2x CE gain was relative to a weaker baseline (synonym rewrites alone).
+
+**Verdict:** DISCARD. Per simplicity criterion: same result with more complexity and cost. Focused HyDE retrieval is already sufficient for BarExam.
+
+**Commit:** included below
+
+---
+
 ### 2026-03-27 — CaseHOLD CE threshold validation + combined confidence+CE approach
 
 **Hypothesis 1:** CE threshold generalizes to CaseHOLD.

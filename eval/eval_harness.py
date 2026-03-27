@@ -545,6 +545,62 @@ def run_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_snap_hyde_aspect(row: pd.Series, config: EvalConfig) -> dict:
+    """Snap-HyDE + aspect queries: HyDE passage + rule/exception aspect queries for broader retrieval."""
+    question = _fmt(row, config)
+
+    # Step 1: Snap answer
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="aspect/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Generate HyDE passage
+    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
+    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="aspect/hyde")
+
+    # Step 3: Generate aspect queries (rule + exception) based on the snap reasoning
+    aspect_prompt = (
+        f"Based on this legal question and analysis, generate two short search queries "
+        f"targeting different legal dimensions. Return ONLY a JSON object.\n\n"
+        f"Question: {question}\n\n"
+        f"Analysis: {snap_answer}\n\n"
+        f'Return: {{"rule": "query targeting the governing rule, statute, or doctrine", '
+        f'"exception": "query targeting exceptions, defenses, or limitations"}}'
+    )
+    aspect_raw = _llm_call("You are a legal search query generator. Return ONLY valid JSON.",
+                            aspect_prompt, label="aspect/queries")
+    aspect_parsed = _parse_json(aspect_raw)
+
+    # Build query list: HyDE passage (primary for reranking) + aspect queries
+    queries = [hyde_passage]
+    if aspect_parsed:
+        if "rule" in aspect_parsed:
+            queries.append(aspect_parsed["rule"])
+        if "exception" in aspect_parsed:
+            queries.append(aspect_parsed["exception"])
+
+    # Step 4: Multi-query retrieval (pools candidates from all queries, reranks against primary)
+    retrieval = _retrieve_and_format(row, queries, k=5, label_prefix="aspect",
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Step 5: Answer with evidence
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="aspect/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "hyde_passage": hyde_passage,
+        "aspect_queries": aspect_parsed,
+        "num_queries": len(queries),
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
 def run_rag_devil_hyde(row: pd.Series, config: EvalConfig) -> dict:
     """Devil's advocate HyDE: retrieve for snap answer AND for the opposing answer, present both."""
     question = _fmt(row, config)
@@ -1101,6 +1157,7 @@ MODE_RUNNERS = {
     "decompose_rag": run_decompose_rag,
     "ce_threshold": run_ce_threshold,
     "conf_ce_threshold": run_conf_ce_threshold,
+    "snap_hyde_aspect": run_snap_hyde_aspect,
 }
 
 

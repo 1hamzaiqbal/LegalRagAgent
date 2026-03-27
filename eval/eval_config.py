@@ -42,6 +42,7 @@ EVAL_MODES = {
     "decompose_rag":            "Decompose + Snap-HyDE: sub-questions with per-issue retrieval, then synthesize",
     "ce_threshold":             "CE-thresholded Snap-HyDE: discard low-scoring evidence, fall back to snap answer",
     "conf_ce_threshold":        "Confidence-gated + CE threshold: 3-vote gating, then CE threshold on RAG path",
+    "snap_hyde_aspect":         "Snap-HyDE + aspect queries: HyDE passage + rule/exception queries for diverse retrieval",
 }
 
 
