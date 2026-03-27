@@ -601,6 +601,54 @@ def run_snap_hyde_aspect(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_ce_threshold_k3(row: pd.Series, config: EvalConfig) -> dict:
+    """CE-thresholded Snap-HyDE with k=3 instead of k=5. Tests whether fewer, higher-quality passages help."""
+    CE_THRESHOLD = 4.0
+    question = _fmt(row, config)
+
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="ce_k3/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
+    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="ce_k3/generate")
+
+    retrieval = _retrieve_and_format(row, [hyde_passage], k=3, label_prefix="ce_k3",
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
+
+    max_ce = retrieval["max_ce_score"]
+    if max_ce < CE_THRESHOLD:
+        return {
+            "final_answer": snap_answer,
+            "snap_answer": snap_answer,
+            "snap_letter": snap_letter,
+            "hyde_passage": hyde_passage,
+            "evidence_store": retrieval["evidence_store"],
+            "retrieved_ids": retrieval["retrieved_ids"],
+            "gold_retrieved": retrieval["gold_retrieved"],
+            "routed_to": "snap_only",
+            "max_ce_score": max_ce,
+            "k": 3,
+        }
+
+    passage_block = "\n\n".join(retrieval["passages"])
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="ce_k3/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "hyde_passage": hyde_passage,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+        "routed_to": "rag",
+        "max_ce_score": max_ce,
+        "k": 3,
+    }
+
+
 def run_rag_devil_hyde(row: pd.Series, config: EvalConfig) -> dict:
     """Devil's advocate HyDE: retrieve for snap answer AND for the opposing answer, present both."""
     question = _fmt(row, config)
@@ -1158,6 +1206,7 @@ MODE_RUNNERS = {
     "ce_threshold": run_ce_threshold,
     "conf_ce_threshold": run_conf_ce_threshold,
     "snap_hyde_aspect": run_snap_hyde_aspect,
+    "ce_threshold_k3": run_ce_threshold_k3,
 }
 
 

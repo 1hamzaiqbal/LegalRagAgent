@@ -43,6 +43,7 @@ EVAL_MODES = {
     "ce_threshold":             "CE-thresholded Snap-HyDE: discard low-scoring evidence, fall back to snap answer",
     "conf_ce_threshold":        "Confidence-gated + CE threshold: 3-vote gating, then CE threshold on RAG path",
     "snap_hyde_aspect":         "Snap-HyDE + aspect queries: HyDE passage + rule/exception queries for diverse retrieval",
+    "ce_threshold_k3":          "CE-thresholded Snap-HyDE with k=3: fewer passages, higher quality",
 }
 
 

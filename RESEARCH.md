@@ -147,6 +147,7 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 | CaseHOLD CE threshold | 71.0% (vs 72.5 baseline) | NEUTRAL — correctly avoids bad retrieval |
 | Combined conf+CE | 76.5% | **DISCARD** — double-filtering creates dead zones |
 | **Aspect queries** (Tier 1 #2) | 76.0% (vs 76.5 snap_hyde) | **DISCARD** — offline CE gains don't translate |
+| CE threshold k=3 | 79.0% (vs 80.0% k=5) | **DISCARD** — fewer passages marginally worse |
 
 ### What we learned
 1. CE score thresholding at 4.0 is the new best for Llama BarExam (80.0%)

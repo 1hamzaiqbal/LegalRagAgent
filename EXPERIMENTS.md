@@ -113,6 +113,18 @@ CE thresholding depends on snap answer quality. For strong models on well-known 
 
 ---
 
+### 2026-03-27 — CE threshold k=3: fewer passages don't help
+
+**Hypothesis:** Using k=3 instead of k=5 with CE thresholding will reduce noise from lower-ranked passages and improve accuracy.
+
+**Config:** Llama 70B, N=200, seed=42, BarExam, CE threshold=4.0, k=3.
+
+**Result:** 79.0% (vs 80.0% at k=5). Routing: 49% snap_only (vs 44% at k=5). Flip analysis: broke 16, fixed 14 → net -2.
+
+**Verdict:** DISCARD. k=3 is marginally worse. The 4th and 5th passages at k=5 are net-positive when they pass the CE threshold.
+
+---
+
 ### 2026-03-27 — Aspect-based query rewrite: offline CE gains don't translate to accuracy
 
 **Hypothesis:** Adding rule/exception aspect queries alongside the HyDE passage will improve retrieval diversity and accuracy. Prior offline test showed 2x CE improvement (6.0 vs 3.0).
