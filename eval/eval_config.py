@@ -40,6 +40,7 @@ EVAL_MODES = {
     "confidence_gated":         "Confidence-gated: 3 snap votes, unanimous=skip RAG, disagreement=Snap-HyDE",
     "decompose":                "Decompose-then-answer: split into sub-questions, answer each, synthesize (no RAG)",
     "decompose_rag":            "Decompose + Snap-HyDE: sub-questions with per-issue retrieval, then synthesize",
+    "ce_threshold":             "CE-thresholded Snap-HyDE: discard low-scoring evidence, fall back to snap answer",
 }
 
 

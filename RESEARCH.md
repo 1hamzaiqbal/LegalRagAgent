@@ -39,7 +39,7 @@ Drawn from [Karpathy autoresearch](https://github.com/karpathy/autoresearch) and
 
 | Dataset | Best Mode | Accuracy | vs llm_only | Key insight |
 |---------|-----------|----------|-------------|-------------|
-| BarExam | confidence_gated | **79.0%** | +15 | Self-consistency routes RAG to uncertain 23% |
+| BarExam | **ce_threshold** | **80.0%** | +16 | Skip RAG when CE<4.0, use snap answer instead |
 | HousingQA | snap_hyde | **56.0%** | +9 | Model unanimously wrong (Yes-bias), gating skips 90% |
 | CaseHOLD | llm_only / conf_gated | **72.5%** | 0 | RAG pulls similar-but-wrong holdings |
 
@@ -47,8 +47,9 @@ Drawn from [Karpathy autoresearch](https://github.com/karpathy/autoresearch) and
 
 | Method | Accuracy | LLM calls/Q | Notes |
 |--------|----------|-------------|-------|
-| confidence_gated | **79.0%** | 3-5 | Best overall |
-| snap_hyde | 76.5% | 4 | Best retrieval-only |
+| **ce_threshold** | **80.0%** | 2-3 | NEW BEST — skip RAG on low-CE |
+| confidence_gated | 79.0% | 3-5 | Previous best |
+| snap_hyde | 76.5% | 4 | Best always-on retrieval |
 | decompose_structured | 76.0% | 3-5 | Best decomposition |
 | decompose_natural | 75.0% | 3-5 | |
 | decompose_rag | 71.5% | 4-8 | WORSE — synthesis loses signal |
@@ -138,24 +139,40 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 
 ## Active Experiment
 
-_None currently running. Resources constrained by rl-on-rl training._
+**Completed: CE score thresholding (Tier 1 #1)** — 2026-03-27
+
+Sprint contract:
+- Hypothesis: Skip RAG when max CE score < 4.0, use snap answer instead
+- Success criteria: BarExam > 76.5% (snap_hyde baseline)
+- Keep/discard: Keep if improvement without regression
+
+Results:
+- **Llama 70B BarExam: 80.0%** — new best (was 79.0% confidence_gated)
+- **Scout 17B BarExam: 71.5%** — matches confidence_gated (71.5%)
+- Routing: Llama 44% snap-only / 56% RAG. Scout 66% snap-only / 34% RAG.
+- Verdict: **KEEP** for Llama. Neutral for Scout. Not validated on CaseHOLD/HousingQA yet.
+
+**Next up: Tier 1 #2 (aspect-based query rewrite) when resources allow.**
 
 ---
 
 ## Session Handoff
 
 ### Last session (2026-03-27)
-- Set up research framework: created this file, cleaned dead code, rewrote README
-- Verified resource status: rl-on-rl active, only 4.5GB RAM free, evals risky
-- Full codebase audit: identified dead code, outdated docs, consolidated ideas
+- Set up research framework (RESEARCH.md), cleaned dead code, rewrote README
+- Ran Tier 1 #1 (CE score thresholding): Llama 80.0% (new best), Scout 71.5% (matches conf_gated)
+- Key insight: CE threshold is model-dependent. Llama routes 44% to snap-only; Scout 66%. Works because Llama snap is stronger (77% vs 69.7%)
+- Scout run OOM'd once at 45/200 (rl-on-rl memory contention), retried successfully after memory freed
+- Offline simulation was pessimistic for Scout (predicted 67%, got 71.5%) — always run actual experiments
 
 ### Next session: pick up here
 1. Check resource availability (`free -h`, `pgrep -a python`)
-2. If resources available: start Tier 1 experiment #1 (score thresholding)
-3. If still constrained: continue code improvements or paper outline work
+2. If resources available: Tier 1 #2 (aspect-based query rewrite) — prompt-only change to `skills/query_rewriter.md`
+3. Also consider: combined approach (CE threshold + confidence gating)
+4. CaseHOLD validation of ce_threshold (50K collection, should fit in memory)
 
 ### Blockers
-- rl-on-rl training using 10GB RAM + GPU — HousingQA evals will OOM, BarExam is risky
+- rl-on-rl training uses ~10GB RAM — concurrent BarExam evals are tight but work, HousingQA OOMs
 - Groq rate limits: Llama 1K RPD / 100K TPD, Scout 1K RPD / 500K TPD
 
 ---

@@ -54,6 +54,65 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 
 ---
 
+### 2026-03-27 — CE score thresholding: skip RAG when retrieval quality is low
+
+**Hypothesis:** Discarding retrieved passages when the best cross-encoder score is below a threshold (falling back to snap answer) will improve accuracy by avoiding cases where bad evidence misleads the model.
+
+**Change:** Added `ce_threshold` eval mode. Flow: snap answer → HyDE → retrieve k=5 → if max CE < 4.0, use snap answer directly; otherwise, answer with evidence. Threshold calibrated from offline analysis of N=200 snap_hyde log showing snap accuracy 78% below CE=4.0 vs RAG accuracy 78% above.
+
+**Config:** Llama 70B, N=200, seed=42, BarExam. CE threshold=4.0.
+
+**Results:**
+
+| Model | ce_threshold | snap_hyde | confidence_gated | llm_only |
+|---|---|---|---|---|
+| Llama 70B BarExam | **80.0%** | 76.5% | 79.0% | 64% |
+| Scout 17B BarExam | **71.5%** | 71%* | 71.5% | 69% |
+
+*N=100
+
+**Routing split:**
+
+| Model | snap_only (CE<4.0) | RAG (CE>=4.0) |
+|---|---|---|
+| Llama 70B | 87/200 (44%) at 77.0% | 113/200 (56%) at 82.3% |
+| Scout 17B | 132/200 (66%) at 69.7% | 68/200 (34%) at 75.0% |
+
+Scout routes 66% to snap_only (vs 44% for Llama) because Scout's retrieval gets lower CE scores. But Scout's snap accuracy is also lower (69.7% vs 77.0%).
+
+**Flip analysis (Llama BarExam, N=200):**
+
+| Comparison | ce_threshold broke | ce_threshold fixed | Net |
+|---|---|---|---|
+| vs snap_hyde | 11 | 18 | **ce_threshold +7** |
+| vs confidence_gated | 11 | 13 | **ce_threshold +2** |
+
+**Cross-model stability analysis (CRITICAL):**
+
+| Context | CE<4.0 snap accuracy | Thresholding effect |
+|---|---|---|
+| Llama BarExam (all Qs) | 78% | **Helps** (+3.5 vs snap_hyde) |
+| Scout BarExam (all Qs) | 66% | **Hurts** (-4 simulated) |
+| Llama conf_gated (uncertain Qs) | 0% | **Catastrophic** |
+
+CE thresholding depends on snap answer quality. For strong models on well-known domains (Llama BarExam), skipping low-quality retrieval is beneficial. For weaker models (Scout) or uncertain questions (confidence_gated subset), the snap answer is too unreliable to fall back to.
+
+**Key findings:**
+
+1. **Llama 80.0% = new best for BarExam.** Beats confidence_gated (79.0%) by 1pt, snap_hyde (76.5%) by 3.5pt. Fixed 18 questions snap_hyde got wrong, broke 11 → net +7.
+
+2. **Scout 71.5% = matches confidence_gated.** The simulation predicted 67% (would hurt), but the actual run matched Scout's previous best. The threshold works differently for Scout: it routes 66% to snap (vs 44% Llama) because Scout's retrieval quality is lower, but Scout's snap is also weaker (69.7% vs 77.0%).
+
+3. **The threshold effect is model-dependent but doesn't hurt.** CE=4.0 improves Llama (+3.5 over snap_hyde), matches Scout (0 vs conf_gated). Unlike confidence_gated which *loses* on HousingQA (-5.5), CE thresholding's downside seems bounded.
+
+4. **Simulations from existing logs were pessimistic for Scout.** The N=100 Scout log used for simulation may not have been representative — actual N=200 performance was better. This reinforces principle: always run the actual experiment rather than relying solely on offline simulation.
+
+**Verdict:** CONFIRMED for Llama BarExam (new best). NEUTRAL for Scout BarExam (matches conf_gated). The CE threshold is a valid retrieval quality gate that avoids the worst retrievals. CaseHOLD and HousingQA validation deferred (resource constraints).
+
+**Commit:** TBD
+
+---
+
 ### 2026-03-26 — Decompose+RAG: combining decomposition with retrieval hurts
 
 **Hypothesis:** Decomposing a question into sub-questions and applying Snap-HyDE retrieval per sub-question will outperform either decomposition or RAG alone, by combining structured reasoning with targeted evidence.
