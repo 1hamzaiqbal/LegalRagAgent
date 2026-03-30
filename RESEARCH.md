@@ -185,9 +185,9 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 5. Consider: `groq-qwen` (Qwen3-32B) and `groq-kimi` (Kimi K2) as additional model diversity
 
 ### Blockers
-- rl-on-rl monitor now using 11GB RAM — only 3.2GB free, RAG runs OOM
-- Groq rate limits: approaching daily limits on Llama (many runs today)
-- Cerebras API broken (empty responses)
+- ~~rl-on-rl monitor now using 11GB RAM~~ — RESOLVED (KL training completed 2026-03-28, all processes exited). RAM should be free.
+- Groq rate limits: may still be near daily limits depending on when session restarts
+- Cerebras API broken (empty responses, as of 2026-03-27)
 
 ---
 
