@@ -84,19 +84,12 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 
 ### Tier 1 — Clear hypothesis, direct test
 
-#### 1. Score thresholding
-- **Hypothesis**: Dropping retrieved passages below a cross-encoder score threshold and falling back to llm_only will improve BarExam accuracy by avoiding cases where bad evidence misleads the model.
-- **Change**: Add CE score threshold to snap_hyde. If all passages below threshold, discard and use snap answer directly.
-- **Success criteria**: BarExam accuracy > 76.5% (current snap_hyde). Should not hurt HousingQA.
-- **Keep/discard**: Keep if BarExam improves without HousingQA regression. Discard if neutral or negative.
-- **Prior evidence**: Error analysis showed CE scores 3.70 (wrong) vs 4.14 (correct) — small but consistent signal. Gold passage retrieval only 10% in decompose_rag.
+#### ~~1. Score thresholding~~ — COMPLETED (2026-03-27)
+- **Result**: 80.0% BarExam (Llama 70B) — **NEW BEST**. KEPT.
+- CE threshold < 4.0 → skip RAG, use snap answer directly.
 
-#### 2. Aspect-based query rewrite (prompt-only)
-- **Hypothesis**: Rewriting queries as rule/exception/application aspects instead of synonym variants will improve retrieval quality and downstream accuracy.
-- **Change**: Modify `skills/query_rewriter.md` prompt to generate aspect-based alternatives. No architecture change.
-- **Success criteria**: Improvement on any dataset without regression on others.
-- **Keep/discard**: Keep if any dataset improves. Discard if neutral across all.
-- **Prior evidence**: Offline retrieval test showed CE scores 6.0 (aspect) vs 3.0 (synonym) — 2x improvement. Never tested end-to-end.
+#### ~~2. Aspect-based query rewrite~~ — COMPLETED (2026-03-27)
+- **Result**: 76.0% BarExam — DISCARDED. Offline retrieval gains (CE 6.0 vs 3.0) did not translate end-to-end.
 
 #### 3. Integrate confidence_gated into main.py
 - **Hypothesis**: Making the full pipeline use confidence_gated routing by default will make the demo pipeline match eval performance.
@@ -200,5 +193,4 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 | `CLAUDE.md` | Operational source of truth (how to run, environment notes) |
 | `logs/experiments.jsonl` | Machine-readable results (one JSON record per run) |
 | `ideas/actionable_ideas.md` | Idea backlog archive (active queue is here) |
-| `memory/MEMORY.md` | Cross-session memory index |
-| `memory/research_principles.md` | Autoresearch + harness design principles (persistent) |
+| `docs/experiment_summary.md` | Narrative experiment summary (generated 2026-03-30) |

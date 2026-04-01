@@ -145,9 +145,10 @@ uv run python llm_config.py
 
 | Mode | BarExam | HousingQA | CaseHOLD |
 |---|---|---|---|
+| **ce_threshold** | **80%** | — | 71% |
 | llm_only | 64% | 47% | 72.5% |
 | rag_snap_hyde | 76.5% | **56%** | 71% |
-| confidence_gated | **79%** | 50.5% | 72.5% |
+| confidence_gated | 79% | 50.5% | 72.5% |
 | decompose (natural) | 75% | 48.5% | 71.5% |
 | decompose (structured) | 76% | 46.5% | 70.5% |
 
@@ -164,7 +165,8 @@ uv run python llm_config.py
 *Estimated from Llama results. **N=100 baseline.
 
 ### Key findings
-- **Confidence-gated is best for BarExam** (random errors → gating helps)
+- **CE threshold is best for BarExam (80%)** — skip RAG when evidence quality is low, use snap answer
+- **Confidence-gated is second best for BarExam (79%)** (random errors → gating helps)
 - **Always-on snap_hyde is best for HousingQA** (systematic Yes-bias → gating skips 90%)
 - **Decomposition helps weaker models more** (Scout +9 on HousingQA natural)
 - **Counterevidence retrieval consistently hurts** (devil -6, top-2 -3)
