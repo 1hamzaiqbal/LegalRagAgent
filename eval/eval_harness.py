@@ -225,7 +225,14 @@ def _judge_open_answer(question: str, gold: str, predicted: str, config: EvalCon
 
 
 def _collection_for_config(config: EvalConfig) -> str:
-    """Return the ChromaDB collection name for the dataset."""
+    """Return the ChromaDB collection name for the dataset.
+
+    Supports EVAL_COLLECTION_OVERRIDE env var for embedding A/B testing.
+    When set, uses the override collection name instead of the default.
+    """
+    override = os.getenv("EVAL_COLLECTION_OVERRIDE", "").strip()
+    if override:
+        return override
     return DATASET_COLLECTIONS.get(config.dataset, "legal_passages")
 
 
@@ -339,7 +346,8 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
                          label_prefix: str = "rag", where: dict = None,
                          collection: str = "legal_passages") -> dict:
     """Shared retrieval + evidence formatting. Returns dict with passages, evidence_store, metadata."""
-    vs = get_vectorstore(collection)
+    embedding_model = os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or None
+    vs = get_vectorstore(collection, embedding_model=embedding_model)
     docs = retrieve_documents_multi_query(queries=queries, k=k, vectorstore=vs, where=where)
 
     passages = []

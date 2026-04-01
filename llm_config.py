@@ -39,6 +39,13 @@ PROVIDERS = {
     "groq-gpt120b":       ("https://api.groq.com/openai/v1", "GROQ_API_KEY", "openai/gpt-oss-120b",                       1_000, 200_000),
     "groq-kimi":          ("https://api.groq.com/openai/v1", "GROQ_API_KEY", "moonshotai/kimi-k2-instruct",               1_000, 300_000),
     "groq-qwen":          ("https://api.groq.com/openai/v1", "GROQ_API_KEY", "qwen/qwen3-32b",                            1_000, 500_000),
+    # groq-qwen8b removed — Groq doesn't carry qwen3-8b
+    # --- Qwen3 small + reasoning (OpenRouter) ---
+    "or-qwen3-8b":        ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3-8b",                          None, None),
+    "or-qwen3-14b":       ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3-14b",                         None, None),
+    "or-qwen3-32b":       ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3-32b",                         None, None),
+    "or-qwen3-30b-moe":   ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3-30b-a3b",                     None, None),
+    "or-qwen35-9b":       ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3.5-9b",                        None, None),
     # --- OpenRouter (paid) ---
     "or-phi4":            ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "microsoft/phi-4",                       None, None),
     "or-mistral-nemo":    ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "mistralai/mistral-nemo",                None, None),

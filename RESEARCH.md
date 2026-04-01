@@ -161,26 +161,48 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 
 ## Session Handoff
 
-### Last session (2026-03-27)
-- **10 experiments** total: 1 keep, 8 discard, 1 diagnostic
-- Set up research framework, cleaned code, rewrote README
-- New best: ce_threshold 80.0% (Llama BarExam)
-- Proved pipeline overhead costs -4pts (planner/synthesizer are net-negative)
-- Proved self-correction/debate are destructive (-3 to -10pts across models)
-- GPT 5.4 Mini baseline: 74% llm_only (strong, different model family)
-- Cerebras API returns empty responses (not usable)
+### Last session (2026-03-31)
+- **Meeting notes processed** — all actionable items extracted and triaged
+- **29 LLM experiments queued** in `eval/run_experiment_queue.py` across 6 phases
+  - Phase 1 running: 7 small model baselines (or-qwen3-8b at ~57% after 240/1195 Qs)
+  - Phases 2-6: golden_passage, RAG modes, devil-rag, confidence, ce-threshold on small models
+- **7 embedding models selected** for A/B comparison in `eval/run_embedding_comparison.py`
+  - stella-1.5b, gte-qwen2-1.5b, bge-m3, jina-v3, arctic-l-v2, stella-400m, legal-bert
+  - Infrastructure ready, needs GPU time (pause RL first)
+- **3 analysis scripts created**:
+  - `eval/token_analysis.py` — token/cost efficiency comparison across all runs
+  - `eval/case_studies.py` — per-question error analysis (RAG helps/hurts/hard Qs)
+  - `eval/monitor.py` — experiment dashboard (running/completed/queue/embedding status)
+- **New providers added**: or-qwen3-8b, or-qwen3-14b, or-qwen3-32b, or-qwen3-30b-moe, or-qwen35-9b
+- Fixed .env carriage return bug breaking OpenRouter API calls
+
+### Meeting action items status (2026-03-31)
+| # | Item | Status |
+|---|------|--------|
+| 1 | Try smaller models | ✅ Phase 1 running (7 models) |
+| 2 | Golden passage test | ✅ Queued (Phase 2) |
+| 3 | Case studies | ✅ Script built (`eval/case_studies.py`) |
+| 4 | Token/cost analysis | ✅ Script built (`eval/token_analysis.py`) |
+| 5 | RAG on small models | ✅ Queued (Phase 3: simple/hyde/snap_hyde) |
+| 6 | Devil RAG inversion | ✅ Queued (Phase 4) |
+| 7 | Self-consistency / confidence | ✅ Queued (Phase 5) |
+| 8 | Embedding model comparison | ✅ Ready, needs GPU time |
+| 9 | MLEB benchmark | ❌ Not started |
+| 10 | ENGR node local inference | ❌ Needs SSH setup |
+| 11 | SNAP-HyDE literature review | ❌ Not started |
 
 ### Next session: pick up here
-1. Check resources (`free -h`) — rl-on-rl monitor eating 11GB, RAG runs OOM
-2. **Priority: cross-model ce_threshold** — GPT 5.4 Mini (74% baseline, will RAG help or hurt a strong model?)
-3. **Priority: restructure main.py** — strip planner/synthesizer, make ce_threshold the base pipeline
-4. Tier 2: MC choice-aware (prompt change, no architecture), state filtering for HousingQA
-5. Consider: `groq-qwen` (Qwen3-32B) and `groq-kimi` (Kimi K2) as additional model diversity
+1. Check Phase 1 progress: `uv run python eval/monitor.py`
+2. If Phase 1 done, kick off Phases 2-6: `nohup bash -c '...' > logs/queue_phase2.log 2>&1 &`
+3. When RL paused, run embedding comparison: see `hallide/research/legalrag-embedding-comparison-runbook.md`
+4. Run analysis after results: `uv run python eval/token_analysis.py` and `uv run python eval/case_studies.py`
+5. Update RESEARCH.md with results, pick keep/discard verdicts
+6. Still open from prior: integrate confidence_gated into main.py, adaptive k, MC choice-aware
 
 ### Blockers
-- ~~rl-on-rl monitor now using 11GB RAM~~ — RESOLVED (KL training completed 2026-03-28, all processes exited). RAM should be free.
-- Groq rate limits: may still be near daily limits depending on when session restarts
-- Cerebras API broken (empty responses, as of 2026-03-27)
+- OpenRouter free tier rate limits may throttle Phase 1 (Qwen3 models)
+- Embedding comparison needs exclusive GPU (pause RL-on-RL first)
+- Cerebras API still broken (empty responses)
 
 ---
 

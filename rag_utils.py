@@ -26,24 +26,30 @@ DEFAULT_EMBEDDING_MODEL = "Alibaba-NLP/gte-large-en-v1.5"
 # Model singletons
 # ---------------------------------------------------------------------------
 
-_embeddings_instance = None
+_embeddings_instances: Dict[str, HuggingFaceEmbeddings] = {}
 _embeddings_lock = threading.Lock()
 
 
-def get_embeddings():
-    global _embeddings_instance
-    if _embeddings_instance is not None:
-        return _embeddings_instance
+def get_embeddings(model_name: str = None) -> HuggingFaceEmbeddings:
+    """Get a cached embedding model instance. Supports multiple models for A/B testing.
+
+    Args:
+        model_name: HuggingFace model ID. Defaults to EMBEDDING_MODEL env var or DEFAULT_EMBEDDING_MODEL.
+    """
+    if model_name is None:
+        model_name = os.getenv("EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL)
+
+    if model_name in _embeddings_instances:
+        return _embeddings_instances[model_name]
 
     with _embeddings_lock:
-        if _embeddings_instance is None:
-            model_name = os.getenv("EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL)
+        if model_name not in _embeddings_instances:
             print(f"[rag_utils] Loading embedding model: {model_name}")
-            _embeddings_instance = HuggingFaceEmbeddings(
+            _embeddings_instances[model_name] = HuggingFaceEmbeddings(
                 model_name=model_name,
                 model_kwargs={"trust_remote_code": True},
             )
-    return _embeddings_instance
+    return _embeddings_instances[model_name]
 
 
 _cross_encoder_instance = None
@@ -90,20 +96,28 @@ def rerank_with_cross_encoder(
 _vectorstore_instances: Dict[str, Chroma] = {}
 _vectorstore_lock = threading.Lock()
 
-def get_vectorstore(collection_name: str = COLLECTION_NAME) -> Chroma:
-    """Returns a Chroma vector store singleton for the given collection."""
-    if collection_name in _vectorstore_instances:
-        return _vectorstore_instances[collection_name]
+def get_vectorstore(collection_name: str = COLLECTION_NAME,
+                    embedding_model: str = None) -> Chroma:
+    """Returns a Chroma vector store singleton for the given collection.
+
+    For embedding A/B testing, pass embedding_model to pair the correct
+    model with the correct collection. The collection name should already
+    include any model suffix (e.g., 'legal_passages__bge_m3').
+    """
+    # Cache key includes both collection and model to avoid mismatches
+    cache_key = f"{collection_name}::{embedding_model or 'default'}"
+    if cache_key in _vectorstore_instances:
+        return _vectorstore_instances[cache_key]
 
     with _vectorstore_lock:
-        if collection_name not in _vectorstore_instances:
-            embeddings = get_embeddings()
-            _vectorstore_instances[collection_name] = Chroma(
+        if cache_key not in _vectorstore_instances:
+            embeddings = get_embeddings(embedding_model)
+            _vectorstore_instances[cache_key] = Chroma(
                 collection_name=collection_name,
                 embedding_function=embeddings,
                 persist_directory=CHROMA_DB_DIR,
             )
-    return _vectorstore_instances[collection_name]
+    return _vectorstore_instances[cache_key]
 
 def load_passages_to_chroma(passages_csv_path: str, max_passages: int = 0,
                             collection_name: str = COLLECTION_NAME):

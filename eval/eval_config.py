@@ -20,6 +20,7 @@ class EvalConfig:
     tag: str = ""                     # optional label for the run
     source_filter: str = ""           # optional metadata filter, e.g. "mbe" to search MBE docs only
     dataset: str = "barexam"          # "barexam" | "housing" | "legal_rag" | "australian" | "casehold"
+    embedding_model: str = ""         # override embedding model for retrieval (e.g., "BAAI/bge-m3")
 
 
 EVAL_MODES = {

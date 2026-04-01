@@ -1,0 +1,7 @@
+{
+  "dangerouslySkipPermissions": true,
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  },
+  "skipDangerousModePermissionPrompt": true
+}
