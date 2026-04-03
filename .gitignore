@@ -28,3 +28,9 @@ logs/
 *.swp
 .DS_Store
 .claude/worktrees/
+
+# Scratch / session exports
+session_log_latest.txt
+docs/session_log_latest.txt
+eval/_inspect*.py
+eval/_chroma_info.py
