@@ -4,11 +4,15 @@ Source-of-truth context for working in this codebase. Verify claims against `mai
 
 ## Environment Note
 
-`uv` is at `~/.local/bin/uv` and is NOT on PATH in this shell. Always use `~/.local/bin/uv` (or set PATH) when running commands.
+`uv` may not be on PATH in every shell. Prefer `uv` when available, otherwise fall back to `~/.local/bin/uv`.
 
 ## Project Summary
 
-Legal RAG agent over the `reglab/barexam_qa` and `reglab/housing_qa` corpora. Built on LangGraph with a parallel plan-and-execute architecture: decompose a legal question into independent sub-questions, execute them with per-step escalation, synthesize a cited IRAC answer, and loop back if evidence is incomplete.
+Legal RAG research repo with two distinct surfaces:
+- `main.py` = the full LangGraph agentic pipeline / demo system
+- `eval/` = the current research harness, where adaptive retrieval variants are compared under a fixed evaluation setup
+
+Current research direction: the original heavy pipeline underperformed, so the project now treats **simpler adaptive retrieval strategies as the default baseline** and only keeps extra structure when it proves itself in `eval/eval_harness.py`.
 
 ## Runtime Architecture
 
@@ -139,39 +143,19 @@ uv run python eval/eval_harness.py --mode golden_passage --provider groq-llama70
 uv run python llm_config.py
 ```
 
-## Current Best Results (N=200, seed=42)
+## Current Best Results / Direction Snapshot
 
-### Llama 70B
+- **BarExam:** `ce_threshold` on Llama 70B = **80.0%**
+- **HousingQA:** `rag_snap_hyde` on Llama 70B = **56.0%**
+- **CaseHOLD:** `llm_only` / `confidence_gated` on Llama 70B = **72.5%**
+- **Current small-model audit:** 5/7 full-set Phase 1 baselines complete; best completed baseline is `or-qwen3-32b` at **61.42%** (`734/1195`)
 
-| Mode | BarExam | HousingQA | CaseHOLD |
-|---|---|---|---|
-| **ce_threshold** | **80%** | — | 71% |
-| llm_only | 64% | 47% | 72.5% |
-| rag_snap_hyde | 76.5% | **56%** | 71% |
-| confidence_gated | 79% | 50.5% | 72.5% |
-| decompose (natural) | 75% | 48.5% | 71.5% |
-| decompose (structured) | 76% | 46.5% | 70.5% |
+Working interpretation:
+- retrieval helps most when the model has a real knowledge gap
+- BarExam gains come from **careful gating**, not just adding more retrieval or more agent structure
+- heavier architectural combinations (`full_pipeline`, `decompose_rag`, counterevidence variants) have mostly underperformed the simpler adaptive methods
 
-### Scout 17B
-
-| Mode | BarExam | HousingQA | CaseHOLD |
-|---|---|---|---|
-| llm_only | 69% | 50% | 72.5%* |
-| rag_snap_hyde | 71%** | 54%** | 71%* |
-| confidence_gated | 71.5% | 53.5% | 72.5%* |
-| decompose (natural) | 70% | **59%** | 73% |
-| decompose (structured) | **75%** | 56% | 72% |
-
-*Estimated from Llama results. **N=100 baseline.
-
-### Key findings
-- **CE threshold is best for BarExam (80%)** — skip RAG when evidence quality is low, use snap answer
-- **Confidence-gated is second best for BarExam (79%)** (random errors → gating helps)
-- **Always-on snap_hyde is best for HousingQA** (systematic Yes-bias → gating skips 90%)
-- **Decomposition helps weaker models more** (Scout +9 on HousingQA natural)
-- **Counterevidence retrieval consistently hurts** (devil -6, top-2 -3)
-
-See EXPERIMENTS.md for full history, error analysis, and per-subject breakdowns.
+Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the full tables + keep/discard history.
 
 ## Eval Scripts
 
@@ -187,19 +171,19 @@ See EXPERIMENTS.md for full history, error analysis, and per-subject breakdowns.
 ### Environment requirements
 
 - **HuggingFace offline mode**: HF Hub may be unreachable from this network. Always set `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1` when running evals. The embedding model (`gte-large-en-v1.5`) is cached locally in `~/.cache/huggingface/hub/`.
-- **uv**: Must use `~/.local/bin/uv` (not on PATH).
+- **uv**: Prefer `uv`; if it is missing from PATH in the current shell, use `~/.local/bin/uv`.
 - **API keys**: All in `.env`. Groq, DeepSeek, Google, OpenRouter, OpenAI, Cerebras.
 
 ### Launch pattern (IMPORTANT for agents)
 
 ```bash
 # Single run (recommended — monitor before scaling up)
-HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 ~/.local/bin/uv run python eval/eval_harness.py \
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 uv run python eval/eval_harness.py \
   --mode decompose_rag --provider groq-scout --questions 200 --dataset barexam
 
 # Background run — do NOT pipe through grep/tail (eats errors and buffers output)
 # Instead, run directly and redirect to a file:
-HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 nohup ~/.local/bin/uv run python eval/eval_harness.py \
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 nohup uv run python eval/eval_harness.py \
   --mode rag_snap_hyde --provider groq-llama70b --questions 200 --dataset barexam \
   > /tmp/eval_run.log 2>&1 &
 ```
@@ -273,6 +257,6 @@ python3 -c "import json; [print(f\"{d['timestamp']} {d['mode']:25s} {d['provider
 - If you change step schema or routing, audit both `main.py` and the skill prompt contracts in `skills/`.
 - `web_scraper.py` is a standalone module (testable via CLI) imported by main.py for web_search steps.
 - `utils/fast_embed.py` bypasses LangChain for bulk embedding — sentence-transformers with fp16 + chunked processing. Supports `--resume`.
-- Branch `lightweight-rebuild` is the active development branch.
+- Verify the current working branch with `git branch --show-current` before relying on branch-specific notes; the repo is no longer guaranteed to be on `lightweight-rebuild`.
 - Sequential pipeline code archived in branch `archive/sequential-pipeline`.
 - See `RESEARCH.md` for current research state, experiment queue, and session handoff.

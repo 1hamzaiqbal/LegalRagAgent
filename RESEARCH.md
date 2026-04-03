@@ -4,6 +4,13 @@ Persistent research state for the LegalRagAgent project. Read this first in any 
 
 This project started as a heavy agentic RAG pipeline that hurt performance. We stripped it down, systematically tested each component, and found that simpler adaptive strategies beat complex ones. Now we're building back up intentionally — testing each element's effectiveness and documenting what works about the research process itself.
 
+## Current execution status
+- No LegalRAG eval is actively running right now.
+- Phase 1 small-model BarExam baselines: **5/7 complete**.
+- Best completed current baseline: `or-qwen3-32b` at **61.42%** (`734/1195`).
+- Remaining Phase 1 runs: `or-nemotron`, `or-qwen35-9b`.
+- Phases 2-6 from the March 31 plan have not started yet.
+
 ---
 
 ## Guiding Principles
@@ -161,43 +168,44 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 
 ## Session Handoff
 
-### Last session (2026-03-31)
-- **Meeting notes processed** — all actionable items extracted and triaged
-- **29 LLM experiments queued** in `eval/run_experiment_queue.py` across 6 phases
-  - Phase 1 running: 7 small model baselines (or-qwen3-8b at ~57% after 240/1195 Qs)
-  - Phases 2-6: golden_passage, RAG modes, devil-rag, confidence, ce-threshold on small models
-- **7 embedding models selected** for A/B comparison in `eval/run_embedding_comparison.py`
-  - stella-1.5b, gte-qwen2-1.5b, bge-m3, jina-v3, arctic-l-v2, stella-400m, legal-bert
-  - Infrastructure ready, needs GPU time (pause RL first)
-- **3 analysis scripts created**:
-  - `eval/token_analysis.py` — token/cost efficiency comparison across all runs
-  - `eval/case_studies.py` — per-question error analysis (RAG helps/hurts/hard Qs)
-  - `eval/monitor.py` — experiment dashboard (running/completed/queue/embedding status)
-- **New providers added**: or-qwen3-8b, or-qwen3-14b, or-qwen3-32b, or-qwen3-30b-moe, or-qwen35-9b
-- Fixed .env carriage return bug breaking OpenRouter API calls
+### Last session (2026-04-03 audit)
+- Re-audited repo state, logs, and hub notes against the March 31 meeting plan.
+- Confirmed **5/7** Phase 1 full-set BarExam baselines are completed:
+  - `or-qwen3-32b`: **61.42%** (`734/1195`) — best completed Phase 1 baseline
+  - `groq-qwen`: **59.33%** (`709/1195`)
+  - `or-qwen3-14b`: **57.74%** (`690/1195`)
+  - `or-qwen3-8b`: **54.23%** (`648/1195`)
+  - `groq-llama8b`: **52.97%** (`633/1195`)
+- Confirmed the remaining Phase 1 baselines are still unrun: `or-nemotron`, `or-qwen35-9b`.
+- Confirmed **Phases 2-6 have not started yet**.
+- Fixed stale full-run detection in:
+  - `eval/run_experiment_queue.py`
+  - `eval/monitor.py`
+  so the monitor now derives the true `full` question count from `eval_config.py` instead of using the stale `>=1900` threshold.
+- Added `docs/cluster_workflow.md` to capture the next useful infra step: cluster-based local inference / full eval bring-up.
+- Cleaned repo scratch artifacts by ignoring/removing transient session-export and inspection files.
 
-### Meeting action items status (2026-03-31)
+### Meeting action items status (audited 2026-04-03)
 | # | Item | Status |
 |---|------|--------|
-| 1 | Try smaller models | ✅ Phase 1 running (7 models) |
-| 2 | Golden passage test | ✅ Queued (Phase 2) |
+| 1 | Try smaller models | 🔶 **Partially done** — 5/7 Phase 1 baselines complete |
+| 2 | Golden passage test | ⬜ Planned in Phase 2, not started |
 | 3 | Case studies | ✅ Script built (`eval/case_studies.py`) |
 | 4 | Token/cost analysis | ✅ Script built (`eval/token_analysis.py`) |
-| 5 | RAG on small models | ✅ Queued (Phase 3: simple/hyde/snap_hyde) |
-| 6 | Devil RAG inversion | ✅ Queued (Phase 4) |
-| 7 | Self-consistency / confidence | ✅ Queued (Phase 5) |
-| 8 | Embedding model comparison | ✅ Ready, needs GPU time |
+| 5 | RAG on small models | ⬜ Planned in Phase 3, not started |
+| 6 | Devil RAG inversion | ⬜ Planned in Phase 4, not started |
+| 7 | Self-consistency / confidence | ⬜ Planned in Phase 5/6, not started |
+| 8 | Embedding model comparison | 🔶 Ready on paper, still needs dedicated GPU time |
 | 9 | MLEB benchmark | ❌ Not started |
-| 10 | ENGR node local inference | ❌ Needs SSH setup |
+| 10 | ENGR node local inference | 🔶 Workflow drafted in `docs/cluster_workflow.md`, not tested yet |
 | 11 | SNAP-HyDE literature review | ❌ Not started |
 
 ### Next session: pick up here
-1. Check Phase 1 progress: `uv run python eval/monitor.py`
-2. If Phase 1 done, kick off Phases 2-6: `nohup bash -c '...' > logs/queue_phase2.log 2>&1 &`
-3. When RL paused, run embedding comparison: see `hallide/research/legalrag-embedding-comparison-runbook.md`
-4. Run analysis after results: `uv run python eval/token_analysis.py` and `uv run python eval/case_studies.py`
-5. Update RESEARCH.md with results, pick keep/discard verdicts
-6. Still open from prior: integrate confidence_gated into main.py, adaptive k, MC choice-aware
+1. Use `uv run python eval/monitor.py` to confirm the cleaned queue status.
+2. Bring up one cluster-hosted local model (`Qwen3.5-9B` or `Qwen3-14B`) and run a 3-question smoke test via `docs/cluster_workflow.md`.
+3. Finish the last two Phase 1 baselines only after the cluster/local-inference path is ready or provider reliability is acceptable.
+4. After cluster bring-up or remaining Phase 1 completion, start Phase 2 golden-passage controls.
+5. Keep open from prior research backlog: integrate confidence_gated into `main.py`, adaptive k, MC choice-aware prompting.
 
 ### Blockers
 - OpenRouter free tier rate limits may throttle Phase 1 (Qwen3 models)
@@ -216,3 +224,4 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 | `logs/experiments.jsonl` | Machine-readable results (one JSON record per run) |
 | `ideas/actionable_ideas.md` | Idea backlog archive (active queue is here) |
 | `docs/experiment_summary.md` | Narrative experiment summary (generated 2026-03-30) |
+| `docs/cluster_workflow.md` | Cluster bring-up plan for local inference + full evals |

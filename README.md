@@ -1,10 +1,20 @@
 # LegalRagAgent
 
-Legal RAG research project investigating when and how retrieval-augmented generation helps LLMs answer legal questions. Built on LangGraph with a parallel plan-and-execute pipeline.
+Legal RAG research project studying **when retrieval helps legal QA and when it hurts**.
 
-**Core finding**: Simpler adaptive strategies beat complex ones. Confidence-gated RAG (79% BarExam) and always-on Snap-HyDE (56% HousingQA) outperform the full agentic pipeline, decompose+RAG, and counterevidence retrieval.
+The repo contains two layers:
+- `main.py` — the full LangGraph agentic pipeline / demo system
+- `eval/` — the current research loop, where simpler adaptive methods are benchmarked against heavier agentic variants
 
-See `RESEARCH.md` for current research state and experiment queue. See `EXPERIMENTS.md` for full experiment history.
+**Project direction:** the heavy pipeline underperformed; the current research program tests smaller, more controlled retrieval strategies and keeps only improvements that survive fixed-eval scrutiny.
+
+**Current headline results:**
+- BarExam best: `ce_threshold` on Llama 70B = **80.0%**
+- HousingQA best: `rag_snap_hyde` on Llama 70B = **56.0%**
+- CaseHOLD best: `llm_only` / `confidence_gated` = **72.5%**
+- Current small-model audit: **5/7** full-set Phase 1 baselines complete; best completed baseline is **OR Qwen3-32B = 61.42%** (`734/1195`)
+
+See `RESEARCH.md` for the current state + queue, and `EXPERIMENTS.md` for the full keep/discard history.
 
 ## Setup
 
@@ -62,7 +72,7 @@ uv run python eval/eval_harness.py --mode confidence_gated --provider groq-llama
 uv run python llm_config.py
 ```
 
-## Key Results (N=200, seed=42)
+## Key Results (N=200, seed=42 unless noted)
 
 | Mode | BarExam (Llama 70B) | HousingQA (Llama 70B) | CaseHOLD (Llama 70B) |
 |---|---|---|---|
@@ -70,7 +80,7 @@ uv run python llm_config.py
 | rag_snap_hyde | 76.5% | **56%** | 71% |
 | confidence_gated | **79%** | 50.5% | 72.5% |
 
-RAG helps only when the LLM lacks domain knowledge (HousingQA: obscure state statutes, +9pt). On well-known domains, retrieval is neutral-to-harmful.
+RAG helps most when the model has a genuine knowledge gap (HousingQA). On better-known domains, retrieval is often neutral or harmful unless carefully gated.
 
 ## Pipeline Architecture
 
