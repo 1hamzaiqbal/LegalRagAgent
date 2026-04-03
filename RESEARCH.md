@@ -200,12 +200,19 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 | 10 | ENGR node local inference | 🔶 Workflow drafted in `docs/cluster_workflow.md`, not tested yet |
 | 11 | SNAP-HyDE literature review | ❌ Not started |
 
+### Latest meeting follow-up (2026-04-03)
+- Priority 1: run a **same-scale non-Qwen comparison** against `or-qwen3-32b` on full BarQA. Best repo-available candidates: `or-gemma27b` and `or-mistral`.
+- Priority 2: run **golden-passage vs RAG** comparisons on the strongest current small-model candidates to check whether retrieval quality is the bottleneck.
+- Priority 3: test **one alternate embedding model** before branching into heavier retrieval frameworks.
+- Priority 4: try **LazyGraphRAG first**, then decide whether heavier GraphRAG / RAGFlow exploration is justified.
+- Langlin GPU inference access is still useful, but it is not the first blocker relative to the higher-signal model / golden / embedding comparisons above.
+
 ### Next session: pick up here
 1. Use `uv run python eval/monitor.py` to confirm the cleaned queue status.
-2. Bring up one cluster-hosted local model (`Qwen3.5-9B` or `Qwen3-14B`) and run a 3-question smoke test via `docs/cluster_workflow.md`.
-3. Finish the last two Phase 1 baselines only after the cluster/local-inference path is ready or provider reliability is acceptable.
-4. After cluster bring-up or remaining Phase 1 completion, start Phase 2 golden-passage controls.
-5. Keep open from prior research backlog: integrate confidence_gated into `main.py`, adaptive k, MC choice-aware prompting.
+2. Run a same-scale full-BarQA comparison against `or-qwen3-32b` (prefer `or-gemma27b` or `or-mistral`).
+3. Run golden-passage vs RAG comparisons on the strongest current small-model candidates.
+4. Test one alternate embedding model before expanding into heavier retrieval-framework work.
+5. Only then branch into LazyGraphRAG / RAGFlow feasibility; keep open from the older backlog: confidence-gated integration into `main.py`, adaptive k, MC choice-aware prompting.
 
 ### Blockers
 - OpenRouter free tier rate limits may throttle Phase 1 (Qwen3 models)
