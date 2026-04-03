@@ -24,9 +24,10 @@ CHROMA_DIR = os.path.join(ROOT, "chroma_db")
 # ── Import experiment/embedding lists (with fallbacks) ────────
 try:
     sys.path.insert(0, os.path.join(ROOT, "eval"))
-    from run_experiment_queue import EXPERIMENTS as QUEUE_EXPERIMENTS
+    from run_experiment_queue import EXPERIMENTS as QUEUE_EXPERIMENTS, expected_question_count
 except Exception:
     QUEUE_EXPERIMENTS = []
+    expected_question_count = None
 
 try:
     from run_embedding_comparison import EMBEDDING_CANDIDATES
@@ -165,8 +166,9 @@ def show_queue_status(all_runs):
 
     # Build a set of (mode, provider) combos we have full results for
     completed_keys = set()
+    full_count = expected_question_count("full", "barexam") if expected_question_count else 1900
     for r in all_runs:
-        if r["total"] >= 1900:  # "full" threshold per queue runner
+        if r["total"] >= full_count:
             completed_keys.add((r["mode"], r["provider"]))
 
     # Assign phases by mode (robust regardless of list changes)

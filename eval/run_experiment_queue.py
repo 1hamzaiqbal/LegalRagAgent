@@ -13,6 +13,7 @@ Usage:
 """
 
 import argparse
+import functools
 import glob
 import json
 import os
@@ -20,6 +21,8 @@ import subprocess
 import sys
 import time
 from datetime import datetime
+
+from eval_config import EvalConfig, load_questions
 
 
 # ──────────────────────────────────────────────────────────────
@@ -89,16 +92,28 @@ EXPERIMENTS = [
 ]
 
 
-def find_existing_logs(mode: str, provider: str, n_questions: str) -> list:
+@functools.lru_cache(maxsize=None)
+def expected_question_count(questions: str, dataset: str = "barexam") -> int:
+    """Resolve the actual question count for a queued eval request.
+
+    Avoid hardcoding a stale "full" threshold — the authoritative size lives in
+    eval_config/load_questions and can drift as datasets are filtered/updated.
+    """
+    if questions in ("full", "curated"):
+        config = EvalConfig(dataset=dataset, questions=questions)
+        return len(load_questions(config))
+    return int(questions)
+
+
+def find_existing_logs(mode: str, provider: str, n_questions: str, dataset: str = "barexam") -> list:
     """Check if a matching experiment log already exists."""
     pattern = f"logs/eval_{mode}_{provider}_*_detail.jsonl"
     matches = glob.glob(pattern)
     results = []
+    expected = expected_question_count(n_questions, dataset)
     for m in matches:
         line_count = sum(1 for _ in open(m))
-        if n_questions == "full" and line_count >= 1900:
-            results.append((m, line_count))
-        elif n_questions != "full" and line_count == int(n_questions):
+        if line_count >= expected:
             results.append((m, line_count))
     return results
 
@@ -120,7 +135,7 @@ def run_experiment(mode: str, provider: str, questions: str, tag: str, dry_run: 
 
     if dry_run:
         print("  [DRY RUN] Skipping actual execution")
-        return True
+        return None
 
     start = time.time()
     try:
@@ -168,7 +183,7 @@ def main():
         experiments = EXPERIMENTS[start:end]
 
     total = len(experiments)
-    skipped = completed = failed = 0
+    skipped = completed = failed = previewed = 0
 
     print(f"\n{'='*70}")
     print(f"EXPERIMENT QUEUE: {total} experiments")
@@ -188,10 +203,12 @@ def main():
         sys.stdout.flush()
         success = run_experiment(mode, provider, questions, tag, dry_run=args.dry_run)
 
-        if success:
+        if success is True:
             completed += 1
-        else:
+        elif success is False:
             failed += 1
+        else:
+            previewed += 1
 
         # Brief pause between experiments to respect rate limits
         if i < total and not args.dry_run:
@@ -200,7 +217,10 @@ def main():
             time.sleep(10)
 
     print(f"\n{'='*70}")
-    print(f"DONE: {completed} completed, {skipped} skipped, {failed} failed")
+    if args.dry_run:
+        print(f"DONE: {previewed} previewed, {skipped} skipped, {failed} failed")
+    else:
+        print(f"DONE: {completed} completed, {skipped} skipped, {failed} failed")
     print(f"Finished: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*70}")
 
