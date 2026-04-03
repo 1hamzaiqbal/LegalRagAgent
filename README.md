@@ -6,7 +6,7 @@ The repo contains two layers:
 - `main.py` — the full LangGraph agentic pipeline / demo system
 - `eval/` — the current research loop, where simpler adaptive methods are benchmarked against heavier agentic variants
 
-**Project direction:** the heavy pipeline underperformed; the current research program tests smaller, more controlled retrieval strategies and keeps only improvements that survive fixed-eval scrutiny.
+**Project direction:** the long-term goal is still a strong full agentic pipeline, but the current research program is rebuilding toward it atomically from smaller, controlled retrieval strategies and only keeping improvements that survive fixed-eval scrutiny.
 
 **Current headline results:**
 - BarExam best: `ce_threshold` on Llama 70B = **80.0%**

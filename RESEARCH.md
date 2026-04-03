@@ -2,7 +2,7 @@
 
 Persistent research state for the LegalRagAgent project. Read this first in any new session.
 
-This project started as a heavy agentic RAG pipeline that hurt performance. We stripped it down, systematically tested each component, and found that simpler adaptive strategies beat complex ones. Now we're building back up intentionally — testing each element's effectiveness and documenting what works about the research process itself.
+This project started as a heavy agentic RAG pipeline that hurt performance. We stripped it down, systematically tested each component, and found that simpler adaptive strategies beat complex ones. The long-term goal is still a strong full agentic pipeline, but we're rebuilding toward it intentionally and atomically — testing each element's effectiveness and documenting what works about the research process itself.
 
 ## Current execution status
 - No LegalRAG eval is actively running right now.

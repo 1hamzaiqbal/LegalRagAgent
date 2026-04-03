@@ -12,7 +12,7 @@ Legal RAG research repo with two distinct surfaces:
 - `main.py` = the full LangGraph agentic pipeline / demo system
 - `eval/` = the current research harness, where adaptive retrieval variants are compared under a fixed evaluation setup
 
-Current research direction: the original heavy pipeline underperformed, so the project now treats **simpler adaptive retrieval strategies as the default baseline** and only keeps extra structure when it proves itself in `eval/eval_harness.py`.
+Current research direction: the original heavy pipeline underperformed, but the long-term goal is still a strong full agentic system. For now, the project rebuilds toward that goal **atomically**: simpler adaptive retrieval strategies are the default baseline, and extra structure only stays when it proves itself in `eval/eval_harness.py`.
 
 ## Runtime Architecture
 
