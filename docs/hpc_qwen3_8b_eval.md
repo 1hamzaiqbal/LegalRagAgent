@@ -1,12 +1,13 @@
 # HPC Qwen3-8B Eval (WashU Cluster)
 
-Minimal path for running a local 8B-model eval on the WashU engineering cluster.
+Minimal path for running a local 8B-model eval on the WashU engineering cluster. These instructions can be executed from any machine that already has working SSH access to the cluster.
 
 ## Why this candidate
 Use **`Qwen/Qwen3-8B`** first because it is:
 - in the same family as the current 32B reference runs
 - easy to fit on an A40 48GB or A100
 - a good first vLLM bring-up target before attempting larger 24B-32B models
+- strong enough to make the baseline-vs-golden comparison interesting without requiring embedding setup first
 
 ## Required repo resources
 - SLURM script: `scripts/hpc/slurm_vllm_eval_qwen3_8b.sh`
@@ -31,6 +32,13 @@ uv sync
 ```
 
 ## Run the eval
+Fastest first-pass option (recommended): baseline + golden, no embedding setup required.
+```bash
+cd /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent
+sbatch scripts/hpc/slurm_vllm_eval_qwen3_8b_baseline_golden.sh
+```
+
+Single-run baseline-only option:
 ```bash
 cd /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent
 sbatch scripts/hpc/slurm_vllm_eval_qwen3_8b.sh
