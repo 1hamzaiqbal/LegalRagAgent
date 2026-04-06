@@ -207,12 +207,30 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 - Priority 4: try **LazyGraphRAG first**, then decide whether heavier GraphRAG / RAGFlow exploration is justified.
 - Langlin GPU inference access is still useful, but it is not the first blocker relative to the higher-signal model / golden / embedding comparisons above.
 
+### Latest completed block (2026-04-05)
+- `llm_only / or-gemma27b / full`: **57.99%** (`693/1195`) — valid lower-baseline non-Qwen control.
+- `golden_passage / or-qwen3-32b / full`: **66.69%** vs qwen32 baseline **61.42%** → **+5.27pp**.
+- `rag_simple / or-qwen3-32b / full`: **63.10%** vs qwen32 baseline **61.42%** → **+1.67pp**.
+- `golden_passage / or-gemma27b / full`: **65.52%** vs gemma baseline **57.99%** → **+7.53pp**.
+- `rag_simple / or-gemma27b / full`: **54.64%** vs gemma baseline **57.99%** → **-3.35pp**.
+- Current read: retrieval quality is a real bottleneck. Golden helps both models much more than the current plain retriever, especially Gemma.
+
+### Current active work (2026-04-06)
+- First embedding probe is running on the strongest current bottleneck target pair:
+  - embedding: `stella-400m`
+  - model/mode: `rag_simple / or-gemma27b / full / barexam`
+- The probe writes to a separate collection (`legal_passages__stella_en_400m_v5`), so the baseline vector store is not overwritten.
+- HPC/vLLM helper resources for a first local 8B eval are now in repo:
+  - `scripts/run_embedding_probe.sh`
+  - `scripts/hpc/slurm_vllm_eval_qwen3_8b.sh`
+  - `docs/hpc_qwen3_8b_eval.md`
+
 ### Next session: pick up here
-1. Use `uv run python eval/monitor.py` to confirm the cleaned queue status.
-2. Run a same-scale full-BarQA comparison against `or-qwen3-32b` (prefer `or-gemma27b` or `or-mistral`).
-3. Run golden-passage vs RAG comparisons on the strongest current small-model candidates.
-4. Test one alternate embedding model before expanding into heavier retrieval-framework work.
-5. Only then branch into LazyGraphRAG / RAGFlow feasibility; keep open from the older backlog: confidence-gated integration into `main.py`, adaptive k, MC choice-aware prompting.
+1. Let the `stella-400m` embedding probe finish on `rag_simple / or-gemma27b / full / barexam`.
+2. Decide whether the Stella result is a meaningful retrieval win before escalating to a larger embedding model.
+3. If another same-scale family comparison is still needed after the embedding result, prefer `or-mistral` next.
+4. In parallel, use the pushed HPC/vLLM scripts to bring up `Qwen/Qwen3-8B` on the WashU cluster.
+5. Only after the embedding signal is clear, branch into LazyGraphRAG / RAGFlow feasibility; keep open from the older backlog: confidence-gated integration into `main.py`, adaptive k, MC choice-aware prompting.
 
 ### Blockers
 - OpenRouter free tier rate limits may throttle Phase 1 (Qwen3 models)
