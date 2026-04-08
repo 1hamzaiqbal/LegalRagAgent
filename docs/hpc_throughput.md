@@ -71,17 +71,12 @@ Much shorter answers than Qwen3-8B (~3K chars vs ~12K chars) → dramatically fa
 | 200 | ~33 min | ~1.7h | ~38 min / 1.8h |
 | 1195 (full) | ~3.3h | ~10h | ~3.5h / 10h |
 
-## Active HPC Runs (2026-04-08)
+## Still Running (2026-04-08 evening)
 
-| Job ID | Mode | Model | GPU/Node | Questions | Progress | Accuracy | Submitted |
-|---|---|---|---|---|---|---|---|
-| 40248 | llm_only | Qwen3-8B | A40 / a40-2206 | 1195 | 980/1195 (82%) | 52.1% | 2026-04-07 |
-| 40249 | golden | Qwen3-8B | A40 / a40-2206 | 1195 | 1041/1195 (87%) | 59.7% | 2026-04-07 |
-| 40687 | rag_simple | Qwen3-8B | A6000 / a60-2209 | 600 | 89/600 (15%) | 51.6% | 2026-04-08 |
-| 40707 | llm_only | Gemma 4 E4B | A6000 / a60-2208 | 1195 | 130/1195 (11%) | 52.3% | 2026-04-08 |
-| 40731 | golden | Gemma 4 E4B | A6000 / a60-2209 | 1195 | 30/1195 (3%) | — | 2026-04-08 |
-| 40732 | rag_simple | Gemma 4 E4B | A6000 / a60-2209 | 1195 | 23/1195 (2%) | — | 2026-04-08 |
-| 40736 | snap_hyde | Gemma 4 E4B | A6000 / a60-2209 | 1195 | starting | — | 2026-04-08 |
+| Job ID | Mode | Model | GPU/Node | Questions | Progress | Accuracy |
+|---|---|---|---|---|---|---|
+| 40687 | rag_simple | Qwen3-8B | A6000 / a60-2209 | 600 | 388/600 (65%) | 52.0% |
+| 40736 | snap_hyde | Gemma 4 E4B | A6000 / a60-2209 | 1195 | 627/1195 (52%) | 60.1% |
 
 SLURM logs: `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/{jobid}.out`
 
@@ -94,28 +89,32 @@ SLURM logs: `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/{jobid}.out`
 | Gemma 4 26B-A4B download | ✅ Complete | 49 GB cached at HF cache |
 | Gemma 4 venv (vLLM nightly) | ✅ Complete | vLLM 0.19.1rc1 + transformers 5.5.0 |
 
-## Completed Full-Set Results (N=1195, barexam)
+## Completed Full-Set Results (N=1195 unless noted, barexam)
 
 From `logs/experiments.jsonl` across all branches/machines:
 
 | Model | Size | llm_only | golden_passage | rag_simple | rag_snap_hyde |
 |---|---|---|---|---|---|
 | deepseek-chat | — | 82.1% (N=28) | 85.7% (N=28) | — | — |
-| groq-llama70b | 70B | 72.5% (N=200) | 81.0% (N=100) | 73.0% (N=100) | — |
+| groq-llama70b | 70B | 72.5% (N=200) | 81.0% (N=100) | 73.0% (N=100) | 76.5% (N=200) |
 | or-gemma27b | 27B | 58.0% | 65.5% | 54.6% | — |
 | or-qwen3-32b | 32B | 61.4% | 66.7% | 63.1% | — |
 | or-qwen3-14b | 14B | 57.7% | — | — | — |
 | or-qwen3-8b | 8B | 54.2% | — | — | — |
 | groq-qwen3-32b | 32B | 59.3% | — | — | — |
 | groq-llama-8b | 8B | 53.0% | — | — | — |
-| **cluster qwen3-8b** | **8B** | **~52% (in prog)** | **~60% (in prog)** | **~52% (in prog)** | — |
-| **cluster gemma4-e4b** | **8B eff** | **~52% (in prog)** | **(in prog)** | **(in prog)** | **(in prog)** |
+| **cluster qwen3-8b** | **8B** | **52.1%** | **60.1%** | **~52% (N=600 in prog)** | — |
+| **cluster gemma4-e4b** | **8B eff** | **55.5%** | **62.2%** | **54.2%** | **~60% (in prog)** |
 
-Notes:
-- Cluster results use local vLLM on HPC, not API. Qwen validates against or-qwen3-8b API (54.2%)
-- Golden passage adds ~8pp over llm_only consistently
-- Gemma 4 E4B generates much shorter answers (61 tok/s, ~10s/q) vs Qwen3-8B (40 tok/s, ~75s/q)
-- RAG modes require ChromaDB embeddings (built by job 40387, 686K docs)
+### Key Findings
+
+- **Gemma 4 E4B beats Qwen3-8B across all modes**: +3.4pp llm_only, +2.1pp golden, and 6.6x faster
+- **Gemma 4 E4B is the best small model tested**: 55.5% llm_only beats Qwen3-14B (57.7% via API) and approaches Gemma 27B (58.0%)
+- **Golden passage adds ~7pp consistently**: Qwen +8.0pp, Gemma +6.7pp
+- **RAG simple slightly hurts Gemma** (-1.3pp): consistent with models that already know the material
+- **Gemma snap_hyde tracking at 60.1%** — nearly closing the gap to golden (62.2%), suggesting HyDE retrieval is effective for this model
+- **Gemma generates 3.7x fewer tokens** (756 vs 2,774 avg) — more concise, still more accurate
+- **Speed**: Gemma 12.5s/q vs Qwen 82.6s/q (avg latency from completed runs)
 
 ## Candidate Models for Next HPC Runs
 
