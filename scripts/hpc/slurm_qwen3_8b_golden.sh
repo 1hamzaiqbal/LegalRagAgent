@@ -5,26 +5,35 @@
 #SBATCH --exclude=r28-1801
 #SBATCH -c 8
 #SBATCH --mem=64G
-#SBATCH -t 16:00:00
+#SBATCH -t 28:00:00
+#SBATCH -J qwen8b-gold
 #SBATCH -o /engrfs/tmp/jacobsn/hiqbal_legalrag/logs/%j.out
+
+# Qwen3-8B golden_passage eval on barexam (full 1195 questions)
+# Estimated: ~23-25h eval + 15min vLLM startup
+# golden_passage adds ~200-500 tokens of gold passage context per question,
+# so slightly more input tokens but similar generation time.
+# Conservative estimate: ~28h total with overhead.
 
 set -euo pipefail
 
 REPO=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent
-VENV=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv
+VENV="$REPO/.venv"
 LOG_DIR=/engrfs/tmp/jacobsn/hiqbal_legalrag/logs
 HF_CACHE=/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache
 MODEL=Qwen/Qwen3-8B
-PORT=8000
+PORT=8001
 
 mkdir -p "$LOG_DIR" "$HF_CACHE"
 source "$VENV/bin/activate"
-export PATH="$HOME/.local/bin:$PATH"
 cd "$REPO"
 
 export HF_HOME="$HF_CACHE"
 export VLLM_NO_USAGE_STATS=1
 export PYTHONUNBUFFERED=1
+export XDG_CACHE_HOME="/engrfs/tmp/jacobsn/hiqbal_legalrag/cache"
+export TORCH_HOME="/engrfs/tmp/jacobsn/hiqbal_legalrag/cache/torch"
+mkdir -p "$XDG_CACHE_HOME"
 
 cleanup() {
   if [[ -n "${VLLM_PID:-}" ]]; then
@@ -48,7 +57,6 @@ for i in $(seq 1 240); do
     READY=1
     break
   fi
-  # Check if vLLM process is still alive
   if ! kill -0 "$VLLM_PID" 2>/dev/null; then
     echo "[$(date '+%F %T')] ERROR: vLLM process died. Check log:"
     tail -20 "$LOG_DIR/vllm_qwen3_8b_${SLURM_JOB_ID}.log"
@@ -63,19 +71,7 @@ if [ "$READY" -ne 1 ]; then
   exit 1
 fi
 
-echo "[$(date '+%F %T')] vLLM ready; starting llm_only eval"
-LLM_PROVIDER=cluster-vllm \
-LLM_BASE_URL="http://127.0.0.1:${PORT}/v1" \
-LLM_API_KEY=DUMMY_KEY \
-LLM_MODEL="$MODEL" \
-python eval/eval_harness.py \
-  --mode llm_only \
-  --provider cluster-vllm \
-  --questions full \
-  --dataset barexam \
-  --tag hpc-qwen3-8b-full
-
-echo "[$(date '+%F %T')] llm_only done; starting golden_passage eval"
+echo "[$(date '+%F %T')] vLLM ready; starting golden_passage eval"
 LLM_PROVIDER=cluster-vllm \
 LLM_BASE_URL="http://127.0.0.1:${PORT}/v1" \
 LLM_API_KEY=DUMMY_KEY \
@@ -85,6 +81,6 @@ python eval/eval_harness.py \
   --provider cluster-vllm \
   --questions full \
   --dataset barexam \
-  --tag hpc-qwen3-8b-golden-full
+  --tag hpc-qwen3-8b-golden
 
-echo "[$(date '+%F %T')] Baseline + golden evals complete"
+echo "[$(date '+%F %T')] golden_passage eval complete"
