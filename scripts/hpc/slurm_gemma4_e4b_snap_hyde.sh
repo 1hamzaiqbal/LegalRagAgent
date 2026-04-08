@@ -23,7 +23,7 @@ EVAL_VENV="$REPO/.venv"
 LOG_DIR=/engrfs/tmp/jacobsn/hiqbal_legalrag/logs
 HF_CACHE=/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache
 MODEL=google/gemma-4-E4B-it
-PORT=8006
+PORT=8007
 
 mkdir -p "$LOG_DIR"
 cd "$REPO"

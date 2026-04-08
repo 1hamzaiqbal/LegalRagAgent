@@ -46,14 +46,42 @@ Output throughput is the bottleneck. Approximate tok/s by model size on single G
 
 These are rough — actual throughput depends on model architecture, quantization, and KV cache pressure.
 
-## Active HPC Runs
+## Throughput Profile: Gemma 4 E4B on A6000 (bf16, vLLM 0.19.1rc1)
+
+Measured from job 40707 on `a60-2208` (NVIDIA A6000 48GB), 2026-04-08.
+
+| Metric | llm_only |
+|---|---|
+| LLM calls/question | 1 |
+| Output tokens (avg) | ~700 |
+| Output chars (avg) | ~3,000–5,000 |
+| Time/question (avg) | ~10s |
+| Time/question (range) | 5–27s |
+| Generation throughput | ~61 tok/s |
+| vLLM startup overhead | ~5 min |
+| GPU memory used | 15.16 GiB |
+
+Much shorter answers than Qwen3-8B (~3K chars vs ~12K chars) → dramatically faster per question.
+
+### Timing Estimates (Gemma 4 E4B, A6000, bf16)
+
+| N questions | 1-call mode | 3-call mode (snap_hyde) | Est. with startup |
+|---|---|---|---|
+| 50 | ~8 min | ~25 min | ~13 / 30 min |
+| 200 | ~33 min | ~1.7h | ~38 min / 1.8h |
+| 1195 (full) | ~3.3h | ~10h | ~3.5h / 10h |
+
+## Active HPC Runs (2026-04-08)
 
 | Job ID | Mode | Model | GPU/Node | Questions | Progress | Accuracy | Submitted |
 |---|---|---|---|---|---|---|---|
-| 40248 | llm_only | Qwen3-8B | A40 / a40-2206 | full (1195) | 890/1195 (74.5%) | 51.9% (462/890) | 2026-04-07 |
-| 40249 | golden_passage | Qwen3-8B | A40 / a40-2206 | full (1195) | 942/1195 (78.8%) | 59.8% (563/942) | 2026-04-07 |
-
-Both jobs ~20h in with ~7h wall time remaining (28h limit). On track to complete.
+| 40248 | llm_only | Qwen3-8B | A40 / a40-2206 | 1195 | 980/1195 (82%) | 52.1% | 2026-04-07 |
+| 40249 | golden | Qwen3-8B | A40 / a40-2206 | 1195 | 1041/1195 (87%) | 59.7% | 2026-04-07 |
+| 40687 | rag_simple | Qwen3-8B | A6000 / a60-2209 | 600 | 89/600 (15%) | 51.6% | 2026-04-08 |
+| 40707 | llm_only | Gemma 4 E4B | A6000 / a60-2208 | 1195 | 130/1195 (11%) | 52.3% | 2026-04-08 |
+| 40731 | golden | Gemma 4 E4B | A6000 / a60-2209 | 1195 | 30/1195 (3%) | — | 2026-04-08 |
+| 40732 | rag_simple | Gemma 4 E4B | A6000 / a60-2209 | 1195 | 23/1195 (2%) | — | 2026-04-08 |
+| 40736 | snap_hyde | Gemma 4 E4B | A6000 / a60-2209 | 1195 | starting | — | 2026-04-08 |
 
 SLURM logs: `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/{jobid}.out`
 
@@ -64,40 +92,40 @@ SLURM logs: `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/{jobid}.out`
 | Embedding build (40387) | ✅ Complete | 686,324 docs, 2.2h, ChromaDB at `chroma_db/` (3.1 GB) |
 | Gemma 4 E4B download | ✅ Complete | 15 GB cached at HF cache |
 | Gemma 4 26B-A4B download | ✅ Complete | 49 GB cached at HF cache |
-| Gemma 4 venv (vLLM nightly) | ✅ Complete | `/engrfs/project/jacobsn/hiqbal/venvs/legalrag-gemma4/` |
+| Gemma 4 venv (vLLM nightly) | ✅ Complete | vLLM 0.19.1rc1 + transformers 5.5.0 |
 
 ## Completed Full-Set Results (N=1195, barexam)
 
 From `logs/experiments.jsonl` across all branches/machines:
 
-| Model | Size | llm_only | golden_passage | rag_simple |
-|---|---|---|---|---|
-| deepseek-chat | — | 82.1% (N=28) | 85.7% (N=28) | — |
-| groq-llama70b | 70B | 72.5% (N=200) | 81.0% (N=100) | 73.0% (N=100) |
-| or-gemma27b | 27B | 58.0% | 65.5% | 54.6% |
-| or-qwen3-32b | 32B | 61.4% | 66.7% | 63.1% |
-| or-qwen3-14b | 14B | 57.7% | — | — |
-| or-qwen3-8b | 8B | 54.2% | — | — |
-| groq-qwen3-32b | 32B | 59.3% | — | — |
-| groq-llama-8b | 8B | 53.0% | — | — |
-| **cluster-vllm qwen3-8b** | **8B** | **~52% (890/1195 in progress)** | **~60% (942/1195 in progress)** | — |
+| Model | Size | llm_only | golden_passage | rag_simple | rag_snap_hyde |
+|---|---|---|---|---|---|
+| deepseek-chat | — | 82.1% (N=28) | 85.7% (N=28) | — | — |
+| groq-llama70b | 70B | 72.5% (N=200) | 81.0% (N=100) | 73.0% (N=100) | — |
+| or-gemma27b | 27B | 58.0% | 65.5% | 54.6% | — |
+| or-qwen3-32b | 32B | 61.4% | 66.7% | 63.1% | — |
+| or-qwen3-14b | 14B | 57.7% | — | — | — |
+| or-qwen3-8b | 8B | 54.2% | — | — | — |
+| groq-qwen3-32b | 32B | 59.3% | — | — | — |
+| groq-llama-8b | 8B | 53.0% | — | — | — |
+| **cluster qwen3-8b** | **8B** | **~52% (in prog)** | **~60% (in prog)** | **~52% (in prog)** | — |
+| **cluster gemma4-e4b** | **8B eff** | **~52% (in prog)** | **(in prog)** | **(in prog)** | **(in prog)** |
 
 Notes:
-- DeepSeek and groq-llama70b results are from API runs on other branches (N=28-200, not full set)
-- The cluster-vllm results are from local vLLM on HPC, not API — validates against or-qwen3-8b (54.2%)
-- Golden passage adds ~8pp over llm_only for Qwen3-8B (consistent with other models)
-- Embeddings complete → RAG eval modes (rag_simple, rag_snap_hyde, ce_threshold) now unblocked on cluster
+- Cluster results use local vLLM on HPC, not API. Qwen validates against or-qwen3-8b API (54.2%)
+- Golden passage adds ~8pp over llm_only consistently
+- Gemma 4 E4B generates much shorter answers (61 tok/s, ~10s/q) vs Qwen3-8B (40 tok/s, ~75s/q)
+- RAG modes require ChromaDB embeddings (built by job 40387, 686K docs)
 
 ## Candidate Models for Next HPC Runs
 
-| Model | HF ID | Size (total/effective) | GPU Needed | Est. time/q | Notes |
-|---|---|---|---|---|---|
-| Qwen3-8B | Qwen/Qwen3-8B | 8B | A40+ | ~75s | Current run |
-| Gemma 4 E4B | google/gemma-4-E4B-it | 8B/4.5B eff | A40+ (~16GB fp16) | ~50-75s | 128K ctx, multimodal, vLLM support TBD |
-| Gemma 4 E2B | google/gemma-4-E2B-it | ~4B/2B eff | Any GPU | ~30-40s | Smallest Gemma 4 |
-| Qwen3-14B | Qwen/Qwen3-14B | 14B | A40+ | ~110s | Next size up |
-| Gemma-3-27B | google/gemma-3-27b-it | 27B | A100+ (~54GB fp16) | ~220s | Need A100/H100 |
-| Qwen3-32B | Qwen/Qwen3-32B | 32B | A100+ (~64GB fp16) | ~220s | Tight on A100 |
+| Model | HF ID | Size (total/effective) | GPU Needed | Measured tok/s | Est. time/q | Notes |
+|---|---|---|---|---|---|---|
+| Qwen3-8B | Qwen/Qwen3-8B | 8B | A40+ | 40 tok/s | ~75s | Verbose output |
+| Gemma 4 E4B | google/gemma-4-E4B-it | 8B/4.5B eff | A40+ (15 GiB) | 61 tok/s | ~10s | Concise output, needs split-venv |
+| Gemma 4 26B-A4B | google/gemma-4-26B-A4B-it | 25B MoE / 4B eff | A40 w/ int8 | TBD | TBD | Cached, needs quantization |
+| Qwen3-14B | Qwen/Qwen3-14B | 14B | A40+ | ~25-30 est | ~110s | Not yet tested |
+| Qwen3-32B | Qwen/Qwen3-32B | 32B | A100+ | ~10-15 est | ~220s | Tight on A100 |
 
 ## Monitoring Commands
 
