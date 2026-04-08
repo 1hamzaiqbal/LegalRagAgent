@@ -17,14 +17,14 @@
 set -euo pipefail
 
 REPO=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent
-VENV=/engrfs/project/jacobsn/hiqbal/venvs/legalrag-gemma4
+GEMMA_VENV=/engrfs/project/jacobsn/hiqbal/venvs/legalrag-gemma4
+EVAL_VENV="$REPO/.venv"
 LOG_DIR=/engrfs/tmp/jacobsn/hiqbal_legalrag/logs
 HF_CACHE=/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache
 MODEL=google/gemma-4-E4B-it
 PORT=8002
 
 mkdir -p "$LOG_DIR"
-source "$VENV/bin/activate"
 cd "$REPO"
 
 # Gemma models were downloaded via snapshot_download(cache_dir=HF_CACHE)
@@ -45,10 +45,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "[$(date '+%F %T')] Starting vLLM for $MODEL (nightly $(python -c 'import vllm; print(vllm.__version__)'))"
+echo "[$(date '+%F %T')] Starting vLLM for $MODEL (nightly $($GEMMA_VENV/bin/python -c 'import vllm; print(vllm.__version__)'))"
 echo "[$(date '+%F %T')] HUGGINGFACE_HUB_CACHE=$HUGGINGFACE_HUB_CACHE"
 
-vllm serve "$MODEL" \
+# Use gemma venv for vLLM (has transformers 5.5.0 + vLLM nightly for gemma4 support)
+$GEMMA_VENV/bin/vllm serve "$MODEL" \
   --host 127.0.0.1 \
   --port "$PORT" \
   --gpu-memory-utilization 0.9 \
@@ -78,6 +79,9 @@ fi
 
 echo "[$(date '+%F %T')] vLLM ready; starting llm_only eval"
 echo "[$(date '+%F %T')] Model served: $(curl -s http://127.0.0.1:${PORT}/v1/models | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"][0]["id"])' 2>/dev/null || echo 'unknown')"
+
+# Use primary venv for eval harness (has all deps: langchain, pandas, etc.)
+source "$EVAL_VENV/bin/activate"
 
 LLM_PROVIDER=cluster-vllm \
 LLM_BASE_URL="http://127.0.0.1:${PORT}/v1" \
