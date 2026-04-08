@@ -48,12 +48,23 @@ These are rough — actual throughput depends on model architecture, quantizatio
 
 ## Active HPC Runs
 
-| Job ID | Mode | Model | GPU/Node | Questions | Status | Submitted |
-|---|---|---|---|---|---|---|
-| 40248 | llm_only | Qwen3-8B | A40 / a40-2206 | full (1195) | RUNNING | 2026-04-07 |
-| 40249 | golden_passage | Qwen3-8B | A40 / a40-2206 | full (1195) | RUNNING | 2026-04-07 |
+| Job ID | Mode | Model | GPU/Node | Questions | Progress | Accuracy | Submitted |
+|---|---|---|---|---|---|---|---|
+| 40248 | llm_only | Qwen3-8B | A40 / a40-2206 | full (1195) | 890/1195 (74.5%) | 51.9% (462/890) | 2026-04-07 |
+| 40249 | golden_passage | Qwen3-8B | A40 / a40-2206 | full (1195) | 942/1195 (78.8%) | 59.8% (563/942) | 2026-04-07 |
+
+Both jobs ~20h in with ~7h wall time remaining (28h limit). On track to complete.
 
 SLURM logs: `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/{jobid}.out`
+
+## Completed Infrastructure
+
+| Item | Status | Details |
+|---|---|---|
+| Embedding build (40387) | ✅ Complete | 686,324 docs, 2.2h, ChromaDB at `chroma_db/` (3.1 GB) |
+| Gemma 4 E4B download | ✅ Complete | 15 GB cached at HF cache |
+| Gemma 4 26B-A4B download | ✅ Complete | 49 GB cached at HF cache |
+| Gemma 4 venv (vLLM nightly) | ✅ Complete | `/engrfs/project/jacobsn/hiqbal/venvs/legalrag-gemma4/` |
 
 ## Completed Full-Set Results (N=1195, barexam)
 
@@ -69,12 +80,13 @@ From `logs/experiments.jsonl` across all branches/machines:
 | or-qwen3-8b | 8B | 54.2% | — | — |
 | groq-qwen3-32b | 32B | 59.3% | — | — |
 | groq-llama-8b | 8B | 53.0% | — | — |
-| **cluster-vllm qwen3-8b** | **8B** | **~55% (in progress)** | **~60% (in progress)** | — |
+| **cluster-vllm qwen3-8b** | **8B** | **~52% (890/1195 in progress)** | **~60% (942/1195 in progress)** | — |
 
 Notes:
 - DeepSeek and groq-llama70b results are from API runs on other branches (N=28-200, not full set)
 - The cluster-vllm results are from local vLLM on HPC, not API — validates against or-qwen3-8b (54.2%)
-- Golden passage typically adds 5-10% over llm_only for the same model
+- Golden passage adds ~8pp over llm_only for Qwen3-8B (consistent with other models)
+- Embeddings complete → RAG eval modes (rag_simple, rag_snap_hyde, ce_threshold) now unblocked on cluster
 
 ## Candidate Models for Next HPC Runs
 

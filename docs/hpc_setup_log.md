@@ -5,83 +5,98 @@ Tracking the cluster bootstrap for LegalRagAgent on the WashU Engineering HPC.
 ## SSH
 - Alias: `ssh wustl` (configured in `~/.ssh/config`)
 - Login node: `shell.engr.wustl.edu`
+- Account: `engr-lab-jacobsn`, partitions: `general-gpu`, `condo-jacobsn`
 
 ## Cluster Layout
 
 ```
 /engrfs/project/jacobsn/hiqbal/
 ├── src/
-│   ├── LegalRagAgent/         # This repo (cloned from shrango remote)
-│   ├── hullclip/              # Existing - do not touch
-│   ├── satclip/               # Existing - archived
-│   └── TTE/                   # Existing - active project
+│   └── LegalRagAgent/              # This repo (cloned from shrango remote)
+│       ├── .venv/                   # Primary venv (Python 3.11, uv-managed, vLLM 0.19.0)
+│       ├── chroma_db/               # ChromaDB vector store (686K docs, 3.1 GB)
+│       └── ...
 ├── venvs/
-│   └── legalrag/              # Python 3.11.15 venv (uv-managed)
+│   └── legalrag-gemma4/             # Gemma 4 venv (vLLM nightly, transformers>=5.5.0)
 └── ...
 
 /engrfs/tmp/jacobsn/hiqbal_legalrag/
-├── logs/                      # SLURM job output
-└── hf_cache/                  # HuggingFace model cache (Qwen3-8B etc)
+├── logs/                            # SLURM job output + download logs
+├── hf_cache/                        # HuggingFace model cache
+│   ├── models--Qwen--Qwen3-8B/         # 16 GB
+│   ├── models--Alibaba-NLP--gte-large-en-v1.5/  # Embedding model
+│   ├── models--google--gemma-4-E4B-it/  # 15 GB
+│   └── models--google--gemma-4-26B-A4B-it/  # 49 GB
+└── cache/                           # XDG_CACHE_HOME (vLLM torch compile cache)
 ```
 
-## Environment
+## Environments
 
-- **Python**: 3.11.15 (installed via `uv python install 3.11`)
-- **Venv**: `/engrfs/project/jacobsn/hiqbal/venvs/legalrag`
-- **uv**: Available at `~/.local/bin/uv` (installed via `python3 -m pip install --user uv`)
-- **Deps**: Installed via `uv sync` from the repo's `pyproject.toml`
-- **vLLM**: Needs separate install (`pip install vllm` in the venv on a compute node)
+### Primary venv (Qwen3-8B, current evals)
+- **Path**: `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv`
+- **Python**: 3.11.15 (uv-managed)
+- **vLLM**: 0.19.0
+- **Use**: All current SLURM eval scripts
 
-## Data Downloaded
+### Gemma 4 venv (for Gemma 4 experiments)
+- **Path**: `/engrfs/project/jacobsn/hiqbal/venvs/legalrag-gemma4/`
+- **vLLM**: nightly build with Gemma 4 support
+- **Use**: Future Gemma 4 E4B / 26B-A4B evals
+
+## Data
 
 - `datasets/barexam_qa/qa/qa.csv` — 1195 combined QA rows (train+val+test)
-- `datasets/barexam_qa/qa/{train,validation,test}.csv` — Individual splits
-- `datasets/barexam_qa/train.tsv` — 686K raw passages (TSV)
-- `datasets/barexam_qa/barexam_qa_train.csv` — Same passages as CSV
+- `datasets/barexam_qa/barexam_qa_train.csv` — 686K raw passages (CSV)
+- ChromaDB `legal_passages` collection: **686,324 documents** (built 2026-04-07, job 40387, 2.2h)
 
-## Model Cache
+## Cached Models
 
-- `Qwen/Qwen3-8B` — downloading to `/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache/`
-  - ~16GB total, downloading unauthenticated (set HF_TOKEN for faster downloads)
-
-## Embedding Model
-
-- `Alibaba-NLP/gte-large-en-v1.5` — NOT yet cached on cluster
-  - Needed for any RAG-based eval modes
-  - Not needed for `llm_only` or `golden_passage` modes
+| Model | Size | Path | Status |
+|---|---|---|---|
+| Qwen/Qwen3-8B | 16 GB | `hf_cache/hub/models--Qwen--Qwen3-8B/` | ✅ Cached |
+| gte-large-en-v1.5 | ~1 GB | `hf_cache/models--Alibaba-NLP--gte-large-en-v1.5/` | ✅ Cached |
+| gemma-4-E4B-it | 15 GB | `hf_cache/models--google--gemma-4-E4B-it/` | ✅ Cached |
+| gemma-4-26B-A4B-it | 49 GB | `hf_cache/models--google--gemma-4-26B-A4B-it/` | ✅ Cached |
 
 ## SLURM Scripts
 
-- `scripts/hpc/slurm_vllm_eval_qwen3_8b_baseline_golden.sh` — Baseline + golden passage (recommended first run)
-- `scripts/hpc/slurm_vllm_eval_qwen3_8b.sh` — Baseline only
+| Script | Purpose | Time limit |
+|---|---|---|
+| `scripts/hpc/slurm_qwen3_8b_llm_only.sh` | Qwen3-8B llm_only baseline (port 8000) | 28h |
+| `scripts/hpc/slurm_qwen3_8b_golden.sh` | Qwen3-8B golden_passage eval (port 8001) | 28h |
+| `scripts/hpc/slurm_build_embeddings.sh` | Build ChromaDB embeddings (686K docs) | 16h |
 
 ## Running Evals
 
 ```bash
-# SSH in
 ssh wustl
-
-# Submit the baseline + golden job
 cd /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent
-sbatch scripts/hpc/slurm_vllm_eval_qwen3_8b_baseline_golden.sh
+
+# Submit jobs
+sbatch scripts/hpc/slurm_qwen3_8b_llm_only.sh
+sbatch scripts/hpc/slurm_qwen3_8b_golden.sh
 
 # Monitor
 squeue -u hiqbal
-tail -f /engrfs/tmp/jacobsn/hiqbal_legalrag/logs/<jobid>.out
+grep -c 'PASS\|FAIL' /engrfs/tmp/jacobsn/hiqbal_legalrag/logs/<jobid>.out
+grep -c PASS /engrfs/tmp/jacobsn/hiqbal_legalrag/logs/<jobid>.out
 ```
 
-## Install vLLM (on compute node)
+## Important Lessons Learned
 
-```bash
-srun -p general-gpu -A engr-lab-jacobsn --gpus a40:1 -c 8 --mem=64G -t 2:00:00 --pty /bin/bash
-source /engrfs/project/jacobsn/hiqbal/venvs/legalrag/bin/activate
-pip install vllm
-```
+- **`uv run` breaks vLLM**: `uv run` re-resolves deps, breaking vLLM's pinned versions → use `python` directly
+- **Home cache fills up**: vLLM torch compile cache fills `$HOME/.cache/` → always set `XDG_CACHE_HOME` to `/engrfs/tmp/...`
+- **vLLM startup is slow on NFS**: ~15 min for model load + CUDA kernel compile → health check timeout ≥ 20 min
+- **Exclude r28-1801**: Has RTX 2080 (8GB) — too small for any model > 4B
+- **Results only on completion**: `eval_harness.py` writes detail log + experiments.jsonl at END of run — killing mid-run loses all results
+- **Gemma models in non-standard cache path**: Downloaded via `snapshot_download(cache_dir=...)` → stored at `hf_cache/models--google--*`, not `hf_cache/hub/`
 
-## Notes
+## GPU Nodes Reference
 
-- Login node has no GPU — use compute nodes for GPU ops and vLLM install
-- System Python is 3.9; the venv uses uv-managed Python 3.11
-- The repo was cloned from `git@github.com:shrango/adaptive-plan-and-solve-agent.git`
-- `.env` on cluster is minimal: `LLM_PROVIDER=cluster-vllm` (SLURM scripts override via env vars)
-- Existing projects (TTE, HullCLIP) use conda envs, not this venv — no conflicts
+| Node | GPU | VRAM | Notes |
+|---|---|---|---|
+| a40-2206 | A40 | 48 GB | Primary for 8B models |
+| a60-2208/2209 | A6000 | 48 GB | Alternative to A40 |
+| a100-2207, a100s-2305-2308 | A100 | 80 GB | For 14B-32B models |
+| h100-2405 | H100 | 80 GB | Fastest, for large models |
+| r28-1801 | RTX 2080 | 8 GB | EXCLUDED — too small |
