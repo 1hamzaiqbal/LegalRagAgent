@@ -29,7 +29,7 @@ import pandas as pd
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-CHROMA_DB_DIR = "./chroma_db"
+CHROMA_DB_DIR = os.environ.get("CHROMA_DB_DIR", "./chroma_db")
 
 # Default embedding model (current baseline)
 DEFAULT_EMBEDDING_MODEL = "Alibaba-NLP/gte-large-en-v1.5"

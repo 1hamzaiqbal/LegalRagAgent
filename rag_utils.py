@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-CHROMA_DB_DIR = "./chroma_db"
+CHROMA_DB_DIR = os.getenv("CHROMA_DB_DIR", "./chroma_db")
 COLLECTION_NAME = "legal_passages"
 
 # Embedding model — configurable via env var. Default: gte-large-en-v1.5 (1024d, 8192 tokens)
