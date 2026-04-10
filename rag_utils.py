@@ -296,7 +296,7 @@ def _pool_and_dedup(doc_lists: List[List[Document]]) -> List[Document]:
 
 def retrieve_documents(query: str, k: int = 5, exclude_ids: set = None,
                        vectorstore: Chroma = None, use_bm25: bool = False,
-                       where: Dict = None) -> List[Document]:
+                       where: Dict = None, rerank_query: str = None) -> List[Document]:
     """Hybrid retrieval: BM25 + bi-encoder candidates → cross-encoder rerank.
 
     Both first-stage retrievers fetch k*3 candidates each. The combined pool
@@ -305,6 +305,8 @@ def retrieve_documents(query: str, k: int = 5, exclude_ids: set = None,
 
     Args:
         where: Optional ChromaDB metadata filter, e.g. {"source": "mbe"}.
+        rerank_query: If provided, cross-encoder reranks against this text instead of
+            the dense retrieval query. Useful for HyDE: embed(hyde_passage) but rerank(question).
     """
     vs = vectorstore or get_vectorstore()
     fetch_k = k * 3
@@ -319,29 +321,32 @@ def retrieve_documents(query: str, k: int = 5, exclude_ids: set = None,
             logger.warning("BM25 retrieval failed (falling back to dense-only): %s", e)
 
     candidates = _pool_and_dedup([dense_docs, bm25_docs])
-    return rerank_with_cross_encoder(query, candidates, top_k=k)
+    return rerank_with_cross_encoder(rerank_query or query, candidates, top_k=k)
 
 
 def retrieve_documents_multi_query(queries: List[str], k: int = 5,
                                    exclude_ids: set = None,
                                    vectorstore: Chroma = None,
                                    use_bm25: bool = False,
-                                   where: Dict = None) -> List[Document]:
+                                   where: Dict = None,
+                                   rerank_query: str = None) -> List[Document]:
     """Multi-query hybrid retrieval: pool BM25 + dense across all query variants.
 
     Each query variant contributes candidates from both BM25 and bi-encoder.
     All candidates are pooled and deduplicated. The cross-encoder reranks the
-    full pool against the PRIMARY query (first in list).
+    full pool against the PRIMARY query (first in list), or rerank_query if provided.
 
     Args:
         where: Optional ChromaDB metadata filter, e.g. {"source": "mbe"}.
+        rerank_query: If provided, cross-encoder reranks against this text instead of
+            queries[0]. Useful for HyDE: embed(hyde_passage) but rerank(question).
     """
     if not queries:
         return []
     if len(queries) == 1:
         return retrieve_documents(queries[0], k=k, exclude_ids=exclude_ids,
                                   vectorstore=vectorstore, use_bm25=use_bm25,
-                                  where=where)
+                                  where=where, rerank_query=rerank_query)
 
     vs = vectorstore or get_vectorstore()
     fetch_k = k * 3
@@ -356,7 +361,7 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
                 logger.warning("BM25 multi-query failed (dense-only for this variant): %s", e)
 
     candidates = _pool_and_dedup(all_lists)
-    return rerank_with_cross_encoder(queries[0], candidates, top_k=k)
+    return rerank_with_cross_encoder(rerank_query or queries[0], candidates, top_k=k)
 
 
 # ---------------------------------------------------------------------------

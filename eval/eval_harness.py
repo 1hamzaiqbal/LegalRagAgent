@@ -344,11 +344,19 @@ def run_golden_arb_conservative(row: pd.Series, config: EvalConfig) -> dict:
 
 def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
                          label_prefix: str = "rag", where: dict = None,
-                         collection: str = "legal_passages") -> dict:
-    """Shared retrieval + evidence formatting. Returns dict with passages, evidence_store, metadata."""
+                         collection: str = "legal_passages",
+                         rerank_query: str = None) -> dict:
+    """Shared retrieval + evidence formatting. Returns dict with passages, evidence_store, metadata.
+
+    Args:
+        rerank_query: If provided, cross-encoder reranks against this text instead of
+            the retrieval queries. Decouples dense retrieval from reranking (e.g., HyDE
+            for embedding but raw question for cross-encoder).
+    """
     embedding_model = os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or None
     vs = get_vectorstore(collection, embedding_model=embedding_model)
-    docs = retrieve_documents_multi_query(queries=queries, k=k, vectorstore=vs, where=where)
+    docs = retrieve_documents_multi_query(queries=queries, k=k, vectorstore=vs, where=where,
+                                          rerank_query=rerank_query)
 
     passages = []
     evidence_store = []
@@ -488,6 +496,46 @@ def run_rag_snap_hyde(row: pd.Series, config: EvalConfig) -> dict:
     # Step 4: Answer with evidence (direct, not arbitration — 70B does better without conservative bias)
     user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
     answer = _llm_call(_system_prompt(config, "rag"), user, label="snap_hyde/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "hyde_passage": hyde_passage,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
+def run_snap_hyde_aligned(row: pd.Series, config: EvalConfig) -> dict:
+    """Snap-HyDE with question-aligned reranking.
+
+    Dense retrieval uses the HyDE passage (testing embedding model's passage→passage ability),
+    but cross-encoder reranks against the raw question (same as rag_simple).
+    This isolates the embedding model's contribution from the reranking step.
+    """
+    question = _fmt(row, config)
+    raw_question = str(row["question"])
+
+    # Step 1: Snap answer
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_hyde_aligned/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Generate HyDE passage informed by the snap reasoning
+    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
+    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="snap_hyde_aligned/generate")
+
+    # Step 3: Retrieve using HyDE for dense embedding, but rerank against raw question
+    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="snap_hyde_aligned",
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config),
+                                     rerank_query=raw_question)
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Step 4: Answer with evidence
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="snap_hyde_aligned/answer")
 
     return {
         "final_answer": answer,
@@ -1327,6 +1375,7 @@ MODE_RUNNERS = {
     "rag_hyde_arb": run_rag_hyde_arb,
     "rag_multi_hyde": run_rag_multi_hyde,
     "rag_snap_hyde": run_rag_snap_hyde,
+    "snap_hyde_aligned": run_snap_hyde_aligned,
     "rag_devil_hyde": run_rag_devil_hyde,
     "rag_top2_hyde": run_rag_top2_hyde,
     "confidence_gated": run_confidence_gated,
