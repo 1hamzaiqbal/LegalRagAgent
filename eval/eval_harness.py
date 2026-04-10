@@ -548,6 +548,182 @@ def run_snap_hyde_aligned(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def _gap_analysis(snap_answer: str, question: str) -> list[dict]:
+    """Analyze gaps in the snap answer. Returns 0-3 structured gaps.
+
+    Uses loose text format instead of JSON — more robust with small models.
+    Each gap has: description (what's uncertain), sub_question (focused query).
+    Returns empty list if model finds no gaps (high confidence).
+    """
+    system = (
+        "You are a legal reasoning auditor. A student answered a legal question. "
+        "Identify 0-3 specific evidence gaps or weaknesses in their reasoning.\n\n"
+        "Use one line per gap in this format:\n"
+        "- gap: <what is uncertain> | ask: <focused sub-question>\n\n"
+        "If the reasoning is sound and complete, reply exactly: NONE"
+    )
+    user = (
+        f"## Student's Answer and Reasoning\n{snap_answer}\n\n"
+        f"## Original Question\n{question}"
+    )
+    raw = _llm_call(system, user, label="gap/analyze")
+
+    if "NONE" in raw.upper().split("\n")[0] if raw.strip() else True:
+        return []
+
+    gaps = []
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line or not line.startswith("-"):
+            continue
+        body = line.lstrip("- ").strip()
+        left, _, right = body.partition("| ask:")
+        desc = left.replace("gap:", "", 1).strip()
+        subq = right.strip() or desc
+        if desc:
+            gaps.append({"description": desc, "sub_question": subq})
+    return gaps[:3]
+
+
+GAP_MIN_CE = 1.0  # permissive floor — reject only clearly irrelevant evidence
+
+
+def _gap_retrieve(gap: dict, question: str, row: pd.Series,
+                  config: EvalConfig, gap_idx: int,
+                  method: str = "hyde") -> dict | None:
+    """Per-gap retrieval. method='hyde' generates a hypothetical passage; method='rag' uses sub-question."""
+    raw_question = str(row["question"])
+
+    if method == "hyde":
+        hyde_system = (
+            "You are a legal textbook author. Given an evidence gap in legal reasoning, "
+            "write a short passage (2-3 sentences) from a legal reference that would "
+            "directly address this gap. Write in reference style — state the law directly."
+        )
+        hyde_user = (
+            f"## Evidence Gap\n{gap['description']}\n\n"
+            f"## Sub-question\n{gap.get('sub_question', '')}\n\n"
+            f"## Original Question\n{question}"
+        )
+        query = _llm_call(hyde_system, hyde_user, label=f"gap/hyde_{gap_idx}")
+    else:
+        query = gap.get("sub_question", gap.get("description", ""))
+
+    retrieval = _retrieve_and_format(
+        row, [query], k=5, label_prefix=f"gap_{method}_{gap_idx}",
+        where=_where_from_config(config),
+        collection=_collection_for_config(config),
+        rerank_query=raw_question,
+    )
+
+    if retrieval["max_ce_score"] < GAP_MIN_CE:
+        return None
+
+    return {
+        "gap": gap,
+        "passages": retrieval["passages"],
+        "evidence_store": retrieval["evidence_store"],
+        "max_ce_score": retrieval["max_ce_score"],
+    }
+
+
+def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
+                      gap_results: list[dict | None], config: EvalConfig) -> str:
+    """Final answer: snap context + gap analysis + retrieved evidence."""
+    gap_sections = []
+    for i, (gap, result) in enumerate(zip(gaps, gap_results), 1):
+        if result is None:
+            gap_sections.append(f"### Gap {i}: {gap['description']}\nNo relevant evidence found.")
+        else:
+            passage_text = "\n\n".join(result["passages"])
+            gap_sections.append(
+                f"### Gap {i}: {gap['description']}\n"
+                f"Sub-question: {gap.get('sub_question', '')}\n"
+                f"Retrieved evidence:\n{passage_text}"
+            )
+
+    gap_block = "\n\n".join(gap_sections) if gap_sections else "No evidence gaps identified."
+
+    system = _system_prompt(config, "rag")
+    user = (
+        f"## Your Initial Answer\n{snap_answer}\n\n"
+        f"## Evidence Gathered for Identified Gaps\n{gap_block}\n\n"
+        f"## Question\n{question}"
+    )
+    return _llm_call(system, user, label="gap/final_answer")
+
+
+def _run_gap(row: pd.Series, config: EvalConfig,
+             method: str = "hyde", label: str = "gap_hyde") -> dict:
+    """Unified gap-informed retrieval: snap → gap analysis → per-gap retrieval → final answer.
+
+    Args:
+        method: 'hyde' (generate hypothetical passage per gap) or 'rag' (use sub-question directly)
+        label: prefix for LLM call labels
+    """
+    question = _fmt(row, config)
+
+    # Step 1: Snap
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label=f"{label}/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Gap analysis
+    gaps = _gap_analysis(snap_answer, question)
+
+    # Step 3: No gaps → use snap directly (natural confidence gating)
+    if not gaps:
+        return {
+            "final_answer": snap_answer,
+            "snap_answer": snap_answer,
+            "snap_letter": snap_letter,
+            "gaps": [],
+            "gap_results": [],
+            "evidence_store": [],
+            "retrieved_ids": [],
+            "gold_retrieved": False,
+        }
+
+    # Step 4: Per-gap retrieval
+    gap_results = []
+    all_evidence = []
+    all_ids = []
+    for i, gap in enumerate(gaps):
+        result = _gap_retrieve(gap, question, row, config, i, method=method)
+        gap_results.append(result)
+        if result:
+            all_evidence.extend(result["evidence_store"])
+            all_ids.extend([ev["idx"] for ev in result["evidence_store"]])
+
+    # Step 5: Final answer
+    gold_idx = str(row.get("gold_idx", ""))
+    answer = _gap_final_answer(snap_answer, question, gaps, gap_results, config)
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "gaps": gaps,
+        "gap_results": [
+            {"gap": r["gap"], "max_ce": r["max_ce_score"]} if r else None
+            for r in gap_results
+        ],
+        "evidence_store": all_evidence,
+        "retrieved_ids": all_ids,
+        "gold_retrieved": gold_idx in all_ids if gold_idx else False,
+    }
+
+
+def run_gap_hyde(row: pd.Series, config: EvalConfig) -> dict:
+    """Gap-informed HyDE: snap → gap analysis → per-gap HyDE retrieval → final answer."""
+    return _run_gap(row, config, method="hyde", label="gap_hyde")
+
+
+def run_gap_rag(row: pd.Series, config: EvalConfig) -> dict:
+    """Gap-informed RAG: snap → gap analysis → per-gap sub-question retrieval → final answer."""
+    return _run_gap(row, config, method="rag", label="gap_rag")
+
+
+
 def run_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
     """Score-thresholded Snap-HyDE: if best CE score < threshold, discard evidence and use snap answer."""
     CE_THRESHOLD = 4.0  # calibrated from N=200 BarExam analysis: snap=78% below, RAG=78% above
@@ -1376,6 +1552,8 @@ MODE_RUNNERS = {
     "rag_multi_hyde": run_rag_multi_hyde,
     "rag_snap_hyde": run_rag_snap_hyde,
     "snap_hyde_aligned": run_snap_hyde_aligned,
+    "gap_hyde": run_gap_hyde,
+    "gap_rag": run_gap_rag,
     "rag_devil_hyde": run_rag_devil_hyde,
     "rag_top2_hyde": run_rag_top2_hyde,
     "confidence_gated": run_confidence_gated,

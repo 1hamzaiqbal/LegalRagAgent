@@ -37,6 +37,8 @@ EVAL_MODES = {
     "rag_multi_hyde":           "Multi-HyDE: 3 hypothetical passages (rule/exception/application)",
     "rag_snap_hyde":            "Snap-informed HyDE: answer first, then targeted retrieval",
     "snap_hyde_aligned":        "Snap-HyDE aligned: HyDE for dense retrieval, raw question for cross-encoder reranking",
+    "gap_hyde":                 "Gap-informed HyDE: snap → gap analysis → per-gap HyDE retrieval → final answer",
+    "gap_rag":                  "Gap-informed RAG: snap → gap analysis → per-gap sub-question retrieval → final answer",
     "rag_devil_hyde":           "Devil's advocate HyDE: retrieve for AND against snap answer",
     "rag_top2_hyde":            "Top-2 HyDE: retrieve for snap answer + second-choice answer",
     "confidence_gated":         "Confidence-gated: 3 snap votes, unanimous=skip RAG, disagreement=Snap-HyDE",
