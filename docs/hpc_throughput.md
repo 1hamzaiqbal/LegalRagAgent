@@ -71,20 +71,12 @@ Much shorter answers than Qwen3-8B (~3K chars vs ~12K chars) → dramatically fa
 | 200 | ~33 min | ~1.7h | ~38 min / 1.8h |
 | 1195 (full) | ~3.3h | ~10h | ~3.5h / 10h |
 
-## Still Running (2026-04-08 evening)
-
-| Job ID | Mode | Model | GPU/Node | Questions | Progress | Accuracy |
-|---|---|---|---|---|---|---|
-| 40687 | rag_simple | Qwen3-8B | A6000 / a60-2209 | 600 | 388/600 (65%) | 52.0% |
-| 40736 | snap_hyde | Gemma 4 E4B | A6000 / a60-2209 | 1195 | 627/1195 (52%) | 60.1% |
-
-SLURM logs: `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/{jobid}.out`
-
 ## Completed Infrastructure
 
 | Item | Status | Details |
 |---|---|---|
-| Embedding build (40387) | ✅ Complete | 686,324 docs, 2.2h, ChromaDB at `chroma_db/` (3.1 GB) |
+| Baseline embedding build (40387) | ✅ Complete | 686,324 docs, gte-large, 2.2h, `chroma_db/` (3.1 GB) |
+| Embedding builds (40921) | ✅ Complete | 4 models built on local /tmp, copied to NFS |
 | Gemma 4 E4B download | ✅ Complete | 15 GB cached at HF cache |
 | Gemma 4 26B-A4B download | ✅ Complete | 49 GB cached at HF cache |
 | Gemma 4 venv (vLLM nightly) | ✅ Complete | vLLM 0.19.1rc1 + transformers 5.5.0 |
@@ -93,7 +85,7 @@ SLURM logs: `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/{jobid}.out`
 
 From `logs/experiments.jsonl` across all branches/machines:
 
-| Model | Size | llm_only | golden_passage | rag_simple | rag_snap_hyde |
+| Model | Size | llm_only | golden_passage | rag_simple | snap_hyde |
 |---|---|---|---|---|---|
 | deepseek-chat | — | 82.1% (N=28) | 85.7% (N=28) | — | — |
 | groq-llama70b | 70B | 72.5% (N=200) | 81.0% (N=100) | 73.0% (N=100) | 76.5% (N=200) |
@@ -103,18 +95,51 @@ From `logs/experiments.jsonl` across all branches/machines:
 | or-qwen3-8b | 8B | 54.2% | — | — | — |
 | groq-qwen3-32b | 32B | 59.3% | — | — | — |
 | groq-llama-8b | 8B | 53.0% | — | — | — |
-| **cluster qwen3-8b** | **8B** | **52.1%** | **60.1%** | **~52% (N=600 in prog)** | — |
-| **cluster gemma4-e4b** | **8B eff** | **55.5%** | **62.2%** | **54.2%** | **~60% (in prog)** |
+| **cluster qwen3-8b** | **8B** | **52.1%** | **60.1%** | **36.5%** (N=600)* | — |
+| **cluster gemma4-e4b** | **8B eff** | **55.5%** | **62.2%** | **54.2%** | **58.6%** |
+
+*Corrupted by concurrent ChromaDB writes during embedding builds. Not representative.
 
 ### Key Findings
 
 - **Gemma 4 E4B beats Qwen3-8B across all modes**: +3.4pp llm_only, +2.1pp golden, and 6.6x faster
-- **Gemma 4 E4B is the best small model tested**: 55.5% llm_only beats Qwen3-14B (57.7% via API) and approaches Gemma 27B (58.0%)
+- **Gemma 4 E4B is the best small model tested**: 55.5% llm_only approaches Gemma 27B (58.0%)
 - **Golden passage adds ~7pp consistently**: Qwen +8.0pp, Gemma +6.7pp
+- **Snap_hyde closes the golden gap**: Gemma snap_hyde 58.6% vs golden 62.2% (3.6pp gap, down from 7.7pp for rag_simple)
 - **RAG simple slightly hurts Gemma** (-1.3pp): consistent with models that already know the material
-- **Gemma snap_hyde tracking at 60.1%** — nearly closing the gap to golden (62.2%), suggesting HyDE retrieval is effective for this model
 - **Gemma generates 3.7x fewer tokens** (756 vs 2,774 avg) — more concise, still more accurate
 - **Speed**: Gemma 12.5s/q vs Qwen 82.6s/q (avg latency from completed runs)
+
+## Embedding Model Comparison (2026-04-09)
+
+All results: Gemma 4 E4B, N=200, seed=42, BarExam, cluster A6000.
+
+| Embedding Model | HF ID | Params | Dim | Max Tok | rag_simple | snap_hyde |
+|---|---|---|---|---|---|---|
+| **gte-large (baseline)** | Alibaba-NLP/gte-large-en-v1.5 | 434M | 1024 | 8192 | 57.0% | **65.5%** |
+| **legal-bert** | nlpaueb/legal-bert-base-uncased | 110M | 768 | 512 | **62.0%** | 60.0% |
+| stella-400m | dunzhang/stella_en_400M_v5 | 400M | 1024 | 131K | 61.0% | 60.0% |
+| bge-m3 | BAAI/bge-m3 | 568M | 1024 | 8192 | 61.0% | 60.0% |
+
+### Embedding Comparison Analysis
+
+1. **rag_simple: all alternatives beat baseline** (+4-5pp). legal-bert is best at 62.0%, nearly matching golden passage (62.2%).
+2. **snap_hyde: baseline dominates** at 65.5%. All alternatives converge to ~60.0%.
+3. **Asymmetric behavior explained by query type**:
+   - `rag_simple` embeds the raw question (question→passage similarity) — legal-bert's domain vocabulary helps here
+   - `rag_snap_hyde` embeds an LLM-generated hypothetical passage (passage→passage similarity) — gte-large's general embedding quality wins
+4. **Cross-encoder may be capping snap_hyde** — all non-baseline embedders produce the same 60.0%, suggesting the reranker is the bottleneck, not the first-stage retriever.
+5. **legal-bert is the smallest model** (110M) yet best on rag_simple — domain pretraining > parameter count for question-to-passage matching.
+
+### Remaining Embedders to Test
+
+| Short Name | HF ID | Params | Dim | Notes |
+|---|---|---|---|---|
+| stella-1.5b | dunzhang/stella_en_1.5B_v5 | 1.5B | 1024 | Highest MTEB retrieval (~59.8) |
+| gte-qwen2-1.5b | Alibaba-NLP/gte-Qwen2-1.5B-instruct | 1.5B | 1536 | LLM-based instruct embedder |
+| jina-v3 | jinaai/jina-embeddings-v3 | 570M | 1024 | Task-specific LoRA |
+| arctic-l-v2 | Snowflake/snowflake-arctic-embed-l-v2.0 | 568M | 1024 | No trust_remote_code |
+| nomic-v2-moe | nomic-ai/nomic-embed-text-v2-moe | 475M MoE | 768 | MoE architecture |
 
 ## Candidate Models for Next HPC Runs
 

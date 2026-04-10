@@ -54,6 +54,64 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 
 ---
 
+### 2026-04-09 — Embedding model A/B comparison on HPC cluster
+
+**Hypothesis:** Alternative embedding models (legal-domain, larger MTEB, multilingual) will improve retrieval quality and downstream accuracy compared to the gte-large-en-v1.5 baseline.
+
+**Change:** Built 4 embedding collections on cluster (local /tmp → NFS copy to avoid ChromaDB corruption). Each model gets its own ChromaDB directory. Ran rag_simple + snap_hyde for each at N=200 via autonomous SLURM pipeline.
+
+**Config:** Gemma 4 E4B (cluster-vllm), N=200, seed=42, BarExam. Cross-encoder reranking on for all.
+
+**Results:**
+
+| Embedding | Params | rag_simple | snap_hyde |
+|---|---|---|---|
+| gte-large (baseline) | 434M | 57.0% | **65.5%** |
+| legal-bert | 110M | **62.0%** | 60.0% |
+| stella-400m | 400M | 61.0% | 60.0% |
+| bge-m3 | 568M | 61.0% | 60.0% |
+
+Reference: golden_passage = 62.2%, llm_only = 55.5%.
+
+**Key findings:**
+1. **rag_simple: all alternatives beat baseline** (+4-5pp). legal-bert's 62.0% nearly matches golden ceiling (62.2%).
+2. **snap_hyde: baseline dominates** at 65.5%. All alternatives converge to exactly 60.0%.
+3. **Asymmetric response to HyDE**: rag_simple embeds the raw question (question→passage), where legal vocabulary helps. snap_hyde embeds an LLM-generated hypothetical passage (passage→passage), where gte-large's general quality wins.
+4. **Cross-encoder may be the bottleneck for snap_hyde**: all 3 non-baseline embedders produce identical 60.0%.
+5. **Domain pretraining > parameter count**: legal-bert (110M) beats stella-400m (400M) and bge-m3 (568M).
+
+**Verdict:** MIXED — Embedding matters for rag_simple (+5pp with legal-bert) but not for snap_hyde (baseline still best). Best overall: gte-large + snap_hyde at 65.5%.
+
+**Commit:** bc6e361 (scripts), this commit (results sync)
+
+---
+
+### 2026-04-08 — HPC cluster full BarExam: Gemma 4 E4B vs Qwen3-8B
+
+**Hypothesis:** Gemma 4 E4B (8B total, 4.5B effective MoE) will be competitive with Qwen3-8B despite lower effective parameter count.
+
+**Change:** Set up vLLM serving on WashU HPC with split-venv pattern. Ran full N=1195 BarExam across all modes.
+
+**Config:** Gemma 4 E4B (bf16, A6000) and Qwen3-8B (fp16, A40), N=1195 full BarExam.
+
+**Results:**
+
+| Mode | Gemma 4 E4B | Qwen3-8B | Delta |
+|---|---|---|---|
+| llm_only | **55.5%** | 52.1% | +3.4pp |
+| golden_passage | **62.2%** | 60.1% | +2.1pp |
+| rag_simple | **54.2%** | 36.5%* | — |
+| snap_hyde | **58.6%** | — | — |
+| avg latency | **12.5s** | 82.6s | **6.6x faster** |
+
+*Qwen rag_simple corrupted by ChromaDB concurrent writes.
+
+**Verdict:** CONFIRMED — Gemma 4 E4B is the best small model. 6.6x faster, 3.7x fewer tokens, higher accuracy.
+
+**Commit:** bc6e361
+
+---
+
 ### 2026-03-27 — CE score thresholding: skip RAG when retrieval quality is low
 
 **Hypothesis:** Discarding retrieved passages when the best cross-encoder score is below a threshold (falling back to snap answer) will improve accuracy by avoiding cases where bad evidence misleads the model.

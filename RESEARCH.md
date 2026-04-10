@@ -5,11 +5,11 @@ Persistent research state for the LegalRagAgent project. Read this first in any 
 This project started as a heavy agentic RAG pipeline that hurt performance. We stripped it down, systematically tested each component, and found that simpler adaptive strategies beat complex ones. The long-term goal is still a strong full agentic pipeline, but we're rebuilding toward it intentionally and atomically — testing each element's effectiveness and documenting what works about the research process itself.
 
 ## Current execution status
-- No LegalRAG eval is actively running right now.
-- Phase 1 small-model BarExam baselines: **5/7 complete**.
-- Best completed current baseline: `or-qwen3-32b` at **61.42%** (`734/1195`).
-- Remaining Phase 1 runs: `or-nemotron`, `or-qwen35-9b`.
-- Phases 2-6 from the March 31 plan have not started yet.
+- No LegalRAG eval is actively running on the cluster right now.
+- Phase 1 small-model baselines: **7/7 complete** (including HPC cluster runs).
+- Best small model: **Gemma 4 E4B** at 55.5% llm_only / 58.6% snap_hyde (full N=1195).
+- Embedding comparison (Phase 2 partial): **4/12 embedders tested** — gte-large, legal-bert, stella-400m, bge-m3.
+- Remaining Phase 1 runs on OpenRouter: `or-nemotron`, `or-qwen35-9b` (deferred, lower priority than embedding work).
 
 ---
 
@@ -129,8 +129,11 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 #### 7. Context-Aware Decoding
 - Contrast output probabilities with/without retrieved context. Research-heavy. May not be feasible with API-only models (need logprobs).
 
-#### 8. Embedding model upgrade
-- gte-Qwen2 family scores higher on MTEB. Would require re-embedding all corpora (~8+ hours GPU time). Defer until other improvements plateau.
+#### 8. Embedding model comparison — IN PROGRESS (2026-04-09)
+- **Phase 1 complete**: 4 embedders tested (gte-large, legal-bert, stella-400m, bge-m3) on rag_simple + snap_hyde, N=200, Gemma 4 E4B.
+- **Finding**: Alternative embedders beat baseline on rag_simple (+4-5pp) but snap_hyde flattens differences (~60% for all non-baseline).
+- **Phase 2 planned**: Test remaining models (stella-1.5b, gte-qwen2-1.5b, jina-v3, arctic-l-v2) and run full N=1195 for best embedder.
+- Infrastructure ready: `slurm_build_embeds_local.sh` + `slurm_phase2_after_embeds.sh` pipeline.
 
 #### 9. Domain-adaptive routing
 - Automatically detect whether errors are random (→ confidence_gated) or systematic (→ snap_hyde). Requires characterizing the domain's error mode, which may need a calibration run.
@@ -185,19 +188,19 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 - Added `docs/cluster_workflow.md` to capture the next useful infra step: cluster-based local inference / full eval bring-up.
 - Cleaned repo scratch artifacts by ignoring/removing transient session-export and inspection files.
 
-### Meeting action items status (audited 2026-04-03)
+### Meeting action items status (audited 2026-04-10)
 | # | Item | Status |
 |---|------|--------|
-| 1 | Try smaller models | 🔶 **Partially done** — 5/7 Phase 1 baselines complete |
-| 2 | Golden passage test | ⬜ Planned in Phase 2, not started |
+| 1 | Try smaller models | ✅ **Done** — Qwen3-8B, Gemma 4 E4B, plus 5 API models |
+| 2 | Golden passage test | ✅ **Done** — Qwen3-8B 60.1%, Gemma4 62.2%, Qwen32B 66.7%, Gemma27B 65.5% |
 | 3 | Case studies | ✅ Script built (`eval/case_studies.py`) |
 | 4 | Token/cost analysis | ✅ Script built (`eval/token_analysis.py`) |
-| 5 | RAG on small models | ⬜ Planned in Phase 3, not started |
+| 5 | RAG on small models | ✅ **Done** — rag_simple + snap_hyde on Gemma4 + Qwen3-8B |
 | 6 | Devil RAG inversion | ⬜ Planned in Phase 4, not started |
 | 7 | Self-consistency / confidence | ⬜ Planned in Phase 5/6, not started |
-| 8 | Embedding model comparison | 🔶 Ready on paper, still needs dedicated GPU time |
+| 8 | Embedding model comparison | 🔶 **Phase 1 done** — 4/12 embedders tested, 8 remaining |
 | 9 | MLEB benchmark | ❌ Not started |
-| 10 | ENGR node local inference | 🔶 Workflow drafted in `docs/cluster_workflow.md`, not tested yet |
+| 10 | ENGR node local inference | ✅ **Done** — vLLM serving Gemma4+Qwen3-8B on A40/A6000 |
 | 11 | SNAP-HyDE literature review | ❌ Not started |
 
 ### Latest meeting follow-up (2026-04-03)
@@ -215,26 +218,45 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 - `rag_simple / or-gemma27b / full`: **54.64%** vs gemma baseline **57.99%** → **-3.35pp**.
 - Current read: retrieval quality is a real bottleneck. Golden helps both models much more than the current plain retriever, especially Gemma.
 
-### Current active work (2026-04-06)
-- First embedding probe is running on the strongest current bottleneck target pair:
-  - embedding: `stella-400m`
-  - model/mode: `rag_simple / or-gemma27b / full / barexam`
-- The probe writes to a separate collection (`legal_passages__stella_en_400m_v5`), so the baseline vector store is not overwritten.
-- HPC/vLLM helper resources for a first local 8B eval are now in repo:
-  - `scripts/run_embedding_probe.sh`
-  - `scripts/hpc/slurm_vllm_eval_qwen3_8b.sh`
-  - `docs/hpc_qwen3_8b_eval.md`
+### Current active work (2026-04-10)
+
+#### Completed HPC cluster runs (2026-04-07 through 2026-04-09)
+- **Qwen3-8B full BarExam**: llm_only 52.1%, golden 60.1%, rag_simple 36.5% (corrupted)
+- **Gemma 4 E4B full BarExam**: llm_only 55.5%, golden 62.2%, rag_simple 54.2%, snap_hyde 58.6%
+- **Embedding comparison** (Gemma 4 E4B, N=200): 4 embedders x 2 modes = 8 eval runs
+
+#### Embedding comparison results (Gemma 4 E4B, N=200, BarExam)
+
+| Embedding | Params | Dim | rag_simple | snap_hyde |
+|---|---|---|---|---|
+| gte-large (baseline) | 434M | 1024 | 57.0% | **65.5%** |
+| legal-bert | 110M | 768 | **62.0%** | 60.0% |
+| stella-400m | 400M | 1024 | 61.0% | 60.0% |
+| bge-m3 | 568M | 1024 | 61.0% | 60.0% |
+
+**Key findings:**
+1. All 3 alternative embedders beat baseline on rag_simple (+4-5pp).
+2. legal-bert rag_simple (62.0%) nearly matches golden passage ceiling (62.2%).
+3. snap_hyde flattens all differences to ~60% for non-baseline embedders, while baseline stays at 65.5%.
+4. This asymmetry matters: rag_simple embeds the raw question (question→passage similarity), while snap_hyde embeds an LLM-generated hypothetical passage (passage→passage similarity). The baseline gte-large may be better at passage→passage matching, which is what snap_hyde needs.
+
+#### Untested embedders (available in EMBEDDING_MODELS dict)
+- `stella-1.5b`: 1.5B params, MTEB ~59.8 — previously failed due to transformers compat, may work with gemma4 venv
+- `gte-qwen2-1.5b`: 1.5B instruct embedder, 1536d, 32k context
+- `jina-v3`: 570M, task-specific LoRA adapters
+- `arctic-l-v2`: 568M, retrieval-optimized, no trust_remote_code needed
+- `nomic-v2-moe`: 475M MoE, 768d
 
 ### Next session: pick up here
-1. Let the `stella-400m` embedding probe finish on `rag_simple / or-gemma27b / full / barexam`.
-2. Decide whether the Stella result is a meaningful retrieval win before escalating to a larger embedding model.
-3. If another same-scale family comparison is still needed after the embedding result, prefer `or-mistral` next.
-4. In parallel, use the pushed HPC/vLLM scripts to bring up `Qwen/Qwen3-8B` on the WashU cluster.
-5. Only after the embedding signal is clear, branch into LazyGraphRAG / RAGFlow feasibility; keep open from the older backlog: confidence-gated integration into `main.py`, adaptive k, MC choice-aware prompting.
+1. Test remaining embedding models — prioritize `stella-1.5b` (strongest MTEB) and `jina-v3` (task-specific LoRA).
+2. Investigate why snap_hyde flattens at 60% for non-baseline embedders — may be a cross-encoder bottleneck.
+3. If a new embedder beats baseline snap_hyde (65.5%), run full N=1195 for it.
+4. Consider running the best rag_simple embedder (legal-bert at 62.0%) at full N=1195 to validate.
+5. Longer-term: LazyGraphRAG feasibility, confidence-gated integration into main.py.
 
 ### Blockers
-- OpenRouter free tier rate limits may throttle Phase 1 (Qwen3 models)
-- Embedding comparison needs exclusive GPU (pause RL-on-RL first)
+- Cluster GPU availability (general-gpu partition, priority queue)
+- stella-1.5b requires transformers>=5.5.0 (gemma4 venv has it, primary venv doesn't)
 - Cerebras API still broken (empty responses)
 
 ---

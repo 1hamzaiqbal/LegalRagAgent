@@ -9,10 +9,11 @@ The repo contains two layers:
 **Project direction:** the long-term goal is still a strong full agentic pipeline, but the current research program is rebuilding toward it atomically from smaller, controlled retrieval strategies and only keeping improvements that survive fixed-eval scrutiny.
 
 **Current headline results:**
-- BarExam best: `ce_threshold` on Llama 70B = **80.0%**
-- HousingQA best: `rag_snap_hyde` on Llama 70B = **56.0%**
-- CaseHOLD best: `llm_only` / `confidence_gated` = **72.5%**
-- Current small-model audit: **5/7** full-set Phase 1 baselines complete; best completed baseline is **OR Qwen3-32B = 61.42%** (`734/1195`)
+- BarExam best: `ce_threshold` on Llama 70B = **80.0%** (N=200)
+- HousingQA best: `rag_snap_hyde` on Llama 70B = **56.0%** (N=200)
+- CaseHOLD best: `llm_only` / `confidence_gated` = **72.5%** (N=200)
+- Best small model: **Gemma 4 E4B** at **55.5%** llm_only, **58.6%** snap_hyde (N=1195, 6.6x faster than Qwen3-8B)
+- Embedding comparison: legal-bert rag_simple (**62.0%**) nearly matches golden passage ceiling (62.2%), but baseline gte-large + snap_hyde (**65.5%**) remains best overall
 
 See `RESEARCH.md` for the current state + queue, and `EXPERIMENTS.md` for the full keep/discard history.
 
@@ -79,8 +80,29 @@ uv run python llm_config.py
 | llm_only | 64% | 47% | 72.5% |
 | rag_snap_hyde | 76.5% | **56%** | 71% |
 | confidence_gated | **79%** | 50.5% | 72.5% |
+| ce_threshold | **80%** | — | — |
 
 RAG helps most when the model has a genuine knowledge gap (HousingQA). On better-known domains, retrieval is often neutral or harmful unless carefully gated.
+
+### HPC Cluster Results (N=1195 full BarExam, local vLLM inference)
+
+| Model | llm_only | golden_passage | rag_simple | snap_hyde |
+|---|---|---|---|---|
+| Gemma 4 E4B | 55.5% | 62.2% | 54.2% | **58.6%** |
+| Qwen3-8B | 52.1% | 60.1% | 36.5%* | — |
+
+*ChromaDB corruption during concurrent embedding builds degraded this result.
+
+### Embedding Model Comparison (Gemma 4 E4B, N=200, BarExam)
+
+| Embedding Model | Params | rag_simple | snap_hyde |
+|---|---|---|---|
+| gte-large-en-v1.5 (baseline) | 434M | 57.0% | **65.5%** |
+| legal-bert-base-uncased | 110M | **62.0%** | 60.0% |
+| stella-en-400M-v5 | 400M | 61.0% | 60.0% |
+| bge-m3 | 568M | 61.0% | 60.0% |
+
+All alternative embedders beat baseline on rag_simple (+4-5pp), but snap_hyde flattens differences to ~60%. This suggests HyDE-generated passages are already well-matched by the baseline embedder, while raw questions benefit from different embedding geometry.
 
 ## Pipeline Architecture
 
@@ -102,10 +124,11 @@ START → router_node → planner_node → parallel_executor_node → parallel_s
 
 Source of truth: `rag_utils.py`
 
-- ChromaDB persisted in `./chroma_db/`
-- Embedding: `Alibaba-NLP/gte-large-en-v1.5` (1024d, 8192 tokens)
+- ChromaDB persisted in `./chroma_db/` (configurable via `CHROMA_DB_DIR` env var)
+- Default embedding: `Alibaba-NLP/gte-large-en-v1.5` (1024d, 8192 tokens)
+- Embedding A/B testing: 12+ models in `utils/fast_embed.py`, override via `EVAL_EMBEDDING_MODEL` env var
 - Reranker: `cross-encoder/ms-marco-MiniLM-L-6-v2`
-- Hybrid: BM25 + dense, cross-encoder reranks (BM25 skipped for collections >1M docs)
+- Dense retrieval (k=15) → cross-encoder rerank (top 5). BM25 available but disabled by default
 
 ## Project Structure
 
@@ -116,15 +139,17 @@ llm_config.py              # 30+ LLM provider configs, LRU-cached
 web_scraper.py             # DuckDuckGo + trafilatura for web_search steps
 skills/                    # 4 prompt files: planner, query_rewriter, synthesize_and_cite, synthesizer
 eval/
-  eval_harness.py          # Unified eval: 17 modes, 5 datasets, JSONL logging
+  eval_harness.py          # Unified eval: 21 modes, 5 datasets, JSONL logging
   eval_config.py           # Config, question loaders, answer extractors
   eval_analyze.py          # Post-hoc JSONL analysis
   curate_questions.py      # One-time question curation utility
 utils/
-  fast_embed.py            # GPU bulk embedding with resume support
+  fast_embed.py            # GPU bulk embedding with resume + A/B testing support
   download_data.py         # BarExam dataset fetcher
   download_housingqa.py    # HousingQA dataset fetcher
   download_new_datasets.py # CaseHOLD, Legal-RAG-QA, Australian Legal QA fetcher
+scripts/hpc/               # SLURM job scripts for WashU HPC cluster
+docs/                      # HPC throughput data, setup logs, experiment summaries
 RESEARCH.md                # Research state, experiment queue, session handoff
 EXPERIMENTS.md             # Full experiment log (hypothesis → result → verdict)
 CLAUDE.md                  # Operational source of truth
