@@ -577,9 +577,19 @@ def _gap_analysis(snap_answer: str, question: str) -> list[dict]:
         if not line or not line.startswith("-"):
             continue
         body = line.lstrip("- ").strip()
-        left, _, right = body.partition("| ask:")
-        desc = left.replace("gap:", "", 1).strip()
-        subq = right.strip() or desc
+        # Case-insensitive parsing for model output variation
+        body_lower = body.lower()
+        if "| ask:" in body_lower:
+            split_pos = body_lower.index("| ask:")
+            desc = body[:split_pos].strip()
+            subq = body[split_pos + 6:].strip()
+        else:
+            desc = body
+            subq = ""
+        # Strip "gap:" prefix if present (case-insensitive)
+        if desc.lower().startswith("gap:"):
+            desc = desc[4:].strip()
+        subq = subq or desc
         if desc:
             gaps.append({"description": desc, "sub_question": subq})
     return gaps[:3]
@@ -593,21 +603,21 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
                   method: str = "hyde") -> dict | None:
     """Per-gap retrieval. method='hyde' generates a hypothetical passage; method='rag' uses sub-question."""
     raw_question = str(row["question"])
+    desc = gap.get("description", "")
+    subq = gap.get("sub_question", desc)
+
+    if not desc and not subq:
+        return None  # malformed gap, skip
 
     if method == "hyde":
-        hyde_system = (
-            "You are a legal textbook author. Given an evidence gap in legal reasoning, "
-            "write a short passage (2-3 sentences) from a legal reference that would "
-            "directly address this gap. Write in reference style — state the law directly."
-        )
         hyde_user = (
-            f"## Evidence Gap\n{gap['description']}\n\n"
-            f"## Sub-question\n{gap.get('sub_question', '')}\n\n"
+            f"## Evidence Gap\n{desc}\n\n"
+            f"## Sub-question\n{subq}\n\n"
             f"## Original Question\n{question}"
         )
-        query = _llm_call(hyde_system, hyde_user, label=f"gap/hyde_{gap_idx}")
+        query = _llm_call(_system_prompt(config, "hyde"), hyde_user, label=f"gap/hyde_{gap_idx}")
     else:
-        query = gap.get("sub_question", gap.get("description", ""))
+        query = subq or desc
 
     retrieval = _retrieve_and_format(
         row, [query], k=5, label_prefix=f"gap_{method}_{gap_idx}",
@@ -632,13 +642,15 @@ def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
     """Final answer: snap context + gap analysis + retrieved evidence."""
     gap_sections = []
     for i, (gap, result) in enumerate(zip(gaps, gap_results), 1):
+        desc = gap.get("description", f"Gap {i}")
+        subq = gap.get("sub_question", "")
         if result is None:
-            gap_sections.append(f"### Gap {i}: {gap['description']}\nNo relevant evidence found.")
+            gap_sections.append(f"### Gap {i}: {desc}\nNo relevant evidence found.")
         else:
             passage_text = "\n\n".join(result["passages"])
             gap_sections.append(
-                f"### Gap {i}: {gap['description']}\n"
-                f"Sub-question: {gap.get('sub_question', '')}\n"
+                f"### Gap {i}: {desc}\n"
+                f"Sub-question: {subq}\n"
                 f"Retrieved evidence:\n{passage_text}"
             )
 
