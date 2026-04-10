@@ -138,6 +138,65 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 #### 9. Domain-adaptive routing
 - Automatically detect whether errors are random (→ confidence_gated) or systematic (→ snap_hyde). Requires characterizing the domain's error mode, which may need a calibration run.
 
+#### 10. Gap-informed retrieval — PLANNED (2026-04-10)
+
+A new multi-stage architecture where the model explicitly reasons about what evidence it needs before retrieving.
+
+**Architecture:**
+```
+SNAP → ANALYZE GAPS → SUBAGENT RETRIEVAL (per gap) → FINAL REASONING
+```
+
+**Stage 1: Snap** — LLM answers question cold (same as current snap). Output: reasoning + answer.
+
+**Stage 2: Gap Analysis** (NEW) — LLM reads its own snap answer + question, identifies 0-3 specific evidence gaps/flaws in its reasoning. Each gap is a targeted sub-question or uncertainty description.
+- 0 gaps = confident → skip retrieval, use snap answer directly (natural confidence gating)
+- 1-3 gaps = each becomes a retrieval task
+
+**Stage 3: Subagent Retrieval** (per gap) — Each gap dispatched to a retrieval sub-agent. Sub-agent retrieves evidence, then evaluates relevance — returns None if evidence is irrelevant (built-in quality gate). Three retrieval methods tested independently:
+- `gap_rag`: raw gap sub-question → dense retrieval (like rag_simple)
+- `gap_hyde`: gap description → LLM generates hypothetical passage → dense retrieval (like snap_hyde)
+- `gap_vectorless`: LLM generates relevant knowledge from memory (no vector store) — DEFERRED
+
+**Stage 4: Final Answer** — LLM gets structured input and re-answers. Test 3 input variants:
+- **(a)** Snap I/O + gap list + raw evidence passages only
+- **(b)** Snap I/O + gap list + evidence + sub-agent reasoning about evidence
+- **(c)** Snap I/O + gap list + sub-agent reasoning only (no raw passages)
+
+**Key design decisions:**
+- Gap analysis describes uncertainties (not pre-formed queries) — sub-agents handle query formation
+- Each retrieval method tested independently (all gaps use same method per eval run)
+- 0-gap case provides natural confidence gating via explicit reasoning
+- Sub-agent relevance filtering acts as an LLM-judged quality gate (like ce_threshold but semantic)
+
+**Eval plan:** Test on N=200, seed=42, BarExam, Gemma 4 E4B. Compare gap_rag/gap_hyde × 3 input variants = 6 new configs against existing baselines.
+
+**Prerequisites:** Phase 1 alignment testing must complete first to establish clean baselines.
+
+---
+
+## Current Plan (2026-04-10)
+
+### Phase 1: Alignment Testing
+Run all existing retrieval modes on the **same** N=200, seed=42, BarExam, Gemma 4 E4B for a clean comparison. Many of these have been tested before but on different models or sample sizes — need them all on the same setup.
+
+| Mode | LLM Calls | What It Tests | Status |
+|---|---|---|---|
+| `llm_only` | 1 | Pure knowledge baseline | done (55.5% N=1195) |
+| `rag_simple` | 1 | Raw question retrieval | done (57.0% N=200) |
+| `rag_snap_hyde` | 3 | HyDE passage retrieval | done (65.5% N=200) |
+| `snap_hyde_aligned` | 3 | HyDE retrieval + question-based reranking | running (job 42280) |
+| `rag_rewrite` | 3 | Multi-query rewritten retrieval | **needs run** |
+| `golden_passage` | 1 | Ceiling (perfect retrieval) | done (62.2% N=1195) |
+| `rag_arbitration` | 2 | Snap → review with retrieved evidence | **needs run** |
+| `ce_threshold` | 2-3 | Snap → HyDE → skip if low CE score | **needs run** |
+
+### Phase 2: Gap-Informed Retrieval
+Implement and test the gap architecture (Tier 2 #10 above). 6 configs: gap_rag × 3 inputs + gap_hyde × 3 inputs.
+
+### Phase 3: Vectorless RAG (deferred)
+LLM-as-retriever: parallel LLM sub-agents generate knowledge from memory instead of vector search. Can use the same gap architecture with a different sub-agent type.
+
 ---
 
 ## Active Experiment
