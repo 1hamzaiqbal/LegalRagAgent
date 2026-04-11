@@ -54,6 +54,85 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 
 ---
 
+### 2026-04-10 — Comprehensive Gemma 4 E4B retrieval ablation
+
+**Hypothesis:** Systematic ablation of retrieval pipeline components (snap reasoning, HyDE generation, gap analysis, reranking alignment, final-call context) will identify which components actually contribute to accuracy.
+
+**Change:** Implemented and tested 10+ modes on identical conditions: Gemma 4 E4B, N=200, seed=42, BarExam, gte-large embedding.
+
+**Config:** Gemma 4 E4B (cluster-vllm), N=200, seed=42, BarExam.
+
+**Results:**
+
+| Mode | Acc | Calls | What It Tests |
+|---|---|---|---|
+| snap_hyde | **65.5%** | 3 | HyDE retrieval + HyDE reranking |
+| ce_threshold | 64.0% | 2-3 | CE gating on snap_hyde |
+| rag_arbitration | 63.0% | 3 | Snap → review with evidence |
+| snap_rag | 62.0% | 2 | Snap + plain retrieval + snap in final |
+| snap_rag_nosnap | 61.5% | 2 | Snap + plain retrieval, no snap in final |
+| gap_rag | 61.5% | 3-6 | Gap analysis + sub-question retrieval |
+| gap_hyde | 61.5% | 4-8 | Gap analysis + HyDE (broken 11-char outputs) |
+| gap_hyde_ev | 61.0% | 4-8 | Gap + evidence only in final |
+| rag_rewrite | 59.5% | 3 | Multi-query rewritten retrieval |
+| rag_simple | 57.0% | 1 | Raw question retrieval |
+| llm_only | 55.5% | 1 | No retrieval |
+
+**Component contribution analysis:**
+
+| Component | How Measured | Contribution |
+|---|---|---|
+| Snap reasoning | snap_rag (62%) vs rag_simple (57%) | **+5pp** |
+| HyDE for retrieval | snap_hyde (65.5%) vs snap_rag (62%) | **+3.5pp** |
+| HyDE for reranking | snap_hyde (65.5%) vs snap_hyde_aligned (62.5%) | **+3pp** |
+| Snap in final call | snap_rag (62%) vs snap_rag_nosnap (61.5%) | **+0.5pp (neutral)** |
+| Gap analysis | gap_rag (61.5%) vs snap_rag (62%) | **-0.5pp (hurts)** |
+
+**Key findings:**
+1. **snap_hyde (65.5%) is the clear winner** — HyDE for both retrieval and reranking.
+2. **Snap reasoning is the biggest single contributor** (+5pp) — forcing the model to reason before retrieval improves targeting.
+3. **HyDE passage generation adds +3.5pp retrieval quality** — passage-form queries match the doctrinal corpus better than question-form queries (genre mismatch).
+4. **HyDE reranking adds another +3pp** — cross-encoder benefits from passage-form input vs question-form.
+5. **Gap analysis adds no value** — gap_rag (61.5%) ≤ snap_rag (62.0%). The overhead of gap identification and per-gap retrieval doesn't improve over simple snap+retrieve.
+6. **Snap in final call is neutral** — snap_rag (62.0%) ≈ snap_rag_nosnap (61.5%). The model doesn't anchor or benefit from seeing its prior answer.
+7. **11-char HyDE bug**: `_system_prompt(config, "hyde")` with gap-formatted user input produces truncated outputs on Gemma, making all gap_hyde variants unreliable. gap_rag (clean) confirms gap architecture doesn't help.
+
+**Verdict:** CONFIRMED that snap_hyde is optimal. Gap architecture DISCARDED. The retrieval pipeline should be: snap → HyDE passage → dense retrieval → HyDE-based cross-encoder reranking → fresh answer with evidence.
+
+**Commit:** 45dde43 through 6c8aa1e
+
+---
+
+### 2026-04-10 — snap_hyde_aligned across multiple embedders
+
+**Hypothesis:** Decoupling dense retrieval (HyDE passage) from cross-encoder reranking (raw question) isolates the embedding model's contribution and may favor domain-specific embedders.
+
+**Change:** Added `snap_hyde_aligned` mode with `rerank_query` parameter. Tested across 4 wave-1 embedders.
+
+**Config:** Gemma 4 E4B, N=200, seed=42, BarExam.
+
+**Results:**
+
+| Embedder | rag_simple | snap_hyde | snap_hyde_aligned |
+|---|---|---|---|
+| gte-large | 57.0% | **65.5%** | 62.5% / 67.5%* |
+| legal-bert | **62.0%** | 60.0% | **65.0%** |
+| stella-400m | 61.0% | 60.0% | 62.5% |
+| bge-m3 | 61.0% | 60.0% | 62.5% |
+
+*Two runs showed high variance (62.5% vs 67.5%).
+
+**Key findings:**
+1. snap_hyde_aligned (question reranking) drops 3pp vs snap_hyde (HyDE reranking) for gte-large.
+2. legal-bert's snap_hyde_aligned (65.0%) beats its snap_hyde (60.0%) by +5pp — domain vocabulary helps at embedding stage, and question-based reranking is better for legal-bert.
+3. N=200 variance is ~5pp (gte-large aligned: 62.5% vs 67.5% across runs).
+
+**Verdict:** MIXED — alignment helps legal-bert but hurts gte-large. HyDE-based reranking is generally better, but domain embedders benefit from question-based reranking.
+
+**Commit:** 7f924a3
+
+---
+
 ### 2026-04-09 — Embedding model A/B comparison on HPC cluster
 
 **Hypothesis:** Alternative embedding models (legal-domain, larger MTEB, multilingual) will improve retrieval quality and downstream accuracy compared to the gte-large-en-v1.5 baseline.

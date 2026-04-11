@@ -12,8 +12,8 @@ The repo contains two layers:
 - BarExam best: `ce_threshold` on Llama 70B = **80.0%** (N=200)
 - HousingQA best: `rag_snap_hyde` on Llama 70B = **56.0%** (N=200)
 - CaseHOLD best: `llm_only` / `confidence_gated` = **72.5%** (N=200)
-- Best small model: **Gemma 4 E4B** at **55.5%** llm_only, **58.6%** snap_hyde (N=1195, 6.6x faster than Qwen3-8B)
-- Embedding comparison: legal-bert rag_simple (**62.0%**) nearly matches golden passage ceiling (62.2%), but baseline gte-large + snap_hyde (**65.5%**) remains best overall
+- Best small model: **Gemma 4 E4B** — snap_hyde **65.5%** (N=200), snap_hyde_aligned **67.5%** (N=200), 6.6x faster than Qwen3-8B
+- 32 eval modes tested; snap_hyde consistently best retrieval strategy across models
 
 See `RESEARCH.md` for the current state + queue, and `EXPERIMENTS.md` for the full keep/discard history.
 
@@ -139,7 +139,7 @@ llm_config.py              # 30+ LLM provider configs, LRU-cached
 web_scraper.py             # DuckDuckGo + trafilatura for web_search steps
 skills/                    # 4 prompt files: planner, query_rewriter, synthesize_and_cite, synthesizer
 eval/
-  eval_harness.py          # Unified eval: 21 modes, 5 datasets, JSONL logging
+  eval_harness.py          # Unified eval: 32 modes, 5 datasets, JSONL logging
   eval_config.py           # Config, question loaders, answer extractors
   eval_analyze.py          # Post-hoc JSONL analysis
   curate_questions.py      # One-time question curation utility

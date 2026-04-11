@@ -180,16 +180,23 @@ SNAP → ANALYZE GAPS → SUBAGENT RETRIEVAL (per gap) → FINAL REASONING
 ### Phase 1: Alignment Testing
 Run all existing retrieval modes on the **same** N=200, seed=42, BarExam, Gemma 4 E4B for a clean comparison. Many of these have been tested before but on different models or sample sizes — need them all on the same setup.
 
-| Mode | LLM Calls | What It Tests | Status |
+| Mode | LLM Calls | Accuracy | What It Tests |
 |---|---|---|---|
-| `llm_only` | 1 | Pure knowledge baseline | done (55.5% N=1195) |
-| `rag_simple` | 1 | Raw question retrieval | done (57.0% N=200) |
-| `rag_snap_hyde` | 3 | HyDE passage retrieval | done (65.5% N=200) |
-| `snap_hyde_aligned` | 3 | HyDE retrieval + question-based reranking | running (job 42280) |
-| `rag_rewrite` | 3 | Multi-query rewritten retrieval | **needs run** |
-| `golden_passage` | 1 | Ceiling (perfect retrieval) | done (62.2% N=1195) |
-| `rag_arbitration` | 2 | Snap → review with retrieved evidence | **needs run** |
-| `ce_threshold` | 2-3 | Snap → HyDE → skip if low CE score | **needs run** |
+| `snap_hyde_aligned` (gte-large run2) | 3 | **67.5%** | HyDE retrieval + question reranking (high variance) |
+| `rag_snap_hyde` (gte-large) | 3 | **65.5%** | HyDE passage retrieval + HyDE reranking |
+| `snap_hyde_aligned` (legal-bert) | 3 | 65.0% | Domain embedding + question reranking |
+| `ce_threshold` | 2-3 | 64.0% | CE gating on snap_hyde |
+| `rag_arbitration` | 3 | 63.0% | Snap → review with retrieved evidence |
+| `snap_hyde_aligned` (gte-large run1) | 3 | 62.5% | HyDE retrieval + question reranking |
+| `golden_passage` | 1 | 62.2% | Ceiling (perfect retrieval, N=1195) |
+| `snap_rag` | 2 | 62.0% | Snap + plain retrieval + snap in final |
+| `snap_rag_nosnap` | 2 | 61.5% | Snap + plain retrieval, no snap in final (control) |
+| `gap_rag` | 3-6 | 61.5% | Gap analysis + sub-question retrieval |
+| `gap_hyde` | 4-8 | 61.5% | Gap analysis + HyDE retrieval (broken 11-char HyDE) |
+| `gap_hyde_ev` | 4-8 | 61.0% | Gap + evidence only in final (broken HyDE) |
+| `rag_rewrite` | 3 | 59.5% | Multi-query rewritten retrieval |
+| `rag_simple` (gte-large) | 1 | 57.0% | Raw question retrieval baseline |
+| `llm_only` | 1 | 55.5% | No retrieval (N=1195) |
 
 ### Phase 2: Gap-Informed Retrieval
 Implement and test the gap architecture (Tier 2 #10 above). 6 configs: gap_rag × 3 inputs + gap_hyde × 3 inputs.
@@ -306,16 +313,47 @@ LLM-as-retriever: parallel LLM sub-agents generate knowledge from memory instead
 - `arctic-l-v2`: 568M, retrieval-optimized, no trust_remote_code needed
 - `nomic-v2-moe`: 475M MoE, 768d
 
+### Session summary (2026-04-10)
+
+**Phase 1 alignment complete.** All major retrieval modes tested on Gemma 4 E4B N=200 BarExam:
+- snap_hyde (65.5%) is the clear winner — HyDE for both retrieval and reranking
+- ce_threshold (64.0%), rag_arbitration (63.0%) are solid alternatives
+- Gap architecture (61.5%) adds no value — gap analysis doesn't improve over simpler snap+retrieve
+
+**Phase 2 gap architecture complete.** Implemented and tested:
+- gap_hyde, gap_rag, gap_hyde_ev, snap_rag, snap_rag_nosnap
+- Key finding: gap analysis (0-3 gaps → per-gap retrieval) performs at 61.5%, same as simpler snap_rag (62.0%)
+- Snap context in final call is neutral (+0.5pp)
+- HyDE per-gap is broken on Gemma (11-char outputs from `_system_prompt(config, "hyde")` with gap-formatted input)
+
+**Embedding comparison (7/9 embedders tested):**
+- Wave 1: gte-large, legal-bert, stella-400m, bge-m3
+- Wave 2: jina-v3, arctic-l-v2, nomic-v2-moe (built, eval in progress)
+- Failed: gte-qwen2-1.5b, stella-1.5b (transformers rope_theta compat)
+- snap_hyde_aligned results: legal-bert 65.0%, all others 62.5%
+
+**Key ablation findings:**
+- Snap reasoning adds +5pp (snap_rag 62% vs rag_simple 57%)
+- HyDE passage adds +3.5pp retrieval quality (snap_hyde 65.5% vs snap_rag 62%)
+- HyDE reranking adds +3pp (snap_hyde 65.5% vs snap_hyde_aligned 62.5%)
+- Gap analysis adds -0.5pp (gap_rag 61.5% vs snap_rag 62%)
+- Snap visible in final call adds +0.5pp (neutral)
+
+**Known issues:**
+- 11-char HyDE bug: `_system_prompt(config, "hyde")` with gap-formatted user input produces truncated outputs on Gemma
+- Gap analysis prompt sensitivity: old prompt → 0% NONE (always finds gaps), new prompt → 97% NONE (almost never finds gaps)
+- N=200 variance: snap_hyde_aligned ranged 62.5%–67.5% across runs
+
 ### Next session: pick up here
-1. Test remaining embedding models — prioritize `stella-1.5b` (strongest MTEB) and `jina-v3` (task-specific LoRA).
-2. Investigate why snap_hyde flattens at 60% for non-baseline embedders — may be a cross-encoder bottleneck.
-3. If a new embedder beats baseline snap_hyde (65.5%), run full N=1195 for it.
-4. Consider running the best rag_simple embedder (legal-bert at 62.0%) at full N=1195 to validate.
-5. Longer-term: LazyGraphRAG feasibility, confidence-gated integration into main.py.
+1. Wave 2 embedding eval still running (job 42317) — sync results for jina-v3, arctic-l-v2, nomic-v2-moe
+2. Record all Phase 1 + Phase 2 experiments in EXPERIMENTS.md
+3. Consider running snap_hyde at full N=1195 with legal-bert embedder (65.0% aligned result suggests potential)
+4. Fix the 11-char HyDE bug if revisiting gap architecture (use snap_hyde prompt instead of hyde prompt)
+5. Longer-term: vectorless RAG (LLM-as-retriever), LazyGraphRAG, confidence-gated integration into main.py
 
 ### Blockers
 - Cluster GPU availability (general-gpu partition, priority queue)
-- stella-1.5b requires transformers>=5.5.0 (gemma4 venv has it, primary venv doesn't)
+- 11-char HyDE bug blocks gap_hyde variants from producing valid results
 - Cerebras API still broken (empty responses)
 
 ---
