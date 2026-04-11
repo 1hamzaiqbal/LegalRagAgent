@@ -97,6 +97,11 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 6. **Snap in final call is neutral** — snap_rag (62.0%) ≈ snap_rag_nosnap (61.5%). The model doesn't anchor or benefit from seeing its prior answer.
 7. **11-char HyDE bug**: `_system_prompt(config, "hyde")` with gap-formatted user input produces truncated outputs on Gemma, making all gap_hyde variants unreliable. gap_rag (clean) confirms gap architecture doesn't help.
 
+**Tainted results (DO NOT USE for decisions):**
+- `gap_hyde_nosnap` (61.5%, avg 2.0 calls) — mid-job SCP changed gap analysis prompt to overly conservative version; 97% of questions returned NONE, making this effectively llm_only. Not a valid test of the no-snap variant.
+- `gap_hyde_flat` — same tainted prompt, same issue. If completed, also invalid.
+- **Clean results from job 42403**: only `gap_hyde_ev` (61.0%) used the original prompt and is valid.
+
 **Verdict:** CONFIRMED that snap_hyde is optimal. Gap architecture DISCARDED. The retrieval pipeline should be: snap → HyDE passage → dense retrieval → HyDE-based cross-encoder reranking → fresh answer with evidence.
 
 **Commit:** 45dde43 through 6c8aa1e
