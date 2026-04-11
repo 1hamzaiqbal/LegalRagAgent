@@ -556,11 +556,19 @@ def _gap_analysis(snap_answer: str, question: str) -> list[dict]:
     Returns empty list if model finds no gaps (high confidence).
     """
     system = (
-        "You are a legal reasoning auditor. A student answered a legal question. "
-        "Identify 0-3 specific evidence gaps or weaknesses in their reasoning.\n\n"
-        "Use one line per gap in this format:\n"
-        "- gap: <what is uncertain> | ask: <focused sub-question>\n\n"
-        "If the reasoning is sound and complete, reply exactly: NONE"
+        "You are deciding whether additional evidence retrieval is needed before revising a legal answer.\n\n"
+        "First make a confidence judgment. The default and expected outcome is no extra retrieval; NONE should be common.\n"
+        "If the answer is already likely correct from your current knowledge and there is no concrete unresolved rule, fact, element, or exception that could change the answer, reply exactly:\n"
+        "NONE\n\n"
+        "Only if there is real uncertainty about the answer, output 1-3 lines, one per gap, in exactly this format:\n"
+        "- gap: <what specific rule, fact, element, or exception is uncertain> | ask: <focused sub-question>\n\n"
+        "Important rules:\n"
+        "- Do not audit for every possible weakness.\n"
+        "- Do not generate gaps just to be thorough.\n"
+        "- Do not create a gap just because the answer lacks citations or could be more complete.\n"
+        "- Create a gap only when resolving it would materially increase confidence or could realistically change the answer.\n"
+        "- Prefer NONE over weak gaps.\n"
+        "- If gaps are needed, prefer 1 focused gap over multiple overlapping gaps."
     )
     user = (
         f"## Student's Answer and Reasoning\n{snap_answer}\n\n"
@@ -568,7 +576,10 @@ def _gap_analysis(snap_answer: str, question: str) -> list[dict]:
     )
     raw = _llm_call(system, user, label="gap/analyze")
 
-    if "NONE" in raw.upper().split("\n")[0] if raw.strip() else True:
+    lines = [line.strip() for line in raw.splitlines() if line.strip()]
+    if not lines:
+        return []
+    if len(lines) == 1 and lines[0].upper().rstrip(".") == "NONE":
         return []
 
     gaps = []
