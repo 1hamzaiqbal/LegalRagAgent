@@ -638,8 +638,18 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
 
 
 def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
-                      gap_results: list[dict | None], config: EvalConfig) -> str:
-    """Final answer: snap context + gap analysis + retrieved evidence."""
+                      gap_results: list[dict | None], config: EvalConfig,
+                      final_input: str = "full") -> str:
+    """Final answer with configurable input.
+
+    final_input controls what context the final LLM sees:
+      - 'full': snap answer + gap descriptions + evidence (default)
+      - 'evidence_only': just retrieved passages + question (no snap, no gap structure)
+      - 'no_snap': gap descriptions + evidence + question (no snap answer)
+      - 'snap_and_evidence': snap answer + flat evidence (no gap structure)
+    """
+    # Build evidence from gap results
+    all_passages = []
     gap_sections = []
     for i, (gap, result) in enumerate(zip(gaps, gap_results), 1):
         desc = gap.get("description", f"Gap {i}")
@@ -648,6 +658,7 @@ def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
             gap_sections.append(f"### Gap {i}: {desc}\nNo relevant evidence found.")
         else:
             passage_text = "\n\n".join(result["passages"])
+            all_passages.extend(result["passages"])
             gap_sections.append(
                 f"### Gap {i}: {desc}\n"
                 f"Sub-question: {subq}\n"
@@ -655,23 +666,42 @@ def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
             )
 
     gap_block = "\n\n".join(gap_sections) if gap_sections else "No evidence gaps identified."
+    flat_passages = "\n\n".join(all_passages) if all_passages else "No evidence retrieved."
 
     system = _system_prompt(config, "rag")
-    user = (
-        f"## Your Initial Answer\n{snap_answer}\n\n"
-        f"## Evidence Gathered for Identified Gaps\n{gap_block}\n\n"
-        f"## Question\n{question}"
-    )
+
+    if final_input == "evidence_only":
+        user = f"## Retrieved Passages\n{flat_passages}\n\n## Question\n{question}"
+    elif final_input == "no_snap":
+        user = (
+            f"## Evidence Gathered for Identified Gaps\n{gap_block}\n\n"
+            f"## Question\n{question}"
+        )
+    elif final_input == "snap_and_evidence":
+        user = (
+            f"## Your Initial Answer\n{snap_answer}\n\n"
+            f"## Retrieved Passages\n{flat_passages}\n\n"
+            f"## Question\n{question}"
+        )
+    else:  # full
+        user = (
+            f"## Your Initial Answer\n{snap_answer}\n\n"
+            f"## Evidence Gathered for Identified Gaps\n{gap_block}\n\n"
+            f"## Question\n{question}"
+        )
+
     return _llm_call(system, user, label="gap/final_answer")
 
 
 def _run_gap(row: pd.Series, config: EvalConfig,
-             method: str = "hyde", label: str = "gap_hyde") -> dict:
+             method: str = "hyde", label: str = "gap_hyde",
+             final_input: str = "full") -> dict:
     """Unified gap-informed retrieval: snap → gap analysis → per-gap retrieval → final answer.
 
     Args:
         method: 'hyde' (generate hypothetical passage per gap) or 'rag' (use sub-question directly)
         label: prefix for LLM call labels
+        final_input: what the final LLM sees — 'full', 'evidence_only', 'no_snap', 'snap_and_evidence'
     """
     question = _fmt(row, config)
 
@@ -708,7 +738,8 @@ def _run_gap(row: pd.Series, config: EvalConfig,
 
     # Step 5: Final answer
     gold_idx = str(row.get("gold_idx", ""))
-    answer = _gap_final_answer(snap_answer, question, gaps, gap_results, config)
+    answer = _gap_final_answer(snap_answer, question, gaps, gap_results, config,
+                               final_input=final_input)
 
     return {
         "final_answer": answer,
@@ -726,12 +757,27 @@ def _run_gap(row: pd.Series, config: EvalConfig,
 
 
 def run_gap_hyde(row: pd.Series, config: EvalConfig) -> dict:
-    """Gap-informed HyDE: snap → gap analysis → per-gap HyDE retrieval → final answer."""
+    """Gap-informed HyDE: snap + gaps + evidence in final call (full context)."""
     return _run_gap(row, config, method="hyde", label="gap_hyde")
 
 
+def run_gap_hyde_ev(row: pd.Series, config: EvalConfig) -> dict:
+    """Gap-informed HyDE: evidence only in final call (no snap, no gap structure)."""
+    return _run_gap(row, config, method="hyde", label="gap_hyde_ev", final_input="evidence_only")
+
+
+def run_gap_hyde_nosnap(row: pd.Series, config: EvalConfig) -> dict:
+    """Gap-informed HyDE: gaps + evidence but no snap answer in final call."""
+    return _run_gap(row, config, method="hyde", label="gap_hyde_ns", final_input="no_snap")
+
+
+def run_gap_hyde_flat(row: pd.Series, config: EvalConfig) -> dict:
+    """Gap-informed HyDE: snap + flat evidence (no gap structure) in final call."""
+    return _run_gap(row, config, method="hyde", label="gap_hyde_flat", final_input="snap_and_evidence")
+
+
 def run_gap_rag(row: pd.Series, config: EvalConfig) -> dict:
-    """Gap-informed RAG: snap → gap analysis → per-gap sub-question retrieval → final answer."""
+    """Gap-informed RAG: snap + gaps + evidence in final call (full context)."""
     return _run_gap(row, config, method="rag", label="gap_rag")
 
 
@@ -1565,6 +1611,9 @@ MODE_RUNNERS = {
     "rag_snap_hyde": run_rag_snap_hyde,
     "snap_hyde_aligned": run_snap_hyde_aligned,
     "gap_hyde": run_gap_hyde,
+    "gap_hyde_ev": run_gap_hyde_ev,
+    "gap_hyde_nosnap": run_gap_hyde_nosnap,
+    "gap_hyde_flat": run_gap_hyde_flat,
     "gap_rag": run_gap_rag,
     "rag_devil_hyde": run_rag_devil_hyde,
     "rag_top2_hyde": run_rag_top2_hyde,
