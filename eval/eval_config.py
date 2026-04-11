@@ -42,6 +42,8 @@ EVAL_MODES = {
     "gap_hyde_nosnap":          "Gap-informed HyDE: gaps + evidence in final (no snap answer)",
     "gap_hyde_flat":            "Gap-informed HyDE: snap + flat evidence in final (no gap structure)",
     "gap_rag":                  "Gap-informed RAG: snap + gaps + evidence in final (full context)",
+    "snap_rag":                 "Snap + simple RAG: snap answer then retrieve with raw question, re-answer with both",
+    "snap_rag_nosnap":          "Snap + simple RAG: snap then retrieve, but final call only sees evidence (control)",
     "rag_devil_hyde":           "Devil's advocate HyDE: retrieve for AND against snap answer",
     "rag_top2_hyde":            "Top-2 HyDE: retrieve for snap answer + second-choice answer",
     "confidence_gated":         "Confidence-gated: 3 snap votes, unanimous=skip RAG, disagreement=Snap-HyDE",

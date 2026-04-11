@@ -792,6 +792,70 @@ def run_gap_rag(row: pd.Series, config: EvalConfig) -> dict:
     return _run_gap(row, config, method="rag", label="gap_rag")
 
 
+def run_snap_rag(row: pd.Series, config: EvalConfig) -> dict:
+    """Snap + simple RAG: answer first, then retrieve with raw question, re-answer with snap + evidence.
+
+    Tests whether snap context improves a simple RAG answer without any gap analysis or HyDE.
+    2 LLM calls: snap + final answer with evidence.
+    """
+    question = _fmt(row, config)
+    raw_question = str(row["question"])
+
+    # Step 1: Snap
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_rag/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Retrieve with raw question, rerank against raw question (same as rag_simple)
+    retrieval = _retrieve_and_format(row, [raw_question], k=5, label_prefix="snap_rag",
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Step 3: Final answer with snap context + evidence
+    system = _system_prompt(config, "rag")
+    user = (
+        f"## Your Initial Answer\n{snap_answer}\n\n"
+        f"## Retrieved Passages\n{passage_block}\n\n"
+        f"## Question\n{question}"
+    )
+    answer = _llm_call(system, user, label="snap_rag/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
+def run_snap_rag_nosnap(row: pd.Series, config: EvalConfig) -> dict:
+    """Snap + simple RAG but final call only sees evidence (no snap). Controls for whether snap helps final answer."""
+    question = _fmt(row, config)
+    raw_question = str(row["question"])
+
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_rag_ns/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    retrieval = _retrieve_and_format(row, [raw_question], k=5, label_prefix="snap_rag_ns",
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Final answer WITHOUT snap — just evidence + question (same as rag_simple but 2 calls)
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="snap_rag_ns/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
 
 def run_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
     """Score-thresholded Snap-HyDE: if best CE score < threshold, discard evidence and use snap answer."""
@@ -1626,6 +1690,8 @@ MODE_RUNNERS = {
     "gap_hyde_nosnap": run_gap_hyde_nosnap,
     "gap_hyde_flat": run_gap_hyde_flat,
     "gap_rag": run_gap_rag,
+    "snap_rag": run_snap_rag,
+    "snap_rag_nosnap": run_snap_rag_nosnap,
     "rag_devil_hyde": run_rag_devil_hyde,
     "rag_top2_hyde": run_rag_top2_hyde,
     "confidence_gated": run_confidence_gated,
