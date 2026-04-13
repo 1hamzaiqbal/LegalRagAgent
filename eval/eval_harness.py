@@ -556,19 +556,14 @@ def _gap_analysis(snap_answer: str, question: str) -> list[dict]:
     Returns empty list if model finds no gaps (high confidence).
     """
     system = (
-        "You are deciding whether additional evidence retrieval is needed before revising a legal answer.\n\n"
-        "First make a confidence judgment. The default and expected outcome is no extra retrieval; NONE should be common.\n"
-        "If the answer is already likely correct from your current knowledge and there is no concrete unresolved rule, fact, element, or exception that could change the answer, reply exactly:\n"
-        "NONE\n\n"
-        "Only if there is real uncertainty about the answer, output 1-3 lines, one per gap, in exactly this format:\n"
-        "- gap: <what specific rule, fact, element, or exception is uncertain> | ask: <focused sub-question>\n\n"
-        "Important rules:\n"
-        "- Do not audit for every possible weakness.\n"
-        "- Do not generate gaps just to be thorough.\n"
-        "- Do not create a gap just because the answer lacks citations or could be more complete.\n"
-        "- Create a gap only when resolving it would materially increase confidence or could realistically change the answer.\n"
-        "- Prefer NONE over weak gaps.\n"
-        "- If gaps are needed, prefer 1 focused gap over multiple overlapping gaps."
+        "You are a legal reasoning analyst. A student answered a legal question. "
+        "Identify the 1-2 most important evidence gaps that could change the answer.\n\n"
+        "For each gap, use this format:\n"
+        "- gap: <what specific rule, fact, or exception is uncertain> | ask: <focused sub-question>\n\n"
+        "Rules:\n"
+        "- Focus only on gaps that could realistically change the answer.\n"
+        "- Do not list more than 2 gaps. Prefer 1 focused gap over 2 weak ones.\n"
+        "- If the reasoning is solid and you are confident in the answer, reply exactly: NONE"
     )
     user = (
         f"## Student's Answer and Reasoning\n{snap_answer}\n\n"
@@ -626,7 +621,9 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
             f"## Sub-question\n{subq}\n\n"
             f"## Original Question\n{question}"
         )
-        query = _llm_call(_system_prompt(config, "hyde"), hyde_user, label=f"gap/hyde_{gap_idx}")
+        # Use snap_hyde prompt — it's designed for "given reasoning, write a relevant passage"
+        # The generic "hyde" prompt says "given a question" which confuses Gemma with gap-formatted input
+        query = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label=f"gap/hyde_{gap_idx}")
     else:
         query = subq or desc
 
