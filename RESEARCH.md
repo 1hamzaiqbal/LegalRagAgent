@@ -129,11 +129,12 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 #### 7. Context-Aware Decoding
 - Contrast output probabilities with/without retrieved context. Research-heavy. May not be feasible with API-only models (need logprobs).
 
-#### 8. Embedding model comparison — IN PROGRESS (2026-04-09)
-- **Phase 1 complete**: 4 embedders tested (gte-large, legal-bert, stella-400m, bge-m3) on rag_simple + snap_hyde, N=200, Gemma 4 E4B.
-- **Finding**: Alternative embedders beat baseline on rag_simple (+4-5pp) but snap_hyde flattens differences (~60% for all non-baseline).
-- **Phase 2 planned**: Test remaining models (stella-1.5b, gte-qwen2-1.5b, jina-v3, arctic-l-v2) and run full N=1195 for best embedder.
-- Infrastructure ready: `slurm_build_embeds_local.sh` + `slurm_phase2_after_embeds.sh` pipeline.
+#### 8. Embedding model comparison — COMPLETE (2026-04-11)
+- **7 embedders tested** across 3 modes (rag_simple, snap_hyde, snap_hyde_aligned), N=200 each.
+- **Key finding**: Cross-encoder reranking dominates — all 7 non-gte-large embedders converge to exactly 65.0% with question-based reranking. Embedding model choice barely matters.
+- **Wave 1** (gte-large, legal-bert, stella-400m, bge-m3): snap_hyde 60% for non-gte, gte-large 65.5%.
+- **Wave 2** (jina-v3, arctic-l-v2, nomic-v2-moe): snap_hyde 64.5% for all three — closer to gte-large.
+- **Failed builds**: gte-qwen2-1.5b, stella-1.5b (transformers rope_theta compat).
 
 #### 9. Domain-adaptive routing
 - Automatically detect whether errors are random (→ confidence_gated) or systematic (→ snap_hyde). Requires characterizing the domain's error mode, which may need a calibration run.

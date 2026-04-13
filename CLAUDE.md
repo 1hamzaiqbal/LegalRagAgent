@@ -145,15 +145,19 @@ uv run python llm_config.py
 
 ## Current Best Results / Direction Snapshot
 
-- **BarExam:** `ce_threshold` on Llama 70B = **80.0%**
+- **BarExam (Llama 70B, N=200):** `ce_threshold` = **80.0%**, `snap_hyde` = **76.5%**
+- **BarExam (Gemma 4 E4B, N=200):** `snap_hyde` = **65.5%**, `vectorless_direct` ~**63-65%** (in progress)
 - **HousingQA:** `rag_snap_hyde` on Llama 70B = **56.0%**
 - **CaseHOLD:** `llm_only` / `confidence_gated` on Llama 70B = **72.5%**
-- **Current small-model audit:** 5/7 full-set Phase 1 baselines complete; best completed baseline is `or-qwen3-32b` at **61.42%** (`734/1195`)
+- **Best small model:** Gemma 4 E4B — 55.5% llm_only, 58.6% snap_hyde (N=1195)
+- **Embedding comparison:** 7 embedders tested; cross-encoder reranking dominates (all converge to 65.0% with aligned reranking)
 
 Working interpretation:
-- retrieval helps most when the model has a real knowledge gap
-- BarExam gains come from **careful gating**, not just adding more retrieval or more agent structure
-- heavier architectural combinations (`full_pipeline`, `decompose_rag`, counterevidence variants) have mostly underperformed the simpler adaptive methods
+- snap reasoning is the biggest contributor (+5pp), more than retrieval itself
+- HyDE passage generation adds +3.5pp retrieval quality + +3pp reranking quality
+- gap architecture was broken by CE filter bug; rerunning with fix
+- vectorless RAG (LLM generates knowledge, no vector store) is competitive with snap_hyde
+- heavier architectural combinations have mostly underperformed simpler adaptive methods
 
 Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the full tables + keep/discard history.
 
@@ -161,7 +165,7 @@ Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the ful
 
 | Script | Notes |
 |---|---|
-| `eval/eval_harness.py` | Unified multi-model harness (17 modes, 5 datasets) |
+| `eval/eval_harness.py` | Unified multi-model harness (37 modes, 5 datasets) |
 | `eval/eval_config.py` | Config, question loading, answer extraction, EVAL_MODES dict |
 | `eval/eval_analyze.py` | Post-hoc analysis of JSONL logs |
 | `eval/eval_qa.py` | Legacy full pipeline eval |
