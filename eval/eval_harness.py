@@ -601,7 +601,7 @@ def _gap_analysis(snap_answer: str, question: str) -> list[dict]:
     return gaps[:3]
 
 
-GAP_MIN_CE = 1.0  # permissive floor — reject only clearly irrelevant evidence
+GAP_MIN_CE = -100.0  # disabled — pass all evidence through (CE=1.0 was filtering 90%+ of passages)
 
 
 def _gap_retrieve(gap: dict, question: str, row: pd.Series,
