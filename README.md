@@ -12,8 +12,9 @@ The repo contains two layers:
 - BarExam best: `ce_threshold` on Llama 70B = **80.0%** (N=200)
 - HousingQA best: `rag_snap_hyde` on Llama 70B = **56.0%** (N=200)
 - CaseHOLD best: `llm_only` / `confidence_gated` = **72.5%** (N=200)
-- Best small model: **Gemma 4 E4B** — snap_hyde **65.5%** (N=200), snap_hyde_aligned **67.5%** (N=200), 6.6x faster than Qwen3-8B
-- 37 eval modes tested; snap_hyde consistently best retrieval strategy across models
+- Best small model: **Gemma 4 E4B** — snap_hyde **65.5%** (N=200), full-scale **58.6%** (N=1195)
+- **Vectorless RAG**: vectorless_direct **64.5%**, vectorless_hybrid **65.0%** — competitive with snap_hyde, zero vector infrastructure
+- 40 eval modes tested across retrieval, vectorless, gap, and subagent architectures
 
 See `RESEARCH.md` for the current state + queue, and `EXPERIMENTS.md` for the full keep/discard history.
 

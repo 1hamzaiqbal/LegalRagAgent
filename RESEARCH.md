@@ -316,23 +316,30 @@ LLM-as-retriever: parallel LLM sub-agents generate knowledge from memory instead
 
 ### Session summary (2026-04-13)
 
-**CRITICAL BUG FOUND:** GAP_MIN_CE=1.0 made ALL gap experiments into llm_only (0% answer changes). Fixed and resubmitting.
+**VECTORLESS RAG COMPLETE — competitive with snap_hyde:**
+- `vectorless_hybrid`: **65.0%** (18% changed, +7 net) — LLM knowledge + sparse RAG
+- `vectorless_direct`: **64.5%** (19% changed, +6 net) — pure LLM knowledge, NO vector store
+- `vectorless_choice_map`: **64.5%** — rule + distractor mapping
+- `vectorless_role`: **63.5%** (7% changed, +4 net) — barprep tutor
+- `vectorless_elements`: **61.0%** — structured legal elements
 
-**Vectorless RAG implemented and running.** 5 modes (no vector store needed):
-- `vectorless_direct` tracking at ~65% with 63/200 done — competitive with snap_hyde!
-- No 11-char HyDE bug — all knowledge generations are real 500-700 char notes
-- If vectorless matches or beats snap_hyde, it eliminates the entire retrieval stack
+**GAP ARCHITECTURE FIXED AND VALIDATED:**
+- `gap_rag FIXED`: **63.5%** (2% changed, +4 net) — evidence reaches model but barely changes answers
+- `gap_hyde FIXED`: **62.0%** (0.5% changed, +1 net) — same anchoring issue
 
-**Validity audit of all modes:**
-- VALID (changes answers, net positive): snap_hyde (+37), ce_threshold (+5), rag_arbitration (+3)
-- VALID but neutral: snap_rag_nosnap (35% changed, 0 net)
-- BROKEN by anchoring: snap_rag (1% changed — snap visible in final causes anchoring)
-- BROKEN by GAP_MIN_CE: all gap modes (0% changed — evidence filtered out)
+**CRITICAL FINDING — Anchoring hypothesis:**
+- Modes that SHOW snap in final call: 0.5-2% answer changes (gap modes, snap_rag)
+- Modes that HIDE snap from final call: 7-27% answer changes (snap_hyde, vectorless, snap_rag_nosnap)
+- Currently testing gap_rag_nosnap and gap_vectorless to verify
+
+**11-char HyDE root cause FOUND AND FIXED:**
+- Prompt schema mismatch: snap_hyde system prompt expects "Student's Answer" but gap code sent "Evidence Gap"
+- Gemma merges system+user → schema mismatch causes short-circuit
+- Fix: pass snap_answer through, use matching schema with gap focus injected inside
 
 **Running jobs:**
-- Job 43284: snap_hyde full N=1195 validation
-- Job 43306: 5 vectorless modes N=200 each
-- Job 43315: gap_hyde + gap_rag rerun with GAP_MIN_CE fix
+- Job 43284: snap_hyde full N=1195 (at 1137/1195, ~58.2%)
+- Job 43458: anchoring hypothesis test (gap_rag_nosnap, gap_vectorless, gap_hyde_nosnap)
 
 ---
 

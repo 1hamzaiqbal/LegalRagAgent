@@ -69,24 +69,47 @@ All pure vectorless modes are 3 LLM calls (same as snap_hyde). No 11-char HyDE b
 
 **Config:** Gemma 4 E4B (cluster-vllm), N=200, seed=42, BarExam.
 
-**Results (in progress):**
+**Results (COMPLETED):**
 
-| Mode | Acc | Calls | Notes |
-|---|---|---|---|
-| vectorless_direct | ~65% (63/200) | 3 | Competitive with snap_hyde! |
-| vectorless_role | pending | 3 | barprep tutor framing |
-| vectorless_elements | pending | 3 | structured legal elements |
-| vectorless_choice_map | pending | 3 | distractor mapping |
-| vectorless_hybrid | pending | 4 | knowledge + vector RAG |
+| Mode | Acc | Calls | Changed | Net | Notes |
+|---|---|---|---|---|---|
+| vectorless_hybrid | **65.0%** | 4 | 18% | +7 | LLM knowledge + vector RAG pooled |
+| vectorless_direct | **64.5%** | 3 | 19% | +6 | Pure LLM knowledge, no vector store |
+| vectorless_choice_map | **64.5%** | 3 | — | — | Rule + distractor mapping |
+| vectorless_role (barprep) | **63.5%** | 3 | 7% | +4 | Bar-prep tutor framing |
+| vectorless_elements | **61.0%** | 3 | — | — | Structured legal elements |
 
-**Key observations so far:**
+**Key findings:**
 1. No 11-char bug — all knowledge generations are 500-700 chars of real content.
-2. vectorless_direct is tracking at snap_hyde level with no vector store needed.
-3. 3 LLM calls, no embedding model, no ChromaDB, no cross-encoder.
+2. vectorless_hybrid (65.0%) matches snap_hyde (65.5%) by pooling LLM knowledge + sparse RAG.
+3. vectorless_direct (64.5%) is competitive with zero vector infrastructure.
+4. All vectorless modes actually change answers (7-19%) unlike gap modes (0.5-2%).
+5. Vectorless modes that change more answers get better net improvement.
 
 **Why vectorless might work:** The BarExam corpus passages are legal doctrines that Gemma likely saw during training. The LLM generates focused, relevant knowledge directly instead of searching through 686K passages where most are irrelevant. No genre mismatch — the model writes in whatever form is most useful.
 
+**Verdict:** CONFIRMED — vectorless RAG is competitive with snap_hyde. vectorless_hybrid (65.0%) matches snap_hyde (65.5%) and vectorless_direct (64.5%) eliminates the entire retrieval stack. The LLM's parametric knowledge is sufficient for BarExam.
+
 **Commit:** 0da6262
+
+---
+
+### 2026-04-13 — Gap architecture FIXED and retested
+
+**Change:** Fixed GAP_MIN_CE (disabled filter) and HyDE prompt schema mismatch (pass snap_answer, use Student's Answer format). Reran both gap_hyde and gap_rag.
+
+**Results (FIXED, validated — actually changes answers now):**
+
+| Mode | Acc | Changed | Fixed | Broke | Net |
+|---|---|---|---|---|---|
+| gap_rag FIXED | **63.5%** | 2% | 4 | 0 | +4 |
+| gap_hyde FIXED | **62.0%** | 0.5% | 1 | 0 | +1 |
+
+Evidence now reaches the model (97% vs 5-9% before), but answer change rate is still very low (0.5-2%). The anchoring hypothesis: gap modes show "Your Initial Answer" in the final call, causing the model to stick with its snap answer. Currently testing gap_rag_nosnap and gap_vectorless to verify.
+
+**Verdict:** Gap architecture VALID but underperforms snap_hyde and vectorless approaches due to anchoring. Snap in final call is the likely bottleneck, not evidence quality.
+
+**Commit:** 057d603
 
 ---
 
