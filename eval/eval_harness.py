@@ -629,6 +629,69 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
             "passages": [f"[Generated Note]\n{knowledge}"],
             "evidence_store": [{"idx": f"vless_{gap_idx}", "text": knowledge, "cross_encoder_score": 0}],
             "max_ce_score": 0,
+            "report": knowledge,
+        }
+
+    if method == "subagent_rag":
+        # Subagent: RAG retrieves → LLM reads and summarizes findings
+        query = subq or desc
+        retrieval = _retrieve_and_format(
+            row, [query], k=5, label_prefix=f"sub_rag_{gap_idx}",
+            where=_where_from_config(config),
+            collection=_collection_for_config(config),
+            rerank_query=raw_question,
+        )
+        passage_text = "\n\n".join(retrieval["passages"])
+        # Subagent reads passages and writes a focused report
+        report_system = (
+            "You are a legal research assistant. Read the retrieved passages and write a brief, "
+            "focused report answering the sub-question. State what the law says directly. "
+            "If the passages are irrelevant or unhelpful, say so clearly. "
+            "No answer letters. Keep under 100 words."
+        )
+        report_user = (
+            f"## Sub-question\n{subq}\n\n"
+            f"## Retrieved Passages\n{passage_text}\n\n"
+            f"## Original Question\n{question}"
+        )
+        report = _llm_call(report_system, report_user, label=f"gap/sub_rag_{gap_idx}")
+        return {
+            "gap": gap,
+            "passages": retrieval["passages"],
+            "evidence_store": retrieval["evidence_store"],
+            "max_ce_score": retrieval["max_ce_score"],
+            "report": report,
+        }
+
+    if method == "subagent_hybrid":
+        # Subagent: RAG retrieves + LLM generates knowledge → combined report
+        query = subq or desc
+        retrieval = _retrieve_and_format(
+            row, [query], k=3, label_prefix=f"sub_hyb_{gap_idx}",
+            where=_where_from_config(config),
+            collection=_collection_for_config(config),
+            rerank_query=raw_question,
+        )
+        passage_text = "\n\n".join(retrieval["passages"])
+        # Subagent synthesizes retrieved evidence + own knowledge
+        report_system = (
+            "You are a legal research assistant. You have retrieved passages AND your own legal knowledge. "
+            "Write a brief, focused report answering the sub-question by combining both sources. "
+            "State what the law says directly. Flag if retrieved passages conflict with known law. "
+            "No answer letters. Keep under 120 words."
+        )
+        report_user = (
+            f"## Sub-question\n{subq}\n\n"
+            f"## Retrieved Passages\n{passage_text}\n\n"
+            f"## Original Question\n{question}"
+        )
+        report = _llm_call(report_system, report_user, label=f"gap/sub_hyb_{gap_idx}")
+        return {
+            "gap": gap,
+            "passages": retrieval["passages"],
+            "evidence_store": retrieval["evidence_store"],
+            "max_ce_score": retrieval["max_ce_score"],
+            "report": report,
         }
 
     if method == "hyde":
@@ -682,6 +745,8 @@ def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
       - 'evidence_only': just retrieved passages + question (no snap, no gap structure)
       - 'no_snap': gap descriptions + evidence + question (no snap answer)
       - 'snap_and_evidence': snap answer + flat evidence (no gap structure)
+      - 'reports_nosnap': subagent reports + question (no snap, no raw evidence)
+      - 'reports_and_evidence': subagent reports + evidence + question (no snap)
     """
     # Build evidence from gap results
     all_passages = []
@@ -700,8 +765,30 @@ def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
                 f"Retrieved evidence:\n{passage_text}"
             )
 
+    # Build report sections (for subagent modes)
+    report_sections = []
+    for i, (gap, result) in enumerate(zip(gaps, gap_results), 1):
+        desc = gap.get("description", f"Gap {i}")
+        subq = gap.get("sub_question", "")
+        report = result.get("report", "") if result else ""
+        if result is None:
+            report_sections.append(f"### Investigation {i}: {desc}\nNo findings.")
+        elif report:
+            report_sections.append(
+                f"### Investigation {i}: {desc}\n"
+                f"Sub-question: {subq}\n"
+                f"Findings: {report}"
+            )
+        else:
+            report_sections.append(
+                f"### Investigation {i}: {desc}\n"
+                f"Sub-question: {subq}\n"
+                f"(No structured report available)"
+            )
+
     gap_block = "\n\n".join(gap_sections) if gap_sections else "No evidence gaps identified."
     flat_passages = "\n\n".join(all_passages) if all_passages else "No evidence retrieved."
+    report_block = "\n\n".join(report_sections) if report_sections else "No investigations completed."
 
     system = _system_prompt(config, "rag")
 
@@ -716,6 +803,17 @@ def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
         user = (
             f"## Your Initial Answer\n{snap_answer}\n\n"
             f"## Retrieved Passages\n{flat_passages}\n\n"
+            f"## Question\n{question}"
+        )
+    elif final_input == "reports_nosnap":
+        user = (
+            f"## Research Findings\n{report_block}\n\n"
+            f"## Question\n{question}"
+        )
+    elif final_input == "reports_and_evidence":
+        user = (
+            f"## Research Findings\n{report_block}\n\n"
+            f"## Supporting Passages\n{flat_passages}\n\n"
             f"## Question\n{question}"
         )
     else:  # full
@@ -782,7 +880,8 @@ def _run_gap(row: pd.Series, config: EvalConfig,
         "snap_letter": snap_letter,
         "gaps": gaps,
         "gap_results": [
-            {"gap": r["gap"], "max_ce": r["max_ce_score"]} if r else None
+            {"gap": r["gap"], "max_ce": r.get("max_ce_score", 0),
+             "report": r.get("report", "")} if r else None
             for r in gap_results
         ],
         "evidence_store": all_evidence,
@@ -821,12 +920,39 @@ def run_gap_rag_nosnap(row: pd.Series, config: EvalConfig) -> dict:
 
 
 def run_gap_vectorless(row: pd.Series, config: EvalConfig) -> dict:
-    """Gap + vectorless: gap analysis → per-gap LLM knowledge → answer WITHOUT snap.
+    """Gap + vectorless: gap analysis → per-gap LLM knowledge → reports only (no snap).
 
     Combines gap targeting with vectorless knowledge generation.
-    Final call sees gap notes + question only (no snap, no retrieval).
+    Final call sees subagent reports + question only (no snap, no retrieval).
     """
-    return _run_gap(row, config, method="vectorless", label="gap_vless", final_input="no_snap")
+    return _run_gap(row, config, method="vectorless", label="gap_vless", final_input="reports_nosnap")
+
+
+def run_subagent_rag(row: pd.Series, config: EvalConfig) -> dict:
+    """Subagent RAG: gap analysis → per-gap RAG + LLM summarization → reports only (no snap).
+
+    Each subagent retrieves passages, reads them, and writes a focused report.
+    Main agent sees subagent reports + question. No snap, no raw passages.
+    """
+    return _run_gap(row, config, method="subagent_rag", label="sub_rag", final_input="reports_nosnap")
+
+
+def run_subagent_hybrid(row: pd.Series, config: EvalConfig) -> dict:
+    """Subagent hybrid: gap analysis → per-gap RAG + LLM knowledge → synthesized reports (no snap).
+
+    Each subagent retrieves passages AND generates own knowledge, then writes a combined report.
+    Main agent sees subagent reports + question. No snap, no raw passages.
+    """
+    return _run_gap(row, config, method="subagent_hybrid", label="sub_hyb", final_input="reports_nosnap")
+
+
+def run_subagent_rag_evidence(row: pd.Series, config: EvalConfig) -> dict:
+    """Subagent RAG with evidence: reports + raw passages (no snap).
+
+    Same as subagent_rag but main agent also sees the raw passages alongside reports.
+    Tests whether raw evidence adds value on top of subagent summaries.
+    """
+    return _run_gap(row, config, method="subagent_rag", label="sub_rag_ev", final_input="reports_and_evidence")
 
 
 def run_gap_rag(row: pd.Series, config: EvalConfig) -> dict:
@@ -1987,6 +2113,9 @@ MODE_RUNNERS = {
     "gap_rag": run_gap_rag,
     "gap_rag_nosnap": run_gap_rag_nosnap,
     "gap_vectorless": run_gap_vectorless,
+    "subagent_rag": run_subagent_rag,
+    "subagent_hybrid": run_subagent_hybrid,
+    "subagent_rag_evidence": run_subagent_rag_evidence,
     "snap_rag": run_snap_rag,
     "snap_rag_nosnap": run_snap_rag_nosnap,
     "vectorless_direct": run_vectorless_direct,
