@@ -42,6 +42,8 @@ EVAL_MODES = {
     "gap_hyde_nosnap":          "Gap-informed HyDE: gaps + evidence in final (no snap answer)",
     "gap_hyde_flat":            "Gap-informed HyDE: snap + flat evidence in final (no gap structure)",
     "gap_rag":                  "Gap-informed RAG: snap + gaps + evidence in final (full context)",
+    "gap_rag_nosnap":           "Gap RAG without snap in final — tests anchoring hypothesis",
+    "gap_vectorless":           "Gap + vectorless: per-gap LLM knowledge, no snap in final",
     "snap_rag":                 "Snap + simple RAG: snap answer then retrieve with raw question, re-answer with both",
     "snap_rag_nosnap":          "Snap + simple RAG: snap then retrieve, but final call only sees evidence (control)",
     "vectorless_direct":        "Vectorless RAG: snap → generate doctrinal note (rule/exception/trigger/alt) → answer",

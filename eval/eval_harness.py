@@ -616,6 +616,21 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
     if not desc and not subq:
         return None  # malformed gap, skip
 
+    if method == "vectorless":
+        # LLM generates knowledge per gap — no vector store
+        gen_user = (
+            f"## Evidence Gap\n{desc}\n\n"
+            f"## Sub-question\n{subq}\n\n"
+            f"## Original Question\n{question}"
+        )
+        knowledge = _llm_call(_VECTORLESS_DIRECT, gen_user, label=f"gap/vless_{gap_idx}")
+        return {
+            "gap": gap,
+            "passages": [f"[Generated Note]\n{knowledge}"],
+            "evidence_store": [{"idx": f"vless_{gap_idx}", "text": knowledge, "cross_encoder_score": 0}],
+            "max_ce_score": 0,
+        }
+
     if method == "hyde":
         gap_focus = []
         if desc:
@@ -794,6 +809,24 @@ def run_gap_hyde_nosnap(row: pd.Series, config: EvalConfig) -> dict:
 def run_gap_hyde_flat(row: pd.Series, config: EvalConfig) -> dict:
     """Gap-informed HyDE: snap + flat evidence (no gap structure) in final call."""
     return _run_gap(row, config, method="hyde", label="gap_hyde_flat", final_input="snap_and_evidence")
+
+
+def run_gap_rag_nosnap(row: pd.Series, config: EvalConfig) -> dict:
+    """Gap RAG without snap in final — tests anchoring hypothesis.
+
+    Same retrieval as gap_rag but hides snap answer from the final call.
+    If this beats gap_rag (63.5%), anchoring is confirmed as the bottleneck.
+    """
+    return _run_gap(row, config, method="rag", label="gap_rag_ns", final_input="no_snap")
+
+
+def run_gap_vectorless(row: pd.Series, config: EvalConfig) -> dict:
+    """Gap + vectorless: gap analysis → per-gap LLM knowledge → answer WITHOUT snap.
+
+    Combines gap targeting with vectorless knowledge generation.
+    Final call sees gap notes + question only (no snap, no retrieval).
+    """
+    return _run_gap(row, config, method="vectorless", label="gap_vless", final_input="no_snap")
 
 
 def run_gap_rag(row: pd.Series, config: EvalConfig) -> dict:
@@ -1952,6 +1985,8 @@ MODE_RUNNERS = {
     "gap_hyde_nosnap": run_gap_hyde_nosnap,
     "gap_hyde_flat": run_gap_hyde_flat,
     "gap_rag": run_gap_rag,
+    "gap_rag_nosnap": run_gap_rag_nosnap,
+    "gap_vectorless": run_gap_vectorless,
     "snap_rag": run_snap_rag,
     "snap_rag_nosnap": run_snap_rag_nosnap,
     "vectorless_direct": run_vectorless_direct,
