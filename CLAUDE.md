@@ -118,8 +118,9 @@ uv sync
 cp .env.example .env   # then add API keys
 
 # Download datasets
-uv run python utils/download_data.py               # BarExam QA
+uv run python utils/download_data.py                # BarExam QA
 uv run python utils/download_housingqa.py           # HousingQA
+uv run python utils/download_new_datasets.py        # CaseHOLD, Legal-RAG-QA, Australian Legal QA
 
 # Build vector stores (GPU-optimized)
 uv run python utils/fast_embed.py barexam           # Full barexam (~2.2 hr on RTX 3070)
@@ -145,18 +146,18 @@ uv run python llm_config.py
 
 ## Current Best Results / Direction Snapshot
 
-- **BarExam (Llama 70B, N=200):** `ce_threshold` = **80.0%**, `snap_hyde` = **76.5%**
-- **BarExam (Gemma 4 E4B, N=200):** `snap_hyde` = **65.5%**, `vectorless_direct` ~**63-65%** (in progress)
+- **BarExam (Llama 70B, N=200):** `ce_threshold` = **80.0%**, `rag_snap_hyde` = **76.5%**
+- **BarExam (Gemma 4 E4B, N=200):** `rag_snap_hyde` = **65.5%**, `vectorless_hybrid` = **65.0%**, `vectorless_direct` / `vectorless_choice_map` = **64.5%**
+- **BarExam (Gemma 4 E4B, full N=1195):** `llm_only` = **55.5%**, `golden_passage` = **62.2%**, `rag_simple` = **54.2%**, latest `rag_snap_hyde` rerun = **57.9%** (`692/1195`; earlier clean full run reached 58.6%)
 - **HousingQA:** `rag_snap_hyde` on Llama 70B = **56.0%**
 - **CaseHOLD:** `llm_only` / `confidence_gated` on Llama 70B = **72.5%**
-- **Best small model:** Gemma 4 E4B — 55.5% llm_only, 58.6% snap_hyde (N=1195)
-- **Embedding comparison:** 7 embedders tested; cross-encoder reranking dominates (all converge to 65.0% with aligned reranking)
+- **Embedding comparison:** focused 7-embedder Gemma sweep complete; `legal-bert` is best on `rag_simple` (62.0%), while `gte-large` remains best on `rag_snap_hyde` (65.5%)
 
 Working interpretation:
-- snap reasoning is the biggest contributor (+5pp), more than retrieval itself
-- HyDE passage generation adds +3.5pp retrieval quality + +3pp reranking quality
-- gap architecture was broken by CE filter bug; rerunning with fix
-- vectorless RAG (LLM generates knowledge, no vector store) is competitive with snap_hyde
+- snap reasoning remains the biggest contributor; retrieval only helps when it is tightly gated or HyDE-guided
+- vectorless RAG is now a validated baseline, nearly matching `rag_snap_hyde` without vector infrastructure
+- fixed gap variants improved over the broken runs, but still trail `rag_snap_hyde` and the best vectorless modes
+- the latest full Gemma rerun (57.9%) is still below golden passage (62.2%), so retrieval quality remains the main bottleneck
 - heavier architectural combinations have mostly underperformed simpler adaptive methods
 
 Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the full tables + keep/discard history.
@@ -165,7 +166,7 @@ Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the ful
 
 | Script | Notes |
 |---|---|
-| `eval/eval_harness.py` | Unified multi-model harness (37 modes, 5 datasets) |
+| `eval/eval_harness.py` | Unified multi-model harness (40 modes, 5 datasets) |
 | `eval/eval_config.py` | Config, question loading, answer extraction, EVAL_MODES dict |
 | `eval/eval_analyze.py` | Post-hoc analysis of JSONL logs |
 | `eval/eval_qa.py` | Legacy full pipeline eval |

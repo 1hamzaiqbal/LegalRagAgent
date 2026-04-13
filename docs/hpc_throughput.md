@@ -96,16 +96,17 @@ From `logs/experiments.jsonl` across all branches/machines:
 | groq-qwen3-32b | 32B | 59.3% | — | — | — |
 | groq-llama-8b | 8B | 53.0% | — | — | — |
 | **cluster qwen3-8b** | **8B** | **52.1%** | **60.1%** | **36.5%** (N=600)* | — |
-| **cluster gemma4-e4b** | **8B eff** | **55.5%** | **62.2%** | **54.2%** | **58.6%** |
+| **cluster gemma4-e4b** | **8B eff** | **55.5%** | **62.2%** | **54.2%** | **58.6% / 57.9%**† |
 
 *Corrupted by concurrent ChromaDB writes during embedding builds. Not representative.
+†Two completed full `rag_snap_hyde` reruns are logged for Gemma 4 E4B; the later rerun on 2026-04-13 finished at **57.9%** (`692/1195`).
 
 ### Key Findings
 
 - **Gemma 4 E4B beats Qwen3-8B across all modes**: +3.4pp llm_only, +2.1pp golden, and 6.6x faster
 - **Gemma 4 E4B is the best small model tested**: 55.5% llm_only approaches Gemma 27B (58.0%)
 - **Golden passage adds ~7pp consistently**: Qwen +8.0pp, Gemma +6.7pp
-- **Snap_hyde closes the golden gap**: Gemma snap_hyde 58.6% vs golden 62.2% (3.6pp gap, down from 7.7pp for rag_simple)
+- **Snap_hyde stays close to the golden ceiling**: Gemma full reruns landed at 58.6% and 57.9% vs golden 62.2% (3.6-4.3pp gap, down from 8.0pp for rag_simple)
 - **RAG simple slightly hurts Gemma** (-1.3pp): consistent with models that already know the material
 - **Gemma generates 3.7x fewer tokens** (756 vs 2,774 avg) — more concise, still more accurate
 - **Speed**: Gemma 12.5s/q vs Qwen 82.6s/q (avg latency from completed runs)
@@ -120,26 +121,20 @@ All results: Gemma 4 E4B, N=200, seed=42, BarExam, cluster A6000.
 | **legal-bert** | nlpaueb/legal-bert-base-uncased | 110M | 768 | 512 | **62.0%** | 60.0% |
 | stella-400m | dunzhang/stella_en_400M_v5 | 400M | 1024 | 131K | 61.0% | 60.0% |
 | bge-m3 | BAAI/bge-m3 | 568M | 1024 | 8192 | 61.0% | 60.0% |
+| jina-v3 | jinaai/jina-embeddings-v3 | 570M | 1024 | 8192 | 61.5% | 64.5% |
+| arctic-l-v2 | Snowflake/snowflake-arctic-embed-l-v2.0 | 568M | 1024 | 8192 | 61.5% | 64.5% |
+| nomic-v2-moe | nomic-ai/nomic-embed-text-v2-moe | 475M MoE | 768 | 8192 | 61.5% | 64.5% |
 
 ### Embedding Comparison Analysis
 
-1. **rag_simple: all alternatives beat baseline** (+4-5pp). legal-bert is best at 62.0%, nearly matching golden passage (62.2%).
-2. **snap_hyde: baseline dominates** at 65.5%. All alternatives converge to ~60.0%.
+1. **rag_simple: all alternatives beat baseline** (+4-5pp). legal-bert is best at 62.0%, while the wave-2 embedders all land at 61.5%.
+2. **snap_hyde: baseline still dominates** at 65.5%. Wave-1 alternatives converge at 60.0%, while the stronger wave-2 embedders improve to 64.5%.
 3. **Asymmetric behavior explained by query type**:
    - `rag_simple` embeds the raw question (question→passage similarity) — legal-bert's domain vocabulary helps here
    - `rag_snap_hyde` embeds an LLM-generated hypothetical passage (passage→passage similarity) — gte-large's general embedding quality wins
-4. **Cross-encoder may be capping snap_hyde** — all non-baseline embedders produce the same 60.0%, suggesting the reranker is the bottleneck, not the first-stage retriever.
+4. **Aligned reranking still collapses most embedding differences** — all seven non-baseline embedders converge to 65.0% under `snap_hyde_aligned`, so the cross-encoder remains the dominant bottleneck.
 5. **legal-bert is the smallest model** (110M) yet best on rag_simple — domain pretraining > parameter count for question-to-passage matching.
-
-### Remaining Embedders to Test
-
-| Short Name | HF ID | Params | Dim | Notes |
-|---|---|---|---|---|
-| stella-1.5b | dunzhang/stella_en_1.5B_v5 | 1.5B | 1024 | Highest MTEB retrieval (~59.8) |
-| gte-qwen2-1.5b | Alibaba-NLP/gte-Qwen2-1.5B-instruct | 1.5B | 1536 | LLM-based instruct embedder |
-| jina-v3 | jinaai/jina-embeddings-v3 | 570M | 1024 | Task-specific LoRA |
-| arctic-l-v2 | Snowflake/snowflake-arctic-embed-l-v2.0 | 568M | 1024 | No trust_remote_code |
-| nomic-v2-moe | nomic-ai/nomic-embed-text-v2-moe | 475M MoE | 768 | MoE architecture |
+6. **Failed builds are now known, not pending** — `gte-qwen2-1.5b` and `stella-1.5b` failed on the current stack due to transformers `rope_theta` compatibility.
 
 ## Candidate Models for Next HPC Runs
 

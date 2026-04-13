@@ -65,7 +65,7 @@ uv run python main.py multi_hop
 uv run python main.py medium
 uv run python main.py simple --verbose
 
-# Evals (all via eval_harness.py — 37 modes, 5 datasets)
+# Evals (all via eval_harness.py — 40 modes, 5 datasets)
 uv run python eval/eval_harness.py --mode llm_only --provider groq-llama70b --questions 200
 uv run python eval/eval_harness.py --mode rag_snap_hyde --provider groq-llama70b --questions 200 --dataset housing
 uv run python eval/eval_harness.py --mode confidence_gated --provider groq-llama70b --questions 200
@@ -140,7 +140,7 @@ llm_config.py              # 30+ LLM provider configs, LRU-cached
 web_scraper.py             # DuckDuckGo + trafilatura for web_search steps
 skills/                    # 4 prompt files: planner, query_rewriter, synthesize_and_cite, synthesizer
 eval/
-  eval_harness.py          # Unified eval: 37 modes, 5 datasets, JSONL logging
+  eval_harness.py          # Unified eval: 40 modes, 5 datasets, JSONL logging
   eval_config.py           # Config, question loaders, answer extractors
   eval_analyze.py          # Post-hoc JSONL analysis
   curate_questions.py      # One-time question curation utility

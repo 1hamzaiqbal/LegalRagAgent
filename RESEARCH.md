@@ -6,10 +6,11 @@ This project started as a heavy agentic RAG pipeline that hurt performance. We s
 
 ## Current execution status
 - No LegalRAG eval is actively running on the cluster right now.
-- Phase 1 small-model baselines: **7/7 complete** (including HPC cluster runs).
-- Best small model: **Gemma 4 E4B** at 55.5% llm_only / 58.6% snap_hyde (full N=1195).
-- Embedding comparison (Phase 2 partial): **4/12 embedders tested** — gte-large, legal-bert, stella-400m, bge-m3.
-- Remaining Phase 1 runs on OpenRouter: `or-nemotron`, `or-qwen35-9b` (deferred, lower priority than embedding work).
+- Core Phase 1 small-model baseline block is complete; lower-priority OpenRouter extras (`or-nemotron`, `or-qwen35-9b`) remain explicitly deferred.
+- Best small-model full-set snapshot: **Gemma 4 E4B** at 55.5% `llm_only`, 62.2% `golden_passage`, and 57.9% `rag_snap_hyde` / snap_hyde-style full rerun (N=1195).
+- Vectorless RAG sweep is complete: `vectorless_hybrid` **65.0%**, `vectorless_direct` **64.5%**, `vectorless_choice_map` **64.5%**, `vectorless_role` **63.5%**, `vectorless_elements` **61.0%** (Gemma 4 E4B, N=200).
+- Embedding comparison is complete for supported builds: **7 embedders tested**; `jina-v3`, `arctic-l-v2`, and `nomic-v2-moe` all finished at 61.5% `rag_simple` / 64.5% `rag_snap_hyde`; `gte-qwen2-1.5b` and `stella-1.5b` failed to build.
+- Gap architecture is fixed and revalidated: `gap_rag` **63.5%**, `gap_hyde` **62.0%** on Gemma 4 E4B (N=200), still below `snap_hyde` / vectorless.
 
 ---
 
@@ -129,7 +130,7 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 #### 7. Context-Aware Decoding
 - Contrast output probabilities with/without retrieved context. Research-heavy. May not be feasible with API-only models (need logprobs).
 
-#### 8. Embedding model comparison — COMPLETE (2026-04-11)
+#### ~~8. Embedding model comparison~~ — COMPLETED (2026-04-11)
 - **7 embedders tested** across 3 modes (rag_simple, snap_hyde, snap_hyde_aligned), N=200 each.
 - **Key finding**: Cross-encoder reranking dominates — all 7 non-gte-large embedders converge to exactly 65.0% with question-based reranking. Embedding model choice barely matters.
 - **Wave 1** (gte-large, legal-bert, stella-400m, bge-m3): snap_hyde 60% for non-gte, gte-large 65.5%.
@@ -139,44 +140,15 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 #### 9. Domain-adaptive routing
 - Automatically detect whether errors are random (→ confidence_gated) or systematic (→ snap_hyde). Requires characterizing the domain's error mode, which may need a calibration run.
 
-#### 10. Gap-informed retrieval — PLANNED (2026-04-10)
-
-A new multi-stage architecture where the model explicitly reasons about what evidence it needs before retrieving.
-
-**Architecture:**
-```
-SNAP → ANALYZE GAPS → SUBAGENT RETRIEVAL (per gap) → FINAL REASONING
-```
-
-**Stage 1: Snap** — LLM answers question cold (same as current snap). Output: reasoning + answer.
-
-**Stage 2: Gap Analysis** (NEW) — LLM reads its own snap answer + question, identifies 0-3 specific evidence gaps/flaws in its reasoning. Each gap is a targeted sub-question or uncertainty description.
-- 0 gaps = confident → skip retrieval, use snap answer directly (natural confidence gating)
-- 1-3 gaps = each becomes a retrieval task
-
-**Stage 3: Subagent Retrieval** (per gap) — Each gap dispatched to a retrieval sub-agent. Sub-agent retrieves evidence, then evaluates relevance — returns None if evidence is irrelevant (built-in quality gate). Three retrieval methods tested independently:
-- `gap_rag`: raw gap sub-question → dense retrieval (like rag_simple)
-- `gap_hyde`: gap description → LLM generates hypothetical passage → dense retrieval (like snap_hyde)
-- `gap_vectorless`: LLM generates relevant knowledge from memory (no vector store) — DEFERRED
-
-**Stage 4: Final Answer** — LLM gets structured input and re-answers. Test 3 input variants:
-- **(a)** Snap I/O + gap list + raw evidence passages only
-- **(b)** Snap I/O + gap list + evidence + sub-agent reasoning about evidence
-- **(c)** Snap I/O + gap list + sub-agent reasoning only (no raw passages)
-
-**Key design decisions:**
-- Gap analysis describes uncertainties (not pre-formed queries) — sub-agents handle query formation
-- Each retrieval method tested independently (all gaps use same method per eval run)
-- 0-gap case provides natural confidence gating via explicit reasoning
-- Sub-agent relevance filtering acts as an LLM-judged quality gate (like ce_threshold but semantic)
-
-**Eval plan:** Test on N=200, seed=42, BarExam, Gemma 4 E4B. Compare gap_rag/gap_hyde × 3 input variants = 6 new configs against existing baselines.
-
-**Prerequisites:** Phase 1 alignment testing must complete first to establish clean baselines.
+#### ~~10. Gap-informed retrieval~~ — COMPLETED (2026-04-13)
+- **Architecture tested**: `SNAP → ANALYZE GAPS → SUBAGENT RETRIEVAL (per gap) → FINAL REASONING`
+- **Variants tested**: `gap_rag`, `gap_hyde`, `gap_hyde_ev`, `gap_hyde_nosnap`, `gap_hyde_flat`, plus follow-up anchoring ablations.
+- **Result**: fixed `gap_rag` reached **63.5%** and fixed `gap_hyde` reached **62.0%** on Gemma 4 E4B (N=200), but both still underperform `snap_hyde` (**65.5%**) and `vectorless_hybrid` (**65.0%**).
+- **Keep/discard**: keep as an analyzed ablation family, discard as the main direction for now.
 
 ---
 
-## Current Plan (2026-04-10)
+## Plan Snapshot (2026-04-10)
 
 ### Phase 1: Alignment Testing
 Run all existing retrieval modes on the **same** N=200, seed=42, BarExam, Gemma 4 E4B for a clean comparison. Many of these have been tested before but on different models or sample sizes — need them all on the same setup.
@@ -199,11 +171,11 @@ Run all existing retrieval modes on the **same** N=200, seed=42, BarExam, Gemma 
 | `rag_simple` (gte-large) | 1 | 57.0% | Raw question retrieval baseline |
 | `llm_only` | 1 | 55.5% | No retrieval (N=1195) |
 
-### Phase 2: Gap-Informed Retrieval
-Implement and test the gap architecture (Tier 2 #10 above). 6 configs: gap_rag × 3 inputs + gap_hyde × 3 inputs.
+### Phase 2: Gap-Informed Retrieval (completed 2026-04-13)
+Completed; the gap family topped out at **63.5%** (`gap_rag`) after the prompt/schema fix and did not beat `snap_hyde` or vectorless.
 
-### Phase 3: Vectorless RAG (deferred)
-LLM-as-retriever: parallel LLM sub-agents generate knowledge from memory instead of vector search. Can use the same gap architecture with a different sub-agent type.
+### Phase 3: Vectorless RAG (completed 2026-04-13)
+Completed initial sweep; `vectorless_hybrid` reached **65.0%** and `vectorless_direct` reached **64.5%** on Gemma 4 E4B (N=200).
 
 ---
 
@@ -255,7 +227,7 @@ LLM-as-retriever: parallel LLM sub-agents generate knowledge from memory instead
 - Added `docs/cluster_workflow.md` to capture the next useful infra step: cluster-based local inference / full eval bring-up.
 - Cleaned repo scratch artifacts by ignoring/removing transient session-export and inspection files.
 
-### Meeting action items status (audited 2026-04-10)
+### Meeting action items status (audited 2026-04-13)
 | # | Item | Status |
 |---|------|--------|
 | 1 | Try smaller models | ✅ **Done** — Qwen3-8B, Gemma 4 E4B, plus 5 API models |
@@ -265,7 +237,7 @@ LLM-as-retriever: parallel LLM sub-agents generate knowledge from memory instead
 | 5 | RAG on small models | ✅ **Done** — rag_simple + snap_hyde on Gemma4 + Qwen3-8B |
 | 6 | Devil RAG inversion | ⬜ Planned in Phase 4, not started |
 | 7 | Self-consistency / confidence | ⬜ Planned in Phase 5/6, not started |
-| 8 | Embedding model comparison | 🔶 **Phase 1 done** — 4/12 embedders tested, 8 remaining |
+| 8 | Embedding model comparison | ✅ **Done** — 7 supported embedders tested across `rag_simple`, `rag_snap_hyde`, `snap_hyde_aligned`; 2 failed builds documented |
 | 9 | MLEB benchmark | ❌ Not started |
 | 10 | ENGR node local inference | ✅ **Done** — vLLM serving Gemma4+Qwen3-8B on A40/A6000 |
 | 11 | SNAP-HyDE literature review | ❌ Not started |
@@ -285,7 +257,7 @@ LLM-as-retriever: parallel LLM sub-agents generate knowledge from memory instead
 - `rag_simple / or-gemma27b / full`: **54.64%** vs gemma baseline **57.99%** → **-3.35pp**.
 - Current read: retrieval quality is a real bottleneck. Golden helps both models much more than the current plain retriever, especially Gemma.
 
-### Current active work (2026-04-10)
+### Historical active work snapshot (2026-04-10)
 
 #### Completed HPC cluster runs (2026-04-07 through 2026-04-09)
 - **Qwen3-8B full BarExam**: llm_only 52.1%, golden 60.1%, rag_simple 36.5% (corrupted)
@@ -330,16 +302,16 @@ LLM-as-retriever: parallel LLM sub-agents generate knowledge from memory instead
 **CRITICAL FINDING — Anchoring hypothesis:**
 - Modes that SHOW snap in final call: 0.5-2% answer changes (gap modes, snap_rag)
 - Modes that HIDE snap from final call: 7-27% answer changes (snap_hyde, vectorless, snap_rag_nosnap)
-- Currently testing gap_rag_nosnap and gap_vectorless to verify
+- Follow-up `gap_hyde_nosnap` landed at **61.5%**; `gap_rag_nosnap` and `gap_vectorless` do not have completed runs logged in `logs/experiments.jsonl`
 
 **11-char HyDE root cause FOUND AND FIXED:**
 - Prompt schema mismatch: snap_hyde system prompt expects "Student's Answer" but gap code sent "Evidence Gap"
 - Gemma merges system+user → schema mismatch causes short-circuit
 - Fix: pass snap_answer through, use matching schema with gap focus injected inside
 
-**Running jobs:**
-- Job 43284: snap_hyde full N=1195 (at 1137/1195, ~58.2%)
-- Job 43458: anchoring hypothesis test (gap_rag_nosnap, gap_vectorless, gap_hyde_nosnap)
+**Completed since the last update:**
+- `rag_snap_hyde` full N=1195 finished at **57.9%** (`692/1195`) on Gemma 4 E4B
+- No active cluster evals are being tracked here right now
 
 ---
 
@@ -374,11 +346,11 @@ LLM-as-retriever: parallel LLM sub-agents generate knowledge from memory instead
 - Gap analysis prompt sensitivity: old prompt → 0% NONE (always finds gaps), new prompt → 97% NONE (almost never finds gaps)
 - N=200 variance: snap_hyde_aligned ranged 62.5%–67.5% across runs
 
-### Next session: pick up here
-1. Wave 2 embedding eval still running (job 42317) — sync results for jina-v3, arctic-l-v2, nomic-v2-moe
+### Next session at that time
+1. Wave 2 embedding eval later completed — jina-v3, arctic-l-v2, and nomic-v2-moe all landed at 61.5% `rag_simple` / 64.5% `rag_snap_hyde`
 2. Record all Phase 1 + Phase 2 experiments in EXPERIMENTS.md
 3. Consider running snap_hyde at full N=1195 with legal-bert embedder (65.0% aligned result suggests potential)
-4. Fix the 11-char HyDE bug if revisiting gap architecture (use snap_hyde prompt instead of hyde prompt)
+4. 11-char HyDE bug was later fixed; if revisiting gap architecture, keep using the snap_hyde-style prompt schema
 5. Longer-term: vectorless RAG (LLM-as-retriever), LazyGraphRAG, confidence-gated integration into main.py
 
 ### Blockers
