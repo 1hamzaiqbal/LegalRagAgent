@@ -54,6 +54,70 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 
 ---
 
+### 2026-04-13 — Vectorless RAG: LLM as retriever (IN PROGRESS)
+
+**Hypothesis:** The LLM can generate more useful knowledge from parametric memory than vector search retrieves from the corpus. snap_hyde's +5pp from snap reasoning suggests the model's own knowledge is the primary value, not the retrieved passages.
+
+**Change:** Implemented 5 vectorless modes (no vector store, no ChromaDB, no embedding model):
+- `vectorless_direct`: snap → doctrinal note (rule/exception/trigger/alternative) → answer
+- `vectorless_role`: snap → role-conditioned note (barprep tutor) → answer
+- `vectorless_elements`: snap → dispositive legal elements → answer
+- `vectorless_choice_map`: snap → rule + strongest distractor mapping → answer
+- `vectorless_hybrid`: snap → generated knowledge + vector RAG pooled → answer (4 calls)
+
+All pure vectorless modes are 3 LLM calls (same as snap_hyde). No 11-char HyDE bug — generated notes are consistently 500-700 chars.
+
+**Config:** Gemma 4 E4B (cluster-vllm), N=200, seed=42, BarExam.
+
+**Results (in progress):**
+
+| Mode | Acc | Calls | Notes |
+|---|---|---|---|
+| vectorless_direct | ~65% (63/200) | 3 | Competitive with snap_hyde! |
+| vectorless_role | pending | 3 | barprep tutor framing |
+| vectorless_elements | pending | 3 | structured legal elements |
+| vectorless_choice_map | pending | 3 | distractor mapping |
+| vectorless_hybrid | pending | 4 | knowledge + vector RAG |
+
+**Key observations so far:**
+1. No 11-char bug — all knowledge generations are 500-700 chars of real content.
+2. vectorless_direct is tracking at snap_hyde level with no vector store needed.
+3. 3 LLM calls, no embedding model, no ChromaDB, no cross-encoder.
+
+**Why vectorless might work:** The BarExam corpus passages are legal doctrines that Gemma likely saw during training. The LLM generates focused, relevant knowledge directly instead of searching through 686K passages where most are irrelevant. No genre mismatch — the model writes in whatever form is most useful.
+
+**Commit:** 0da6262
+
+---
+
+### 2026-04-13 — GAP_MIN_CE bug: gap architecture was completely broken
+
+**Finding:** All gap architecture experiments (gap_hyde, gap_rag, gap_hyde_ev, gap_hyde_nosnap, gap_hyde_flat) were effectively llm_only due to `GAP_MIN_CE=1.0` filtering out 90-95% of retrieved evidence.
+
+**Evidence:**
+
+| Mode | Evidence Retrieved | Answers Changed | Fix/Break | Actual Behavior |
+|---|---|---|---|---|
+| snap_hyde (reference) | 100% (1195/1195) | 27% | +37 net | VALID |
+| ce_threshold | 100% (200/200) | 10% | +5 net | VALID |
+| rag_arbitration | 100% (200/200) | 6% | +3 net | VALID |
+| snap_rag | 100% (200/200) | 1% | +2 net | Barely changes (snap anchoring) |
+| snap_rag_nosnap | 100% (200/200) | 35% | 0 net | Changes but doesn't improve |
+| gap_hyde | **5%** (11/200) | **0%** | **0** | **BROKEN — llm_only** |
+| gap_rag | **9%** (19/200) | **0%** | **0** | **BROKEN — llm_only** |
+
+**Root cause:** `GAP_MIN_CE=1.0` in `_gap_retrieve()` was intended as a "permissive floor" but the mean CE score for gap-retrieved passages was ~0.9 (below threshold). This combined with reranking against the raw question (not the gap sub-question) systematically depressed CE scores.
+
+**Fix:** Set `GAP_MIN_CE=-100` to disable the filter entirely. Resubmitted gap_hyde + gap_rag (job 43315).
+
+**Impact:** All gap_hyde/gap_rag results from 2026-04-10 (61.5%) are INVALID — they were just snap accuracy (61.5%). The gap architecture has never been properly tested.
+
+**Additional finding — snap_rag anchoring:** snap_rag (62.0%) only changed 2/200 answers. Showing the snap answer to the final call causes extreme anchoring. snap_rag_nosnap changed 35% of answers but with 0 net improvement (31 fixed = 31 broke).
+
+**Commit:** b24890c
+
+---
+
 ### 2026-04-10 — Comprehensive Gemma 4 E4B retrieval ablation
 
 **Hypothesis:** Systematic ablation of retrieval pipeline components (snap reasoning, HyDE generation, gap analysis, reranking alignment, final-call context) will identify which components actually contribute to accuracy.

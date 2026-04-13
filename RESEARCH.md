@@ -313,7 +313,29 @@ LLM-as-retriever: parallel LLM sub-agents generate knowledge from memory instead
 - `arctic-l-v2`: 568M, retrieval-optimized, no trust_remote_code needed
 - `nomic-v2-moe`: 475M MoE, 768d
 
-### Session summary (2026-04-10)
+### Session summary (2026-04-13)
+
+**CRITICAL BUG FOUND:** GAP_MIN_CE=1.0 made ALL gap experiments into llm_only (0% answer changes). Fixed and resubmitting.
+
+**Vectorless RAG implemented and running.** 5 modes (no vector store needed):
+- `vectorless_direct` tracking at ~65% with 63/200 done — competitive with snap_hyde!
+- No 11-char HyDE bug — all knowledge generations are real 500-700 char notes
+- If vectorless matches or beats snap_hyde, it eliminates the entire retrieval stack
+
+**Validity audit of all modes:**
+- VALID (changes answers, net positive): snap_hyde (+37), ce_threshold (+5), rag_arbitration (+3)
+- VALID but neutral: snap_rag_nosnap (35% changed, 0 net)
+- BROKEN by anchoring: snap_rag (1% changed — snap visible in final causes anchoring)
+- BROKEN by GAP_MIN_CE: all gap modes (0% changed — evidence filtered out)
+
+**Running jobs:**
+- Job 43284: snap_hyde full N=1195 validation
+- Job 43306: 5 vectorless modes N=200 each
+- Job 43315: gap_hyde + gap_rag rerun with GAP_MIN_CE fix
+
+---
+
+### Previous session (2026-04-10)
 
 **Phase 1 alignment complete.** All major retrieval modes tested on Gemma 4 E4B N=200 BarExam:
 - snap_hyde (65.5%) is the clear winner — HyDE for both retrieval and reranking
