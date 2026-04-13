@@ -854,6 +854,181 @@ def run_snap_rag_nosnap(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# Vectorless RAG: LLM generates knowledge from parametric memory instead of
+# searching a vector store. Same 3-call skeleton as snap_hyde.
+# ---------------------------------------------------------------------------
+
+_VECTORLESS_FINAL = (
+    "You are a legal expert. Reason through the multiple-choice question independently first. "
+    "Generated legal reference notes are provided — use them to verify, refine, or challenge "
+    "your reasoning, but do not treat them as automatically correct. "
+    "If a note is generic, circular, or contradicted by stronger reasoning, ignore it. "
+    "Give your final answer as: Answer: (X)"
+)
+
+_VECTORLESS_DIRECT = (
+    "You are a legal reference guide. A student answered a legal question. "
+    "Write a short doctrinal note to help verify or correct their answer.\n\n"
+    "Return ONLY these 4 bullets:\n"
+    "- Governing rule:\n"
+    "- Key exception or limitation:\n"
+    "- Dispositive fact trigger:\n"
+    "- What would make a different answer plausible:\n\n"
+    "Rules: State black-letter law directly. No answer letters. "
+    "No 'the correct answer is'. Keep under 120 words."
+)
+
+_VECTORLESS_ROLES = {
+    "textbook": (
+        "You are a legal textbook author. A student answered a legal question.\n"
+        "Return ONLY 3 bullets:\n- Rule:\n- Exception/limitation:\n- Fact that controls:\n\n"
+        "No answer letters. State the law directly. Keep under 90 words."
+    ),
+    "casebook": (
+        "You are a casebook editor. A student answered a legal question.\n"
+        "Return ONLY 3 bullets:\n- Holding-style rule:\n- Fact pattern that triggers it:\n"
+        "- Common overread to avoid:\n\n"
+        "No answer letters. Keep under 90 words."
+    ),
+    "barprep": (
+        "You are a bar-prep tutor. A student answered a legal question.\n"
+        "Return ONLY 3 bullets:\n- Rule:\n- Trap:\n- Decisive fact:\n\n"
+        "No answer letters. Keep under 90 words."
+    ),
+}
+
+_VECTORLESS_ELEMENTS = (
+    "You are a legal issue spotter. A student answered a legal question.\n"
+    "Identify the 2-4 dispositive legal elements and assess each.\n\n"
+    "For each element, use this format:\n"
+    "- [element name]: [rule] | fact=[fact signal] | pressure=[leans_correct/leans_wrong/ambiguous]\n\n"
+    "No answer letters. Keep each element to one line."
+)
+
+_VECTORLESS_CHOICE_MAP = (
+    "You are a bar exam differentiator. A student answered a legal question.\n"
+    "Return ONLY 3 bullets:\n"
+    "- Governing rule:\n"
+    "- Strongest distractor pattern (the most plausible wrong answer and why):\n"
+    "- Fact that flips the result:\n\n"
+    "No answer letters. Focus on distinguishing the closest wrong answer. Keep under 90 words."
+)
+
+
+def _run_vectorless(row: pd.Series, config: EvalConfig,
+                    gen_system: str, label: str = "vdirect",
+                    include_snap: bool = False) -> dict:
+    """Unified vectorless RAG: snap → generate knowledge → final answer.
+
+    Args:
+        gen_system: system prompt for the knowledge generation step
+        label: prefix for LLM call labels
+        include_snap: if True, show snap answer in the final call alongside generated note
+    """
+    question = _fmt(row, config)
+
+    # Step 1: Snap
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label=f"{label}/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Generate knowledge from parametric memory
+    gen_user = f"## Student's Initial Analysis\n{snap_answer}\n\n## Original Question\n{question}"
+    knowledge = _llm_call(gen_system, gen_user, label=f"{label}/generate")
+
+    # Step 3: Final answer with generated knowledge
+    if include_snap:
+        final_user = (
+            f"## Your Initial Answer\n{snap_answer}\n\n"
+            f"## Generated Legal Reference Note\n{knowledge}\n\n"
+            f"## Question\n{question}"
+        )
+    else:
+        final_user = (
+            f"## Generated Legal Reference Note\n{knowledge}\n\n"
+            f"## Question\n{question}"
+        )
+    answer = _llm_call(_VECTORLESS_FINAL, final_user, label=f"{label}/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "knowledge_note": knowledge,
+        "evidence_store": [],
+        "retrieved_ids": [],
+        "gold_retrieved": False,
+    }
+
+
+def run_vectorless_direct(row: pd.Series, config: EvalConfig) -> dict:
+    """Vectorless RAG: snap → generate doctrinal note (rule/exception/trigger/alternative) → answer."""
+    return _run_vectorless(row, config, _VECTORLESS_DIRECT, label="vdirect")
+
+
+def run_vectorless_role(row: pd.Series, config: EvalConfig) -> dict:
+    """Vectorless RAG with role-conditioned generation. Use --tag textbook|casebook|barprep."""
+    role = (config.tag.split("-")[-1] if config.tag else "barprep").strip().lower()
+    system = _VECTORLESS_ROLES.get(role, _VECTORLESS_ROLES["barprep"])
+    return _run_vectorless(row, config, system, label=f"vrole/{role}")
+
+
+def run_vectorless_elements(row: pd.Series, config: EvalConfig) -> dict:
+    """Vectorless RAG: snap → identify dispositive legal elements → answer."""
+    return _run_vectorless(row, config, _VECTORLESS_ELEMENTS, label="velem")
+
+
+def run_vectorless_choice_map(row: pd.Series, config: EvalConfig) -> dict:
+    """Vectorless RAG: snap → map rule + strongest distractor + decisive fact → answer."""
+    return _run_vectorless(row, config, _VECTORLESS_CHOICE_MAP, label="vchoice")
+
+
+def run_vectorless_hybrid(row: pd.Series, config: EvalConfig) -> dict:
+    """Hybrid: vectorless knowledge + vector RAG evidence pooled together.
+
+    Tests whether LLM-generated knowledge + retrieved passages > either alone.
+    4 LLM calls: snap + generate knowledge + retrieve + answer with both.
+    """
+    question = _fmt(row, config)
+    raw_question = str(row["question"])
+
+    # Step 1: Snap
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="vhybrid/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Generate knowledge (vectorless)
+    gen_user = f"## Student's Initial Analysis\n{snap_answer}\n\n## Original Question\n{question}"
+    knowledge = _llm_call(_VECTORLESS_DIRECT, gen_user, label="vhybrid/generate")
+
+    # Step 3: Also retrieve via snap_hyde path (vector RAG)
+    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
+    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="vhybrid/hyde")
+
+    retrieval = _retrieve_and_format(row, [hyde_passage], k=3, label_prefix="vhybrid",
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Step 4: Answer with both generated knowledge and retrieved evidence
+    final_user = (
+        f"## Generated Legal Reference Note\n{knowledge}\n\n"
+        f"## Retrieved Passages\n{passage_block}\n\n"
+        f"## Question\n{question}"
+    )
+    answer = _llm_call(_VECTORLESS_FINAL, final_user, label="vhybrid/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "knowledge_note": knowledge,
+        "hyde_passage": hyde_passage,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
 def run_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
     """Score-thresholded Snap-HyDE: if best CE score < threshold, discard evidence and use snap answer."""
     CE_THRESHOLD = 4.0  # calibrated from N=200 BarExam analysis: snap=78% below, RAG=78% above
@@ -1689,6 +1864,11 @@ MODE_RUNNERS = {
     "gap_rag": run_gap_rag,
     "snap_rag": run_snap_rag,
     "snap_rag_nosnap": run_snap_rag_nosnap,
+    "vectorless_direct": run_vectorless_direct,
+    "vectorless_role": run_vectorless_role,
+    "vectorless_elements": run_vectorless_elements,
+    "vectorless_choice_map": run_vectorless_choice_map,
+    "vectorless_hybrid": run_vectorless_hybrid,
     "rag_devil_hyde": run_rag_devil_hyde,
     "rag_top2_hyde": run_rag_top2_hyde,
     "confidence_gated": run_confidence_gated,
