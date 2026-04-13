@@ -606,7 +606,8 @@ GAP_MIN_CE = -100.0  # disabled — pass all evidence through (CE=1.0 was filter
 
 def _gap_retrieve(gap: dict, question: str, row: pd.Series,
                   config: EvalConfig, gap_idx: int,
-                  method: str = "hyde") -> dict | None:
+                  method: str = "hyde",
+                  snap_answer: str = "") -> dict | None:
     """Per-gap retrieval. method='hyde' generates a hypothetical passage; method='rag' uses sub-question."""
     raw_question = str(row["question"])
     desc = gap.get("description", "")
@@ -616,13 +617,24 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
         return None  # malformed gap, skip
 
     if method == "hyde":
+        gap_focus = []
+        if desc:
+            gap_focus.append(f"- Evidence gap to verify: {desc}")
+        if subq and subq != desc:
+            gap_focus.append(f"- Focused sub-question: {subq}")
+        reasoning = (snap_answer or "").strip()
+        if gap_focus:
+            gap_block = "\n".join(gap_focus)
+            reasoning = (
+                f"{reasoning}\n\n"
+                f"Focus on verifying or correcting this specific issue:\n{gap_block}"
+            ).strip()
+        # Gemma flattens system+user into one HumanMessage, so keep the same
+        # snap_hyde schema that works elsewhere and inject the gap focus inside it.
         hyde_user = (
-            f"## Evidence Gap\n{desc}\n\n"
-            f"## Sub-question\n{subq}\n\n"
+            f"## Student's Answer and Reasoning\n{reasoning}\n\n"
             f"## Original Question\n{question}"
         )
-        # Use snap_hyde prompt — it's designed for "given reasoning, write a relevant passage"
-        # The generic "hyde" prompt says "given a question" which confuses Gemma with gap-formatted input
         query = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label=f"gap/hyde_{gap_idx}")
     else:
         query = subq or desc
@@ -738,7 +750,7 @@ def _run_gap(row: pd.Series, config: EvalConfig,
     all_evidence = []
     all_ids = []
     for i, gap in enumerate(gaps):
-        result = _gap_retrieve(gap, question, row, config, i, method=method)
+        result = _gap_retrieve(gap, question, row, config, i, method=method, snap_answer=snap_answer)
         gap_results.append(result)
         if result:
             all_evidence.extend(result["evidence_store"])
