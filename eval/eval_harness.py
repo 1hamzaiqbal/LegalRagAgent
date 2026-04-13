@@ -1029,6 +1029,84 @@ def run_vectorless_hybrid(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_vectorless_keyword(row: pd.Series, config: EvalConfig) -> dict:
+    """Keyword search mode: snap → LLM generates search terms → BM25 retrieval → answer.
+
+    The 'ripgrep' approach — let the LLM write targeted search terms instead of
+    embedding queries. Uses BM25 (already in rag_utils) for literal text matching.
+    Tests whether targeted keyword search beats dense retrieval.
+    """
+    from rag_utils import get_vectorstore, _retrieve_bm25, get_bm25_index, rerank_with_cross_encoder
+
+    question = _fmt(row, config)
+    raw_question = str(row["question"])
+
+    # Step 1: Snap
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="vkeyword/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Generate targeted search terms
+    keyword_system = (
+        "You are a legal research assistant. Based on a student's answer to a legal question, "
+        "generate 3-5 specific search keywords or phrases to find relevant legal authorities.\n\n"
+        "Focus on: legal doctrine names, rule names, statute sections, case law concepts, "
+        "and specific legal terms that would appear in a legal reference.\n\n"
+        "Return one search phrase per line, nothing else."
+    )
+    keyword_user = f"## Student's Answer\n{snap_answer}\n\n## Question\n{question}"
+    keywords_raw = _llm_call(keyword_system, keyword_user, label="vkeyword/terms")
+
+    # Parse keywords into search queries
+    keywords = [k.strip().lstrip("- •*0123456789.") for k in keywords_raw.splitlines() if k.strip()][:5]
+
+    # Step 3: Retrieve using each keyword via dense search (BM25 may OOM on 686K corpus)
+    all_docs = []
+    vs = get_vectorstore(_collection_for_config(config))
+    for kw in keywords:
+        if not kw:
+            continue
+        retriever = vs.as_retriever(search_kwargs={"k": 3})
+        docs = retriever.invoke(kw)
+        all_docs.extend(docs)
+
+    # Dedup and rerank against raw question
+    seen = set()
+    unique_docs = []
+    for doc in all_docs:
+        idx = doc.metadata.get("idx", "")
+        if idx not in seen:
+            seen.add(idx)
+            unique_docs.append(doc)
+
+    reranked = rerank_with_cross_encoder(raw_question, unique_docs, top_k=5)
+
+    passages = [f"[Source {i+1}]\n{doc.page_content}" for i, doc in enumerate(reranked)]
+    evidence_store = [{"idx": doc.metadata.get("idx", ""), "text": doc.page_content,
+                       "cross_encoder_score": doc.metadata.get("cross_encoder_score", 0)}
+                      for doc in reranked]
+
+    passage_block = "\n\n".join(passages)
+    gold_idx = str(row.get("gold_idx", ""))
+    retrieved_ids = [e["idx"] for e in evidence_store]
+
+    # Step 4: Answer with evidence
+    final_user = (
+        f"## Retrieved Legal Authorities\n{passage_block}\n\n"
+        f"## Question\n{question}"
+    )
+    answer = _llm_call(_system_prompt(config, "rag"), final_user, label="vkeyword/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "keywords": keywords,
+        "evidence_store": evidence_store,
+        "retrieved_ids": retrieved_ids,
+        "gold_retrieved": gold_idx in retrieved_ids if gold_idx else False,
+    }
+
+
 def run_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
     """Score-thresholded Snap-HyDE: if best CE score < threshold, discard evidence and use snap answer."""
     CE_THRESHOLD = 4.0  # calibrated from N=200 BarExam analysis: snap=78% below, RAG=78% above
@@ -1869,6 +1947,7 @@ MODE_RUNNERS = {
     "vectorless_elements": run_vectorless_elements,
     "vectorless_choice_map": run_vectorless_choice_map,
     "vectorless_hybrid": run_vectorless_hybrid,
+    "vectorless_keyword": run_vectorless_keyword,
     "rag_devil_hyde": run_rag_devil_hyde,
     "rag_top2_hyde": run_rag_top2_hyde,
     "confidence_gated": run_confidence_gated,
