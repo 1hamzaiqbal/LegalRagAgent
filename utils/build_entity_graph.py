@@ -171,13 +171,64 @@ def build_graph(passages_df: pd.DataFrame, use_spacy: bool = False):
         if entity in filtered_index:
             print(f"    {entity:40s} {count:>6,} passages")
 
+    # Community detection (Louvain clustering)
+    communities = {}
+    try:
+        import networkx as nx
+        import community as community_louvain
+
+        print("\n  Running Louvain community detection...")
+        G = nx.Graph()
+        for (e1, e2), w in strong_edges.items():
+            G.add_edge(e1, e2, weight=w)
+        print(f"    Graph: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
+
+        partition = community_louvain.best_partition(G, resolution=1.0)
+        n_communities = max(partition.values()) + 1 if partition else 0
+        print(f"    Communities found: {n_communities}")
+
+        # Build community → entities mapping
+        comm_to_entities = defaultdict(list)
+        for entity, comm_id in partition.items():
+            comm_to_entities[comm_id].append(entity)
+
+        # Label each community by its top entities
+        for comm_id, entities in sorted(comm_to_entities.items()):
+            top = sorted(entities, key=lambda e: entity_counts.get(e, 0), reverse=True)[:5]
+            communities[str(comm_id)] = {
+                'entities': entities,
+                'top_terms': top,
+                'size': len(entities),
+            }
+            if comm_id < 10:
+                print(f"    Community {comm_id} ({len(entities)} entities): {', '.join(top[:5])}")
+
+        # Map passages to communities via their entities
+        passage_communities = {}
+        for idx, ents in passage_entities.items():
+            comms = set()
+            for e in ents:
+                if e in partition:
+                    comms.add(partition[e])
+            if comms:
+                passage_communities[idx] = list(comms)
+
+        print(f"    Passages with community labels: {len(passage_communities):,}/{len(passage_entities):,}")
+
+    except ImportError:
+        print("  SKIP: community detection (install python-louvain + networkx)")
+        passage_communities = {}
+
     return {
         'inverted_index': {e: list(pids) for e, pids in filtered_index.items()},
         'entity_counts': dict(entity_counts.most_common(10000)),
         'edges': {f"{p[0]}|||{p[1]}": w for p, w in strong_edges.most_common(50000)},
+        'communities': communities,
+        'passage_communities': passage_communities,
         'n_passages': len(passages_df),
         'n_entities': len(filtered_index),
         'n_edges': len(strong_edges),
+        'n_communities': len(communities),
     }
 
 

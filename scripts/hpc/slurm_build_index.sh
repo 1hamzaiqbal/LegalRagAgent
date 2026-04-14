@@ -39,9 +39,9 @@ mkdir -p "$XDG_CACHE_HOME"
 
 source "$EVAL_VENV/bin/activate"
 
-# === Step 1: Build NLP entity graph (no LLM, ~1-2h) ===
-echo "[$(date '+%F %T')] Building NLP entity graph..."
-python utils/build_entity_graph.py
+# === Step 1: Build NLP entity graph (no LLM, ~2-3h with spaCy) ===
+echo "[$(date '+%F %T')] Building NLP entity graph with spaCy..."
+python utils/build_entity_graph.py --spacy
 echo "[$(date '+%F %T')] Entity graph complete"
 
 # === Step 2: Build case summaries via vLLM ===
