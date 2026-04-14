@@ -1316,6 +1316,230 @@ def run_vectorless_keyword(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# Entity graph search: real corpus search without embeddings.
+# Uses pre-built NLP entity graph + inverted index from build_entity_graph.py.
+# Zero LLM calls for preprocessing. 1-2 LLM calls at query time.
+# ---------------------------------------------------------------------------
+
+_ENTITY_GRAPH = None  # lazy-loaded singleton
+
+
+def _load_entity_graph():
+    """Load the entity graph and inverted index. Cached after first load."""
+    global _ENTITY_GRAPH
+    if _ENTITY_GRAPH is not None:
+        return _ENTITY_GRAPH
+
+    import json
+    graph_path = os.path.join("datasets", "barexam_qa", "entity_graph", "entity_graph.json")
+    if not os.path.exists(graph_path):
+        print(f"[entity_graph] WARNING: {graph_path} not found. Run utils/build_entity_graph.py first.")
+        return None
+
+    print(f"[entity_graph] Loading graph from {graph_path}...")
+    with open(graph_path) as f:
+        _ENTITY_GRAPH = json.load(f)
+    print(f"[entity_graph] Loaded: {_ENTITY_GRAPH['n_entities']:,} entities, "
+          f"{_ENTITY_GRAPH['n_edges']:,} edges, {_ENTITY_GRAPH.get('n_communities', 0)} communities")
+    return _ENTITY_GRAPH
+
+
+def _entity_search(question: str, graph: dict, corpus_df=None, top_k: int = 15) -> list:
+    """Search corpus via entity graph inverted index.
+
+    1. Extract entities from question using same regex/spaCy as build time
+    2. Look up each entity in inverted index → candidate passage IDs
+    3. Score candidates by number of matching entities
+    4. Return top_k passage IDs sorted by match count
+    """
+    import re
+
+    inverted_index = graph['inverted_index']
+
+    # Extract entities from question (simplified — matches build_entity_graph regex patterns)
+    q_lower = question.lower()
+    q_entities = set()
+
+    # Legal Latin and doctrine names
+    for term in ['res ipsa loquitur', 'habeas corpus', 'mens rea', 'actus reus',
+                 'prima facie', 'bona fide', 'due process', 'equal protection',
+                 'strict liability', 'negligence per se', 'proximate cause',
+                 'consideration', 'promissory estoppel', 'specific performance',
+                 'hearsay', 'adverse possession', 'easement', 'eminent domain',
+                 'felony murder', 'manslaughter', 'larceny', 'robbery', 'burglary']:
+        if term in q_lower:
+            q_entities.add(term)
+
+    # Statute references
+    for m in re.finditer(r'\b((?:section|rule|article|amendment|clause)\s+\w+)\b', q_lower):
+        q_entities.add(m.group(1))
+
+    # Quoted terms
+    for m in re.finditer(r'"([^"]{3,50})"', question):
+        phrase = m.group(1).lower().strip()
+        if phrase in inverted_index:
+            q_entities.add(phrase)
+
+    # Multi-word capitalized phrases
+    for m in re.finditer(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b', question):
+        phrase = m.group(1).lower()
+        if phrase in inverted_index:
+            q_entities.add(phrase)
+
+    # Also try individual important words against the index
+    for word in q_lower.split():
+        if len(word) > 5 and word in inverted_index:
+            q_entities.add(word)
+
+    if not q_entities:
+        return []
+
+    # Look up candidates
+    from collections import Counter
+    candidate_scores = Counter()
+    for entity in q_entities:
+        if entity in inverted_index:
+            for pid in inverted_index[entity]:
+                candidate_scores[pid] += 1
+
+    # Return top_k by match count
+    return [pid for pid, score in candidate_scores.most_common(top_k)]
+
+
+def run_entity_search(row: pd.Series, config: EvalConfig) -> dict:
+    """Entity graph search: real corpus search without embeddings.
+
+    Uses pre-built NLP inverted index to find passages containing
+    entities from the question. Cross-encoder reranks. 1 LLM call.
+    Zero LLM preprocessing. Zero embeddings.
+    """
+    from rag_utils import rerank_with_cross_encoder
+    import pandas as _pd
+
+    question = _fmt(row, config)
+    raw_question = str(row["question"])
+
+    graph = _load_entity_graph()
+    if graph is None:
+        # Fallback to llm_only
+        answer = _llm_call(_system_prompt(config, "answer"), question, label="entity/answer")
+        return {"final_answer": answer, "snap_answer": "", "snap_letter": None,
+                "evidence_store": [], "retrieved_ids": [], "gold_retrieved": False}
+
+    # Search via entity inverted index
+    candidate_ids = _entity_search(raw_question, graph, top_k=30)
+
+    if not candidate_ids:
+        answer = _llm_call(_system_prompt(config, "answer"), question, label="entity/answer")
+        return {"final_answer": answer, "snap_answer": "", "snap_letter": None,
+                "evidence_store": [], "retrieved_ids": [], "gold_retrieved": False}
+
+    # Load candidate passages from corpus
+    corpus_path = "datasets/barexam_qa/barexam_qa_train.csv"
+    # Use chunked reading to find specific passages
+    corpus = _pd.read_csv(corpus_path, usecols=['idx', 'text'])
+    corpus['idx'] = corpus['idx'].astype(str)
+    candidates = corpus[corpus['idx'].isin(set(candidate_ids))]
+
+    if candidates.empty:
+        answer = _llm_call(_system_prompt(config, "answer"), question, label="entity/answer")
+        return {"final_answer": answer, "snap_answer": "", "snap_letter": None,
+                "evidence_store": [], "retrieved_ids": [], "gold_retrieved": False}
+
+    # Build Document objects for cross-encoder reranking
+    from langchain_core.documents import Document
+    docs = []
+    for _, r in candidates.iterrows():
+        doc = Document(page_content=str(r['text']), metadata={"idx": str(r['idx'])})
+        docs.append(doc)
+
+    reranked = rerank_with_cross_encoder(raw_question, docs, top_k=5)
+
+    passages = [f"[Source {i+1}]\n{doc.page_content}" for i, doc in enumerate(reranked)]
+    evidence_store = [{"idx": doc.metadata.get("idx", ""), "text": doc.page_content,
+                       "cross_encoder_score": doc.metadata.get("cross_encoder_score", 0)}
+                      for doc in reranked]
+    passage_block = "\n\n".join(passages)
+    gold_idx = str(row.get("gold_idx", ""))
+    retrieved_ids = [e["idx"] for e in evidence_store]
+
+    # Single LLM call — answer with retrieved passages
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="entity/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": "",
+        "snap_letter": None,
+        "evidence_store": evidence_store,
+        "retrieved_ids": retrieved_ids,
+        "gold_retrieved": gold_idx in retrieved_ids if gold_idx else False,
+    }
+
+
+def run_snap_entity_search(row: pd.Series, config: EvalConfig) -> dict:
+    """Snap + entity graph search: snap first, then entity search, answer fresh.
+
+    2 LLM calls. Snap steers nothing (entity search uses the raw question),
+    but the snap reasoning may still help the final answer indirectly.
+    Tests snap contribution to entity-based retrieval.
+    """
+    from rag_utils import rerank_with_cross_encoder
+
+    question = _fmt(row, config)
+    raw_question = str(row["question"])
+
+    # Step 1: Snap
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_entity/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Entity search (same as run_entity_search but we have snap)
+    graph = _load_entity_graph()
+    if graph is None:
+        return {"final_answer": snap_answer, "snap_answer": snap_answer,
+                "snap_letter": snap_letter, "evidence_store": [],
+                "retrieved_ids": [], "gold_retrieved": False}
+
+    candidate_ids = _entity_search(raw_question, graph, top_k=30)
+
+    if not candidate_ids:
+        return {"final_answer": snap_answer, "snap_answer": snap_answer,
+                "snap_letter": snap_letter, "evidence_store": [],
+                "retrieved_ids": [], "gold_retrieved": False}
+
+    import pandas as _pd
+    from langchain_core.documents import Document
+    corpus = _pd.read_csv("datasets/barexam_qa/barexam_qa_train.csv", usecols=['idx', 'text'])
+    corpus['idx'] = corpus['idx'].astype(str)
+    candidates = corpus[corpus['idx'].isin(set(candidate_ids))]
+
+    docs = [Document(page_content=str(r['text']), metadata={"idx": str(r['idx'])})
+            for _, r in candidates.iterrows()]
+    reranked = rerank_with_cross_encoder(raw_question, docs, top_k=5)
+
+    passages = [f"[Source {i+1}]\n{doc.page_content}" for i, doc in enumerate(reranked)]
+    evidence_store = [{"idx": doc.metadata.get("idx", ""), "text": doc.page_content,
+                       "cross_encoder_score": doc.metadata.get("cross_encoder_score", 0)}
+                      for doc in reranked]
+    passage_block = "\n\n".join(passages)
+    gold_idx = str(row.get("gold_idx", ""))
+    retrieved_ids = [e["idx"] for e in evidence_store]
+
+    # Answer fresh — no snap shown (avoids anchoring)
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="snap_entity/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "evidence_store": evidence_store,
+        "retrieved_ids": retrieved_ids,
+        "gold_retrieved": gold_idx in retrieved_ids if gold_idx else False,
+    }
+
+
 def run_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
     """Score-thresholded Snap-HyDE: if best CE score < threshold, discard evidence and use snap answer."""
     CE_THRESHOLD = 4.0  # calibrated from N=200 BarExam analysis: snap=78% below, RAG=78% above
@@ -2161,6 +2385,8 @@ MODE_RUNNERS = {
     "vectorless_nosnap": run_vectorless_nosnap,
     "vectorless_hybrid": run_vectorless_hybrid,
     "vectorless_keyword": run_vectorless_keyword,
+    "entity_search": run_entity_search,
+    "snap_entity_search": run_snap_entity_search,
     "rag_devil_hyde": run_rag_devil_hyde,
     "rag_top2_hyde": run_rag_top2_hyde,
     "confidence_gated": run_confidence_gated,

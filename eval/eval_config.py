@@ -56,6 +56,8 @@ EVAL_MODES = {
     "vectorless_nosnap":        "Historical 'vectorless' reasoning without snap: question → generate knowledge → answer (2-call snap ablation)",
     "vectorless_hybrid":        "Hybrid: generated parametric knowledge + vector RAG evidence pooled → answer (4 calls)",
     "vectorless_keyword":       "Historical 'vectorless' keyword baseline: snap → generate search terms → corpus retrieval → answer",
+    "entity_search":            "Entity graph search: NLP inverted index → real corpus passages → cross-encoder rerank → answer (1 LLM call, zero embeddings)",
+    "snap_entity_search":       "Snap + entity search: snap first, then entity graph corpus search, answer fresh without snap (2 LLM calls)",
     "rag_devil_hyde":           "Devil's advocate HyDE: retrieve for AND against snap answer",
     "rag_top2_hyde":            "Top-2 HyDE: retrieve for snap answer + second-choice answer",
     "confidence_gated":         "Confidence-gated: 3 snap votes, unanimous=skip RAG, disagreement=Snap-HyDE",
