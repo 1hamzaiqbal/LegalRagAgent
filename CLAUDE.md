@@ -14,6 +14,17 @@ Legal RAG research repo with two distinct surfaces:
 
 Current research direction: the original heavy pipeline underperformed, but the long-term goal is still a strong full agentic system. For now, the project rebuilds toward that goal **atomically**: simpler adaptive retrieval strategies are the default baseline, and extra structure only stays when it proves itself in `eval/eval_harness.py`.
 
+## Key Documentation
+
+- `docs/experiment_overview.md` — high-level experiment summary + results table + validity checklist
+- `docs/action_items.md` — paper sprint task list with deadlines (EMNLP May 20, ICML AI4Law May 22)
+- `docs/meeting_2026_04_13.md` — latest meeting notes with method breakdown and log examples
+- `docs/hpc_throughput.md` — cluster timing data and model comparison
+- `docs/hpc_setup_log.md` — cluster SSH, paths, venvs, bad nodes
+- `EXPERIMENTS.md` — full hypothesis → result → verdict log
+- `RESEARCH.md` — research state, experiment queue, session handoff
+- `logs/experiments.jsonl` — machine-readable results (source of truth, 170+ entries)
+
 ## Runtime Architecture
 
 Source of truth: `main.py`
@@ -146,18 +157,13 @@ uv run python llm_config.py
 
 ## Current Best Results / Direction Snapshot
 
-- **BarExam (Llama 70B, N=200):** `ce_threshold` = **80.0%**, `rag_snap_hyde` = **76.5%**
-- **BarExam (Gemma 4 E4B, N=200):** `rag_snap_hyde` = **65.5%**, `vectorless_hybrid` = **65.0%**, `vectorless_direct` / `vectorless_choice_map` = **64.5%**
-- **BarExam (Gemma 4 E4B, full N=1195):** `llm_only` = **55.5%**, `golden_passage` = **62.2%**, `rag_simple` = **54.2%**, latest `rag_snap_hyde` rerun = **57.9%** (`692/1195`; earlier clean full run reached 58.6%)
-- **HousingQA:** `rag_snap_hyde` on Llama 70B = **56.0%**
-- **CaseHOLD:** `llm_only` / `confidence_gated` on Llama 70B = **72.5%**
-- **Embedding comparison:** focused 7-embedder Gemma sweep complete; `legal-bert` is best on `rag_simple` (62.0%), while `gte-large` remains best on `rag_snap_hyde` (65.5%)
+See `docs/experiment_overview.md` for the current results table. Key: `subagent_rag` 66.0% is the current Gemma 4 E4B best (N=200).
 
 Working interpretation:
 - snap reasoning remains the biggest contributor; retrieval only helps when it is tightly gated or HyDE-guided
 - vectorless RAG is now a validated baseline, nearly matching `rag_snap_hyde` without vector infrastructure
 - fixed gap variants improved over the broken runs, but still trail `rag_snap_hyde` and the best vectorless modes
-- the latest full Gemma rerun (57.9%) is still below golden passage (62.2%), so retrieval quality remains the main bottleneck
+- retrieval quality remains the main bottleneck
 - heavier architectural combinations have mostly underperformed simpler adaptive methods
 
 Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the full tables + keep/discard history.
@@ -166,7 +172,7 @@ Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the ful
 
 | Script | Notes |
 |---|---|
-| `eval/eval_harness.py` | Unified multi-model harness (40 modes, 5 datasets) |
+| `eval/eval_harness.py` | Unified multi-model harness (44 modes, 5 datasets) |
 | `eval/eval_config.py` | Config, question loading, answer extraction, EVAL_MODES dict |
 | `eval/eval_analyze.py` | Post-hoc analysis of JSONL logs |
 | `eval/eval_qa.py` | Legacy full pipeline eval |
@@ -178,6 +184,13 @@ Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the ful
 - **HuggingFace offline mode**: HF Hub may be unreachable from this network. Always set `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1` when running evals. The embedding model (`gte-large-en-v1.5`) is cached locally in `~/.cache/huggingface/hub/`.
 - **uv**: Prefer `uv`; if it is missing from PATH in the current shell, use `~/.local/bin/uv`.
 - **API keys**: All in `.env`. Groq, DeepSeek, Google, OpenRouter, OpenAI, Cerebras.
+
+### Known Cluster Issues
+
+- Node `r28-1801`: RTX 2080, exclude for >4B models
+- Nodes `a100s-2305` / `a100s-2306` / `a100s-2307` / `a100s-2308`: reconfigured to `a100-sxm4`; old config breaks vLLM. Exclude until migration complete.
+- Node `a100-2207`: vLLM engine init fails. Exclude.
+- Always use `--exclude=r28-1801,a100-2207,a100s-2305,a100s-2306,a100s-2307,a100s-2308`
 
 ### Launch pattern (IMPORTANT for agents)
 
@@ -262,6 +275,9 @@ python3 -c "import json; [print(f\"{d['timestamp']} {d['mode']:25s} {d['provider
 - If you change step schema or routing, audit both `main.py` and the skill prompt contracts in `skills/`.
 - `web_scraper.py` is a standalone module (testable via CLI) imported by main.py for web_search steps.
 - `utils/fast_embed.py` bypasses LangChain for bulk embedding — sentence-transformers with fp16 + chunked processing. Supports `--resume`.
+- `vectorless` modes (`vectorless_direct`, `vectorless_role`, etc.) are multi-turn LLM reasoning, not real corpus search. The name is historical.
+- Real structured search (entity graph, case summaries) is being built in `utils/build_entity_graph.py` and `utils/build_case_summaries.py`.
+- Validity checklist: check answer change rate > 0%, evidence retrieval > 50%, snap accuracy consistent. See `docs/experiment_overview.md`.
 - Verify the current working branch with `git branch --show-current` before relying on branch-specific notes; the repo is no longer guaranteed to be on `lightweight-rebuild`.
 - Sequential pipeline code archived in branch `archive/sequential-pipeline`.
 - See `RESEARCH.md` for current research state, experiment queue, and session handoff.
