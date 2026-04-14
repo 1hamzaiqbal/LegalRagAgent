@@ -1,6 +1,6 @@
 # Experiment Overview
 
-High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (170 entries).
+High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (180 entries).
 
 For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEARCH.md`.
 
@@ -47,6 +47,23 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 - gap_hyde_nosnap (fixed) reached 62.5% vs fixed gap_hyde 62.0%
 - gap_vectorless reached 61.5% and did not beat the plain historical vectorless baselines
 
+### Phase 7: Paper-Core Controls and Scale Check (April 14)
+- Snap/no-snap ablations completed: `rag_hyde` 62.5%, `vectorless_nosnap` 59.5%
+- **Core result:** snap adds +3.0pp to HyDE, +5.0pp to plain RAG, and +5.0pp to parametric reasoning on BarExam N=200
+- Cross-dataset follow-up: HousingQA `llm_only` 50.5%, `vectorless_direct` 50.0%, `vectorless_nosnap` 52.5%, `snap_hyde` 50.0%; CaseHOLD `llm_only` 69.5%, `vectorless_direct` 68.0%, `vectorless_nosnap` 67.5%
+- Full N=1195 `subagent_rag` reached 56.9%, below `snap_hyde` 57.9%
+- Infra: case-summary build job `44371` finished with 22K summaries; entity-graph rebuild job `44520` is 74% done
+
+## Paper Core Result (Gemma 4 E4B, BarExam N=200)
+
+| Family | No-snap mode | No-snap acc | Snap mode | Snap acc | Snap lift |
+|---|---|---|---|---|---|
+| HyDE retrieval | `rag_hyde` | 62.5% | `snap_hyde` | 65.5% | **+3.0pp** |
+| Plain RAG* | `rag_simple` | 57.0% | `snap_rag` | 62.0% | **+5.0pp** |
+| Parametric reasoning | `vectorless_nosnap` | 59.5% | `vectorless_direct` | 64.5% | **+5.0pp** |
+
+*Plain-RAG uses the existing `gte-large` April 10 reference pair so the comparison stays aligned with the paper's main ablation setting.
+
 ## Key Results (Gemma 4 E4B, BarExam)
 
 ### N=200 (seed=42) — Validated Modes
@@ -64,15 +81,17 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 | 8 | vectorless_role | **63.5%** | 7% | +4 | 3 | **no** |
 | 8 | gap_rag FIXED | **63.5%** | 2% | +4 | 3-6 | yes |
 | 11 | rag_arbitration | 63.0% | 6% | +3 | 3 | yes |
+| 12 | rag_hyde | **62.5%** | — | — | 2 | yes |
 | 12 | gap_hyde_nosnap FIXED | **62.5%** | — | — | 4.1 avg | yes |
-| 13 | snap_rag | 62.0% | 1% | +2 | 2 | yes |
-| 13 | gap_hyde FIXED | 62.0% | 0.5% | +1 | 4-8 | yes |
-| 15 | gap_vectorless | **61.5%** | — | — | 4.1 avg | **no** |
-| 15 | vectorless_elements | **61.0%** | — | — | 3 | **no** |
-| 15 | subagent_rag_evidence | **61.0%** | — | — | 4.1 avg | yes |
-| 18 | rag_rewrite | 59.5% | — | — | 3 | yes |
-| 19 | rag_simple | 57.0% | — | — | 1 | yes |
-| 20 | llm_only | 55.5% | — | — | 1 | no |
+| 14 | snap_rag | 62.0% | 1% | +2 | 2 | yes |
+| 14 | gap_hyde FIXED | 62.0% | 0.5% | +1 | 4-8 | yes |
+| 16 | gap_vectorless | **61.5%** | — | — | 4.1 avg | **no** |
+| 17 | vectorless_elements | **61.0%** | — | — | 3 | **no** |
+| 17 | subagent_rag_evidence | **61.0%** | — | — | 4.1 avg | yes |
+| 19 | rag_rewrite | 59.5% | — | — | 3 | yes |
+| 19 | vectorless_nosnap | **59.5%** | — | — | 2 | **no** |
+| 21 | rag_simple | 57.0% | — | — | 1 | yes |
+| 22 | llm_only | 55.5% | — | — | 1 | no |
 
 *snap_hyde fix/break from N=1195 run
 
@@ -84,12 +103,20 @@ Note: the `vectorless_*` label is historical shorthand. `vectorless_direct`, `ve
 |---|---|---|
 | golden_passage | 62.2% | `logs/eval_golden_passage_cluster-vllm_*_detail.jsonl` |
 | **snap_hyde** | **57.9%** | `logs/eval_rag_snap_hyde_cluster-vllm_20260413_*_detail.jsonl` |
+| **subagent_rag** | **56.9%** | `logs/eval_subagent_rag_cluster-vllm_20260414_*_detail.jsonl` |
 | llm_only | 55.5% | `logs/eval_llm_only_cluster-vllm_*_detail.jsonl` |
 | rag_simple | 54.2% | `logs/eval_rag_simple_cluster-vllm_*_detail.jsonl` |
 | vectorless_direct | **CANCELLED** | job `43471` canceled — mode is parametric reasoning, not real corpus search |
 | vectorless_hybrid | **CANCELLED** | job `43471` canceled — same naming / validity issue |
 
-Note: N=200 → N=1195 drops ~7pp for snap_hyde (65.5% → 57.9%). The planned full-scale "vectorless" runs were canceled because they would only validate extra reasoning steps, not corpus search.
+Note: `subagent_rag` looked best at N=200 (66.0%) but falls behind `snap_hyde` at N=1195 (56.9% vs 57.9%). The planned full-scale "vectorless" runs were canceled because they would only validate extra reasoning steps, not corpus search.
+
+### Cross-Dataset Follow-Up (Gemma 4 E4B, N=200)
+
+| Dataset | llm_only | vectorless_direct | vectorless_nosnap | snap_hyde | Key take-away |
+|---|---|---|---|---|---|
+| HousingQA | **50.5%** | 50.0% | 52.5% | 50.0% | Parametric reasoning does not solve the unknown-domain problem here |
+| CaseHOLD | **69.5%** | 68.0% | 67.5% | — | Parametric reasoning hurts citation-matching relative to `llm_only` |
 
 ## Top 10 Findings
 
@@ -99,7 +126,7 @@ Note: N=200 → N=1195 drops ~7pp for snap_hyde (65.5% → 57.9%). The planned f
 
 3. **Cross-encoder reranking dominates embedding choice.** All 7 non-gte-large embedders converge to exactly 65.0% with question-based reranking. The embedding model barely matters.
 
-4. **Subagent reports are the strongest current Gemma 4 E4B strategy.** `subagent_rag` reached 66.0%, beating `snap_hyde` by 0.5pp.
+4. **Subagent reports are the strongest current Gemma 4 E4B strategy at N=200, but not at full scale.** `subagent_rag` reached 66.0% on N=200, then 56.9% on N=1195 versus `snap_hyde` at 57.9%.
 
 5. **"Vectorless" is competitive, but the name is misleading.** These modes are multi-turn parametric reasoning baselines, not corpus search.
 
@@ -111,7 +138,7 @@ Note: N=200 → N=1195 drops ~7pp for snap_hyde (65.5% → 57.9%). The planned f
 
 9. **N=200 variance is ~5-7pp.** snap_hyde ranged 62.5%-67.5% across duplicate N=200 runs. Full N=1195 is essential for reliable comparison.
 
-10. **RAG helps only on unknown domains.** HousingQA (+9pp), BarExam (~0 net), CaseHOLD (-1.5pp).
+10. **The BarExam snap / parametric lift does not transfer cleanly off-domain.** New Gemma follow-ups are flat on HousingQA (50.0-52.5%) and negative on CaseHOLD (67.5-68.0% vs 69.5% `llm_only`).
 
 ## Validity Issues Encountered
 
@@ -146,11 +173,12 @@ Before trusting any result, check:
 | HPC throughput data | `docs/hpc_throughput.md` |
 | This overview | `docs/experiment_overview.md` |
 
-## Current Cluster Status (as of 2026-04-13)
+## Current Cluster Status (as of 2026-04-14)
 
 | Job | Mode | N | Purpose |
 |---|---|---|---|
-| 44371 | index build | — | Running — build the next corpus-search index |
-| 44394 | snap ablations | — | Resubmitted after `a100-2207` failed vLLM init |
-| 44395 | cross-dataset block | — | Resubmitted after `a100-2207` failed vLLM init |
+| 44371 | case summaries build | — | Completed — 22K summaries built |
+| 44394 | snap ablations | 200 | Completed — `rag_hyde` 62.5%, `vectorless_nosnap` 59.5% |
+| 44395 | cross-dataset block | 200 | Completed — HousingQA and CaseHOLD follow-ups logged |
+| 44520 | entity graph rebuild | — | Running — 74% done |
 | 43471 | vectorless_direct + vectorless_hybrid | 1195 | Cancelled — misnamed parametric-reasoning validation, not corpus search |

@@ -14,6 +14,18 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 **Commit:** hash
 ```
 
+## Paper Core Result — Snap Ablation (Gemma 4 E4B, BarExam N=200)
+
+This is the paper's core result: the snap step adds **+3.0pp to HyDE**, **+5.0pp to plain RAG**, and **+5.0pp to parametric reasoning** under the Gemma 4 E4B BarExam N=200 setting.
+
+| Family | No-snap mode | No-snap acc | Snap mode | Snap acc | Snap lift | Interpretation |
+|---|---|---|---|---|---|---|
+| HyDE retrieval | `rag_hyde` | 62.5% | `snap_hyde` | 65.5% | **+3.0pp** | Snap still matters even when HyDE retrieval is already present |
+| Plain RAG* | `rag_simple` | 57.0% | `snap_rag` | 62.0% | **+5.0pp** | The biggest gain in standard RAG is the snap step, not the retrieval call alone |
+| Parametric reasoning | `vectorless_nosnap` | 59.5% | `vectorless_direct` | 64.5% | **+5.0pp** | Multi-turn parametric reasoning only helps when it starts from a forced snap answer |
+
+*Plain-RAG uses the existing `gte-large` April 10 ablation pair (`rag_simple` vs `snap_rag`) so the comparison stays aligned with the paper's reference setting.
+
 ## Established baselines (N=100, seed=42)
 
 | Mode | Scout 17B | Llama 70B | GPT 5.4-nano |
@@ -51,6 +63,123 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 *BarExam N=200 net RAG lift is ~zero (fixed 15, hurt 15). †LLM-as-judge scoring (too lenient — treats most answers as correct).
 
 **Key finding:** RAG helps only when the LLM genuinely lacks domain knowledge (HousingQA: obscure state statutes). On well-known domains (BarExam, criminal law, Australian QA) or tasks requiring citation matching (CaseHOLD), retrieval is neutral-to-harmful.
+
+---
+
+### 2026-04-14 — Snap vs no-snap ablation confirms the paper's core claim
+
+**Hypothesis:** If snap is the real source of lift, removing it should hurt not just plain RAG, but also HyDE retrieval and the historical `vectorless_*` / parametric-reasoning family.
+
+**Change:** Ran the two missing no-snap controls on Gemma 4 E4B: `rag_hyde` (pure HyDE without snap) and `vectorless_nosnap` (parametric reasoning without snap), then compared them against the established `snap_hyde`, `snap_rag`, `rag_simple`, and `vectorless_direct` references already in the log.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, dataset=`barexam`, N=`200`, seed=`42`. New runs: `rag_hyde`, `vectorless_nosnap`. Reference runs: `snap_hyde`, `snap_rag`, `rag_simple`, `vectorless_direct`.
+
+**Results:**
+
+| Family | No-snap mode | No-snap acc | Snap mode | Snap acc | Delta |
+|---|---|---|---|---|---|
+| HyDE retrieval | `rag_hyde` | 62.5% (`125/200`) | `snap_hyde` | 65.5% (`131/200`) | **+3.0pp** |
+| Plain RAG | `rag_simple` | 57.0% (`114/200`) | `snap_rag` | 62.0% (`124/200`) | **+5.0pp** |
+| Parametric reasoning | `vectorless_nosnap` | 59.5% (`119/200`) | `vectorless_direct` | 64.5% (`129/200`) | **+5.0pp** |
+
+**Key findings:**
+1. The snap lift is not specific to one architecture: it survives in HyDE retrieval, plain RAG, and no-retrieval parametric reasoning.
+2. The HyDE family still benefits from snap, but the gain is smaller (+3.0pp) than in plain RAG / parametric reasoning (+5.0pp).
+3. This is the cleanest paper table so far because each pair isolates snap while holding the rest of the pipeline fixed.
+
+**Verdict:** CONFIRMED — snap is the paper's core result, not a side effect of one retrieval recipe.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-14 — Cross-dataset follow-up shows snap / parametric reasoning do not transfer off BarExam
+
+**Hypothesis:** If the snap benefit is universal, the same multi-turn reasoning controls should also help on domains where the model lacks knowledge (HousingQA) and on legal citation matching (CaseHOLD).
+
+**Change:** Ran the April 14 cross-dataset block on Gemma 4 E4B. HousingQA included `llm_only`, `vectorless_direct`, `vectorless_nosnap`, and `rag_snap_hyde`. CaseHOLD included `llm_only`, `vectorless_direct`, and `vectorless_nosnap`.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, datasets=`housing`, `casehold`, N=`200` each, seed=`42`.
+
+**Results — HousingQA (N=200):**
+
+| Mode | Accuracy | Correct |
+|---|---|---|
+| `llm_only` | **50.5%** | `101/200` |
+| `vectorless_direct` | 50.0% | `100/200` |
+| `vectorless_nosnap` | **52.5%** | `105/200` |
+| `rag_snap_hyde` | 50.0% | `100/200` |
+
+**Results — CaseHOLD (N=200):**
+
+| Mode | Accuracy | Correct |
+|---|---|---|
+| `llm_only` | **69.5%** | `139/200` |
+| `vectorless_direct` | 68.0% | `136/200` |
+| `vectorless_nosnap` | 67.5% | `135/200` |
+
+**Key findings:**
+1. Parametric reasoning does not help on the unknown-domain HousingQA block: the best run is only 52.5%, and `rag_snap_hyde` itself is flat at 50.0%.
+2. Parametric reasoning also does not help on citation-matching CaseHOLD, where both `vectorless_*` variants are below `llm_only`.
+3. The BarExam snap result is therefore not a universal "reasoning always helps" claim; it is task- and domain-dependent.
+
+**Verdict:** REFUTED — the BarExam snap / parametric lift does not transfer cleanly to HousingQA or CaseHOLD.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-14 — Full-scale N=1195 rerun removes the subagent lead
+
+**Hypothesis:** The N=200 `subagent_rag` lead over `snap_hyde` would persist on the full BarExam set.
+
+**Change:** Ran `subagent_rag` on full BarExam N=1195 and compared it to the existing full-set `rag_snap_hyde` reference.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`subagent_rag`, dataset=`barexam`, N=`1195`.
+
+**Result:** `subagent_rag` = **56.9%** (`680/1195`) versus full-set `snap_hyde` = **57.9%** (`692/1195`).
+
+**Interpretation:** The N=200 advantage for `subagent_rag` did not hold at scale. The report-first architecture still works, but it is not the current full-set winner.
+
+**Verdict:** REFUTED — `subagent_rag` looked best at N=200 but falls 1.0pp behind `snap_hyde` at N=1195.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-14 — Case summary build completed (job 44371)
+
+**Hypothesis:** A finished case-summary layer should unblock real structured-search follow-ups beyond embeddings.
+
+**Change:** Cluster job `44371` completed the case-summary build.
+
+**Config:** provider=`custom` (cluster batch build), mode=`case_summary_build`, dataset=`barexam corpus`, N=`~22K cases`, accuracy=`N/A` (offline index build).
+
+**Result:** **22K case summaries built**. The summary layer for the corpus-search stack is now available.
+
+**Interpretation:** This is an infra milestone rather than an accuracy result, but it materially changes what structured-search experiments can be run next.
+
+**Verdict:** CONFIRMED — the summary index build finished successfully.
+
+**Commit:** N/A (cluster job / infra run)
+
+---
+
+### 2026-04-14 — Entity graph rebuild underway (job 44520 at 74%)
+
+**Hypothesis:** Rebuilding the entity graph against the current corpus state should restore the graph-backed structured-search path.
+
+**Change:** Started cluster rebuild job `44520` for the entity graph.
+
+**Config:** provider=`custom` (cluster batch build), mode=`entity_graph_build`, dataset=`barexam corpus`, N=`686K passages`, accuracy=`N/A` (offline graph build).
+
+**Result:** Job `44520` is **74% complete**.
+
+**Interpretation:** The graph layer is not ready yet, but the structured-search rebuild is actively in progress alongside the now-complete case summaries.
+
+**Verdict:** IN PROGRESS — graph rebuild is advancing but not finished.
+
+**Commit:** N/A (cluster job / infra run)
 
 ---
 

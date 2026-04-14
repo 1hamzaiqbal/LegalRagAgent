@@ -13,23 +13,25 @@ Target venues:
 **Core claim:** Letting the LLM reason first ("snap") before retrieval is the single biggest contributor to legal QA accuracy. This lift generalizes across retrieval methods (RAG, HyDE, historical `vectorless_*` / parametric reasoning) and architectures (simple, gap-informed, subagent).
 
 **Supporting evidence:**
-- Snap reasoning adds +5pp universally (snap_rag 62% vs rag_simple 57%)
+- Snap ablation is now complete across the paper's three main families: HyDE +3pp (`snap_hyde` 65.5% vs `rag_hyde` 62.5%), plain RAG +5pp (`snap_rag` 62.0% vs `rag_simple` 57.0%), and parametric reasoning +5pp (`vectorless_direct` 64.5% vs `vectorless_nosnap` 59.5%)
 - HyDE leverages snap reasoning for passage-form retrieval (+3.5pp)
 - "Vectorless" baselines (really multi-turn parametric reasoning, not corpus search) match vector retrieval on BarExam
 - Subagent architecture (snap → gap analysis → subagent reports) achieves new best (66.0%)
 - Three identified failure modes: noise, anchoring, genre mismatch
 
 **Open question for paper:** Does the snap lift generalize to other datasets/corpora? Same universal lift?
+Latest answer: not universally. The April 14 follow-up is flat on HousingQA and negative on CaseHOLD for the new `vectorless_*` / snap-style controls.
 
 ---
 
 ## Priority 1: Critical Experiments (MUST DO for paper)
 
 ### P1.1: Snap vs No-Snap Ablation (the paper's core comparison)
-- [ ] **Pure HyDE (no snap)** — test `rag_hyde` on Gemma 4 E4B N=200. We have this mode already but never ran it on Gemma. This is snap_hyde minus the snap.
-- [ ] **Compare:** snap_hyde (65.5%) vs pure hyde (?%) = the snap contribution for HyDE
+- [x] **Pure HyDE (no snap)** — `rag_hyde` on Gemma 4 E4B N=200 completed at **62.5%**
+- [x] **Compare:** `snap_hyde` (65.5%) vs pure HyDE (62.5%) = **+3pp** snap contribution for HyDE
 - [x] **snap_rag (62.0%) vs rag_simple (57.0%)** = already done, +5pp ✓
-- [ ] **`vectorless_direct` vs `vectorless_nosnap`** — the historical `vectorless_*` no-snap control now exists; run it and compare against the current 3-call baseline.
+- [x] **`vectorless_direct` vs `vectorless_nosnap`** — completed: **64.5% vs 59.5%**, another **+5pp** snap lift
+- [x] **Core table complete:** snap adds **+3pp to HyDE**, **+5pp to plain RAG**, and **+5pp to parametric reasoning**
 - Data: `logs/experiments.jsonl`, detail logs in `logs/eval_*_detail.jsonl`
 
 ### P1.2: Cross-Dataset Validation
@@ -37,15 +39,18 @@ Target venues:
 - [ ] Run on **HousingQA**: llm_only, rag_simple, snap_hyde, vectorless_direct, subagent_rag (N=200 each)
 - [ ] Run on **CaseHOLD**: same modes (already have corpus on cluster?)
 - [ ] Key question: does snap lift transfer to domains where model lacks knowledge?
-- [ ] Status: original cross-dataset jobs FAILED on `a100-2207` during vLLM init; resubmitted as job `44395`
-- [ ] Supporting infra: index build is running as job `44371`
+- [x] Status: resubmitted cross-dataset block `44395` completed
+- [x] HousingQA follow-up completed: `llm_only` **50.5%**, `vectorless_direct` **50.0%**, `vectorless_nosnap` **52.5%**, `snap_hyde` **50.0%**
+- [x] CaseHOLD follow-up completed: `llm_only` **69.5%**, `vectorless_direct` **68.0%**, `vectorless_nosnap` **67.5%**
+- [x] Key finding from the April 14 block: parametric reasoning does **not** help on unknown-domain HousingQA or citation-matching CaseHOLD
+- [x] Supporting infra update: case-summary build job `44371` completed with **22K summaries**; entity-graph rebuild moved to job `44520` and is **74% done**
 - Data: HousingQA at `datasets/housing_qa/`, CaseHOLD at `datasets/casehold/`
 
 ### P1.3: Full-Scale N=1195 Validation
 - [x] rag_snap_hyde full: **57.9% ✓ DONE**
 - [x] vectorless_direct full: **CANCELLED** (job `43471`) — misnamed parametric reasoning, not real corpus search
 - [x] vectorless_hybrid full: **CANCELLED** (job `43471`) — same issue
-- [ ] subagent_rag full N=1195: **NEXT meaningful full-scale follow-up after real corpus-search controls are ready**
+- [x] `subagent_rag` full N=1195: **56.9%** (`680/1195`) — the N=200 edge did **not** hold at scale vs `snap_hyde` **57.9%**
 - Data: `logs/experiments.jsonl`
 
 ---
@@ -53,9 +58,9 @@ Target venues:
 ## Priority 2: Important Experiments (SHOULD DO)
 
 ### P2.1: Fix Historical Vectorless / Parametric Reasoning and Test Snap Contribution
-- [ ] **vectorless_nosnap** — run the already-implemented no-snap variant (question → generate knowledge → answer). 2 calls instead of 3.
-- [ ] Compare: vectorless_direct (64.5%, with snap) vs vectorless_nosnap (?%, without snap)
-- [ ] This directly measures whether snap helps vectorless, mirroring the snap_hyde vs pure_hyde comparison
+- [x] **vectorless_nosnap** — completed at **59.5%** on Gemma 4 E4B BarExam N=200
+- [x] Compare: `vectorless_direct` **64.5%** (with snap) vs `vectorless_nosnap` **59.5%** (without snap) = **+5pp**
+- [x] This now directly measures whether snap helps vectorless, mirroring `snap_hyde` vs `rag_hyde`
 
 ### P2.2: Subagent Variants
 - [ ] **subagent_hyde** — subagent uses HyDE retrieval per gap instead of raw sub-question
@@ -99,6 +104,8 @@ Target venues:
 
 | Experiment | Result | Status |
 |---|---|---|
+| Snap vs no-snap ablation | `rag_hyde` 62.5%, `vectorless_nosnap` 59.5%; core lift = +3 / +5 / +5 | ✅ Done |
+| Cross-dataset follow-up | HousingQA flat, CaseHOLD negative for new parametric controls | ✅ Done |
 | Embedding comparison (7 models × 3 modes) | Cross-encoder dominates | ✅ Done |
 | Gap architecture + GAP_MIN_CE fix | gap_rag 63.5%, gap_hyde 62.0% | ✅ Done |
 | Anchoring hypothesis | gap_rag_nosnap 64.5% > gap_rag 63.5% | ✅ Done |
@@ -106,8 +113,10 @@ Target venues:
 | Subagent RAG | **66.0% NEW BEST** | ✅ Done |
 | Subagent follow-ups | hybrid 63.5%, rag_evidence 61.0% | ✅ Done |
 | snap_hyde full N=1195 | 57.9% | ✅ Done |
+| subagent_rag full N=1195 | 56.9%, below snap_hyde 57.9% | ✅ Done |
+| Case-summary build | 22K summaries built (job `44371`) | ✅ Done |
 | Phase 1 alignment (10 modes) | snap_hyde 65.5% best | ✅ Done |
-| 170 total experiments | — | ✅ Logged |
+| 180 total experiments | — | ✅ Logged |
 
 ---
 
@@ -115,9 +124,10 @@ Target venues:
 
 | Job | What | Status |
 |---|---|---|
-| 44371 | index build | Running |
-| 44394 | snap ablations | Resubmitted after `a100-2207` vLLM-init failure |
-| 44395 | cross-dataset jobs | Resubmitted after `a100-2207` vLLM-init failure |
+| 44371 | case summaries build | Completed — 22K summaries built |
+| 44394 | snap ablations | Completed — `rag_hyde` 62.5%, `vectorless_nosnap` 59.5% |
+| 44395 | cross-dataset jobs | Completed — HousingQA and CaseHOLD follow-ups logged |
+| 44520 | entity graph rebuild | Running — 74% done |
 | 43471 | vectorless_direct + hybrid full N=1195 | Cancelled — fake vectorless / not real corpus search |
 
 ---
