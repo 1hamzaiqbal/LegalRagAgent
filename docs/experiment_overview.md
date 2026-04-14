@@ -1,6 +1,6 @@
 # Experiment Overview
 
-High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (164+ entries).
+High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (170 entries).
 
 For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEARCH.md`.
 
@@ -21,7 +21,7 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 ### Phase 2: Small Model Audit (April 1-8)
 - Full N=1195 BarExam baselines: Qwen3-32B (61.4%), Gemma-27B (58.0%), Qwen3-8B (52.1%)
 - HPC cluster setup: vLLM serving Gemma 4 E4B and Qwen3-8B
-- Gemma 4 E4B: 55.5% llm_only, 62.2% golden, 58.6% snap_hyde (N=1195)
+- Gemma 4 E4B: 55.5% llm_only, 62.2% golden, 57.9% latest snap_hyde full rerun (earlier clean run: 58.6%)
 
 ### Phase 3: Embedding Comparison (April 9-11)
 - 7 embedders × 3 modes = 21 eval runs
@@ -32,18 +32,20 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 - Designed snap → gap analysis → per-gap retrieval → final answer
 - **BUG FOUND:** GAP_MIN_CE=1.0 filtered 90-95% of evidence. All gap results were llm_only (0% answer changes)
 - **BUG FOUND:** 11-char HyDE outputs from prompt schema mismatch (Gemma merges system+user)
-- After fixes: gap_rag 63.5%, gap_hyde 62.0% — evidence reaches model but anchoring limits changes to 0.5-2%
+- After fixes and anchoring controls: gap_rag 63.5%, gap_rag_nosnap 64.5%, gap_hyde 62.0%, gap_hyde_nosnap 62.5%, gap_vectorless 61.5%
 - **Key finding:** Showing snap answer in final call causes anchoring (0.5-2% changes vs 19-27% when hidden)
 
 ### Phase 5: Vectorless RAG (April 12-13)
-- LLM generates knowledge from parametric memory instead of searching vector store
+- LLM generates knowledge from parametric memory instead of searching the corpus
 - vectorless_hybrid: 65.0% (N=200), vectorless_direct: 64.5% (N=200)
 - Competitive with snap_hyde (65.5%) with ZERO vector infrastructure
-- Full N=1195 validation running
+- Naming caveat: "vectorless" is historical shorthand for multi-turn LLM reasoning / parametric knowledge exploitation, not real corpus search
+- Full N=1195 "vectorless" validation was canceled after that naming issue was identified
 
-### Phase 6: Anchoring Hypothesis (April 13, running)
-- Testing gap_rag_nosnap, gap_vectorless, gap_hyde_nosnap — same retrieval but snap hidden from final call
-- If these beat gap_rag (63.5%), anchoring is confirmed as the bottleneck
+### Phase 6: Anchoring Hypothesis (April 13, completed)
+- gap_rag_nosnap reached 64.5% vs gap_rag 63.5%
+- gap_hyde_nosnap (fixed) reached 62.5% vs fixed gap_hyde 62.0%
+- gap_vectorless reached 61.5% and did not beat the plain vectorless baselines
 
 ## Key Results (Gemma 4 E4B, BarExam)
 
@@ -51,22 +53,30 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 
 | Rank | Mode | Acc | Changed | Net | Calls | Vector Store? |
 |---|---|---|---|---|---|---|
-| 1 | snap_hyde | **65.5%** | 27% | +37* | 3 | yes |
-| 2 | vectorless_hybrid | **65.0%** | 18% | +7 | 4 | yes (k=3) |
-| 3 | vectorless_direct | **64.5%** | 19% | +6 | 3 | **no** |
-| 3 | vectorless_choice_map | **64.5%** | — | — | 3 | **no** |
-| 5 | ce_threshold | 64.0% | 10% | +5 | 2-3 | yes |
-| 6 | vectorless_role | 63.5% | 7% | +4 | 3 | **no** |
-| 6 | gap_rag FIXED | 63.5% | 2% | +4 | 3-6 | yes |
-| 8 | rag_arbitration | 63.0% | 6% | +3 | 3 | yes |
-| 9 | snap_rag | 62.0% | 1% | +2 | 2 | yes |
-| 10 | gap_hyde FIXED | 62.0% | 0.5% | +1 | 4-8 | yes |
-| 11 | vectorless_elements | 61.0% | — | — | 3 | **no** |
-| 12 | rag_rewrite | 59.5% | — | — | 3 | yes |
-| 13 | rag_simple | 57.0% | — | — | 1 | yes |
-| 14 | llm_only | 55.5% | — | — | 1 | no |
+| 1 | subagent_rag | **66.0%** | — | — | 4.1 avg | yes |
+| 2 | snap_hyde | **65.5%** | 27% | +37* | 3 | yes |
+| 3 | vectorless_hybrid | **65.0%** | 18% | +7 | 4 | yes (k=3) |
+| 4 | gap_rag_nosnap | **64.5%** | — | — | 3.0 avg | yes |
+| 4 | vectorless_direct | **64.5%** | 19% | +6 | 3 | **no** |
+| 4 | vectorless_choice_map | **64.5%** | — | — | 3 | **no** |
+| 7 | ce_threshold | 64.0% | 10% | +5 | 2-3 | yes |
+| 8 | subagent_hybrid | **63.5%** | — | — | 4.1 avg | yes |
+| 8 | vectorless_role | **63.5%** | 7% | +4 | 3 | **no** |
+| 8 | gap_rag FIXED | **63.5%** | 2% | +4 | 3-6 | yes |
+| 11 | rag_arbitration | 63.0% | 6% | +3 | 3 | yes |
+| 12 | gap_hyde_nosnap FIXED | **62.5%** | — | — | 4.1 avg | yes |
+| 13 | snap_rag | 62.0% | 1% | +2 | 2 | yes |
+| 13 | gap_hyde FIXED | 62.0% | 0.5% | +1 | 4-8 | yes |
+| 15 | gap_vectorless | **61.5%** | — | — | 4.1 avg | **no** |
+| 15 | vectorless_elements | **61.0%** | — | — | 3 | **no** |
+| 15 | subagent_rag_evidence | **61.0%** | — | — | 4.1 avg | yes |
+| 18 | rag_rewrite | 59.5% | — | — | 3 | yes |
+| 19 | rag_simple | 57.0% | — | — | 1 | yes |
+| 20 | llm_only | 55.5% | — | — | 1 | no |
 
 *snap_hyde fix/break from N=1195 run
+
+Note: the `vectorless_*` label is historical shorthand. `vectorless_direct`, `vectorless_role`, `vectorless_elements`, `vectorless_choice_map`, and `gap_vectorless` are multi-turn LLM reasoning / parametric-knowledge modes, not corpus search. `vectorless_hybrid` is the only one that still pools generated knowledge with vector retrieval.
 
 ### Full-Scale N=1195
 
@@ -76,10 +86,10 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 | **snap_hyde** | **57.9%** | `logs/eval_rag_snap_hyde_cluster-vllm_20260413_*_detail.jsonl` |
 | llm_only | 55.5% | `logs/eval_llm_only_cluster-vllm_*_detail.jsonl` |
 | rag_simple | 54.2% | `logs/eval_rag_simple_cluster-vllm_*_detail.jsonl` |
-| vectorless_direct | **running** | — |
-| vectorless_hybrid | **running** | — |
+| vectorless_direct | **CANCELLED** | job `43471` canceled — mode is parametric reasoning, not real corpus search |
+| vectorless_hybrid | **CANCELLED** | job `43471` canceled — same naming / validity issue |
 
-Note: N=200 → N=1195 drops ~7pp for snap_hyde (65.5% → 57.9%). Vectorless full-scale results pending.
+Note: N=200 → N=1195 drops ~7pp for snap_hyde (65.5% → 57.9%). The planned full-scale "vectorless" runs were canceled because they would only validate extra reasoning steps, not corpus search.
 
 ## Top 10 Findings
 
@@ -89,19 +99,19 @@ Note: N=200 → N=1195 drops ~7pp for snap_hyde (65.5% → 57.9%). Vectorless fu
 
 3. **Cross-encoder reranking dominates embedding choice.** All 7 non-gte-large embedders converge to exactly 65.0% with question-based reranking. The embedding model barely matters.
 
-4. **Vectorless RAG is competitive.** LLM-generated knowledge (64.5%) nearly matches vector retrieval (65.5%) on BarExam, eliminating the entire retrieval stack.
+4. **Subagent reports are the strongest current Gemma 4 E4B strategy.** `subagent_rag` reached 66.0%, beating `snap_hyde` by 0.5pp.
 
-5. **Showing the snap answer in the final call causes anchoring.** Modes that show snap: 0.5-2% answer changes. Modes that hide snap: 7-27% changes.
+5. **"Vectorless" is competitive, but the name is misleading.** These modes are multi-turn parametric reasoning baselines, not corpus search.
 
-6. **GAP_MIN_CE=1.0 was a critical bug** that made all gap experiments into llm_only (0% answer changes). Discovered via fix/break analysis.
+6. **Showing the snap answer in the final call causes anchoring.** Modes that show snap: 0.5-2% answer changes. Modes that hide snap: 7-27% changes.
 
-7. **11-char HyDE outputs** were caused by prompt schema mismatch — Gemma merges system+user, and gap-formatted input didn't match the system prompt's expectation.
+7. **GAP_MIN_CE=1.0 was a critical bug** that made all gap experiments into llm_only (0% answer changes). Discovered via fix/break analysis.
 
-8. **N=200 variance is ~5-7pp.** snap_hyde ranged 62.5%-67.5% across duplicate N=200 runs. Full N=1195 is essential for reliable comparison.
+8. **11-char HyDE outputs** were caused by prompt schema mismatch — Gemma merges system+user, and gap-formatted input didn't match the system prompt's expectation.
 
-9. **RAG helps only on unknown domains.** HousingQA (+9pp), BarExam (~0 net), CaseHOLD (-1.5pp).
+9. **N=200 variance is ~5-7pp.** snap_hyde ranged 62.5%-67.5% across duplicate N=200 runs. Full N=1195 is essential for reliable comparison.
 
-10. **Self-correction consistently hurts.** self_verify -3pp, snap_debate -5pp, double_snap -2pp. Second-guessing without new information is destructive.
+10. **RAG helps only on unknown domains.** HousingQA (+9pp), BarExam (~0 net), CaseHOLD (-1.5pp).
 
 ## Validity Issues Encountered
 
@@ -136,9 +146,11 @@ Before trusting any result, check:
 | HPC throughput data | `docs/hpc_throughput.md` |
 | This overview | `docs/experiment_overview.md` |
 
-## Currently Running (as of 2026-04-13)
+## Current Cluster Status (as of 2026-04-13)
 
 | Job | Mode | N | Purpose |
 |---|---|---|---|
-| 43471 | vectorless_direct + vectorless_hybrid | 1195 | Full-scale validation |
-| 43458 | gap_rag_nosnap + gap_vectorless + gap_hyde_nosnap | 200 | Anchoring hypothesis test |
+| 44371 | index build | — | Running — build the next corpus-search index |
+| 44394 | snap ablations | — | Resubmitted after `a100-2207` failed vLLM init |
+| 44395 | cross-dataset block | — | Resubmitted after `a100-2207` failed vLLM init |
+| 43471 | vectorless_direct + vectorless_hybrid | 1195 | Cancelled — misnamed parametric-reasoning validation, not corpus search |

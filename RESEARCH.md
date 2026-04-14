@@ -5,12 +5,13 @@ Persistent research state for the LegalRagAgent project. Read this first in any 
 This project started as a heavy agentic RAG pipeline that hurt performance. We stripped it down, systematically tested each component, and found that simpler adaptive strategies beat complex ones. The long-term goal is still a strong full agentic pipeline, but we're rebuilding toward it intentionally and atomically — testing each element's effectiveness and documenting what works about the research process itself.
 
 ## Current execution status
-- No LegalRAG eval is actively running on the cluster right now.
+- Active cluster work is now infra / resubmission focused: index build is running as job `44371`; snap ablation jobs failed on `a100-2207` during vLLM init and were resubmitted as job `44394`; cross-dataset jobs failed on `a100-2207` and were resubmitted as job `44395`.
 - Core Phase 1 small-model baseline block is complete; lower-priority OpenRouter extras (`or-nemotron`, `or-qwen35-9b`) remain explicitly deferred.
-- Best small-model full-set snapshot: **Gemma 4 E4B** at 55.5% `llm_only`, 62.2% `golden_passage`, and 57.9% `rag_snap_hyde` / snap_hyde-style full rerun (N=1195).
-- Vectorless RAG sweep is complete: `vectorless_hybrid` **65.0%**, `vectorless_direct` **64.5%**, `vectorless_choice_map` **64.5%**, `vectorless_role` **63.5%**, `vectorless_elements` **61.0%** (Gemma 4 E4B, N=200).
+- Best small-model N=200 result is now **`subagent_rag` at 66.0%** on Gemma 4 E4B; best full-set snapshot remains 55.5% `llm_only`, 62.2% `golden_passage`, and 57.9% `rag_snap_hyde` on the latest full rerun (N=1195).
+- Subagent follow-up sweep is complete: `subagent_rag` **66.0%**, `subagent_hybrid` **63.5%**, `subagent_rag_evidence` **61.0%** (Gemma 4 E4B, N=200).
+- "Vectorless" baseline sweep is complete: `vectorless_hybrid` **65.0%**, `vectorless_direct` **64.5%**, `vectorless_choice_map` **64.5%**, `vectorless_role` **63.5%**, `vectorless_elements` **61.0%** (Gemma 4 E4B, N=200). Naming caveat: these modes are multi-turn LLM reasoning / parametric-knowledge exploitation, not real corpus search, so the full N=1195 vectorless jobs were canceled.
 - Embedding comparison is complete for supported builds: **7 embedders tested**; `jina-v3`, `arctic-l-v2`, and `nomic-v2-moe` all finished at 61.5% `rag_simple` / 64.5% `rag_snap_hyde`; `gte-qwen2-1.5b` and `stella-1.5b` failed to build.
-- Gap architecture is fixed and revalidated: `gap_rag` **63.5%**, `gap_hyde` **62.0%** on Gemma 4 E4B (N=200), still below `snap_hyde` / vectorless.
+- Gap-family reruns are complete: `gap_rag_nosnap` **64.5%**, fixed `gap_rag` **63.5%**, fixed `gap_hyde_nosnap` **62.5%**, fixed `gap_hyde` **62.0%**, and `gap_vectorless` **61.5%** on Gemma 4 E4B (N=200). Anchoring is real, but the gap family still trails the best simpler baselines.
 
 ---
 
@@ -48,24 +49,29 @@ Drawn from [Karpathy autoresearch](https://github.com/karpathy/autoresearch) and
 | Dataset | Best Mode | Accuracy | vs llm_only | Key insight |
 |---------|-----------|----------|-------------|-------------|
 | BarExam | **ce_threshold** | **80.0%** | +16 | Skip RAG when CE<4.0, use snap answer instead |
-| HousingQA | snap_hyde | **56.0%** | +9 | Model unanimously wrong (Yes-bias), gating skips 90% |
-| CaseHOLD | llm_only / conf_gated | **72.5%** | 0 | RAG pulls similar-but-wrong holdings |
+| HousingQA | `rag_snap_hyde` | **56.0%** | +9 | Model unanimously wrong (Yes-bias), gating skips 90% |
+| CaseHOLD | `llm_only` / `confidence_gated` | **72.5%** | 0 | RAG pulls similar-but-wrong holdings |
 
-### Full BarExam comparison (Llama 70B, N=200)
+### Gemma 4 E4B + vectorless snapshot (BarExam)
 
-| Method | Accuracy | LLM calls/Q | Notes |
-|--------|----------|-------------|-------|
-| **ce_threshold** | **80.0%** | 2-3 | NEW BEST — skip RAG on low-CE |
-| confidence_gated | 79.0% | 3-5 | Previous best |
-| snap_hyde | 76.5% | 4 | Best always-on retrieval |
-| decompose_structured | 76.0% | 3-5 | Best decomposition |
-| decompose_natural | 75.0% | 3-5 | |
-| decompose_rag | 71.5% | 4-8 | WORSE — synthesis loses signal |
-| llm_only | 64.0% | 1 | Baseline |
+| Method | Accuracy | Scale | Notes |
+|--------|----------|-------|-------|
+| `subagent_rag` | **66.0%** | N=200 | Best current Gemma 4 E4B result |
+| `rag_snap_hyde` | **65.5%** | N=200 | Best small-model retrieval baseline |
+| `gap_rag_nosnap` | **64.5%** | N=200 | Best gap-family no-snap control |
+| `vectorless_hybrid` | **65.0%** | N=200 | Best vectorless result |
+| `vectorless_direct` / `vectorless_choice_map` | **64.5%** | N=200 | No vector store required |
+| `subagent_hybrid` / `gap_rag` (fixed) / `vectorless_role` | **63.5%** | N=200 | Second-tier follow-ups |
+| `gap_hyde_nosnap` (fixed) | **62.5%** | N=200 | Anchoring-control improvement over fixed `gap_hyde` |
+| `gap_rag` (fixed) | **63.5%** | N=200 | Improved after the prompt/schema fix, still below snap/vectorless |
+| `rag_snap_hyde` | **57.9%** | full N=1195 | Latest full rerun (`692/1195`); earlier clean run reached 58.6% |
+| `llm_only` | **55.5%** | full N=1195 | Full small-model baseline |
+
+Note: the `vectorless_*` label is historical shorthand. These are multi-turn LLM reasoning / parametric-knowledge modes, not real corpus search. `vectorless_hybrid` is the only one that still pools generated knowledge with vector retrieval.
 
 ### Cross-model comparison
 
-| Model | Dataset | conf_gated | snap_hyde | llm_only |
+| Model | Dataset | `confidence_gated` | `rag_snap_hyde` | `llm_only` |
 |-------|---------|------------|-----------|----------|
 | Llama 70B | BarExam | **79.0%** | 76.5% | 64% |
 | Scout 17B | BarExam | **71.5%** | 71.0%* | 69% |
@@ -80,9 +86,10 @@ Drawn from [Karpathy autoresearch](https://github.com/karpathy/autoresearch) and
 2. **Confidence gating works for random errors, not systematic bias** — BarExam: +2.5 over snap_hyde; HousingQA: -5.5 (model unanimously wrong, gating skips)
 3. **Self-consistency (3-vote) is a good uncertainty signal** — Scout disagrees more (40%) than Llama (23%), correctly routing more to RAG
 4. **Counterevidence retrieval consistently hurts** — devil -6, top-2 -3
-5. **The real BarExam win is step-by-step prompting** (+12.5), not retrieval (net 0)
-6. **decompose_rag is worse than simpler approaches** — synthesis step that merges sub-answers + evidence loses signal
-7. **Optimal strategy is domain-dependent** — detect error mode (random → confidence_gated, systematic → snap_hyde)
+5. **Subagent reports are the strongest current small-model strategy** — `subagent_rag` reached 66.0%, beating `rag_snap_hyde` by 0.5pp
+6. **"Vectorless" is competitive, but the name is misleading** — `vectorless_hybrid` (65.0%) nearly matches `rag_snap_hyde` (65.5%), but these runs test multi-turn parametric reasoning, not corpus search
+7. **Gap variants improved after the fix, but not enough** — `gap_rag_nosnap` reached 64.5% and fixed `gap_hyde_nosnap` reached 62.5%, confirming anchoring without overtaking the best simpler baselines
+8. **Full-scale Gemma is still retrieval-limited** — latest `rag_snap_hyde` rerun is 57.9% vs `golden_passage` 62.2%, so retrieval quality remains the main bottleneck
 
 ---
 
@@ -132,7 +139,7 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 
 #### ~~8. Embedding model comparison~~ — COMPLETED (2026-04-11)
 - **7 embedders tested** across 3 modes (rag_simple, snap_hyde, snap_hyde_aligned), N=200 each.
-- **Key finding**: Cross-encoder reranking dominates — all 7 non-gte-large embedders converge to exactly 65.0% with question-based reranking. Embedding model choice barely matters.
+- **Key finding**: Cross-encoder reranking dominates — all 6 alternative embedders converge to exactly 65.0% with question-based reranking under `snap_hyde_aligned`. Embedding choice matters more on `rag_simple` than on aligned reranking.
 - **Wave 1** (gte-large, legal-bert, stella-400m, bge-m3): snap_hyde 60% for non-gte, gte-large 65.5%.
 - **Wave 2** (jina-v3, arctic-l-v2, nomic-v2-moe): snap_hyde 64.5% for all three — closer to gte-large.
 - **Failed builds**: gte-qwen2-1.5b, stella-1.5b (transformers rope_theta compat).
@@ -143,15 +150,20 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 #### ~~10. Gap-informed retrieval~~ — COMPLETED (2026-04-13)
 - **Architecture tested**: `SNAP → ANALYZE GAPS → SUBAGENT RETRIEVAL (per gap) → FINAL REASONING`
 - **Variants tested**: `gap_rag`, `gap_hyde`, `gap_hyde_ev`, `gap_hyde_nosnap`, `gap_hyde_flat`, plus follow-up anchoring ablations.
-- **Result**: fixed `gap_rag` reached **63.5%** and fixed `gap_hyde` reached **62.0%** on Gemma 4 E4B (N=200), but both still underperform `snap_hyde` (**65.5%**) and `vectorless_hybrid` (**65.0%**).
+- **Result**: `gap_rag_nosnap` reached **64.5%**, fixed `gap_rag` reached **63.5%**, fixed `gap_hyde_nosnap` reached **62.5%**, and `gap_vectorless` reached **61.5%** on Gemma 4 E4B (N=200). Anchoring was confirmed, but the gap family still underperforms `snap_hyde` (**65.5%**) and `subagent_rag` (**66.0%**).
 - **Keep/discard**: keep as an analyzed ablation family, discard as the main direction for now.
+
+#### 11. Vectorless full-scale / keyword follow-up
+- **Status**: baseline sweep complete at N=200; the planned full N=1195 "vectorless" jobs were canceled after we concluded the label was misleading and not testing real corpus search.
+- **What is already done**: `vectorless_hybrid` **65.0%**, `vectorless_direct` / `vectorless_choice_map` **64.5%**, `vectorless_role` **63.5%**, `vectorless_elements` **61.0%**.
+- **What remains**: define a real corpus-search control (`vectorless_keyword`, BM25 / structured index navigation, or similar) before any new full-scale follow-up.
 
 ---
 
-## Plan Snapshot (2026-04-10)
+## Plan Snapshot (2026-04-13)
 
 ### Phase 1: Alignment Testing
-Run all existing retrieval modes on the **same** N=200, seed=42, BarExam, Gemma 4 E4B for a clean comparison. Many of these have been tested before but on different models or sample sizes — need them all on the same setup.
+Completed. All major retrieval modes have now been run on the same N=200, seed=42, BarExam, Gemma 4 E4B setup for a clean comparison.
 
 | Mode | LLM Calls | Accuracy | What It Tests |
 |---|---|---|---|
@@ -172,16 +184,22 @@ Run all existing retrieval modes on the **same** N=200, seed=42, BarExam, Gemma 
 | `llm_only` | 1 | 55.5% | No retrieval (N=1195) |
 
 ### Phase 2: Gap-Informed Retrieval (completed 2026-04-13)
-Completed; the gap family topped out at **63.5%** (`gap_rag`) after the prompt/schema fix and did not beat `snap_hyde` or vectorless.
+Completed; the gap family topped out at **64.5%** (`gap_rag_nosnap`) after the anchoring controls, but still did not beat `rag_snap_hyde` or `subagent_rag`.
 
 ### Phase 3: Vectorless RAG (completed 2026-04-13)
-Completed initial sweep; `vectorless_hybrid` reached **65.0%** and `vectorless_direct` reached **64.5%** on Gemma 4 E4B (N=200).
+Completed initial sweep; `vectorless_hybrid` reached **65.0%** and `vectorless_direct` reached **64.5%** on Gemma 4 E4B (N=200). Naming caveat: these are multi-turn parametric-knowledge baselines, not real corpus-search baselines, so the full N=1195 vectorless jobs were canceled.
+
+### Phase 4: Open follow-ups
+1. Let the new corpus index finish building (job `44371`) so the next round can test real corpus-search follow-ups.
+2. Monitor the resubmitted snap ablation job (`44394`) and cross-dataset job (`44395`) after the `a100-2207` vLLM-init failure.
+3. Define and run a real non-vector corpus-search control (`vectorless_keyword`, BM25, or structured index navigation) instead of the misleading parametric "vectorless" label.
+4. Integrate `confidence_gated` or another validated routing policy into `main.py` once the eval-side direction is stable.
 
 ---
 
-## Active Experiment
+## Historical Reference Block
 
-### Completed experiments this session (2026-03-27)
+### Completed experiments in the 2026-03-27 CE-threshold block
 
 | # | Experiment | Llama 70B | Scout 17B | Verdict |
 |---|---|---|---|---|
@@ -210,22 +228,10 @@ Completed initial sweep; `vectorless_hybrid` reached **65.0%** and `vectorless_d
 
 ## Session Handoff
 
-### Last session (2026-04-03 audit)
-- Re-audited repo state, logs, and hub notes against the March 31 meeting plan.
-- Confirmed **5/7** Phase 1 full-set BarExam baselines are completed:
-  - `or-qwen3-32b`: **61.42%** (`734/1195`) — best completed Phase 1 baseline
-  - `groq-qwen`: **59.33%** (`709/1195`)
-  - `or-qwen3-14b`: **57.74%** (`690/1195`)
-  - `or-qwen3-8b`: **54.23%** (`648/1195`)
-  - `groq-llama8b`: **52.97%** (`633/1195`)
-- Confirmed the remaining Phase 1 baselines are still unrun: `or-nemotron`, `or-qwen35-9b`.
-- Confirmed **Phases 2-6 have not started yet**.
-- Fixed stale full-run detection in:
-  - `eval/run_experiment_queue.py`
-  - `eval/monitor.py`
-  so the monitor now derives the true `full` question count from `eval_config.py` instead of using the stale `>=1900` threshold.
-- Added `docs/cluster_workflow.md` to capture the next useful infra step: cluster-based local inference / full eval bring-up.
-- Cleaned repo scratch artifacts by ignoring/removing transient session-export and inspection files.
+### Historical audit reference (2026-04-03)
+- This was the repo-state checkpoint that confirmed the initial 5/7 full-set baselines and identified `or-nemotron` / `or-qwen35-9b` as the remaining deferred OpenRouter runs.
+- It also fixed stale full-run detection in `eval/run_experiment_queue.py` and `eval/monitor.py`, so `full` now resolves from `eval_config.py` instead of the old `>=1900` heuristic.
+- Keep it as the point-in-time audit marker; the April 13 timeline below is the current handoff state.
 
 ### Meeting action items status (audited 2026-04-13)
 | # | Item | Status |
@@ -236,126 +242,28 @@ Completed initial sweep; `vectorless_hybrid` reached **65.0%** and `vectorless_d
 | 4 | Token/cost analysis | ✅ Script built (`eval/token_analysis.py`) |
 | 5 | RAG on small models | ✅ **Done** — rag_simple + snap_hyde on Gemma4 + Qwen3-8B |
 | 6 | Devil RAG inversion | ⬜ Planned in Phase 4, not started |
-| 7 | Self-consistency / confidence | ⬜ Planned in Phase 5/6, not started |
+| 7 | Self-consistency / confidence | ✅ **Done** — `confidence_gated` validated on BarExam, HousingQA, and CaseHOLD |
 | 8 | Embedding model comparison | ✅ **Done** — 7 supported embedders tested across `rag_simple`, `rag_snap_hyde`, `snap_hyde_aligned`; 2 failed builds documented |
 | 9 | MLEB benchmark | ❌ Not started |
 | 10 | ENGR node local inference | ✅ **Done** — vLLM serving Gemma4+Qwen3-8B on A40/A6000 |
 | 11 | SNAP-HyDE literature review | ❌ Not started |
 
-### Latest meeting follow-up (2026-04-03)
-- Priority 1: run a **same-scale non-Qwen comparison** against `or-qwen3-32b` on full BarQA. Best repo-available candidates: `or-gemma27b` and `or-mistral`.
-- Priority 2: run **golden-passage vs RAG** comparisons on the strongest current small-model candidates to check whether retrieval quality is the bottleneck.
-- Priority 3: test **one alternate embedding model** before branching into heavier retrieval frameworks.
-- Priority 4: try **LazyGraphRAG first**, then decide whether heavier GraphRAG / RAGFlow exploration is justified.
-- Langlin GPU inference access is still useful, but it is not the first blocker relative to the higher-signal model / golden / embedding comparisons above.
+### Recent verified timeline
+- 2026-04-03 audit: confirmed 5/7 full-set BarExam baselines, fixed stale full-run detection in `eval/run_experiment_queue.py` and `eval/monitor.py`, and recorded the cluster bring-up workflow.
+- 2026-04-05 full-set comparisons: `or-gemma27b` baseline landed at **57.99%**; `golden_passage` materially beat plain retrieval on both `or-qwen3-32b` and `or-gemma27b`, confirming retrieval quality as the main bottleneck.
+- 2026-04-07 through 2026-04-11 HPC block: full Qwen3-8B and Gemma 4 E4B runs completed; the focused 7-embedder sweep completed with 2 documented build failures.
+- 2026-04-13 current block: vectorless sweep, anchoring controls, and subagent follow-up sweep completed; the latest full `rag_snap_hyde` Gemma rerun finished at **57.9%** (`692/1195`); the misnamed full-vectorless jobs were canceled; and the snap ablation / cross-dataset jobs were resubmitted as `44394` / `44395` after `a100-2207` failed vLLM init.
 
-### Latest completed block (2026-04-05)
-- `llm_only / or-gemma27b / full`: **57.99%** (`693/1195`) — valid lower-baseline non-Qwen control.
-- `golden_passage / or-qwen3-32b / full`: **66.69%** vs qwen32 baseline **61.42%** → **+5.27pp**.
-- `rag_simple / or-qwen3-32b / full`: **63.10%** vs qwen32 baseline **61.42%** → **+1.67pp**.
-- `golden_passage / or-gemma27b / full`: **65.52%** vs gemma baseline **57.99%** → **+7.53pp**.
-- `rag_simple / or-gemma27b / full`: **54.64%** vs gemma baseline **57.99%** → **-3.35pp**.
-- Current read: retrieval quality is a real bottleneck. Golden helps both models much more than the current plain retriever, especially Gemma.
-
-### Historical active work snapshot (2026-04-10)
-
-#### Completed HPC cluster runs (2026-04-07 through 2026-04-09)
-- **Qwen3-8B full BarExam**: llm_only 52.1%, golden 60.1%, rag_simple 36.5% (corrupted)
-- **Gemma 4 E4B full BarExam**: llm_only 55.5%, golden 62.2%, rag_simple 54.2%, snap_hyde 58.6%
-- **Embedding comparison** (Gemma 4 E4B, N=200): 4 embedders x 2 modes = 8 eval runs
-
-#### Embedding comparison results (Gemma 4 E4B, N=200, BarExam)
-
-| Embedding | Params | Dim | rag_simple | snap_hyde |
-|---|---|---|---|---|
-| gte-large (baseline) | 434M | 1024 | 57.0% | **65.5%** |
-| legal-bert | 110M | 768 | **62.0%** | 60.0% |
-| stella-400m | 400M | 1024 | 61.0% | 60.0% |
-| bge-m3 | 568M | 1024 | 61.0% | 60.0% |
-
-**Key findings:**
-1. All 3 alternative embedders beat baseline on rag_simple (+4-5pp).
-2. legal-bert rag_simple (62.0%) nearly matches golden passage ceiling (62.2%).
-3. snap_hyde flattens all differences to ~60% for non-baseline embedders, while baseline stays at 65.5%.
-4. This asymmetry matters: rag_simple embeds the raw question (question→passage similarity), while snap_hyde embeds an LLM-generated hypothetical passage (passage→passage similarity). The baseline gte-large may be better at passage→passage matching, which is what snap_hyde needs.
-
-#### Untested embedders (available in EMBEDDING_MODELS dict)
-- `stella-1.5b`: 1.5B params, MTEB ~59.8 — previously failed due to transformers compat, may work with gemma4 venv
-- `gte-qwen2-1.5b`: 1.5B instruct embedder, 1536d, 32k context
-- `jina-v3`: 570M, task-specific LoRA adapters
-- `arctic-l-v2`: 568M, retrieval-optimized, no trust_remote_code needed
-- `nomic-v2-moe`: 475M MoE, 768d
-
-### Session summary (2026-04-13)
-
-**VECTORLESS RAG COMPLETE — competitive with snap_hyde:**
-- `vectorless_hybrid`: **65.0%** (18% changed, +7 net) — LLM knowledge + sparse RAG
-- `vectorless_direct`: **64.5%** (19% changed, +6 net) — pure LLM knowledge, NO vector store
-- `vectorless_choice_map`: **64.5%** — rule + distractor mapping
-- `vectorless_role`: **63.5%** (7% changed, +4 net) — barprep tutor
-- `vectorless_elements`: **61.0%** — structured legal elements
-
-**GAP ARCHITECTURE FIXED AND VALIDATED:**
-- `gap_rag FIXED`: **63.5%** (2% changed, +4 net) — evidence reaches model but barely changes answers
-- `gap_hyde FIXED`: **62.0%** (0.5% changed, +1 net) — same anchoring issue
-
-**CRITICAL FINDING — Anchoring hypothesis:**
-- Modes that SHOW snap in final call: 0.5-2% answer changes (gap modes, snap_rag)
-- Modes that HIDE snap from final call: 7-27% answer changes (snap_hyde, vectorless, snap_rag_nosnap)
-- Follow-up `gap_hyde_nosnap` landed at **61.5%**; `gap_rag_nosnap` and `gap_vectorless` do not have completed runs logged in `logs/experiments.jsonl`
-
-**11-char HyDE root cause FOUND AND FIXED:**
-- Prompt schema mismatch: snap_hyde system prompt expects "Student's Answer" but gap code sent "Evidence Gap"
-- Gemma merges system+user → schema mismatch causes short-circuit
-- Fix: pass snap_answer through, use matching schema with gap focus injected inside
-
-**Completed since the last update:**
-- `rag_snap_hyde` full N=1195 finished at **57.9%** (`692/1195`) on Gemma 4 E4B
-- No active cluster evals are being tracked here right now
-
----
-
-### Previous session (2026-04-10)
-
-**Phase 1 alignment complete.** All major retrieval modes tested on Gemma 4 E4B N=200 BarExam:
-- snap_hyde (65.5%) is the clear winner — HyDE for both retrieval and reranking
-- ce_threshold (64.0%), rag_arbitration (63.0%) are solid alternatives
-- Gap architecture (61.5%) adds no value — gap analysis doesn't improve over simpler snap+retrieve
-
-**Phase 2 gap architecture complete.** Implemented and tested:
-- gap_hyde, gap_rag, gap_hyde_ev, snap_rag, snap_rag_nosnap
-- Key finding: gap analysis (0-3 gaps → per-gap retrieval) performs at 61.5%, same as simpler snap_rag (62.0%)
-- Snap context in final call is neutral (+0.5pp)
-- HyDE per-gap is broken on Gemma (11-char outputs from `_system_prompt(config, "hyde")` with gap-formatted input)
-
-**Embedding comparison (7/9 embedders tested):**
-- Wave 1: gte-large, legal-bert, stella-400m, bge-m3
-- Wave 2: jina-v3, arctic-l-v2, nomic-v2-moe (built, eval in progress)
-- Failed: gte-qwen2-1.5b, stella-1.5b (transformers rope_theta compat)
-- snap_hyde_aligned results: legal-bert 65.0%, all others 62.5%
-
-**Key ablation findings:**
-- Snap reasoning adds +5pp (snap_rag 62% vs rag_simple 57%)
-- HyDE passage adds +3.5pp retrieval quality (snap_hyde 65.5% vs snap_rag 62%)
-- HyDE reranking adds +3pp (snap_hyde 65.5% vs snap_hyde_aligned 62.5%)
-- Gap analysis adds -0.5pp (gap_rag 61.5% vs snap_rag 62%)
-- Snap visible in final call adds +0.5pp (neutral)
-
-**Known issues:**
-- 11-char HyDE bug: `_system_prompt(config, "hyde")` with gap-formatted user input produces truncated outputs on Gemma
-- Gap analysis prompt sensitivity: old prompt → 0% NONE (always finds gaps), new prompt → 97% NONE (almost never finds gaps)
-- N=200 variance: snap_hyde_aligned ranged 62.5%–67.5% across runs
-
-### Next session at that time
-1. Wave 2 embedding eval later completed — jina-v3, arctic-l-v2, and nomic-v2-moe all landed at 61.5% `rag_simple` / 64.5% `rag_snap_hyde`
-2. Record all Phase 1 + Phase 2 experiments in EXPERIMENTS.md
-3. Consider running snap_hyde at full N=1195 with legal-bert embedder (65.0% aligned result suggests potential)
-4. 11-char HyDE bug was later fixed; if revisiting gap architecture, keep using the snap_hyde-style prompt schema
-5. Longer-term: vectorless RAG (LLM-as-retriever), LazyGraphRAG, confidence-gated integration into main.py
+### Current handoff
+- Verified complete: Phase 1 small-model baselines, Gemma/Qwen HPC full runs, focused embedding sweep, vectorless baseline sweep, anchoring controls, subagent follow-up sweep, fixed gap reruns.
+- Verified but still lower-priority historical findings: `golden_passage` consistently outperforms current plain retrieval on the strongest full-set models; `confidence_gated` remains the best Llama 70B adaptive baseline after `ce_threshold`.
+- Still pending: real corpus-search follow-ups after index build `44371`, the resubmitted snap ablation (`44394`) and cross-dataset block (`44395`), `vectorless_keyword`, plus deferred OpenRouter baselines `or-nemotron` and `or-qwen35-9b`.
+- Most likely next high-signal work: wait for the index build / resubmitted cluster jobs above, then test real corpus-search controls or integrate `confidence_gated` into `main.py`.
 
 ### Blockers
 - Cluster GPU availability (general-gpu partition, priority queue)
-- 11-char HyDE bug blocks gap_hyde variants from producing valid results
+- `a100-2207` and `a100s-2307` are now known bad vLLM nodes; `r28-1801` is excluded for insufficient VRAM
+- Full-set local inference is still expensive in wall-clock time; Gemma 4 E4B `rag_snap_hyde` reruns are roughly a 10-12h job
 - Cerebras API still broken (empty responses)
 
 ---

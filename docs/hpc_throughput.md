@@ -99,7 +99,7 @@ From `logs/experiments.jsonl` across all branches/machines:
 | **cluster gemma4-e4b** | **8B eff** | **55.5%** | **62.2%** | **54.2%** | **58.6% / 57.9%**† |
 
 *Corrupted by concurrent ChromaDB writes during embedding builds. Not representative.
-†Two completed full `rag_snap_hyde` reruns are logged for Gemma 4 E4B; the later rerun on 2026-04-13 finished at **57.9%** (`692/1195`).
+† Two completed full `rag_snap_hyde` reruns are logged for Gemma 4 E4B; the later rerun on 2026-04-13 finished at **57.9%** (`692/1195`).
 
 ### Key Findings
 
@@ -132,19 +132,19 @@ All results: Gemma 4 E4B, N=200, seed=42, BarExam, cluster A6000.
 3. **Asymmetric behavior explained by query type**:
    - `rag_simple` embeds the raw question (question→passage similarity) — legal-bert's domain vocabulary helps here
    - `rag_snap_hyde` embeds an LLM-generated hypothetical passage (passage→passage similarity) — gte-large's general embedding quality wins
-4. **Aligned reranking still collapses most embedding differences** — all seven non-baseline embedders converge to 65.0% under `snap_hyde_aligned`, so the cross-encoder remains the dominant bottleneck.
+4. **Aligned reranking still collapses most embedding differences** — all six alternative embedders converge to 65.0% under `snap_hyde_aligned`, so the cross-encoder remains the dominant bottleneck.
 5. **legal-bert is the smallest model** (110M) yet best on rag_simple — domain pretraining > parameter count for question-to-passage matching.
 6. **Failed builds are now known, not pending** — `gte-qwen2-1.5b` and `stella-1.5b` failed on the current stack due to transformers `rope_theta` compatibility.
 
-## Candidate Models for Next HPC Runs
+## Candidate Models for Additional HPC Runs
 
 | Model | HF ID | Size (total/effective) | GPU Needed | Measured tok/s | Est. time/q | Notes |
 |---|---|---|---|---|---|---|
-| Qwen3-8B | Qwen/Qwen3-8B | 8B | A40+ | 40 tok/s | ~75s | Verbose output |
-| Gemma 4 E4B | google/gemma-4-E4B-it | 8B/4.5B eff | A40+ (15 GiB) | 61 tok/s | ~10s | Concise output, needs split-venv |
-| Gemma 4 26B-A4B | google/gemma-4-26B-A4B-it | 25B MoE / 4B eff | A40 w/ int8 | TBD | TBD | Cached, needs quantization |
-| Qwen3-14B | Qwen/Qwen3-14B | 14B | A40+ | ~25-30 est | ~110s | Not yet tested |
-| Qwen3-32B | Qwen/Qwen3-32B | 32B | A100+ | ~10-15 est | ~220s | Tight on A100 |
+| Qwen3-8B | Qwen/Qwen3-8B | 8B | A40+ | 40 tok/s | ~75s | Already fully benchmarked; useful as a throughput anchor |
+| Gemma 4 E4B | google/gemma-4-E4B-it | 8B/4.5B eff | A40+ (15 GiB) | 61 tok/s | ~10s | Already fully benchmarked; current small-model workhorse |
+| Gemma 4 26B-A4B | google/gemma-4-26B-A4B-it | 25B MoE / 4B eff | A40 w/ int8 | TBD | TBD | Cached, still untested locally |
+| Qwen3-14B | Qwen/Qwen3-14B | 14B | A40+ | ~25-30 est | ~110s | API baseline exists; no local vLLM run yet |
+| Qwen3-32B | Qwen/Qwen3-32B | 32B | A100+ | ~10-15 est | ~220s | API baseline exists; local run would need A100/H100 time |
 
 ## Monitoring Commands
 

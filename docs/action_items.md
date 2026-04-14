@@ -15,7 +15,7 @@ Target venues:
 **Supporting evidence:**
 - Snap reasoning adds +5pp universally (snap_rag 62% vs rag_simple 57%)
 - HyDE leverages snap reasoning for passage-form retrieval (+3.5pp)
-- Vectorless RAG (LLM generates knowledge from snap reasoning) matches vector retrieval
+- "Vectorless" baselines (really multi-turn parametric reasoning, not corpus search) match vector retrieval on BarExam
 - Subagent architecture (snap → gap analysis → subagent reports) achieves new best (66.0%)
 - Three identified failure modes: noise, anchoring, genre mismatch
 
@@ -37,13 +37,15 @@ Target venues:
 - [ ] Run on **HousingQA**: llm_only, rag_simple, snap_hyde, vectorless_direct, subagent_rag (N=200 each)
 - [ ] Run on **CaseHOLD**: same modes (already have corpus on cluster?)
 - [ ] Key question: does snap lift transfer to domains where model lacks knowledge?
+- [ ] Status: original cross-dataset jobs FAILED on `a100-2207` during vLLM init; resubmitted as job `44395`
+- [ ] Supporting infra: index build is running as job `44371`
 - Data: HousingQA at `datasets/housing_qa/`, CaseHOLD at `datasets/casehold/`
 
 ### P1.3: Full-Scale N=1195 Validation
 - [ ] snap_hyde full: **57.9% ✓ DONE**
-- [ ] vectorless_direct full: **RUNNING** (job 43471)
-- [ ] vectorless_hybrid full: **RUNNING** (job 43471)
-- [ ] subagent_rag full N=1195: **QUEUE after vectorless finishes**
+- [ ] vectorless_direct full: **CANCELLED** (job `43471`) — misnamed parametric reasoning, not real corpus search
+- [ ] vectorless_hybrid full: **CANCELLED** (job `43471`) — same issue
+- [ ] subagent_rag full N=1195: **NEXT meaningful full-scale follow-up after real corpus-search controls are ready**
 - Data: `logs/experiments.jsonl`
 
 ---
@@ -59,7 +61,7 @@ Target venues:
 - [ ] **subagent_hyde** — subagent uses HyDE retrieval per gap instead of raw sub-question
 - [ ] **subagent_vectorless** — subagent generates knowledge instead of retrieving (no corpus)
 - [ ] **subagent_panel** — multiple subagents with different roles (textbook/barprep/casebook)
-- [ ] Results from subagent_hybrid and subagent_rag_evidence: **RUNNING** (job 43499)
+- [ ] Results from subagent_hybrid and subagent_rag_evidence: **DONE** — `subagent_hybrid` 63.5%, `subagent_rag_evidence` 61.0%
 - Code: `eval/eval_harness.py`, runners near line 930
 
 ### P2.3: Corpus Structure / Metadata Approaches
@@ -100,21 +102,23 @@ Target venues:
 | Embedding comparison (7 models × 3 modes) | Cross-encoder dominates | ✅ Done |
 | Gap architecture + GAP_MIN_CE fix | gap_rag 63.5%, gap_hyde 62.0% | ✅ Done |
 | Anchoring hypothesis | gap_rag_nosnap 64.5% > gap_rag 63.5% | ✅ Done |
-| Vectorless RAG (5 modes) | hybrid 65.0%, direct 64.5% | ✅ Done |
+| "Vectorless" baselines (5 modes) | hybrid 65.0%, direct 64.5% | ✅ Done |
 | Subagent RAG | **66.0% NEW BEST** | ✅ Done |
+| Subagent follow-ups | hybrid 63.5%, rag_evidence 61.0% | ✅ Done |
 | snap_hyde full N=1195 | 57.9% | ✅ Done |
 | Phase 1 alignment (10 modes) | snap_hyde 65.5% best | ✅ Done |
-| 166 total experiments | — | ✅ Logged |
+| 170 total experiments | — | ✅ Logged |
 
 ---
 
-## What's Running
+## Latest Job Status
 
-| Job | What | Est. Done |
+| Job | What | Status |
 |---|---|---|
-| 43471 | vectorless_direct + hybrid full N=1195 | ~4h |
-| 43458 | gap_vectorless + gap_hyde_nosnap N=200 | ~2h |
-| 43499 | subagent_hybrid + subagent_rag_evidence N=200 | ~8h |
+| 44371 | index build | Running |
+| 44394 | snap ablations | Resubmitted after `a100-2207` vLLM-init failure |
+| 44395 | cross-dataset jobs | Resubmitted after `a100-2207` vLLM-init failure |
+| 43471 | vectorless_direct + hybrid full N=1195 | Cancelled — fake vectorless / not real corpus search |
 
 ---
 

@@ -54,11 +54,87 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 
 ---
 
-### 2026-04-13 — Vectorless RAG: LLM as retriever (IN PROGRESS)
+### 2026-04-13 — Subagent gap reports beat snap_hyde
+
+**Hypothesis:** If each evidence gap is handled by a focused subagent that reads passages and returns a short report, the main agent should use evidence better than raw-passage RAG and beat `snap_hyde`.
+
+**Change:** Added 3 report-first gap variants:
+- `subagent_rag`: per-gap RAG → subagent report → final answer from reports only
+- `subagent_hybrid`: per-gap RAG + model knowledge → synthesized report → final answer from reports only
+- `subagent_rag_evidence`: same as `subagent_rag` but the main agent also sees the raw passages alongside the reports
+
+**Config:** Gemma 4 E4B (cluster-vllm), N=200, seed=42, BarExam.
+
+**Results:**
+
+| Mode | Acc | Avg calls | Notes |
+|---|---|---|---|
+| subagent_rag | **66.0%** | 4.1 | New best — reports only, snap hidden from final |
+| subagent_hybrid | **63.5%** | 4.1 | Retrieved evidence + model knowledge in the report |
+| subagent_rag_evidence | **61.0%** | 4.1 | Reports + raw passages visible to the main agent |
+
+**Key findings:**
+1. `subagent_rag` is the new Gemma 4 E4B N=200 best, beating `snap_hyde` (65.5%).
+2. Report-first evidence compression helps more than exposing raw passages directly.
+3. Adding raw passages back on top of the reports hurts (`subagent_rag_evidence` 61.0%), suggesting the extra evidence noise overwhelms the benefit of the summaries.
+
+**Verdict:** CONFIRMED — per-gap subagent reports are the strongest current small-model strategy on BarExam. The best version is the cleanest one: reports only, no visible snap answer, no raw passage dump in the final call.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-13 — Anchoring controls completed for the gap family
+
+**Hypothesis:** The weak fixed gap results are mainly caused by anchoring from showing the snap answer in the final call. Hiding the snap answer should materially improve the same retrieval / evidence-generation pipelines.
+
+**Change:** Completed 3 follow-up controls:
+- `gap_rag_nosnap`: same retrieval as `gap_rag`, but hides the initial answer in the final call
+- `gap_hyde_nosnap` (fixed): same retrieval as fixed `gap_hyde`, but hides the initial answer in the final call
+- `gap_vectorless`: gap analysis → per-gap generated legal note → final answer from reports only
+
+**Config:** Gemma 4 E4B (cluster-vllm), N=200, seed=42, BarExam.
+
+**Results:**
+
+| Mode | Acc | Paired baseline | Delta |
+|---|---|---|---|
+| gap_rag_nosnap | **64.5%** | gap_rag FIXED 63.5% | +1.0pp |
+| gap_hyde_nosnap FIXED | **62.5%** | gap_hyde FIXED 62.0% | +0.5pp |
+| gap_vectorless | **61.5%** | vectorless_direct 64.5% | -3.0pp |
+
+**Key findings:**
+1. Hiding the snap answer helps both RAG-based gap variants, confirming that anchoring is real.
+2. The best no-snap gap variant (`gap_rag_nosnap`, 64.5%) is better than fixed `gap_rag`, but still below `snap_hyde` (65.5%) and `subagent_rag` (66.0%).
+3. `gap_vectorless` underperforms the plain vectorless baseline, so gap targeting alone is not enough without better evidence compression.
+
+**Verdict:** MIXED — anchoring is a real bottleneck, but not the only one. Removing the visible snap answer improves the gap family, yet the best gap variant still does not beat the simpler top baselines.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-13 — Full N=1195 snap_hyde rerun confirms the retrieval bottleneck
+
+**Hypothesis:** A fresh full-set rerun would show whether Gemma 4 E4B's N=200 `snap_hyde` gains survive at scale on all 1195 BarExam questions.
+
+**Change:** Reran `rag_snap_hyde` on the full BarExam set with the current gte-large retrieval stack.
+
+**Config:** Gemma 4 E4B (cluster-vllm), full N=1195 BarExam.
+
+**Result:** `rag_snap_hyde` = **57.9%** (`692/1195`), versus `golden_passage` **62.2%**, `llm_only` **55.5%**, and `rag_simple` **54.2%**.
+
+**Verdict:** CONFIRMED — retrieval still helps over `llm_only`, but the gap to `golden_passage` remains large. The dominant bottleneck is still retrieval quality, not the answerer.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-13 — "Vectorless" (misnamed): parametric knowledge / multi-turn reasoning
 
 **Hypothesis:** The LLM can generate more useful knowledge from parametric memory than vector search retrieves from the corpus. snap_hyde's +5pp from snap reasoning suggests the model's own knowledge is the primary value, not the retrieved passages.
 
-**Change:** Implemented 5 vectorless modes (no vector store, no ChromaDB, no embedding model):
+**Change:** Implemented 5 "vectorless" modes (historical name only — these do not search the corpus):
 - `vectorless_direct`: snap → doctrinal note (rule/exception/trigger/alternative) → answer
 - `vectorless_role`: snap → role-conditioned note (barprep tutor) → answer
 - `vectorless_elements`: snap → dispositive legal elements → answer
@@ -88,7 +164,7 @@ All pure vectorless modes are 3 LLM calls (same as snap_hyde). No 11-char HyDE b
 
 **Why vectorless might work:** The BarExam corpus passages are legal doctrines that Gemma likely saw during training. The LLM generates focused, relevant knowledge directly instead of searching through 686K passages where most are irrelevant. No genre mismatch — the model writes in whatever form is most useful.
 
-**CAVEAT:** These "vectorless" modes do NOT search the corpus. They are purely LLM parametric knowledge — the model generates knowledge from its training data without ever reading a corpus passage. The results show that multi-turn LLM reasoning (snap → generate note → re-answer) improves over single-shot llm_only (55.5%), but this is NOT retrieval. A more accurate name would be "parametric knowledge exploitation" or "multi-turn reasoning."
+**CAVEAT:** The label "vectorless" is misleading. These modes do NOT search the corpus. They are purely LLM parametric knowledge — the model generates knowledge from its training data without ever reading a corpus passage. The results show that multi-turn LLM reasoning (snap → generate note → re-answer) improves over single-shot llm_only (55.5%), but this is NOT retrieval. A more accurate name would be "parametric knowledge exploitation" or "multi-turn reasoning." That naming issue is why the later full N=1195 "vectorless" jobs were canceled rather than treated as corpus-search validation.
 
 **Verdict:** Multi-turn LLM reasoning (64.5%) approaches vector retrieval (snap_hyde 65.5%) on BarExam, suggesting the model's training data includes bar exam material. This does NOT mean retrieval is unnecessary — on domains where the model lacks knowledge (HousingQA), retrieval adds +9pp. Real vectorless corpus search (structured index navigation, BM25 keyword search) is a separate research direction.
 
@@ -107,7 +183,7 @@ All pure vectorless modes are 3 LLM calls (same as snap_hyde). No 11-char HyDE b
 | gap_rag FIXED | **63.5%** | 2% | 4 | 0 | +4 |
 | gap_hyde FIXED | **62.0%** | 0.5% | 1 | 0 | +1 |
 
-Evidence now reaches the model (97% vs 5-9% before), but answer change rate is still very low (0.5-2%). The anchoring hypothesis: gap modes show "Your Initial Answer" in the final call, causing the model to stick with its snap answer. Currently testing gap_rag_nosnap and gap_vectorless to verify.
+Evidence now reaches the model (97% vs 5-9% before), but answer change rate is still very low (0.5-2%). Follow-up controls later confirmed that anchoring is real: `gap_rag_nosnap` reached 64.5%, fixed `gap_hyde_nosnap` reached 62.5%, and `gap_vectorless` reached 61.5%.
 
 **Verdict:** Gap architecture VALID but underperforms snap_hyde and vectorless approaches due to anchoring. Snap in final call is the likely bottleneck, not evidence quality.
 
