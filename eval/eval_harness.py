@@ -671,6 +671,50 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
             "report": report,
         }
 
+    if method == "subagent_hyde":
+        # Subagent: HyDE retrieval (snap-informed) + LLM summarization
+        gap_focus = []
+        if desc:
+            gap_focus.append(f"- Evidence gap to verify: {desc}")
+        if subq and subq != desc:
+            gap_focus.append(f"- Focused sub-question: {subq}")
+        reasoning = (snap_answer or "").strip()
+        if gap_focus:
+            gap_block = "\n".join(gap_focus)
+            reasoning = f"{reasoning}\n\nFocus on verifying or correcting this specific issue:\n{gap_block}".strip()
+        hyde_user = (
+            f"## Student's Answer and Reasoning\n{reasoning}\n\n"
+            f"## Original Question\n{question}"
+        )
+        hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label=f"gap/sub_hyde_{gap_idx}")
+
+        retrieval = _retrieve_and_format(
+            row, [hyde_passage], k=5, label_prefix=f"sub_hyde_{gap_idx}",
+            where=_where_from_config(config),
+            collection=_collection_for_config(config),
+            rerank_query=raw_question,
+        )
+        passage_text = "\n\n".join(retrieval["passages"])
+        report_system = (
+            "You are a legal research assistant. Read the retrieved passages and write a brief, "
+            "focused report answering the sub-question. State what the law says directly. "
+            "If the passages are irrelevant or unhelpful, say so clearly. "
+            "No answer letters. Keep under 100 words."
+        )
+        report_user = (
+            f"## Sub-question\n{subq}\n\n"
+            f"## Retrieved Passages\n{passage_text}\n\n"
+            f"## Original Question\n{question}"
+        )
+        report = _llm_call(report_system, report_user, label=f"gap/sub_hyde_rpt_{gap_idx}")
+        return {
+            "gap": gap,
+            "passages": retrieval["passages"],
+            "evidence_store": retrieval["evidence_store"],
+            "max_ce_score": retrieval["max_ce_score"],
+            "report": report,
+        }
+
     if method == "subagent_hybrid":
         # Subagent: RAG retrieves + LLM generates knowledge → combined report
         query = subq or desc
@@ -854,8 +898,22 @@ def _run_gap(row: pd.Series, config: EvalConfig,
     # Step 2: Gap analysis
     gaps = _gap_analysis(snap_answer, question)
 
-    # Step 3: No gaps → use snap directly (natural confidence gating)
+    # Step 3: No gaps → use snap directly (unless reports_nosnap, then fresh answer)
     if not gaps:
+        if final_input in ("reports_nosnap", "reports_and_evidence", "no_snap", "evidence_only"):
+            # Don't leak snap — make a fresh answer call
+            fresh_answer = _llm_call(_system_prompt(config, "answer"), question, label=f"{label}/fresh")
+            fresh_letter = _extract_answer(fresh_answer, config)
+            return {
+                "final_answer": fresh_answer,
+                "snap_answer": snap_answer,
+                "snap_letter": snap_letter,
+                "gaps": [],
+                "gap_results": [],
+                "evidence_store": [],
+                "retrieved_ids": [],
+                "gold_retrieved": False,
+            }
         return {
             "final_answer": snap_answer,
             "snap_answer": snap_answer,
@@ -935,6 +993,16 @@ def run_gap_vectorless(row: pd.Series, config: EvalConfig) -> dict:
     Final call sees subagent reports + question only (no snap, no retrieval).
     """
     return _run_gap(row, config, method="vectorless", label="gap_vless", final_input="reports_nosnap")
+
+
+def run_subagent_hyde(row: pd.Series, config: EvalConfig) -> dict:
+    """Subagent HyDE: gap analysis → per-gap HyDE retrieval + LLM summarization → reports (no snap).
+
+    Each subagent generates a HyDE passage for the gap, retrieves with it,
+    reads the passages, and writes a focused report.
+    Main agent sees subagent reports + question. No snap, no raw passages.
+    """
+    return _run_gap(row, config, method="subagent_hyde", label="sub_hyde", final_input="reports_nosnap")
 
 
 def run_subagent_rag(row: pd.Series, config: EvalConfig) -> dict:
@@ -1323,6 +1391,7 @@ def run_vectorless_keyword(row: pd.Series, config: EvalConfig) -> dict:
 # ---------------------------------------------------------------------------
 
 _ENTITY_GRAPH = None  # lazy-loaded singleton
+_CORPUS_DF = None  # lazy-loaded corpus for entity search
 
 
 def _load_entity_graph():
@@ -1435,12 +1504,13 @@ def run_entity_search(row: pd.Series, config: EvalConfig) -> dict:
         return {"final_answer": answer, "snap_answer": "", "snap_letter": None,
                 "evidence_store": [], "retrieved_ids": [], "gold_retrieved": False}
 
-    # Load candidate passages from corpus
-    corpus_path = "datasets/barexam_qa/barexam_qa_train.csv"
-    # Use chunked reading to find specific passages
-    corpus = _pd.read_csv(corpus_path, usecols=['idx', 'text'])
-    corpus['idx'] = corpus['idx'].astype(str)
-    candidates = corpus[corpus['idx'].isin(set(candidate_ids))]
+    # Load candidate passages from cached corpus
+    global _CORPUS_DF
+    if _CORPUS_DF is None:
+        print("[entity_graph] Loading corpus CSV (one-time)...")
+        _CORPUS_DF = _pd.read_csv("datasets/barexam_qa/barexam_qa_train.csv", usecols=['idx', 'text'])
+        _CORPUS_DF['idx'] = _CORPUS_DF['idx'].astype(str)
+    candidates = _CORPUS_DF[_CORPUS_DF['idx'].isin(set(candidate_ids))]
 
     if candidates.empty:
         answer = _llm_call(_system_prompt(config, "answer"), question, label="entity/answer")
@@ -1497,22 +1567,34 @@ def run_snap_entity_search(row: pd.Series, config: EvalConfig) -> dict:
     # Step 2: Entity search (same as run_entity_search but we have snap)
     graph = _load_entity_graph()
     if graph is None:
-        return {"final_answer": snap_answer, "snap_answer": snap_answer,
+        # Fallback: answer fresh without snap (don't leak snap)
+        answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_entity/fresh")
+        return {"final_answer": answer, "snap_answer": snap_answer,
                 "snap_letter": snap_letter, "evidence_store": [],
                 "retrieved_ids": [], "gold_retrieved": False}
 
     candidate_ids = _entity_search(raw_question, graph, top_k=30)
 
     if not candidate_ids:
-        return {"final_answer": snap_answer, "snap_answer": snap_answer,
+        answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_entity/fresh")
+        return {"final_answer": answer, "snap_answer": snap_answer,
                 "snap_letter": snap_letter, "evidence_store": [],
                 "retrieved_ids": [], "gold_retrieved": False}
 
     import pandas as _pd
     from langchain_core.documents import Document
-    corpus = _pd.read_csv("datasets/barexam_qa/barexam_qa_train.csv", usecols=['idx', 'text'])
-    corpus['idx'] = corpus['idx'].astype(str)
-    candidates = corpus[corpus['idx'].isin(set(candidate_ids))]
+    global _CORPUS_DF
+    if _CORPUS_DF is None:
+        print("[entity_graph] Loading corpus CSV (one-time)...")
+        _CORPUS_DF = _pd.read_csv("datasets/barexam_qa/barexam_qa_train.csv", usecols=['idx', 'text'])
+        _CORPUS_DF['idx'] = _CORPUS_DF['idx'].astype(str)
+    candidates = _CORPUS_DF[_CORPUS_DF['idx'].isin(set(candidate_ids))]
+
+    if candidates.empty:
+        answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_entity/fresh")
+        return {"final_answer": answer, "snap_answer": snap_answer,
+                "snap_letter": snap_letter, "evidence_store": [],
+                "retrieved_ids": [], "gold_retrieved": False}
 
     docs = [Document(page_content=str(r['text']), metadata={"idx": str(r['idx'])})
             for _, r in candidates.iterrows()]
@@ -2373,6 +2455,7 @@ MODE_RUNNERS = {
     "gap_rag": run_gap_rag,
     "gap_rag_nosnap": run_gap_rag_nosnap,
     "gap_vectorless": run_gap_vectorless,
+    "subagent_hyde": run_subagent_hyde,
     "subagent_rag": run_subagent_rag,
     "subagent_hybrid": run_subagent_hybrid,
     "subagent_rag_evidence": run_subagent_rag_evidence,

@@ -209,7 +209,7 @@ def build_graph(passages_df: pd.DataFrame, use_spacy: bool = False):
                 if e in partition:
                     comms.add(partition[e])
             if comms:
-                passage_communities[idx] = list(comms)
+                passage_communities[idx] = sorted(str(c) for c in comms)
 
         print(f"    Passages with community labels: {len(passage_communities):,}/{len(passage_entities):,}")
 
@@ -220,7 +220,7 @@ def build_graph(passages_df: pd.DataFrame, use_spacy: bool = False):
     return {
         'inverted_index': {e: list(pids) for e, pids in filtered_index.items()},
         'entity_counts': dict(entity_counts.most_common(10000)),
-        'edges': {f"{p[0]}|||{p[1]}": w for p, w in strong_edges.most_common(50000)},
+        'edges': {f"{p[0]}|||{p[1]}": w for p, w in sorted(strong_edges.items(), key=lambda x: -x[1])[:50000]},
         'communities': communities,
         'passage_communities': passage_communities,
         'n_passages': len(passages_df),

@@ -44,6 +44,7 @@ EVAL_MODES = {
     "gap_rag":                  "Gap-informed RAG: snap + gaps + evidence in final (full context)",
     "gap_rag_nosnap":           "Gap RAG without snap in final — tests anchoring hypothesis",
     "gap_vectorless":           "Gap + historical 'vectorless' reasoning: per-gap generated knowledge reports, no corpus retrieval",
+    "subagent_hyde":            "Subagent HyDE: per-gap HyDE retrieval + LLM summarization → reports only (no snap)",
     "subagent_rag":             "Subagent RAG: per-gap RAG + LLM summarization → reports only (no snap)",
     "subagent_hybrid":          "Subagent hybrid: per-gap RAG + LLM knowledge → combined reports (no snap)",
     "subagent_rag_evidence":    "Subagent RAG + evidence: reports + raw passages (no snap)",
