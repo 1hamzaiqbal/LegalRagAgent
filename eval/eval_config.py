@@ -53,6 +53,7 @@ EVAL_MODES = {
     "vectorless_role":          "Vectorless RAG: snap → role-conditioned note (textbook/casebook/barprep via --tag) → answer",
     "vectorless_elements":      "Vectorless RAG: snap → identify dispositive legal elements → answer",
     "vectorless_choice_map":    "Vectorless RAG: snap → map rule + distractor + decisive fact → answer",
+    "vectorless_nosnap":        "Vectorless WITHOUT snap: question → generate knowledge → answer (2 calls, snap ablation control)",
     "vectorless_hybrid":        "Hybrid: vectorless knowledge + vector RAG evidence pooled → answer (4 calls)",
     "vectorless_keyword":       "Keyword search: snap → LLM generates search terms → multi-keyword retrieval → answer",
     "rag_devil_hyde":           "Devil's advocate HyDE: retrieve for AND against snap answer",

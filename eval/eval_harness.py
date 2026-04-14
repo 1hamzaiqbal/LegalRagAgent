@@ -1154,6 +1154,36 @@ def run_vectorless_choice_map(row: pd.Series, config: EvalConfig) -> dict:
     return _run_vectorless(row, config, _VECTORLESS_CHOICE_MAP, label="vchoice")
 
 
+def run_vectorless_nosnap(row: pd.Series, config: EvalConfig) -> dict:
+    """Vectorless WITHOUT snap: question → generate knowledge → answer. 2 LLM calls.
+
+    Control for snap ablation. Compares with vectorless_direct (3 calls, with snap)
+    to measure the snap contribution to vectorless knowledge generation.
+    """
+    question = _fmt(row, config)
+
+    # No snap — generate knowledge directly from the question
+    gen_user = f"## Legal Question\n{question}"
+    knowledge = _llm_call(_VECTORLESS_DIRECT, gen_user, label="vnosnap/generate")
+
+    # Answer with generated knowledge
+    final_user = (
+        f"## Generated Legal Reference Note\n{knowledge}\n\n"
+        f"## Question\n{question}"
+    )
+    answer = _llm_call(_VECTORLESS_FINAL, final_user, label="vnosnap/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": "",
+        "snap_letter": None,
+        "knowledge_note": knowledge,
+        "evidence_store": [],
+        "retrieved_ids": [],
+        "gold_retrieved": False,
+    }
+
+
 def run_vectorless_hybrid(row: pd.Series, config: EvalConfig) -> dict:
     """Hybrid: vectorless knowledge + vector RAG evidence pooled together.
 
@@ -2122,6 +2152,7 @@ MODE_RUNNERS = {
     "vectorless_role": run_vectorless_role,
     "vectorless_elements": run_vectorless_elements,
     "vectorless_choice_map": run_vectorless_choice_map,
+    "vectorless_nosnap": run_vectorless_nosnap,
     "vectorless_hybrid": run_vectorless_hybrid,
     "vectorless_keyword": run_vectorless_keyword,
     "rag_devil_hyde": run_rag_devil_hyde,
