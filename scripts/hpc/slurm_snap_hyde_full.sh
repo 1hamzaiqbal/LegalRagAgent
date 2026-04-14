@@ -2,7 +2,7 @@
 #SBATCH -p general-gpu
 #SBATCH -A engr-lab-jacobsn
 #SBATCH --gpus 1
-#SBATCH --exclude=r28-1801,a100-2207,a100s-2307
+#SBATCH --exclude=r28-1801,a100-2207,a100s-2305,a100s-2306,a100s-2307,a100s-2308
 #SBATCH -c 8
 #SBATCH --mem=64G
 #SBATCH -t 28:00:00

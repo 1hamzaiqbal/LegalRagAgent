@@ -608,7 +608,15 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
                   config: EvalConfig, gap_idx: int,
                   method: str = "hyde",
                   snap_answer: str = "") -> dict | None:
-    """Per-gap retrieval. method='hyde' generates a hypothetical passage; method='rag' uses sub-question."""
+    """Run one gap investigation and return the gathered context.
+
+    Supported methods:
+      - 'hyde': generate a gap-focused hypothetical passage, then retrieve real passages
+      - 'rag': retrieve directly from the gap sub-question
+      - 'vectorless': generate a parametric legal note only (no corpus retrieval)
+      - 'subagent_rag': retrieve passages, then summarize them into a short report
+      - 'subagent_hybrid': retrieve passages, then synthesize a report with model knowledge
+    """
     raw_question = str(row["question"])
     desc = gap.get("description", "")
     subq = gap.get("sub_question", desc)
@@ -738,15 +746,15 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
 def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
                       gap_results: list[dict | None], config: EvalConfig,
                       final_input: str = "full") -> str:
-    """Final answer with configurable input.
+    """Assemble the final-answer prompt from the chosen gap artifacts.
 
-    final_input controls what context the final LLM sees:
-      - 'full': snap answer + gap descriptions + evidence (default)
-      - 'evidence_only': just retrieved passages + question (no snap, no gap structure)
-      - 'no_snap': gap descriptions + evidence + question (no snap answer)
-      - 'snap_and_evidence': snap answer + flat evidence (no gap structure)
-      - 'reports_nosnap': subagent reports + question (no snap, no raw evidence)
-      - 'reports_and_evidence': subagent reports + evidence + question (no snap)
+    Supported final_input values:
+      - 'full': snap answer + structured gap descriptions + evidence
+      - 'evidence_only': flat evidence only
+      - 'no_snap': structured gaps + evidence, but hide the snap answer
+      - 'snap_and_evidence': snap answer + flat evidence, without gap structure
+      - 'reports_nosnap': subagent/vectorless reports only
+      - 'reports_and_evidence': reports plus the supporting raw passages
     """
     # Build evidence from gap results
     all_passages = []
@@ -832,9 +840,10 @@ def _run_gap(row: pd.Series, config: EvalConfig,
     """Unified gap-informed retrieval: snap → gap analysis → per-gap retrieval → final answer.
 
     Args:
-        method: 'hyde' (generate hypothetical passage per gap) or 'rag' (use sub-question directly)
+        method: one of 'hyde', 'rag', 'vectorless', 'subagent_rag', 'subagent_hybrid'
         label: prefix for LLM call labels
-        final_input: what the final LLM sees — 'full', 'evidence_only', 'no_snap', 'snap_and_evidence'
+        final_input: one of 'full', 'evidence_only', 'no_snap', 'snap_and_evidence',
+            'reports_nosnap', or 'reports_and_evidence'
     """
     question = _fmt(row, config)
 
@@ -1026,8 +1035,8 @@ def run_snap_rag_nosnap(row: pd.Series, config: EvalConfig) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Vectorless RAG: LLM generates knowledge from parametric memory instead of
-# searching a vector store. Same 3-call skeleton as snap_hyde.
+# Historical "vectorless" family: LLM generates parametric knowledge instead of
+# searching the corpus. Same 3-call skeleton as rag_snap_hyde.
 # ---------------------------------------------------------------------------
 
 _VECTORLESS_FINAL = (
@@ -1090,7 +1099,7 @@ _VECTORLESS_CHOICE_MAP = (
 def _run_vectorless(row: pd.Series, config: EvalConfig,
                     gen_system: str, label: str = "vdirect",
                     include_snap: bool = False) -> dict:
-    """Unified vectorless RAG: snap → generate knowledge → final answer.
+    """Unified historical 'vectorless' flow: snap → generate parametric knowledge → final answer.
 
     Args:
         gen_system: system prompt for the knowledge generation step
@@ -1133,29 +1142,29 @@ def _run_vectorless(row: pd.Series, config: EvalConfig,
 
 
 def run_vectorless_direct(row: pd.Series, config: EvalConfig) -> dict:
-    """Vectorless RAG: snap → generate doctrinal note (rule/exception/trigger/alternative) → answer."""
+    """Historical 'vectorless' parametric reasoning: snap → doctrinal note → answer."""
     return _run_vectorless(row, config, _VECTORLESS_DIRECT, label="vdirect")
 
 
 def run_vectorless_role(row: pd.Series, config: EvalConfig) -> dict:
-    """Vectorless RAG with role-conditioned generation. Use --tag textbook|casebook|barprep."""
+    """Historical 'vectorless' reasoning with role-conditioned generation. Use --tag textbook|casebook|barprep."""
     role = (config.tag.split("-")[-1] if config.tag else "barprep").strip().lower()
     system = _VECTORLESS_ROLES.get(role, _VECTORLESS_ROLES["barprep"])
     return _run_vectorless(row, config, system, label=f"vrole/{role}")
 
 
 def run_vectorless_elements(row: pd.Series, config: EvalConfig) -> dict:
-    """Vectorless RAG: snap → identify dispositive legal elements → answer."""
+    """Historical 'vectorless' reasoning: snap → identify dispositive legal elements → answer."""
     return _run_vectorless(row, config, _VECTORLESS_ELEMENTS, label="velem")
 
 
 def run_vectorless_choice_map(row: pd.Series, config: EvalConfig) -> dict:
-    """Vectorless RAG: snap → map rule + strongest distractor + decisive fact → answer."""
+    """Historical 'vectorless' reasoning: snap → map rule + distractor + decisive fact → answer."""
     return _run_vectorless(row, config, _VECTORLESS_CHOICE_MAP, label="vchoice")
 
 
 def run_vectorless_nosnap(row: pd.Series, config: EvalConfig) -> dict:
-    """Vectorless WITHOUT snap: question → generate knowledge → answer. 2 LLM calls.
+    """Historical 'vectorless' reasoning without snap: question → generate knowledge → answer.
 
     Control for snap ablation. Compares with vectorless_direct (3 calls, with snap)
     to measure the snap contribution to vectorless knowledge generation.
@@ -1185,7 +1194,7 @@ def run_vectorless_nosnap(row: pd.Series, config: EvalConfig) -> dict:
 
 
 def run_vectorless_hybrid(row: pd.Series, config: EvalConfig) -> dict:
-    """Hybrid: vectorless knowledge + vector RAG evidence pooled together.
+    """Hybrid: generated parametric knowledge + vector RAG evidence pooled together.
 
     Tests whether LLM-generated knowledge + retrieved passages > either alone.
     4 LLM calls: snap + generate knowledge + retrieve + answer with both.
@@ -1231,13 +1240,12 @@ def run_vectorless_hybrid(row: pd.Series, config: EvalConfig) -> dict:
 
 
 def run_vectorless_keyword(row: pd.Series, config: EvalConfig) -> dict:
-    """Keyword search mode: snap → LLM generates search terms → BM25 retrieval → answer.
+    """Historical 'vectorless' keyword baseline: snap → generate search terms → retrieve → answer.
 
-    The 'ripgrep' approach — let the LLM write targeted search terms instead of
-    embedding queries. Uses BM25 (already in rag_utils) for literal text matching.
-    Tests whether targeted keyword search beats dense retrieval.
+    This variant still searches the corpus. It asks the LLM for targeted keyword-style
+    queries, retrieves with those queries, and reranks against the raw question.
     """
-    from rag_utils import get_vectorstore, _retrieve_bm25, get_bm25_index, rerank_with_cross_encoder
+    from rag_utils import rerank_with_cross_encoder
 
     question = _fmt(row, config)
     raw_question = str(row["question"])
@@ -1260,7 +1268,7 @@ def run_vectorless_keyword(row: pd.Series, config: EvalConfig) -> dict:
     # Parse keywords into search queries
     keywords = [k.strip().lstrip("- •*0123456789.") for k in keywords_raw.splitlines() if k.strip()][:5]
 
-    # Step 3: Retrieve using each keyword via dense search (BM25 may OOM on 686K corpus)
+    # Step 3: Retrieve using each generated keyword, then rerank against the raw question.
     all_docs = []
     vs = get_vectorstore(_collection_for_config(config))
     for kw in keywords:
@@ -1868,7 +1876,6 @@ def run_conf_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
     """Combined: confidence gating (3 snap votes) + CE threshold on the RAG path."""
     CE_THRESHOLD = 4.0
     question = _fmt(row, config)
-    is_open = config.dataset in ("legal_rag", "australian")
 
     # Step 1: Take 3 snap answers
     snaps = []
@@ -1946,7 +1953,6 @@ def run_conf_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
 def run_confidence_gated(row: pd.Series, config: EvalConfig) -> dict:
     """Confidence-gated RAG: 3 snap answers vote; unanimous = skip RAG, disagreement = Snap-HyDE."""
     question = _fmt(row, config)
-    is_open = config.dataset in ("legal_rag", "australian")
 
     # Step 1: Take 3 snap answers
     snaps = []

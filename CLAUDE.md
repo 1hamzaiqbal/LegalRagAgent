@@ -161,7 +161,7 @@ See `docs/experiment_overview.md` for the current results table. Key: `subagent_
 
 Working interpretation:
 - snap reasoning remains the biggest contributor; retrieval only helps when it is tightly gated or HyDE-guided
-- vectorless RAG is now a validated baseline, nearly matching `rag_snap_hyde` without vector infrastructure
+- the historical `vectorless_*` family is now a validated parametric-reasoning baseline, nearly matching `rag_snap_hyde` without corpus retrieval
 - fixed gap variants improved over the broken runs, but still trail `rag_snap_hyde` and the best vectorless modes
 - retrieval quality remains the main bottleneck
 - heavier architectural combinations have mostly underperformed simpler adaptive methods
@@ -175,7 +175,8 @@ Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the ful
 | `eval/eval_harness.py` | Unified multi-model harness (44 modes, 5 datasets) |
 | `eval/eval_config.py` | Config, question loading, answer extraction, EVAL_MODES dict |
 | `eval/eval_analyze.py` | Post-hoc analysis of JSONL logs |
-| `eval/eval_qa.py` | Legacy full pipeline eval |
+| `eval/run_experiment_queue.py` | Queue runner for batched eval submissions |
+| `eval/run_embedding_comparison.py` | Embedding A/B harness for retrieval comparisons |
 
 ## Running Evals
 

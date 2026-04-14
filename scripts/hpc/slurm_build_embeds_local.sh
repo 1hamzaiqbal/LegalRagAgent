@@ -2,7 +2,7 @@
 #SBATCH -p general-gpu
 #SBATCH -A engr-lab-jacobsn
 #SBATCH --gpus 1
-#SBATCH --exclude=r28-1801,a100-2207
+#SBATCH --exclude=r28-1801,a100-2207,a100s-2305,a100s-2306,a100s-2307,a100s-2308
 #SBATCH -c 8
 #SBATCH --mem=64G
 #SBATCH -t 24:00:00
@@ -82,5 +82,5 @@ else
   echo ""
   echo "To eval with a specific embedder:"
   echo "  CHROMA_DB_DIR=./chroma_db_legal_bert EVAL_EMBEDDING_MODEL=nlpaueb/legal-bert-base-uncased \\"
-  echo "    python eval/eval_harness.py --mode snap_hyde ..."
+  echo "    python eval/eval_harness.py --mode rag_snap_hyde ..."
 fi

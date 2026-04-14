@@ -12,10 +12,10 @@ The repo contains two layers:
 - BarExam best: `ce_threshold` on Llama 70B = **80.0%** (N=200)
 - HousingQA best: `rag_snap_hyde` on Llama 70B = **56.0%** (N=200)
 - CaseHOLD best: `llm_only` / `confidence_gated` = **72.5%** (N=200)
-- Best small-model family: **Gemma 4 E4B** — `rag_snap_hyde` **65.5%** (N=200), latest full rerun **57.9%** (N=1195; earlier clean run 58.6%)
-- **Multi-turn reasoning** (no retrieval): vectorless_direct **64.5%**, vectorless_hybrid **65.0%** — LLM parametric knowledge, does NOT search corpus
+- Best small-model family: **Gemma 4 E4B** — `subagent_rag` **66.0%** (N=200), `rag_snap_hyde` **65.5%** retrieval baseline, latest full rerun **57.9%** (N=1195; earlier clean run 58.6%)
+- **Multi-turn reasoning** (historical `vectorless_*` family): `vectorless_direct` **64.5%**, `vectorless_hybrid` **65.0%** — LLM parametric knowledge, not corpus search
 - **Real structured search** (in progress): case summary index + NLP entity graph for actual corpus navigation without embeddings
-- 40+ eval modes tested across retrieval, reasoning, gap, and subagent architectures
+- 44 eval modes tested across retrieval, reasoning, gap, and subagent architectures
 
 See `RESEARCH.md` for the current state + queue, and `EXPERIMENTS.md` for the full keep/discard history.
 
@@ -24,8 +24,8 @@ See `RESEARCH.md` for the current state + queue, and `EXPERIMENTS.md` for the fu
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/shrango/adaptive-plan-and-solve-agent.git
-cd adaptive-plan-and-solve-agent
+git clone https://github.com/1hamzaiqbal/LegalRagAgent.git
+cd LegalRagAgent
 uv sync
 ```
 
@@ -66,7 +66,7 @@ uv run python main.py multi_hop
 uv run python main.py medium
 uv run python main.py simple --verbose
 
-# Evals (all via eval_harness.py — 40 modes, 5 datasets)
+# Evals (all via eval_harness.py — 44 modes, 5 datasets)
 uv run python eval/eval_harness.py --mode llm_only --provider groq-llama70b --questions 200
 uv run python eval/eval_harness.py --mode rag_snap_hyde --provider groq-llama70b --questions 200 --dataset housing
 uv run python eval/eval_harness.py --mode confidence_gated --provider groq-llama70b --questions 200
@@ -90,7 +90,7 @@ Current Gemma 4 E4B snapshot (N=200, BarExam): `rag_snap_hyde` **65.5%**, `vecto
 
 ### HPC Cluster Results (N=1195 full BarExam, local vLLM inference)
 
-| Model | llm_only | golden_passage | rag_simple | snap_hyde |
+| Model | llm_only | golden_passage | rag_simple | rag_snap_hyde |
 |---|---|---|---|---|
 | Gemma 4 E4B | 55.5% | 62.2% | 54.2% | **57.9%**† |
 | Qwen3-8B | 52.1% | 60.1% | 36.5%* | — |
@@ -100,14 +100,14 @@ Current Gemma 4 E4B snapshot (N=200, BarExam): `rag_snap_hyde` **65.5%**, `vecto
 
 ### Embedding Model Comparison (Gemma 4 E4B, N=200, BarExam)
 
-| Embedding Model | Params | rag_simple | snap_hyde |
+| Embedding Model | Params | rag_simple | rag_snap_hyde |
 |---|---|---|---|
 | gte-large-en-v1.5 (baseline) | 434M | 57.0% | **65.5%** |
 | legal-bert-base-uncased | 110M | **62.0%** | 60.0% |
 | stella-en-400M-v5 | 400M | 61.0% | 60.0% |
 | bge-m3 | 568M | 61.0% | 60.0% |
 
-All alternative embedders beat baseline on rag_simple (+4-5pp), but snap_hyde flattens differences to ~60%. This suggests HyDE-generated passages are already well-matched by the baseline embedder, while raw questions benefit from different embedding geometry.
+All alternative embedders beat baseline on `rag_simple` (+4-5pp), but `rag_snap_hyde` flattens differences to ~60%. This suggests HyDE-generated passages are already well-matched by the baseline embedder, while raw questions benefit from different embedding geometry.
 
 ## Pipeline Architecture
 
@@ -144,25 +144,31 @@ llm_config.py              # 30+ LLM provider configs, LRU-cached
 web_scraper.py             # DuckDuckGo + trafilatura for web_search steps
 skills/                    # 4 prompt files: planner, query_rewriter, synthesize_and_cite, synthesizer
 eval/
-  eval_harness.py          # Unified eval: 40 modes, 5 datasets, JSONL logging
+  eval_harness.py          # Unified eval: 44 modes, 5 datasets, JSONL logging
   eval_config.py           # Config, question loaders, answer extractors
   eval_analyze.py          # Post-hoc JSONL analysis
   curate_questions.py      # One-time question curation utility
 utils/
   fast_embed.py            # GPU bulk embedding with resume + A/B testing support
+  build_case_summaries.py  # Case-level summary builder for structured-search experiments
+  build_entity_graph.py    # Entity-graph / inverted-index builder for structured search
   download_data.py         # BarExam dataset fetcher
   download_housingqa.py    # HousingQA dataset fetcher
   download_new_datasets.py # CaseHOLD, Legal-RAG-QA, Australian Legal QA fetcher
 scripts/hpc/               # SLURM job scripts for WashU HPC cluster
+scripts/run_embedding_probe.sh  # Local embedding diagnostics
 docs/                      # HPC throughput data, setup logs, experiment summaries
 RESEARCH.md                # Research state, experiment queue, session handoff
 EXPERIMENTS.md             # Full experiment log (hypothesis → result → verdict)
 CLAUDE.md                  # Operational source of truth
 ideas/                     # Archived idea docs (active queue in RESEARCH.md)
+agentic_ideas/             # Gitignored scratch notes / archive directory
 logs/                      # Eval output (gitignored)
 datasets/                  # Downloaded data (gitignored)
 chroma_db/                 # Vector store (gitignored)
 ```
+
+Local cache-only directories such as `legal_rag/`, `playtests/`, and `tests/` may exist in a checkout, but they currently only contain `__pycache__` artifacts rather than tracked source files.
 
 ## Datasets
 

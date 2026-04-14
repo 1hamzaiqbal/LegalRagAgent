@@ -4,14 +4,14 @@ Shared by eval_harness.py and eval_analyze.py.
 """
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import pandas as pd
 
 
 @dataclass
 class EvalConfig:
-    mode: str = "full_pipeline"       # full_pipeline | llm_only | rag_rewrite | rag_simple | golden_passage
+    mode: str = "full_pipeline"       # key in EVAL_MODES; default kept for backward compatibility
     provider: str = "deepseek"        # any key from llm_config.PROVIDERS
     questions: str = "30"             # "curated" | "full" | integer N
     seed: int = 42
@@ -43,19 +43,19 @@ EVAL_MODES = {
     "gap_hyde_flat":            "Gap-informed HyDE: snap + flat evidence in final (no gap structure)",
     "gap_rag":                  "Gap-informed RAG: snap + gaps + evidence in final (full context)",
     "gap_rag_nosnap":           "Gap RAG without snap in final — tests anchoring hypothesis",
-    "gap_vectorless":           "Gap + vectorless: per-gap LLM knowledge, no snap in final",
+    "gap_vectorless":           "Gap + historical 'vectorless' reasoning: per-gap generated knowledge reports, no corpus retrieval",
     "subagent_rag":             "Subagent RAG: per-gap RAG + LLM summarization → reports only (no snap)",
     "subagent_hybrid":          "Subagent hybrid: per-gap RAG + LLM knowledge → combined reports (no snap)",
     "subagent_rag_evidence":    "Subagent RAG + evidence: reports + raw passages (no snap)",
     "snap_rag":                 "Snap + simple RAG: snap answer then retrieve with raw question, re-answer with both",
     "snap_rag_nosnap":          "Snap + simple RAG: snap then retrieve, but final call only sees evidence (control)",
-    "vectorless_direct":        "Vectorless RAG: snap → generate doctrinal note (rule/exception/trigger/alt) → answer",
-    "vectorless_role":          "Vectorless RAG: snap → role-conditioned note (textbook/casebook/barprep via --tag) → answer",
-    "vectorless_elements":      "Vectorless RAG: snap → identify dispositive legal elements → answer",
-    "vectorless_choice_map":    "Vectorless RAG: snap → map rule + distractor + decisive fact → answer",
-    "vectorless_nosnap":        "Vectorless WITHOUT snap: question → generate knowledge → answer (2 calls, snap ablation control)",
-    "vectorless_hybrid":        "Hybrid: vectorless knowledge + vector RAG evidence pooled → answer (4 calls)",
-    "vectorless_keyword":       "Keyword search: snap → LLM generates search terms → multi-keyword retrieval → answer",
+    "vectorless_direct":        "Historical 'vectorless' reasoning: snap → generate doctrinal note from parametric knowledge → answer",
+    "vectorless_role":          "Historical 'vectorless' reasoning: snap → role-conditioned parametric note (textbook/casebook/barprep via --tag) → answer",
+    "vectorless_elements":      "Historical 'vectorless' reasoning: snap → identify dispositive legal elements → answer",
+    "vectorless_choice_map":    "Historical 'vectorless' reasoning: snap → map rule + distractor + decisive fact → answer",
+    "vectorless_nosnap":        "Historical 'vectorless' reasoning without snap: question → generate knowledge → answer (2-call snap ablation)",
+    "vectorless_hybrid":        "Hybrid: generated parametric knowledge + vector RAG evidence pooled → answer (4 calls)",
+    "vectorless_keyword":       "Historical 'vectorless' keyword baseline: snap → generate search terms → corpus retrieval → answer",
     "rag_devil_hyde":           "Devil's advocate HyDE: retrieve for AND against snap answer",
     "rag_top2_hyde":            "Top-2 HyDE: retrieve for snap answer + second-choice answer",
     "confidence_gated":         "Confidence-gated: 3 snap votes, unanimous=skip RAG, disagreement=Snap-HyDE",

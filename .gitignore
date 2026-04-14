@@ -34,3 +34,11 @@ session_log_latest.txt
 docs/session_log_latest.txt
 eval/_inspect*.py
 eval/_chroma_info.py
+.claude/*.lock
+
+# Local research artifacts kept at repo root
+/*.pdf
+/*.png
+/*.tex
+/*.zip
+/*.sty

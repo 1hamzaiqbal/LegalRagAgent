@@ -52,7 +52,7 @@ case "${1:-help}" in
       sbatch --job-name="emeval-${model}" scripts/hpc/slurm_gemma4_embed_eval.sh "$model" "$N"
     done
     echo ""
-    echo "Each job runs rag_simple + snap_hyde in sequence."
+    echo "Each job runs rag_simple + rag_snap_hyde in sequence."
     echo "N=200: ~2.5h per embedder. N=full: ~13h per embedder."
     echo "Monitor with: squeue -u hiqbal"
     ;;

@@ -2,15 +2,16 @@
 #SBATCH -p general-gpu
 #SBATCH -A engr-lab-jacobsn
 #SBATCH --gpus 1
-#SBATCH --exclude=r28-1801,a100-2207,a100s-2307
+#SBATCH --exclude=r28-1801,a100-2207,a100s-2305,a100s-2306,a100s-2307,a100s-2308
 #SBATCH -c 8
 #SBATCH --mem=64G
 #SBATCH -t 28:00:00
 #SBATCH -J vless-full
 #SBATCH -o /engrfs/tmp/jacobsn/hiqbal_legalrag/logs/%j.out
 
-# Full N=1195 validation for top vectorless modes.
-# Validates N=200 results at scale for publication-ready comparison.
+# Historical launcher for top "vectorless" modes.
+# These jobs were later canceled because they validate parametric reasoning,
+# not corpus search, but the script is kept for reference.
 #
 # Top modes to validate:
 #   vectorless_hybrid: 65.0% at N=200 (best vectorless, matches snap_hyde)

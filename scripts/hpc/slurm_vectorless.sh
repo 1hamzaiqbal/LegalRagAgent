@@ -2,15 +2,15 @@
 #SBATCH -p general-gpu
 #SBATCH -A engr-lab-jacobsn
 #SBATCH --gpus 1
-#SBATCH --exclude=r28-1801,a100-2207,a100s-2307
+#SBATCH --exclude=r28-1801,a100-2207,a100s-2305,a100s-2306,a100s-2307,a100s-2308
 #SBATCH -c 8
 #SBATCH --mem=64G
 #SBATCH -t 20:00:00
 #SBATCH -J vectorless
 #SBATCH -o /engrfs/tmp/jacobsn/hiqbal_legalrag/logs/%j.out
 
-# Vectorless RAG: LLM generates knowledge from parametric memory.
-# No vector store, no embedding model, no ChromaDB.
+# Historical "vectorless" label: most modes below are parametric reasoning
+# baselines, not corpus search. No vector store, no embedding model, no ChromaDB.
 #
 # Phase 1 (3 calls each, ~40min per mode):
 #   vectorless_direct  — rule/exception/trigger/alternative
