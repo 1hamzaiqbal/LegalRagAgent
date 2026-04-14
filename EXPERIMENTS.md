@@ -88,7 +88,9 @@ All pure vectorless modes are 3 LLM calls (same as snap_hyde). No 11-char HyDE b
 
 **Why vectorless might work:** The BarExam corpus passages are legal doctrines that Gemma likely saw during training. The LLM generates focused, relevant knowledge directly instead of searching through 686K passages where most are irrelevant. No genre mismatch — the model writes in whatever form is most useful.
 
-**Verdict:** CONFIRMED — vectorless RAG is competitive with snap_hyde. vectorless_hybrid (65.0%) matches snap_hyde (65.5%) and vectorless_direct (64.5%) eliminates the entire retrieval stack. The LLM's parametric knowledge is sufficient for BarExam.
+**CAVEAT:** These "vectorless" modes do NOT search the corpus. They are purely LLM parametric knowledge — the model generates knowledge from its training data without ever reading a corpus passage. The results show that multi-turn LLM reasoning (snap → generate note → re-answer) improves over single-shot llm_only (55.5%), but this is NOT retrieval. A more accurate name would be "parametric knowledge exploitation" or "multi-turn reasoning."
+
+**Verdict:** Multi-turn LLM reasoning (64.5%) approaches vector retrieval (snap_hyde 65.5%) on BarExam, suggesting the model's training data includes bar exam material. This does NOT mean retrieval is unnecessary — on domains where the model lacks knowledge (HousingQA), retrieval adds +9pp. Real vectorless corpus search (structured index navigation, BM25 keyword search) is a separate research direction.
 
 **Commit:** 0da6262
 

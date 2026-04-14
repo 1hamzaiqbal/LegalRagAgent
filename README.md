@@ -12,9 +12,10 @@ The repo contains two layers:
 - BarExam best: `ce_threshold` on Llama 70B = **80.0%** (N=200)
 - HousingQA best: `rag_snap_hyde` on Llama 70B = **56.0%** (N=200)
 - CaseHOLD best: `llm_only` / `confidence_gated` = **72.5%** (N=200)
-- Best small model: **Gemma 4 E4B** — snap_hyde **65.5%** (N=200), full-scale **58.6%** (N=1195)
-- **Vectorless RAG**: vectorless_direct **64.5%**, vectorless_hybrid **65.0%** — competitive with snap_hyde, zero vector infrastructure
-- 40 eval modes tested across retrieval, vectorless, gap, and subagent architectures
+- Best small-model family: **Gemma 4 E4B** — `rag_snap_hyde` **65.5%** (N=200), latest full rerun **57.9%** (N=1195; earlier clean run 58.6%)
+- **Multi-turn reasoning** (no retrieval): vectorless_direct **64.5%**, vectorless_hybrid **65.0%** — LLM parametric knowledge, does NOT search corpus
+- **Real structured search** (in progress): case summary index + NLP entity graph for actual corpus navigation without embeddings
+- 40+ eval modes tested across retrieval, reasoning, gap, and subagent architectures
 
 See `RESEARCH.md` for the current state + queue, and `EXPERIMENTS.md` for the full keep/discard history.
 
@@ -85,14 +86,17 @@ uv run python llm_config.py
 
 RAG helps most when the model has a genuine knowledge gap (HousingQA). On better-known domains, retrieval is often neutral or harmful unless carefully gated.
 
+Current Gemma 4 E4B snapshot (N=200, BarExam): `rag_snap_hyde` **65.5%**, `vectorless_hybrid` **65.0%**, `vectorless_direct` / `vectorless_choice_map` **64.5%**, fixed `gap_rag` **63.5%**.
+
 ### HPC Cluster Results (N=1195 full BarExam, local vLLM inference)
 
 | Model | llm_only | golden_passage | rag_simple | snap_hyde |
 |---|---|---|---|---|
-| Gemma 4 E4B | 55.5% | 62.2% | 54.2% | **58.6%** |
+| Gemma 4 E4B | 55.5% | 62.2% | 54.2% | **57.9%**† |
 | Qwen3-8B | 52.1% | 60.1% | 36.5%* | — |
 
 *ChromaDB corruption during concurrent embedding builds degraded this result.
+† Earlier clean full run on 2026-04-09 logged 58.6%; the latest verified full rerun on 2026-04-13 logged 57.9% (`692/1195`).
 
 ### Embedding Model Comparison (Gemma 4 E4B, N=200, BarExam)
 
@@ -127,7 +131,7 @@ Source of truth: `rag_utils.py`
 
 - ChromaDB persisted in `./chroma_db/` (configurable via `CHROMA_DB_DIR` env var)
 - Default embedding: `Alibaba-NLP/gte-large-en-v1.5` (1024d, 8192 tokens)
-- Embedding A/B testing: 12+ models in `utils/fast_embed.py`, override via `EVAL_EMBEDDING_MODEL` env var
+- Embedding A/B testing: multiple models in `utils/fast_embed.py`, override via `EVAL_EMBEDDING_MODEL` env var
 - Reranker: `cross-encoder/ms-marco-MiniLM-L-6-v2`
 - Dense retrieval (k=15) → cross-encoder rerank (top 5). BM25 available but disabled by default
 
