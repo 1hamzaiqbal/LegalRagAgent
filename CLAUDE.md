@@ -23,7 +23,7 @@ Current research direction: the original heavy pipeline underperformed, but the 
 - `docs/hpc_setup_log.md` — cluster SSH, paths, venvs, bad nodes
 - `EXPERIMENTS.md` — full hypothesis → result → verdict log
 - `RESEARCH.md` — research state, experiment queue, session handoff
-- `logs/experiments.jsonl` — machine-readable results (source of truth, 170+ entries)
+- `logs/experiments.jsonl` — machine-readable results (source of truth, 170 entries)
 
 ## Runtime Architecture
 
@@ -162,7 +162,7 @@ See `docs/experiment_overview.md` for the current results table. Key: `subagent_
 Working interpretation:
 - snap reasoning remains the biggest contributor; retrieval only helps when it is tightly gated or HyDE-guided
 - the historical `vectorless_*` family is now a validated parametric-reasoning baseline, nearly matching `rag_snap_hyde` without corpus retrieval
-- fixed gap variants improved over the broken runs, but still trail `rag_snap_hyde` and the best vectorless modes
+- fixed gap variants improved over the broken runs, but still trail `rag_snap_hyde` and the best historical `vectorless_*` modes
 - retrieval quality remains the main bottleneck
 - heavier architectural combinations have mostly underperformed simpler adaptive methods
 
@@ -189,9 +189,9 @@ Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the ful
 ### Known Cluster Issues
 
 - Node `r28-1801`: RTX 2080, exclude for >4B models
-- Nodes `a100s-2305` / `a100s-2306` / `a100s-2307` / `a100s-2308`: reconfigured to `a100-sxm4`; old config breaks vLLM. Exclude until migration complete.
 - Node `a100-2207`: vLLM engine init fails. Exclude.
-- Always use `--exclude=r28-1801,a100-2207,a100s-2305,a100s-2306,a100s-2307,a100s-2308`
+- Node `a100s-2307`: bad vLLM node. Exclude.
+- Always use `--exclude=r28-1801,a100-2207,a100s-2307`
 
 ### Launch pattern (IMPORTANT for agents)
 

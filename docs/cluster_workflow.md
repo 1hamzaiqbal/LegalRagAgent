@@ -1,5 +1,7 @@
 # LegalRAG Cluster Workflow
 
+Historical/bootstrap note: the cluster is already set up. For the current realized paths, venvs, bad-node list, and completed run state, use `docs/hpc_setup_log.md` and `docs/hpc_throughput.md`.
+
 Practical plan for running LegalRagAgent on the WashU engineering cluster, using the same overall pattern as HullCLIP: **edit/orchestrate from the MacBook, push code to cluster, run heavy jobs under SLURM**.
 
 ## Why use the cluster?

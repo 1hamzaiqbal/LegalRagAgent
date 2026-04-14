@@ -41,7 +41,7 @@ Tracking the cluster bootstrap for LegalRagAgent on the WashU Engineering HPC.
 ### Gemma 4 venv (used for completed Gemma 4 runs)
 - **Path**: `/engrfs/project/jacobsn/hiqbal/venvs/legalrag-gemma4/`
 - **vLLM**: nightly build with Gemma 4 support
-- **Use**: Completed Gemma 4 E4B llm_only / golden / rag_simple / rag_snap_hyde runs plus embedding, gap, and vectorless sweeps
+- **Use**: Completed Gemma 4 E4B llm_only / golden / rag_simple / rag_snap_hyde runs plus embedding, gap, and historical vectorless sweeps
 
 ## Data
 
@@ -69,7 +69,7 @@ Tracking the cluster bootstrap for LegalRagAgent on the WashU Engineering HPC.
 | `scripts/hpc/slurm_gemma4_e4b_golden.sh` | Gemma 4 E4B full golden_passage eval | 28h |
 | `scripts/hpc/slurm_gemma4_e4b_rag_simple.sh` | Gemma 4 E4B full rag_simple eval | 28h |
 | `scripts/hpc/slurm_gemma4_e4b_snap_hyde.sh` | Gemma 4 E4B full `rag_snap_hyde` eval | 28h |
-| `scripts/hpc/slurm_vectorless.sh` | Gemma 4 E4B vectorless sweep (`direct` / `role` / `elements` / `choice_map` / `hybrid`) | 20h |
+| `scripts/hpc/slurm_vectorless.sh` | Gemma 4 E4B historical vectorless sweep (`direct` / `role` / `elements` / `choice_map` / `hybrid`) | 20h |
 | `scripts/hpc/slurm_gap_variants.sh` | Gap input-variant sweep (`gap_hyde*`) | 24h |
 
 ## Running Evals

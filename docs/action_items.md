@@ -10,7 +10,7 @@ Target venues:
 
 ## Paper Narrative
 
-**Core claim:** Letting the LLM reason first ("snap") before retrieval is the single biggest contributor to legal QA accuracy. This lift generalizes across retrieval methods (RAG, HyDE, vectorless) and architectures (simple, gap-informed, subagent).
+**Core claim:** Letting the LLM reason first ("snap") before retrieval is the single biggest contributor to legal QA accuracy. This lift generalizes across retrieval methods (RAG, HyDE, historical `vectorless_*` / parametric reasoning) and architectures (simple, gap-informed, subagent).
 
 **Supporting evidence:**
 - Snap reasoning adds +5pp universally (snap_rag 62% vs rag_simple 57%)
@@ -28,8 +28,8 @@ Target venues:
 ### P1.1: Snap vs No-Snap Ablation (the paper's core comparison)
 - [ ] **Pure HyDE (no snap)** — test `rag_hyde` on Gemma 4 E4B N=200. We have this mode already but never ran it on Gemma. This is snap_hyde minus the snap.
 - [ ] **Compare:** snap_hyde (65.5%) vs pure hyde (?%) = the snap contribution for HyDE
-- [ ] **snap_rag (62.0%) vs rag_simple (57.0%)** = already done, +5pp ✓
-- [ ] **snap_vectorless vs pure vectorless** — `vectorless_nosnap` now exists; run it and compare against `vectorless_direct`.
+- [x] **snap_rag (62.0%) vs rag_simple (57.0%)** = already done, +5pp ✓
+- [ ] **`vectorless_direct` vs `vectorless_nosnap`** — the historical `vectorless_*` no-snap control now exists; run it and compare against the current 3-call baseline.
 - Data: `logs/experiments.jsonl`, detail logs in `logs/eval_*_detail.jsonl`
 
 ### P1.2: Cross-Dataset Validation
@@ -43,8 +43,8 @@ Target venues:
 
 ### P1.3: Full-Scale N=1195 Validation
 - [x] rag_snap_hyde full: **57.9% ✓ DONE**
-- [ ] vectorless_direct full: **CANCELLED** (job `43471`) — misnamed parametric reasoning, not real corpus search
-- [ ] vectorless_hybrid full: **CANCELLED** (job `43471`) — same issue
+- [x] vectorless_direct full: **CANCELLED** (job `43471`) — misnamed parametric reasoning, not real corpus search
+- [x] vectorless_hybrid full: **CANCELLED** (job `43471`) — same issue
 - [ ] subagent_rag full N=1195: **NEXT meaningful full-scale follow-up after real corpus-search controls are ready**
 - Data: `logs/experiments.jsonl`
 
@@ -52,7 +52,7 @@ Target venues:
 
 ## Priority 2: Important Experiments (SHOULD DO)
 
-### P2.1: Fix Vectorless and Test Snap Contribution
+### P2.1: Fix Historical Vectorless / Parametric Reasoning and Test Snap Contribution
 - [ ] **vectorless_nosnap** — run the already-implemented no-snap variant (question → generate knowledge → answer). 2 calls instead of 3.
 - [ ] Compare: vectorless_direct (64.5%, with snap) vs vectorless_nosnap (?%, without snap)
 - [ ] This directly measures whether snap helps vectorless, mirroring the snap_hyde vs pure_hyde comparison
@@ -61,7 +61,7 @@ Target venues:
 - [ ] **subagent_hyde** — subagent uses HyDE retrieval per gap instead of raw sub-question
 - [ ] **subagent_vectorless** — subagent generates knowledge instead of retrieving (no corpus)
 - [ ] **subagent_panel** — multiple subagents with different roles (textbook/barprep/casebook)
-- [ ] Results from subagent_hybrid and subagent_rag_evidence: **DONE** — `subagent_hybrid` 63.5%, `subagent_rag_evidence` 61.0%
+- [x] Results from subagent_hybrid and subagent_rag_evidence: **DONE** — `subagent_hybrid` 63.5%, `subagent_rag_evidence` 61.0%
 - Code: `eval/eval_harness.py`, subagent runners in the gap-family section
 
 ### P2.3: Corpus Structure / Metadata Approaches
@@ -102,7 +102,7 @@ Target venues:
 | Embedding comparison (7 models × 3 modes) | Cross-encoder dominates | ✅ Done |
 | Gap architecture + GAP_MIN_CE fix | gap_rag 63.5%, gap_hyde 62.0% | ✅ Done |
 | Anchoring hypothesis | gap_rag_nosnap 64.5% > gap_rag 63.5% | ✅ Done |
-| "Vectorless" baselines (5 modes) | hybrid 65.0%, direct 64.5% | ✅ Done |
+| Historical "vectorless" / parametric-reasoning baselines (5 modes) | hybrid 65.0%, direct 64.5% | ✅ Done |
 | Subagent RAG | **66.0% NEW BEST** | ✅ Done |
 | Subagent follow-ups | hybrid 63.5%, rag_evidence 61.0% | ✅ Done |
 | snap_hyde full N=1195 | 57.9% | ✅ Done |

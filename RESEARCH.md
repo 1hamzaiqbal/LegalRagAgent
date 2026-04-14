@@ -52,7 +52,7 @@ Drawn from [Karpathy autoresearch](https://github.com/karpathy/autoresearch) and
 | HousingQA | `rag_snap_hyde` | **56.0%** | +9 | Model unanimously wrong (Yes-bias), gating skips 90% |
 | CaseHOLD | `llm_only` / `confidence_gated` | **72.5%** | 0 | RAG pulls similar-but-wrong holdings |
 
-### Gemma 4 E4B + vectorless snapshot (BarExam)
+### Gemma 4 E4B + historical vectorless / parametric-reasoning snapshot (BarExam)
 
 | Method | Accuracy | Scale | Notes |
 |--------|----------|-------|-------|
@@ -61,7 +61,7 @@ Drawn from [Karpathy autoresearch](https://github.com/karpathy/autoresearch) and
 | `gap_rag_nosnap` | **64.5%** | N=200 | Best gap-family no-snap control |
 | `vectorless_hybrid` | **65.0%** | N=200 | Best vectorless result |
 | `vectorless_direct` / `vectorless_choice_map` | **64.5%** | N=200 | No vector store required |
-| `subagent_hybrid` / `gap_rag` (fixed) / `vectorless_role` | **63.5%** | N=200 | Second-tier follow-ups |
+| `subagent_hybrid` / `vectorless_role` | **63.5%** | N=200 | Second-tier follow-ups |
 | `gap_hyde_nosnap` (fixed) | **62.5%** | N=200 | Anchoring-control improvement over fixed `gap_hyde` |
 | `gap_rag` (fixed) | **63.5%** | N=200 | Improved after the prompt/schema fix, still below snap/vectorless |
 | `rag_snap_hyde` | **57.9%** | full N=1195 | Latest full rerun (`692/1195`); earlier clean run reached 58.6% |
@@ -153,7 +153,7 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 - **Result**: `gap_rag_nosnap` reached **64.5%**, fixed `gap_rag` reached **63.5%**, fixed `gap_hyde_nosnap` reached **62.5%**, and `gap_vectorless` reached **61.5%** on Gemma 4 E4B (N=200). Anchoring was confirmed, but the gap family still underperforms `snap_hyde` (**65.5%**) and `subagent_rag` (**66.0%**).
 - **Keep/discard**: keep as an analyzed ablation family, discard as the main direction for now.
 
-#### 11. Vectorless full-scale / keyword follow-up
+#### 11. Historical vectorless full-scale / keyword follow-up
 - **Status**: baseline sweep complete at N=200; the planned full N=1195 "vectorless" jobs were canceled after we concluded the label was misleading and not testing real corpus search.
 - **What is already done**: `vectorless_hybrid` **65.0%**, `vectorless_direct` / `vectorless_choice_map` **64.5%**, `vectorless_role` **63.5%**, `vectorless_elements` **61.0%**.
 - **What remains**: define a real corpus-search control (`vectorless_keyword`, BM25 / structured index navigation, or similar) before any new full-scale follow-up.
@@ -186,7 +186,7 @@ Completed. All major retrieval modes have now been run on the same N=200, seed=4
 ### Phase 2: Gap-Informed Retrieval (completed 2026-04-13)
 Completed; the gap family topped out at **64.5%** (`gap_rag_nosnap`) after the anchoring controls, but still did not beat `rag_snap_hyde` or `subagent_rag`.
 
-### Phase 3: Vectorless RAG (completed 2026-04-13)
+### Phase 3: Historical vectorless / parametric reasoning (completed 2026-04-13)
 Completed initial sweep; `vectorless_hybrid` reached **65.0%** and `vectorless_direct` reached **64.5%** on Gemma 4 E4B (N=200). Naming caveat: these are multi-turn parametric-knowledge baselines, not real corpus-search baselines, so the full N=1195 vectorless jobs were canceled.
 
 ### Phase 4: Open follow-ups
@@ -252,10 +252,10 @@ Completed initial sweep; `vectorless_hybrid` reached **65.0%** and `vectorless_d
 - 2026-04-03 audit: confirmed 5/7 full-set BarExam baselines, fixed stale full-run detection in `eval/run_experiment_queue.py` and `eval/monitor.py`, and recorded the cluster bring-up workflow.
 - 2026-04-05 full-set comparisons: `or-gemma27b` baseline landed at **57.99%**; `golden_passage` materially beat plain retrieval on both `or-qwen3-32b` and `or-gemma27b`, confirming retrieval quality as the main bottleneck.
 - 2026-04-07 through 2026-04-11 HPC block: full Qwen3-8B and Gemma 4 E4B runs completed; the focused 7-embedder sweep completed with 2 documented build failures.
-- 2026-04-13 current block: vectorless sweep, anchoring controls, and subagent follow-up sweep completed; the latest full `rag_snap_hyde` Gemma rerun finished at **57.9%** (`692/1195`); the misnamed full-vectorless jobs were canceled; and the snap ablation / cross-dataset jobs were resubmitted as `44394` / `44395` after `a100-2207` failed vLLM init.
+- 2026-04-13 current block: historical vectorless sweep, anchoring controls, and subagent follow-up sweep completed; the latest full `rag_snap_hyde` Gemma rerun finished at **57.9%** (`692/1195`); the misnamed full-vectorless jobs were canceled; and the snap ablation / cross-dataset jobs were resubmitted as `44394` / `44395` after `a100-2207` failed vLLM init.
 
 ### Current handoff
-- Verified complete: Phase 1 small-model baselines, Gemma/Qwen HPC full runs, focused embedding sweep, vectorless baseline sweep, anchoring controls, subagent follow-up sweep, fixed gap reruns.
+- Verified complete: Phase 1 small-model baselines, Gemma/Qwen HPC full runs, focused embedding sweep, historical vectorless baseline sweep, anchoring controls, subagent follow-up sweep, fixed gap reruns.
 - Verified but still lower-priority historical findings: `golden_passage` consistently outperforms current plain retrieval on the strongest full-set models; `confidence_gated` remains the best Llama 70B adaptive baseline after `ce_threshold`.
 - Still pending: real corpus-search follow-ups after index build `44371`, the resubmitted snap ablation (`44394`) and cross-dataset block (`44395`), `vectorless_keyword`, plus deferred OpenRouter baselines `or-nemotron` and `or-qwen35-9b`.
 - Most likely next high-signal work: wait for the index build / resubmitted cluster jobs above, then test real corpus-search controls or integrate `confidence_gated` into `main.py`.

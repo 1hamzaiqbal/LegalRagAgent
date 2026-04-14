@@ -9,7 +9,7 @@ Ideas gathered from experiments, branch explorations, and analysis.
 ### LLM Snap + Adversarial Arbitration — IMPLEMENTED (snap_hyde, confidence_gated modes)
 - Before any retrieval, get the LLM's "gut instinct" answer (1 extra call)
 - After pipeline completes, if pipeline answer disagrees with snap, run an arbitration step
-- **Result: confidence_gated is best for BarExam (+15pt over llm_only)**
+- **Result:** confidence_gated was an early BarExam best (+15pt over llm_only), later overtaken by `ce_threshold` at 80.0%
 - Source: `gemma-eval-fixes` branch, commit `935f45f`
 
 ### MC Choice-Aware Research
@@ -84,7 +84,7 @@ Ideas gathered from experiments, branch explorations, and analysis.
 ## Eval Infrastructure Ideas
 
 ### Multi-Model Eval Framework — IMPLEMENTED (eval_harness.py)
-- `eval/eval_harness.py` supports 17 modes, 5 datasets, multiple providers via `--provider`
+- `eval/eval_harness.py` now supports 44 modes, 5 datasets, multiple providers via `--provider`
 - Groq (Llama 70B, Scout 17B), DeepSeek, GPT-nano tested
 
 ### Varied Question Sets
@@ -92,8 +92,8 @@ Ideas gathered from experiments, branch explorations, and analysis.
 - Need: open-ended legal questions, multi-hop reasoning, jurisdiction-specific
 - HousingQA is Yes/No format — different eval adapter needed
 
-### Incremental Eval Checkpointing — IMPLEMENTED
-- Eval results saved incrementally. Implemented in `gemma-eval-fixes` branch (commit `20a273c`).
+### Incremental Eval Checkpointing — HISTORICAL BRANCH NOTE
+- A branch prototype existed in `gemma-eval-fixes` (commit `20a273c`), but the current harness does **not** checkpoint incrementally; it writes detail logs and `logs/experiments.jsonl` only on successful completion.
 
 ## Query Rewriting Strategies Tested
 

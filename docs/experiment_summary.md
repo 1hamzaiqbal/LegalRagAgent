@@ -1,6 +1,6 @@
 # LegalRagAgent: Experiment Summary
 
-Complete record of all approaches tested, results, and lessons. 97 experiments across 5 datasets, 10+ models, 20+ pipeline modes.
+Historical summary generated on 2026-03-30 from an early experiment snapshot. Current `logs/experiments.jsonl` now has 170 experiments across 5 datasets, 10+ models, and 44 eval modes.
 
 ---
 
@@ -394,4 +394,4 @@ Torts and Real Property are weakest. Torts questions often involve fine-grained 
 
 ---
 
-*Generated 2026-03-30. Source: logs/experiments.jsonl (97 runs). See EXPERIMENTS.md for per-run details.*
+*Generated 2026-03-30 from a 97-run snapshot. Current `logs/experiments.jsonl` has 170 runs. See `EXPERIMENTS.md` for the full up-to-date record.*

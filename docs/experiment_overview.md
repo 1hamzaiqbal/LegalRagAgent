@@ -25,7 +25,7 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 
 ### Phase 3: Embedding Comparison (April 9-11)
 - 7 embedders × 3 modes = 21 eval runs
-- **Key finding:** Cross-encoder reranking dominates — all 7 non-gte-large embedders converge to exactly 65.0% with aligned reranking
+- **Key finding:** Cross-encoder reranking dominates — all 6 non-gte-large embedders converge to exactly 65.0% with aligned reranking
 - Embedding model choice barely matters when cross-encoder reranks against the question
 
 ### Phase 4: Gap Architecture (April 10-13)
@@ -35,7 +35,7 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 - After fixes and anchoring controls: gap_rag 63.5%, gap_rag_nosnap 64.5%, gap_hyde 62.0%, gap_hyde_nosnap 62.5%, gap_vectorless 61.5%
 - **Key finding:** Showing snap answer in final call causes anchoring (0.5-2% changes vs 19-27% when hidden)
 
-### Phase 5: Vectorless RAG (April 12-13)
+### Phase 5: Historical vectorless / parametric reasoning (April 12-13)
 - LLM generates knowledge from parametric memory instead of searching the corpus
 - vectorless_hybrid: 65.0% (N=200), vectorless_direct: 64.5% (N=200)
 - Competitive with snap_hyde (65.5%) with ZERO vector infrastructure
@@ -45,7 +45,7 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 ### Phase 6: Anchoring Hypothesis (April 13, completed)
 - gap_rag_nosnap reached 64.5% vs gap_rag 63.5%
 - gap_hyde_nosnap (fixed) reached 62.5% vs fixed gap_hyde 62.0%
-- gap_vectorless reached 61.5% and did not beat the plain vectorless baselines
+- gap_vectorless reached 61.5% and did not beat the plain historical vectorless baselines
 
 ## Key Results (Gemma 4 E4B, BarExam)
 
