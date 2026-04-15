@@ -1622,6 +1622,83 @@ def run_snap_entity_search(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_snap_entity_informed(row: pd.Series, config: EvalConfig) -> dict:
+    """Snap-informed entity search: extract entities from snap reasoning + question.
+
+    The snap surfaces legal terms not in the question (e.g., question says
+    "garage that encroached" but snap reasons about "adverse possession").
+    Entity search equivalent of HyDE — snap reasoning generates better search terms.
+    2 LLM calls. Snap hidden from final answer.
+    """
+    from rag_utils import rerank_with_cross_encoder
+    import pandas as _pd
+    from langchain_core.documents import Document
+
+    question = _fmt(row, config)
+    raw_question = str(row["question"])
+
+    # Step 1: Snap
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_ent_inf/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Entity search using BOTH question AND snap reasoning
+    graph = _load_entity_graph()
+    if graph is None:
+        answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_ent_inf/fresh")
+        return {"final_answer": answer, "snap_answer": snap_answer,
+                "snap_letter": snap_letter, "evidence_store": [],
+                "retrieved_ids": [], "gold_retrieved": False}
+
+    # Extract entities from combined text — snap reasoning surfaces legal terms
+    combined_text = f"{raw_question}\n\n{snap_answer}"
+    candidate_ids = _entity_search(combined_text, graph, top_k=30)
+
+    if not candidate_ids:
+        answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_ent_inf/fresh")
+        return {"final_answer": answer, "snap_answer": snap_answer,
+                "snap_letter": snap_letter, "evidence_store": [],
+                "retrieved_ids": [], "gold_retrieved": False}
+
+    # Load passages
+    global _CORPUS_DF
+    if _CORPUS_DF is None:
+        print("[entity_graph] Loading corpus CSV (one-time)...")
+        _CORPUS_DF = _pd.read_csv("datasets/barexam_qa/barexam_qa_train.csv", usecols=['idx', 'text'])
+        _CORPUS_DF['idx'] = _CORPUS_DF['idx'].astype(str)
+    candidates = _CORPUS_DF[_CORPUS_DF['idx'].isin(set(candidate_ids))]
+
+    if candidates.empty:
+        answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_ent_inf/fresh")
+        return {"final_answer": answer, "snap_answer": snap_answer,
+                "snap_letter": snap_letter, "evidence_store": [],
+                "retrieved_ids": [], "gold_retrieved": False}
+
+    docs = [Document(page_content=str(r['text']), metadata={"idx": str(r['idx'])})
+            for _, r in candidates.iterrows()]
+    reranked = rerank_with_cross_encoder(raw_question, docs, top_k=5)
+
+    passages = [f"[Source {i+1}]\n{doc.page_content}" for i, doc in enumerate(reranked)]
+    evidence_store = [{"idx": doc.metadata.get("idx", ""), "text": doc.page_content,
+                       "cross_encoder_score": doc.metadata.get("cross_encoder_score", 0)}
+                      for doc in reranked]
+    passage_block = "\n\n".join(passages)
+    gold_idx = str(row.get("gold_idx", ""))
+    retrieved_ids = [e["idx"] for e in evidence_store]
+
+    # Answer fresh — no snap shown
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="snap_ent_inf/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "evidence_store": evidence_store,
+        "retrieved_ids": retrieved_ids,
+        "gold_retrieved": gold_idx in retrieved_ids if gold_idx else False,
+    }
+
+
 def run_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
     """Score-thresholded Snap-HyDE: if best CE score < threshold, discard evidence and use snap answer."""
     CE_THRESHOLD = 4.0  # calibrated from N=200 BarExam analysis: snap=78% below, RAG=78% above
@@ -2470,6 +2547,7 @@ MODE_RUNNERS = {
     "vectorless_keyword": run_vectorless_keyword,
     "entity_search": run_entity_search,
     "snap_entity_search": run_snap_entity_search,
+    "snap_entity_informed": run_snap_entity_informed,
     "rag_devil_hyde": run_rag_devil_hyde,
     "rag_top2_hyde": run_rag_top2_hyde,
     "confidence_gated": run_confidence_gated,
