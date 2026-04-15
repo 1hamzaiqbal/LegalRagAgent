@@ -557,12 +557,12 @@ def _gap_analysis(snap_answer: str, question: str) -> list[dict]:
     """
     system = (
         "You are a legal reasoning analyst. A student answered a legal question. "
-        "Identify the 1-2 most important evidence gaps that could change the answer.\n\n"
-        "For each gap, use this format:\n"
+        "Identify the single most important evidence gap that could change the answer.\n\n"
+        "Use this format:\n"
         "- gap: <what specific rule, fact, or exception is uncertain> | ask: <focused sub-question>\n\n"
         "Rules:\n"
-        "- Focus only on gaps that could realistically change the answer.\n"
-        "- Do not list more than 2 gaps. Prefer 1 focused gap over 2 weak ones.\n"
+        "- Give exactly 1 gap — the one most likely to change the answer.\n"
+        "- Only give 2 gaps if there are truly two independent uncertainties.\n"
         "- If the reasoning is solid and you are confident in the answer, reply exactly: NONE"
     )
     user = (
@@ -1430,13 +1430,36 @@ def _entity_search(question: str, graph: dict, corpus_df=None, top_k: int = 15) 
     q_lower = question.lower()
     q_entities = set()
 
-    # Legal Latin and doctrine names
-    for term in ['res ipsa loquitur', 'habeas corpus', 'mens rea', 'actus reus',
-                 'prima facie', 'bona fide', 'due process', 'equal protection',
-                 'strict liability', 'negligence per se', 'proximate cause',
-                 'consideration', 'promissory estoppel', 'specific performance',
-                 'hearsay', 'adverse possession', 'easement', 'eminent domain',
-                 'felony murder', 'manslaughter', 'larceny', 'robbery', 'burglary']:
+    # Legal Latin, doctrine names, and common legal concepts
+    LEGAL_TERMS = [
+        'res ipsa loquitur', 'habeas corpus', 'mens rea', 'actus reus',
+        'prima facie', 'bona fide', 'due process', 'equal protection',
+        'strict liability', 'negligence per se', 'proximate cause',
+        'consideration', 'promissory estoppel', 'specific performance',
+        'hearsay', 'adverse possession', 'easement', 'eminent domain',
+        'felony murder', 'manslaughter', 'larceny', 'robbery', 'burglary', 'arson',
+        'negligence', 'duty of care', 'breach of duty', 'causation', 'damages',
+        'offer', 'acceptance', 'mutual assent', 'statute of frauds',
+        'parol evidence', 'third party beneficiary', 'assignment',
+        'search and seizure', 'miranda', 'exclusionary rule', 'probable cause',
+        'reasonable suspicion', 'warrant', 'plain view',
+        'double jeopardy', 'self incrimination', 'right to counsel',
+        'free speech', 'establishment clause', 'free exercise', 'commerce clause',
+        'substantive due process', 'procedural due process', 'rational basis',
+        'strict scrutiny', 'intermediate scrutiny',
+        'best evidence rule', 'business records', 'dying declaration',
+        'excited utterance', 'present sense impression', 'prior inconsistent',
+        'character evidence', 'impeachment', 'expert testimony',
+        'fee simple', 'life estate', 'future interest', 'remainder',
+        'covenant', 'servitude', 'recording act', 'bona fide purchaser',
+        'joint tenancy', 'tenancy in common', 'landlord tenant',
+        'intentional tort', 'battery', 'assault', 'false imprisonment',
+        'trespass', 'conversion', 'defamation', 'libel', 'slander',
+        'comparative negligence', 'contributory negligence', 'assumption of risk',
+        'vicarious liability', 'respondeat superior', 'joint and several',
+        'products liability', 'warranty', 'merchantability',
+    ]
+    for term in LEGAL_TERMS:
         if term in q_lower:
             q_entities.add(term)
 
@@ -1456,8 +1479,16 @@ def _entity_search(question: str, graph: dict, corpus_df=None, top_k: int = 15) 
         if phrase in inverted_index:
             q_entities.add(phrase)
 
-    # Also try individual important words against the index
-    for word in q_lower.split():
+    # Try 2-word and 3-word sliding window phrases against the index
+    words = q_lower.split()
+    for n in (2, 3):
+        for i in range(len(words) - n + 1):
+            phrase = " ".join(words[i:i+n])
+            if phrase in inverted_index:
+                q_entities.add(phrase)
+
+    # Individual words (6+ chars) against the index
+    for word in words:
         if len(word) > 5 and word in inverted_index:
             q_entities.add(word)
 
