@@ -66,6 +66,70 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 
 ---
 
+### 2026-04-15 — Full-scale entity graph search underperforms vector retrieval
+
+**Hypothesis:** Real corpus search through the rebuilt NLP entity graph would scale better than the N=200 pilot and at least match the vector baseline, because structured entity matching should reduce embedding noise.
+
+**Change:** Ran full-set `entity_search` on BarExam using the NLP entity graph as the retrieval layer. This is real corpus search with zero embeddings and a single answer call.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`entity_search`, dataset=`barexam`, N=`1195`, retrieval=`NLP entity graph`, embeddings=`none`, avg_llm_calls=`1.0`.
+
+**Result:** `entity_search` = **53.2%** (`636/1195`), below full-set `rag_simple` = **54.2%** (`648/1195`). The mode falls from **60.0%** at N=200 to **53.2%** at N=1195 (`-6.8pp`), while vector `rag_simple` falls from **57.0%** to **54.2%** (`-2.8pp`).
+
+**Verdict:** REFUTED — NLP entity matching is less robust than vector search at scale. The full run lands below `rag_simple`, and its scale drop is much larger than the plain vector baseline's.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-15 — Full `rag_hyde` attempt was invalidated and resubmitted
+
+**Hypothesis:** A full N=1195 `rag_hyde` run would show whether pure HyDE retrieval scales without the snap step.
+
+**Change:** Launched full-set `rag_hyde`, then traced a failure where the generic `hyde` prompt was too terse for Gemma 4 E4B in this path, reproducing the same 11-character HyDE-output bug seen elsewhere.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`rag_hyde`, dataset=`barexam`, N=`1195`, status=`broken run`, follow-up job=`45350`.
+
+**Result:** **BROKEN / INVALID** — the attempted full run produced **100% 11-character HyDE outputs**, so there is no valid accuracy number to report from that job. The prompt was fixed and the experiment was resubmitted as job `45350`.
+
+**Verdict:** INVALIDATED — this was a prompt bug, not a real model result. The full `rag_hyde` comparison is still pending the corrected rerun.
+
+**Commit:** N/A (cluster run status / resubmission)
+
+---
+
+### 2026-04-15 — Snap terms hurt the entity-informed variant
+
+**Hypothesis:** Feeding the snap answer into the entity-matching pipeline would add useful legal terms and improve the NLP graph search path.
+
+**Change:** Ran `snap_entity_informed`, which injects snap reasoning into the entity-search pipeline before final answering.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`snap_entity_informed`, dataset=`barexam`, N=`200`, avg_llm_calls=`2.0`.
+
+**Result:** `snap_entity_informed` = **59.5%** (`119/200`), below plain `entity_search` = **60.0%** (`120/200`).
+
+**Verdict:** REFUTED — snap reasoning did not help entity search here. The extra snap terms appear to add noise rather than improve entity matching.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-15 — HyDE per-gap subagents do not beat the simpler report-first baseline
+
+**Hypothesis:** If each evidence gap used HyDE retrieval before subagent summarization, the report-first architecture might outperform the raw-query `subagent_rag` baseline.
+
+**Change:** Ran `subagent_hyde`, which uses HyDE per gap and then asks subagents to summarize the retrieved evidence before the final answer call.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`subagent_hyde`, dataset=`barexam`, N=`200`, avg_llm_calls=`5.2`.
+
+**Result:** `subagent_hyde` = **62.5%** (`125/200`), below `subagent_rag` = **66.0%** (`132/200`).
+
+**Verdict:** REFUTED — HyDE per gap does not improve the subagent architecture. The extra retrieval/generation step adds cost without beating the simpler report-first setup.
+
+**Commit:** bc6e361
+
+---
+
 ### 2026-04-14 — Snap vs no-snap ablation confirms the paper's core claim
 
 **Hypothesis:** If snap is the real source of lift, removing it should hurt not just plain RAG, but also HyDE retrieval and the historical `vectorless_*` / parametric-reasoning family.

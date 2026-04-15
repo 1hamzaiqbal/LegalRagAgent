@@ -51,6 +51,9 @@ Latest answer: not universally. The April 14 follow-up is flat on HousingQA and 
 - [x] vectorless_direct full: **CANCELLED** (job `43471`) — misnamed parametric reasoning, not real corpus search
 - [x] vectorless_hybrid full: **CANCELLED** (job `43471`) — same issue
 - [x] `subagent_rag` full N=1195: **56.9%** (`680/1195`) — the N=200 edge did **not** hold at scale vs `snap_hyde` **57.9%**
+- [x] Update 2026-04-15: `entity_search` full N=1195: **53.2%** (`636/1195`) — real NLP entity-graph corpus search, zero embeddings, 1 LLM call; below full `rag_simple` **54.2%**
+- [x] Update 2026-04-15: full `rag_hyde` attempt was **BROKEN** — 100% 11-char HyDE outputs from the same terse generic `hyde` prompt; fixed and resubmitted as job `45350`
+- [x] Update 2026-04-15: scale robustness note — `entity_search` fell **6.8pp** (`60.0% -> 53.2%`) while vector `rag_simple` fell only **2.8pp** (`57.0% -> 54.2%`), so NLP entity matching is less robust than vector search at scale
 - Data: `logs/experiments.jsonl`
 
 ---
@@ -67,6 +70,7 @@ Latest answer: not universally. The April 14 follow-up is flat on HousingQA and 
 - [ ] **subagent_vectorless** — subagent generates knowledge instead of retrieving (no corpus)
 - [ ] **subagent_panel** — multiple subagents with different roles (textbook/barprep/casebook)
 - [x] Results from subagent_hybrid and subagent_rag_evidence: **DONE** — `subagent_hybrid` 63.5%, `subagent_rag_evidence` 61.0%
+- [x] Update 2026-04-15: `subagent_hyde` completed at **62.5%** (`125/200`) with **5.2 avg** calls — below `subagent_rag` **66.0%**
 - Code: `eval/eval_harness.py`, subagent runners in the gap-family section
 
 ### P2.3: Corpus Structure / Metadata Approaches
@@ -74,6 +78,8 @@ Latest answer: not universally. The April 14 follow-up is flat on HousingQA and 
 - [ ] **Topic-filtered retrieval** — classify passages by bar exam subject (7 topics), retrieve only from matching topic
 - [ ] **PageIndex-style ToC** — build a table of contents from the corpus, let LLM navigate. NOTE: PageIndex is designed for single documents, our corpus is 686K flat passages. May need adaptation.
 - [ ] How good is existing metadata? Source: 98.9% caselaw, 0.3% mbe, 0.8% wex. Gold passages are ALL from the 2,318 mbe passages (0.3% of corpus). Filtering to mbe-only would be trivially better but defeats the purpose.
+- [x] Update 2026-04-15: `snap_entity_informed` completed at **59.5%** (`119/200`) — below `entity_search` **60.0%**, suggesting snap terms add noise to entity matching
+- [x] Update 2026-04-15: full `entity_search` completed at **53.2%** (`636/1195`) and finished below vector `rag_simple` **54.2%**
 - Data: `datasets/barexam_qa/barexam_qa_train.csv` (columns: idx, source, case_id, opinion_id, text)
 
 ---
@@ -112,11 +118,16 @@ Latest answer: not universally. The April 14 follow-up is flat on HousingQA and 
 | Historical "vectorless" / parametric-reasoning baselines (5 modes) | hybrid 65.0%, direct 64.5% | ✅ Done |
 | Subagent RAG | **66.0% NEW BEST** | ✅ Done |
 | Subagent follow-ups | hybrid 63.5%, rag_evidence 61.0% | ✅ Done |
+| subagent_hyde | 62.5%, below subagent_rag 66.0% | ✅ Done |
+| snap_entity_informed | 59.5%, below entity_search 60.0% | ✅ Done |
 | snap_hyde full N=1195 | 57.9% | ✅ Done |
 | subagent_rag full N=1195 | 56.9%, below snap_hyde 57.9% | ✅ Done |
+| entity_search full N=1195 | 53.2%, below rag_simple 54.2% | ✅ Done |
+| rag_hyde full N=1195 rerun | broken original attempt; fixed and resubmitted as job `45350` | ⚠️ Resubmitted |
 | Case-summary build | 22K summaries built (job `44371`) | ✅ Done |
 | Phase 1 alignment (10 modes) | snap_hyde 65.5% best | ✅ Done |
 | 180 total experiments | — | ✅ Logged |
+| 185 total experiments (as of 2026-04-15) | current count in `logs/experiments.jsonl` | ✅ Logged |
 
 ---
 
@@ -128,6 +139,7 @@ Latest answer: not universally. The April 14 follow-up is flat on HousingQA and 
 | 44394 | snap ablations | Completed — `rag_hyde` 62.5%, `vectorless_nosnap` 59.5% |
 | 44395 | cross-dataset jobs | Completed — HousingQA and CaseHOLD follow-ups logged |
 | 44520 | entity graph rebuild | Running — 74% done |
+| 45350 | rag_hyde full rerun | Resubmitted — original full run was broken (100% 11-char HyDE outputs) |
 | 43471 | vectorless_direct + hybrid full N=1195 | Cancelled — fake vectorless / not real corpus search |
 
 ---
