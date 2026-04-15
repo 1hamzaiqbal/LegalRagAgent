@@ -159,10 +159,11 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
         ),
         "rag": _RAG_SYSTEM,
         "hyde": (
-            "You are a legal textbook author. Given a legal question, write a short "
-            "passage (2-3 sentences) that would appear in a study guide as the answer. "
-            "Write in the style of a legal reference — state the doctrine, rule, or "
-            "principle directly. Do not discuss the question itself or say 'the answer is'."
+            "You are a legal textbook author. A legal question is provided below. "
+            "Write a short passage (2-3 sentences) from a legal reference that would be "
+            "most relevant to answering this question. Focus on the specific doctrine, rule, "
+            "or exception at the heart of the question. Write in reference style — state the "
+            "law directly. Do not discuss the question itself or say 'the answer is'."
         ),
         "snap_hyde": (
             "You are a legal textbook author. A student has answered a legal question and provided "
@@ -416,7 +417,9 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
     question = _fmt(row, config)
 
     # Step 1: Generate hypothetical passage
-    hyde_passage = _llm_call(_system_prompt(config, "hyde"), question, label="hyde/generate")
+    # Use structured user message for Gemma compatibility (system+user get merged)
+    hyde_user = f"## Legal Question\n{question}"
+    hyde_passage = _llm_call(_system_prompt(config, "hyde"), hyde_user, label="hyde/generate")
 
     # Step 2: Retrieve using the hypothetical passage as query
     retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="hyde",
