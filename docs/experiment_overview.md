@@ -1,7 +1,6 @@
 # Experiment Overview
 
-High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (180 entries).
-Update (2026-04-15): `logs/experiments.jsonl` now contains **185** logged runs.
+High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (**189** entries as of 2026-04-17).
 
 For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEARCH.md`.
 
@@ -22,7 +21,7 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 ### Phase 2: Small Model Audit (April 1-8)
 - Full N=1195 BarExam baselines: Qwen3-32B (61.4%), Gemma-27B (58.0%), Qwen3-8B (52.1%)
 - HPC cluster setup: vLLM serving Gemma 4 E4B and Qwen3-8B
-- Gemma 4 E4B: 55.5% llm_only, 62.2% golden, 57.9% latest snap_hyde full rerun (earlier clean run: 58.6%)
+- Gemma 4 E4B: 55.5% llm_only, 62.2% golden, 58.6% best full snap_hyde run (later rerun: 57.9%)
 
 ### Phase 3: Embedding Comparison (April 9-11)
 - 7 embedders × 3 modes = 21 eval runs
@@ -59,7 +58,14 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 - Full N=1195 `entity_search` reached **53.2%** (`636/1195`) using real NLP entity-graph corpus search, zero embeddings, and 1 LLM call
 - Scale robustness warning: `entity_search` drops from **60.0%** at N=200 to **53.2%** at N=1195 (`-6.8pp`), while vector `rag_simple` drops only from **57.0%** to **54.2%** (`-2.8pp`)
 - New N=200 follow-ups did not move the frontier: `snap_entity_informed` = **59.5%**, `subagent_hyde` = **62.5%**
-- Full N=1195 `rag_hyde` was **broken** (100% 11-char HyDE outputs from the terse generic prompt); the fix was resubmitted as job `45350`
+- The initial full N=1195 `rag_hyde` attempt was **broken** (100% 11-char HyDE outputs from the terse generic prompt); the corrected rerun later completed at **54.3%**
+
+### Phase 9: Full Follow-Up Reruns (April 15-16)
+- Corrected full `rag_hyde` completed at **54.3%** (`649/1195`)
+- Full `ce_threshold` completed at **55.9%** (`668/1195`)
+- Full `gap_rag_nosnap` completed at **55.9%** (`668/1195`)
+- Full `subagent_rag` 1-gap rerun improved to **57.2%** (`684/1195`)
+- None displaced `golden_passage` (**62.2%**) or the best full `snap_hyde` run (**58.6%**); `logs/experiments.jsonl` reached **189** entries
 
 ## Paper Core Result (Gemma 4 E4B, BarExam N=200)
 
@@ -109,17 +115,20 @@ Addendum (2026-04-15): later N=200 follow-ups logged `entity_search` at **60.0%*
 
 | Mode | Accuracy | Detail Log |
 |---|---|---|
-| golden_passage | 62.2% | `logs/eval_golden_passage_cluster-vllm_*_detail.jsonl` |
-| **snap_hyde** | **57.9%** | `logs/eval_rag_snap_hyde_cluster-vllm_20260413_*_detail.jsonl` |
-| **subagent_rag** | **56.9%** | `logs/eval_subagent_rag_cluster-vllm_20260414_*_detail.jsonl` |
-| llm_only | 55.5% | `logs/eval_llm_only_cluster-vllm_*_detail.jsonl` |
-| rag_simple | 54.2% | `logs/eval_rag_simple_cluster-vllm_*_detail.jsonl` |
+| golden_passage | 62.2% | `logs/eval_golden_passage_cluster-vllm_20260408_1749_detail.jsonl` |
+| **snap_hyde** | **58.6%** | `logs/eval_rag_snap_hyde_cluster-vllm_20260409_0819_detail.jsonl` |
+| **subagent_rag (1-gap)** | **57.2%** | `logs/eval_subagent_rag_cluster-vllm_20260416_1720_detail.jsonl` |
+| **subagent_rag** | **56.9%** | `logs/eval_subagent_rag_cluster-vllm_20260414_1115_detail.jsonl` |
+| **ce_threshold** | **55.9%** | `logs/eval_ce_threshold_cluster-vllm_20260415_2022_detail.jsonl` |
+| **gap_rag_nosnap** | **55.9%** | `logs/eval_gap_rag_nosnap_cluster-vllm_20260416_0544_detail.jsonl` |
+| llm_only | 55.5% | `logs/eval_llm_only_cluster-vllm_20260408_1709_detail.jsonl` |
+| rag_hyde | 54.3% | `logs/eval_rag_hyde_cluster-vllm_20260415_1346_detail.jsonl` (fixed HyDE prompt; original run was broken) |
+| rag_simple | 54.2% | `logs/eval_rag_simple_cluster-vllm_20260408_1813_detail.jsonl` |
 | entity_search | 53.2% | `logs/eval_entity_search_cluster-vllm_20260415_0454_detail.jsonl` |
-| rag_hyde | **BROKEN / RESUBMITTED** | invalid full run (100% 11-char HyDE outputs); fixed and resubmitted as job `45350` |
 | vectorless_direct | **CANCELLED** | job `43471` canceled — mode is parametric reasoning, not real corpus search |
 | vectorless_hybrid | **CANCELLED** | job `43471` canceled — same naming / validity issue |
 
-Note: `subagent_rag` looked best at N=200 (66.0%) but falls behind `snap_hyde` at N=1195 (56.9% vs 57.9%). The planned full-scale "vectorless" runs were canceled because they would only validate extra reasoning steps, not corpus search.
+Note: `subagent_rag` looked best at N=200 (66.0%) but does not hold the full-set lead. The best full `snap_hyde` run is **58.6%**; the later 1-gap `subagent_rag` rerun improved to **57.2%**; and both `ce_threshold` and `gap_rag_nosnap` flatten at **55.9%**, barely above `llm_only` (**55.5%**). The planned full-scale "vectorless" runs were canceled because they would only validate extra reasoning steps, not corpus search.
 Scale note: `entity_search` falls **6.8pp** from N=200 to N=1195 (`60.0% -> 53.2%`), while vector `rag_simple` falls only **2.8pp** (`57.0% -> 54.2%`). NLP entity matching is therefore less robust than vector search at scale in the current corpus setup.
 
 ### Cross-Dataset Follow-Up (Gemma 4 E4B, N=200)
@@ -137,7 +146,7 @@ Scale note: `entity_search` falls **6.8pp** from N=200 to N=1195 (`60.0% -> 53.2
 
 3. **Cross-encoder reranking dominates embedding choice.** All 7 non-gte-large embedders converge to exactly 65.0% with question-based reranking. The embedding model barely matters.
 
-4. **Subagent reports are the strongest current Gemma 4 E4B strategy at N=200, but not at full scale.** `subagent_rag` reached 66.0% on N=200, then 56.9% on N=1195 versus `snap_hyde` at 57.9%.
+4. **Subagent reports are the strongest current Gemma 4 E4B strategy at N=200, but not at full scale.** `subagent_rag` reached 66.0% on N=200; the best full rerun is the 1-gap variant at 57.2%, still below the best full `snap_hyde` run at 58.6%.
 
 5. **"Vectorless" is competitive, but the name is misleading.** These modes are multi-turn parametric reasoning baselines, not corpus search.
 
@@ -184,14 +193,15 @@ Before trusting any result, check:
 | HPC throughput data | `docs/hpc_throughput.md` |
 | This overview | `docs/experiment_overview.md` |
 
-## Current Cluster Status (as of 2026-04-14)
-Update (2026-04-15): `entity_search` full is now logged, and the corrected full `rag_hyde` rerun is pending as job `45350`.
+## Current Cluster Status (as of 2026-04-17)
 
 | Job | Mode | N | Purpose |
 |---|---|---|---|
 | 44371 | case summaries build | — | Completed — 22K summaries built |
 | 44394 | snap ablations | 200 | Completed — `rag_hyde` 62.5%, `vectorless_nosnap` 59.5% |
 | 44395 | cross-dataset block | 200 | Completed — HousingQA and CaseHOLD follow-ups logged |
-| 44520 | entity graph rebuild | — | Running — 74% done |
-| 45350 | `rag_hyde` full rerun | 1195 | Resubmitted after broken run with 100% 11-char HyDE outputs |
+| 44520 | entity graph rebuild | — | Running — last noted at 74% on 2026-04-14 |
+| 45350 | `rag_hyde` + `ce_threshold` full | 1195 | Completed — `rag_hyde` 54.3%, `ce_threshold` 55.9% |
+| 45735 | `gap_rag_nosnap` + `subagent_rag` (1-gap) full | 1195 | Completed — 55.9%, 57.2% |
+| 48393 | combo modes | 200 | Running — `rag_hyde` fixed, `snap_hyde_report`, `subagent_rag_snap`, etc. |
 | 43471 | vectorless_direct + vectorless_hybrid | 1195 | Cancelled — misnamed parametric-reasoning validation, not corpus search |

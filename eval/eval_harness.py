@@ -417,8 +417,20 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
     question = _fmt(row, config)
 
     # Step 1: Generate hypothetical passage
-    # Use structured user message for Gemma compatibility (system+user get merged)
-    hyde_user = f"## Legal Question\n{question}"
+    # Gemma merges system+user into one HumanMessage, so keep the user payload
+    # richly structured instead of sending only the bare question.
+    hyde_user = (
+        "## Task\n"
+        "Write a short passage from a legal reference that would be useful for answering the "
+        "question below.\n\n"
+        "## Original Legal Question\n"
+        f"{question}\n\n"
+        "## Passage Requirements\n"
+        "- Write 2-3 sentences in legal reference style\n"
+        "- State the controlling rule, doctrine, holding, exception, or principle directly\n"
+        "- Focus on the legal issue most likely to determine the answer\n"
+        "- Do not discuss the question itself, answer in exam style, or say 'the answer is'\n"
+    )
     hyde_passage = _llm_call(_system_prompt(config, "hyde"), hyde_user, label="hyde/generate")
 
     # Step 2: Retrieve using the hypothetical passage as query
@@ -802,6 +814,8 @@ def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
       - 'snap_and_evidence': snap answer + flat evidence, without gap structure
       - 'reports_nosnap': subagent/vectorless reports only
       - 'reports_and_evidence': reports plus the supporting raw passages
+      - 'reports_and_snap': reports plus the snap answer (no raw passages)
+      - 'reports_snap_evidence': reports + snap + raw passages (maximum info)
     """
     # Build evidence from gap results
     all_passages = []
@@ -867,6 +881,19 @@ def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
         )
     elif final_input == "reports_and_evidence":
         user = (
+            f"## Research Findings\n{report_block}\n\n"
+            f"## Supporting Passages\n{flat_passages}\n\n"
+            f"## Question\n{question}"
+        )
+    elif final_input == "reports_and_snap":
+        user = (
+            f"## Your Initial Answer\n{snap_answer}\n\n"
+            f"## Research Findings\n{report_block}\n\n"
+            f"## Question\n{question}"
+        )
+    elif final_input == "reports_snap_evidence":
+        user = (
+            f"## Your Initial Answer\n{snap_answer}\n\n"
             f"## Research Findings\n{report_block}\n\n"
             f"## Supporting Passages\n{flat_passages}\n\n"
             f"## Question\n{question}"
@@ -1033,6 +1060,133 @@ def run_subagent_rag_evidence(row: pd.Series, config: EvalConfig) -> dict:
     Tests whether raw evidence adds value on top of subagent summaries.
     """
     return _run_gap(row, config, method="subagent_rag", label="sub_rag_ev", final_input="reports_and_evidence")
+
+
+def run_subagent_rag_snap(row: pd.Series, config: EvalConfig) -> dict:
+    """Subagent RAG + snap visible: reports + snap answer in final call.
+
+    Same retrieval/summarization as subagent_rag, but the final agent also sees
+    the snap answer alongside the reports. Tests whether snap anchoring helps or
+    hurts when mediated by independently-generated reports.
+    """
+    return _run_gap(row, config, method="subagent_rag", label="sub_rag_snap", final_input="reports_and_snap")
+
+
+def run_subagent_rag_full(row: pd.Series, config: EvalConfig) -> dict:
+    """Subagent RAG maximum info: reports + snap + raw passages.
+
+    Final agent sees everything: snap answer, subagent reports, AND raw passages.
+    Tests whether maximum information helps or creates noise/anchoring.
+    """
+    return _run_gap(row, config, method="subagent_rag", label="sub_rag_full", final_input="reports_snap_evidence")
+
+
+def run_snap_hyde_report(row: pd.Series, config: EvalConfig) -> dict:
+    """Snap-HyDE + summarization: snap_hyde retrieval pipeline with report denoising.
+
+    Combines snap_hyde's proven retrieval (58.6% at N=1195) with subagent-style
+    summarization. Unlike subagent modes, this skips gap analysis — retrieves with
+    the full snap HyDE passage, summarizes ALL retrieved passages into a single
+    report, then final agent sees report only (no snap, no raw passages).
+
+    Tests whether noise filtering via summarization improves snap_hyde.
+    """
+    question = _fmt(row, config)
+    raw_question = str(row["question"])
+
+    # Step 1: Snap answer
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="shr/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Generate HyDE passage from snap (same as snap_hyde)
+    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
+    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="shr/hyde")
+
+    # Step 3: Retrieve using HyDE passage
+    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="shr",
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Step 4: Summarize retrieved passages into a focused report
+    report_system = (
+        "You are a legal research assistant. Read the retrieved passages and write a concise "
+        "report summarizing the relevant legal rules, doctrines, and holdings. "
+        "State what the law says directly. If passages are irrelevant, say so. "
+        "No answer letters. Keep under 150 words."
+    )
+    report_user = (
+        f"## Retrieved Passages\n{passage_block}\n\n"
+        f"## Original Question\n{question}"
+    )
+    report = _llm_call(report_system, report_user, label="shr/report")
+
+    # Step 5: Final answer with report only (no snap, no raw passages)
+    user = f"## Research Findings\n{report}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="shr/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "hyde_passage": hyde_passage,
+        "report": report,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
+def run_snap_hyde_report_snap(row: pd.Series, config: EvalConfig) -> dict:
+    """Snap-HyDE + summarization + snap visible: report + snap in final call.
+
+    Same as snap_hyde_report but the final agent also sees the snap answer.
+    Tests snap anchoring when combined with a summarized report.
+    """
+    question = _fmt(row, config)
+
+    # Step 1: Snap
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="shrs/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: HyDE from snap
+    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
+    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="shrs/hyde")
+
+    # Step 3: Retrieve
+    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="shrs",
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Step 4: Summarize
+    report_system = (
+        "You are a legal research assistant. Read the retrieved passages and write a concise "
+        "report summarizing the relevant legal rules, doctrines, and holdings. "
+        "State what the law says directly. If passages are irrelevant, say so. "
+        "No answer letters. Keep under 150 words."
+    )
+    report_user = f"## Retrieved Passages\n{passage_block}\n\n## Original Question\n{question}"
+    report = _llm_call(report_system, report_user, label="shrs/report")
+
+    # Step 5: Final answer with report + snap
+    user = (
+        f"## Your Initial Answer\n{snap_answer}\n\n"
+        f"## Research Findings\n{report}\n\n"
+        f"## Question\n{question}"
+    )
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="shrs/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+        "hyde_passage": hyde_passage,
+        "report": report,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
 
 
 def run_gap_rag(row: pd.Series, config: EvalConfig) -> dict:
@@ -2570,6 +2724,10 @@ MODE_RUNNERS = {
     "subagent_rag": run_subagent_rag,
     "subagent_hybrid": run_subagent_hybrid,
     "subagent_rag_evidence": run_subagent_rag_evidence,
+    "subagent_rag_snap": run_subagent_rag_snap,
+    "subagent_rag_full": run_subagent_rag_full,
+    "snap_hyde_report": run_snap_hyde_report,
+    "snap_hyde_report_snap": run_snap_hyde_report_snap,
     "snap_rag": run_snap_rag,
     "snap_rag_nosnap": run_snap_rag_nosnap,
     "vectorless_direct": run_vectorless_direct,

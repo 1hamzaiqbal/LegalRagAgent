@@ -35,24 +35,25 @@ Latest answer: not universally. The April 14 follow-up is flat on HousingQA and 
 - Data: `logs/experiments.jsonl`, detail logs in `logs/eval_*_detail.jsonl`
 
 ### P1.2: Cross-Dataset Validation
-- [ ] Copy housing QA data to cluster: `scp datasets/housing_qa/ wustl:...`
-- [ ] Run on **HousingQA**: llm_only, rag_simple, snap_hyde, vectorless_direct, subagent_rag (N=200 each)
-- [ ] Run on **CaseHOLD**: same modes (already have corpus on cluster?)
-- [ ] Key question: does snap lift transfer to domains where model lacks knowledge?
-- [x] Status: resubmitted cross-dataset block `44395` completed
-- [x] HousingQA follow-up completed: `llm_only` **50.5%**, `vectorless_direct` **50.0%**, `vectorless_nosnap` **52.5%**, `snap_hyde` **50.0%**
-- [x] CaseHOLD follow-up completed: `llm_only` **69.5%**, `vectorless_direct` **68.0%**, `vectorless_nosnap` **67.5%**
+- [x] Cross-dataset block `44395` completed
+- [x] HousingQA follow-up completed at N=200: `llm_only` **50.5%**, `vectorless_direct` **50.0%**, `vectorless_nosnap` **52.5%**, `snap_hyde` **50.0%**
+- [x] CaseHOLD follow-up completed at N=200: `llm_only` **69.5%**, `vectorless_direct` **68.0%**, `vectorless_nosnap` **67.5%**
+- [x] Supporting infra update: case-summary build job `44371` completed with **22K summaries**
+- [x] Key question answered: not universally; the April 14 block is flat on HousingQA and negative on CaseHOLD for the new parametric controls
 - [x] Key finding from the April 14 block: parametric reasoning does **not** help on unknown-domain HousingQA or citation-matching CaseHOLD
-- [x] Supporting infra update: case-summary build job `44371` completed with **22K summaries**; entity-graph rebuild moved to job `44520` and is **74% done**
+- [x] Entity-graph rebuild moved to job `44520` and was last noted at **74%** on 2026-04-14
 - Data: HousingQA at `datasets/housing_qa/`, CaseHOLD at `datasets/casehold/`
 
 ### P1.3: Full-Scale N=1195 Validation
-- [x] rag_snap_hyde full: **57.9% ✓ DONE**
+- [x] rag_snap_hyde full: **58.6% best run** (later rerun: **57.9%**) ✓ DONE
 - [x] vectorless_direct full: **CANCELLED** (job `43471`) — misnamed parametric reasoning, not real corpus search
 - [x] vectorless_hybrid full: **CANCELLED** (job `43471`) — same issue
-- [x] `subagent_rag` full N=1195: **56.9%** (`680/1195`) — the N=200 edge did **not** hold at scale vs `snap_hyde` **57.9%**
+- [x] `subagent_rag` full N=1195: **56.9%** (`680/1195`) — the N=200 edge did **not** hold at scale vs the best full `snap_hyde` run at **58.6%**
 - [x] Update 2026-04-15: `entity_search` full N=1195: **53.2%** (`636/1195`) — real NLP entity-graph corpus search, zero embeddings, 1 LLM call; below full `rag_simple` **54.2%**
-- [x] Update 2026-04-15: full `rag_hyde` attempt was **BROKEN** — 100% 11-char HyDE outputs from the same terse generic `hyde` prompt; fixed and resubmitted as job `45350`
+- [x] Update 2026-04-15/16: corrected full `rag_hyde` rerun completed at **54.3%** (`649/1195`) after invalidating the broken 11-character-output attempt
+- [x] Update 2026-04-16: full `ce_threshold` completed at **55.9%** (`668/1195`)
+- [x] Update 2026-04-16: full `gap_rag_nosnap` completed at **55.9%** (`668/1195`)
+- [x] Update 2026-04-16: full `subagent_rag` 1-gap rerun completed at **57.2%** (`684/1195`)
 - [x] Update 2026-04-15: scale robustness note — `entity_search` fell **6.8pp** (`60.0% -> 53.2%`) while vector `rag_simple` fell only **2.8pp** (`57.0% -> 54.2%`), so NLP entity matching is less robust than vector search at scale
 - Data: `logs/experiments.jsonl`
 
@@ -66,11 +67,11 @@ Latest answer: not universally. The April 14 follow-up is flat on HousingQA and 
 - [x] This now directly measures whether snap helps vectorless, mirroring `snap_hyde` vs `rag_hyde`
 
 ### P2.2: Subagent Variants
-- [ ] **subagent_hyde** — subagent uses HyDE retrieval per gap instead of raw sub-question
+- [x] **subagent_hyde** — completed at **62.5%** (`125/200`), below `subagent_rag` **66.0%**
 - [ ] **subagent_vectorless** — subagent generates knowledge instead of retrieving (no corpus)
 - [ ] **subagent_panel** — multiple subagents with different roles (textbook/barprep/casebook)
 - [x] Results from subagent_hybrid and subagent_rag_evidence: **DONE** — `subagent_hybrid` 63.5%, `subagent_rag_evidence` 61.0%
-- [x] Update 2026-04-15: `subagent_hyde` completed at **62.5%** (`125/200`) with **5.2 avg** calls — below `subagent_rag` **66.0%**
+- [x] Update 2026-04-15: `subagent_hyde` used **5.2 avg** calls and still trailed `subagent_rag`
 - Code: `eval/eval_harness.py`, subagent runners in the gap-family section
 
 ### P2.3: Corpus Structure / Metadata Approaches
@@ -120,14 +121,17 @@ Latest answer: not universally. The April 14 follow-up is flat on HousingQA and 
 | Subagent follow-ups | hybrid 63.5%, rag_evidence 61.0% | ✅ Done |
 | subagent_hyde | 62.5%, below subagent_rag 66.0% | ✅ Done |
 | snap_entity_informed | 59.5%, below entity_search 60.0% | ✅ Done |
-| snap_hyde full N=1195 | 57.9% | ✅ Done |
-| subagent_rag full N=1195 | 56.9%, below snap_hyde 57.9% | ✅ Done |
+| snap_hyde full N=1195 | 58.6% best run; later rerun 57.9% | ✅ Done |
+| subagent_rag full N=1195 | 56.9%, below the best full snap_hyde run at 58.6% | ✅ Done |
 | entity_search full N=1195 | 53.2%, below rag_simple 54.2% | ✅ Done |
-| rag_hyde full N=1195 rerun | broken original attempt; fixed and resubmitted as job `45350` | ⚠️ Resubmitted |
+| rag_hyde full N=1195 rerun | **54.3%** after the prompt fix; +0.1pp over rag_simple, still below llm_only | ✅ Done |
+| ce_threshold full N=1195 | **55.9%** — barely above llm_only (55.5%) | ✅ Done |
+| gap_rag_nosnap full N=1195 | **55.9%** — same as ce_threshold | ✅ Done |
+| subagent_rag (1-gap) full N=1195 | **57.2%** — improved prompt, up from 56.9% | ✅ Done |
 | Case-summary build | 22K summaries built (job `44371`) | ✅ Done |
 | Phase 1 alignment (10 modes) | snap_hyde 65.5% best | ✅ Done |
-| 180 total experiments | — | ✅ Logged |
-| 185 total experiments (as of 2026-04-15) | current count in `logs/experiments.jsonl` | ✅ Logged |
+| 189 total experiments (as of 2026-04-17) | current count in `logs/experiments.jsonl` | ✅ Logged |
+| New combo modes implemented | snap_hyde_report, subagent_rag_snap, etc. (job `48393` running) | ⚠️ Running |
 
 ---
 
@@ -138,8 +142,10 @@ Latest answer: not universally. The April 14 follow-up is flat on HousingQA and 
 | 44371 | case summaries build | Completed — 22K summaries built |
 | 44394 | snap ablations | Completed — `rag_hyde` 62.5%, `vectorless_nosnap` 59.5% |
 | 44395 | cross-dataset jobs | Completed — HousingQA and CaseHOLD follow-ups logged |
-| 44520 | entity graph rebuild | Running — 74% done |
-| 45350 | rag_hyde full rerun | Resubmitted — original full run was broken (100% 11-char HyDE outputs) |
+| 44520 | entity graph rebuild | Running — last noted at 74% on 2026-04-14 |
+| 45350 | rag_hyde + ce_threshold full | ✅ Completed — rag_hyde 54.3%, ce_threshold 55.9% |
+| 45735 | gap_rag_nosnap + subagent_rag (1-gap) full | ✅ Completed — 55.9%, 57.2% |
+| 48393 | combo modes N=200 | Running — rag_hyde (fixed), snap_hyde_report, subagent_rag_snap, etc. |
 | 43471 | vectorless_direct + hybrid full N=1195 | Cancelled — fake vectorless / not real corpus search |
 
 ---

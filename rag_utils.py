@@ -3,7 +3,6 @@ import os
 import re
 import threading
 import numpy as np
-import pandas as pd
 from typing import List, Dict
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -118,56 +117,6 @@ def get_vectorstore(collection_name: str = COLLECTION_NAME,
                 persist_directory=CHROMA_DB_DIR,
             )
     return _vectorstore_instances[cache_key]
-
-def load_passages_to_chroma(passages_csv_path: str, max_passages: int = 0,
-                            collection_name: str = COLLECTION_NAME):
-    """Loads passages from a CSV into ChromaDB if not already loaded."""
-    print(f"Loading passages from {passages_csv_path}...")
-    df = pd.read_csv(passages_csv_path)
-
-    if max_passages > 0:
-        df = df.head(max_passages)
-
-    documents = []
-    for _, row in df.iterrows():
-        if 'idx' not in row or 'text' not in row or pd.isna(row['text']):
-            continue
-        metadata = {
-            "faiss_id": str(row.get('faiss_id', '')),
-            "idx": str(row['idx']),
-            "source": str(row.get('source', ''))
-        }
-        doc = Document(page_content=str(row['text']), metadata=metadata)
-        documents.append(doc)
-
-    print(f"Prepared {len(documents)} documents. Initializing vectorstore...")
-    vectorstore = get_vectorstore(collection_name)
-
-    existing_count = vectorstore._collection.count()
-    if existing_count >= len(documents):
-        print(f"Vectorstore already contains {existing_count} documents (>= {len(documents)}). Skipping.")
-        return vectorstore
-
-    if existing_count > 0:
-        print(f"Vectorstore has {existing_count} docs but need {len(documents)}. Clearing and reloading...")
-        ids = vectorstore._collection.get()["ids"]
-        if ids:
-            for i in range(0, len(ids), 5000):
-                vectorstore._collection.delete(ids=ids[i:i+5000])
-        print("Cleared existing collection.")
-
-    batch_size = 500
-    total = len(documents)
-    for i in range(0, total, batch_size):
-        batch = documents[i:i+batch_size]
-        vectorstore.add_documents(batch)
-        done = min(i + batch_size, total)
-        if done % 5000 == 0 or done == total:
-            print(f"  Progress: {done}/{total} ({done/total*100:.1f}%)")
-
-    print(f"Finished loading {total} documents into ChromaDB.")
-    return vectorstore
-
 
 # ---------------------------------------------------------------------------
 # BM25 index
@@ -362,19 +311,3 @@ def retrieve_documents_multi_query(queries: List[str], k: int = 5,
 
     candidates = _pool_and_dedup(all_lists)
     return rerank_with_cross_encoder(rerank_query or queries[0], candidates, top_k=k)
-
-
-# ---------------------------------------------------------------------------
-# Confidence
-# ---------------------------------------------------------------------------
-
-def compute_confidence(query: str, docs: List[Document]) -> float:
-    """Max cross-encoder score from retrieved documents (raw logit).
-
-    Reads 'cross_encoder_score' from document metadata (stored during reranking).
-    ms-marco-MiniLM-L-6-v2 outputs raw logits: positive = relevant, negative = irrelevant.
-    """
-    if not docs:
-        return 0.0
-    scores = [doc.metadata.get("cross_encoder_score", 0.0) for doc in docs]
-    return float(np.max(scores))
