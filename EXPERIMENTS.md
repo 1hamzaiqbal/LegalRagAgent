@@ -14,6 +14,96 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 **Commit:** hash
 ```
 
+### 2026-04-17 — `snap_hyde_report` immediately matches the top N=200 tier
+**Hypothesis:** A report-first HyDE combo should preserve the repaired HyDE retrieval gains while matching or beating the strongest current Gemma 4 E4B N=200 baselines.
+
+**Change:** Ran `snap_hyde_report` as part of combo-mode block `48393`.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`snap_hyde_report`, dataset=`barexam`, N=`200`, seed=`42`, job=`48393`.
+
+**Result:** `snap_hyde_report` = **66.0%** (`132/200`), matching the fixed `rag_hyde` validation and tying the current best N=200 `subagent_rag` result.
+
+**Verdict:** CONFIRMED — the report-first HyDE combo is immediately competitive with the best current Gemma 4 E4B N=200 modes.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-17 — Fixed `rag_hyde` validates cleanly at N=200
+**Hypothesis:** If the repaired HyDE prompt fixed the broken-output path rather than just the full-run plumbing, `rag_hyde` should recover to the top N=200 range on Gemma 4 E4B.
+
+**Change:** Reran `rag_hyde` at N=200 with the corrected HyDE prompt and used the result to decide whether to resubmit the full run.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`rag_hyde`, dataset=`barexam`, N=`200`, seed=`42`, status=`validation rerun`.
+
+**Result:** fixed `rag_hyde` = **66.0%** (`132/200`), up from the broken 11-character-output path and matching the current best N=200 `subagent_rag` result. The validation cleared the way for a new full rerun submission as job `48555`.
+
+**Verdict:** CONFIRMED — the prompt fix is real. Once the HyDE generation bug is removed, `rag_hyde` returns to the top N=200 tier.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-16 — Full `subagent_rag` 1-gap rerun partially recovers the scale drop
+**Hypothesis:** Limiting the full `subagent_rag` path to a single gap report would reduce overhead and recover some of the N=200 lead at full N=1195 scale.
+
+**Change:** Reran full-set `subagent_rag` with the 1-gap prompt variant (`subagent-rag-full-1gap-n1195`).
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`subagent_rag` (1-gap prompt), dataset=`barexam`, N=`1195`, avg_llm_calls=`4.0`.
+
+**Result:** `subagent_rag` (1-gap) = **57.2%** (`684/1195`), up from the original full `subagent_rag` run at **56.9%** (`680/1195`). The rerun improves the mode by +0.3pp, but it still trails the best full `snap_hyde` run at **58.6%**.
+
+**Verdict:** MIXED — the 1-gap prompt is a real improvement over the original full `subagent_rag`, but it does not reclaim the full-set lead.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-16 — Full `gap_rag_nosnap` still does not scale into a top baseline
+**Hypothesis:** The no-snap anchoring control that helped the gap family at N=200 would remain competitive on the full N=1195 BarExam set.
+
+**Change:** Ran full-set `gap_rag_nosnap`.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`gap_rag_nosnap`, dataset=`barexam`, N=`1195`, avg_llm_calls=`3.0`.
+
+**Result:** `gap_rag_nosnap` = **55.9%** (`668/1195`). That ties full `ce_threshold`, lands only +0.4pp above `llm_only` (**55.5%**), and trails both `subagent_rag` variants (**56.9%**, **57.2%**) and full `snap_hyde` (**58.6%**).
+
+**Verdict:** REFUTED — removing visible snap anchoring was not enough to make the gap family competitive at full scale.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-16 — Full `ce_threshold` barely beats `llm_only`
+**Hypothesis:** The strong N=200 CE-threshold gain would preserve enough of the `snap_hyde` lift to stay competitive on the full BarExam set.
+
+**Change:** Ran full-set `ce_threshold`.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`ce_threshold`, dataset=`barexam`, N=`1195`, avg_llm_calls=`2.4`.
+
+**Result:** `ce_threshold` = **55.9%** (`668/1195`), only +0.4pp over full `llm_only` (**55.5%**). It does not approach the full `snap_hyde` reference (**58.6%**) or the improved `subagent_rag` 1-gap rerun (**57.2%**).
+
+**Verdict:** REFUTED — the N=200 CE-threshold advantage does not survive scaling to the full set.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-15 — Fixed full `rag_hyde` rerun is valid but still non-competitive
+**Hypothesis:** Once the HyDE prompt bug was fixed, pure HyDE retrieval might recover enough scale performance to beat plain RAG and move closer to the full `snap_hyde` baseline.
+
+**Change:** Reran full-set `rag_hyde` with the corrected HyDE prompt after invalidating the earlier 11-character-output run.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`rag_hyde`, dataset=`barexam`, N=`1195`, avg_llm_calls=`2.0`.
+
+**Result:** `rag_hyde` = **54.3%** (`649/1195`). The prompt fix recovered a valid run and puts pure HyDE just above `rag_simple` (**54.2%**), but still below `llm_only` (**55.5%**) and far below the best full `snap_hyde` run (**58.6%**).
+
+**Verdict:** REFUTED — fixing the prompt recovered a real full `rag_hyde` result, but pure HyDE retrieval is still not competitive with the stronger full-set baselines.
+
+**Commit:** bc6e361
+
+---
+
 ## Paper Core Result — Snap Ablation (Gemma 4 E4B, BarExam N=200)
 
 This is the paper's core result: the snap step adds **+3.0pp to HyDE**, **+5.0pp to plain RAG**, and **+5.0pp to parametric reasoning** under the Gemma 4 E4B BarExam N=200 setting.
@@ -82,7 +172,7 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 
 ---
 
-### 2026-04-15 — Full `rag_hyde` attempt was invalidated and resubmitted
+### 2026-04-15 — Full `rag_hyde` attempt was invalidated before the fixed rerun
 
 **Hypothesis:** A full N=1195 `rag_hyde` run would show whether pure HyDE retrieval scales without the snap step.
 
@@ -90,9 +180,9 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 
 **Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`rag_hyde`, dataset=`barexam`, N=`1195`, status=`broken run`, follow-up job=`45350`.
 
-**Result:** **BROKEN / INVALID** — the attempted full run produced **100% 11-character HyDE outputs**, so there is no valid accuracy number to report from that job. The prompt was fixed and the experiment was resubmitted as job `45350`.
+**Result:** **BROKEN / INVALID** — the attempted full run produced **100% 11-character HyDE outputs**, so there is no valid accuracy number to report from that job. The prompt was fixed and later rerun successfully as a separate full entry.
 
-**Verdict:** INVALIDATED — this was a prompt bug, not a real model result. The full `rag_hyde` comparison is still pending the corrected rerun.
+**Verdict:** INVALIDATED — this was a prompt bug, not a real model result. The corrected rerun later completed at **54.3%**.
 
 **Commit:** N/A (cluster run status / resubmission)
 
