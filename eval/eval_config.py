@@ -26,8 +26,8 @@ class EvalConfig:
 EVAL_MODES = {
     "full_pipeline":       "Full agentic pipeline (planner → executor → synthesizer)",
     "llm_only":            "Direct LLM answer, no retrieval",
-    "rag_rewrite":         "Query rewrite → hybrid retrieval → synthesize",
-    "rag_simple":          "Raw question → hybrid retrieval → synthesize",
+    "rag_rewrite":         "Query rewrite → retrieval → synthesize",
+    "rag_simple":          "Raw question → retrieval → synthesize",
     "golden_passage":      "LLM answer with gold passage injected as context",
     "golden_arbitration":       "LLM answers naive, then reviews golden passage (neutral framing)",
     "golden_arb_conservative":  "LLM answers naive, then reviews golden passage (biased toward keeping)",

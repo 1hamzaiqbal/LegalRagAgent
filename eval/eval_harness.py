@@ -13,6 +13,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from typing import List
@@ -54,6 +55,164 @@ def _extract_answer(text: str, config: EvalConfig) -> str | None:
     return extract_answer_mc(text)
 
 
+def _fmt_intermediate(row: pd.Series, config: EvalConfig) -> str:
+    """Format a question for retrieval-side generation steps.
+
+    Unlike `_fmt()`, this strips answer-format instructions and, for MC tasks,
+    removes answer letters from the choices so intermediate generators are not
+    pushed toward emitting `Answer: (X)` artifacts.
+    """
+    if config.dataset in ("legal_rag", "australian"):
+        return str(row["question"])
+
+    if config.dataset == "housing":
+        state = str(row.get("state", ""))
+        return f"Regarding {state} housing law:\n\n{row['question']}"
+
+    if config.dataset == "casehold":
+        context = str(row["question"])
+        holdings = []
+        for letter in ["A", "B", "C", "D", "E"]:
+            col = f"choice_{letter.lower()}"
+            if col in row and pd.notna(row[col]):
+                holdings.append(f"- {row[col]}")
+
+        parts = [
+            "The following excerpt from a court opinion cites a legal holding.",
+            f"## Citing Context\n{context}",
+        ]
+        if holdings:
+            parts.append("## Candidate Holdings\n" + "\n".join(holdings))
+        return "\n\n".join(parts)
+
+    stem = str(row["question"])
+    choices = []
+    for letter in ["A", "B", "C", "D"]:
+        col = f"choice_{letter.lower()}"
+        if col in row and pd.notna(row[col]):
+            choices.append(f"- {row[col]}")
+
+    if not choices:
+        return stem
+
+    return "\n\n".join([
+        stem,
+        "## Candidate Answer Framing\n" + "\n".join(choices),
+    ])
+
+
+def _contains_answer_artifact(text: str) -> bool:
+    """Detect explicit answer labels leaking into intermediate artifacts."""
+    if not text:
+        return False
+    return bool(re.search(r"(?im)^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:", text))
+
+
+def _sanitize_intermediate_text(text: str, fallback: str = "") -> str:
+    """Strip answer-label artifacts and prompt-ish headers from intermediate text."""
+    cleaned = text or ""
+
+    # Remove standalone answer lines such as `Answer: (B)` or `Final Answer: Yes`.
+    cleaned = re.sub(
+        r"(?im)^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:\s*(?:\(?[A-E]\)?|yes|no|irrelevant)\s*$",
+        "",
+        cleaned,
+    )
+
+    # Remove common generated headings while keeping the substantive passage.
+    cleaned = re.sub(
+        r"(?im)^\s*(?:\*\*)?(?:relevant legal passage|legal reference passage|passage)(?:\*\*)?\s*:\s*$",
+        "",
+        cleaned,
+    )
+    cleaned = re.sub(
+        r"(?im)^\s*(?:\*\*)?(?:relevant legal passage|legal reference passage|passage)(?:\*\*)?\s*:\s*",
+        "",
+        cleaned,
+    )
+
+    lines = []
+    prev_blank = False
+    for raw_line in cleaned.splitlines():
+        line = raw_line.rstrip()
+        is_blank = not line.strip()
+        if is_blank and prev_blank:
+            continue
+        lines.append(line)
+        prev_blank = is_blank
+
+    cleaned = "\n".join(lines).strip()
+    fallback = (fallback or "").strip()
+    return cleaned or fallback
+
+
+def _question_only_hyde_user(question_text: str) -> str:
+    """Structured user payload for question-only HyDE generation."""
+    return (
+        "## Task\n"
+        "Write a short passage from a legal reference that would be useful for answering the "
+        "question below.\n\n"
+        "## Original Legal Question\n"
+        f"{question_text}\n\n"
+        "## Passage Requirements\n"
+        "- Write 2-3 sentences in legal reference style\n"
+        "- State the controlling rule, doctrine, holding, exception, or principle directly\n"
+        "- Focus on the legal issue most likely to determine the answer\n"
+        "- Do not discuss the question itself, answer in exam style, or say 'the answer is'\n"
+    )
+
+
+def _snap_hyde_user(question_text: str, snap_answer: str, gap_focus: str = "") -> str:
+    """Shared user payload for snap-informed HyDE generation."""
+    reasoning = (snap_answer or "").strip()
+    if gap_focus:
+        reasoning = (
+            f"{reasoning}\n\n"
+            f"Focus on verifying or correcting this specific issue:\n{gap_focus}"
+        ).strip()
+    return (
+        f"## Student's Answer and Reasoning\n{reasoning}\n\n"
+        f"## Original Question\n{question_text}"
+    )
+
+
+def _generate_hyde(config: EvalConfig, role: str, user: str, label: str, fallback: str) -> dict:
+    """Generate and sanitize a HyDE-style intermediate passage."""
+    raw = _llm_call(_system_prompt(config, role), user, label=label)
+    return {
+        "text": _sanitize_intermediate_text(raw, fallback=fallback),
+        "raw": raw,
+        "contains_answer": _contains_answer_artifact(raw),
+    }
+
+
+def _report_prompt(max_words: int = 100, include_model_knowledge: bool = False) -> str:
+    """Shared prompt for report-writing intermediate steps."""
+    if include_model_knowledge:
+        return (
+            "You are a legal research assistant. You have retrieved passages AND your own legal knowledge. "
+            "Write a brief, focused report answering the sub-question by combining both sources. "
+            "State what the law says directly. Flag if retrieved passages conflict with known law. "
+            f"No answer letters. Keep under {max_words} words."
+        )
+    return (
+        "You are a legal research assistant. Read the retrieved passages and write a brief, focused "
+        "report that states the relevant legal rules, doctrines, holdings, and uncertainties directly. "
+        "If the passages are irrelevant or unhelpful, say so clearly. "
+        f"No answer letters. Keep under {max_words} words."
+    )
+
+
+def _generate_report(system: str, user: str, label: str, fallback: str) -> dict:
+    """Generate and sanitize a report-style intermediate artifact."""
+    raw = _llm_call(system, user, label=label)
+    return {
+        "text": _sanitize_intermediate_text(raw, fallback=fallback),
+        "raw": raw,
+        "contains_answer": _contains_answer_artifact(raw),
+    }
+
+
 def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
     """Get dataset-appropriate system prompt."""
     if config.dataset == "housing":
@@ -65,6 +224,12 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
             "rag": (
                 "You are a legal expert specializing in housing law. Reason through the question "
                 "step by step. Retrieved passages are provided — use them to verify or "
+                "refine your reasoning, but think through the problem independently first. "
+                "Give your final answer as: Answer: Yes or Answer: No"
+            ),
+            "research": (
+                "You are a legal expert specializing in housing law. Reason through the question "
+                "step by step. Research findings are provided — use them to verify or "
                 "refine your reasoning, but think through the problem independently first. "
                 "Give your final answer as: Answer: Yes or Answer: No"
             ),
@@ -114,6 +279,12 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
                 "refine your reasoning, but think through the problem independently first. "
                 "Give your final answer as: Answer: (X)"
             ),
+            "research": (
+                "You are a legal expert specializing in case law. Reason through the question "
+                "step by step. Research findings are provided — use them to verify or "
+                "refine your reasoning, but think through the problem independently first. "
+                "Give your final answer as: Answer: (X)"
+            ),
             "hyde": (
                 "You are a legal textbook author. Given a court opinion excerpt that cites a holding, "
                 "write a short passage (2-3 sentences) stating the likely holding being referenced. "
@@ -136,6 +307,12 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
             "rag": (
                 f"You are a legal expert specializing in {domain}. Reason through the question "
                 f"step by step. Retrieved passages are provided — use them to verify or "
+                f"refine your reasoning, but think through the problem independently first. "
+                f"Provide a detailed answer."
+            ),
+            "research": (
+                f"You are a legal expert specializing in {domain}. Reason through the question "
+                f"step by step. Research findings are provided — use them to verify or "
                 f"refine your reasoning, but think through the problem independently first. "
                 f"Provide a detailed answer."
             ),
@@ -401,40 +578,22 @@ def _rewrite_query(question: str, label: str = "rag_rewrite/rewrite") -> List[st
     return [question]
 
 
-def _hyde_query(question: str, label: str = "hyde/generate") -> str:
-    """Generate a hypothetical answer passage for embedding-based search (HyDE)."""
-    system = (
-        "You are a legal textbook author. Given a legal question, write a short "
-        "passage (2-3 sentences) that would appear in a study guide as the answer. "
-        "Write in the style of a legal reference — state the doctrine, rule, or "
-        "principle directly. Do not discuss the question itself or say 'the answer is'."
-    )
-    return _llm_call(system, question, label=label)
-
-
 def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
     """HyDE: generate hypothetical answer passage, embed it, retrieve similar real passages."""
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Generate hypothetical passage
-    # Gemma merges system+user into one HumanMessage, so keep the user payload
-    # richly structured instead of sending only the bare question.
-    hyde_user = (
-        "## Task\n"
-        "Write a short passage from a legal reference that would be useful for answering the "
-        "question below.\n\n"
-        "## Original Legal Question\n"
-        f"{question}\n\n"
-        "## Passage Requirements\n"
-        "- Write 2-3 sentences in legal reference style\n"
-        "- State the controlling rule, doctrine, holding, exception, or principle directly\n"
-        "- Focus on the legal issue most likely to determine the answer\n"
-        "- Do not discuss the question itself, answer in exam style, or say 'the answer is'\n"
+    hyde = _generate_hyde(
+        config,
+        "hyde",
+        _question_only_hyde_user(question_intermediate),
+        label="hyde/generate",
+        fallback=question_intermediate,
     )
-    hyde_passage = _llm_call(_system_prompt(config, "hyde"), hyde_user, label="hyde/generate")
 
     # Step 2: Retrieve using the hypothetical passage as query
-    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="hyde",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="hyde",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -445,7 +604,9 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
 
     return {
         "final_answer": answer,
-        "hyde_passage": hyde_passage,
+        "hyde_passage": hyde["text"],
+        "hyde_passage_raw": hyde["raw"],
+        "hyde_contains_answer_artifact": hyde["contains_answer"],
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -455,6 +616,7 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
 def run_rag_multi_hyde(row: pd.Series, config: EvalConfig) -> dict:
     """Multi-HyDE: generate 3 hypothetical passages (rule/exception/application), pool retrievals."""
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     system = (
         "You are a legal textbook author. Given a legal question, write THREE short passages "
@@ -465,12 +627,17 @@ def run_rag_multi_hyde(row: pd.Series, config: EvalConfig) -> dict:
         "Write each passage in the style of a legal reference. Separate with blank lines. "
         "Do not label them or discuss the question itself."
     )
-    raw = _llm_call(system, question, label="multi_hyde/generate")
+    raw = _llm_call(system, question_intermediate, label="multi_hyde/generate")
 
     # Split into separate passages for retrieval, filter out empty
-    hyde_passages = [p.strip() for p in raw.split("\n\n") if p.strip() and len(p.strip()) > 30]
+    raw_hyde_passages = [p.strip() for p in raw.split("\n\n") if p.strip() and len(p.strip()) > 30]
+    hyde_passages = [
+        _sanitize_intermediate_text(p, fallback=question_intermediate)
+        for p in raw_hyde_passages
+    ]
     if not hyde_passages:
-        hyde_passages = [raw]
+        raw_hyde_passages = [raw]
+        hyde_passages = [_sanitize_intermediate_text(raw, fallback=question_intermediate)]
 
     # Retrieve with each passage, pool results
     retrieval = _retrieve_and_format(row, hyde_passages, k=5, label_prefix="multi_hyde",
@@ -484,6 +651,8 @@ def run_rag_multi_hyde(row: pd.Series, config: EvalConfig) -> dict:
     return {
         "final_answer": answer,
         "hyde_passages": hyde_passages,
+        "hyde_passages_raw": raw_hyde_passages,
+        "hyde_contains_answer_artifact": any(_contains_answer_artifact(p) for p in raw_hyde_passages),
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -493,17 +662,23 @@ def run_rag_multi_hyde(row: pd.Series, config: EvalConfig) -> dict:
 def run_rag_snap_hyde(row: pd.Series, config: EvalConfig) -> dict:
     """Snap-informed HyDE: LLM answers first, then generates targeted HyDE passage based on its reasoning."""
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap answer
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_hyde/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Generate HyDE passage informed by the snap reasoning
-    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
-    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="snap_hyde/generate")
+    hyde = _generate_hyde(
+        config,
+        "snap_hyde",
+        _snap_hyde_user(question_intermediate, snap_answer),
+        label="snap_hyde/generate",
+        fallback=question_intermediate,
+    )
 
     # Step 3: Retrieve
-    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="snap_hyde",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="snap_hyde",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -516,7 +691,9 @@ def run_rag_snap_hyde(row: pd.Series, config: EvalConfig) -> dict:
         "final_answer": answer,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
-        "hyde_passage": hyde_passage,
+        "hyde_passage": hyde["text"],
+        "hyde_passage_raw": hyde["raw"],
+        "hyde_contains_answer_artifact": hyde["contains_answer"],
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -532,17 +709,23 @@ def run_snap_hyde_aligned(row: pd.Series, config: EvalConfig) -> dict:
     """
     question = _fmt(row, config)
     raw_question = str(row["question"])
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap answer
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_hyde_aligned/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Generate HyDE passage informed by the snap reasoning
-    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
-    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="snap_hyde_aligned/generate")
+    hyde = _generate_hyde(
+        config,
+        "snap_hyde",
+        _snap_hyde_user(question_intermediate, snap_answer),
+        label="snap_hyde_aligned/generate",
+        fallback=question_intermediate,
+    )
 
     # Step 3: Retrieve using HyDE for dense embedding, but rerank against raw question
-    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="snap_hyde_aligned",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="snap_hyde_aligned",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config),
                                      rerank_query=raw_question)
@@ -556,7 +739,9 @@ def run_snap_hyde_aligned(row: pd.Series, config: EvalConfig) -> dict:
         "final_answer": answer,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
-        "hyde_passage": hyde_passage,
+        "hyde_passage": hyde["text"],
+        "hyde_passage_raw": hyde["raw"],
+        "hyde_contains_answer_artifact": hyde["contains_answer"],
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -646,13 +831,16 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
             f"## Sub-question\n{subq}\n\n"
             f"## Original Question\n{question}"
         )
-        knowledge = _llm_call(_VECTORLESS_DIRECT, gen_user, label=f"gap/vless_{gap_idx}")
+        knowledge_raw = _llm_call(_VECTORLESS_DIRECT, gen_user, label=f"gap/vless_{gap_idx}")
+        knowledge = _sanitize_intermediate_text(knowledge_raw, fallback=knowledge_raw)
         return {
             "gap": gap,
             "passages": [f"[Generated Note]\n{knowledge}"],
             "evidence_store": [{"idx": f"vless_{gap_idx}", "text": knowledge, "cross_encoder_score": 0}],
             "max_ce_score": 0,
             "report": knowledge,
+            "report_raw": knowledge_raw,
+            "report_contains_answer_artifact": _contains_answer_artifact(knowledge_raw),
         }
 
     if method == "subagent_rag":
@@ -666,68 +854,71 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
         )
         passage_text = "\n\n".join(retrieval["passages"])
         # Subagent reads passages and writes a focused report
-        report_system = (
-            "You are a legal research assistant. Read the retrieved passages and write a brief, "
-            "focused report answering the sub-question. State what the law says directly. "
-            "If the passages are irrelevant or unhelpful, say so clearly. "
-            "No answer letters. Keep under 100 words."
-        )
         report_user = (
             f"## Sub-question\n{subq}\n\n"
             f"## Retrieved Passages\n{passage_text}\n\n"
             f"## Original Question\n{question}"
         )
-        report = _llm_call(report_system, report_user, label=f"gap/sub_rag_{gap_idx}")
+        report = _generate_report(
+            _report_prompt(100),
+            report_user,
+            label=f"gap/sub_rag_{gap_idx}",
+            fallback="Retrieved passages were not helpful.",
+        )
         return {
             "gap": gap,
             "passages": retrieval["passages"],
             "evidence_store": retrieval["evidence_store"],
             "max_ce_score": retrieval["max_ce_score"],
-            "report": report,
+            "report": report["text"],
+            "report_raw": report["raw"],
+            "report_contains_answer_artifact": report["contains_answer"],
         }
 
     if method == "subagent_hyde":
         # Subagent: HyDE retrieval (snap-informed) + LLM summarization
         gap_focus = []
         if desc:
-            gap_focus.append(f"- Evidence gap to verify: {desc}")
+            gap_focus.append(f"Evidence gap to verify: {desc}")
         if subq and subq != desc:
-            gap_focus.append(f"- Focused sub-question: {subq}")
-        reasoning = (snap_answer or "").strip()
-        if gap_focus:
-            gap_block = "\n".join(gap_focus)
-            reasoning = f"{reasoning}\n\nFocus on verifying or correcting this specific issue:\n{gap_block}".strip()
-        hyde_user = (
-            f"## Student's Answer and Reasoning\n{reasoning}\n\n"
-            f"## Original Question\n{question}"
+            gap_focus.append(f"Focused sub-question: {subq}")
+        hyde = _generate_hyde(
+            config,
+            "snap_hyde",
+            _snap_hyde_user(question, snap_answer, "\n".join(gap_focus)),
+            label=f"gap/sub_hyde_{gap_idx}",
+            fallback=subq or desc or question,
         )
-        hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label=f"gap/sub_hyde_{gap_idx}")
 
         retrieval = _retrieve_and_format(
-            row, [hyde_passage], k=5, label_prefix=f"sub_hyde_{gap_idx}",
+            row, [hyde["text"]], k=5, label_prefix=f"sub_hyde_{gap_idx}",
             where=_where_from_config(config),
             collection=_collection_for_config(config),
             rerank_query=raw_question,
         )
         passage_text = "\n\n".join(retrieval["passages"])
-        report_system = (
-            "You are a legal research assistant. Read the retrieved passages and write a brief, "
-            "focused report answering the sub-question. State what the law says directly. "
-            "If the passages are irrelevant or unhelpful, say so clearly. "
-            "No answer letters. Keep under 100 words."
-        )
         report_user = (
             f"## Sub-question\n{subq}\n\n"
             f"## Retrieved Passages\n{passage_text}\n\n"
             f"## Original Question\n{question}"
         )
-        report = _llm_call(report_system, report_user, label=f"gap/sub_hyde_rpt_{gap_idx}")
+        report = _generate_report(
+            _report_prompt(100),
+            report_user,
+            label=f"gap/sub_hyde_rpt_{gap_idx}",
+            fallback="Retrieved passages were not helpful.",
+        )
         return {
             "gap": gap,
             "passages": retrieval["passages"],
             "evidence_store": retrieval["evidence_store"],
             "max_ce_score": retrieval["max_ce_score"],
-            "report": report,
+            "report": report["text"],
+            "report_raw": report["raw"],
+            "report_contains_answer_artifact": report["contains_answer"],
+            "hyde_passage": hyde["text"],
+            "hyde_passage_raw": hyde["raw"],
+            "hyde_contains_answer_artifact": hyde["contains_answer"],
         }
 
     if method == "subagent_hybrid":
@@ -741,46 +932,41 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
         )
         passage_text = "\n\n".join(retrieval["passages"])
         # Subagent synthesizes retrieved evidence + own knowledge
-        report_system = (
-            "You are a legal research assistant. You have retrieved passages AND your own legal knowledge. "
-            "Write a brief, focused report answering the sub-question by combining both sources. "
-            "State what the law says directly. Flag if retrieved passages conflict with known law. "
-            "No answer letters. Keep under 120 words."
-        )
         report_user = (
             f"## Sub-question\n{subq}\n\n"
             f"## Retrieved Passages\n{passage_text}\n\n"
             f"## Original Question\n{question}"
         )
-        report = _llm_call(report_system, report_user, label=f"gap/sub_hyb_{gap_idx}")
+        report = _generate_report(
+            _report_prompt(120, include_model_knowledge=True),
+            report_user,
+            label=f"gap/sub_hyb_{gap_idx}",
+            fallback="Retrieved passages were not helpful.",
+        )
         return {
             "gap": gap,
             "passages": retrieval["passages"],
             "evidence_store": retrieval["evidence_store"],
             "max_ce_score": retrieval["max_ce_score"],
-            "report": report,
+            "report": report["text"],
+            "report_raw": report["raw"],
+            "report_contains_answer_artifact": report["contains_answer"],
         }
 
     if method == "hyde":
         gap_focus = []
         if desc:
-            gap_focus.append(f"- Evidence gap to verify: {desc}")
+            gap_focus.append(f"Evidence gap to verify: {desc}")
         if subq and subq != desc:
-            gap_focus.append(f"- Focused sub-question: {subq}")
-        reasoning = (snap_answer or "").strip()
-        if gap_focus:
-            gap_block = "\n".join(gap_focus)
-            reasoning = (
-                f"{reasoning}\n\n"
-                f"Focus on verifying or correcting this specific issue:\n{gap_block}"
-            ).strip()
-        # Gemma flattens system+user into one HumanMessage, so keep the same
-        # snap_hyde schema that works elsewhere and inject the gap focus inside it.
-        hyde_user = (
-            f"## Student's Answer and Reasoning\n{reasoning}\n\n"
-            f"## Original Question\n{question}"
+            gap_focus.append(f"Focused sub-question: {subq}")
+        hyde = _generate_hyde(
+            config,
+            "snap_hyde",
+            _snap_hyde_user(question, snap_answer, "\n".join(gap_focus)),
+            label=f"gap/hyde_{gap_idx}",
+            fallback=subq or desc or question,
         )
-        query = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label=f"gap/hyde_{gap_idx}")
+        query = hyde["text"]
     else:
         query = subq or desc
 
@@ -794,12 +980,17 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
     if retrieval["max_ce_score"] < GAP_MIN_CE:
         return None
 
-    return {
+    result = {
         "gap": gap,
         "passages": retrieval["passages"],
         "evidence_store": retrieval["evidence_store"],
         "max_ce_score": retrieval["max_ce_score"],
     }
+    if method == "hyde":
+        result["hyde_passage"] = hyde["text"]
+        result["hyde_passage_raw"] = hyde["raw"]
+        result["hyde_contains_answer_artifact"] = hyde["contains_answer"]
+    return result
 
 
 def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
@@ -859,7 +1050,7 @@ def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
     flat_passages = "\n\n".join(all_passages) if all_passages else "No evidence retrieved."
     report_block = "\n\n".join(report_sections) if report_sections else "No investigations completed."
 
-    system = _system_prompt(config, "rag")
+    system = _system_prompt(config, "research" if final_input.startswith("reports") else "rag")
 
     if final_input == "evidence_only":
         user = f"## Retrieved Passages\n{flat_passages}\n\n## Question\n{question}"
@@ -920,20 +1111,20 @@ def _run_gap(row: pd.Series, config: EvalConfig,
             'reports_nosnap', or 'reports_and_evidence'
     """
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label=f"{label}/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Gap analysis
-    gaps = _gap_analysis(snap_answer, question)
+    gaps = _gap_analysis(snap_answer, question_intermediate)
 
     # Step 3: No gaps → use snap directly (unless reports_nosnap, then fresh answer)
     if not gaps:
         if final_input in ("reports_nosnap", "reports_and_evidence", "no_snap", "evidence_only"):
             # Don't leak snap — make a fresh answer call
             fresh_answer = _llm_call(_system_prompt(config, "answer"), question, label=f"{label}/fresh")
-            fresh_letter = _extract_answer(fresh_answer, config)
             return {
                 "final_answer": fresh_answer,
                 "snap_answer": snap_answer,
@@ -960,7 +1151,7 @@ def _run_gap(row: pd.Series, config: EvalConfig,
     all_evidence = []
     all_ids = []
     for i, gap in enumerate(gaps):
-        result = _gap_retrieve(gap, question, row, config, i, method=method, snap_answer=snap_answer)
+        result = _gap_retrieve(gap, question_intermediate, row, config, i, method=method, snap_answer=snap_answer)
         gap_results.append(result)
         if result:
             all_evidence.extend(result["evidence_store"])
@@ -977,8 +1168,16 @@ def _run_gap(row: pd.Series, config: EvalConfig,
         "snap_letter": snap_letter,
         "gaps": gaps,
         "gap_results": [
-            {"gap": r["gap"], "max_ce": r.get("max_ce_score", 0),
-             "report": r.get("report", "")} if r else None
+            {
+                "gap": r["gap"],
+                "max_ce": r.get("max_ce_score", 0),
+                "report": r.get("report", ""),
+                "report_raw": r.get("report_raw", ""),
+                "report_contains_answer_artifact": r.get("report_contains_answer_artifact", False),
+                "hyde_passage": r.get("hyde_passage", ""),
+                "hyde_passage_raw": r.get("hyde_passage_raw", ""),
+                "hyde_contains_answer_artifact": r.get("hyde_contains_answer_artifact", False),
+            } if r else None
             for r in gap_results
         ],
         "evidence_store": all_evidence,
@@ -1092,45 +1291,53 @@ def run_snap_hyde_report(row: pd.Series, config: EvalConfig) -> dict:
     Tests whether noise filtering via summarization improves snap_hyde.
     """
     question = _fmt(row, config)
-    raw_question = str(row["question"])
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap answer
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="shr/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Generate HyDE passage from snap (same as snap_hyde)
-    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
-    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="shr/hyde")
+    hyde = _generate_hyde(
+        config,
+        "snap_hyde",
+        _snap_hyde_user(question_intermediate, snap_answer),
+        label="shr/hyde",
+        fallback=question_intermediate,
+    )
 
     # Step 3: Retrieve using HyDE passage
-    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="shr",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="shr",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
     # Step 4: Summarize retrieved passages into a focused report
-    report_system = (
-        "You are a legal research assistant. Read the retrieved passages and write a concise "
-        "report summarizing the relevant legal rules, doctrines, and holdings. "
-        "State what the law says directly. If passages are irrelevant, say so. "
-        "No answer letters. Keep under 150 words."
-    )
     report_user = (
         f"## Retrieved Passages\n{passage_block}\n\n"
-        f"## Original Question\n{question}"
+        f"## Original Question\n{question_intermediate}"
     )
-    report = _llm_call(report_system, report_user, label="shr/report")
+    report = _generate_report(
+        _report_prompt(150),
+        report_user,
+        label="shr/report",
+        fallback="Retrieved passages were not helpful.",
+    )
 
     # Step 5: Final answer with report only (no snap, no raw passages)
-    user = f"## Research Findings\n{report}\n\n## Question\n{question}"
-    answer = _llm_call(_system_prompt(config, "rag"), user, label="shr/answer")
+    user = f"## Research Findings\n{report['text']}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "research"), user, label="shr/answer")
 
     return {
         "final_answer": answer,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
-        "hyde_passage": hyde_passage,
-        "report": report,
+        "hyde_passage": hyde["text"],
+        "hyde_passage_raw": hyde["raw"],
+        "hyde_contains_answer_artifact": hyde["contains_answer"],
+        "report": report["text"],
+        "report_raw": report["raw"],
+        "report_contains_answer_artifact": report["contains_answer"],
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -1144,45 +1351,57 @@ def run_snap_hyde_report_snap(row: pd.Series, config: EvalConfig) -> dict:
     Tests snap anchoring when combined with a summarized report.
     """
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="shrs/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: HyDE from snap
-    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
-    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="shrs/hyde")
+    hyde = _generate_hyde(
+        config,
+        "snap_hyde",
+        _snap_hyde_user(question_intermediate, snap_answer),
+        label="shrs/hyde",
+        fallback=question_intermediate,
+    )
 
     # Step 3: Retrieve
-    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="shrs",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="shrs",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
     # Step 4: Summarize
-    report_system = (
-        "You are a legal research assistant. Read the retrieved passages and write a concise "
-        "report summarizing the relevant legal rules, doctrines, and holdings. "
-        "State what the law says directly. If passages are irrelevant, say so. "
-        "No answer letters. Keep under 150 words."
+    report_user = (
+        f"## Retrieved Passages\n{passage_block}\n\n"
+        f"## Original Question\n{question_intermediate}"
     )
-    report_user = f"## Retrieved Passages\n{passage_block}\n\n## Original Question\n{question}"
-    report = _llm_call(report_system, report_user, label="shrs/report")
+    report = _generate_report(
+        _report_prompt(150),
+        report_user,
+        label="shrs/report",
+        fallback="Retrieved passages were not helpful.",
+    )
 
     # Step 5: Final answer with report + snap
     user = (
         f"## Your Initial Answer\n{snap_answer}\n\n"
-        f"## Research Findings\n{report}\n\n"
+        f"## Research Findings\n{report['text']}\n\n"
         f"## Question\n{question}"
     )
-    answer = _llm_call(_system_prompt(config, "rag"), user, label="shrs/answer")
+    answer = _llm_call(_system_prompt(config, "research"), user, label="shrs/answer")
 
     return {
         "final_answer": answer,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
-        "hyde_passage": hyde_passage,
-        "report": report,
+        "hyde_passage": hyde["text"],
+        "hyde_passage_raw": hyde["raw"],
+        "hyde_contains_answer_artifact": hyde["contains_answer"],
+        "report": report["text"],
+        "report_raw": report["raw"],
+        "report_contains_answer_artifact": report["contains_answer"],
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -1332,14 +1551,16 @@ def _run_vectorless(row: pd.Series, config: EvalConfig,
         include_snap: if True, show snap answer in the final call alongside generated note
     """
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label=f"{label}/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Generate knowledge from parametric memory
-    gen_user = f"## Student's Initial Analysis\n{snap_answer}\n\n## Original Question\n{question}"
-    knowledge = _llm_call(gen_system, gen_user, label=f"{label}/generate")
+    gen_user = f"## Student's Initial Analysis\n{snap_answer}\n\n## Original Question\n{question_intermediate}"
+    knowledge_raw = _llm_call(gen_system, gen_user, label=f"{label}/generate")
+    knowledge = _sanitize_intermediate_text(knowledge_raw, fallback=knowledge_raw)
 
     # Step 3: Final answer with generated knowledge
     if include_snap:
@@ -1360,6 +1581,8 @@ def _run_vectorless(row: pd.Series, config: EvalConfig,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
         "knowledge_note": knowledge,
+        "knowledge_note_raw": knowledge_raw,
+        "knowledge_contains_answer_artifact": _contains_answer_artifact(knowledge_raw),
         "evidence_store": [],
         "retrieved_ids": [],
         "gold_retrieved": False,
@@ -1395,10 +1618,12 @@ def run_vectorless_nosnap(row: pd.Series, config: EvalConfig) -> dict:
     to measure the snap contribution to vectorless knowledge generation.
     """
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # No snap — generate knowledge directly from the question
-    gen_user = f"## Legal Question\n{question}"
-    knowledge = _llm_call(_VECTORLESS_DIRECT, gen_user, label="vnosnap/generate")
+    gen_user = f"## Legal Question\n{question_intermediate}"
+    knowledge_raw = _llm_call(_VECTORLESS_DIRECT, gen_user, label="vnosnap/generate")
+    knowledge = _sanitize_intermediate_text(knowledge_raw, fallback=knowledge_raw)
 
     # Answer with generated knowledge
     final_user = (
@@ -1412,6 +1637,8 @@ def run_vectorless_nosnap(row: pd.Series, config: EvalConfig) -> dict:
         "snap_answer": "",
         "snap_letter": None,
         "knowledge_note": knowledge,
+        "knowledge_note_raw": knowledge_raw,
+        "knowledge_contains_answer_artifact": _contains_answer_artifact(knowledge_raw),
         "evidence_store": [],
         "retrieved_ids": [],
         "gold_retrieved": False,
@@ -1426,20 +1653,27 @@ def run_vectorless_hybrid(row: pd.Series, config: EvalConfig) -> dict:
     """
     question = _fmt(row, config)
     raw_question = str(row["question"])
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="vhybrid/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Generate knowledge (vectorless)
-    gen_user = f"## Student's Initial Analysis\n{snap_answer}\n\n## Original Question\n{question}"
-    knowledge = _llm_call(_VECTORLESS_DIRECT, gen_user, label="vhybrid/generate")
+    gen_user = f"## Student's Initial Analysis\n{snap_answer}\n\n## Original Question\n{question_intermediate}"
+    knowledge_raw = _llm_call(_VECTORLESS_DIRECT, gen_user, label="vhybrid/generate")
+    knowledge = _sanitize_intermediate_text(knowledge_raw, fallback=knowledge_raw)
 
     # Step 3: Also retrieve via snap_hyde path (vector RAG)
-    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
-    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="vhybrid/hyde")
+    hyde = _generate_hyde(
+        config,
+        "snap_hyde",
+        _snap_hyde_user(question_intermediate, snap_answer),
+        label="vhybrid/hyde",
+        fallback=question_intermediate,
+    )
 
-    retrieval = _retrieve_and_format(row, [hyde_passage], k=3, label_prefix="vhybrid",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=3, label_prefix="vhybrid",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -1457,7 +1691,11 @@ def run_vectorless_hybrid(row: pd.Series, config: EvalConfig) -> dict:
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
         "knowledge_note": knowledge,
-        "hyde_passage": hyde_passage,
+        "knowledge_note_raw": knowledge_raw,
+        "knowledge_contains_answer_artifact": _contains_answer_artifact(knowledge_raw),
+        "hyde_passage": hyde["text"],
+        "hyde_passage_raw": hyde["raw"],
+        "hyde_contains_answer_artifact": hyde["contains_answer"],
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -1473,6 +1711,7 @@ def run_vectorless_keyword(row: pd.Series, config: EvalConfig) -> dict:
     from rag_utils import rerank_with_cross_encoder
 
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
     raw_question = str(row["question"])
 
     # Step 1: Snap
@@ -1487,11 +1726,16 @@ def run_vectorless_keyword(row: pd.Series, config: EvalConfig) -> dict:
         "and specific legal terms that would appear in a legal reference.\n\n"
         "Return one search phrase per line, nothing else."
     )
-    keyword_user = f"## Student's Answer\n{snap_answer}\n\n## Question\n{question}"
+    keyword_user = f"## Student's Answer\n{snap_answer}\n\n## Question\n{question_intermediate}"
     keywords_raw = _llm_call(keyword_system, keyword_user, label="vkeyword/terms")
 
     # Parse keywords into search queries
-    keywords = [k.strip().lstrip("- •*0123456789.") for k in keywords_raw.splitlines() if k.strip()][:5]
+    keywords = [
+        _sanitize_intermediate_text(k.strip().lstrip("- •*0123456789."), fallback="")
+        for k in keywords_raw.splitlines()
+        if k.strip()
+    ][:5]
+    keywords = [k for k in keywords if k]
 
     # Step 3: Retrieve using each generated keyword, then rerank against the raw question.
     all_docs = []
@@ -1891,17 +2135,23 @@ def run_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
     """Score-thresholded Snap-HyDE: if best CE score < threshold, discard evidence and use snap answer."""
     CE_THRESHOLD = 4.0  # calibrated from N=200 BarExam analysis: snap=78% below, RAG=78% above
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap answer
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="ce_thresh/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Generate HyDE passage
-    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
-    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="ce_thresh/generate")
+    hyde = _generate_hyde(
+        config,
+        "snap_hyde",
+        _snap_hyde_user(question_intermediate, snap_answer),
+        label="ce_thresh/generate",
+        fallback=question_intermediate,
+    )
 
     # Step 3: Retrieve
-    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="ce_thresh",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="ce_thresh",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
 
@@ -1912,7 +2162,9 @@ def run_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
             "final_answer": snap_answer,
             "snap_answer": snap_answer,
             "snap_letter": snap_letter,
-            "hyde_passage": hyde_passage,
+            "hyde_passage": hyde["text"],
+            "hyde_passage_raw": hyde["raw"],
+            "hyde_contains_answer_artifact": hyde["contains_answer"],
             "evidence_store": retrieval["evidence_store"],
             "retrieved_ids": retrieval["retrieved_ids"],
             "gold_retrieved": retrieval["gold_retrieved"],
@@ -1930,7 +2182,9 @@ def run_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
         "final_answer": answer,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
-        "hyde_passage": hyde_passage,
+        "hyde_passage": hyde["text"],
+        "hyde_passage_raw": hyde["raw"],
+        "hyde_contains_answer_artifact": hyde["contains_answer"],
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -1943,20 +2197,26 @@ def run_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
 def run_snap_hyde_aspect(row: pd.Series, config: EvalConfig) -> dict:
     """Snap-HyDE + aspect queries: HyDE passage + rule/exception aspect queries for broader retrieval."""
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap answer
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="aspect/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Generate HyDE passage
-    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
-    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="aspect/hyde")
+    hyde = _generate_hyde(
+        config,
+        "snap_hyde",
+        _snap_hyde_user(question_intermediate, snap_answer),
+        label="aspect/hyde",
+        fallback=question_intermediate,
+    )
 
     # Step 3: Generate aspect queries (rule + exception) based on the snap reasoning
     aspect_prompt = (
         f"Based on this legal question and analysis, generate two short search queries "
         f"targeting different legal dimensions. Return ONLY a JSON object.\n\n"
-        f"Question: {question}\n\n"
+        f"Question: {question_intermediate}\n\n"
         f"Analysis: {snap_answer}\n\n"
         f'Return: {{"rule": "query targeting the governing rule, statute, or doctrine", '
         f'"exception": "query targeting exceptions, defenses, or limitations"}}'
@@ -1966,12 +2226,18 @@ def run_snap_hyde_aspect(row: pd.Series, config: EvalConfig) -> dict:
     aspect_parsed = _parse_json(aspect_raw)
 
     # Build query list: HyDE passage (primary for reranking) + aspect queries
-    queries = [hyde_passage]
+    queries = [hyde["text"]]
     if aspect_parsed:
         if "rule" in aspect_parsed:
-            queries.append(aspect_parsed["rule"])
+            rule_query = _sanitize_intermediate_text(str(aspect_parsed["rule"]), fallback="")
+            if rule_query:
+                queries.append(rule_query)
+                aspect_parsed["rule"] = rule_query
         if "exception" in aspect_parsed:
-            queries.append(aspect_parsed["exception"])
+            exception_query = _sanitize_intermediate_text(str(aspect_parsed["exception"]), fallback="")
+            if exception_query:
+                queries.append(exception_query)
+                aspect_parsed["exception"] = exception_query
 
     # Step 4: Multi-query retrieval (pools candidates from all queries, reranks against primary)
     retrieval = _retrieve_and_format(row, queries, k=5, label_prefix="aspect",
@@ -1987,7 +2253,9 @@ def run_snap_hyde_aspect(row: pd.Series, config: EvalConfig) -> dict:
         "final_answer": answer,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
-        "hyde_passage": hyde_passage,
+        "hyde_passage": hyde["text"],
+        "hyde_passage_raw": hyde["raw"],
+        "hyde_contains_answer_artifact": hyde["contains_answer"],
         "aspect_queries": aspect_parsed,
         "num_queries": len(queries),
         "evidence_store": retrieval["evidence_store"],
@@ -2000,14 +2268,20 @@ def run_ce_threshold_k3(row: pd.Series, config: EvalConfig) -> dict:
     """CE-thresholded Snap-HyDE with k=3 instead of k=5. Tests whether fewer, higher-quality passages help."""
     CE_THRESHOLD = 4.0
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="ce_k3/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
-    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
-    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="ce_k3/generate")
+    hyde = _generate_hyde(
+        config,
+        "snap_hyde",
+        _snap_hyde_user(question_intermediate, snap_answer),
+        label="ce_k3/generate",
+        fallback=question_intermediate,
+    )
 
-    retrieval = _retrieve_and_format(row, [hyde_passage], k=3, label_prefix="ce_k3",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=3, label_prefix="ce_k3",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
 
@@ -2017,7 +2291,9 @@ def run_ce_threshold_k3(row: pd.Series, config: EvalConfig) -> dict:
             "final_answer": snap_answer,
             "snap_answer": snap_answer,
             "snap_letter": snap_letter,
-            "hyde_passage": hyde_passage,
+            "hyde_passage": hyde["text"],
+            "hyde_passage_raw": hyde["raw"],
+            "hyde_contains_answer_artifact": hyde["contains_answer"],
             "evidence_store": retrieval["evidence_store"],
             "retrieved_ids": retrieval["retrieved_ids"],
             "gold_retrieved": retrieval["gold_retrieved"],
@@ -2034,7 +2310,9 @@ def run_ce_threshold_k3(row: pd.Series, config: EvalConfig) -> dict:
         "final_answer": answer,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
-        "hyde_passage": hyde_passage,
+        "hyde_passage": hyde["text"],
+        "hyde_passage_raw": hyde["raw"],
+        "hyde_contains_answer_artifact": hyde["contains_answer"],
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -2047,22 +2325,34 @@ def run_ce_threshold_k3(row: pd.Series, config: EvalConfig) -> dict:
 def run_rag_devil_hyde(row: pd.Series, config: EvalConfig) -> dict:
     """Devil's advocate HyDE: retrieve for snap answer AND for the opposing answer, present both."""
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap answer
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="devil_hyde/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Generate supporting HyDE passage (same as snap_hyde)
-    hyde_user = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
-    support_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="devil_hyde/support")
+    hyde_user = _snap_hyde_user(question_intermediate, snap_answer)
+    support = _generate_hyde(
+        config,
+        "snap_hyde",
+        hyde_user,
+        label="devil_hyde/support",
+        fallback=question_intermediate,
+    )
 
     # Step 3: Generate devil's advocate HyDE passage (opposing the snap answer)
-    devil_system = _system_prompt(config, "devil_hyde")
-    devil_passage = _llm_call(devil_system, hyde_user, label="devil_hyde/oppose")
+    devil = _generate_hyde(
+        config,
+        "devil_hyde",
+        hyde_user,
+        label="devil_hyde/oppose",
+        fallback=question_intermediate,
+    )
 
     # Step 4: Retrieve with BOTH passages pooled
     collection = _collection_for_config(config)
-    retrieval = _retrieve_and_format(row, [support_passage, devil_passage], k=5,
+    retrieval = _retrieve_and_format(row, [support["text"], devil["text"]], k=5,
                                      label_prefix="devil_hyde",
                                      where=_where_from_config(config),
                                      collection=collection)
@@ -2076,8 +2366,12 @@ def run_rag_devil_hyde(row: pd.Series, config: EvalConfig) -> dict:
         "final_answer": answer,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
-        "support_passage": support_passage,
-        "devil_passage": devil_passage,
+        "support_passage": support["text"],
+        "support_passage_raw": support["raw"],
+        "support_contains_answer_artifact": support["contains_answer"],
+        "devil_passage": devil["text"],
+        "devil_passage_raw": devil["raw"],
+        "devil_contains_answer_artifact": devil["contains_answer"],
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -2087,6 +2381,7 @@ def run_rag_devil_hyde(row: pd.Series, config: EvalConfig) -> dict:
 def run_rag_top2_hyde(row: pd.Series, config: EvalConfig) -> dict:
     """Top-2 HyDE: snap answer identifies top 2 choices, generate HyDE for each, pool retrieval."""
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap answer — ask for top 2 choices with reasoning
     top2_system = _system_prompt(config, "top2_snap")
@@ -2094,16 +2389,27 @@ def run_rag_top2_hyde(row: pd.Series, config: EvalConfig) -> dict:
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Generate HyDE for primary answer
-    hyde_user_1 = f"## Student's Answer and Reasoning\n{snap_answer}\n\n## Original Question\n{question}"
-    hyde_1 = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user_1, label="top2_hyde/primary")
+    hyde_user_1 = _snap_hyde_user(question_intermediate, snap_answer)
+    hyde_1 = _generate_hyde(
+        config,
+        "snap_hyde",
+        hyde_user_1,
+        label="top2_hyde/primary",
+        fallback=question_intermediate,
+    )
 
     # Step 3: Generate HyDE for second-choice answer
-    top2_hyde_system = _system_prompt(config, "top2_hyde")
-    hyde_2 = _llm_call(top2_hyde_system, hyde_user_1, label="top2_hyde/secondary")
+    hyde_2 = _generate_hyde(
+        config,
+        "top2_hyde",
+        hyde_user_1,
+        label="top2_hyde/secondary",
+        fallback=question_intermediate,
+    )
 
     # Step 4: Retrieve with both HyDE passages
     collection = _collection_for_config(config)
-    retrieval = _retrieve_and_format(row, [hyde_1, hyde_2], k=5,
+    retrieval = _retrieve_and_format(row, [hyde_1["text"], hyde_2["text"]], k=5,
                                      label_prefix="top2_hyde",
                                      where=_where_from_config(config),
                                      collection=collection)
@@ -2117,8 +2423,12 @@ def run_rag_top2_hyde(row: pd.Series, config: EvalConfig) -> dict:
         "final_answer": answer,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
-        "hyde_primary": hyde_1,
-        "hyde_secondary": hyde_2,
+        "hyde_primary": hyde_1["text"],
+        "hyde_primary_raw": hyde_1["raw"],
+        "hyde_primary_contains_answer_artifact": hyde_1["contains_answer"],
+        "hyde_secondary": hyde_2["text"],
+        "hyde_secondary_raw": hyde_2["raw"],
+        "hyde_secondary_contains_answer_artifact": hyde_2["contains_answer"],
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -2128,14 +2438,21 @@ def run_rag_top2_hyde(row: pd.Series, config: EvalConfig) -> dict:
 def run_rag_hyde_arb(row: pd.Series, config: EvalConfig) -> dict:
     """HyDE retrieval + conservative arbitration: snap → HyDE retrieve → review."""
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap answer
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="hyde_arb/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: HyDE retrieval
-    hyde_passage = _llm_call(_system_prompt(config, "hyde"), question, label="hyde_arb/generate")
-    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="hyde_arb",
+    hyde = _generate_hyde(
+        config,
+        "hyde",
+        _question_only_hyde_user(question_intermediate),
+        label="hyde_arb/generate",
+        fallback=question_intermediate,
+    )
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="hyde_arb",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -2163,7 +2480,9 @@ def run_rag_hyde_arb(row: pd.Series, config: EvalConfig) -> dict:
         "snap_letter": snap_letter,
         "final_letter": final_letter,
         "changed": snap_letter != final_letter,
-        "hyde_passage": hyde_passage,
+        "hyde_passage": hyde["text"],
+        "hyde_passage_raw": hyde["raw"],
+        "hyde_contains_answer_artifact": hyde["contains_answer"],
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -2188,7 +2507,8 @@ def _where_from_config(config: EvalConfig) -> dict | None:
 def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
     """Query rewrite → retrieval → answer with evidence."""
     question = _fmt(row, config)
-    queries = _rewrite_query(question)
+    question_intermediate = _fmt_intermediate(row, config)
+    queries = _rewrite_query(question_intermediate)
 
     retrieval = _retrieve_and_format(row, queries, k=5, label_prefix="rewrite",
                                      where=_where_from_config(config),
@@ -2231,7 +2551,8 @@ def run_rag_simple(row: pd.Series, config: EvalConfig) -> dict:
 def run_rag_arbitration(row: pd.Series, config: EvalConfig) -> dict:
     """LLM answers naively, then reviews retrieved passages (conservative framing)."""
     question = _fmt(row, config)
-    queries = _rewrite_query(question, label="rag_arb/rewrite")
+    question_intermediate = _fmt_intermediate(row, config)
+    queries = _rewrite_query(question_intermediate, label="rag_arb/rewrite")
 
     # Step 1: Snap answer (no evidence)
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="rag_arb/snap")
@@ -2277,6 +2598,7 @@ def run_rag_arbitration(row: pd.Series, config: EvalConfig) -> dict:
 def run_decompose(row: pd.Series, config: EvalConfig) -> dict:
     """Decompose-then-answer: break question into sub-questions, answer each, synthesize."""
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Determine which decomposition variant to use (controlled by tag)
     variant = "structured" if "structured" in (config.tag or "") else "natural"
@@ -2303,11 +2625,11 @@ def run_decompose(row: pd.Series, config: EvalConfig) -> dict:
         )
 
     # Step 1: Decompose
-    raw_decomp = _llm_call(decompose_system, question, label="decompose/split")
+    raw_decomp = _llm_call(decompose_system, question_intermediate, label="decompose/split")
     sub_questions = _parse_json(raw_decomp)
     if not isinstance(sub_questions, list) or not sub_questions:
         # Fallback: if decomposition fails, just answer directly
-        sub_questions = [question]
+        sub_questions = [question_intermediate]
 
     # Cap at 3 sub-questions
     sub_questions = sub_questions[:3]
@@ -2317,7 +2639,7 @@ def run_decompose(row: pd.Series, config: EvalConfig) -> dict:
     answer_system = _system_prompt(config, "answer")
     for i, sq in enumerate(sub_questions):
         # Give the sub-question in context of the original
-        sub_prompt = f"In the context of this question:\n{question}\n\nAddress this specific issue:\n{sq}"
+        sub_prompt = f"In the context of this question:\n{question_intermediate}\n\nAddress this specific issue:\n{sq}"
         sub_ans = _llm_call(answer_system, sub_prompt, label=f"decompose/sub_{i}")
         sub_answers.append({"question": sq, "answer": sub_ans})
 
@@ -2348,6 +2670,7 @@ def run_decompose(row: pd.Series, config: EvalConfig) -> dict:
 def run_decompose_rag(row: pd.Series, config: EvalConfig) -> dict:
     """Decompose + Snap-HyDE RAG: break into sub-questions, RAG each, synthesize with evidence."""
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Determine decomposition variant (controlled by tag)
     variant = "structured" if "structured" in (config.tag or "") else "natural"
@@ -2372,10 +2695,10 @@ def run_decompose_rag(row: pd.Series, config: EvalConfig) -> dict:
         )
 
     # Step 1: Decompose
-    raw_decomp = _llm_call(decompose_system, question, label="decomp_rag/split")
+    raw_decomp = _llm_call(decompose_system, question_intermediate, label="decomp_rag/split")
     sub_questions = _parse_json(raw_decomp)
     if not isinstance(sub_questions, list) or not sub_questions:
-        sub_questions = [question]
+        sub_questions = [question_intermediate]
     sub_questions = sub_questions[:3]
 
     # Step 2: For each sub-question — snap answer → HyDE → retrieve
@@ -2385,24 +2708,31 @@ def run_decompose_rag(row: pd.Series, config: EvalConfig) -> dict:
     any_gold = False
 
     for i, sq in enumerate(sub_questions):
-        sub_prompt = f"In the context of this question:\n{question}\n\nAddress this specific issue:\n{sq}"
+        sub_prompt = f"In the context of this question:\n{question_intermediate}\n\nAddress this specific issue:\n{sq}"
 
         # Snap answer this sub-question
         sub_snap = _llm_call(_system_prompt(config, "answer"), sub_prompt, label=f"decomp_rag/snap_{i}")
 
         # Generate HyDE passage from the sub-answer
-        hyde_user = f"## Student's Answer and Reasoning\n{sub_snap}\n\n## Original Question\n{sq}"
-        hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label=f"decomp_rag/hyde_{i}")
+        hyde = _generate_hyde(
+            config,
+            "snap_hyde",
+            _snap_hyde_user(sq, sub_snap),
+            label=f"decomp_rag/hyde_{i}",
+            fallback=sq,
+        )
 
         # Retrieve evidence for this sub-question
-        retrieval = _retrieve_and_format(row, [hyde_passage], k=3, label_prefix=f"decomp_rag_{i}",
+        retrieval = _retrieve_and_format(row, [hyde["text"]], k=3, label_prefix=f"decomp_rag_{i}",
                                          where=_where_from_config(config),
                                          collection=_collection_for_config(config))
 
         sub_results.append({
             "sub_question": sq,
             "snap_answer": sub_snap,
-            "hyde_passage": hyde_passage,
+            "hyde_passage": hyde["text"],
+            "hyde_passage_raw": hyde["raw"],
+            "hyde_contains_answer_artifact": hyde["contains_answer"],
             "passages": retrieval["passages"],
         })
         all_evidence.extend(retrieval["evidence_store"])
@@ -2436,6 +2766,9 @@ def run_decompose_rag(row: pd.Series, config: EvalConfig) -> dict:
         "variant": variant,
         "sub_questions": sub_questions,
         "sub_answers": [sr["snap_answer"] for sr in sub_results],
+        "hyde_passages": [sr["hyde_passage"] for sr in sub_results],
+        "hyde_passages_raw": [sr["hyde_passage_raw"] for sr in sub_results],
+        "hyde_contains_answer_artifact": any(sr["hyde_contains_answer_artifact"] for sr in sub_results),
         "num_sub_questions": len(sub_questions),
         "evidence_store": all_evidence,
         "retrieved_ids": all_retrieved_ids,
@@ -2447,6 +2780,7 @@ def run_conf_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
     """Combined: confidence gating (3 snap votes) + CE threshold on the RAG path."""
     CE_THRESHOLD = 4.0
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Take 3 snap answers
     snaps = []
@@ -2475,10 +2809,15 @@ def run_conf_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
         }
 
     # Step 3: Low confidence — Snap-HyDE with CE threshold
-    hyde_user = f"## Student's Answer and Reasoning\n{snaps[majority_idx]}\n\n## Original Question\n{question}"
-    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="conf_ce/hyde")
+    hyde = _generate_hyde(
+        config,
+        "snap_hyde",
+        _snap_hyde_user(question_intermediate, snaps[majority_idx]),
+        label="conf_ce/hyde",
+        fallback=question_intermediate,
+    )
 
-    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="conf_ce",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="conf_ce",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
 
@@ -2492,7 +2831,9 @@ def run_conf_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
             "routed_to": "snap_ce_fallback",
             "consensus": f"{majority_count}/3",
             "majority_answer": majority_answer,
-            "hyde_passage": hyde_passage,
+            "hyde_passage": hyde["text"],
+            "hyde_passage_raw": hyde["raw"],
+            "hyde_contains_answer_artifact": hyde["contains_answer"],
             "max_ce_score": max_ce,
             "ce_threshold": CE_THRESHOLD,
             "evidence_store": retrieval["evidence_store"],
@@ -2512,7 +2853,9 @@ def run_conf_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
         "routed_to": "rag",
         "consensus": f"{majority_count}/3",
         "majority_answer": majority_answer,
-        "hyde_passage": hyde_passage,
+        "hyde_passage": hyde["text"],
+        "hyde_passage_raw": hyde["raw"],
+        "hyde_contains_answer_artifact": hyde["contains_answer"],
         "max_ce_score": max_ce,
         "ce_threshold": CE_THRESHOLD,
         "evidence_store": retrieval["evidence_store"],
@@ -2524,6 +2867,7 @@ def run_conf_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
 def run_confidence_gated(row: pd.Series, config: EvalConfig) -> dict:
     """Confidence-gated RAG: 3 snap answers vote; unanimous = skip RAG, disagreement = Snap-HyDE."""
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Take 3 snap answers
     snaps = []
@@ -2553,10 +2897,15 @@ def run_confidence_gated(row: pd.Series, config: EvalConfig) -> dict:
         }
 
     # Step 3: Low confidence — apply Snap-HyDE using majority snap's reasoning
-    hyde_user = f"## Student's Answer and Reasoning\n{snaps[majority_idx]}\n\n## Original Question\n{question}"
-    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="conf_gate/hyde")
+    hyde = _generate_hyde(
+        config,
+        "snap_hyde",
+        _snap_hyde_user(question_intermediate, snaps[majority_idx]),
+        label="conf_gate/hyde",
+        fallback=question_intermediate,
+    )
 
-    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="conf_gate",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="conf_gate",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -2571,7 +2920,9 @@ def run_confidence_gated(row: pd.Series, config: EvalConfig) -> dict:
         "routed_to": "snap_hyde",
         "consensus": f"{majority_count}/3",
         "majority_answer": majority_answer,
-        "hyde_passage": hyde_passage,
+        "hyde_passage": hyde["text"],
+        "hyde_passage_raw": hyde["raw"],
+        "hyde_contains_answer_artifact": hyde["contains_answer"],
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -2616,6 +2967,7 @@ def run_double_snap(row: pd.Series, config: EvalConfig) -> dict:
     Tests the cheapest confidence signal (2 calls when confident). 2-4 LLM calls."""
     CE_THRESHOLD = 4.0
     question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Two independent snap answers
     snap1 = _llm_call(_system_prompt(config, "answer"), question, label="dsnap/snap1")
@@ -2633,10 +2985,15 @@ def run_double_snap(row: pd.Series, config: EvalConfig) -> dict:
         }
 
     # Step 2: Disagreement — CE-threshold RAG using snap1's reasoning
-    hyde_user = f"## Student's Answer and Reasoning\n{snap1}\n\n## Original Question\n{question}"
-    hyde_passage = _llm_call(_system_prompt(config, "snap_hyde"), hyde_user, label="dsnap/hyde")
+    hyde = _generate_hyde(
+        config,
+        "snap_hyde",
+        _snap_hyde_user(question_intermediate, snap1),
+        label="dsnap/hyde",
+        fallback=question_intermediate,
+    )
 
-    retrieval = _retrieve_and_format(row, [hyde_passage], k=5, label_prefix="dsnap",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="dsnap",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
 
@@ -2647,6 +3004,9 @@ def run_double_snap(row: pd.Series, config: EvalConfig) -> dict:
             "snap1": snap1, "snap2": snap2,
             "letter1": letter1, "letter2": letter2,
             "routed_to": "snap_ce_fallback",
+            "hyde_passage": hyde["text"],
+            "hyde_passage_raw": hyde["raw"],
+            "hyde_contains_answer_artifact": hyde["contains_answer"],
             "max_ce_score": max_ce,
             "evidence_store": retrieval["evidence_store"],
             "retrieved_ids": retrieval["retrieved_ids"],
@@ -2662,6 +3022,9 @@ def run_double_snap(row: pd.Series, config: EvalConfig) -> dict:
         "snap1": snap1, "snap2": snap2,
         "letter1": letter1, "letter2": letter2,
         "routed_to": "rag",
+        "hyde_passage": hyde["text"],
+        "hyde_passage_raw": hyde["raw"],
+        "hyde_contains_answer_artifact": hyde["contains_answer"],
         "max_ce_score": max_ce,
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
@@ -2803,6 +3166,7 @@ def run_eval(config: EvalConfig):
     _setup_provider(config)
     runner = MODE_RUNNERS[config.mode]
     provider_info = get_provider_info()
+    embedding_model = os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or None
 
     qa = load_questions(config)
     n = len(qa)
@@ -2911,6 +3275,7 @@ def run_eval(config: EvalConfig):
             "mode": config.mode,
             "provider": config.provider,
             "dataset": config.dataset,
+            "embedding_model": embedding_model,
         }
         if config.dataset == "housing":
             record["state"] = str(row.get("state", ""))
@@ -2985,6 +3350,7 @@ def run_eval(config: EvalConfig):
         "dataset": config.dataset,
         "provider": provider_info["provider"],
         "model": provider_info["model"],
+        "embedding_model": embedding_model,
         "question_set": question_set,
         "n_questions": n,
         "accuracy": round(accuracy, 4),
