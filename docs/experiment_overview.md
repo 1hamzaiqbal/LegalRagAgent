@@ -1,6 +1,6 @@
 # Experiment Overview
 
-High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (**189** entries as of 2026-04-17).
+High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (**195** entries as of 2026-04-19).
 
 For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEARCH.md`.
 
@@ -61,17 +61,26 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 - The initial full N=1195 `rag_hyde` attempt was **broken** (100% 11-char HyDE outputs from the terse generic prompt); the corrected rerun later completed at **54.3%**
 
 ### Phase 9: Full Follow-Up Reruns (April 15-16)
-- Corrected full `rag_hyde` completed at **54.3%** (`649/1195`)
+- Corrected full `rag_hyde` completed at **54.3%** (`649/1195`) — later discovered this was STILL using a partially broken prompt
 - Full `ce_threshold` completed at **55.9%** (`668/1195`)
 - Full `gap_rag_nosnap` completed at **55.9%** (`668/1195`)
 - Full `subagent_rag` 1-gap rerun improved to **57.2%** (`684/1195`)
-- None displaced `golden_passage` (**62.2%**) or the best full `snap_hyde` run (**58.6%**); `logs/experiments.jsonl` reached **189** entries
+
+### Phase 10: HyDE Fix + Combo Modes (April 17)
+- **Fixed `rag_hyde` full N=1195: 57.9%** — matches `snap_hyde` exactly. The +3pp snap lift for HyDE was a bug artifact.
+- Fixed `rag_hyde` N=200: **66.0%** (validates the prompt fix)
+- `snap_hyde_report` N=200: **66.0%** (snap_hyde + summarization = no gain)
+- `snap_hyde_report_snap` N=200: **64.0%** (showing snap hurts -2pp)
+- `subagent_rag_snap` N=200: **63.0%** (showing snap hurts -3pp vs 66.0%)
+- `subagent_rag_full` N=200: **62.0%** (max info hurts -4pp vs 66.0%)
+- **Key finding: showing snap to the final agent ALWAYS hurts (-2 to -4pp)**
+- `logs/experiments.jsonl` reached **195** entries
 
 ## Paper Core Result (Gemma 4 E4B, BarExam N=200)
 
 | Family | No-snap mode | No-snap acc | Snap mode | Snap acc | Snap lift |
 |---|---|---|---|---|---|
-| HyDE retrieval | `rag_hyde` | 62.5% | `snap_hyde` | 65.5% | **+3.0pp** |
+| HyDE retrieval | `rag_hyde` | 62.5%→**66.0%** (fixed) | `snap_hyde` | 65.5% | **0pp** (was +3pp before fix; full N=1195 both = 57.9%) |
 | Plain RAG* | `rag_simple` | 57.0% | `snap_rag` | 62.0% | **+5.0pp** |
 | Parametric reasoning | `vectorless_nosnap` | 59.5% | `vectorless_direct` | 64.5% | **+5.0pp** |
 
@@ -122,7 +131,7 @@ Addendum (2026-04-15): later N=200 follow-ups logged `entity_search` at **60.0%*
 | **ce_threshold** | **55.9%** | `logs/eval_ce_threshold_cluster-vllm_20260415_2022_detail.jsonl` |
 | **gap_rag_nosnap** | **55.9%** | `logs/eval_gap_rag_nosnap_cluster-vllm_20260416_0544_detail.jsonl` |
 | llm_only | 55.5% | `logs/eval_llm_only_cluster-vllm_20260408_1709_detail.jsonl` |
-| rag_hyde | 54.3% | `logs/eval_rag_hyde_cluster-vllm_20260415_1346_detail.jsonl` (fixed HyDE prompt; original run was broken) |
+| **rag_hyde (fixed)** | **57.9%** | Job `48555`; previous 54.3% was from partially broken prompt |
 | rag_simple | 54.2% | `logs/eval_rag_simple_cluster-vllm_20260408_1813_detail.jsonl` |
 | entity_search | 53.2% | `logs/eval_entity_search_cluster-vllm_20260415_0454_detail.jsonl` |
 | vectorless_direct | **CANCELLED** | job `43471` canceled — mode is parametric reasoning, not real corpus search |
@@ -140,13 +149,15 @@ Scale note: `entity_search` falls **6.8pp** from N=200 to N=1195 (`60.0% -> 53.2
 
 ## Top 10 Findings
 
-1. **Snap reasoning is the biggest contributor** (+5pp). Forcing the model to reason before retrieval improves everything downstream.
+1. **HyDE is the real driver.** Passage-form queries bridge the genre gap between question-form queries and doctrinal corpus passages. `rag_hyde` (fixed) = `snap_hyde` = **57.9%** at full N=1195. The previous +3pp snap lift for HyDE was a bug artifact.
 
-2. **HyDE passage generation adds +3.5pp retrieval quality.** Passage-form queries match the doctrinal corpus better than question-form queries (genre mismatch between questions and passages).
+2. **Snap helps plain RAG (+5pp) and parametric reasoning (+5pp), but adds zero to HyDE.** Snap is valuable when the retrieval query is the raw question (genre mismatch), but HyDE already solves that problem.
 
-3. **Cross-encoder reranking dominates embedding choice.** All 7 non-gte-large embedders converge to exactly 65.0% with question-based reranking. The embedding model barely matters.
+3. **Showing snap to the final agent always hurts (-2 to -4pp).** Confirmed across snap_hyde_report_snap (64%), subagent_rag_snap (63%), subagent_rag_full (62%) — all worse than their no-snap counterparts (66%).
 
-4. **Subagent reports are the strongest current Gemma 4 E4B strategy at N=200, but not at full scale.** `subagent_rag` reached 66.0% on N=200; the best full rerun is the 1-gap variant at 57.2%, still below the best full `snap_hyde` run at 58.6%.
+4. **Cross-encoder reranking dominates embedding choice.** All 7 non-gte-large embedders converge to exactly 65.0% with question-based reranking. The embedding model barely matters.
+
+5. **Subagent reports help at N=200 but not at full scale.** `subagent_rag` reached 66.0% on N=200; the best full rerun is the 1-gap variant at 57.2%, below `snap_hyde` / `rag_hyde` at 57.9%.
 
 5. **"Vectorless" is competitive, but the name is misleading.** These modes are multi-turn parametric reasoning baselines, not corpus search.
 

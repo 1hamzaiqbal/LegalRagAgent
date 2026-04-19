@@ -23,7 +23,7 @@ Current research direction: the original heavy pipeline underperformed, but the 
 - `docs/hpc_setup_log.md` — cluster SSH, paths, venvs, bad nodes
 - `EXPERIMENTS.md` — full hypothesis → result → verdict log
 - `RESEARCH.md` — research state, experiment queue, session handoff
-- `logs/experiments.jsonl` — machine-readable results (source of truth, 189 entries)
+- `logs/experiments.jsonl` — machine-readable results (source of truth, 195 entries)
 
 ## Runtime Architecture
 
@@ -158,16 +158,16 @@ uv run python llm_config.py
 ## Current Best Results / Direction Snapshot
 
 See `docs/experiment_overview.md` for the current results table. Key numbers:
-- `subagent_rag` **66.0%** is the current Gemma 4 E4B N=200 best.
-- `golden_passage` **62.2%** is the best full N=1195 Gemma 4 E4B result.
-- The best full non-ceiling retrieval run is `snap_hyde` **58.6%**; the `subagent_rag` 1-gap rerun reached **57.2%**.
+- `rag_hyde` (fixed) and `snap_hyde_report` both **66.0%** at N=200 (Gemma 4 E4B best).
+- `golden_passage` **62.2%** is the best full N=1195 result (ceiling).
+- `rag_hyde` (fixed) and `snap_hyde` both **57.9%** at full N=1195 — tied for best non-ceiling retrieval.
 
 Working interpretation:
-- snap reasoning remains the biggest contributor; retrieval only helps when it is tightly gated or HyDE-guided
-- the historical `vectorless_*` family is a validated N=200 parametric-reasoning baseline, but the full N=1195 vectorless jobs were canceled because they are not real corpus-search validation
-- fixed gap variants improved over the broken runs, but the full `ce_threshold` and `gap_rag_nosnap` reruns both flatten at **55.9%**, so the stronger full leaders remain `snap_hyde` and `subagent_rag` 1-gap
+- **HyDE is the real driver** — it bridges the genre gap between question-form queries and doctrinal corpus passages
+- snap reasoning helps plain RAG (+5pp) and parametric reasoning (+5pp) but adds **zero** to HyDE (both 57.9% at N=1195); the previous +3pp was a bug artifact from a broken Gemma prompt
+- showing snap to the final agent **always hurts** (-2 to -4pp across all combo modes tested)
 - retrieval quality remains the main bottleneck; `golden_passage` still outruns every real retrieval mode at full scale
-- heavier architectural combinations have mostly underperformed simpler adaptive methods
+- heavier architectural combinations (subagent, gap analysis) have not beaten simple HyDE at full scale
 
 Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the full tables + keep/discard history.
 

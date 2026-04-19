@@ -130,7 +130,7 @@ Latest answer: not universally. The April 14 follow-up is flat on HousingQA and 
 | subagent_rag (1-gap) full N=1195 | **57.2%** — improved prompt, up from 56.9% | ✅ Done |
 | Case-summary build | 22K summaries built (job `44371`) | ✅ Done |
 | Phase 1 alignment (10 modes) | snap_hyde 65.5% best | ✅ Done |
-| 189 total experiments (as of 2026-04-17) | current count in `logs/experiments.jsonl` | ✅ Logged |
+| 195 total experiments (as of 2026-04-19) | current count in `logs/experiments.jsonl` | ✅ Logged |
 | New combo modes implemented | snap_hyde_report, subagent_rag_snap, etc. (job `48393` running) | ⚠️ Running |
 
 ---
@@ -145,7 +145,8 @@ Latest answer: not universally. The April 14 follow-up is flat on HousingQA and 
 | 44520 | entity graph rebuild | Running — last noted at 74% on 2026-04-14 |
 | 45350 | rag_hyde + ce_threshold full | ✅ Completed — rag_hyde 54.3%, ce_threshold 55.9% |
 | 45735 | gap_rag_nosnap + subagent_rag (1-gap) full | ✅ Completed — 55.9%, 57.2% |
-| 48393 | combo modes N=200 | Running — rag_hyde (fixed), snap_hyde_report, subagent_rag_snap, etc. |
+| 48393 | combo modes N=200 | ✅ Completed — rag_hyde 66.0%, snap_hyde_report 66.0%, snap_hyde_report_snap 64.0%, subagent_rag_snap 63.0%, subagent_rag_full 62.0% |
+| 48555 | rag_hyde fixed full N=1195 | ✅ Completed — **57.9%** (matches snap_hyde; snap lift = 0pp) |
 | 43471 | vectorless_direct + hybrid full N=1195 | Cancelled — fake vectorless / not real corpus search |
 
 ---

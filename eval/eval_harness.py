@@ -25,7 +25,7 @@ import pandas as pd
 from eval_config import EvalConfig, EVAL_MODES, load_questions, extract_answer_mc, extract_answer_mc5, extract_answer_yn, format_question_prompt
 from main import (
     run as run_pipeline,
-    _llm_call,
+    _llm_call as _base_llm_call,
     _get_metrics,
     _reset_llm_call_counter,
     _parse_json,
@@ -33,6 +33,123 @@ from main import (
 )
 from llm_config import get_provider_info, _get_llm_cached
 from rag_utils import retrieve_documents_multi_query, get_vectorstore
+
+
+_CALL_TRACE: list[dict] = []
+_TRACE_EVENTS: list[dict] = []
+
+
+def _trace_calls_enabled() -> bool:
+    return os.getenv("EVAL_TRACE_CALLS", "").strip().lower() not in ("", "0", "false", "no")
+
+
+def _trace_events_enabled() -> bool:
+    raw = os.getenv("EVAL_TRACE_EVENTS", "").strip().lower()
+    if raw == "":
+        return _trace_calls_enabled()
+    return raw not in ("0", "false", "no")
+
+
+def _trace_text(text: str) -> str:
+    limit_raw = os.getenv("EVAL_TRACE_MAX_CHARS", "0").strip()
+    try:
+        limit = int(limit_raw)
+    except ValueError:
+        limit = 0
+    if limit <= 0:
+        return text
+    return text[:limit] + ("..." if len(text) > limit else "")
+
+
+def _reset_call_trace() -> None:
+    _CALL_TRACE.clear()
+
+
+def _get_call_trace() -> list[dict]:
+    return list(_CALL_TRACE)
+
+
+def _trace_value(value):
+    if isinstance(value, str):
+        return _trace_text(value)
+    if isinstance(value, list):
+        return [_trace_value(v) for v in value]
+    if isinstance(value, tuple):
+        return [_trace_value(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _trace_value(v) for k, v in value.items()}
+    return value
+
+
+def _record_trace_event(event_type: str, **payload) -> None:
+    if not _trace_events_enabled():
+        return
+    _TRACE_EVENTS.append({
+        "type": event_type,
+        **_trace_value(payload),
+    })
+
+
+def _reset_trace_events() -> None:
+    _TRACE_EVENTS.clear()
+
+
+def _get_trace_events() -> list[dict]:
+    return list(_TRACE_EVENTS)
+
+
+def _llm_call(system: str, user: str, label: str = "") -> str:
+    """Wrapper around main._llm_call that optionally records exact call I/O."""
+    try:
+        response = _base_llm_call(system, user, label=label)
+    except Exception as exc:
+        if _trace_calls_enabled():
+            _CALL_TRACE.append({
+                "label": label,
+                "system": _trace_text(system),
+                "user": _trace_text(user),
+                "response": "",
+                "error": str(exc),
+                "system_chars": len(system or ""),
+                "user_chars": len(user or ""),
+                "response_chars": 0,
+            })
+            _record_trace_event(
+                "llm_call",
+                label=label,
+                system=system,
+                user=user,
+                response="",
+                error=str(exc),
+                system_chars=len(system or ""),
+                user_chars=len(user or ""),
+                response_chars=0,
+            )
+        raise
+
+    if _trace_calls_enabled():
+        _CALL_TRACE.append({
+            "label": label,
+            "system": _trace_text(system),
+            "user": _trace_text(user),
+            "response": _trace_text(response),
+            "error": "",
+            "system_chars": len(system or ""),
+            "user_chars": len(user or ""),
+            "response_chars": len(response or ""),
+        })
+    _record_trace_event(
+        "llm_call",
+        label=label,
+        system=system,
+        user=user,
+        response=response,
+        error="",
+        system_chars=len(system or ""),
+        user_chars=len(user or ""),
+        response_chars=len(response or ""),
+    )
+    return response
 
 
 # ---------------------------------------------------------------------------
@@ -144,6 +261,12 @@ def _sanitize_intermediate_text(text: str, fallback: str = "") -> str:
     cleaned = "\n".join(lines).strip()
     fallback = (fallback or "").strip()
     return cleaned or fallback
+
+
+def _preview_text(text: str, limit: int = 1200) -> str:
+    """Store a bounded prompt preview in logs without blowing up row size."""
+    text = text or ""
+    return text[:limit] + ("..." if len(text) > limit else "")
 
 
 def _question_only_hyde_user(question_text: str) -> str:
@@ -552,13 +675,31 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
 
     gold_idx = str(row.get("gold_idx", ""))
     retrieved_ids = [ev["idx"] for ev in evidence_store]
+    gold_retrieved = gold_idx in retrieved_ids if gold_idx else False
+    max_ce_score = max((ev["cross_encoder_score"] for ev in evidence_store), default=0.0)
+
+    _record_trace_event(
+        "retrieval",
+        label=label_prefix,
+        queries=queries,
+        rerank_query=rerank_query or "",
+        k=k,
+        where=where or {},
+        collection=collection,
+        embedding_model=embedding_model or "",
+        results=evidence_store,
+        retrieved_ids=retrieved_ids,
+        gold_idx=gold_idx,
+        gold_retrieved=gold_retrieved,
+        max_ce_score=max_ce_score,
+    )
 
     return {
         "passages": passages,
         "evidence_store": evidence_store,
         "retrieved_ids": retrieved_ids,
-        "gold_retrieved": gold_idx in retrieved_ids if gold_idx else False,
-        "max_ce_score": max((ev["cross_encoder_score"] for ev in evidence_store), default=0.0),
+        "gold_retrieved": gold_retrieved,
+        "max_ce_score": max_ce_score,
     }
 
 
@@ -604,9 +745,15 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
 
     return {
         "final_answer": answer,
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
         "hyde_passage": hyde["text"],
         "hyde_passage_raw": hyde["raw"],
         "hyde_contains_answer_artifact": hyde["contains_answer"],
+        "retrieval_queries": [hyde["text"]],
+        "rerank_query": "",
+        "final_context_fields": ["retrieved_passages", "question"],
+        "final_prompt_preview": _preview_text(user),
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -689,11 +836,17 @@ def run_rag_snap_hyde(row: pd.Series, config: EvalConfig) -> dict:
 
     return {
         "final_answer": answer,
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
         "hyde_passage": hyde["text"],
         "hyde_passage_raw": hyde["raw"],
         "hyde_contains_answer_artifact": hyde["contains_answer"],
+        "retrieval_queries": [hyde["text"]],
+        "rerank_query": "",
+        "final_context_fields": ["retrieved_passages", "question"],
+        "final_prompt_preview": _preview_text(user),
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -737,11 +890,17 @@ def run_snap_hyde_aligned(row: pd.Series, config: EvalConfig) -> dict:
 
     return {
         "final_answer": answer,
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
         "hyde_passage": hyde["text"],
         "hyde_passage_raw": hyde["raw"],
         "hyde_contains_answer_artifact": hyde["contains_answer"],
+        "retrieval_queries": [hyde["text"]],
+        "rerank_query": raw_question,
+        "final_context_fields": ["retrieved_passages", "question"],
+        "final_prompt_preview": _preview_text(user),
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -757,10 +916,13 @@ def _gap_analysis(snap_answer: str, question: str) -> list[dict]:
     """
     system = (
         "You are a legal reasoning analyst. A student answered a legal question. "
-        "Identify the single most important evidence gap that could change the answer.\n\n"
+        "Identify the single most important evidence gap that could prove the student's current answer wrong.\n\n"
         "Use this format:\n"
         "- gap: <what specific rule, fact, or exception is uncertain> | ask: <focused sub-question>\n\n"
         "Rules:\n"
+        "- Stress-test the student's answer instead of helping it.\n"
+        "- Prefer the unresolved rule, fact, or exception that, if answered the other way, would most likely reverse the student's conclusion.\n"
+        "- Do not ask a confirmatory question that simply assumes the student's legal premise is already correct.\n"
         "- Give exactly 1 gap — the one most likely to change the answer.\n"
         "- Only give 2 gaps if there are truly two independent uncertainties.\n"
         "- If the reasoning is solid and you are confident in the answer, reply exactly: NONE"
@@ -838,6 +1000,7 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
             "passages": [f"[Generated Note]\n{knowledge}"],
             "evidence_store": [{"idx": f"vless_{gap_idx}", "text": knowledge, "cross_encoder_score": 0}],
             "max_ce_score": 0,
+            "retrieval_query": "",
             "report": knowledge,
             "report_raw": knowledge_raw,
             "report_contains_answer_artifact": _contains_answer_artifact(knowledge_raw),
@@ -870,6 +1033,7 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
             "passages": retrieval["passages"],
             "evidence_store": retrieval["evidence_store"],
             "max_ce_score": retrieval["max_ce_score"],
+            "retrieval_query": query,
             "report": report["text"],
             "report_raw": report["raw"],
             "report_contains_answer_artifact": report["contains_answer"],
@@ -913,6 +1077,7 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
             "passages": retrieval["passages"],
             "evidence_store": retrieval["evidence_store"],
             "max_ce_score": retrieval["max_ce_score"],
+            "retrieval_query": hyde["text"],
             "report": report["text"],
             "report_raw": report["raw"],
             "report_contains_answer_artifact": report["contains_answer"],
@@ -948,6 +1113,7 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
             "passages": retrieval["passages"],
             "evidence_store": retrieval["evidence_store"],
             "max_ce_score": retrieval["max_ce_score"],
+            "retrieval_query": query,
             "report": report["text"],
             "report_raw": report["raw"],
             "report_contains_answer_artifact": report["contains_answer"],
@@ -985,6 +1151,7 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
         "passages": retrieval["passages"],
         "evidence_store": retrieval["evidence_store"],
         "max_ce_score": retrieval["max_ce_score"],
+        "retrieval_query": query,
     }
     if method == "hyde":
         result["hyde_passage"] = hyde["text"]
@@ -993,9 +1160,9 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
     return result
 
 
-def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
-                      gap_results: list[dict | None], config: EvalConfig,
-                      final_input: str = "full") -> str:
+def _build_gap_final_prompt(snap_answer: str, question: str, gaps: list[dict],
+                            gap_results: list[dict | None], config: EvalConfig,
+                            final_input: str = "full") -> tuple[str, str, list[str]]:
     """Assemble the final-answer prompt from the chosen gap artifacts.
 
     Supported final_input values:
@@ -1051,37 +1218,44 @@ def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
     report_block = "\n\n".join(report_sections) if report_sections else "No investigations completed."
 
     system = _system_prompt(config, "research" if final_input.startswith("reports") else "rag")
+    context_fields: list[str]
 
     if final_input == "evidence_only":
         user = f"## Retrieved Passages\n{flat_passages}\n\n## Question\n{question}"
+        context_fields = ["retrieved_passages", "question"]
     elif final_input == "no_snap":
         user = (
             f"## Evidence Gathered for Identified Gaps\n{gap_block}\n\n"
             f"## Question\n{question}"
         )
+        context_fields = ["gap_evidence", "question"]
     elif final_input == "snap_and_evidence":
         user = (
             f"## Your Initial Answer\n{snap_answer}\n\n"
             f"## Retrieved Passages\n{flat_passages}\n\n"
             f"## Question\n{question}"
         )
+        context_fields = ["snap_answer", "retrieved_passages", "question"]
     elif final_input == "reports_nosnap":
         user = (
             f"## Research Findings\n{report_block}\n\n"
             f"## Question\n{question}"
         )
+        context_fields = ["research_findings", "question"]
     elif final_input == "reports_and_evidence":
         user = (
             f"## Research Findings\n{report_block}\n\n"
             f"## Supporting Passages\n{flat_passages}\n\n"
             f"## Question\n{question}"
         )
+        context_fields = ["research_findings", "supporting_passages", "question"]
     elif final_input == "reports_and_snap":
         user = (
             f"## Your Initial Answer\n{snap_answer}\n\n"
             f"## Research Findings\n{report_block}\n\n"
             f"## Question\n{question}"
         )
+        context_fields = ["snap_answer", "research_findings", "question"]
     elif final_input == "reports_snap_evidence":
         user = (
             f"## Your Initial Answer\n{snap_answer}\n\n"
@@ -1089,13 +1263,25 @@ def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
             f"## Supporting Passages\n{flat_passages}\n\n"
             f"## Question\n{question}"
         )
+        context_fields = ["snap_answer", "research_findings", "supporting_passages", "question"]
     else:  # full
         user = (
             f"## Your Initial Answer\n{snap_answer}\n\n"
             f"## Evidence Gathered for Identified Gaps\n{gap_block}\n\n"
             f"## Question\n{question}"
         )
+        context_fields = ["snap_answer", "gap_evidence", "question"]
 
+    return system, user, context_fields
+
+
+def _gap_final_answer(snap_answer: str, question: str, gaps: list[dict],
+                      gap_results: list[dict | None], config: EvalConfig,
+                      final_input: str = "full") -> str:
+    """Call the final answer stage for gap-driven methods."""
+    system, user, _ = _build_gap_final_prompt(
+        snap_answer, question, gaps, gap_results, config, final_input=final_input
+    )
     return _llm_call(system, user, label="gap/final_answer")
 
 
@@ -1111,6 +1297,7 @@ def _run_gap(row: pd.Series, config: EvalConfig,
             'reports_nosnap', or 'reports_and_evidence'
     """
     question = _fmt(row, config)
+    raw_question = str(row["question"])
     question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap
@@ -1127,20 +1314,32 @@ def _run_gap(row: pd.Series, config: EvalConfig,
             fresh_answer = _llm_call(_system_prompt(config, "answer"), question, label=f"{label}/fresh")
             return {
                 "final_answer": fresh_answer,
+                "formatted_question": question,
+                "intermediate_question": question_intermediate,
                 "snap_answer": snap_answer,
                 "snap_letter": snap_letter,
                 "gaps": [],
                 "gap_results": [],
+                "retrieval_queries": [],
+                "rerank_query": raw_question,
+                "final_context_fields": ["question"],
+                "final_prompt_preview": _preview_text(question),
                 "evidence_store": [],
                 "retrieved_ids": [],
                 "gold_retrieved": False,
             }
         return {
             "final_answer": snap_answer,
+            "formatted_question": question,
+            "intermediate_question": question_intermediate,
             "snap_answer": snap_answer,
             "snap_letter": snap_letter,
             "gaps": [],
             "gap_results": [],
+            "retrieval_queries": [],
+            "rerank_query": raw_question,
+            "final_context_fields": [],
+            "final_prompt_preview": "",
             "evidence_store": [],
             "retrieved_ids": [],
             "gold_retrieved": False,
@@ -1159,17 +1358,22 @@ def _run_gap(row: pd.Series, config: EvalConfig,
 
     # Step 5: Final answer
     gold_idx = str(row.get("gold_idx", ""))
-    answer = _gap_final_answer(snap_answer, question, gaps, gap_results, config,
-                               final_input=final_input)
+    final_system, final_user, final_context_fields = _build_gap_final_prompt(
+        snap_answer, question, gaps, gap_results, config, final_input=final_input
+    )
+    answer = _llm_call(final_system, final_user, label="gap/final_answer")
 
     return {
         "final_answer": answer,
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
         "gaps": gaps,
         "gap_results": [
             {
                 "gap": r["gap"],
+                "retrieval_query": r.get("retrieval_query", ""),
                 "max_ce": r.get("max_ce_score", 0),
                 "report": r.get("report", ""),
                 "report_raw": r.get("report_raw", ""),
@@ -1180,6 +1384,10 @@ def _run_gap(row: pd.Series, config: EvalConfig,
             } if r else None
             for r in gap_results
         ],
+        "retrieval_queries": [r.get("retrieval_query", "") for r in gap_results if r and r.get("retrieval_query", "")],
+        "rerank_query": raw_question,
+        "final_context_fields": final_context_fields,
+        "final_prompt_preview": _preview_text(final_user),
         "evidence_store": all_evidence,
         "retrieved_ids": all_ids,
         "gold_retrieved": gold_idx in all_ids if gold_idx else False,
@@ -1330,14 +1538,20 @@ def run_snap_hyde_report(row: pd.Series, config: EvalConfig) -> dict:
 
     return {
         "final_answer": answer,
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
         "hyde_passage": hyde["text"],
         "hyde_passage_raw": hyde["raw"],
         "hyde_contains_answer_artifact": hyde["contains_answer"],
+        "retrieval_queries": [hyde["text"]],
+        "rerank_query": "",
         "report": report["text"],
         "report_raw": report["raw"],
         "report_contains_answer_artifact": report["contains_answer"],
+        "final_context_fields": ["research_findings", "question"],
+        "final_prompt_preview": _preview_text(user),
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -1394,14 +1608,20 @@ def run_snap_hyde_report_snap(row: pd.Series, config: EvalConfig) -> dict:
 
     return {
         "final_answer": answer,
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
         "snap_answer": snap_answer,
         "snap_letter": snap_letter,
         "hyde_passage": hyde["text"],
         "hyde_passage_raw": hyde["raw"],
         "hyde_contains_answer_artifact": hyde["contains_answer"],
+        "retrieval_queries": [hyde["text"]],
+        "rerank_query": "",
         "report": report["text"],
         "report_raw": report["raw"],
         "report_contains_answer_artifact": report["contains_answer"],
+        "final_context_fields": ["snap_answer", "research_findings", "question"],
+        "final_prompt_preview": _preview_text(user),
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -3189,6 +3409,8 @@ def run_eval(config: EvalConfig):
 
     for i, row in qa.iterrows():
         _reset_llm_call_counter()
+        _reset_call_trace()
+        _reset_trace_events()
         q_start = time.time()
 
         # Dataset-specific labeling
@@ -3277,6 +3499,11 @@ def run_eval(config: EvalConfig):
             "dataset": config.dataset,
             "embedding_model": embedding_model,
         }
+        if _trace_calls_enabled():
+            record["call_trace"] = _get_call_trace()
+        if _trace_events_enabled():
+            record["trace_events"] = _get_trace_events()
+            record["trace_schema_version"] = 1
         if config.dataset == "housing":
             record["state"] = str(row.get("state", ""))
         elif config.dataset == "casehold":
