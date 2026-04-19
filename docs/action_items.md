@@ -10,17 +10,14 @@ Target venues:
 
 ## Paper Narrative
 
-**Core claim:** Letting the LLM reason first ("snap") before retrieval is the single biggest contributor to legal QA accuracy. This lift generalizes across retrieval methods (RAG, HyDE, historical `vectorless_*` / parametric reasoning) and architectures (simple, gap-informed, subagent).
+**Core claim (revised April 17):** HyDE passage generation is the primary driver of retrieval quality for legal QA — it bridges the genre gap between question-form queries and doctrinal corpus passages. Snap (letting the LLM reason first) helps plain RAG (+5pp) and parametric reasoning (+5pp), but adds zero to HyDE. Showing snap to the final decision-maker always hurts (-2 to -4pp).
 
 **Supporting evidence:**
-- Snap ablation is now complete across the paper's three main families: HyDE +3pp (`snap_hyde` 65.5% vs `rag_hyde` 62.5%), plain RAG +5pp (`snap_rag` 62.0% vs `rag_simple` 57.0%), and parametric reasoning +5pp (`vectorless_direct` 64.5% vs `vectorless_nosnap` 59.5%)
-- HyDE leverages snap reasoning for passage-form retrieval (+3.5pp)
-- "Vectorless" baselines (really multi-turn parametric reasoning, not corpus search) match vector retrieval on BarExam
-- Subagent architecture (snap → gap analysis → subagent reports) achieves new best (66.0%)
+- Snap ablation across three families: HyDE **0pp** (`rag_hyde` fixed 57.9% = `snap_hyde` 57.9% at N=1195), plain RAG **+5pp**, parametric reasoning **+5pp**
+- The previous HyDE snap lift (+3pp) was a bug artifact from a broken Gemma prompt
+- Showing snap to the final agent always hurts: `snap_hyde_report_snap` 64% < `snap_hyde_report` 66%, `subagent_rag_snap` 63% < `subagent_rag` 66%
 - Three identified failure modes: noise, anchoring, genre mismatch
-
-**Open question for paper:** Does the snap lift generalize to other datasets/corpora? Same universal lift?
-Latest answer: not universally. The April 14 follow-up is flat on HousingQA and negative on CaseHOLD for the new `vectorless_*` / snap-style controls.
+- Cross-dataset: snap lift is BarExam-specific (flat on HousingQA, negative on CaseHOLD)
 
 ---
 
@@ -124,14 +121,14 @@ Latest answer: not universally. The April 14 follow-up is flat on HousingQA and 
 | snap_hyde full N=1195 | 58.6% best run; later rerun 57.9% | ✅ Done |
 | subagent_rag full N=1195 | 56.9%, below the best full snap_hyde run at 58.6% | ✅ Done |
 | entity_search full N=1195 | 53.2%, below rag_simple 54.2% | ✅ Done |
-| rag_hyde full N=1195 rerun | **54.3%** after the prompt fix; +0.1pp over rag_simple, still below llm_only | ✅ Done |
+| rag_hyde full N=1195 (first fix) | **54.3%** (partially broken prompt) → superseded by **57.9%** (job `48555`, fully fixed) | ✅ Done |
 | ce_threshold full N=1195 | **55.9%** — barely above llm_only (55.5%) | ✅ Done |
 | gap_rag_nosnap full N=1195 | **55.9%** — same as ce_threshold | ✅ Done |
 | subagent_rag (1-gap) full N=1195 | **57.2%** — improved prompt, up from 56.9% | ✅ Done |
 | Case-summary build | 22K summaries built (job `44371`) | ✅ Done |
 | Phase 1 alignment (10 modes) | snap_hyde 65.5% best | ✅ Done |
 | 195 total experiments (as of 2026-04-19) | current count in `logs/experiments.jsonl` | ✅ Logged |
-| New combo modes implemented | snap_hyde_report, subagent_rag_snap, etc. (job `48393` running) | ⚠️ Running |
+| New combo modes | snap_hyde_report 66.0%, snap_hyde_report_snap 64.0%, subagent_rag_snap 63.0%, subagent_rag_full 62.0% (job `48393`) | ✅ Done |
 
 ---
 
@@ -143,7 +140,7 @@ Latest answer: not universally. The April 14 follow-up is flat on HousingQA and 
 | 44394 | snap ablations | Completed — `rag_hyde` 62.5%, `vectorless_nosnap` 59.5% |
 | 44395 | cross-dataset jobs | Completed — HousingQA and CaseHOLD follow-ups logged |
 | 44520 | entity graph rebuild | Running — last noted at 74% on 2026-04-14 |
-| 45350 | rag_hyde + ce_threshold full | ✅ Completed — rag_hyde 54.3%, ce_threshold 55.9% |
+| 45350 | rag_hyde + ce_threshold full | ✅ Completed — ce_threshold 55.9%; rag_hyde 54.3% superseded by job 48555 (57.9%) |
 | 45735 | gap_rag_nosnap + subagent_rag (1-gap) full | ✅ Completed — 55.9%, 57.2% |
 | 48393 | combo modes N=200 | ✅ Completed — rag_hyde 66.0%, snap_hyde_report 66.0%, snap_hyde_report_snap 64.0%, subagent_rag_snap 63.0%, subagent_rag_full 62.0% |
 | 48555 | rag_hyde fixed full N=1195 | ✅ Completed — **57.9%** (matches snap_hyde; snap lift = 0pp) |

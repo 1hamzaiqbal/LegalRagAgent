@@ -3,6 +3,7 @@
 High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (**195** entries as of 2026-04-19).
 
 For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEARCH.md`.
+<!-- Intentional overlap with docs/meeting_2026_04_17.md: this file is the cleaned synthesis, while the meeting notes preserve point-in-time discussion. Some duplicated summary content is expected and should not be removed automatically. -->
 
 ## Timeline
 
@@ -49,7 +50,7 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 
 ### Phase 7: Paper-Core Controls and Scale Check (April 14)
 - Snap/no-snap ablations completed: `rag_hyde` 62.5%, `vectorless_nosnap` 59.5%
-- **Core result:** snap adds +3.0pp to HyDE, +5.0pp to plain RAG, and +5.0pp to parametric reasoning on BarExam N=200
+- **Core result (later revised for HyDE):** snap adds +5.0pp to plain RAG and +5.0pp to parametric reasoning; the original `+3.0pp` HyDE row was later invalidated by the repaired prompt fix
 - Cross-dataset follow-up: HousingQA `llm_only` 50.5%, `vectorless_direct` 50.0%, `vectorless_nosnap` 52.5%, `snap_hyde` 50.0%; CaseHOLD `llm_only` 69.5%, `vectorless_direct` 68.0%, `vectorless_nosnap` 67.5%
 - Full N=1195 `subagent_rag` reached 56.9%, below `snap_hyde` 57.9%
 - Infra: case-summary build job `44371` finished with 22K summaries; entity-graph rebuild job `44520` is 74% done
@@ -58,10 +59,10 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 - Full N=1195 `entity_search` reached **53.2%** (`636/1195`) using real NLP entity-graph corpus search, zero embeddings, and 1 LLM call
 - Scale robustness warning: `entity_search` drops from **60.0%** at N=200 to **53.2%** at N=1195 (`-6.8pp`), while vector `rag_simple` drops only from **57.0%** to **54.2%** (`-2.8pp`)
 - New N=200 follow-ups did not move the frontier: `snap_entity_informed` = **59.5%**, `subagent_hyde` = **62.5%**
-- The initial full N=1195 `rag_hyde` attempt was **broken** (100% 11-char HyDE outputs from the terse generic prompt); the corrected rerun later completed at **54.3%**
+- The initial full N=1195 `rag_hyde` attempt was **broken** (100% 11-char HyDE outputs from the terse generic prompt); the later repaired rerun became the real source of truth
 
 ### Phase 9: Full Follow-Up Reruns (April 15-16)
-- Corrected full `rag_hyde` completed at **54.3%** (`649/1195`) — later discovered this was STILL using a partially broken prompt
+- The first full `rag_hyde` rerun was later superseded by the repaired April 17 run
 - Full `ce_threshold` completed at **55.9%** (`668/1195`)
 - Full `gap_rag_nosnap` completed at **55.9%** (`668/1195`)
 - Full `subagent_rag` 1-gap rerun improved to **57.2%** (`684/1195`)
@@ -76,15 +77,15 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 - **Key finding: showing snap to the final agent ALWAYS hurts (-2 to -4pp)**
 - `logs/experiments.jsonl` reached **195** entries
 
-## Paper Core Result (Gemma 4 E4B, BarExam N=200)
+## Paper Core Result (Gemma 4 E4B, BarExam)
 
 | Family | No-snap mode | No-snap acc | Snap mode | Snap acc | Snap lift |
 |---|---|---|---|---|---|
-| HyDE retrieval | `rag_hyde` | 62.5%→**66.0%** (fixed) | `snap_hyde` | 65.5% | **0pp** (was +3pp before fix; full N=1195 both = 57.9%) |
+| HyDE retrieval* | `rag_hyde` | 57.9% | `snap_hyde` | 57.9% | **0.0pp** (full N=1195 repaired comparison) |
 | Plain RAG* | `rag_simple` | 57.0% | `snap_rag` | 62.0% | **+5.0pp** |
 | Parametric reasoning | `vectorless_nosnap` | 59.5% | `vectorless_direct` | 64.5% | **+5.0pp** |
 
-*Plain-RAG uses the existing `gte-large` April 10 reference pair so the comparison stays aligned with the paper's main ablation setting.
+*HyDE uses the repaired full N=1195 comparison because the original April 14 N=200 `rag_hyde` row was prompt-tainted. Plain-RAG uses the existing `gte-large` April 10 reference pair so the comparison stays aligned with the paper's main ablation setting.
 
 ## Key Results (Gemma 4 E4B, BarExam)
 
@@ -93,51 +94,56 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 | Rank | Mode | Acc | Changed | Net | Calls | Vector Store? |
 |---|---|---|---|---|---|---|
 | 1 | subagent_rag | **66.0%** | — | — | 4.1 avg | yes |
-| 2 | snap_hyde | **65.5%** | 27% | +37* | 3 | yes |
-| 3 | vectorless_hybrid | **65.0%** | 18% | +7 | 4 | yes (k=3) |
-| 4 | gap_rag_nosnap | **64.5%** | — | — | 3.0 avg | yes |
-| 4 | vectorless_direct | **64.5%** | 19% | +6 | 3 | **no** |
-| 4 | vectorless_choice_map | **64.5%** | — | — | 3 | **no** |
-| 7 | ce_threshold | 64.0% | 10% | +5 | 2-3 | yes |
-| 8 | subagent_hybrid | **63.5%** | — | — | 4.1 avg | yes |
-| 8 | vectorless_role | **63.5%** | 7% | +4 | 3 | **no** |
-| 8 | gap_rag FIXED | **63.5%** | 2% | +4 | 3-6 | yes |
-| 11 | rag_arbitration | 63.0% | 6% | +3 | 3 | yes |
-| 12 | rag_hyde | **62.5%** | — | — | 2 | yes |
-| 12 | gap_hyde_nosnap FIXED | **62.5%** | — | — | 4.1 avg | yes |
-| 14 | snap_rag | 62.0% | 1% | +2 | 2 | yes |
-| 14 | gap_hyde FIXED | 62.0% | 0.5% | +1 | 4-8 | yes |
-| 16 | gap_vectorless | **61.5%** | — | — | 4.1 avg | **no** |
-| 17 | vectorless_elements | **61.0%** | — | — | 3 | **no** |
-| 17 | subagent_rag_evidence | **61.0%** | — | — | 4.1 avg | yes |
-| 19 | rag_rewrite | 59.5% | — | — | 3 | yes |
-| 19 | vectorless_nosnap | **59.5%** | — | — | 2 | **no** |
-| 21 | rag_simple | 57.0% | — | — | 1 | yes |
-| 22 | llm_only | 55.5% | — | — | 1 | no |
-
-*snap_hyde fix/break from N=1195 run
+| 1 | rag_hyde FIXED | **66.0%** | — | — | 2 | yes |
+| 1 | snap_hyde_report | **66.0%** | — | — | 4 | yes |
+| 4 | snap_hyde | **65.5%** | 27% | +37 | 3 | yes |
+| 5 | vectorless_hybrid | **65.0%** | 18% | +7 | 4 | yes (k=3) |
+| 6 | gap_rag_nosnap | **64.5%** | — | — | 3.0 avg | yes |
+| 6 | vectorless_direct | **64.5%** | 19% | +6 | 3 | **no** |
+| 6 | vectorless_choice_map | **64.5%** | — | — | 3 | **no** |
+| 9 | ce_threshold | **64.0%** | 10% | +5 | 2-3 | yes |
+| 9 | snap_hyde_report_snap | **64.0%** | — | — | 4 | yes |
+| 11 | subagent_hybrid | **63.5%** | — | — | 4.1 avg | yes |
+| 11 | vectorless_role | **63.5%** | 7% | +4 | 3 | **no** |
+| 11 | gap_rag FIXED | **63.5%** | 2% | +4 | 3-6 | yes |
+| 14 | rag_arbitration | **63.0%** | 6% | +3 | 3 | yes |
+| 14 | subagent_rag_snap | **63.0%** | — | — | 4 | yes |
+| 16 | gap_hyde_nosnap FIXED | **62.5%** | — | — | 4.1 avg | yes |
+| 16 | subagent_hyde | **62.5%** | — | — | 5.2 avg | yes |
+| 18 | snap_rag | **62.0%** | 1% | +2 | 2 | yes |
+| 18 | gap_hyde FIXED | **62.0%** | 0.5% | +1 | 4-8 | yes |
+| 18 | subagent_rag_full | **62.0%** | — | — | 4 | yes |
+| 21 | gap_vectorless | **61.5%** | — | — | 4.1 avg | **no** |
+| 22 | vectorless_elements | **61.0%** | — | — | 3 | **no** |
+| 22 | subagent_rag_evidence | **61.0%** | — | — | 4.1 avg | yes |
+| 24 | entity_search | **60.0%** | — | — | 1 | **no** |
+| 25 | rag_rewrite | **59.5%** | — | — | 3 | yes |
+| 25 | vectorless_nosnap | **59.5%** | — | — | 2 | **no** |
+| 25 | snap_entity_informed | **59.5%** | — | — | 2 | **no** |
+| 28 | rag_simple | **57.0%** | — | — | 1 | yes |
+| 29 | llm_only | **55.5%** | — | — | 1 | no |
 
 Note: the `vectorless_*` label is historical shorthand. `vectorless_direct`, `vectorless_role`, `vectorless_elements`, `vectorless_choice_map`, and `gap_vectorless` are multi-turn LLM reasoning / parametric-knowledge modes, not corpus search. `vectorless_hybrid` is the only one that still pools generated knowledge with vector retrieval.
-Addendum (2026-04-15): later N=200 follow-ups logged `entity_search` at **60.0%**, `snap_entity_informed` at **59.5%**, and `subagent_hyde` at **62.5%**. None displaced the current N=200 leaders.
+The combo-mode additions reinforce the anchoring result: hiding snap from the final call preserves the 66.0% tier, while re-exposing snap or raw passages drops the score by 2-4pp.
 
 ### Full-Scale N=1195
 
 | Mode | Accuracy | Detail Log |
 |---|---|---|
 | golden_passage | 62.2% | `logs/eval_golden_passage_cluster-vllm_20260408_1749_detail.jsonl` |
-| **snap_hyde** | **58.6%** | `logs/eval_rag_snap_hyde_cluster-vllm_20260409_0819_detail.jsonl` |
+| **snap_hyde** | **57.9%** | `logs/eval_rag_snap_hyde_cluster-vllm_20260413_1102_detail.jsonl` |
+| **rag_hyde (fixed)** | **57.9%** | recorded in `logs/experiments.jsonl` as `logs/eval_rag_hyde_cluster-vllm_20260417_2047_detail.jsonl` (local sync pending) |
 | **subagent_rag (1-gap)** | **57.2%** | `logs/eval_subagent_rag_cluster-vllm_20260416_1720_detail.jsonl` |
 | **subagent_rag** | **56.9%** | `logs/eval_subagent_rag_cluster-vllm_20260414_1115_detail.jsonl` |
 | **ce_threshold** | **55.9%** | `logs/eval_ce_threshold_cluster-vllm_20260415_2022_detail.jsonl` |
 | **gap_rag_nosnap** | **55.9%** | `logs/eval_gap_rag_nosnap_cluster-vllm_20260416_0544_detail.jsonl` |
 | llm_only | 55.5% | `logs/eval_llm_only_cluster-vllm_20260408_1709_detail.jsonl` |
-| **rag_hyde (fixed)** | **57.9%** | Job `48555`; previous 54.3% was from partially broken prompt |
 | rag_simple | 54.2% | `logs/eval_rag_simple_cluster-vllm_20260408_1813_detail.jsonl` |
 | entity_search | 53.2% | `logs/eval_entity_search_cluster-vllm_20260415_0454_detail.jsonl` |
 | vectorless_direct | **CANCELLED** | job `43471` canceled — mode is parametric reasoning, not real corpus search |
 | vectorless_hybrid | **CANCELLED** | job `43471` canceled — same naming / validity issue |
 
-Note: `subagent_rag` looked best at N=200 (66.0%) but does not hold the full-set lead. The best full `snap_hyde` run is **58.6%**; the later 1-gap `subagent_rag` rerun improved to **57.2%**; and both `ce_threshold` and `gap_rag_nosnap` flatten at **55.9%**, barely above `llm_only` (**55.5%**). The planned full-scale "vectorless" runs were canceled because they would only validate extra reasoning steps, not corpus search.
+Note: `subagent_rag` looked best at N=200 (66.0%) but does not hold the full-set lead. The directly comparable repaired HyDE pair is now `snap_hyde` = `rag_hyde` = **57.9%**; the later 1-gap `subagent_rag` rerun improved to **57.2%**; and both `ce_threshold` and `gap_rag_nosnap` flatten at **55.9%**, barely above `llm_only` (**55.5%**). An earlier `snap_hyde` run reached **58.6%**, but the repaired HyDE conclusion is that snap adds **0pp** inside the HyDE family. The planned full-scale "vectorless" runs were canceled because they would only validate extra reasoning steps, not corpus search.
 Scale note: `entity_search` falls **6.8pp** from N=200 to N=1195 (`60.0% -> 53.2%`), while vector `rag_simple` falls only **2.8pp** (`57.0% -> 54.2%`). NLP entity matching is therefore less robust than vector search at scale in the current corpus setup.
 
 ### Cross-Dataset Follow-Up (Gemma 4 E4B, N=200)
@@ -153,15 +159,13 @@ Scale note: `entity_search` falls **6.8pp** from N=200 to N=1195 (`60.0% -> 53.2
 
 2. **Snap helps plain RAG (+5pp) and parametric reasoning (+5pp), but adds zero to HyDE.** Snap is valuable when the retrieval query is the raw question (genre mismatch), but HyDE already solves that problem.
 
-3. **Showing snap to the final agent always hurts (-2 to -4pp).** Confirmed across snap_hyde_report_snap (64%), subagent_rag_snap (63%), subagent_rag_full (62%) — all worse than their no-snap counterparts (66%).
+3. **Showing snap to the final agent always hurts (-2 to -4pp).** Confirmed across `snap_hyde_report_snap` (64.0%), `subagent_rag_snap` (63.0%), and `subagent_rag_full` (62.0%) — all worse than their no-snap counterparts.
 
 4. **Cross-encoder reranking dominates embedding choice.** All 7 non-gte-large embedders converge to exactly 65.0% with question-based reranking. The embedding model barely matters.
 
 5. **Subagent reports help at N=200 but not at full scale.** `subagent_rag` reached 66.0% on N=200; the best full rerun is the 1-gap variant at 57.2%, below `snap_hyde` / `rag_hyde` at 57.9%.
 
-5. **"Vectorless" is competitive, but the name is misleading.** These modes are multi-turn parametric reasoning baselines, not corpus search.
-
-6. **Showing the snap answer in the final call causes anchoring.** Modes that show snap: 0.5-2% answer changes. Modes that hide snap: 7-27% changes.
+6. **"Vectorless" is competitive, but the name is misleading.** These modes are multi-turn parametric reasoning baselines, not corpus search.
 
 7. **GAP_MIN_CE=1.0 was a critical bug** that made all gap experiments into llm_only (0% answer changes). Discovered via fix/break analysis.
 
@@ -204,7 +208,7 @@ Before trusting any result, check:
 | HPC throughput data | `docs/hpc_throughput.md` |
 | This overview | `docs/experiment_overview.md` |
 
-## Current Cluster Status (as of 2026-04-17)
+## Current Cluster Status (as of 2026-04-19)
 
 | Job | Mode | N | Purpose |
 |---|---|---|---|
@@ -212,7 +216,8 @@ Before trusting any result, check:
 | 44394 | snap ablations | 200 | Completed — `rag_hyde` 62.5%, `vectorless_nosnap` 59.5% |
 | 44395 | cross-dataset block | 200 | Completed — HousingQA and CaseHOLD follow-ups logged |
 | 44520 | entity graph rebuild | — | Running — last noted at 74% on 2026-04-14 |
-| 45350 | `rag_hyde` + `ce_threshold` full | 1195 | Completed — `rag_hyde` 54.3%, `ce_threshold` 55.9% |
+| 45350 | `rag_hyde` + `ce_threshold` full | 1195 | Completed — `ce_threshold` 55.9%; the interim `rag_hyde` rerun was later superseded by `48555` |
 | 45735 | `gap_rag_nosnap` + `subagent_rag` (1-gap) full | 1195 | Completed — 55.9%, 57.2% |
-| 48393 | combo modes | 200 | Running — `rag_hyde` fixed, `snap_hyde_report`, `subagent_rag_snap`, etc. |
+| 48393 | combo modes | 200 | Completed — `snap_hyde_report` 66.0%, `snap_hyde_report_snap` 64.0%, `subagent_rag_snap` 63.0%, `subagent_rag_full` 62.0% |
+| 48555 | fixed `rag_hyde` full rerun | 1195 | Completed — `rag_hyde` 57.9%, matching the paired `snap_hyde` rerun |
 | 43471 | vectorless_direct + vectorless_hybrid | 1195 | Cancelled — misnamed parametric-reasoning validation, not corpus search |

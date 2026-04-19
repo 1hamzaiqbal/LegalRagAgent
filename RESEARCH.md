@@ -5,15 +5,15 @@ Persistent research state for the LegalRagAgent project. Read this first in any 
 This project started as a heavy agentic RAG pipeline that hurt performance. We stripped it down, systematically tested each component, and found that simpler adaptive strategies beat complex ones. The long-term goal is still a strong full agentic pipeline, but we're rebuilding toward it intentionally and atomically — testing each element's effectiveness and documenting what works about the research process itself.
 
 ## Current execution status
-- Active cluster work on April 17 is the combo-mode follow-up block `48393` (`snap_hyde_report`, `snap_hyde_report_snap`, `subagent_rag_snap`, `subagent_rag_full`) plus the fixed full `rag_hyde` rerun submission `48555`; since the April 13 handoff, jobs `44394`, `44395`, `45350`, and `45735` all completed successfully. The case-summary build `44371` is done, and the entity-graph rebuild `44520` was last noted at 74%.
+- The April 17 cluster follow-up is now complete: combo-mode block `48393` finished with `snap_hyde_report` **66.0%**, `snap_hyde_report_snap` **64.0%**, `subagent_rag_snap` **63.0%**, and `subagent_rag_full` **62.0%**; fixed full `rag_hyde` rerun `48555` finished at **57.9%** (`692/1195`), matching the paired full `snap_hyde` rerun and confirming snap adds **0pp** inside the HyDE family. Since the April 13 handoff, jobs `44394`, `44395`, `45350`, `45735`, `48393`, and `48555` all completed successfully. The case-summary build `44371` is done, and the entity-graph rebuild `44520` was last noted at 74%.
 - Core Phase 1 small-model baseline block is complete; lower-priority OpenRouter extras (`or-nemotron`, `or-qwen35-9b`) remain explicitly deferred.
-- Best Gemma 4 E4B N=200 result is now a three-way tie at **66.0%**: `subagent_rag`, fixed `rag_hyde`, and `snap_hyde_report`. Full-set Gemma 4 E4B leaderboard (N=1195): `golden_passage` **62.2%**, `snap_hyde` **58.6%**, `subagent_rag` (1-gap) **57.2%**, `subagent_rag` **56.9%**, `ce_threshold` **55.9%**, `gap_rag_nosnap` **55.9%**, `llm_only` **55.5%**, `rag_hyde` **54.3%**, `rag_simple` **54.2%**, `entity_search` **53.2%**.
-- April 17 validation: fixed `rag_hyde` reached **66.0%** at N=200, validating the HyDE prompt fix; `snap_hyde_report` also reached **66.0%** at N=200 in block `48393`, and the fixed full rerun was submitted as job `48555`.
+- Best Gemma 4 E4B N=200 result is now a three-way tie at **66.0%**: `subagent_rag`, fixed `rag_hyde`, and `snap_hyde_report`. The full-set Gemma 4 E4B comparison now centers on the fixed HyDE tie: `golden_passage` **62.2%**, `snap_hyde` **57.9%** (paired rerun; earlier best run **58.6%**), fixed `rag_hyde` **57.9%**, `subagent_rag` (1-gap) **57.2%**, `subagent_rag` **56.9%**, `ce_threshold` **55.9%**, `gap_rag_nosnap` **55.9%**, `llm_only` **55.5%**, `rag_simple` **54.2%**, `entity_search` **53.2%**.
+- April 17 HyDE/combo validation is now closed: fixed `rag_hyde` reached **66.0%** at N=200, `snap_hyde_report` also reached **66.0%**, but every combo that exposed snap to the final agent underperformed: `snap_hyde_report_snap` **64.0%**, `subagent_rag_snap` **63.0%**, `subagent_rag_full` **62.0%**.
 - Subagent follow-up sweep is complete: `subagent_rag` **66.0%**, `subagent_hybrid` **63.5%**, `subagent_rag_evidence` **61.0%** (Gemma 4 E4B, N=200).
 - "Vectorless" baseline sweep is complete: `vectorless_hybrid` **65.0%**, `vectorless_direct` **64.5%**, `vectorless_choice_map` **64.5%**, `vectorless_role` **63.5%**, `vectorless_elements` **61.0%** (Gemma 4 E4B, N=200). Naming caveat: these modes are multi-turn LLM reasoning / parametric-knowledge exploitation, not real corpus search, so the full N=1195 vectorless jobs were canceled.
 - Embedding comparison is complete for supported builds: **7 embedders tested**; `jina-v3`, `arctic-l-v2`, and `nomic-v2-moe` all finished at 61.5% `rag_simple` / 64.5% `rag_snap_hyde`; `gte-qwen2-1.5b` and `stella-1.5b` failed to build.
 - Gap-family reruns are complete: `gap_rag_nosnap` **64.5%**, fixed `gap_rag` **63.5%**, fixed `gap_hyde_nosnap` **62.5%**, fixed `gap_hyde` **62.0%**, and `gap_vectorless` **61.5%** on Gemma 4 E4B (N=200). Anchoring is real, but the gap family still trails the best simpler baselines.
-- `logs/experiments.jsonl` now contains **189** completed experiment records.
+- `logs/experiments.jsonl` now contains **195** completed experiment records.
 
 ---
 
@@ -58,15 +58,17 @@ Drawn from [Karpathy autoresearch](https://github.com/karpathy/autoresearch) and
 
 | Method | Accuracy | Scale | Notes |
 |--------|----------|-------|-------|
-| `subagent_rag` | **66.0%** | N=200 | Best current Gemma 4 E4B result |
-| `rag_snap_hyde` | **65.5%** | N=200 | Best small-model retrieval baseline |
-| `gap_rag_nosnap` | **64.5%** | N=200 | Best gap-family no-snap control |
+| `subagent_rag` / fixed `rag_hyde` / `snap_hyde_report` | **66.0%** | N=200 | Current top tie on Gemma 4 E4B |
+| `rag_snap_hyde` | **65.5%** | N=200 | Best 3-call retrieval baseline |
 | `vectorless_hybrid` | **65.0%** | N=200 | Best vectorless result |
+| `gap_rag_nosnap` | **64.5%** | N=200 | Best gap-family no-snap control |
 | `vectorless_direct` / `vectorless_choice_map` | **64.5%** | N=200 | No vector store required |
-| `subagent_hybrid` / `vectorless_role` | **63.5%** | N=200 | Second-tier follow-ups |
+| `snap_hyde_report_snap` | **64.0%** | N=200 | Showing snap in the final report-first call costs 2pp |
+| `subagent_hybrid` / `vectorless_role` / fixed `gap_rag` | **63.5%** | N=200 | Second-tier follow-ups |
+| `subagent_rag_snap` / `subagent_rag_full` | **63.0%** / **62.0%** | N=200 | Showing snap or raw passages to the final subagent hurts |
 | `gap_hyde_nosnap` (fixed) | **62.5%** | N=200 | Anchoring-control improvement over fixed `gap_hyde` |
-| `gap_rag` (fixed) | **63.5%** | N=200 | Improved after the prompt/schema fix, still below snap/vectorless |
-| `rag_snap_hyde` | **58.6%** | full N=1195 | Best clean full run (`700/1195`); later rerun landed at 57.9% (`692/1195`) |
+| fixed `rag_hyde` / `snap_hyde` (paired rerun) | **57.9%** | full N=1195 | Snap adds 0pp once the HyDE prompt is fixed; an earlier `snap_hyde` run peaked at 58.6% |
+| `subagent_rag` (1-gap) | **57.2%** | full N=1195 | Best non-HyDE combo full run |
 | `llm_only` | **55.5%** | full N=1195 | Full small-model baseline |
 
 Note: the `vectorless_*` label is historical shorthand. These are multi-turn LLM reasoning / parametric-knowledge modes, not real corpus search. `vectorless_hybrid` is the only one that still pools generated knowledge with vector retrieval.
@@ -88,10 +90,10 @@ Note: the `vectorless_*` label is historical shorthand. These are multi-turn LLM
 2. **Confidence gating works for random errors, not systematic bias** — BarExam: +2.5 over snap_hyde; HousingQA: -5.5 (model unanimously wrong, gating skips)
 3. **Self-consistency (3-vote) is a good uncertainty signal** — Scout disagrees more (40%) than Llama (23%), correctly routing more to RAG
 4. **Counterevidence retrieval consistently hurts** — devil -6, top-2 -3
-5. **Subagent reports are the strongest current small-model strategy** — `subagent_rag` reached 66.0%, beating `rag_snap_hyde` by 0.5pp
-6. **"Vectorless" is competitive, but the name is misleading** — `vectorless_hybrid` (65.0%) nearly matches `rag_snap_hyde` (65.5%), but these runs test multi-turn parametric reasoning, not corpus search
-7. **Gap variants improved after the fix, but not enough** — `gap_rag_nosnap` reached 64.5% and fixed `gap_hyde_nosnap` reached 62.5%, confirming anchoring without overtaking the best simpler baselines
-8. **Full-scale Gemma is still retrieval-limited** — best full `snap_hyde` is 58.6% vs `golden_passage` 62.2%, and even the improved `subagent_rag` 1-gap rerun only reached 57.2%
+5. **HyDE is the real driver in the strongest retrieval family** — fixed `rag_hyde` reached **66.0%** at N=200 and matches the paired full `snap_hyde` rerun at **57.9%**, implying that passage-form query generation, not the snap step itself, is doing the critical work.
+6. **Snap helps plain RAG and parametric reasoning, not HyDE** — plain RAG and `vectorless_*` / parametric reasoning still show **+5pp** snap gains, but the HyDE family collapses to **0pp** once the prompt bug is fixed.
+7. **Showing snap to the final agent consistently hurts** — `snap_hyde_report_snap` drops to **64.0%** vs `snap_hyde_report` **66.0%**, `subagent_rag_snap` drops to **63.0%**, and `subagent_rag_full` drops to **62.0%** vs `subagent_rag` **66.0%**.
+8. **Full-scale Gemma is still retrieval-limited** — even the repaired HyDE tie at **57.9%** remains well below `golden_passage` **62.2%**, so retrieval quality is still the main bottleneck.
 
 ---
 
@@ -160,6 +162,15 @@ Each experiment follows the sprint contract format: hypothesis, change, success 
 - **What is already done**: `vectorless_hybrid` **65.0%**, `vectorless_direct` / `vectorless_choice_map` **64.5%**, `vectorless_role` **63.5%**, `vectorless_elements` **61.0%**.
 - **What remains**: define a real corpus-search control (`vectorless_keyword`, BM25 / structured index navigation, or similar) before any new full-scale follow-up.
 
+#### ~~12. Combo-mode anchoring controls~~ — COMPLETED (2026-04-17)
+- **Architecture tested**: `snap_hyde_report`, `snap_hyde_report_snap`, `subagent_rag_snap`, `subagent_rag_full`
+- **Result**: `snap_hyde_report` matched the N=200 lead at **66.0%**, but every variant that exposed snap to the final agent underperformed: `snap_hyde_report_snap` **64.0%**, `subagent_rag_snap` **63.0%**, `subagent_rag_full` **62.0%**
+- **Keep/discard**: keep report-only compression as a valid control; discard visible-snap combo variants as a main direction
+
+#### ~~13. Full fixed HyDE rerun~~ — COMPLETED (2026-04-17)
+- **Result**: fixed full `rag_hyde` reached **57.9%** (`692/1195`), matching the paired full `snap_hyde` rerun exactly
+- **Keep/discard**: keep the HyDE prompt fix unconditionally; discard the old apparent `+3pp` snap lift in the HyDE family as a bug artifact
+
 ---
 
 ## Plan Snapshot (2026-04-17)
@@ -191,10 +202,10 @@ Completed; the gap family topped out at **64.5%** (`gap_rag_nosnap`) after the a
 ### Phase 3: Historical vectorless / parametric reasoning (completed 2026-04-13)
 Completed initial sweep; `vectorless_hybrid` reached **65.0%** and `vectorless_direct` reached **64.5%** on Gemma 4 E4B (N=200). Naming caveat: these are multi-turn parametric-knowledge baselines, not real corpus-search baselines, so the full N=1195 vectorless jobs were canceled.
 
-### Phase 4: April 17 handoff
-1. Completed since the April 13 snapshot: case-summary build `44371`, snap ablations `44394`, cross-dataset block `44395`, full `rag_hyde` + `ce_threshold` block `45350`, full `gap_rag_nosnap` + `subagent_rag` 1-gap block `45735`, and the April 17 N=200 HyDE-fix validation.
-2. Running now: combo-mode N=200 block `48393` (`snap_hyde_report`, `snap_hyde_report_snap`, `subagent_rag_snap`, `subagent_rag_full`).
-3. Submitted now: fixed full `rag_hyde` rerun `48555` after the April 17 validation recovered `rag_hyde` to **66.0%** at N=200.
+### Phase 4: April 17 closure
+1. Completed since the April 13 snapshot: case-summary build `44371`, snap ablations `44394`, cross-dataset block `44395`, full `rag_hyde` + `ce_threshold` block `45350`, full `gap_rag_nosnap` + `subagent_rag` 1-gap block `45735`, combo block `48393`, and fixed full `rag_hyde` rerun `48555`.
+2. Combo-mode results: `snap_hyde_report` **66.0%**, `snap_hyde_report_snap` **64.0%**, `subagent_rag_snap` **63.0%**, `subagent_rag_full` **62.0%**.
+3. Full fixed `rag_hyde` rerun `48555`: **57.9%** (`692/1195`), tying the paired full `snap_hyde` rerun and collapsing the HyDE snap lift to **0pp**.
 4. Still open: define and run a real non-vector corpus-search control (`vectorless_keyword`, BM25, or structured index navigation) instead of the misleading parametric "vectorless" label.
 5. Still open: integrate `confidence_gated` or another validated routing policy into `main.py` once the eval-side direction is stable.
 
@@ -256,18 +267,18 @@ Completed initial sweep; `vectorless_hybrid` reached **65.0%** and `vectorless_d
 - 2026-04-05 full-set comparisons: `or-gemma27b` baseline landed at **57.99%**; `golden_passage` materially beat plain retrieval on both `or-qwen3-32b` and `or-gemma27b`, confirming retrieval quality as the main bottleneck.
 - 2026-04-07 through 2026-04-11 HPC block: full Qwen3-8B and Gemma 4 E4B runs completed; the focused 7-embedder sweep completed with 2 documented build failures.
 - 2026-04-14 block: snap/no-snap ablations and cross-dataset follow-up both completed; full `subagent_rag` landed at **56.9%** (`680/1195`); and the misnamed full-vectorless jobs were formally canceled.
-- 2026-04-15 block: `entity_search` full landed at **53.2%** (`636/1195`); `snap_entity_informed` reached **59.5%**; `subagent_hyde` reached **62.5%**; and the fixed full `rag_hyde` rerun completed at **54.3%** (`649/1195`).
+- 2026-04-15 block: `entity_search` full landed at **53.2%** (`636/1195`); `snap_entity_informed` reached **59.5%**; `subagent_hyde` reached **62.5%**; and the first full `rag_hyde` rerun was later superseded by the repaired April 17 rerun.
 - 2026-04-16 block: full `ce_threshold` landed at **55.9%** (`668/1195`), full `gap_rag_nosnap` landed at **55.9%** (`668/1195`), and the full `subagent_rag` 1-gap rerun improved to **57.2%** (`684/1195`). `logs/experiments.jsonl` reached **189** entries.
-- 2026-04-17 block: fixed `rag_hyde` validated at **66.0%** (`132/200`), `snap_hyde_report` also reached **66.0%** (`132/200`), combo modes `snap_hyde_report`, `snap_hyde_report_snap`, `subagent_rag_snap`, and `subagent_rag_full` were launched in job `48393`, and the repaired full `rag_hyde` rerun was submitted as job `48555`.
+- 2026-04-17 block: fixed `rag_hyde` validated at **66.0%** (`132/200`), `snap_hyde_report` also reached **66.0%** (`132/200`), combo block `48393` closed with `snap_hyde_report_snap` **64.0%**, `subagent_rag_snap` **63.0%**, and `subagent_rag_full` **62.0%**, and the repaired full `rag_hyde` rerun `48555` finished at **57.9%** (`692/1195`). `logs/experiments.jsonl` now contains **195** entries.
 
 ### Current handoff
-- Verified complete: Phase 1 small-model baselines, Gemma/Qwen HPC full runs, focused embedding sweep, historical vectorless baseline sweep, anchoring controls, subagent follow-up sweep, fixed gap reruns, snap ablations, cross-dataset follow-up, the April 15-16 full rerun block, and the April 17 HyDE-fix validation. `logs/experiments.jsonl` remains at **189** recorded runs.
+- Verified complete: Phase 1 small-model baselines, Gemma/Qwen HPC full runs, focused embedding sweep, historical vectorless baseline sweep, anchoring controls, subagent follow-up sweep, fixed gap reruns, snap ablations, cross-dataset follow-up, the April 15-16 full rerun block, the combo-mode controls, and the repaired April 17 full HyDE rerun. `logs/experiments.jsonl` now contains **195** recorded runs.
 - Verified but still lower-priority historical findings: `golden_passage` consistently outperforms current plain retrieval on the strongest full-set models; `confidence_gated` remains the best Llama 70B adaptive baseline after `ce_threshold`.
-- Full N=1195 leaderboard on April 17: `golden_passage` **62.2%**, `snap_hyde` **58.6%**, `subagent_rag` (1-gap) **57.2%**, `subagent_rag` **56.9%**, `ce_threshold` **55.9%**, `gap_rag_nosnap` **55.9%**, `llm_only` **55.5%**, `rag_hyde` **54.3%**, `rag_simple` **54.2%**, `entity_search` **53.2%**.
-- Running now: combo-mode job `48393` (`snap_hyde_report`, `snap_hyde_report_snap`, `subagent_rag_snap`, `subagent_rag_full`).
-- Submitted / newly validated: fixed `rag_hyde` reached **66.0%** (`132/200`) at N=200, `snap_hyde_report` matched **66.0%** (`132/200`), and the repaired full `rag_hyde` rerun is job `48555`.
+- Full N=1195 comparison on the fixed HyDE path: `golden_passage` **62.2%**, `snap_hyde` **57.9%** (paired rerun; earlier best run **58.6%**), fixed `rag_hyde` **57.9%**, `subagent_rag` (1-gap) **57.2%**, `subagent_rag` **56.9%**, `ce_threshold` **55.9%**, `gap_rag_nosnap` **55.9%**, `llm_only` **55.5%**, `rag_simple` **54.2%**, `entity_search` **53.2%**.
+- Newly closed: combo-mode job `48393` confirmed that showing snap to the final agent always hurts (`snap_hyde_report_snap` **64.0%**, `subagent_rag_snap` **63.0%**, `subagent_rag_full` **62.0%**) relative to the hidden-snap controls.
+- Newly closed: fixed `rag_hyde` reached **66.0%** (`132/200`) at N=200 and **57.9%** (`692/1195`) at full scale, tying the paired `snap_hyde` rerun and invalidating the old apparent `+3pp` HyDE snap lift.
 - Still pending: real corpus-search follow-ups that use the finished case-summary layer / rebuilt entity graph, `vectorless_keyword`, plus deferred OpenRouter baselines `or-nemotron` and `or-qwen35-9b`.
-- Most likely next high-signal work: analyze `48393` and `48555` once they finish, then test real corpus-search controls or integrate `confidence_gated` into `main.py`.
+- Most likely next high-signal work: use the now-closed `48393` / `48555` results to tighten the paper narrative, then test real corpus-search controls or integrate `confidence_gated` into `main.py`.
 
 ### Blockers
 - Cluster GPU availability (general-gpu partition, priority queue)

@@ -14,6 +14,66 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 **Commit:** hash
 ```
 
+### 2026-04-17 — Fixed full `rag_hyde` ties `snap_hyde` at N=1195
+**Hypothesis:** If HyDE itself is the load-bearing change, then a truly fixed full `rag_hyde` rerun should recover to the same full-scale range as `snap_hyde` rather than lagging it by several points.
+
+**Change:** Reran full-set `rag_hyde` with the repaired HyDE prompt as job `48555`.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`rag_hyde`, dataset=`barexam`, N=`1195`, avg_llm_calls=`2.0`, job=`48555`.
+
+**Result:** fixed full `rag_hyde` = **57.9%** (`692/1195`), exactly matching the paired full `snap_hyde` rerun at **57.9%** and beating `llm_only` (**55.5%**) by +2.4pp. This supersedes the earlier prompt-tainted full rerun artifact.
+
+**Verdict:** CONFIRMED — once the HyDE prompt is actually fixed, snap adds **0pp** inside the HyDE family at full scale. HyDE is the real driver.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-17 — `subagent_rag_full` shows that maximum information makes the final step worse
+**Hypothesis:** If the final decision-maker sees reports, the snap answer, and raw passages together, it should have the most complete picture and outperform the leaner report-only subagent setup.
+
+**Change:** Ran `subagent_rag_full` as part of combo-mode block `48393`.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`subagent_rag_full`, dataset=`barexam`, N=`200`, seed=`42`, job=`48393`.
+
+**Result:** `subagent_rag_full` = **62.0%** (`124/200`), which is **-4.0pp** below `subagent_rag` (**66.0%**) and **-1.0pp** below `subagent_rag_snap` (**63.0%**).
+
+**Verdict:** REFUTED — more information is not helping here. Exposing the final agent to snap plus raw passages adds noise and anchoring rather than useful signal.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-17 — `subagent_rag_snap` confirms that visible snap hurts the report-based subagent path
+**Hypothesis:** If snap is still useful after the subagents have already compressed the evidence into reports, then showing the snap answer to the final agent should improve `subagent_rag`.
+
+**Change:** Ran `subagent_rag_snap` as part of combo-mode block `48393`.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`subagent_rag_snap`, dataset=`barexam`, N=`200`, seed=`42`, job=`48393`.
+
+**Result:** `subagent_rag_snap` = **63.0%** (`126/200`), which is **-3.0pp** below the hidden-snap `subagent_rag` baseline at **66.0%**.
+
+**Verdict:** REFUTED — once the evidence has been compressed into subagent reports, exposing the snap answer to the final agent is strictly harmful.
+
+**Commit:** bc6e361
+
+---
+
+### 2026-04-17 — `snap_hyde_report_snap` loses the report-only gain
+**Hypothesis:** If the report-first HyDE combo is still missing useful context, then restoring the snap answer to the final call should recover or improve on the report-only result.
+
+**Change:** Ran `snap_hyde_report_snap` as part of combo-mode block `48393`.
+
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`snap_hyde_report_snap`, dataset=`barexam`, N=`200`, seed=`42`, job=`48393`.
+
+**Result:** `snap_hyde_report_snap` = **64.0%** (`128/200`), which is **-2.0pp** below `snap_hyde_report` (**66.0%**).
+
+**Verdict:** REFUTED — the report-only setup was already the better version. Reintroducing snap to the final call hurts even after evidence is compressed into a report.
+
+**Commit:** bc6e361
+
+---
+
 ### 2026-04-17 — `snap_hyde_report` immediately matches the top N=200 tier
 **Hypothesis:** A report-first HyDE combo should preserve the repaired HyDE retrieval gains while matching or beating the strongest current Gemma 4 E4B N=200 baselines.
 
@@ -89,32 +149,32 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 
 ---
 
-### 2026-04-15 — Fixed full `rag_hyde` rerun is valid but still non-competitive
+### 2026-04-15 — First full `rag_hyde` rerun was later superseded by the repaired April 17 rerun
 **Hypothesis:** Once the HyDE prompt bug was fixed, pure HyDE retrieval might recover enough scale performance to beat plain RAG and move closer to the full `snap_hyde` baseline.
 
-**Change:** Reran full-set `rag_hyde` with the corrected HyDE prompt after invalidating the earlier 11-character-output run.
+**Change:** Reran full-set `rag_hyde` after invalidating the earlier 11-character-output run, then followed up again on April 17 with the repaired prompt variant that became the new source of truth.
 
-**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`rag_hyde`, dataset=`barexam`, N=`1195`, avg_llm_calls=`2.0`.
+**Config:** provider=`custom` (`cluster-vllm`), model=`google/gemma-4-E4B-it`, mode=`rag_hyde`, dataset=`barexam`, N=`1195`, avg_llm_calls=`2.0`, status=`superseded rerun`.
 
-**Result:** `rag_hyde` = **54.3%** (`649/1195`). The prompt fix recovered a valid run and puts pure HyDE just above `rag_simple` (**54.2%**), but still below `llm_only` (**55.5%**) and far below the best full `snap_hyde` run (**58.6%**).
+**Result:** This intermediate rerun was later superseded by the repaired April 17 full result at **57.9%** (`692/1195`), which ties the paired full `snap_hyde` rerun instead of trailing it badly.
 
-**Verdict:** REFUTED — fixing the prompt recovered a real full `rag_hyde` result, but pure HyDE retrieval is still not competitive with the stronger full-set baselines.
+**Verdict:** SUPERSEDED — keep the April 17 repaired full rerun as the real HyDE full-scale result.
 
 **Commit:** bc6e361
 
 ---
 
-## Paper Core Result — Snap Ablation (Gemma 4 E4B, BarExam N=200)
+## Paper Core Result — Snap Ablation (Gemma 4 E4B, BarExam)
 
-This is the paper's core result: the snap step adds **+3.0pp to HyDE**, **+5.0pp to plain RAG**, and **+5.0pp to parametric reasoning** under the Gemma 4 E4B BarExam N=200 setting.
+This is the current paper-core result: the snap step adds **0.0pp to HyDE** once the prompt bug is fixed, **+5.0pp to plain RAG**, and **+5.0pp to parametric reasoning** under the Gemma 4 E4B BarExam setting.
 
 | Family | No-snap mode | No-snap acc | Snap mode | Snap acc | Snap lift | Interpretation |
 |---|---|---|---|---|---|---|
-| HyDE retrieval | `rag_hyde` | 62.5% | `snap_hyde` | 65.5% | **+3.0pp** | Snap still matters even when HyDE retrieval is already present |
+| HyDE retrieval* | `rag_hyde` | 57.9% | `snap_hyde` | 57.9% | **0.0pp** | The earlier `+3.0pp` estimate was a broken-prompt artifact; HyDE itself is the driver |
 | Plain RAG* | `rag_simple` | 57.0% | `snap_rag` | 62.0% | **+5.0pp** | The biggest gain in standard RAG is the snap step, not the retrieval call alone |
 | Parametric reasoning | `vectorless_nosnap` | 59.5% | `vectorless_direct` | 64.5% | **+5.0pp** | Multi-turn parametric reasoning only helps when it starts from a forced snap answer |
 
-*Plain-RAG uses the existing `gte-large` April 10 ablation pair (`rag_simple` vs `snap_rag`) so the comparison stays aligned with the paper's reference setting.
+*HyDE uses the repaired full N=1195 comparison because the earlier April 14 N=200 `rag_hyde` control was later shown to be prompt-tainted. Plain-RAG uses the existing `gte-large` April 10 ablation pair (`rag_simple` vs `snap_rag`) so the comparison stays aligned with the paper's reference setting.
 
 ## Established baselines (N=100, seed=42)
 
@@ -182,7 +242,7 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 
 **Result:** **BROKEN / INVALID** — the attempted full run produced **100% 11-character HyDE outputs**, so there is no valid accuracy number to report from that job. The prompt was fixed and later rerun successfully as a separate full entry.
 
-**Verdict:** INVALIDATED — this was a prompt bug, not a real model result. The corrected rerun later completed at **54.3%**.
+**Verdict:** INVALIDATED — this was a prompt bug, not a real model result. The repaired April 17 rerun later completed at **57.9%**.
 
 **Commit:** N/A (cluster run status / resubmission)
 
@@ -220,7 +280,7 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 
 ---
 
-### 2026-04-14 — Snap vs no-snap ablation confirms the paper's core claim
+### 2026-04-14 — Snap vs no-snap ablation confirmed the core claim for plain RAG and parametric reasoning; the HyDE row was later revised
 
 **Hypothesis:** If snap is the real source of lift, removing it should hurt not just plain RAG, but also HyDE retrieval and the historical `vectorless_*` / parametric-reasoning family.
 
@@ -232,16 +292,16 @@ Note: HousingQA is Yes/No format, 65% No / 35% Yes class imbalance. LLM has mass
 
 | Family | No-snap mode | No-snap acc | Snap mode | Snap acc | Delta |
 |---|---|---|---|---|---|
-| HyDE retrieval | `rag_hyde` | 62.5% (`125/200`) | `snap_hyde` | 65.5% (`131/200`) | **+3.0pp** |
+| HyDE retrieval | `rag_hyde` | 62.5% (`125/200`) | `snap_hyde` | 65.5% (`131/200`) | **later invalidated** |
 | Plain RAG | `rag_simple` | 57.0% (`114/200`) | `snap_rag` | 62.0% (`124/200`) | **+5.0pp** |
 | Parametric reasoning | `vectorless_nosnap` | 59.5% (`119/200`) | `vectorless_direct` | 64.5% (`129/200`) | **+5.0pp** |
 
 **Key findings:**
-1. The snap lift is not specific to one architecture: it survives in HyDE retrieval, plain RAG, and no-retrieval parametric reasoning.
-2. The HyDE family still benefits from snap, but the gain is smaller (+3.0pp) than in plain RAG / parametric reasoning (+5.0pp).
-3. This is the cleanest paper table so far because each pair isolates snap while holding the rest of the pipeline fixed.
+1. The snap lift is not specific to one architecture: the plain-RAG and no-retrieval parametric-reasoning controls both show the same **+5.0pp** gain.
+2. The HyDE row in this original table was later revised away after the repaired full rerun showed `rag_hyde` = `snap_hyde` = **57.9%** at N=1195.
+3. The main durable lesson from this block is that snap helps when the system otherwise uses raw question queries or pure parametric reasoning, but not once HyDE is already doing the question-to-passage translation.
 
-**Verdict:** CONFIRMED — snap is the paper's core result, not a side effect of one retrieval recipe.
+**Verdict:** MIXED — confirmed for plain RAG and parametric reasoning; later evidence revised the HyDE snap lift to **0pp**.
 
 **Commit:** bc6e361
 
