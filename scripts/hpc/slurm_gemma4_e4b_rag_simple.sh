@@ -34,6 +34,10 @@ export VLLM_NO_USAGE_STATS=1
 export PYTHONUNBUFFERED=1
 export XDG_CACHE_HOME="/engrfs/tmp/jacobsn/hiqbal_legalrag/cache"
 export TORCH_HOME="/engrfs/tmp/jacobsn/hiqbal_legalrag/cache/torch"
+# Force HF offline — cluster network is flaky and all artifacts are cached.
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export HF_DATASETS_OFFLINE=1
 mkdir -p "$XDG_CACHE_HOME"
 
 cleanup() {
