@@ -236,17 +236,28 @@ def _sanitize_intermediate_text(text: str, fallback: str = "") -> str:
         cleaned,
     )
 
-    # Remove common generated headings while keeping the substantive passage.
+    # Remove heading-only lines like `**Passage:**` or `**Legal Reference Passage:**`
+    # (with optional closing bold markers after the colon).
     cleaned = re.sub(
-        r"(?im)^\s*(?:\*\*)?(?:relevant legal passage|legal reference passage|passage)(?:\*\*)?\s*:\s*$",
+        r"(?im)^\s*\*\*\s*(?:relevant legal passage|legal reference passage|passage)\s*:?\s*\*\*\s*:?\s*$",
+        "",
+        cleaned,
+    )
+    # Remove inline label prefixes like `**Passage:** <text>` or `Passage: <text>`.
+    cleaned = re.sub(
+        r"(?im)^\s*\*\*\s*(?:relevant legal passage|legal reference passage|passage)\s*:?\s*\*\*\s*:?\s*",
         "",
         cleaned,
     )
     cleaned = re.sub(
-        r"(?im)^\s*(?:\*\*)?(?:relevant legal passage|legal reference passage|passage)(?:\*\*)?\s*:\s*",
+        r"(?im)^\s*(?:relevant legal passage|legal reference passage|passage)\s*:\s*",
         "",
         cleaned,
     )
+
+    # Strip any leftover orphaned bold markers or decorative separators at the start
+    # (e.g., stray `**` left after the label was removed, or `***` dividers).
+    cleaned = re.sub(r"\A(?:\s*(?:\*{1,}|-{3,}|_{3,})\s*)+", "", cleaned)
 
     lines = []
     prev_blank = False
@@ -273,15 +284,17 @@ def _question_only_hyde_user(question_text: str) -> str:
     """Structured user payload for question-only HyDE generation."""
     return (
         "## Task\n"
-        "Write a short passage from a legal reference that would be useful for answering the "
-        "question below.\n\n"
-        "## Original Legal Question\n"
+        "Write a passage that would appear in a legal treatise or casebook — the kind of "
+        "passage a researcher would find when looking up the doctrine behind the scenario "
+        "below. This is NOT a multiple-choice task; do not pick an option.\n\n"
+        "## Scenario (for context only)\n"
         f"{question_text}\n\n"
         "## Passage Requirements\n"
-        "- Write 2-3 sentences in legal reference style\n"
+        "- 2-3 sentences, legal reference style\n"
         "- State the controlling rule, doctrine, holding, exception, or principle directly\n"
-        "- Focus on the legal issue most likely to determine the answer\n"
-        "- Do not discuss the question itself, answer in exam style, or say 'the answer is'\n"
+        "- Focus on the legal issue most likely controlling the scenario\n"
+        "- Start with the doctrinal text itself — no 'Answer:', no letter labels, "
+        "no '**Passage:**' header, no bold or markdown\n"
     )
 
 
@@ -294,8 +307,17 @@ def _snap_hyde_user(question_text: str, snap_answer: str, gap_focus: str = "") -
             f"Focus on verifying or correcting this specific issue:\n{gap_focus}"
         ).strip()
     return (
-        f"## Student's Answer and Reasoning\n{reasoning}\n\n"
-        f"## Original Question\n{question_text}"
+        "## Task\n"
+        "Write a passage that would appear in a legal treatise or casebook — one that a "
+        "researcher would use to verify or correct the reasoning below. This is NOT a "
+        "multiple-choice task; do not pick an option.\n\n"
+        f"## Student's Reasoning (for context only)\n{reasoning}\n\n"
+        f"## Scenario (for context only)\n{question_text}\n\n"
+        "## Passage Requirements\n"
+        "- 2-3 sentences, legal reference style\n"
+        "- State the controlling rule, doctrine, holding, exception, or principle directly\n"
+        "- Start with the doctrinal text itself — no 'Answer:', no letter labels, "
+        "no '**Passage:**' header, no bold or markdown\n"
     )
 
 
@@ -459,18 +481,32 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
         ),
         "rag": _RAG_SYSTEM,
         "hyde": (
-            "You are a legal textbook author. A legal question is provided below. "
-            "Write a short passage (2-3 sentences) from a legal reference that would be "
-            "most relevant to answering this question. Focus on the specific doctrine, rule, "
-            "or exception at the heart of the question. Write in reference style — state the "
-            "law directly. Do not discuss the question itself or say 'the answer is'."
+            "You are a legal textbook author. Write a short passage (2-3 sentences) from "
+            "a legal reference that states the doctrine, rule, or exception most relevant "
+            "to the question below. Write in reference style — state the law directly.\n\n"
+            "STRICT OUTPUT RULES:\n"
+            "- Begin your response with the doctrinal text itself.\n"
+            "- Do NOT begin with 'Answer:', 'Answer (X)', or any multiple-choice letter.\n"
+            "- Do NOT include headers like '**Passage:**', '**Legal Reference Passage:**', "
+            "'Relevant Legal Passage:', or any label before the passage.\n"
+            "- Do NOT mention the question, the choices, or which option is correct.\n"
+            "- Do NOT use markdown bolding, bullet points, or section dividers.\n"
+            "- Output only the passage body, nothing else."
         ),
         "snap_hyde": (
-            "You are a legal textbook author. A student has answered a legal question and provided "
-            "their reasoning. Write a short passage (2-3 sentences) from a legal reference that "
-            "would be most relevant to verifying or correcting this answer. Focus on the specific "
-            "doctrine, rule, or exception at the heart of the question. Write in reference style — "
-            "state the law directly."
+            "You are a legal textbook author. A student has answered a legal question and "
+            "provided their reasoning. Write a short passage (2-3 sentences) from a legal "
+            "reference stating the doctrine, rule, or exception most relevant to verifying "
+            "or correcting that reasoning. Write in reference style — state the law directly.\n\n"
+            "STRICT OUTPUT RULES:\n"
+            "- Begin your response with the doctrinal text itself.\n"
+            "- Do NOT begin with 'Answer:', 'Answer (X)', or any multiple-choice letter.\n"
+            "- Do NOT include headers like '**Passage:**', '**Legal Reference Passage:**', "
+            "'Relevant Legal Passage:', or any label before the passage.\n"
+            "- Do NOT mention the student's reasoning, the question, the choices, or which "
+            "option is correct.\n"
+            "- Do NOT use markdown bolding, bullet points, or section dividers.\n"
+            "- Output only the passage body, nothing else."
         ),
         "devil_hyde": (
             "You are a legal textbook author. A student has answered a legal question. "
