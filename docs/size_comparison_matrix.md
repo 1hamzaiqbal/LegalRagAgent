@@ -34,6 +34,18 @@ The N=200 mini-eval showed `rag_hyde` 59.5% → `rag_snap_hyde` 66.5% = **+7pp s
 
 Currently observable at full N=1195 post-fix E4B: `rag_simple` → `rag_snap_hyde` = **+2.7pp** (55.7% → 58.4%). Waiting on `rag_hyde` + `snap_only_in_final` to finish the 4-mode comparison.
 
+### 2026-04-21 late — E4B full HyDE + 26B llm_only landed
+
+**E4B full N=1195 lift decomposition (clean, post-fix):**
+- `rag_simple` 55.7% → `rag_hyde` **57.7%** (50858): HyDE lift = **+2.0pp**
+- `rag_hyde` 57.7% → `rag_snap_hyde` 58.4%: snap lift over HyDE = **+0.7pp** (noise floor — confirms the N=200 "+7pp" was noise)
+
+**26B-A4B full N=1195 (50868 + 50990):**
+- `llm_only` **74.3%** (889/1195) ≈ `rag_hyde` 74.2%: **retrieval contributes literally 0pp at 25B scale**
+- `rag_simple` 70.8% → `llm_only` 74.3% = **+3.5pp by removing retrieval** — parametric knowledge beats the BM25/HyDE retrieval noise
+
+**Emerging narrative shift**: at 25B+ scale, parametric knowledge dominates retrieval. HyDE edges out plain RAG because HyDE at least grabs doctrinally-relevant passages, but both are no better than `llm_only`. The "retrieval-first" framing may not survive at scale — we need to see 31B `llm_only` + `rag_hyde` to confirm the pattern.
+
 ## Jobs submitted
 
 | Model | Size | N | Job ID | Target | SLURM script | Est. wall |
