@@ -69,11 +69,11 @@ export HF_HOME="$HF_CACHE"
 export SENTENCE_TRANSFORMERS_HOME="$HF_CACHE"
 export XDG_CACHE_HOME="$XDG_CACHE_HOME"
 export TORCH_HOME="$TORCH_HOME"
-# Triton + uv caches default to $HOME (30GB quota) — redirect to engrfs.
-# Triton cache is PER-JOB: NFS can't handle the atomic tmp-rename pattern
-# when multiple jobs write to the same cache dir concurrently (OSError
-# 'Device or resource busy' at engine init). uv cache can be shared.
-export TRITON_CACHE_DIR="$XDG_CACHE_HOME/triton/${SLURM_JOB_ID:-local}"
+# Triton MUST use node-local scratch; even with a per-job subdirectory,
+# NFS engrfs returns EBUSY on Triton's concurrent rename pattern (worker
+# threads race to compile the same kernel). /tmp is ext4/xfs on the
+# compute node and handles rename correctly. uv cache can stay on engrfs.
+export TRITON_CACHE_DIR="/tmp/hiqbal-triton/${SLURM_JOB_ID:-local}"
 export UV_CACHE_DIR="$XDG_CACHE_HOME/uv"
 mkdir -p "$TRITON_CACHE_DIR" "$UV_CACHE_DIR"
 export CHROMA_DB_DIR="$CHROMA_DB_DIR"
