@@ -172,6 +172,30 @@ def test_strip_answer_line_handles_yesno():
     assert "30 days notice" in stripped
 
 
+def test_open_answer_judge_handles_INCORRECT():
+    """Regression: 'INCORRECT' verdict must NOT be scored as correct.
+
+    Pre-fix logic was `'CORRECT' in verdict.upper()` which returned True for
+    'INCORRECT' because the substring is present. Whole-word check required.
+    """
+    import re
+
+    def score(verdict: str) -> bool:
+        upper = verdict.upper()
+        if re.search(r"\bINCORRECT\b", upper):
+            return False
+        return bool(re.search(r"\bCORRECT\b", upper))
+
+    assert score("CORRECT") is True
+    assert score("INCORRECT") is False
+    assert score("The student's answer is INCORRECT.") is False
+    assert score("The student's answer is CORRECT.") is True
+    assert score("Verdict: **INCORRECT**") is False
+    assert score("Verdict: correct") is True  # case-insensitive
+    # Mixed verdict — rare but possible with a chatty judge — err on the side of INCORRECT
+    assert score("Partially correct — mostly INCORRECT") is False
+
+
 def test_contains_answer_artifact_detects():
     """Leak detector (used by analyze_detail_flags) must match all observed shapes."""
     for s in LEAKY_SAMPLES:

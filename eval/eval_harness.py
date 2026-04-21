@@ -597,7 +597,13 @@ def _judge_open_answer(question: str, gold: str, predicted: str, config: EvalCon
         f"## Student's Answer\n{predicted}"
     )
     verdict = _llm_call(judge_system, judge_user, label="judge")
-    return "CORRECT" in verdict.upper()
+    # Bug fix: "INCORRECT" contains "CORRECT", so a substring check silently
+    # scored every negative verdict as correct. Extract a whole-word token.
+    # Priority: if INCORRECT appears as a standalone word, it wins.
+    upper = verdict.upper()
+    if re.search(r"\bINCORRECT\b", upper):
+        return False
+    return bool(re.search(r"\bCORRECT\b", upper))
 
 
 def _collection_for_config(config: EvalConfig) -> str:
