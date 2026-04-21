@@ -11,10 +11,12 @@ Values in **bold** are landed; empty cells are in-flight or queued.
 
 | Model | Size / active | rag_simple | rag_hyde | rag_snap_hyde | snap_only | llm_only | golden_passage |
 |---|---|---|---|---|---|---|---|
-| E2B | 4B eff | **45.4%** | — | — | — | — | — |
+| E2B | 4B eff | **45.4%** | **43.7%** | — | — | — | — |
 | E4B | 8B eff | **55.7%** | **57.7%** | **58.4%** | — | — | — |
 | 26B-A4B | 25B / 3.8B active | **70.8%** | **74.2%** | **76.6%** | — | **74.3%** | **75.0%** |
 | 31B | 31B dense | **79.6%** | **80.4%** | — | — | — | — |
+
+Additional 26B-A4B modes: `subagent_rag` **75.7%**, `subagent_hybrid` **73.4%**.
 
 Seed=99 repeatability (landed so far):
 - 26B rag_simple seed=99 = **71.8%** (+1.0pp vs seed=42 70.8%). Tight variance.
@@ -31,14 +33,18 @@ E2B 45.4% → E4B 55.7% → 26B 70.8% → 31B 79.6%
 ```
 Monotonic. Model size is the single biggest predictor. Every ~2-4× params adds ~10-15pp.
 
-### 2. HyDE lift over plain RAG shrinks as models scale
+### 2. HyDE lift is inverted-U across scale
 | Model | rag_simple | rag_hyde | HyDE lift |
 |---|---|---|---|
-| E4B | 55.7% | 57.7% | **+2.0pp** |
-| 26B | 70.8% | 74.2% | **+3.4pp** |
-| 31B N=200 ref | 79.0% | 83.0% | +4.0pp (N=200) |
+| E2B (4B) | 45.4% | 43.7% | **-1.7pp** (HyDE hurts) |
+| E4B (8B) | 55.7% | 57.7% | **+2.0pp** |
+| 26B (25B) | 70.8% | 74.2% | **+3.4pp** (peak) |
+| 31B (31B) | 79.6% | 80.4% | **+0.8pp** |
 
-HyDE lift over plain RAG is modest (+2–4pp) and fairly stable across sizes.
+Clear inverted-U shape. At 4B, the model can't meaningfully use the
+retrieved passages and HyDE actively hurts. At 26B, HyDE reaches peak
+effectiveness. At 31B, parametric knowledge saturates and the HyDE delta
+compresses again.
 
 ### 3. `rag_hyde` vs `llm_only`: retrieval stops adding value at 25B
 At 26B-A4B: `rag_hyde` **74.2%** ≈ `llm_only` **74.3%**. HyDE retrieves doctrinally-relevant
