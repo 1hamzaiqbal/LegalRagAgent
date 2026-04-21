@@ -104,3 +104,38 @@ Detail logs (cluster):
 - `logs/eval_rag_hyde_cluster-vllm_20260421_0055_detail.jsonl`
 - `logs/eval_rag_snap_hyde_cluster-vllm_20260421_0204_detail.jsonl`
 - `logs/eval_snap_only_in_final_cluster-vllm_20260421_0359_detail.jsonl`
+
+### 2026-04-21 — Job 50864 (Gemma 31B N=200) complete — major scaling signal
+
+Gemma 4 31B-it (dense, unquantized, H100) on identical 4-mode matrix, seed=42, 0% leak:
+
+| Mode | E4B (8B) N=200 | **31B N=200** | Δ over E4B |
+|---|---|---|---|
+| `rag_simple` | 60.5% | **79.0%** (158/200) | **+18.5pp** |
+| `rag_hyde` | 59.5% | **83.0%** (166/200) | **+23.5pp** |
+| `rag_snap_hyde` | 66.5% | **85.0%** (170/200) | **+18.5pp** |
+| `snap_only_in_final` | 64.0% | **84.0%** (168/200) | **+20.0pp** |
+
+**Every mode improves ~18-24pp at 31B.** Single biggest factor in accuracy
+is model size; method choice is second-order past 8B.
+
+**Method stacking collapses at 31B**:
+- E4B: snap adds **+7pp** over plain HyDE (59.5 → 66.5)
+- 31B: snap adds **only +2pp** over plain HyDE (83.0 → 85.0)
+- E4B: retrieval on top of snap = +2.5pp (64.0 → 66.5)
+- 31B: retrieval on top of snap = +1pp (84.0 → 85.0)
+
+**Read**: at 31B, the model's parametric knowledge already contains most of
+the answer signal that snap reasoning and HyDE retrieval provide at smaller
+scale. Snap and HyDE become redundant with the bigger model's internal
+reasoning.
+
+**Still headroom**: 85% is well below the "actually competent" threshold.
+Need to run `golden_passage` on 31B to see the scale-up ceiling.
+
+Detail log: `logs/eval_*_cluster-vllm_2026042[01]_*_detail.jsonl` for tag
+`31b-n200-matrix`.
+
+Throughput: ~13s/query on H100 — **faster per-token than E4B on A40** despite
+4× params, because H100's compute compensates. 200 questions × 4 modes took
+~5h total (vLLM startup + inference).
