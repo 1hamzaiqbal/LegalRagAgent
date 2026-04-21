@@ -21,12 +21,18 @@ Partial full-N=1195 results — modes landing as jobs complete. Clean (0% leak) 
 
 | Model | rag_simple | rag_hyde | rag_snap_hyde | snap_only_in_final |
 |---|---|---|---|---|
-| **E2B** (4B) | **45.4%** | — (50867 wallclocked, 50986 resubmitted) | — | — |
-| **E4B** (8B) | **55.7%** | running (50858 q~875/1195) | nearly done (50859 q~1100/1195) | pending |
-| **26B-A4B** (25B MoE) | **70.8%** | **74.2%** | running (50868 q~542/1195) | pending |
-| **31B** (31B dense) | **79.6%** | just started (50865 q~233/1195) | pending | pending |
+| **E2B** (4B) | **45.4%** | in 50986 | in 50986 | in 50986 |
+| **E4B** (8B) | **55.7%** | running (50858 q~1009/1195) | **58.4%** (50859) | in 50858 |
+| **26B-A4B** (25B MoE) | **70.8%** | **74.2%** | running (50868 q~765/1195) | pending in 50868 |
+| **31B** (31B dense) | **79.6%** | running (50865 q~411/1195) | pending | pending |
 
 Clean monotonic scaling on `rag_simple`: **45.4 → 55.7 → 70.8 → 79.6%** from 4B → 8B → 25B → 31B.
+
+### Noise correction on the "snap +7pp" claim
+
+The N=200 mini-eval showed `rag_hyde` 59.5% → `rag_snap_hyde` 66.5% = **+7pp snap lift**. At full N=1195, `rag_snap_hyde` post-fix lands at **58.4%**, basically matching the pre-fix 57.9-58.6% range. Need `rag_hyde` N=1195 post-fix to complete the apples-to-apples, but the partial read is that N=200 was too noisy (±6.9% 95% CI) to trust the +7pp point estimate. The real snap-over-HyDE delta at full scale is likely much smaller.
+
+Currently observable at full N=1195 post-fix E4B: `rag_simple` → `rag_snap_hyde` = **+2.7pp** (55.7% → 58.4%). Waiting on `rag_hyde` + `snap_only_in_final` to finish the 4-mode comparison.
 
 ## Jobs submitted
 
