@@ -54,13 +54,44 @@ auto-promotes without manual intervention.
 Monitor with `squeue -u hiqbal`. Re-sbatch to queue additional runs
 (different seed for repeatability, different model, etc.).
 
-## Follow-on queue (plan)
+## Expanded matrix (2026-04-21, additional jobs submitted)
 
-Once the above 5 land, queue next:
-- **Repeatability**: E4B + 31B with seed=99 on the same 4 modes (variance estimate)
-- **Subagent ablation** (Priority 2 from the earlier plan): `subagent_rag`,
-  `subagent_hyde`, `subagent_hybrid`, `snap_hyde_report` at N=1195 on E4B
-- If H100 ever sits idle: 31B × subagent modes
+For characterizing HyDE/snap × scale interactions at the big-model tier:
+
+### 26B-A4B additional jobs (all target a100-sxm4 idle slots in parallel)
+- **50990**: `llm_only` + `golden_passage` — baselines/ceiling for lift computation
+- **50991**: `subagent_rag` + `subagent_hyde` — subagent ablation
+- **50992**: `subagent_hybrid` + `snap_hyde_report` — subagent + summarization
+
+### 31B additional jobs (queue for H100 after 50865/50993 complete)
+- **50993**: `llm_only` + `golden_passage`
+- **50994**: `subagent_rag` + `subagent_hyde`
+- **50995**: `subagent_hybrid` + `snap_hyde_report`
+
+### Final target per-size matrix (10 modes each)
+1. `llm_only` — no retrieval, no snap
+2. `golden_passage` — oracle ceiling
+3. `rag_simple` — retrieval, no HyDE, no snap
+4. `rag_hyde` — retrieval + HyDE, no snap
+5. `rag_snap_hyde` — retrieval + HyDE + snap (snap hidden from final)
+6. `snap_only_in_final` — snap in final context, no retrieval
+7. `subagent_rag` — per-gap RAG + report summarization
+8. `subagent_hyde` — per-gap HyDE + report summarization
+9. `subagent_hybrid` — per-gap RAG + model knowledge → report
+10. `snap_hyde_report` — snap-hyde with post-retrieval report
+
+## Parallelism note
+
+Three 26B jobs (50990/50991/50992) all target `a100s-2305` via `--nodelist=a100s-2305`.
+That node has 4 GPUs (all idle at submit time) so SLURM can land all three in parallel
+on different GPU slots. Similarly 50868 already on a100s-2306 keeps running
+independently. The 31B jobs are H100-bound and run sequentially.
+
+## Follow-on queue (plan — after the above land)
+
+- **Repeatability**: E4B + 31B with seed=99 on the 5-mode HyDE×snap×retrieval
+  core matrix (variance estimate — not all 10 modes)
+- **Cross-dataset generalizability**: 26B + 31B on housing/casehold at N=500
 
 ## Expected comparison table (what to fill in once runs complete)
 
