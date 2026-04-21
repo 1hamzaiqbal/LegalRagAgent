@@ -345,18 +345,27 @@ def _generate_hyde(config: EvalConfig, role: str, user: str, label: str, fallbac
 
 def _report_prompt(max_words: int = 100, include_model_knowledge: bool = False) -> str:
     """Shared prompt for report-writing intermediate steps."""
+    strict = (
+        "\n\nSTRICT OUTPUT RULES:\n"
+        "- This is NOT a multiple-choice task; do not pick an option.\n"
+        "- Do NOT begin with 'Answer:', 'Answer (X)', or any multiple-choice letter.\n"
+        "- Do NOT say which option is correct or reference choices by letter.\n"
+        "- Do NOT use '**Passage:**' or similar headers before the report body.\n"
+        "- Do NOT use markdown bolding, bullet points, or section dividers.\n"
+        "- Output only the report body, nothing else."
+    )
     if include_model_knowledge:
         return (
             "You are a legal research assistant. You have retrieved passages AND your own legal knowledge. "
             "Write a brief, focused report answering the sub-question by combining both sources. "
             "State what the law says directly. Flag if retrieved passages conflict with known law. "
-            f"No answer letters. Keep under {max_words} words."
+            f"Keep under {max_words} words." + strict
         )
     return (
         "You are a legal research assistant. Read the retrieved passages and write a brief, focused "
         "report that states the relevant legal rules, doctrines, holdings, and uncertainties directly. "
         "If the passages are irrelevant or unhelpful, say so clearly. "
-        f"No answer letters. Keep under {max_words} words."
+        f"Keep under {max_words} words." + strict
     )
 
 
