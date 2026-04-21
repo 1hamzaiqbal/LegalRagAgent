@@ -15,6 +15,19 @@ reasoning/retrieval gains, and get clean post-leak-fix baselines per size.
 
 All modes run at **N=1195 (full BarExam)**, seed=42, post-hardening commits.
 
+## Live snapshot (2026-04-21 evening)
+
+Partial full-N=1195 results — modes landing as jobs complete. Clean (0% leak) where recorded.
+
+| Model | rag_simple | rag_hyde | rag_snap_hyde | snap_only_in_final |
+|---|---|---|---|---|
+| **E2B** (4B) | **45.4%** | — (50867 wallclocked, 50986 resubmitted) | — | — |
+| **E4B** (8B) | **55.7%** | running (50858 q~875/1195) | nearly done (50859 q~1100/1195) | pending |
+| **26B-A4B** (25B MoE) | **70.8%** | **74.2%** | running (50868 q~542/1195) | pending |
+| **31B** (31B dense) | **79.6%** | just started (50865 q~233/1195) | pending | pending |
+
+Clean monotonic scaling on `rag_simple`: **45.4 → 55.7 → 70.8 → 79.6%** from 4B → 8B → 25B → 31B.
+
 ## Jobs submitted
 
 | Model | Size | N | Job ID | Target | SLURM script | Est. wall |
