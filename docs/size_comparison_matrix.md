@@ -46,6 +46,17 @@ Currently observable at full N=1195 post-fix E4B: `rag_simple` → `rag_snap_hyd
 
 **Emerging narrative shift**: at 25B+ scale, parametric knowledge dominates retrieval. HyDE edges out plain RAG because HyDE at least grabs doctrinally-relevant passages, but both are no better than `llm_only`. The "retrieval-first" framing may not survive at scale — we need to see 31B `llm_only` + `rag_hyde` to confirm the pattern.
 
+### 2026-04-21 audit — logs verified clean
+
+Codex audited 11 post-fix detail logs (2026-04-21) + 3 historical pre-fix for reference. Findings:
+
+- **HyDE leakage on post-fix logs**: **0%** across all 11 checked logs (`rag_hyde_*_04{58,1112,1449,0203,0229}`, `rag_snap_hyde_*_{0359,0632,1402,1515}`, plus smokes). Historical pre-fix `rag_hyde_20260417_2047` remains at **99.9%** as reference.
+- **Extraction pipeline**: `predicted_answer` → `is_correct` derivation correct in all 31 sampled rows across the logs. No empty-predicted-but-text-final anomalies.
+- **End-to-end spot-check** (3 randomly-chosen questions from `rag_snap_hyde_0359`): 2/3 pipelines end-to-end sensible (HyDE matches doctrine, retrieved passages on-topic, final letter correct). 1/3 flagged as a model-behavior issue (model output "Cannot be determined due to missing question context" before forcing a letter) — not a pipeline bug; BarExam fill-in-the-blank stems occasionally confuse the model.
+- **One residual observation**: `report` bodies (in `snap_hyde_report` mode) contain embedded "Answer:" strings mid-text in ~51% of cases on the historical 2026-04-17 log. The sanitizer only strips at-start patterns. Low-priority — affects only snap_hyde_report's final-agent context, not retrieval queries.
+
+Net: current post-fix numbers are trustworthy. No targeted reruns required.
+
 ## Jobs submitted
 
 | Model | Size | N | Job ID | Target | SLURM script | Est. wall |
