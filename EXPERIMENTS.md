@@ -14,6 +14,25 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 **Commit:** hash
 ```
 
+### 2026-04-21 — Post-fix size-comparison wave (landed rows)
+**Hypothesis:** Once the `Answer: (X)` HyDE leakage is cleaned up, (a) rag_simple scales monotonically with model size, (b) snap adds real lift over HyDE that the leak had been masking, and (c) larger models shrink method-stacking gains.
+
+**Change:** 12-job SLURM wave on Gemma 4 E2B/E4B/26B-A4B/31B at full N=1195, 4-10 modes each, after hardening through commit `d0709bd`.
+
+**Config:** provider=`custom` (`cluster-vllm`); models = `gemma-4-{E2B,E4B,26B-A4B,31B}-it`; dataset=`barexam`; seed=42; 0% HyDE/report leak verified via `analyze_detail_flags.py`.
+
+**Result (landed so far — wave still running):**
+- `rag_simple` N=1195 scaling: E2B **45.4%**, E4B **55.7%**, 26B-A4B **70.8%**, 31B **79.6%**. Monotonic.
+- `rag_hyde` N=1195: 26B-A4B **74.2%** (others pending).
+- 31B N=200 matrix (seed=42): `rag_simple` 79.0%, `rag_hyde` 83.0%, `rag_snap_hyde` 85.0%, `snap_only_in_final` 84.0%.
+- E4B N=200 mini-eval (post-fix): `rag_simple` 60.5%, `rag_hyde` 59.5%, `rag_snap_hyde` **66.5%**, `snap_only_in_final` **64.0%**.
+
+**Verdict:** CONFIRMED — (a) monotonic scaling holds, (b) at E4B N=200 snap now adds **+7pp** over plain HyDE (the old 0pp was a leak artifact), (c) at 31B N=200 snap+HyDE lift drops to +2pp — method stacking collapses at bigger scale.
+
+**Commit:** `fdcb3da` (doc integration); live snapshot in `docs/size_comparison_matrix.md`.
+
+---
+
 ### 2026-04-17 — Fixed full `rag_hyde` ties `snap_hyde` at N=1195
 **Hypothesis:** If HyDE itself is the load-bearing change, then a truly fixed full `rag_hyde` rerun should recover to the same full-scale range as `snap_hyde` rather than lagging it by several points.
 

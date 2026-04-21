@@ -12,7 +12,9 @@ Target venues:
 
 - Leakage audit: every canonical HyDE-family leaderboard number in `logs/experiments.jsonl` is currently a pre-leak-fix reference. Historical `rag_hyde` passages leaked `Answer: (X)` in **100%** of samples and historical `rag_snap_hyde` passages in **74%**; `_sanitize_intermediate_text` landed in `02edbb7` on 2026-04-17 after those runs were logged and still had regex bugs.
 - Hardening landed on `hpc-setup` through `dfb6a9b`: `e508765`, `951729d`, `bf89b78`, `baef4d8`, `0b4e35d`, `71533fd`, `c85fe70`, `a377867`, `6118161`, `bab7cf5`, `a493491`. Smoke job `50812` removed generation-time HyDE leakage (`top_level_hyde_artifacts=0`) with `rag_hyde` **19/30 (63.3%)** and `rag_snap_hyde` **21/30 (70.0%)**.
-- Clean reruns are now the blocker: `50835` (mini-eval over `rag_simple`, `rag_hyde`, `rag_snap_hyde`, `snap_only_in_final`) is in flight, `50836` is downloading `gemma-4-E2B-it` and `gemma-4-31B-it`, and `50822` is still pending on `a100-sxm4`. Do not treat the historical `57.9%` / `58.6%` HyDE numbers below as clean post-fix leaderboard results.
+- 2026-04-21 status: `50835` mini-eval landed clean — E4B N=200 `rag_simple` 60.5%, `rag_hyde` 59.5%, `rag_snap_hyde` 66.5%, `snap_only_in_final` 64.0%, all 0% leak. **Narrative flip**: snap adds **+7pp** over plain HyDE post-fix; the old "0pp" reading was a leak artifact. `50836` downloads done (E2B + 31B cached). `50822`/`50838` superseded by full-corpus reruns.
+- **12-job cross-scale full-N=1195 wave in flight**: E2B (50986 redo after 50867 wallclocked), E4B (50858/50859), 26B-A4B (50868 core + 50990/50991/50992 expansion on parallel a100s-2305 slots), 31B (50865 core + 50993/50994/50995 queued for H100). Covers 10 modes per size: llm_only, golden_passage, rag_simple, rag_hyde, rag_snap_hyde, snap_only_in_final, subagent_rag, subagent_hyde, subagent_hybrid, snap_hyde_report. Plan + live snapshot in `docs/size_comparison_matrix.md`.
+- Landed full N=1195 rows so far (all post-fix, 0% leak): E2B `rag_simple` **45.4%**, E4B `rag_simple` **55.7%**, 26B-A4B `rag_simple` **70.8%** / `rag_hyde` **74.2%**, 31B `rag_simple` **79.6%**. Monotonic scaling. 31B N=200 matrix already landed at 79-85% across 4 modes. Do not treat the historical `57.9%` / `58.6%` HyDE numbers below as clean post-fix leaderboard results.
 
 ---
 
@@ -151,9 +153,24 @@ Target venues:
 
 | Job | What | Status |
 |---|---|---|
-| 50835 | clean mini-eval (`rag_simple`, `rag_hyde`, `rag_snap_hyde`, `snap_only_in_final`) | In flight on `a40-2205` — N=200 rerun after leakage hardening |
-| 50836 | Gemma checkpoint downloads | Running on CPU — prepping larger clean reruns for `gemma-4-E2B-it` and `gemma-4-31B-it` |
-| 50822 | 26B-A4B smoke | PENDING on `a100-sxm4` |
+| 50835 | clean mini-eval E4B N=200 × 4 modes | ✅ DONE — rag_simple 60.5%, rag_hyde 59.5%, rag_snap_hyde 66.5%, snap_only_in_final 64.0%, 0% leak |
+| 50836 | Gemma checkpoint downloads | ✅ DONE — E2B + 31B cached on engrfs |
+| 50812 | Mini smoke N=30 (rag_hyde, rag_snap_hyde) | ✅ DONE — 0% leak confirmed at generation |
+| 50857 | 31B smoke N=5 on H100 | ✅ DONE — 5/5, proves 31B works unquantized |
+| 50864 | 31B N=200 × 4 modes | ✅ DONE — rag_simple 79%, rag_hyde 83%, rag_snap_hyde 85%, snap_only_in_final 84% |
+| 50822/50838 | 26B-A4B smoke N=5 | SUPERSEDED by full-N=1195 50868 |
+| 50867 | E2B full N=1195 × 4 modes | ⚠ WALLCLOCKED at q 1000/1195 in rag_hyde; rag_simple landed 45.4%; resubmitted as 50986 |
+| 50986 | E2B redo (3 remaining modes) | Running on a40-2205 |
+| 50858 | E4B full P1a (rag_simple, rag_hyde, snap_only_in_final) | Running on a40-2206 — rag_simple 55.7% landed |
+| 50859 | E4B full P1b (rag_snap_hyde) | Running on a40-2206 — q ~1130/1195 |
+| 50865 | 31B full N=1195 × 4 modes | Running on h100-2405 — rag_simple 79.6% landed |
+| 50868 | 26B-A4B full N=1195 × 4 modes | Running on a100s-2306 — rag_simple 70.8%, rag_hyde 74.2% landed |
+| 50990 | 26B-A4B llm_only + golden_passage | Running on a100s-2305 (parallel) |
+| 50991 | 26B-A4B subagent_rag + subagent_hyde | Running on a100s-2305 (parallel) |
+| 50992 | 26B-A4B subagent_hybrid + snap_hyde_report | Running on a100s-2305 (parallel) |
+| 50993 | 31B llm_only + golden_passage | PENDING on h100-2405 |
+| 50994 | 31B subagent_rag + subagent_hyde | PENDING on h100-2405 |
+| 50995 | 31B subagent_hybrid + snap_hyde_report | PENDING on h100-2405 |
 | 44371 | case summaries build | Completed — 22K summaries built |
 | 44394 | snap ablations | Completed — `rag_hyde` 62.5%, `vectorless_nosnap` 59.5% |
 | 44395 | cross-dataset jobs | Completed — HousingQA and CaseHOLD follow-ups logged |

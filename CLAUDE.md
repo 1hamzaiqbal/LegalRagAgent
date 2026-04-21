@@ -160,18 +160,21 @@ uv run python tests/test_sanitizer.py
 
 ## Current Best Results / Direction Snapshot
 
-See `docs/experiment_overview.md` for the current results table. Key numbers:
-- `subagent_rag`, `rag_hyde` (fixed), and `snap_hyde_report` are tied at **66.0%** at N=200.
-- `golden_passage` **62.2%** is the best full N=1195 result (ceiling).
-- `rag_hyde` (fixed) and `snap_hyde` both **57.9%** at full N=1195 — tied for best non-ceiling retrieval.
-- The canonical full N=1195 HyDE numbers above are pre-leak-fix historical references after the 2026-04-20 leakage audit; clean reruns are pending.
+See `docs/experiment_overview.md` for the full table and `docs/size_comparison_matrix.md` for the live cross-scale matrix. Key numbers (post-leak-fix):
 
-Working interpretation:
-- **HyDE is the real driver** — it bridges the genre gap between question-form queries and doctrinal corpus passages
-- snap reasoning helps plain RAG (+5pp) and parametric reasoning (+5pp) but adds **zero** to HyDE on the historical pre-leak-fix canonical comparison; clean reruns are pending
-- showing snap to the final agent **always hurts** (-2 to -4pp across all combo modes tested)
-- retrieval quality remains the main bottleneck; `golden_passage` still outruns every real retrieval mode at full scale
-- heavier architectural combinations (subagent, gap analysis) have not beaten simple HyDE at full scale
+**Cross-size scaling on `rag_simple` (full N=1195)**: E2B **45.4%** → E4B **55.7%** → 26B-A4B **70.8%** → 31B **79.6%**. Monotonic; model size dominates method choice past 8B.
+
+**Post-fix N=200 on E4B** (clean, 0% leak): `rag_simple` 60.5%, `rag_hyde` 59.5%, `rag_snap_hyde` **66.5%**, `snap_only_in_final` 64.0%. **Snap adds +7pp over plain HyDE** — the old "snap adds 0pp" claim was a leak artifact.
+
+**31B N=200 matrix**: rag_simple 79%, rag_hyde 83%, rag_snap_hyde 85%, snap_only_in_final 84%. Method stacking collapses at bigger scale: snap+HyDE lift drops from +7pp at E4B to +2pp at 31B.
+
+Historical E4B pre-leak-fix full N=1195 numbers (`rag_hyde` 57.9%, `snap_hyde` 57.9%, `subagent_rag` 57.2%, `llm_only` 55.5%, `rag_simple` 54.2%, `golden_passage` 62.2% ceiling) are kept for audit continuity but are being superseded by the 2026-04-21 wave.
+
+Working interpretation (current):
+- Model size is the dominant variable past 8B — method choice is second-order
+- Snap reasoning is the real driver at E4B scale; HyDE retrieval is secondary additive
+- At 31B the model's parametric knowledge overlaps with both snap and HyDE contributions — method stacking shrinks
+- Showing snap answer letter to the final agent **always hurts** — strip the letter, keep the reasoning
 
 Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the full tables + keep/discard history.
 
