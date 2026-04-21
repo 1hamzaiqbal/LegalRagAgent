@@ -92,6 +92,31 @@ Method stacking full picture (so far):
 - **26B**: +3.4pp, +2.4pp (snap is the only thing that breaks past the parametric ceiling)
 - **31B**: +0.8pp, ? (rag_snap_hyde still running)
 
+## Qualitative cross-scale reasoning patterns (2026-04-21)
+
+Codex compared reasoning traces across E2B/E4B/26B/31B on the same BarExam
+questions (same seed=42 subset). Three representative cases:
+
+**Case A (mbe_1 evidence law, collateral-matter rule)** — 26B/31B correct (D);
+E2B/E4B wrong (B). Smaller models used the loose heuristic "witness opened
+the door, attack credibility." Bigger models invoked the specific
+"extrinsic-evidence-on-collateral-matter" ban. Scale unlocks doctrinal precision.
+
+**Case B (mbe_1014)** — all 4 sizes wrong with DIFFERENT predictions (D/B/C/C;
+correct A). **Root cause is a dataset bug**: the question stem is literally
+`"Is Farmer obligated to make the $4,000 payment?"` — missing the whole fact
+pattern. Each model hallucinates different missing facts.
+
+**Case C (mbe_1004 lost-volume-seller)** — E2B correct (C); E4B/26B/31B all
+wrong (A). Bigger models applied the clean resale-offset formula
+("resold at same price → no loss"), missing the lost-volume-seller exception.
+**Smaller model caught a cue the bigger models pattern-matched past.**
+
+Read: scale monotonically improves doctrinal framing + rule invocation, but
+can overcommit to a clean rule when an exception applies. The rag_snap_hyde
+mode likely helps here — snap reasoning raises alternative frames before
+HyDE retrieval narrows the passage pool.
+
 ## Implications for the research story
 
 - **Small models (4-8B)**: retrieval is barely better than noise. HyDE matters more than snap at this scale, but deltas are all inside ±3pp.
