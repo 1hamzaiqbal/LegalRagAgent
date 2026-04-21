@@ -2240,6 +2240,11 @@ def run_entity_search(row: pd.Series, config: EvalConfig) -> dict:
     entities from the question. Cross-encoder reranks. 1 LLM call.
     Zero LLM preprocessing. Zero embeddings.
     """
+    if config.dataset != "barexam":
+        result = run_llm_only(row, config)
+        result["entity_fallback"] = "dataset_not_supported"
+        return result
+
     from rag_utils import rerank_with_cross_encoder
     import pandas as _pd
 
@@ -2312,6 +2317,11 @@ def run_snap_entity_search(row: pd.Series, config: EvalConfig) -> dict:
     but the snap reasoning may still help the final answer indirectly.
     Tests snap contribution to entity-based retrieval.
     """
+    if config.dataset != "barexam":
+        result = run_llm_only(row, config)
+        result["entity_fallback"] = "dataset_not_supported"
+        return result
+
     from rag_utils import rerank_with_cross_encoder
 
     question = _fmt(row, config)
@@ -2387,6 +2397,11 @@ def run_snap_entity_informed(row: pd.Series, config: EvalConfig) -> dict:
     Entity search equivalent of HyDE — snap reasoning generates better search terms.
     2 LLM calls. Snap hidden from final answer.
     """
+    if config.dataset != "barexam":
+        result = run_llm_only(row, config)
+        result["entity_fallback"] = "dataset_not_supported"
+        return result
+
     from rag_utils import rerank_with_cross_encoder
     import pandas as _pd
     from langchain_core.documents import Document
@@ -3681,6 +3696,15 @@ def run_eval(config: EvalConfig):
         record.setdefault("gold_retrieved", False)
         record.setdefault("retrieved_ids", [])
         record.setdefault("evidence_store", [])
+        if "snap1" in record:
+            record.setdefault("snap_answer", record["snap1"])
+        snap_list = record.get("snaps")
+        if not isinstance(snap_list, list):
+            snap_list = record.get("snap_answers")
+        if snap_list:
+            record.setdefault("snap_answer", snap_list[0])
+        if "letter1" in record:
+            record.setdefault("snap_letter", record["letter1"])
 
         results.append(_serialize_result(record))
 
