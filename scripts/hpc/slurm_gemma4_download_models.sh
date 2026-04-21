@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -p general
+#SBATCH -p general-cpu
 #SBATCH -A engr-lab-jacobsn
 #SBATCH -c 4
 #SBATCH --mem=16G
