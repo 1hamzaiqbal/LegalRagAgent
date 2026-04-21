@@ -73,4 +73,34 @@ Historical E4B pre-fix:  54.2%   57.9%   58.6%   (no snap_only_in_final)
 
 ## Completion log
 
-_(populate as jobs land)_
+### 2026-04-21 — Mini-eval 50835 (Gemma E4B N=200) complete
+
+All 4 modes with 0% HyDE/report leakage post-hardening:
+
+| Mode | post-fix N=200 | historical N=200 | Δ |
+|---|---|---|---|
+| `rag_simple` | **60.5%** (121/200) | 61.5% | −1.0pp (noise) |
+| `rag_hyde` | **59.5%** (119/200) | 66.0% | **−6.5pp** |
+| `rag_snap_hyde` | **66.5%** (133/200) | 64.5% | **+2.0pp** |
+| `snap_only_in_final` | **64.0%** (128/200) | — (new) | — |
+
+**Major narrative shift**: the old "snap adds 0pp to HyDE" claim was an
+artifact of the leak. Post-fix, snap contributes **+7pp over plain HyDE**
+(`rag_hyde` 59.5% → `rag_snap_hyde` 66.5%). The leaky `Answer: (X)` prefix
+had been doing "answer-aware retrieval" work that snap is supposed to do,
+making snap look redundant. With the leak cleaned up, snap's real value
+surfaces.
+
+**New decomposition**:
+- snap reasoning alone (no retrieval) = **64.0%** — already beats `rag_simple`
+  and `rag_hyde`
+- HyDE retrieval on top of snap: +2.5pp
+- HyDE retrieval without snap: +7pp vs `llm_only`, but still below snap-only
+
+Snap is doing the heavier lifting. Retrieval is a secondary, additive gain.
+
+Detail logs (cluster):
+- `logs/eval_rag_simple_cluster-vllm_20260420_2355_detail.jsonl`
+- `logs/eval_rag_hyde_cluster-vllm_20260421_0055_detail.jsonl`
+- `logs/eval_rag_snap_hyde_cluster-vllm_20260421_0204_detail.jsonl`
+- `logs/eval_snap_only_in_final_cluster-vllm_20260421_0359_detail.jsonl`
