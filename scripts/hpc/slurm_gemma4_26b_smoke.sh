@@ -40,6 +40,10 @@ export HF_HOME="$HF_CACHE"
 export SENTENCE_TRANSFORMERS_HOME="$HF_CACHE"
 export XDG_CACHE_HOME="$XDG_CACHE_HOME"
 export TORCH_HOME="$TORCH_HOME"
+# Triton + uv caches default to $HOME (30GB quota) — redirect to engrfs.
+export TRITON_CACHE_DIR="$XDG_CACHE_HOME/triton"
+export UV_CACHE_DIR="$XDG_CACHE_HOME/uv"
+mkdir -p "$TRITON_CACHE_DIR" "$UV_CACHE_DIR"
 export CHROMA_DB_DIR="$CHROMA_DB_DIR"
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1

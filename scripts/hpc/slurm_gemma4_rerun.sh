@@ -69,6 +69,11 @@ export HF_HOME="$HF_CACHE"
 export SENTENCE_TRANSFORMERS_HOME="$HF_CACHE"
 export XDG_CACHE_HOME="$XDG_CACHE_HOME"
 export TORCH_HOME="$TORCH_HOME"
+# Triton + uv caches default to $HOME, which has a 30GB quota — redirect
+# to engrfs to avoid "Disk quota exceeded" during vLLM engine init.
+export TRITON_CACHE_DIR="$XDG_CACHE_HOME/triton"
+export UV_CACHE_DIR="$XDG_CACHE_HOME/uv"
+mkdir -p "$TRITON_CACHE_DIR" "$UV_CACHE_DIR"
 export CHROMA_DB_DIR="$CHROMA_DB_DIR"
 # Force HF offline — models are cached and cluster network is flaky.
 export HF_HUB_OFFLINE=1
