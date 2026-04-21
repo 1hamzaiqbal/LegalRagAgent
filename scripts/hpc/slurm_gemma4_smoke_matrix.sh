@@ -46,7 +46,8 @@ export SENTENCE_TRANSFORMERS_HOME="$HF_CACHE"
 export XDG_CACHE_HOME="$XDG_CACHE_HOME"
 export TORCH_HOME="$TORCH_HOME"
 # Triton + uv caches default to $HOME (30GB quota) — redirect to engrfs.
-export TRITON_CACHE_DIR="$XDG_CACHE_HOME/triton"
+# Per-job triton cache: NFS can't handle atomic tmp-rename across jobs.
+export TRITON_CACHE_DIR="$XDG_CACHE_HOME/triton/${SLURM_JOB_ID:-local}"
 export UV_CACHE_DIR="$XDG_CACHE_HOME/uv"
 mkdir -p "$TRITON_CACHE_DIR" "$UV_CACHE_DIR"
 export CHROMA_DB_DIR="$CHROMA_DB_DIR"
