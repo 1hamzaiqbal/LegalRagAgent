@@ -138,7 +138,7 @@ The combo-mode additions reinforce the anchoring result: hiding snap from the fi
 |---|---|---|
 | golden_passage | 62.2% | `logs/eval_golden_passage_cluster-vllm_20260408_1749_detail.jsonl` |
 | **snap_hyde** | **57.9% [pre-fix]** | `logs/eval_rag_snap_hyde_cluster-vllm_20260413_1102_detail.jsonl` |
-| **rag_hyde (fixed)** | **57.9% [pre-fix]** | recorded in `logs/experiments.jsonl` as `logs/eval_rag_hyde_cluster-vllm_20260417_2047_detail.jsonl` (local sync pending) |
+| **rag_hyde (fixed)** | **57.9% [pre-fix]** | `logs/eval_rag_hyde_cluster-vllm_20260417_2047_detail.jsonl` |
 | **subagent_rag (1-gap)** | **57.2%** | `logs/eval_subagent_rag_cluster-vllm_20260416_1720_detail.jsonl` |
 | **subagent_rag** | **56.9%** | `logs/eval_subagent_rag_cluster-vllm_20260414_1115_detail.jsonl` |
 | **ce_threshold** | **55.9%** | `logs/eval_ce_threshold_cluster-vllm_20260415_2022_detail.jsonl` |

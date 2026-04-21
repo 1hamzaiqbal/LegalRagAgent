@@ -179,7 +179,7 @@ Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the ful
 
 | Script | Notes |
 |---|---|
-| `eval/eval_harness.py` | Unified multi-model harness (44 modes, 5 datasets) |
+| `eval/eval_harness.py` | Unified multi-model harness (53 modes, 5 datasets) |
 | `eval/eval_config.py` | Config, question loading, answer extraction, EVAL_MODES dict |
 | `eval/eval_analyze.py` | Post-hoc analysis of JSONL logs |
 | `eval/run_experiment_queue.py` | Queue runner for batched eval submissions |
@@ -286,6 +286,6 @@ python3 -c "import json; [print(f\"{d['timestamp']} {d['mode']:25s} {d['provider
 - `vectorless` modes (`vectorless_direct`, `vectorless_role`, etc.) are multi-turn LLM reasoning, not real corpus search. The name is historical.
 - Real structured search (entity graph, case summaries) is being built in `utils/build_entity_graph.py` and `utils/build_case_summaries.py`.
 - Validity checklist: check answer change rate > 0%, evidence retrieval > 50%, snap accuracy consistent. See `docs/experiment_overview.md`.
-- Verify the current working branch with `git branch --show-current` before relying on branch-specific notes; the repo is no longer guaranteed to be on `lightweight-rebuild`.
+- Verify the current working branch with `git branch --show-current` before relying on branch-specific notes; active branch at the time of the 2026-04-20 leakage audit is `hpc-setup`.
 - Sequential pipeline code archived in branch `archive/sequential-pipeline`.
 - See `RESEARCH.md` for current research state, experiment queue, and session handoff.

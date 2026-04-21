@@ -96,10 +96,11 @@ From `logs/experiments.jsonl` across all branches/machines:
 | groq-qwen3-32b | 32B | 59.3% | — | — | — |
 | groq-llama-8b | 8B | 53.0% | — | — | — |
 | **cluster qwen3-8b** | **8B** | **52.1%** | **60.1%** | **36.5%** (N=600)* | — |
-| **cluster gemma4-e4b** | **8B eff** | **55.5%** | **62.2%** | **54.2%** | **58.6% / 57.9%**† |
+| **cluster gemma4-e4b** | **8B eff** | **55.5%** | **62.2%** | **54.2%** | **58.6% / 57.9%**†‡ |
 
 *Corrupted by concurrent ChromaDB writes during embedding builds. Not representative.
 † Two completed full `rag_snap_hyde` reruns are logged for Gemma 4 E4B; the later rerun on 2026-04-13 finished at **57.9%** (`692/1195`).
+‡ All HyDE-family numbers in this row are **pre-leak-fix historical references** from the 2026-04-20 audit; clean reruns are pending.
 
 ### Key Findings
 

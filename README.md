@@ -12,10 +12,13 @@ The repo contains two layers:
 - BarExam best: `ce_threshold` on Llama 70B = **80.0%** (N=200)
 - HousingQA best: `rag_snap_hyde` on Llama 70B = **56.0%** (N=200)
 - CaseHOLD best: `llm_only` / `confidence_gated` = **72.5%** (N=200)
-- Best small-model family: **Gemma 4 E4B** — `subagent_rag` **66.0%** (N=200), `rag_snap_hyde` **65.5%** retrieval baseline, latest full rerun **57.9%** (N=1195; earlier clean run 58.6%)
+- Best small-model tier: **Gemma 4 E4B** — `subagent_rag`, fixed `rag_hyde`, and `snap_hyde_report` all reached **66.0%** at N=200
+- Full Gemma 4 E4B leaderboard (**pre-leak-fix historical snapshot — clean reruns pending after the 2026-04-20 audit**): `golden_passage` **62.2%**, `snap_hyde` **58.6%** (later paired rerun **57.9%**), fixed `rag_hyde` **57.9%**, `subagent_rag` (1-gap) **57.2%**
+- Working interpretation (pending post-fix confirmation): **HyDE is the real driver**. Snap adds **+5pp** to plain RAG and parametric reasoning, **0pp** to HyDE on the pre-fix comparison, and showing snap to the final agent hurts **-2 to -4pp**
 - **Multi-turn reasoning** (historical `vectorless_*` family): `vectorless_direct` **64.5%**, `vectorless_hybrid` **65.0%** — LLM parametric knowledge, not corpus search
 - **Real structured search** (in progress): case summary index + NLP entity graph for actual corpus navigation without embeddings
-- 44 eval modes tested across retrieval, reasoning, gap, and subagent architectures
+- `logs/experiments.jsonl` contained **195** records at the leak-fix audit (2026-04-20); grows with every new run
+- 53 eval modes tested across retrieval, reasoning, gap, and subagent architectures
 
 See `RESEARCH.md` for the current state + queue, and `EXPERIMENTS.md` for the full keep/discard history.
 
@@ -66,7 +69,7 @@ uv run python main.py multi_hop
 uv run python main.py medium
 uv run python main.py simple --verbose
 
-# Evals (all via eval_harness.py — 44 modes, 5 datasets)
+# Evals (all via eval_harness.py — 53 modes, 5 datasets)
 uv run python eval/eval_harness.py --mode llm_only --provider groq-llama70b --questions 200
 uv run python eval/eval_harness.py --mode rag_snap_hyde --provider groq-llama70b --questions 200 --dataset housing
 uv run python eval/eval_harness.py --mode confidence_gated --provider groq-llama70b --questions 200
@@ -86,7 +89,7 @@ uv run python llm_config.py
 
 RAG helps most when the model has a genuine knowledge gap (HousingQA). On better-known domains, retrieval is often neutral or harmful unless carefully gated.
 
-Current Gemma 4 E4B snapshot (N=200, BarExam): `rag_snap_hyde` **65.5%**, `vectorless_hybrid` **65.0%**, `vectorless_direct` / `vectorless_choice_map` **64.5%**, fixed `gap_rag` **63.5%**.
+Current Gemma 4 E4B snapshot (N=200, BarExam): `subagent_rag`, fixed `rag_hyde`, and `snap_hyde_report` are tied at **66.0%**; `rag_snap_hyde` is **65.5%**; and `vectorless_hybrid` is **65.0%**.
 
 ### HPC Cluster Results (N=1195 full BarExam, local vLLM inference)
 
@@ -97,6 +100,8 @@ Current Gemma 4 E4B snapshot (N=200, BarExam): `rag_snap_hyde` **65.5%**, `vecto
 
 *ChromaDB corruption during concurrent embedding builds degraded this result.
 † Earlier clean full run on 2026-04-09 logged 58.6%; the latest verified full rerun on 2026-04-13 logged 57.9% (`692/1195`).
+
+Fixed full `rag_hyde` also landed at **57.9%** (`692/1195`) in the repaired April 17 rerun, so the paired HyDE comparison is now `rag_hyde` = `snap_hyde` = **57.9%**.
 
 ### Embedding Model Comparison (Gemma 4 E4B, N=200, BarExam)
 
@@ -144,7 +149,7 @@ llm_config.py              # 30+ LLM provider configs, LRU-cached
 web_scraper.py             # DuckDuckGo + trafilatura for web_search steps
 skills/                    # 4 prompt files: planner, query_rewriter, synthesize_and_cite, synthesizer
 eval/
-  eval_harness.py          # Unified eval: 44 modes, 5 datasets, JSONL logging
+  eval_harness.py          # Unified eval: 53 modes, 5 datasets, JSONL logging
   eval_config.py           # Config, question loaders, answer extractors
   eval_analyze.py          # Post-hoc JSONL analysis
   curate_questions.py      # One-time question curation utility
