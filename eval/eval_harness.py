@@ -531,9 +531,17 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
         ),
         "devil_hyde": (
             "You are a legal textbook author. A student has answered a legal question. "
-            "Your job is to play DEVIL'S ADVOCATE: write a short passage (2-3 sentences) from a legal reference "
-            "that would CHALLENGE or CONTRADICT the student's answer. Focus on the doctrine, rule, or exception "
-            "that supports the OPPOSITE conclusion. Write in reference style — state the law directly."
+            "Your job is to play DEVIL'S ADVOCATE: write a short passage (2-3 sentences) from "
+            "a legal reference that would CHALLENGE or CONTRADICT the student's conclusion. "
+            "Focus on the doctrine, rule, or exception that supports the opposite outcome. "
+            "Write in reference style — state the law directly.\n\n"
+            "STRICT OUTPUT RULES:\n"
+            "- Begin your response with the doctrinal text itself.\n"
+            "- Do NOT begin with 'Answer:', 'Answer (X)', or any multiple-choice letter.\n"
+            "- Do NOT include headers like '**Passage:**' or any label before the passage.\n"
+            "- Do NOT reference choice letters (A/B/C/D) or 'option X'.\n"
+            "- Do NOT use markdown bolding, bullet points, or section dividers.\n"
+            "- Output only the passage body."
         ),
         "top2_snap": (
             "You are a legal expert. Answer the multiple-choice question below. "
@@ -542,10 +550,18 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
             "Give your final answer as: Answer: (X)"
         ),
         "top2_hyde": (
-            "You are a legal textbook author. A student has answered a legal question with a multiple-choice selection. "
-            "Write a short passage (2-3 sentences) from a legal reference that would support the SECOND-CHOICE "
-            "answer — the answer the student considered but rejected. Focus on the specific doctrine, rule, or "
-            "exception that makes the alternative answer plausible. Write in reference style — state the law directly."
+            "You are a legal textbook author. A student has answered a legal question and kept a "
+            "second-choice alternative in mind. Write a short passage (2-3 sentences) from a legal "
+            "reference that would support the SECOND-CHOICE conclusion — the one the student considered "
+            "but rejected. Focus on the doctrine, rule, or exception that makes the alternative plausible. "
+            "Write in reference style — state the law directly.\n\n"
+            "STRICT OUTPUT RULES:\n"
+            "- Begin your response with the doctrinal text itself.\n"
+            "- Do NOT begin with 'Answer:', 'Answer (X)', or any multiple-choice letter.\n"
+            "- Do NOT include headers like '**Passage:**' or any label before the passage.\n"
+            "- Do NOT reference choice letters (A/B/C/D) or 'option X'.\n"
+            "- Do NOT use markdown bolding, bullet points, or section dividers.\n"
+            "- Output only the passage body."
         ),
     }
     return prompts.get(role, prompts["answer"])
@@ -2376,8 +2392,10 @@ def run_snap_entity_informed(row: pd.Series, config: EvalConfig) -> dict:
                 "snap_letter": snap_letter, "evidence_store": [],
                 "retrieved_ids": [], "gold_retrieved": False}
 
-    # Extract entities from combined text — snap reasoning surfaces legal terms
-    combined_text = f"{raw_question}\n\n{snap_answer}"
+    # Extract entities from combined text — snap reasoning surfaces legal terms.
+    # Strip the trailing 'Answer: (X)' from snap so the entity extractor doesn't
+    # see letter tokens or 'option A' phrasings as entities.
+    combined_text = f"{raw_question}\n\n{_strip_answer_line(snap_answer)}"
     candidate_ids = _entity_search(combined_text, graph, top_k=30)
 
     if not candidate_ids:
