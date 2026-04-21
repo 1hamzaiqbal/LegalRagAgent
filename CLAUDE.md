@@ -18,7 +18,7 @@ Current research direction: the original heavy pipeline underperformed, but the 
 
 - `docs/experiment_overview.md` — high-level experiment summary + results table + validity checklist
 - `docs/action_items.md` — paper sprint task list with deadlines (EMNLP May 20, ICML AI4Law May 22)
-- `docs/meeting_2026_04_13.md` — latest meeting notes with method breakdown and log examples
+- `docs/meeting_2026_04_17.md` — latest meeting notes with method breakdown and log examples
 - `docs/hpc_throughput.md` — cluster timing data and model comparison
 - `docs/hpc_setup_log.md` — cluster SSH, paths, venvs, bad nodes
 - `EXPERIMENTS.md` — full hypothesis → result → verdict log
@@ -158,13 +158,14 @@ uv run python llm_config.py
 ## Current Best Results / Direction Snapshot
 
 See `docs/experiment_overview.md` for the current results table. Key numbers:
-- `rag_hyde` (fixed) and `snap_hyde_report` both **66.0%** at N=200 (Gemma 4 E4B best).
+- `subagent_rag`, `rag_hyde` (fixed), and `snap_hyde_report` are tied at **66.0%** at N=200.
 - `golden_passage` **62.2%** is the best full N=1195 result (ceiling).
 - `rag_hyde` (fixed) and `snap_hyde` both **57.9%** at full N=1195 — tied for best non-ceiling retrieval.
+- The canonical full N=1195 HyDE numbers above are pre-leak-fix historical references after the 2026-04-20 leakage audit; clean reruns are pending.
 
 Working interpretation:
 - **HyDE is the real driver** — it bridges the genre gap between question-form queries and doctrinal corpus passages
-- snap reasoning helps plain RAG (+5pp) and parametric reasoning (+5pp) but adds **zero** to HyDE (both 57.9% at N=1195); the previous +3pp was a bug artifact from a broken Gemma prompt
+- snap reasoning helps plain RAG (+5pp) and parametric reasoning (+5pp) but adds **zero** to HyDE on the historical pre-leak-fix canonical comparison; clean reruns are pending
 - showing snap to the final agent **always hurts** (-2 to -4pp across all combo modes tested)
 - retrieval quality remains the main bottleneck; `golden_passage` still outruns every real retrieval mode at full scale
 - heavier architectural combinations (subagent, gap analysis) have not beaten simple HyDE at full scale

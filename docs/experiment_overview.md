@@ -77,15 +77,21 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 - **Key finding: showing snap to the final agent ALWAYS hurts (-2 to -4pp)**
 - `logs/experiments.jsonl` reached **195** entries
 
+## 2026-04-20: Leakage audit
+
+A leakage audit on 2026-04-20 found answer-letter contamination in the HyDE-family retrieval query: **100%** of historical `rag_hyde` passages and **74%** of historical `rag_snap_hyde` passages began with `Answer: (X)`. `_sanitize_intermediate_text` was added in `02edbb7` on 2026-04-17, but it landed after the canonical N=1195 runs were logged and still had regex bugs, so every canonical HyDE-family leaderboard number in `logs/experiments.jsonl` is currently a pre-leak-fix reference.
+
+Hardening landed on `hpc-setup` through `dfb6a9b`: `e508765`, `951729d`, `bf89b78`, `baef4d8`, `0b4e35d`, `71533fd`, `c85fe70`, `a377867`, `6118161`, `bab7cf5`, `a493491`. Smoke job `50812` confirmed generation-time cleanup with `rag_hyde` **19/30 (63.3%)** and `rag_snap_hyde` **21/30 (70.0%)**, both with `top_level_hyde_artifacts=0`; clean reruns are in flight via `50835`, `50836`, and pending job `50822`.
+
 ## Paper Core Result (Gemma 4 E4B, BarExam)
 
 | Family | No-snap mode | No-snap acc | Snap mode | Snap acc | Snap lift |
 |---|---|---|---|---|---|
-| HyDE retrieval* | `rag_hyde` | 57.9% | `snap_hyde` | 57.9% | **0.0pp** (full N=1195 repaired comparison) |
+| HyDE retrieval* | `rag_hyde` | 57.9% [pre-fix] | `snap_hyde` | 57.9% [pre-fix] | **0.0pp** (full N=1195 repaired comparison) |
 | Plain RAG* | `rag_simple` | 57.0% | `snap_rag` | 62.0% | **+5.0pp** |
 | Parametric reasoning | `vectorless_nosnap` | 59.5% | `vectorless_direct` | 64.5% | **+5.0pp** |
 
-*HyDE uses the repaired full N=1195 comparison because the original April 14 N=200 `rag_hyde` row was prompt-tainted. Plain-RAG uses the existing `gte-large` April 10 reference pair so the comparison stays aligned with the paper's main ablation setting.
+*HyDE uses the repaired full N=1195 comparison because the original April 14 N=200 `rag_hyde` row was prompt-tainted. Those canonical `rag_hyde` / `rag_snap_hyde` runs are still pre-leak-fix historical references after the 2026-04-20 audit; the earlier `rag_snap_hyde` **58.6%** peak was also pre-fix. Plain-RAG uses the existing `gte-large` April 10 reference pair so the comparison stays aligned with the paper's main ablation setting.
 
 ## Key Results (Gemma 4 E4B, BarExam)
 
@@ -131,8 +137,8 @@ The combo-mode additions reinforce the anchoring result: hiding snap from the fi
 | Mode | Accuracy | Detail Log |
 |---|---|---|
 | golden_passage | 62.2% | `logs/eval_golden_passage_cluster-vllm_20260408_1749_detail.jsonl` |
-| **snap_hyde** | **57.9%** | `logs/eval_rag_snap_hyde_cluster-vllm_20260413_1102_detail.jsonl` |
-| **rag_hyde (fixed)** | **57.9%** | recorded in `logs/experiments.jsonl` as `logs/eval_rag_hyde_cluster-vllm_20260417_2047_detail.jsonl` (local sync pending) |
+| **snap_hyde** | **57.9% [pre-fix]** | `logs/eval_rag_snap_hyde_cluster-vllm_20260413_1102_detail.jsonl` |
+| **rag_hyde (fixed)** | **57.9% [pre-fix]** | recorded in `logs/experiments.jsonl` as `logs/eval_rag_hyde_cluster-vllm_20260417_2047_detail.jsonl` (local sync pending) |
 | **subagent_rag (1-gap)** | **57.2%** | `logs/eval_subagent_rag_cluster-vllm_20260416_1720_detail.jsonl` |
 | **subagent_rag** | **56.9%** | `logs/eval_subagent_rag_cluster-vllm_20260414_1115_detail.jsonl` |
 | **ce_threshold** | **55.9%** | `logs/eval_ce_threshold_cluster-vllm_20260415_2022_detail.jsonl` |
@@ -143,7 +149,7 @@ The combo-mode additions reinforce the anchoring result: hiding snap from the fi
 | vectorless_direct | **CANCELLED** | job `43471` canceled — mode is parametric reasoning, not real corpus search |
 | vectorless_hybrid | **CANCELLED** | job `43471` canceled — same naming / validity issue |
 
-Note: `subagent_rag` looked best at N=200 (66.0%) but does not hold the full-set lead. The directly comparable repaired HyDE pair is now `snap_hyde` = `rag_hyde` = **57.9%**; the later 1-gap `subagent_rag` rerun improved to **57.2%**; and both `ce_threshold` and `gap_rag_nosnap` flatten at **55.9%**, barely above `llm_only` (**55.5%**). An earlier `snap_hyde` run reached **58.6%**, but the repaired HyDE conclusion is that snap adds **0pp** inside the HyDE family. The planned full-scale "vectorless" runs were canceled because they would only validate extra reasoning steps, not corpus search.
+Note: `subagent_rag` looked best at N=200 (66.0%) but does not hold the full-set lead. The directly comparable repaired HyDE pair is currently `snap_hyde` = `rag_hyde` = **57.9%** on the pre-leak-fix canonical runs; the earlier `snap_hyde` run that reached **58.6%** was also pre-fix. Clean reruns are in flight after the 2026-04-20 leakage audit. The later 1-gap `subagent_rag` rerun improved to **57.2%**; and both `ce_threshold` and `gap_rag_nosnap` flatten at **55.9%**, barely above `llm_only` (**55.5%**). The planned full-scale "vectorless" runs were canceled because they would only validate extra reasoning steps, not corpus search.
 Scale note: `entity_search` falls **6.8pp** from N=200 to N=1195 (`60.0% -> 53.2%`), while vector `rag_simple` falls only **2.8pp** (`57.0% -> 54.2%`). NLP entity matching is therefore less robust than vector search at scale in the current corpus setup.
 
 ### Cross-Dataset Follow-Up (Gemma 4 E4B, N=200)
@@ -154,6 +160,8 @@ Scale note: `entity_search` falls **6.8pp** from N=200 to N=1195 (`60.0% -> 53.2
 | CaseHOLD | **69.5%** | 68.0% | 67.5% | — | Parametric reasoning hurts citation-matching relative to `llm_only` |
 
 ## Top 10 Findings
+
+Note: the full-scale HyDE-family findings below reference the pre-leak-fix canonical runs until the clean reruns finish.
 
 1. **HyDE is the real driver.** Passage-form queries bridge the genre gap between question-form queries and doctrinal corpus passages. `rag_hyde` (fixed) = `snap_hyde` = **57.9%** at full N=1195. The previous +3pp snap lift for HyDE was a bug artifact.
 
@@ -215,7 +223,7 @@ Before trusting any result, check:
 | 44371 | case summaries build | — | Completed — 22K summaries built |
 | 44394 | snap ablations | 200 | Completed — `rag_hyde` 62.5%, `vectorless_nosnap` 59.5% |
 | 44395 | cross-dataset block | 200 | Completed — HousingQA and CaseHOLD follow-ups logged |
-| 44520 | entity graph rebuild | — | Running — last noted at 74% on 2026-04-14 |
+| 44520 | entity graph rebuild | — | Status unverified — last noted at 74% on 2026-04-14 |
 | 45350 | `rag_hyde` + `ce_threshold` full | 1195 | Completed — `ce_threshold` 55.9%; the interim `rag_hyde` rerun was later superseded by `48555` |
 | 45735 | `gap_rag_nosnap` + `subagent_rag` (1-gap) full | 1195 | Completed — 55.9%, 57.2% |
 | 48393 | combo modes | 200 | Completed — `snap_hyde_report` 66.0%, `snap_hyde_report_snap` 64.0%, `subagent_rag_snap` 63.0%, `subagent_rag_full` 62.0% |

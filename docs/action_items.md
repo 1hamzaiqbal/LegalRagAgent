@@ -8,14 +8,22 @@ Target venues:
 
 ---
 
+## Update 2026-04-20/21
+
+- Leakage audit: every canonical HyDE-family leaderboard number in `logs/experiments.jsonl` is currently a pre-leak-fix reference. Historical `rag_hyde` passages leaked `Answer: (X)` in **100%** of samples and historical `rag_snap_hyde` passages in **74%**; `_sanitize_intermediate_text` landed in `02edbb7` on 2026-04-17 after those runs were logged and still had regex bugs.
+- Hardening landed on `hpc-setup` through `dfb6a9b`: `e508765`, `951729d`, `bf89b78`, `baef4d8`, `0b4e35d`, `71533fd`, `c85fe70`, `a377867`, `6118161`, `bab7cf5`, `a493491`. Smoke job `50812` removed generation-time HyDE leakage (`top_level_hyde_artifacts=0`) with `rag_hyde` **19/30 (63.3%)** and `rag_snap_hyde` **21/30 (70.0%)**.
+- Clean reruns are now the blocker: `50835` (mini-eval over `rag_simple`, `rag_hyde`, `rag_snap_hyde`, `snap_only_in_final`) is in flight, `50836` is downloading `gemma-4-E2B-it` and `gemma-4-31B-it`, and `50822` is still pending on `a100-sxm4`. Do not treat the historical `57.9%` / `58.6%` HyDE numbers below as clean post-fix leaderboard results.
+
+---
+
 ## Paper Narrative
 
 **Core claim (revised April 17):** HyDE passage generation is the primary driver of retrieval quality for legal QA — it bridges the genre gap between question-form queries and doctrinal corpus passages. Snap (letting the LLM reason first) helps plain RAG (+5pp) and parametric reasoning (+5pp), but adds zero to HyDE. Showing snap to the final decision-maker always hurts (-2 to -4pp).
 
 **Supporting evidence:**
-- Snap ablation across three families: HyDE **0pp** (`rag_hyde` fixed 57.9% = `snap_hyde` 57.9% at N=1195), plain RAG **+5pp**, parametric reasoning **+5pp**
+- Snap ablation across three families on the pre-leak-fix canonical runs: HyDE **0pp** (`rag_hyde` fixed 57.9% = `snap_hyde` 57.9% at N=1195), plain RAG **+5pp**, parametric reasoning **+5pp**; clean reruns pending
 - The previous HyDE snap lift (+3pp) was a bug artifact from a broken Gemma prompt
-- Showing snap to the final agent always hurts: `snap_hyde_report_snap` 64% < `snap_hyde_report` 66%, `subagent_rag_snap` 63% < `subagent_rag` 66%
+- Showing snap to the final agent always hurts: `snap_hyde_report_snap` 64% < `snap_hyde_report` 66%, `subagent_rag_snap` 63% < `subagent_rag` 66%, `subagent_rag_full` 62% < `subagent_rag` 66%
 - Three identified failure modes: noise, anchoring, genre mismatch
 - Cross-dataset: snap lift is BarExam-specific (flat on HousingQA, negative on CaseHOLD)
 
@@ -24,11 +32,11 @@ Target venues:
 ## Priority 1: Critical Experiments (MUST DO for paper)
 
 ### P1.1: Snap vs No-Snap Ablation (the paper's core comparison)
-- [x] **Pure HyDE (no snap)** — `rag_hyde` on Gemma 4 E4B N=200 completed at **62.5%**
-- [x] **Compare:** `snap_hyde` (65.5%) vs pure HyDE (62.5%) = **+3pp** snap contribution for HyDE
+- [x] **Pure HyDE (no snap)** — fixed full `rag_hyde` completed at **57.9%** on Gemma 4 E4B N=1195 (**pre-leak-fix canonical run; clean rerun pending**)
+- [x] **Compare:** paired full `snap_hyde` (**57.9%**) vs fixed full `rag_hyde` (**57.9%**) = **0pp** snap contribution for HyDE on the pre-leak-fix canonical pair
 - [x] **snap_rag (62.0%) vs rag_simple (57.0%)** = already done, +5pp ✓
 - [x] **`vectorless_direct` vs `vectorless_nosnap`** — completed: **64.5% vs 59.5%**, another **+5pp** snap lift
-- [x] **Core table complete:** snap adds **+3pp to HyDE**, **+5pp to plain RAG**, and **+5pp to parametric reasoning**
+- [x] **Core table complete:** snap adds **0pp to HyDE**, **+5pp to plain RAG**, and **+5pp to parametric reasoning**
 - Data: `logs/experiments.jsonl`, detail logs in `logs/eval_*_detail.jsonl`
 
 ### P1.2: Cross-Dataset Validation
@@ -42,12 +50,12 @@ Target venues:
 - Data: HousingQA at `datasets/housing_qa/`, CaseHOLD at `datasets/casehold/`
 
 ### P1.3: Full-Scale N=1195 Validation
-- [x] rag_snap_hyde full: **58.6% best run** (later rerun: **57.9%**) ✓ DONE
+- [x] rag_snap_hyde full: **57.9% paired rerun** (earlier best run: **58.6%**) (**both pre-leak-fix; clean reruns pending**) ✓ DONE
 - [x] vectorless_direct full: **CANCELLED** (job `43471`) — misnamed parametric reasoning, not real corpus search
 - [x] vectorless_hybrid full: **CANCELLED** (job `43471`) — same issue
-- [x] `subagent_rag` full N=1195: **56.9%** (`680/1195`) — the N=200 edge did **not** hold at scale vs the best full `snap_hyde` run at **58.6%**
+- [x] `subagent_rag` full N=1195: **56.9%** (`680/1195`) — the N=200 edge did **not** hold at scale vs the repaired HyDE pair at **57.9%**
 - [x] Update 2026-04-15: `entity_search` full N=1195: **53.2%** (`636/1195`) — real NLP entity-graph corpus search, zero embeddings, 1 LLM call; below full `rag_simple` **54.2%**
-- [x] Update 2026-04-15/16: corrected full `rag_hyde` rerun completed at **54.3%** (`649/1195`) after invalidating the broken 11-character-output attempt
+- [x] Update 2026-04-17: fixed full `rag_hyde` rerun completed at **57.9%** (`692/1195`) after invalidating the broken 11-character-output attempts (**still pre-leak-fix; clean rerun pending**)
 - [x] Update 2026-04-16: full `ce_threshold` completed at **55.9%** (`668/1195`)
 - [x] Update 2026-04-16: full `gap_rag_nosnap` completed at **55.9%** (`668/1195`)
 - [x] Update 2026-04-16: full `subagent_rag` 1-gap rerun completed at **57.2%** (`684/1195`)
@@ -71,7 +79,14 @@ Target venues:
 - [x] Update 2026-04-15: `subagent_hyde` used **5.2 avg** calls and still trailed `subagent_rag`
 - Code: `eval/eval_harness.py`, subagent runners in the gap-family section
 
-### P2.3: Corpus Structure / Metadata Approaches
+### P2.3: Combo-Mode Anchoring Controls
+- [x] **`snap_hyde_report`** — completed at **66.0%**; report-only compression is neutral vs fixed `rag_hyde`
+- [x] **`snap_hyde_report_snap`** — completed at **64.0%**; showing snap hurts **-2pp**
+- [x] **`subagent_rag_snap`** — completed at **63.0%**; showing snap hurts **-3pp**
+- [x] **`subagent_rag_full`** — completed at **62.0%**; max information hurts **-4pp**
+- [x] **Combo-mode block `48393`** — completed and closed; visible snap consistently hurts the final decision-maker
+
+### P2.4: Corpus Structure / Metadata Approaches
 - [ ] **Proximity RAG** — use RAG to find a passage, then expand context by pulling the full case/document it came from (using `case_id` + `relative_paragraph_id`), plus neighboring passages. Subagent reads the expanded context and summarizes. Addresses the 95-word avg passage length problem — answers often span multiple paragraphs from the same source.
 - [ ] **Topic-filtered retrieval** — classify passages by bar exam subject (7 topics), retrieve only from matching topic
 - [ ] **PageIndex-style ToC** — build a table of contents from the corpus, let LLM navigate. NOTE: PageIndex is designed for single documents, our corpus is 686K flat passages. May need adaptation.
@@ -108,7 +123,7 @@ Target venues:
 
 | Experiment | Result | Status |
 |---|---|---|
-| Snap vs no-snap ablation | `rag_hyde` 62.5%, `vectorless_nosnap` 59.5%; core lift = +3 / +5 / +5 | ✅ Done |
+| Snap vs no-snap ablation | fixed `rag_hyde` 57.9 vs paired `snap_hyde` 57.9; core lift = 0 / +5 / +5 | ✅ Done |
 | Cross-dataset follow-up | HousingQA flat, CaseHOLD negative for new parametric controls | ✅ Done |
 | Embedding comparison (7 models × 3 modes) | Cross-encoder dominates | ✅ Done |
 | Gap architecture + GAP_MIN_CE fix | gap_rag 63.5%, gap_hyde 62.0% | ✅ Done |
@@ -118,15 +133,15 @@ Target venues:
 | Subagent follow-ups | hybrid 63.5%, rag_evidence 61.0% | ✅ Done |
 | subagent_hyde | 62.5%, below subagent_rag 66.0% | ✅ Done |
 | snap_entity_informed | 59.5%, below entity_search 60.0% | ✅ Done |
-| snap_hyde full N=1195 | 58.6% best run; later rerun 57.9% | ✅ Done |
-| subagent_rag full N=1195 | 56.9%, below the best full snap_hyde run at 58.6% | ✅ Done |
+| snap_hyde full N=1195 | 57.9% paired rerun; earlier best run 58.6% | ✅ Done |
+| subagent_rag full N=1195 | 56.9%, below the repaired HyDE pair at 57.9% | ✅ Done |
 | entity_search full N=1195 | 53.2%, below rag_simple 54.2% | ✅ Done |
-| rag_hyde full N=1195 (first fix) | **54.3%** (partially broken prompt) → superseded by **57.9%** (job `48555`, fully fixed) | ✅ Done |
+| rag_hyde full N=1195 rerun | **57.9%** after the repaired prompt fix; ties paired `snap_hyde` | ✅ Done |
 | ce_threshold full N=1195 | **55.9%** — barely above llm_only (55.5%) | ✅ Done |
 | gap_rag_nosnap full N=1195 | **55.9%** — same as ce_threshold | ✅ Done |
 | subagent_rag (1-gap) full N=1195 | **57.2%** — improved prompt, up from 56.9% | ✅ Done |
 | Case-summary build | 22K summaries built (job `44371`) | ✅ Done |
-| Phase 1 alignment (10 modes) | snap_hyde 65.5% best | ✅ Done |
+| Phase 1 alignment (10 modes) | Historical alignment block completed; later follow-ups raised the current top tier to 66.0% | ✅ Done |
 | 195 total experiments (as of 2026-04-19) | current count in `logs/experiments.jsonl` | ✅ Logged |
 | New combo modes | snap_hyde_report 66.0%, snap_hyde_report_snap 64.0%, subagent_rag_snap 63.0%, subagent_rag_full 62.0% (job `48393`) | ✅ Done |
 
@@ -136,13 +151,16 @@ Target venues:
 
 | Job | What | Status |
 |---|---|---|
+| 50835 | clean mini-eval (`rag_simple`, `rag_hyde`, `rag_snap_hyde`, `snap_only_in_final`) | In flight on `a40-2205` — N=200 rerun after leakage hardening |
+| 50836 | Gemma checkpoint downloads | Running on CPU — prepping larger clean reruns for `gemma-4-E2B-it` and `gemma-4-31B-it` |
+| 50822 | 26B-A4B smoke | PENDING on `a100-sxm4` |
 | 44371 | case summaries build | Completed — 22K summaries built |
 | 44394 | snap ablations | Completed — `rag_hyde` 62.5%, `vectorless_nosnap` 59.5% |
 | 44395 | cross-dataset jobs | Completed — HousingQA and CaseHOLD follow-ups logged |
-| 44520 | entity graph rebuild | Running — last noted at 74% on 2026-04-14 |
-| 45350 | rag_hyde + ce_threshold full | ✅ Completed — ce_threshold 55.9%; rag_hyde 54.3% superseded by job 48555 (57.9%) |
+| 44520 | entity graph rebuild | Status unverified — last noted at 74% on 2026-04-14 |
+| 45350 | rag_hyde + ce_threshold full | ✅ Completed — ce_threshold 55.9%; the interim rag_hyde rerun was later superseded |
 | 45735 | gap_rag_nosnap + subagent_rag (1-gap) full | ✅ Completed — 55.9%, 57.2% |
-| 48393 | combo modes N=200 | ✅ Completed — rag_hyde 66.0%, snap_hyde_report 66.0%, snap_hyde_report_snap 64.0%, subagent_rag_snap 63.0%, subagent_rag_full 62.0% |
+| 48393 | combo modes N=200 | ✅ Completed — snap_hyde_report 66.0%, snap_hyde_report_snap 64.0%, subagent_rag_snap 63.0%, subagent_rag_full 62.0% |
 | 48555 | rag_hyde fixed full N=1195 | ✅ Completed — **57.9%** (matches snap_hyde; snap lift = 0pp) |
 | 43471 | vectorless_direct + hybrid full N=1195 | Cancelled — fake vectorless / not real corpus search |
 
@@ -153,7 +171,7 @@ Target venues:
 | What | Where |
 |---|---|
 | All results | `logs/experiments.jsonl` |
-| Meeting prep | `docs/meeting_2026_04_13.md` |
+| Meeting prep | `docs/meeting_2026_04_17.md` |
 | Experiment overview | `docs/experiment_overview.md` |
 | This action list | `docs/action_items.md` |
 | Experiment narratives | `EXPERIMENTS.md` |
