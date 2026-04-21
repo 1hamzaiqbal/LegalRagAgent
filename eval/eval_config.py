@@ -76,6 +76,7 @@ EVAL_MODES = {
     "self_verify":              "Self-verification: snap answer then review for errors (2 calls, no RAG)",
     "double_snap":              "Double-snap: two answers, agree=use, disagree=CE-threshold RAG (2-4 calls)",
     "snap_debate":              "Snap-debate: snap then adversarial critique (2 calls, no RAG)",
+    "snap_only_in_final":       "Ablation cell: snap reasoning visible to final agent, NO retrieval (2 calls)",
 }
 
 

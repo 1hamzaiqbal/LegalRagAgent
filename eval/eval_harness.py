@@ -3381,6 +3381,37 @@ def run_snap_debate(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_snap_only_in_final(row: pd.Series, config: EvalConfig) -> dict:
+    """Ablation cell: snap reasoning visible to final agent, NO retrieval.
+
+    Isolates the snap-reasoning contribution from the retrieval contribution.
+    Compared against:
+      - llm_only          (snap only, no final pass)
+      - rag_simple        (no snap, retrieval only)
+      - rag_snap_hyde     (snap + retrieval, snap hidden from final)
+
+    2 LLM calls, no retrieval.
+    """
+    question = _fmt(row, config)
+
+    # Step 1: Snap
+    snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_only/snap")
+    snap_letter = _extract_answer(snap_answer, config)
+
+    # Step 2: Final — snap reasoning visible (letter stripped to avoid pure letter-copy)
+    user = (
+        f"## Your Initial Reasoning\n{_strip_answer_line(snap_answer)}\n\n"
+        f"## Question\n{question}"
+    )
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="snap_only/answer")
+
+    return {
+        "final_answer": answer,
+        "snap_answer": snap_answer,
+        "snap_letter": snap_letter,
+    }
+
+
 MODE_RUNNERS = {
     "full_pipeline": run_full_pipeline,
     "llm_only": run_llm_only,
@@ -3434,6 +3465,7 @@ MODE_RUNNERS = {
     "self_verify": run_self_verify,
     "double_snap": run_double_snap,
     "snap_debate": run_snap_debate,
+    "snap_only_in_final": run_snap_only_in_final,
 }
 
 
