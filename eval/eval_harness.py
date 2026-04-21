@@ -982,10 +982,13 @@ def _gap_analysis(snap_answer: str, question: str) -> list[dict]:
         "- Do not ask a confirmatory question that simply assumes the student's legal premise is already correct.\n"
         "- Give exactly 1 gap — the one most likely to change the answer.\n"
         "- Only give 2 gaps if there are truly two independent uncertainties.\n"
-        "- If the reasoning is solid and you are confident in the answer, reply exactly: NONE"
+        "- If the reasoning is solid and you are confident in the answer, reply exactly: NONE\n"
+        "- Do not emit 'Answer: (X)' or any multiple-choice letter in your gap output."
     )
+    # Strip trailing 'Answer: (X)' from the snap so the analyst focuses on the
+    # reasoning rather than the answer letter itself.
     user = (
-        f"## Student's Answer and Reasoning\n{snap_answer}\n\n"
+        f"## Student's Answer and Reasoning\n{_strip_answer_line(snap_answer)}\n\n"
         f"## Original Question\n{question}"
     )
     raw = _llm_call(system, user, label="gap/analyze")
@@ -1274,6 +1277,11 @@ def _build_gap_final_prompt(snap_answer: str, question: str, gaps: list[dict],
     flat_passages = "\n\n".join(all_passages) if all_passages else "No evidence retrieved."
     report_block = "\n\n".join(report_sections) if report_sections else "No investigations completed."
 
+    # Strip trailing 'Answer: (X)' from the snap reasoning when it is about to
+    # be rendered back to the final agent — prevents the final call from simply
+    # copying the snap letter (anchoring), while preserving the reasoning itself.
+    snap_reasoning = _strip_answer_line(snap_answer)
+
     system = _system_prompt(config, "research" if final_input.startswith("reports") else "rag")
     context_fields: list[str]
 
@@ -1288,7 +1296,7 @@ def _build_gap_final_prompt(snap_answer: str, question: str, gaps: list[dict],
         context_fields = ["gap_evidence", "question"]
     elif final_input == "snap_and_evidence":
         user = (
-            f"## Your Initial Answer\n{snap_answer}\n\n"
+            f"## Your Initial Reasoning\n{snap_reasoning}\n\n"
             f"## Retrieved Passages\n{flat_passages}\n\n"
             f"## Question\n{question}"
         )
@@ -1308,14 +1316,14 @@ def _build_gap_final_prompt(snap_answer: str, question: str, gaps: list[dict],
         context_fields = ["research_findings", "supporting_passages", "question"]
     elif final_input == "reports_and_snap":
         user = (
-            f"## Your Initial Answer\n{snap_answer}\n\n"
+            f"## Your Initial Reasoning\n{snap_reasoning}\n\n"
             f"## Research Findings\n{report_block}\n\n"
             f"## Question\n{question}"
         )
         context_fields = ["snap_answer", "research_findings", "question"]
     elif final_input == "reports_snap_evidence":
         user = (
-            f"## Your Initial Answer\n{snap_answer}\n\n"
+            f"## Your Initial Reasoning\n{snap_reasoning}\n\n"
             f"## Research Findings\n{report_block}\n\n"
             f"## Supporting Passages\n{flat_passages}\n\n"
             f"## Question\n{question}"
@@ -1323,7 +1331,7 @@ def _build_gap_final_prompt(snap_answer: str, question: str, gaps: list[dict],
         context_fields = ["snap_answer", "research_findings", "supporting_passages", "question"]
     else:  # full
         user = (
-            f"## Your Initial Answer\n{snap_answer}\n\n"
+            f"## Your Initial Reasoning\n{snap_reasoning}\n\n"
             f"## Evidence Gathered for Identified Gaps\n{gap_block}\n\n"
             f"## Question\n{question}"
         )
