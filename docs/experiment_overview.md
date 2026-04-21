@@ -1,6 +1,6 @@
 # Experiment Overview
 
-High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (**195** entries as of 2026-04-19).
+High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (**210** entries as of 2026-04-21).
 
 For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEARCH.md`.
 <!-- Intentional overlap with docs/meeting_2026_04_17.md: this file is the cleaned synthesis, while the meeting notes preserve point-in-time discussion. Some duplicated summary content is expected and should not be removed automatically. -->
@@ -83,6 +83,12 @@ A leakage audit on 2026-04-20 found answer-letter contamination in the HyDE-fami
 
 Hardening landed on `hpc-setup` through `dfb6a9b`: `e508765`, `951729d`, `bf89b78`, `baef4d8`, `0b4e35d`, `71533fd`, `c85fe70`, `a377867`, `6118161`, `bab7cf5`, `a493491`. Smoke job `50812` confirmed generation-time cleanup with `rag_hyde` **19/30 (63.3%)** and `rag_snap_hyde` **21/30 (70.0%)**, both with `top_level_hyde_artifacts=0`; clean reruns are in flight via `50835`, `50836`, and pending job `50822`.
 
+## 2026-04-21: Post-Fix Size-Comparison Wave
+
+- Clean E4B mini-eval `50835` finished at `rag_simple` **60.5%**, `rag_hyde` **59.5%**, `rag_snap_hyde` **66.5%**, and `snap_only_in_final` **64.0%**, all with 0% leak.
+- Narrative flip: the old "snap adds 0pp to HyDE" read was a leak artifact; clean E4B N=200 now shows snap adds **+7.0pp** over `rag_hyde` (**59.5% → 66.5%**).
+- Landed full N=1195 post-fix rows already show monotonic `rag_simple` scaling: E2B **45.4%**, E4B **55.7%**, 26B-A4B **70.8%**, 31B **79.6%**; 26B-A4B `rag_hyde` has also landed at **74.2%**.
+
 ## Paper Core Result (Gemma 4 E4B, BarExam)
 
 | Family | No-snap mode | No-snap acc | Snap mode | Snap acc | Snap lift |
@@ -136,20 +142,25 @@ The combo-mode additions reinforce the anchoring result: hiding snap from the fi
 
 | Mode | Accuracy | Detail Log |
 |---|---|---|
+| **31B rag_simple** | **79.6% [post-fix, full N=1195]** | `logs/eval_rag_simple_cluster-vllm_20260421_1203_detail.jsonl` |
+| **26B-A4B rag_hyde** | **74.2% [post-fix, full N=1195]** | `logs/eval_rag_hyde_cluster-vllm_20260421_1112_detail.jsonl` |
+| **26B-A4B rag_simple** | **70.8% [post-fix, full N=1195]** | `logs/eval_rag_simple_cluster-vllm_20260421_0857_detail.jsonl` |
 | golden_passage | 62.2% | `logs/eval_golden_passage_cluster-vllm_20260408_1749_detail.jsonl` |
-| **snap_hyde** | **57.9% [pre-fix]** | `logs/eval_rag_snap_hyde_cluster-vllm_20260413_1102_detail.jsonl` |
-| **rag_hyde (fixed)** | **57.9% [pre-fix]** | `logs/eval_rag_hyde_cluster-vllm_20260417_2047_detail.jsonl` |
+| **snap_hyde [E4B]** | **57.9% [pre-fix; clean rerun pending]** | `logs/eval_rag_snap_hyde_cluster-vllm_20260413_1102_detail.jsonl` |
+| **rag_hyde (fixed) [E4B]** | **57.9% [pre-fix; clean rerun pending]** | `logs/eval_rag_hyde_cluster-vllm_20260417_2047_detail.jsonl` |
 | **subagent_rag (1-gap)** | **57.2%** | `logs/eval_subagent_rag_cluster-vllm_20260416_1720_detail.jsonl` |
 | **subagent_rag** | **56.9%** | `logs/eval_subagent_rag_cluster-vllm_20260414_1115_detail.jsonl` |
 | **ce_threshold** | **55.9%** | `logs/eval_ce_threshold_cluster-vllm_20260415_2022_detail.jsonl` |
 | **gap_rag_nosnap** | **55.9%** | `logs/eval_gap_rag_nosnap_cluster-vllm_20260416_0544_detail.jsonl` |
+| **E4B rag_simple** | **55.7% [post-fix, full N=1195]** | `logs/eval_rag_simple_cluster-vllm_20260421_0812_detail.jsonl` |
 | llm_only | 55.5% | `logs/eval_llm_only_cluster-vllm_20260408_1709_detail.jsonl` |
-| rag_simple | 54.2% | `logs/eval_rag_simple_cluster-vllm_20260408_1813_detail.jsonl` |
+| rag_simple [pre-fix E4B] | 54.2% | `logs/eval_rag_simple_cluster-vllm_20260408_1813_detail.jsonl` |
 | entity_search | 53.2% | `logs/eval_entity_search_cluster-vllm_20260415_0454_detail.jsonl` |
+| **E2B rag_simple** | **45.4% [post-fix, full N=1195]** | `logs/eval_rag_simple_cluster-vllm_20260421_0802_detail.jsonl` |
 | vectorless_direct | **CANCELLED** | job `43471` canceled — mode is parametric reasoning, not real corpus search |
 | vectorless_hybrid | **CANCELLED** | job `43471` canceled — same naming / validity issue |
 
-Note: `subagent_rag` looked best at N=200 (66.0%) but does not hold the full-set lead. The directly comparable repaired HyDE pair is currently `snap_hyde` = `rag_hyde` = **57.9%** on the pre-leak-fix canonical runs; the earlier `snap_hyde` run that reached **58.6%** was also pre-fix. Clean reruns are in flight after the 2026-04-20 leakage audit. The later 1-gap `subagent_rag` rerun improved to **57.2%**; and both `ce_threshold` and `gap_rag_nosnap` flatten at **55.9%**, barely above `llm_only` (**55.5%**). The planned full-scale "vectorless" runs were canceled because they would only validate extra reasoning steps, not corpus search.
+Note: the new E2B/E4B/26B/31B rows above are the landed post-fix size-comparison entries from 2026-04-21. The full E4B `snap_hyde` / `rag_hyde` rows remain pre-leak-fix historical references until the clean reruns in `docs/size_comparison_matrix.md` finish. The later 1-gap `subagent_rag` rerun improved to **57.2%**; and both `ce_threshold` and `gap_rag_nosnap` flatten at **55.9%**, barely above `llm_only` (**55.5%**). The planned full-scale "vectorless" runs were canceled because they would only validate extra reasoning steps, not corpus search.
 Scale note: `entity_search` falls **6.8pp** from N=200 to N=1195 (`60.0% -> 53.2%`), while vector `rag_simple` falls only **2.8pp** (`57.0% -> 54.2%`). NLP entity matching is therefore less robust than vector search at scale in the current corpus setup.
 
 ### Cross-Dataset Follow-Up (Gemma 4 E4B, N=200)
@@ -161,7 +172,7 @@ Scale note: `entity_search` falls **6.8pp** from N=200 to N=1195 (`60.0% -> 53.2
 
 ## Top 10 Findings
 
-Note: the full-scale HyDE-family findings below reference the pre-leak-fix canonical runs until the clean reruns finish.
+Note: the full-scale HyDE-family findings below reference the pre-leak-fix canonical E4B runs until the clean reruns finish; the clean E4B mini-eval already flips snap-over-HyDE to **+7.0pp** (`59.5% -> 66.5%`).
 
 1. **HyDE is the real driver.** Passage-form queries bridge the genre gap between question-form queries and doctrinal corpus passages. `rag_hyde` (fixed) = `snap_hyde` = **57.9%** at full N=1195. The previous +3pp snap lift for HyDE was a bug artifact.
 
@@ -216,7 +227,7 @@ Before trusting any result, check:
 | HPC throughput data | `docs/hpc_throughput.md` |
 | This overview | `docs/experiment_overview.md` |
 
-## Current Cluster Status (as of 2026-04-19)
+## Historical Cluster Status (as of 2026-04-19)
 
 | Job | Mode | N | Purpose |
 |---|---|---|---|
