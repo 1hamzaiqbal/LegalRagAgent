@@ -57,6 +57,35 @@ Codex audited 11 post-fix detail logs (2026-04-21) + 3 historical pre-fix for re
 
 Net: current post-fix numbers are trustworthy. No targeted reruns required.
 
+### 2026-04-21 late — second audit on the landed cross-scale matrix
+
+Codex ran a deeper 5-check audit on the 11 post-fix full-N=1195 detail logs
+(E4B/26B/31B × various modes) after the surprising finding that 26B
+`rag_snap_hyde` (76.6%) beats `golden_passage` (75.0%). All checks substantively PASS:
+
+- **Accuracy numbers match claims**: all 11 per-row counts match the headline
+  numbers exactly. (Minor metadata gap: experiments.jsonl is missing 7 summary
+  rows — the detail logs are correct, the ledger isn't complete.)
+- **rag_snap_hyde > oracle is real**: +19 net paired-diff wins on aligned idxs
+  (126 snap-right/gold-wrong vs 107 gold-right/snap-wrong). 5 random
+  inspections each side show coherent doctrinal reasoning, not junk outputs.
+  Not contamination — snap+HyDE is adding reasoning structure beyond what a
+  single gold passage provides.
+- **Cross-mode idx alignment**: zero drift across 11 logs. Identical row
+  order, question text, and answer keys everywhere.
+- **is_correct derivation sane**: 110 sampled rows, 100% match manual
+  computation. No stored-vs-computed mismatches in any file.
+
+**Metadata bug found + patched**: `run_golden_passage` was setting
+`gold_retrieved=False` / `retrieved_ids=[]` even though the gold passage was
+being injected into the prompt. Fixed for future runs; historical log metadata
+unchanged but prompt behavior was always correct.
+
+Bottom line: the 26B-A4B "rag_snap_hyde beats oracle by +1.6pp" finding is
+real and paper-worthy. The small full-N HyDE lifts (E4B +2pp, 31B +0.8pp) are
+also legitimate — N=200 "+4pp" / "+7pp" readings were just the wider noise
+envelope at lower N.
+
 ## Jobs submitted
 
 | Model | Size | N | Job ID | Target | SLURM script | Est. wall |

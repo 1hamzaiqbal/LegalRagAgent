@@ -668,7 +668,16 @@ def run_golden_passage(row: pd.Series, config: EvalConfig) -> dict:
     system = _system_prompt(config, "rag")
     user = f"## Reference Passage\n{gold}\n\n## Question\n{question}"
     answer = _llm_call(system, user, label="golden_passage")
-    return {"final_answer": answer}
+    # The gold passage was injected directly — mark gold_retrieved=True so
+    # downstream analyzers don't report this mode as "no retrieval". Keep the
+    # retrieved_ids/evidence_store shape consistent with retrieval modes.
+    gold_idx = str(row.get("gold_idx", ""))
+    return {
+        "final_answer": answer,
+        "gold_retrieved": bool(gold_idx),
+        "retrieved_ids": [gold_idx] if gold_idx else [],
+        "evidence_store": [{"idx": gold_idx, "text": gold, "cross_encoder_score": 0.0}] if gold_idx else [],
+    }
 
 
 def _golden_arb_common(row: pd.Series, config: EvalConfig, arb_system: str, label_prefix: str) -> dict:
