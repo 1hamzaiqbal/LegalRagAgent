@@ -229,9 +229,11 @@ def _sanitize_intermediate_text(text: str, fallback: str = "") -> str:
     """Strip answer-label artifacts and prompt-ish headers from intermediate text."""
     cleaned = text or ""
 
-    # Remove standalone answer lines such as `Answer: (B)` or `Final Answer: Yes`.
+    # Remove standalone answer lines like `Answer: (B)`, `**Answer: (d)**`,
+    # `Final Answer: Yes`, or `**Answer:** (B)`. The optional `**` may wrap the
+    # whole line (bold-wrapped) OR sit between label and letter.
     cleaned = re.sub(
-        r"(?im)^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:\s*(?:\(?[A-E]\)?|yes|no|irrelevant)\s*$",
+        r"(?im)^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:\s*(?:\*\*)?\s*(?:\(?[A-E]\)?|yes|no|irrelevant)\s*(?:\*\*)?\s*$",
         "",
         cleaned,
     )
@@ -303,7 +305,7 @@ def _strip_answer_line(text: str) -> str:
     if not text:
         return ""
     cleaned = re.sub(
-        r"(?im)^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:\s*(?:\(?[A-E]\)?|yes|no|irrelevant)\s*$",
+        r"(?im)^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:\s*(?:\*\*)?\s*(?:\(?[A-E]\)?|yes|no|irrelevant)\s*(?:\*\*)?\s*$",
         "",
         text,
     )
