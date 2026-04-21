@@ -153,6 +153,9 @@ uv run python eval/eval_harness.py --mode golden_passage --provider groq-llama70
 
 # List providers
 uv run python llm_config.py
+
+# Regression tests (sanitizer + snap stripping — lock in leak fixes)
+uv run python tests/test_sanitizer.py
 ```
 
 ## Current Best Results / Direction Snapshot
