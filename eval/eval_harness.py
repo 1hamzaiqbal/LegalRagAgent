@@ -2921,9 +2921,12 @@ def run_decompose(row: pd.Series, config: EvalConfig) -> dict:
         sub_answers.append({"question": sq, "answer": sub_ans})
 
     # Step 3: Synthesize sub-answers into final answer
+    # Strip trailing "Answer: (X)" from each sub-answer so the synthesizer reasons
+    # from the sub-analysis rather than piggybacking the sub-agent's letter vote.
     synth_parts = []
     for sa in sub_answers:
-        synth_parts.append(f"Issue: {sa['question']}\nAnalysis: {sa['answer']}")
+        clean_analysis = _strip_answer_line(sa["answer"])
+        synth_parts.append(f"Issue: {sa['question']}\nAnalysis: {clean_analysis}")
     synth_block = "\n\n".join(synth_parts)
 
     synth_system = _system_prompt(config, "answer")
@@ -3018,12 +3021,15 @@ def run_decompose_rag(row: pd.Series, config: EvalConfig) -> dict:
             any_gold = True
 
     # Step 3: Synthesize all sub-answers + evidence into final answer
+    # Strip trailing "Answer: (X)" from each sub-snap so the final agent reasons
+    # from the sub-analysis rather than copying sub-letter votes.
     synth_parts = []
     for sr in sub_results:
         evidence_block = "\n".join(sr["passages"]) if sr["passages"] else "(no evidence retrieved)"
+        clean_snap = _strip_answer_line(sr["snap_answer"])
         synth_parts.append(
             f"Issue: {sr['sub_question']}\n"
-            f"Analysis: {sr['snap_answer']}\n"
+            f"Analysis: {clean_snap}\n"
             f"Supporting Evidence:\n{evidence_block}"
         )
     synth_block = "\n\n---\n\n".join(synth_parts)
