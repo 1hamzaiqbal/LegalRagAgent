@@ -1679,9 +1679,9 @@ def run_snap_hyde_report_snap(row: pd.Series, config: EvalConfig) -> dict:
         fallback="Retrieved passages were not helpful.",
     )
 
-    # Step 5: Final answer with report + snap
+    # Step 5: Final answer with report + snap reasoning (letter stripped to avoid anchoring)
     user = (
-        f"## Your Initial Answer\n{snap_answer}\n\n"
+        f"## Your Initial Reasoning\n{_strip_answer_line(snap_answer)}\n\n"
         f"## Research Findings\n{report['text']}\n\n"
         f"## Question\n{question}"
     )
@@ -2029,15 +2029,21 @@ def run_vectorless_keyword(row: pd.Series, config: EvalConfig) -> dict:
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="vkeyword/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
-    # Step 2: Generate targeted search terms
+    # Step 2: Generate targeted search terms (strip trailing snap letter so
+    # generated keywords don't regurgitate 'Answer: (X)' as a query line).
     keyword_system = (
-        "You are a legal research assistant. Based on a student's answer to a legal question, "
-        "generate 3-5 specific search keywords or phrases to find relevant legal authorities.\n\n"
+        "You are a legal research assistant. Based on a student's reasoning about a legal "
+        "question, generate 3-5 specific search keywords or phrases to find relevant legal "
+        "authorities.\n\n"
         "Focus on: legal doctrine names, rule names, statute sections, case law concepts, "
         "and specific legal terms that would appear in a legal reference.\n\n"
-        "Return one search phrase per line, nothing else."
+        "Return one search phrase per line, nothing else. No 'Answer:', no letter labels, "
+        "no preamble or explanation — keywords only."
     )
-    keyword_user = f"## Student's Answer\n{snap_answer}\n\n## Question\n{question_intermediate}"
+    keyword_user = (
+        f"## Student's Reasoning\n{_strip_answer_line(snap_answer)}\n\n"
+        f"## Question\n{question_intermediate}"
+    )
     keywords_raw = _llm_call(keyword_system, keyword_user, label="vkeyword/terms")
 
     # Parse keywords into search queries
@@ -2525,14 +2531,17 @@ def run_snap_hyde_aspect(row: pd.Series, config: EvalConfig) -> dict:
         fallback=question_intermediate,
     )
 
-    # Step 3: Generate aspect queries (rule + exception) based on the snap reasoning
+    # Step 3: Generate aspect queries (rule + exception) based on the snap reasoning.
+    # Strip the trailing snap letter so the query generator doesn't emit 'Answer:'
+    # as one of its JSON values.
     aspect_prompt = (
-        f"Based on this legal question and analysis, generate two short search queries "
+        f"Based on this legal question and reasoning, generate two short search queries "
         f"targeting different legal dimensions. Return ONLY a JSON object.\n\n"
         f"Question: {question_intermediate}\n\n"
-        f"Analysis: {snap_answer}\n\n"
+        f"Reasoning: {_strip_answer_line(snap_answer)}\n\n"
         f'Return: {{"rule": "query targeting the governing rule, statute, or doctrine", '
-        f'"exception": "query targeting exceptions, defenses, or limitations"}}'
+        f'"exception": "query targeting exceptions, defenses, or limitations"}}\n\n'
+        f'Rules: queries must not contain letter labels (A/B/C/D), "Answer:", or option references.'
     )
     aspect_raw = _llm_call("You are a legal search query generator. Return ONLY valid JSON.",
                             aspect_prompt, label="aspect/queries")
