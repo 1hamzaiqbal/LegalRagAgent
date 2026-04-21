@@ -1,5 +1,13 @@
 # Gemma 4 Size-Comparison Matrix (post leak-fix)
 
+> **⚠ 2026-04-22 methodology bug (commit `f95f316`)**: Every full-N=1195
+> number in this doc was produced by a harness that silently dropped the
+> BarExam `prompt` column (37% of questions lost their fact-pattern
+> context). The fix landed in `format_question_prompt` + `_fmt_intermediate`;
+> N=200 validation reruns submitted as 51179 (E4B) and 51180 (31B).
+> Relative rankings across sizes/modes are unaffected (bug hit all modes
+> equally). Absolute numbers are under-estimates of post-fix accuracy.
+
 Side-by-side full-corpus runs across all 4 Gemma 4 sizes using the identical
 4-mode matrix. Purpose: measure whether scaling past 8B gives meaningful
 reasoning/retrieval gains, and get clean post-leak-fix baselines per size.

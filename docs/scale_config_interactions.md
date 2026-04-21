@@ -1,5 +1,13 @@
 # Scale × Config Interactions
 
+> **⚠ 2026-04-22 methodology bug** (commit `f95f316`): all accuracy numbers
+> below were computed with `format_question_prompt` dropping the BarExam
+> `prompt` column (the shared fact pattern). **37% of questions (445/1195)**
+> had incomplete context for the model. Fix landed; N=200 validation reruns
+> submitted as jobs 51179 (E4B) and 51180 (31B) to quantify the delta.
+> Relative rankings across modes/sizes should hold (bug affected all modes
+> equally); absolute numbers are under-estimates of post-fix accuracy.
+
 Analysis of how different retrieval/reasoning methods behave across Gemma 4 model sizes
 (E2B → E4B → 26B-A4B → 31B). All numbers are post-leak-fix, BarExam, N=1195, seed=42,
 unless noted. Live snapshot — updates as remaining jobs land. See
