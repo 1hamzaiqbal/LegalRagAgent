@@ -202,7 +202,14 @@ def _fmt_intermediate(row: pd.Series, config: EvalConfig) -> str:
             parts.append("## Candidate Holdings\n" + "\n".join(holdings))
         return "\n\n".join(parts)
 
-    stem = str(row["question"])
+    # Pull the shared fact pattern from 'prompt' column when present; same fix
+    # as format_question_prompt (37% of BarExam rows need this context).
+    prompt_ctx = row.get("prompt", "")
+    prompt_prefix = ""
+    if pd.notna(prompt_ctx) and str(prompt_ctx).strip():
+        prompt_prefix = str(prompt_ctx).strip() + "\n\n"
+
+    stem = prompt_prefix + str(row["question"])
     choices = []
     for letter in ["A", "B", "C", "D"]:
         col = f"choice_{letter.lower()}"

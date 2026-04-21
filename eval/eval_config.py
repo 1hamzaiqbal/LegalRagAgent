@@ -189,7 +189,14 @@ def format_question_prompt(row: pd.Series, dataset: str = "barexam") -> str:
     if dataset in ("legal_rag", "australian"):
         return format_open_prompt(row)
 
-    parts = [str(row["question"])]
+    # Many BarExam items share a fact pattern across multiple sub-questions
+    # (same prompt_id). The 'prompt' column carries that shared fact pattern;
+    # without it, 37% of questions are missing their context entirely.
+    parts = []
+    prompt = row.get("prompt", "")
+    if pd.notna(prompt) and str(prompt).strip():
+        parts.append(str(prompt).strip())
+    parts.append(str(row["question"]))
 
     choices = []
     for letter in ["A", "B", "C", "D"]:
