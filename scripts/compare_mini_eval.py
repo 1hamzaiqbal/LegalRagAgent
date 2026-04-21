@@ -43,7 +43,11 @@ def summarize(mode: str, rows: list[dict]) -> dict:
         return {"mode": mode, "n": 0}
     correct = sum(1 for r in rows if r.get("is_correct"))
     gold_retrieved = sum(1 for r in rows if r.get("gold_retrieved"))
-    has_gold = sum(1 for r in rows if "gold_retrieved" in r)
+    # Use evidence_store presence (non-empty) to detect modes that actually ran
+    # retrieval. After the schema-normalization fix, every record has
+    # gold_retrieved/evidence_store/retrieved_ids keys, so key-presence no longer
+    # distinguishes no-retrieval modes from missing instrumentation.
+    retrieval_events = sum(1 for r in rows if r.get("evidence_store"))
 
     # HyDE leak check on raw output if available
     hyde_leak = 0
@@ -55,11 +59,12 @@ def summarize(mode: str, rows: list[dict]) -> dict:
             if ANSWER_RE.search(raw):
                 hyde_leak += 1
 
-    # Conditional accuracy on gold retrieved vs not
-    if has_gold:
+    # Conditional accuracy on gold retrieved vs not — only meaningful on modes
+    # that actually ran retrieval. Skip for no-retrieval modes.
+    if retrieval_events > 0:
         retr_correct = sum(1 for r in rows if r.get("gold_retrieved") and r.get("is_correct"))
         notr_correct = sum(1 for r in rows if not r.get("gold_retrieved") and r.get("is_correct"))
-        notr_count = has_gold - gold_retrieved
+        notr_count = n - gold_retrieved
         acc_retr = retr_correct / gold_retrieved if gold_retrieved else None
         acc_notr = notr_correct / notr_count if notr_count else None
     else:

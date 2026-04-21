@@ -3674,6 +3674,14 @@ def run_eval(config: EvalConfig):
             if k != "final_answer" and k not in record:
                 record[k] = v
 
+        # Normalize retrieval-schema keys: every record must have gold_retrieved,
+        # retrieved_ids, and evidence_store, even on no-retrieval modes. Downstream
+        # analysis scripts use key-presence to detect retrieval, so the absent-vs-
+        # explicit-False distinction matters.
+        record.setdefault("gold_retrieved", False)
+        record.setdefault("retrieved_ids", [])
+        record.setdefault("evidence_store", [])
+
         results.append(_serialize_result(record))
 
     total_time = time.time() - total_start
