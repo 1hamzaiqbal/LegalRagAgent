@@ -13,8 +13,11 @@ Values in **bold** are landed; empty cells are in-flight or queued.
 |---|---|---|---|---|---|---|---|
 | E2B | 4B eff | **45.4%** | — | — | — | — | — |
 | E4B | 8B eff | **55.7%** | **57.7%** | **58.4%** | — | — | — |
-| 26B-A4B | 25B / 3.8B active | **70.8%** | **74.2%** | **76.6%** | — | **74.3%** | — |
-| 31B | 31B dense | **79.6%** | — | — | — | — | — |
+| 26B-A4B | 25B / 3.8B active | **70.8%** | **74.2%** | **76.6%** | — | **74.3%** | **75.0%** |
+| 31B | 31B dense | **79.6%** | **80.4%** | — | — | — | — |
+
+Seed=99 repeatability (landed so far):
+- 26B rag_simple seed=99 = **71.8%** (+1.0pp vs seed=42 70.8%). Tight variance.
 
 N=200 reference points (earlier batch, 0% leak):
 - E4B N=200: rag_simple 60.5, rag_hyde 59.5, rag_snap_hyde 66.5, snap_only 64.0
@@ -42,6 +45,22 @@ At 26B-A4B: `rag_hyde` **74.2%** ≈ `llm_only` **74.3%**. HyDE retrieves doctri
 passages, but the model's parametric knowledge already contains equivalent signal at this
 scale. Plain HyDE retrieval contributes **~0pp** over removing retrieval entirely.
 
+### 3b. The ceiling is MUCH lower than we thought — at 26B
+
+- 26B `golden_passage` (oracle, gets the exact gold passage as context): **75.0%**
+- 26B `llm_only` (no retrieval): **74.3%**
+- Gap: **+0.7pp**. The gold passage barely contributes over parametric knowledge.
+
+This reframes the "retrieval bottleneck" story. At 25B scale, the model already
+knows most of the doctrine the gold passage teaches. Retrieval is not the
+bottleneck — the problem is the *interpretation/reasoning* phase, not the
+information access phase.
+
+Yet `rag_snap_hyde` lands at **76.6%** — **+1.6pp above the oracle ceiling**.
+That's only possible if snap+HyDE is adding reasoning structure beyond what a
+single gold passage provides: snap forces an explicit doctrinal analysis, HyDE
+retrieves multiple topically-aligned passages, the final agent integrates both.
+
 ### 4. `rag_snap_hyde` is the one retrieval mode that survives scaling
 | Model | llm_only | rag_hyde | rag_snap_hyde | snap+HyDE lift over llm_only |
 |---|---|---|---|---|
@@ -54,11 +73,18 @@ Snap reasoning picks the right doctrinal axis, HyDE retrieves passages on that a
 the final agent integrates both. Retrieval stops being redundant when snap narrows what
 we're retrieving *for*.
 
-### 5. Method stacking does collapse at the biggest scale (N=200 ref)
-At 31B N=200 the delta from `rag_hyde` 83% to `rag_snap_hyde` 85% is only +2pp —
-about half the lift observed at 26B. The 31B N=1195 numbers will show whether this
-compression continues. Working hypothesis: at 31B, snap and HyDE overlap more with
-parametric knowledge, so each additional component contributes less.
+### 5. Method stacking collapses at the biggest scale — confirmed at full N=1195
+- 31B N=200: rag_simple 79.0% → rag_hyde 83.0% = **+4.0pp**
+- 31B N=**1195**: rag_simple 79.6% → rag_hyde 80.4% = **+0.8pp**
+
+The N=200 HyDE lift at 31B was mostly noise. At full scale, HyDE adds basically
+nothing to 31B — consistent with the 26B finding that retrieval has almost no
+ceiling to climb against parametric knowledge.
+
+Method stacking full picture (so far):
+- **E4B**: rag_simple → rag_hyde → rag_snap_hyde = +2.0pp, +0.7pp
+- **26B**: +3.4pp, +2.4pp (snap is the only thing that breaks past the parametric ceiling)
+- **31B**: +0.8pp, ? (rag_snap_hyde still running)
 
 ## Implications for the research story
 
