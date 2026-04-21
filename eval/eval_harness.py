@@ -674,9 +674,9 @@ def _golden_arb_common(row: pd.Series, config: EvalConfig, arb_system: str, labe
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label=f"{label_prefix}/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
-    # Step 2: Show evidence and ask to confirm or revise
+    # Step 2: Show reasoning (not the letter) + evidence, ask for a fresh verdict.
     arb_user = (
-        f"## Your Previous Answer\n{snap_answer}\n\n"
+        f"## Your Previous Reasoning\n{_strip_answer_line(snap_answer)}\n\n"
         f"## Reference Passage\n{gold}\n\n"
         f"## Question\n{question}"
     )
@@ -2780,7 +2780,7 @@ def run_rag_hyde_arb(row: pd.Series, config: EvalConfig) -> dict:
         "Reason step by step, then give your final answer as: Answer: (X)"
     )
     arb_user = (
-        f"## Your Previous Answer\n{snap_answer}\n\n"
+        f"## Your Previous Reasoning\n{_strip_answer_line(snap_answer)}\n\n"
         f"## Retrieved Passages\n{passage_block}\n\n"
         f"## Question\n{question}"
     )
@@ -2887,7 +2887,7 @@ def run_rag_arbitration(row: pd.Series, config: EvalConfig) -> dict:
         "Reason step by step, then give your final answer as: Answer: (X)"
     )
     arb_user = (
-        f"## Your Previous Answer\n{snap_answer}\n\n"
+        f"## Your Previous Reasoning\n{_strip_answer_line(snap_answer)}\n\n"
         f"## Retrieved Passages\n{passage_block}\n\n"
         f"## Question\n{question}"
     )
@@ -3261,12 +3261,12 @@ def run_self_verify(row: pd.Series, config: EvalConfig) -> dict:
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="verify/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
-    # Step 2: Self-review
+    # Step 2: Self-review (strip prior letter so reviewer re-derives the answer)
     review_prompt = (
-        f"You previously answered a legal question. Review your answer carefully for errors "
+        f"You previously answered a legal question. Review your reasoning carefully for errors "
         f"in legal reasoning, missed elements, or incorrect conclusions. If you find an error, "
-        f"provide the corrected answer. If your answer is correct, restate it.\n\n"
-        f"## Your Previous Answer\n{snap_answer}\n\n"
+        f"provide the corrected answer. If your reasoning is sound, restate the conclusion.\n\n"
+        f"## Your Previous Reasoning\n{_strip_answer_line(snap_answer)}\n\n"
         f"## Original Question\n{question}"
     )
     verified = _llm_call(
@@ -3360,13 +3360,13 @@ def run_snap_debate(row: pd.Series, config: EvalConfig) -> dict:
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="debate/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
-    # Step 2: Adversarial review — explicitly look for errors
+    # Step 2: Adversarial review (strip prior letter so critic re-derives, not echoes)
     debate_prompt = (
         f"A student answered a legal question. Your job is to find flaws in their reasoning. "
         f"Look for: incorrect legal rules, missing elements, wrong conclusions, or misapplied "
         f"standards. If you find errors, provide the correct answer with your reasoning. "
-        f"If the answer is genuinely correct, confirm it and explain why.\n\n"
-        f"## Student's Answer\n{snap_answer}\n\n"
+        f"If the reasoning is genuinely sound, confirm it and explain why.\n\n"
+        f"## Student's Reasoning\n{_strip_answer_line(snap_answer)}\n\n"
         f"## Original Question\n{question}"
     )
     debated = _llm_call(
