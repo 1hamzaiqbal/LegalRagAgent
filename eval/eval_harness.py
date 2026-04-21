@@ -298,9 +298,21 @@ def _question_only_hyde_user(question_text: str) -> str:
     )
 
 
+def _strip_answer_line(text: str) -> str:
+    """Remove trailing 'Answer: (X)' lines from reasoning before it becomes HyDE context."""
+    if not text:
+        return ""
+    cleaned = re.sub(
+        r"(?im)^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:\s*(?:\(?[A-E]\)?|yes|no|irrelevant)\s*$",
+        "",
+        text,
+    )
+    return cleaned.strip()
+
+
 def _snap_hyde_user(question_text: str, snap_answer: str, gap_focus: str = "") -> str:
     """Shared user payload for snap-informed HyDE generation."""
-    reasoning = (snap_answer or "").strip()
+    reasoning = _strip_answer_line(snap_answer)
     if gap_focus:
         reasoning = (
             f"{reasoning}\n\n"
