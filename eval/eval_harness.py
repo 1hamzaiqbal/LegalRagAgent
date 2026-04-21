@@ -1776,6 +1776,14 @@ _VECTORLESS_FINAL = (
     "Give your final answer as: Answer: (X)"
 )
 
+_VECTORLESS_STRICT = (
+    "\n\nSTRICT OUTPUT RULES:\n"
+    "- Output ONLY the requested bullets — no preamble, no trailing summary.\n"
+    "- Do NOT begin with 'Answer:', 'Answer (X)', or any multiple-choice letter.\n"
+    "- Do NOT say 'the correct answer is' or reference options by letter.\n"
+    "- Do NOT include markdown headers like '**Note:**' or '**Passage:**'."
+)
+
 _VECTORLESS_DIRECT = (
     "You are a legal reference guide. A student answered a legal question. "
     "Write a short doctrinal note to help verify or correct their answer.\n\n"
@@ -1784,26 +1792,25 @@ _VECTORLESS_DIRECT = (
     "- Key exception or limitation:\n"
     "- Dispositive fact trigger:\n"
     "- What would make a different answer plausible:\n\n"
-    "Rules: State black-letter law directly. No answer letters. "
-    "No 'the correct answer is'. Keep under 120 words."
+    "State black-letter law directly. Keep under 120 words." + _VECTORLESS_STRICT
 )
 
 _VECTORLESS_ROLES = {
     "textbook": (
         "You are a legal textbook author. A student answered a legal question.\n"
         "Return ONLY 3 bullets:\n- Rule:\n- Exception/limitation:\n- Fact that controls:\n\n"
-        "No answer letters. State the law directly. Keep under 90 words."
+        "State the law directly. Keep under 90 words." + _VECTORLESS_STRICT
     ),
     "casebook": (
         "You are a casebook editor. A student answered a legal question.\n"
         "Return ONLY 3 bullets:\n- Holding-style rule:\n- Fact pattern that triggers it:\n"
         "- Common overread to avoid:\n\n"
-        "No answer letters. Keep under 90 words."
+        "Keep under 90 words." + _VECTORLESS_STRICT
     ),
     "barprep": (
         "You are a bar-prep tutor. A student answered a legal question.\n"
         "Return ONLY 3 bullets:\n- Rule:\n- Trap:\n- Decisive fact:\n\n"
-        "No answer letters. Keep under 90 words."
+        "Keep under 90 words." + _VECTORLESS_STRICT
     ),
 }
 
@@ -1812,7 +1819,7 @@ _VECTORLESS_ELEMENTS = (
     "Identify the 2-4 dispositive legal elements and assess each.\n\n"
     "For each element, use this format:\n"
     "- [element name]: [rule] | fact=[fact signal] | pressure=[leans_correct/leans_wrong/ambiguous]\n\n"
-    "No answer letters. Keep each element to one line."
+    "Keep each element to one line." + _VECTORLESS_STRICT
 )
 
 _VECTORLESS_CHOICE_MAP = (
@@ -1821,7 +1828,7 @@ _VECTORLESS_CHOICE_MAP = (
     "- Governing rule:\n"
     "- Strongest distractor pattern (the most plausible wrong answer and why):\n"
     "- Fact that flips the result:\n\n"
-    "No answer letters. Focus on distinguishing the closest wrong answer. Keep under 90 words."
+    "Focus on distinguishing the closest wrong answer. Keep under 90 words." + _VECTORLESS_STRICT
 )
 
 
@@ -1843,14 +1850,17 @@ def _run_vectorless(row: pd.Series, config: EvalConfig,
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Generate knowledge from parametric memory
-    gen_user = f"## Student's Initial Analysis\n{snap_answer}\n\n## Original Question\n{question_intermediate}"
+    # Strip the snap's trailing 'Answer: (X)' so generation focuses on reasoning,
+    # not the letter. Knowledge artifact is already sanitized below.
+    snap_reasoning = _strip_answer_line(snap_answer)
+    gen_user = f"## Student's Initial Analysis\n{snap_reasoning}\n\n## Original Question\n{question_intermediate}"
     knowledge_raw = _llm_call(gen_system, gen_user, label=f"{label}/generate")
     knowledge = _sanitize_intermediate_text(knowledge_raw, fallback=knowledge_raw)
 
     # Step 3: Final answer with generated knowledge
     if include_snap:
         final_user = (
-            f"## Your Initial Answer\n{snap_answer}\n\n"
+            f"## Your Initial Reasoning\n{snap_reasoning}\n\n"
             f"## Generated Legal Reference Note\n{knowledge}\n\n"
             f"## Question\n{question}"
         )
