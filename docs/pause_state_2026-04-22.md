@@ -201,11 +201,32 @@ big models don't need it.
   `rag_snap_hyde` outputs: the 85.5% pair-union ceiling at 26B is the
   strongest actionable ensemble signal we have.
 
-### Latest landing during the pause window
+### Latest landings during the pause window
 
-- E4B `rag_snap_hyde` post-fix N=200 = **67.5%** (135/200, commit 3d5ff05).
-  vs pre-fix mini-eval 66.5% → Δ +1.0pp.
-- E4B post-fix N=200 snap-over-HyDE = **+6pp** (67.5 - 61.5).
+- **51205 E4B post-fix N=200 × 4 modes COMPLETE** — all 0% leak.
+  rag_simple 61.0% (Δ +0.5), rag_hyde 61.5% (Δ +2.0), rag_snap_hyde 67.5%
+  (Δ +1.0), snap_only_in_final 63.5% (Δ -0.5). Snap-over-HyDE post-fix
+  N=200 = **+6pp** (67.5 - 61.5).
+- **50865 31B full N=1195 `rag_snap_hyde` = 83.9%** (1003/1195) ⭐
+  Snap-over-HyDE at 31B full = **+3.5pp** (83.9 - 80.4). Stacking effect
+  stays meaningful at 31B, did NOT collapse as prior N=200 reading
+  suggested. Cancelled 50865 after this mode to free H100.
+
+### Updated cross-size stacking table (landed pre-fix full N=1195)
+
+```
+Model    simple    hyde    snap_hyde    hyde→snap_hyde    simple→snap_hyde
+E2B      45.4%    43.7%    —             —                 —
+E4B      55.7%    57.7%    58.4%        +0.7pp             +2.7pp
+26B      70.8%    74.2%    76.6%        +2.4pp             +5.8pp
+31B      79.6%    80.4%    83.9%        +3.5pp             +4.3pp  <-- NEW
+```
+
+**Narrative update**: the "method stacking collapses at scale" reading was
+based on pre-fix N=200 data (+2pp at 31B). Full-N=1195 actually shows
+snap-over-HyDE stacks MORE at 31B (+3.5pp) than at 26B (+2.4pp). The
+"HyDE saturates at scale" story still holds (rag_hyde vs rag_simple +0.8pp
+at 31B), but the SNAP contribution grows.
 
 ## Resume checklist
 
