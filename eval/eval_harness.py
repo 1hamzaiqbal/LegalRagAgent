@@ -172,6 +172,20 @@ def _extract_answer(text: str, config: EvalConfig) -> str | None:
     return extract_answer_mc(text)
 
 
+def _retrieval_question(row: pd.Series) -> str:
+    """Full query text for retrieval/rerank — includes BarExam prompt column
+    (shared fact pattern) when present. Many call sites used to just do
+    `str(row["question"])` which silently dropped 37% of the fact-pattern
+    context. Prefer this helper for any path that feeds text into
+    retrieval, reranking, entity search, or keyword generation.
+    """
+    prompt = row.get("prompt", "")
+    stem = str(row.get("question", "") or "")
+    if pd.notna(prompt) and str(prompt).strip():
+        return f"{str(prompt).strip()}\n\n{stem}"
+    return stem
+
+
 def _fmt_intermediate(row: pd.Series, config: EvalConfig) -> str:
     """Format a question for retrieval-side generation steps.
 
@@ -958,7 +972,7 @@ def run_snap_hyde_aligned(row: pd.Series, config: EvalConfig) -> dict:
     This isolates the embedding model's contribution from the reranking step.
     """
     question = _fmt(row, config)
-    raw_question = str(row["question"])
+    raw_question = _retrieval_question(row)
     question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap answer
@@ -1079,7 +1093,7 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
       - 'subagent_rag': retrieve passages, then summarize them into a short report
       - 'subagent_hybrid': retrieve passages, then synthesize a report with model knowledge
     """
-    raw_question = str(row["question"])
+    raw_question = _retrieval_question(row)
     desc = gap.get("description", "")
     subq = gap.get("sub_question", desc)
 
@@ -1402,7 +1416,7 @@ def _run_gap(row: pd.Series, config: EvalConfig,
             'reports_nosnap', or 'reports_and_evidence'
     """
     question = _fmt(row, config)
-    raw_question = str(row["question"])
+    raw_question = _retrieval_question(row)
     question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap
@@ -1745,7 +1759,7 @@ def run_snap_rag(row: pd.Series, config: EvalConfig) -> dict:
     2 LLM calls: snap + final answer with evidence.
     """
     question = _fmt(row, config)
-    raw_question = str(row["question"])
+    raw_question = _retrieval_question(row)
 
     # Step 1: Snap
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_rag/snap")
@@ -1779,7 +1793,7 @@ def run_snap_rag(row: pd.Series, config: EvalConfig) -> dict:
 def run_snap_rag_nosnap(row: pd.Series, config: EvalConfig) -> dict:
     """Snap + simple RAG but final call only sees evidence (no snap). Controls for whether snap helps final answer."""
     question = _fmt(row, config)
-    raw_question = str(row["question"])
+    raw_question = _retrieval_question(row)
 
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_rag_ns/snap")
     snap_letter = _extract_answer(snap_answer, config)
@@ -1987,7 +2001,7 @@ def run_vectorless_hybrid(row: pd.Series, config: EvalConfig) -> dict:
     4 LLM calls: snap + generate knowledge + retrieve + answer with both.
     """
     question = _fmt(row, config)
-    raw_question = str(row["question"])
+    raw_question = _retrieval_question(row)
     question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Snap
@@ -2047,7 +2061,7 @@ def run_vectorless_keyword(row: pd.Series, config: EvalConfig) -> dict:
 
     question = _fmt(row, config)
     question_intermediate = _fmt_intermediate(row, config)
-    raw_question = str(row["question"])
+    raw_question = _retrieval_question(row)
 
     # Step 1: Snap
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="vkeyword/snap")
@@ -2265,7 +2279,7 @@ def run_entity_search(row: pd.Series, config: EvalConfig) -> dict:
     import pandas as _pd
 
     question = _fmt(row, config)
-    raw_question = str(row["question"])
+    raw_question = _retrieval_question(row)
 
     graph = _load_entity_graph()
     if graph is None:
@@ -2341,7 +2355,7 @@ def run_snap_entity_search(row: pd.Series, config: EvalConfig) -> dict:
     from rag_utils import rerank_with_cross_encoder
 
     question = _fmt(row, config)
-    raw_question = str(row["question"])
+    raw_question = _retrieval_question(row)
 
     # Step 1: Snap
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_entity/snap")
@@ -2423,7 +2437,7 @@ def run_snap_entity_informed(row: pd.Series, config: EvalConfig) -> dict:
     from langchain_core.documents import Document
 
     question = _fmt(row, config)
-    raw_question = str(row["question"])
+    raw_question = _retrieval_question(row)
 
     # Step 1: Snap
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_ent_inf/snap")
@@ -2891,7 +2905,7 @@ def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
 def run_rag_simple(row: pd.Series, config: EvalConfig) -> dict:
     """Raw question → retrieval → answer with evidence (no rewrite)."""
     question = _fmt(row, config)
-    raw_question = str(row["question"])
+    raw_question = _retrieval_question(row)
 
     retrieval = _retrieve_and_format(row, [raw_question], k=5, label_prefix="simple",
                                      where=_where_from_config(config),

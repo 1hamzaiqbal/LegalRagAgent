@@ -129,6 +129,43 @@ def test_barexam_end_to_end_on_real_csv():
         assert p_head in prompt, f"Formatted prompt for {idx} missing prompt-column content"
 
 
+def test_retrieval_question_includes_prompt():
+    """_retrieval_question must include the BarExam prompt column for retrieval/rerank queries."""
+    import importlib.util
+    # Import eval_harness's _retrieval_question without triggering the full import chain
+    # (which pulls vllm/langchain etc.)
+    import re as _re
+    src = (ROOT / "eval" / "eval_harness.py").read_text()
+    match = _re.search(
+        r"(def _retrieval_question\(row: pd\.Series\) -> str:.*?)\n\ndef ",
+        src,
+        _re.DOTALL,
+    )
+    assert match, "_retrieval_question helper not found in eval_harness.py"
+    ns = {"pd": pd}
+    exec(match.group(1), ns)
+    _retrieval_question = ns["_retrieval_question"]
+
+    # With a prompt column — should include it
+    row_with = _row(
+        prompt="FACT_PATTERN_MARKER",
+        question="CALL_MARKER",
+    )
+    out = _retrieval_question(row_with)
+    assert "FACT_PATTERN_MARKER" in out
+    assert "CALL_MARKER" in out
+    assert out.index("FACT_PATTERN_MARKER") < out.index("CALL_MARKER")
+
+    # Without a prompt (empty string) — should be just the question
+    row_without = _row(prompt="", question="CALL_ONLY")
+    assert _retrieval_question(row_without) == "CALL_ONLY"
+
+    # With NaN prompt — should be just the question
+    import numpy as np
+    row_nan = _row(prompt=np.nan, question="CALL_ONLY")
+    assert _retrieval_question(row_nan) == "CALL_ONLY"
+
+
 def test_non_barexam_datasets_untouched():
     """Housing/casehold/legal_rag/australian should not be affected by the BarExam fix."""
     # Housing: Yes/No question format
