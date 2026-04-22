@@ -46,17 +46,16 @@ Cluster repo: `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-clean` at commit
 | 51206 (31B post-fix N=200) | covered by 50865's mode-by-mode landings | — (never started) |
 | 50993, 50994, 50995 (31B expansion: llm_only/golden + subagent variants) | deferred to v2 wave | — (never started) |
 
-### Jobs left running at pause
+### Jobs left running at pause → ALL FINISHED 2026-04-22
 
-| Job | Hardware | Reason for keep | Cancel after |
-|---|---|---|---|
-| 51205 (E4B post-fix N=200 × 4 modes) | a100s-2306 | Gating sign-off data | All 4 modes land (~70 min from pause) |
-| 50865 (31B full × 4 modes, pre-fix) | h100-2405 | Want rag_snap_hyde data point | After mode 3 (rag_snap_hyde) lands |
-| 50986 (E2B redo × 3 modes) | a40-2205 | Want mode 2 (rag_snap_hyde) result | After mode 2 lands (~30 min) |
+Update: all 3 kept-running jobs landed their critical modes then exited.
+Cluster queue is now fully empty.
 
-If you forget to cancel them, they'll just complete — total wallclock of
-remaining modes is fine. Cancel only matters if you need the GPU slots
-RIGHT NOW.
+| Job | Final state | Got us |
+|---|---|---|
+| 51205 E4B post-fix N=200 × 4 modes | COMPLETED | rag_simple 61.0%, rag_hyde 61.5%, rag_snap_hyde 67.5%, snap_only_in_final 63.5% (all post-fix, 0% leak) |
+| 50865 31B full × 4 modes (pre-fix) | CANCELLED after mode 3 | rag_simple 79.6%, rag_hyde 80.4%, **rag_snap_hyde 83.9%** (full N=1195) |
+| 50986 E2B redo × 3 modes | WALLCLOCKED at q 475 of mode 3 | rag_hyde 43.7%, rag_snap_hyde 46.9% (2 of 3 modes). snap_only_in_final not recovered. |
 
 ## Data landed so far (truth source: `logs/experiments.jsonl` on cluster)
 
