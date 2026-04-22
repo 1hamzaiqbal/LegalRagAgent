@@ -1,12 +1,14 @@
 # Scale × Config Interactions
 
-> **⚠ 2026-04-22 methodology bug** (commit `f95f316`): all accuracy numbers
-> below were computed with `format_question_prompt` dropping the BarExam
-> `prompt` column (the shared fact pattern). **37% of questions (445/1195)**
-> had incomplete context for the model. Fix landed; N=200 validation reruns
-> submitted as jobs 51179 (E4B) and 51180 (31B) to quantify the delta.
-> Relative rankings across modes/sizes should hold (bug affected all modes
-> equally); absolute numbers are under-estimates of post-fix accuracy.
+> **2026-04-22 prompt-bug fix landed in `f95f316` + `3d5ff05`**: the BarExam
+> `prompt` column (37% of questions) was being dropped by both the answer
+> formatter AND 11 retrieval/rerank query sites. All numbers below dated
+> before `3d5ff05` are **pre-prompt-fix references**. The first apples-to-apples
+> validation at N=200 (E4B `rag_simple` 61.5% pre-fix → 61.0% post-fix)
+> shows **the accuracy impact is smaller than feared** (within N=200 noise),
+> likely because legal MC choices encode the doctrine and the model can
+> deduce the fact pattern from them. Full N=1195 clean rerun pending at
+> the `clean-rerun-v1` tag.
 
 Analysis of how different retrieval/reasoning methods behave across Gemma 4 model sizes
 (E2B → E4B → 26B-A4B → 31B). All numbers are post-leak-fix, BarExam, N=1195, seed=42,
