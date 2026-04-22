@@ -158,6 +158,32 @@ uv run python llm_config.py
 uv run python tests/test_sanitizer.py
 ```
 
+## Methodology integrity — read this BEFORE running new evals
+
+Two harness bugs were patched on 2026-04-22 that invalidated all
+prior BarExam numbers:
+
+1. `f95f316` — `format_question_prompt` and `_fmt_intermediate` were
+   reading `row["question"]` but never `row["prompt"]`. 445/1195
+   BarExam rows (37%) carry a shared fact pattern in the `prompt`
+   column; without it the model saw stems like
+   `"Is Farmer obligated to make the $4,000 payment?"` (47 chars)
+   with no facts.
+
+2. `3d5ff05` — 11 retrieval/rerank call sites used
+   `raw_question = str(row["question"])` (e.g., `snap_rag`, gap
+   investigations, entity search). They also dropped the prompt
+   column, so the vector store was being queried with the bare
+   47-char stem too.
+
+Every BarExam result before commit `3d5ff05` is a pre-prompt-fix
+reference. Relative rankings (mode-vs-mode, size-vs-size) survive
+because the bug hit all modes equally; absolute numbers do not.
+
+Run `python tests/test_formatter.py` and `python tests/test_sanitizer.py`
+before any new submission. The full pre-submission checklist lives in
+`docs/rigour_signoff.md`.
+
 ## Current Best Results / Direction Snapshot
 
 See `docs/experiment_overview.md` for the full table and `docs/size_comparison_matrix.md` for the live cross-scale matrix. Key numbers (post-leak-fix):
