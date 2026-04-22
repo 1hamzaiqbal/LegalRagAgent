@@ -142,6 +142,71 @@ Spawning a deep-analysis Codex session on what we already have:
 That output will land here when ready: `docs/pause_state_2026-04-22.md` (this file
 will get appended).
 
+## 🔬 Codex deep-analysis output (appended)
+
+Codex mined the 234-row `experiments.jsonl` + detail logs while the pause was
+landing. Five paper-worthy findings + recommended next experiments.
+
+### Five findings
+
+1. **`rag_simple` monotonic but compresses at top.** Full N=1195: E2B 45.4 →
+   E4B 55.7 → 26B 70.8 → 31B 79.6. The 26B→31B step (+8.8pp) is smaller than
+   E4B→26B (+15.1pp), so the curve is compressing.
+
+2. **At 26B, `rag_snap_hyde` > `golden_passage` is COMPLEMENTARITY, not
+   dominance.** On the shared 1195 questions: `rag_snap_hyde` gets 126 right
+   that `golden` misses; `golden` gets 107 right that `rag_snap_hyde` misses.
+   **Pair-union ceiling = 85.5%.** Strongest ensemble signal in our data —
+   suggests a fusion mode combining snap+HyDE retrieval with an oracle-style
+   gold-passage check could push past either single mode.
+
+3. **Cost-adjusted Pareto**: at 26B, `rag_snap_hyde` reaches 76.57% in 3 LLM
+   calls. `subagent_hyde` and `snap_hyde_report` need 5 and 4 calls
+   respectively for the same 76.57%. Subagent variants buy NO extra accuracy.
+   Also: `golden_passage` 75.0% / 1 call dominates `rag_hyde` 74.2% / 2
+   calls — the oracle is cheaper than retrieval here.
+
+4. **Subject scaling is highly non-uniform.** E2B→31B `rag_simple` gain by
+   subject: Contracts +42.5pp, Criminal Law +41.6pp, Evidence +40.9pp,
+   Constitutional Law only +29.5pp total (and just +3.2pp from 26B→31B).
+   Const Law saturates EARLY; the harder doctrinal subjects benefit MOST
+   from scale. Computed from `eval_rag_simple_*_2026042[12]_*_detail.jsonl`
+   for each size.
+
+5. **`rag_snap_hyde > golden` is a 26B-specific phenomenon, not a scaling
+   law.** Fails at E4B (58.4 < 62.2 → -3.77pp). Holds at 26B (76.6 > 75.0
+   → +1.59pp). Uncheckable at E2B/31B because we never ran golden_passage
+   at those sizes.
+
+### HyDE inverted-U lift confirmed
+
+Cross-scale `rag_hyde - rag_simple`: E2B -1.7pp, E4B +2.0pp, 26B +3.4pp,
+31B +0.8pp. Genuine inverted-U; small models can't use the retrieval signal,
+big models don't need it.
+
+### Discrepancies to be honest about
+
+- "snap+HyDE +7pp" was pre-fix N=200 (66.5 - 59.5). Clean post-fix N=200:
+  +6pp (67.5 - 61.5). Close but smaller. Full N=1195 pre-fix is +0.7pp —
+  the +6/+7 figure does NOT survive at full N. **This is the gap a clean
+  post-fix N=1195 rerun will resolve.**
+
+### Recommended next experiments (when GPUs return)
+
+- Clean post-fix full-N=1195 rerun of E4B/26B/31B `rag_simple`/`rag_hyde`/
+  `rag_snap_hyde` at seed=42 + seed=99. (`scripts/hpc/submit_clean_rerun_v1_focused.sh`)
+- Fill 31B `llm_only`/`golden_passage`/`snap_only_in_final` cells to test
+  whether the 26B "oracle barely above llm_only" plateau persists at 31B.
+- Build a **fusion/rerank mode** that combines `golden_passage` and
+  `rag_snap_hyde` outputs: the 85.5% pair-union ceiling at 26B is the
+  strongest actionable ensemble signal we have.
+
+### Latest landing during the pause window
+
+- E4B `rag_snap_hyde` post-fix N=200 = **67.5%** (135/200, commit 3d5ff05).
+  vs pre-fix mini-eval 66.5% → Δ +1.0pp.
+- E4B post-fix N=200 snap-over-HyDE = **+6pp** (67.5 - 61.5).
+
 ## Resume checklist
 
 1. `git checkout hpc-setup && git pull` (if needed)
