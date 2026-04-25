@@ -13,13 +13,20 @@ Updated continuously by the babysit loop.
 
 | Job | Modes | Status | First detail-log audit |
 |---|---|---|---|
-| 54173 E4B-1 | rag_simple, rag_hyde, llm_only, golden_passage | PENDING | — |
-| 54174 E4B-2 | rag_snap_hyde, snap_only_in_final | PENDING | — |
-| 54175 E4B-3 | subagent_rag, subagent_hyde | PENDING | — |
-| 54176 E4B-4 | subagent_hybrid, snap_hyde_report | PENDING | — |
-| 54177 26B-1 | rag_simple, rag_hyde, llm_only, golden_passage | PENDING | — |
-| 54178 26B-2 | rag_snap_hyde, snap_only_in_final | PENDING | — |
-| 54179 26B-3 | subagent_rag, subagent_hybrid | PENDING | — |
+| 54173 E4B-1 | rag_simple, rag_hyde, llm_only, golden_passage | RUNNING (mbe_24, 1.5q/min) | — |
+| 54174 E4B-2 | rag_snap_hyde, snap_only_in_final | RUNNING (mbe_12, ~0.7q/min) | — |
+| 54175 E4B-3 | subagent_rag, subagent_hyde | RUNNING (mbe_13, ~0.7q/min) | — |
+| 54176 E4B-4 | subagent_hybrid, snap_hyde_report | RUNNING (mbe_13, ~0.7q/min) | — |
+| 54177 26B-1 | rag_simple, rag_hyde, llm_only, golden_passage | RUNNING (mbe_75, ~4q/min) | — |
+| 54178 26B-2 | rag_snap_hyde, snap_only_in_final | RUNNING (mbe_30, ~1.8q/min) | — |
+| 54179 26B-3 | subagent_rag, subagent_hybrid | RUNNING (mbe_30, ~1.8q/min) | — |
+
+**21:14 UTC**: jobs submitted, all PENDING(Priority) blocked by my own RL queue
+**21:30 UTC**: cancelled 14 RL/autowatch jobs — gemma4 jobs leapfrog into a40-2205 (4×) + a100s-2305 (3×)
+**21:32 UTC**: all 7 jobs RUNNING; vLLM startup
+**21:39 UTC**: vLLM ready on all 7; eval calls in flight, no errors
+
+ETA for first detail log: 26B-1 rag_simple ~02:14 UTC (5h from job start).
 
 ## Pre-wave evidence (audit reference)
 
