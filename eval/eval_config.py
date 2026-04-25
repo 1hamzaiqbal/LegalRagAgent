@@ -19,7 +19,7 @@ class EvalConfig:
     verbose: bool = False
     tag: str = ""                     # optional label for the run
     source_filter: str = ""           # optional metadata filter, e.g. "mbe" to search MBE docs only
-    dataset: str = "barexam"          # "barexam" | "housing" | "legal_rag" | "australian" | "casehold"
+    dataset: str = "barexam"          # "barexam" | "housing" | "legal_rag" | "australian" | "casehold" | "musique"
     embedding_model: str = ""         # override embedding model for retrieval (e.g., "BAAI/bge-m3")
 
 
@@ -90,6 +90,8 @@ def load_questions(config: EvalConfig) -> pd.DataFrame:
         return _load_generic_questions(config, "datasets/australian_legal_qa/questions.csv")
     if config.dataset == "casehold":
         return _load_generic_questions(config, "datasets/casehold/test.csv")
+    if config.dataset == "musique":
+        return _load_generic_questions(config, "datasets/musique/questions.csv")
 
     if config.questions == "curated":
         path = os.path.join(os.path.dirname(__file__), "question_sets", "curated_30.csv")
@@ -188,6 +190,8 @@ def format_question_prompt(row: pd.Series, dataset: str = "barexam") -> str:
         return format_casehold_prompt(row)
     if dataset in ("legal_rag", "australian"):
         return format_open_prompt(row)
+    if dataset == "musique":
+        return format_musique_prompt(row)
 
     # Many BarExam items share a fact pattern across multiple sub-questions
     # (same prompt_id). The 'prompt' column carries that shared fact pattern;
@@ -243,3 +247,71 @@ def format_open_prompt(row: pd.Series) -> str:
     """Format an open-ended legal question (legal-rag-qa, australian)."""
     question = str(row["question"])
     return f"{question}\n\nProvide a detailed answer."
+
+
+def format_musique_prompt(row: pd.Series) -> str:
+    """Format a MuSiQue multi-hop QA question.
+
+    Short-answer prompt — the model should produce a single span/entity, not
+    a paragraph. We keep the framing tight so EM/F1 against the gold span
+    works without judging every minor wording difference.
+    """
+    question = str(row["question"])
+    return (
+        f"{question}\n\n"
+        "Answer with a brief span — a single entity, date, or short phrase. "
+        "Provide your answer as: Answer: <span>"
+    )
+
+
+def extract_answer_musique(text: str) -> str:
+    """Extract the short-answer span after 'Answer:'.
+
+    Open-ended; we return the raw span text and let the EM/F1 scorer
+    handle alias matching downstream.
+    """
+    cleaned = (text or "").replace("*", "")
+    m = re.search(r"(?:Answer|ANSWER)\s*[:\s]\s*(.+?)(?:\n|$)", cleaned)
+    if m:
+        return m.group(1).strip().rstrip(".").strip()
+    return cleaned.strip().splitlines()[-1].rstrip(".").strip() if cleaned.strip() else ""
+
+
+def musique_em_f1(predicted: str, gold: str, aliases: list[str] | None = None) -> tuple[bool, float]:
+    """SQuAD/MuSiQue-style EM and F1 over normalized tokens.
+
+    Compares predicted against (gold + aliases). Returns (em, f1) where
+    em is True if any of the gold/alias forms matches exactly after
+    normalization, and f1 is the maximum token-overlap F1 across all
+    accepted forms.
+    """
+    def norm(s: str) -> str:
+        s = (s or "").lower()
+        s = re.sub(r"\b(a|an|the)\b", " ", s)
+        s = re.sub(r"[^\w\s]", " ", s)
+        s = re.sub(r"\s+", " ", s).strip()
+        return s
+
+    candidates = [gold] + list(aliases or [])
+    pred_n = norm(predicted)
+    pred_toks = pred_n.split()
+    if not pred_toks:
+        return False, 0.0
+
+    em = False
+    best_f1 = 0.0
+    for cand in candidates:
+        cand_n = norm(cand)
+        if cand_n == pred_n:
+            em = True
+        cand_toks = cand_n.split()
+        if not cand_toks:
+            continue
+        common = set(pred_toks) & set(cand_toks)
+        if not common:
+            continue
+        precision = len(common) / len(pred_toks)
+        recall = len(common) / len(cand_toks)
+        f1 = 2 * precision * recall / (precision + recall)
+        best_f1 = max(best_f1, f1)
+    return em, best_f1

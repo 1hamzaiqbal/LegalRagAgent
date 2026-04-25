@@ -143,6 +143,91 @@ def prep_casehold():
     print(f"casehold holdings corpus: {len(corpus_df)} unique holdings -> {out_dir}/holdings_corpus.csv")
 
 
+def prep_musique():
+    """MuSiQue-Ans: 2-4 hop compositional multi-hop QA.
+
+    Schema per question (from `dgslibisey/MuSiQue`):
+      - id, question, answer, answer_aliases (list)
+      - paragraphs: [{idx, title, paragraph_text, is_supporting}, ...] (~20)
+      - question_decomposition: [{question, answer, paragraph_support_idx}, ...]
+
+    We write two CSVs:
+      - questions.csv: one row per question with answer + gold_idx (comma-sep
+        list of supporting paragraph idxs, formatted as 'musique_{qid}_{pidx}')
+        + gold_passage (newline-joined supporting paragraph texts)
+      - passages.csv: one row per paragraph across all questions, idx
+        formatted as 'musique_{qid}_{pidx}'. Used to build the
+        `musique_passages` ChromaDB collection.
+    """
+    out_dir = "datasets/musique"
+    os.makedirs(out_dir, exist_ok=True)
+
+    # Use the validation split — has gold labels and is what published baselines
+    # report on. Train is much larger but we don't need it for evaluation.
+    ds = load_dataset("dgslibisey/MuSiQue", split="validation")
+
+    qa_rows = []
+    corpus_rows = []
+    seen_paragraph_idx = set()
+
+    for row in ds:
+        qid = row["id"]
+
+        # Build answer alias list — answer_aliases may be None
+        aliases = row.get("answer_aliases") or []
+        if isinstance(aliases, str):
+            aliases = [aliases]
+
+        # Index gold paragraphs from question_decomposition
+        decomp = row.get("question_decomposition") or []
+        gold_para_idxs = []
+        for hop in decomp:
+            psidx = hop.get("paragraph_support_idx")
+            if psidx is not None:
+                gold_para_idxs.append(int(psidx))
+
+        # Walk paragraphs, write each to corpus, collect supporting texts
+        gold_global_idxs = []
+        gold_texts = []
+        for p in row["paragraphs"]:
+            local_idx = int(p["idx"])
+            global_idx = f"musique_{qid}_{local_idx}"
+
+            # Corpus row (dedupe in case the same paragraph appears across rows)
+            if global_idx not in seen_paragraph_idx:
+                seen_paragraph_idx.add(global_idx)
+                corpus_rows.append({
+                    "idx": global_idx,
+                    "title": p.get("title", ""),
+                    "text": p.get("paragraph_text", ""),
+                    "q_id": qid,
+                    "is_supporting": bool(p.get("is_supporting", False)),
+                })
+
+            if local_idx in gold_para_idxs:
+                gold_global_idxs.append(global_idx)
+                gold_texts.append(p.get("paragraph_text", ""))
+
+        qa_rows.append({
+            "idx": qid,
+            "question": row["question"],
+            "answer": row["answer"],
+            "answer_aliases": json.dumps(aliases),
+            "gold_idx": ",".join(gold_global_idxs),
+            "gold_passage": "\n\n".join(gold_texts),
+            "n_hops": len(gold_global_idxs),
+            "answerable": bool(row.get("answerable", True)),
+        })
+
+    qa_df = pd.DataFrame(qa_rows)
+    qa_df.to_csv(os.path.join(out_dir, "questions.csv"), index=False)
+    print(f"musique QA: {len(qa_df)} questions -> {out_dir}/questions.csv")
+
+    corpus_df = pd.DataFrame(corpus_rows)
+    corpus_df.to_csv(os.path.join(out_dir, "passages.csv"), index=False)
+    print(f"musique corpus: {len(corpus_df)} unique paragraphs -> {out_dir}/passages.csv")
+
+
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else "all"
 
@@ -152,3 +237,5 @@ if __name__ == "__main__":
         prep_australian_legal_qa()
     if target in ("casehold", "all"):
         prep_casehold()
+    if target in ("musique", "all"):
+        prep_musique()

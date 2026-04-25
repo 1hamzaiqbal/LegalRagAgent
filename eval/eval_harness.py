@@ -22,7 +22,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
-from eval_config import EvalConfig, EVAL_MODES, load_questions, extract_answer_mc, extract_answer_mc5, extract_answer_yn, format_question_prompt
+from eval_config import EvalConfig, EVAL_MODES, load_questions, extract_answer_mc, extract_answer_mc5, extract_answer_yn, format_question_prompt, extract_answer_musique, musique_em_f1
 from main import (
     run as run_pipeline,
     _llm_call as _base_llm_call,
@@ -167,6 +167,9 @@ def _extract_answer(text: str, config: EvalConfig) -> str | None:
         return extract_answer_yn(text)
     if config.dataset == "casehold":
         return extract_answer_mc5(text)
+    if config.dataset == "musique":
+        # Short-answer span — extract the post-Answer span, EM/F1 scored downstream
+        return extract_answer_musique(text)
     if config.dataset in ("legal_rag", "australian"):
         return text  # open-ended: return full text, scored by LLM judge
     return extract_answer_mc(text)
@@ -193,7 +196,7 @@ def _fmt_intermediate(row: pd.Series, config: EvalConfig) -> str:
     removes answer letters from the choices so intermediate generators are not
     pushed toward emitting `Answer: (X)` artifacts.
     """
-    if config.dataset in ("legal_rag", "australian"):
+    if config.dataset in ("legal_rag", "australian", "musique"):
         return str(row["question"])
 
     if config.dataset == "housing":
@@ -596,6 +599,7 @@ DATASET_COLLECTIONS = {
     "legal_rag": "legal_rag_passages",
     "australian": "australian_legal",
     "casehold": "casehold_holdings",
+    "musique": "musique_passages",
 }
 
 
@@ -3599,6 +3603,7 @@ def run_eval(config: EvalConfig):
     total_start = time.time()
 
     is_open_ended = config.dataset in ("legal_rag", "australian")
+    is_short_span = config.dataset == "musique"
 
     for i, row in qa.iterrows():
         _reset_llm_call_counter()
@@ -3619,6 +3624,9 @@ def run_eval(config: EvalConfig):
         elif config.dataset == "australian":
             subject = str(row.get("jurisdiction", "unknown"))
             label = f"aus_{subject}_{row.get('idx', i)}"
+        elif config.dataset == "musique":
+            subject = f"{int(row.get('n_hops', 0))}-hop"
+            label = f"mq_{row.get('idx', i)}"
         else:
             subject = str(row.get("subject", "unknown"))
             label = f"qa_{subject}_{row.get('idx', i)}"
@@ -3640,6 +3648,18 @@ def run_eval(config: EvalConfig):
             if is_open_ended:
                 is_correct = _judge_open_answer(row["question"], gold, answer_text, config)
                 result["judge_score"] = is_correct  # store for analysis
+            elif is_short_span:
+                # MuSiQue uses EM/F1 with answer_aliases for tolerant scoring
+                aliases_raw = row.get("answer_aliases", "")
+                try:
+                    aliases = json.loads(aliases_raw) if aliases_raw else []
+                except Exception:
+                    aliases = []
+                em, f1 = musique_em_f1(predicted or "", gold, aliases)
+                is_correct = em
+                result["em"] = em
+                result["f1"] = f1
+                result["aliases_used"] = aliases
             else:
                 is_correct = predicted == gold
             error = None
