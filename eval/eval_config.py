@@ -78,6 +78,7 @@ EVAL_MODES = {
     "snap_debate":              "Snap-debate: snap then adversarial critique (2 calls, no RAG)",
     "snap_only_in_final":       "Ablation cell: snap reasoning visible to final agent, NO retrieval (2 calls)",
     "planning_table":           "Snap → plan TODOs → per-TODO retrieve+finding → final with populated table as scratchpad (≈5-7 calls)",
+    "planning_table_no_snap":   "Ablation of planning_table: TODOs generated from QUESTION ALONE (no snap). Tests if snap-bias is the multi-hop failure source",
 }
 
 

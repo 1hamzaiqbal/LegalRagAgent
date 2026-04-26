@@ -3738,6 +3738,122 @@ def run_planning_table(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_planning_table_no_snap(row: pd.Series, config: EvalConfig) -> dict:
+    """Ablation of planning_table — generates TODOs from the QUESTION ALONE, no snap.
+
+    Tests the snap-bias hypothesis from MuSiQue: planning_table at 20.7% EM
+    matches every other snap-driven mode (rag_hyde, rag_snap_hyde, subagent_rag)
+    on multi-hop, while plain rag_simple gets 26.7%. If removing snap recovers
+    the rag_simple baseline, the failure source is snap-bias not pipeline depth.
+
+    Same structure as planning_table but skips Step 1 (snap). Plan-gen reads
+    only the question.
+    """
+    question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
+
+    # Step 1 (formerly): SKIPPED — no snap
+
+    # Step 2: plan generation FROM QUESTION ONLY
+    plan_system = (
+        "You are a research planner. Read a question and identify 2-3 specific "
+        "fact-focused sub-questions that, if answered, would let you answer the original.\n\n"
+        "Output exactly 2-3 sub-questions, one per line, in this format:\n"
+        "TODO: <focused sub-question>\n"
+        "TODO: <focused sub-question>\n"
+        "TODO: <focused sub-question>\n\n"
+        "STRICT OUTPUT RULES:\n"
+        "- Sub-questions should be FACT-FOCUSED (what is X? when did Y happen? who is Z?)\n"
+        "- Decompose multi-hop into individual hops where possible\n"
+        "- Do NOT pick an answer; output only TODO lines"
+    )
+    plan_user = f"## Question\n{question_intermediate}"
+    plan_raw = _llm_call(plan_system, plan_user, label="ptable_ns/plan")
+
+    todos: list[str] = []
+    for line in plan_raw.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        m = re.match(r"^\s*(?:\*\*)?\s*TODO\s*[:\-]\s*(?:\*\*)?\s*(.+?)\s*(?:\*\*)?\s*$", line, re.IGNORECASE)
+        if m:
+            todo = m.group(1).strip().lstrip("-•").strip()
+            if todo:
+                todos.append(todo)
+
+    # Dedup
+    seen_normalized: set[str] = set()
+    deduped: list[str] = []
+    for t in todos:
+        norm = re.sub(r"\s+", " ", t.lower().strip().rstrip("?.!"))
+        if norm and norm not in seen_normalized:
+            seen_normalized.add(norm)
+            deduped.append(t)
+    todos = deduped[:3]
+    if not todos:
+        todos = [question_intermediate]
+
+    # Step 3: per-TODO retrieve + finding (same as planning_table)
+    table_entries: list[dict] = []
+    all_retrieved_ids: list[str] = []
+    finding_system = (
+        "You are a research assistant. Answer the sub-question concisely "
+        "(2-3 sentences max) using ONLY the retrieved passages. If the passages don't "
+        "contain the answer, say so explicitly. Do NOT pick a multiple-choice letter."
+    )
+    for i, todo in enumerate(todos):
+        retrieval = _retrieve_and_format(
+            row, [todo], k=3,
+            label_prefix=f"ptable_ns/todo_{i}",
+            where=_where_from_config(config),
+            collection=_collection_for_config(config),
+        )
+        passages_block = "\n\n".join(retrieval["passages"]) if retrieval["passages"] else "(no passages retrieved)"
+        finding_user = (
+            f"## Retrieved Passages\n{passages_block}\n\n"
+            f"## Sub-Question\n{todo}"
+        )
+        finding = _generate_report(
+            finding_system,
+            finding_user,
+            label=f"ptable_ns/finding_{i}",
+            fallback="No relevant information found in the retrieved passages.",
+        )
+        table_entries.append({
+            "todo": todo,
+            "finding": finding["text"],
+            "evidence_ids": retrieval.get("retrieved_ids", []),
+        })
+        all_retrieved_ids.extend(retrieval.get("retrieved_ids", []))
+
+    # Step 4: final answer
+    table_text = "\n\n".join(
+        f"### TODO {i+1}: {e['todo']}\n**Finding:** {e['finding']}"
+        for i, e in enumerate(table_entries)
+    )
+    final_user = (
+        f"## Planning Table (your sub-investigations)\n{table_text}\n\n"
+        f"## Question\n{question}"
+    )
+    final_answer = _llm_call(_system_prompt(config, "rag"), final_user, label="ptable_ns/final")
+
+    gold_idx = str(row.get("gold_idx", ""))
+    gold_idxs = {s.strip() for s in gold_idx.split(",") if s.strip()}
+    gold_retrieved = bool(gold_idxs & set(all_retrieved_ids)) if gold_idxs else False
+
+    return {
+        "final_answer": final_answer,
+        "planning_table": table_entries,
+        "todos_count": len(todos),
+        "retrieved_ids": list(dict.fromkeys(all_retrieved_ids)),
+        "gold_retrieved": gold_retrieved,
+        "evidence_store": [
+            {"idx": eid, "text": "", "source": "ptable_ns", "cross_encoder_score": 0.0}
+            for eid in dict.fromkeys(all_retrieved_ids)
+        ],
+    }
+
+
 MODE_RUNNERS = {
     "full_pipeline": run_full_pipeline,
     "llm_only": run_llm_only,
@@ -3793,6 +3909,7 @@ MODE_RUNNERS = {
     "snap_debate": run_snap_debate,
     "snap_only_in_final": run_snap_only_in_final,
     "planning_table": run_planning_table,
+    "planning_table_no_snap": run_planning_table_no_snap,
 }
 
 
