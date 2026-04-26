@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -p general-gpu
 #SBATCH -A engr-lab-jacobsn
-#SBATCH --gres=gpu:a40:1
+#SBATCH --gres=gpu:a6000:1
 #SBATCH --exclude=r28-1801
 #SBATCH -c 8
 #SBATCH --mem=32G
