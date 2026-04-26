@@ -185,6 +185,11 @@ By subject:
 - EVIDENCE: 49.5% (46/93)
 - CRIM. LAW: 48.3% (43/89) ← weakest at 8B scale
 
+### 🎯 E4B snap_only_in_final post-fix (54174 mode 2) — landed 2026-04-26 20:12 UTC
+
+**Headline: 57.82% (691/1195)** vs pre-fix 54.81% = **+3.01pp lift**
+| Records | 1195 | accuracy 0.5782 | leaks 0 | E4B-2 (54174) JOB COMPLETE |
+
 ### 🎯 E4B rag_hyde post-fix (54173 mode 2) — landed 2026-04-26 12:14 UTC
 
 **Headline: 60.59% (724/1195)** vs pre-fix 57.74% = **+2.85pp lift**
