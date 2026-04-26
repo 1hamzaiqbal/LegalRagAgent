@@ -99,9 +99,28 @@ def _get_trace_events() -> list[dict]:
 
 
 def _llm_call(system: str, user: str, label: str = "") -> str:
-    """Wrapper around main._llm_call that optionally records exact call I/O."""
+    """Wrapper around main._llm_call that optionally records exact call I/O.
+
+    Retries once on transient JSON-parse / connection errors (common with
+    OpenRouter routing to flaky downstream providers). The underlying
+    client also has max_retries=1 for HTTP-level retries; this layer
+    catches body-parse failures the OpenAI client doesn't retry.
+    """
     try:
         response = _base_llm_call(system, user, label=label)
+    except (json.JSONDecodeError, ConnectionError, TimeoutError) as exc:
+        # One retry — these are transient OpenRouter routing failures
+        time.sleep(2)
+        try:
+            response = _base_llm_call(system, user, label=label)
+        except Exception as exc2:
+            if _trace_calls_enabled():
+                _CALL_TRACE.append({
+                    "label": label, "system": _trace_text(system), "user": _trace_text(user),
+                    "response": "", "error": f"retry_failed: {exc2}",
+                    "system_chars": len(system or ""), "user_chars": len(user or ""), "response_chars": 0,
+                })
+            raise exc2 from exc
     except Exception as exc:
         if _trace_calls_enabled():
             _CALL_TRACE.append({
@@ -3633,7 +3652,17 @@ def run_planning_table(row: pd.Series, config: EvalConfig) -> dict:
             todo = m.group(1).strip().lstrip("-•").strip()
             if todo:
                 todos.append(todo)
-    todos = todos[:3]
+    # Deduplicate TODOs (case + whitespace insensitive). Near-synonymous TODOs
+    # waste a retrieval+finding LLM call for zero new evidence (audit found
+    # this happened on 1/5 smoke samples).
+    seen_normalized: set[str] = set()
+    deduped: list[str] = []
+    for t in todos:
+        norm = re.sub(r"\s+", " ", t.lower().strip().rstrip("?.!"))
+        if norm and norm not in seen_normalized:
+            seen_normalized.add(norm)
+            deduped.append(t)
+    todos = deduped[:3]
     if not todos:
         # fallback: use the original question as a single TODO
         todos = [question_intermediate]
