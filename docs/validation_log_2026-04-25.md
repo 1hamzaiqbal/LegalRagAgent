@@ -325,6 +325,8 @@ By subject:
 
 - Embed-musique 54260 crashed mid-run with `chromadb.errors.InternalError: Error in compaction: Failed to apply logs to the metadata segment`. Failed on the FIRST batch add — likely concurrent-access issue (7 vLLM jobs reading the same chroma_db dir on NFS-engrfs while embed tries to write). Worked around by **building in-row BM25 retrieval for MuSiQue** (commit 1ddb88a) — each MuSiQue question carries its own ~20 paragraph pool, so we don't need a global Chroma collection. RAG modes now work on MuSiQue without ChromaDB.
 
+- **54173 (E4B-1) WALLCLOCKED at 28h** — got mode 1 rag_simple + mode 2 rag_hyde clean, but mode 3 llm_only died at 1155/1195 (no detail log written), mode 4 golden_passage never started. E4B llm_only and golden_passage cells therefore missing for the meeting. Could be re-run via API later (llm_only/golden_passage need no Chroma).
+
 ## MuSiQue baselines via OpenRouter API (Gemma 4 26B-A4B-it)
 
 Tested via `or-gemma4-26b` provider (paid OpenRouter, $0.06/$0.33 per M). Cluster vLLM and OpenRouter serve the same Gemma 4 weights — switching providers swaps inference backends, not model behavior.
