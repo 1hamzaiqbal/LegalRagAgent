@@ -258,7 +258,13 @@ Tested via `or-gemma4-26b` provider (paid OpenRouter, $0.06/$0.33 per M). Cluste
 
 **Clean signal**: golden_passage establishes the upper-bound for retrieval modes on MuSiQue. 62% EM is consistent with published Gemma-class baselines.
 
-**Lessons learned (parallel API runs)**: Initial attempt fired 6 modes concurrently via OpenRouter — most stalled at 1-9 questions for 30 min while one (golden_passage) made progress. OpenRouter routes to multiple downstream providers; concurrent calls land on slow ones. **Solution: serial runs only**, ~3-5 min per N=50 single-call mode. llm_only + snap_only_in_final + rag_* runs queued sequentially.
+**Lessons learned (parallel API runs)**: Initial attempt fired 6 modes concurrently via OpenRouter — most stalled at 1-9 questions for 30 min while one (golden_passage) made progress. OpenRouter routes to multiple downstream providers; concurrent calls land on slow ones. **Solution: serial runs only**, ~3-5 min per N=50 single-call mode.
+
+### rag_simple via in-row BM25 retrieval — PARTIAL (25/50 captured before kill)
+
+**Headline (partial): 32.0% EM (8/25)** at q25 of N=50 — process hung mid-run on a slow OpenRouter route, killed before mode completion (no detail log written by harness, only at end-of-mode). Reduced default OpenAI client timeout from 300s → 90s + max_retries 0 → 1 to make hung calls fail-fast.
+
+vs golden_passage 62% EM (oracle, gets gold supporting paragraphs as context). The +30pp gap = retrieval quality cost: in-row BM25 with k=5 misses some gold paragraphs, especially on multi-hop where second-hop entities have to be inferred from first-hop content. Expected — that's exactly the regime our snap+HyDE methods are designed to handle. rag_hyde / rag_snap_hyde / subagent_rag should narrow the gap.
 
 ## Anomalies / things to investigate
 
