@@ -192,6 +192,39 @@ By subject:
 
 Smaller models are limited by reasoning capacity, not context — extra prompt info adds little. Bigger models are more limited by what they see, so the prompt fix delivers more lift. **This is a clean prediction the meeting can ground theory in: bug-fix asymmetry follows the same scaling law as method gains generally.**
 
+### 🎯 26B llm_only post-fix (54177 mode 3) — landed 2026-04-26 05:27 UTC
+
+**Headline: 79.75% (953/1195)** vs pre-fix 74.31% = **+5.44pp bug-fix lift**
+
+| Metric | Value |
+|---|---|
+| Records | 1195 |
+| Final accuracy | 0.7975 (953/1195) |
+| Pre-fix reference | 0.7431 (888/1195) |
+| Bug-fix lift | **+5.44pp** |
+| Leakage artifacts | **0** (no retrieval, nothing to leak) |
+| Code commit | 56bffc8 |
+
+By subject:
+- nan (601 prompt-bearing): 80.0% (481/601)
+- TORTS: 83.9% (94/112), CONST. LAW: 90.5% (86/95), CRIM. LAW: 75.3% (67/89)
+- CONTRACTS: 77.0% (87/113), EVIDENCE: 68.8% (64/93), REAL PROP.: 80.4% (74/92)
+
+**🔬 Crucial reframe: llm_only's +5.44pp DECOMPOSES the bug-fix story.**
+
+llm_only does no retrieval — so the prompt-column fix only enters through the formatter (`f95f316`), not the retrieval-query fix (`3d5ff05`). The +5.44pp lift here = pure formatter-bug impact at 26B.
+
+This lets us decompose `rag_simple`'s +7.29pp lift:
+- **Formatter fix** (model-facing prompt): ~+5.44pp (matches llm_only)
+- **Retrieval-query fix** (HyDE/BM25 query strings): ~+1.85pp marginal
+
+Deeper pipelines show SMALLER total lift than llm_only:
+- rag_hyde: +4.68pp (less than llm_only +5.44 — HyDE step pre-fix was COMPENSATING for missing prompt context, so the lift now is reduced)
+- rag_snap_hyde: +4.55pp (same compensation, smaller marginal gain)
+- subagent_rag: +2.46pp (deepest pipeline — most compensation pre-fix)
+
+**Meeting talking point:** the bug-fix lift pattern is REAL evidence that deeper pipelines have implicit robustness mechanisms. Plain `rag_simple` has nothing to fall back on — when context is missing, accuracy crashes. Multi-call pipelines partially reconstruct missing facts via gap analysis / snap reasoning / HyDE. So the bug HID a real reasoning capability of the simpler modes; the fix exposes it.
+
 ## Cross-mode bug-fix lift pattern (so far at 26B)
 
 | Mode | Pre-fix | Post-fix | Lift | Pipeline depth |
