@@ -92,6 +92,64 @@ affected). The post-fix accuracy lands above golden_passage pre-fix (75.0%)
 for rag_simple — strongly suggests our pre-fix 26B numbers underestimated
 the true model capability.
 
+### 🎯 26B rag_snap_hyde post-fix (54178 mode 1) — landed 2026-04-26 03:26 UTC
+
+**Headline: 81.17% (970/1195)** vs pre-fix 76.6% = **+4.55pp bug-fix lift**
+
+| Metric | Value |
+|---|---|
+| Records | 1195 |
+| Final accuracy | 0.8117 (970/1195) |
+| Pre-fix reference | 0.7657 (915/1195) |
+| Bug-fix lift | **+4.55pp** |
+| HyDE artifact leaks | **0** (regression-test holds at full N) |
+| Schema fields populated | 1195/1195 (formatted_question, intermediate_question, retrieval_queries, final_prompt_preview, call_trace, trace_events) |
+| Code commit | 56bffc8 |
+
+By subject:
+- nan (601 prompt-bearing): 83.0% (499/601) ← largest nominal subject
+- CONST. LAW: 87.4% (83/95)
+- TORTS: 83.0% (93/112)
+- REAL PROP.: 83.7% (77/92)
+- EVIDENCE: 76.3% (71/93)
+- CRIM. LAW: 74.2% (66/89)
+- CONTRACTS: 71.7% (81/113)
+
+**This now CLOSES the gap to 31B significantly.** 31B rag_snap_hyde at 83.93% — the 26B-vs-31B gap shrank from ~7pp pre-fix to **~2.8pp post-fix**. Means the 25B/3.8B-active MoE is much closer to dense 31B than the pre-fix snapshot suggested.
+
+### 🎯 26B subagent_rag post-fix (54179 mode 1) — landed 2026-04-26 03:34 UTC
+
+**Headline: 78.16% (934/1195)** vs pre-fix 75.7% = **+2.46pp bug-fix lift**
+
+| Metric | Value |
+|---|---|
+| Records | 1195 |
+| Final accuracy | 0.7816 (934/1195) |
+| Pre-fix reference | 0.7573 (905/1195) |
+| Bug-fix lift | **+2.46pp** |
+| HyDE/report/knowledge artifact leaks | **0** |
+| Schema fields populated | 1195/1195 |
+| Code commit | 56bffc8 |
+
+By subject:
+- nan (601 prompt-bearing): 79.2% (476/601)
+- CONST. LAW: 89.5% (85/95)
+- CONTRACTS: 77.0% (87/113)
+- TORTS: 76.8% (86/112)
+- REAL PROP.: 81.5% (75/92)
+- EVIDENCE: 69.9% (65/93)
+- CRIM. LAW: 67.4% (60/89)
+
+## Cross-mode bug-fix lift pattern (so far at 26B)
+
+| Mode | Pre-fix | Post-fix | Lift | Pipeline depth |
+|---|---|---|---|---|
+| rag_simple | 70.79% | **78.08%** | **+7.29pp** | 1 call (retrieval only) |
+| rag_snap_hyde | 76.57% | **81.17%** | **+4.55pp** | 3 calls (snap+HyDE+final) |
+| subagent_rag | 75.73% | **78.16%** | **+2.46pp** | 4 calls (gap+rag+report+final) |
+
+**Pattern:** the bug-fix lift is INVERSELY proportional to pipeline depth. Plain `rag_simple` gets the biggest lift because there's no rewriting/snap to compensate for the missing context. The deeper pipelines partially recover the missing prompt-fact info via gap analysis or snap reasoning, so they show smaller lift. This is exactly the asymmetric-impact pattern we predicted but the magnitude at 26B is much larger than the N=200 smoke suggested.
+
 ## Anomalies / things to investigate
 
 (empty — populated when audits flag something)
