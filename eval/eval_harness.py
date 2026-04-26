@@ -1895,9 +1895,11 @@ def run_snap_rag(row: pd.Series, config: EvalConfig) -> dict:
     passage_block = "\n\n".join(retrieval["passages"])
 
     # Step 3: Final answer with snap context + evidence
+    # Strip Answer: (X) line from snap before showing as context to avoid the
+    # final agent simply echoing the snap letter (audit 2026-04-26 caught this).
     system = _system_prompt(config, "rag")
     user = (
-        f"## Your Initial Answer\n{snap_answer}\n\n"
+        f"## Your Initial Reasoning\n{_strip_answer_line(snap_answer)}\n\n"
         f"## Retrieved Passages\n{passage_block}\n\n"
         f"## Question\n{question}"
     )
@@ -2131,8 +2133,13 @@ def run_vectorless_hybrid(row: pd.Series, config: EvalConfig) -> dict:
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="vhybrid/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
-    # Step 2: Generate knowledge (vectorless)
-    gen_user = f"## Student's Initial Analysis\n{snap_answer}\n\n## Original Question\n{question_intermediate}"
+    # Step 2: Generate knowledge (vectorless). Strip the snap's Answer: (X)
+    # line before feeding into the knowledge generator so we don't bias the
+    # generated doctrine toward the snap's letter (audit 2026-04-26).
+    gen_user = (
+        f"## Student's Initial Analysis\n{_strip_answer_line(snap_answer)}\n\n"
+        f"## Original Question\n{question_intermediate}"
+    )
     knowledge_raw = _llm_call(_VECTORLESS_DIRECT, gen_user, label="vhybrid/generate")
     knowledge = _sanitize_intermediate_text(knowledge_raw, fallback=knowledge_raw)
 
