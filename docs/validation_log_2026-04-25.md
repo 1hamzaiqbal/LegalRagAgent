@@ -163,6 +163,35 @@ By subject:
 - CONST. LAW: 86.3% (82/95)
 - REAL PROP.: 76.1% (70/92)
 
+### 🎯 E4B rag_simple post-fix (54173 mode 1) — landed 2026-04-26 05:20 UTC
+
+**Headline: 58.49% (699/1195)** vs pre-fix 55.73% = **+2.76pp bug-fix lift**
+
+| Metric | Value |
+|---|---|
+| Records | 1195 |
+| Final accuracy | 0.5849 (699/1195) |
+| Pre-fix reference | 0.5573 (666/1195) |
+| Bug-fix lift | **+2.76pp** |
+| HyDE/report/knowledge artifact leaks | **0** |
+| Code commit | 56bffc8 |
+
+By subject:
+- nan (601 prompt-bearing): 59.9% (360/601) ← lift target subset
+- CONST. LAW: 75.8% (72/95)
+- TORTS: 58.9% (66/112)
+- REAL PROP.: 56.5% (52/92)
+- CONTRACTS: 53.1% (60/113)
+- EVIDENCE: 49.5% (46/93)
+- CRIM. LAW: 48.3% (43/89) ← weakest at 8B scale
+
+**Key cross-size pattern:** the bug-fix lift on `rag_simple` scales with model:
+- E4B (8B): +2.76pp (55.73 → 58.49)
+- 26B (25B): +7.29pp (70.79 → 78.08)
+- 31B (31B dense, not yet rerun)
+
+Smaller models are limited by reasoning capacity, not context — extra prompt info adds little. Bigger models are more limited by what they see, so the prompt fix delivers more lift. **This is a clean prediction the meeting can ground theory in: bug-fix asymmetry follows the same scaling law as method gains generally.**
+
 ## Cross-mode bug-fix lift pattern (so far at 26B)
 
 | Mode | Pre-fix | Post-fix | Lift | Pipeline depth |
