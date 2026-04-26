@@ -178,7 +178,25 @@ By subject:
 
 ## Anomalies / things to investigate
 
-- Embed-musique 54260 crashed mid-run with `chromadb.errors.InternalError: Error in compaction: Failed to apply logs to the metadata segment`. Failed on the FIRST batch add — likely concurrent-access issue (7 vLLM jobs reading the same chroma_db dir on NFS-engrfs while embed tries to write). Worked around by deferring embed until eval wave finishes, OR build collection in a separate dir and merge later. Not blocking for Monday.
+- Embed-musique 54260 crashed mid-run with `chromadb.errors.InternalError: Error in compaction: Failed to apply logs to the metadata segment`. Failed on the FIRST batch add — likely concurrent-access issue (7 vLLM jobs reading the same chroma_db dir on NFS-engrfs while embed tries to write). Worked around by **building in-row BM25 retrieval for MuSiQue** (commit 1ddb88a) — each MuSiQue question carries its own ~20 paragraph pool, so we don't need a global Chroma collection. RAG modes now work on MuSiQue without ChromaDB.
+
+## MuSiQue baselines via OpenRouter API (Gemma 4 26B-A4B-it)
+
+Tested via `or-gemma4-26b` provider (paid OpenRouter, $0.06/$0.33 per M). Cluster vLLM and OpenRouter serve the same Gemma 4 weights — switching providers swaps inference backends, not model behavior.
+
+### golden_passage N=50 (landed 2026-04-26 00:07 UTC, post-fix code 1ddb88a)
+
+**Headline: 62.0% EM, 0.759 F1**
+
+| Subject | N | EM | F1 |
+|---|---|---|---|
+| 2-hop | 23 | 65.2% | 0.801 |
+| 3-hop | 23 | 65.2% | 0.806 |
+| 4-hop | 4 | 25.0% | 0.250 (small N) |
+
+**Clean signal**: golden_passage establishes the upper-bound for retrieval modes on MuSiQue. 62% EM is consistent with published Gemma-class baselines.
+
+**Lessons learned (parallel API runs)**: Initial attempt fired 6 modes concurrently via OpenRouter — most stalled at 1-9 questions for 30 min while one (golden_passage) made progress. OpenRouter routes to multiple downstream providers; concurrent calls land on slow ones. **Solution: serial runs only**, ~3-5 min per N=50 single-call mode. llm_only + snap_only_in_final + rag_* runs queued sequentially.
 
 ## Anomalies / things to investigate
 
