@@ -376,6 +376,20 @@ Concrete failure mode: for "Who is the spouse of the Green performer?" — HyDE 
 
 **Meeting talking point:** "HyDE has a domain-specificity bound: it lifts on retrieval-of-doctrine tasks but hurts on multi-hop entity composition. The asymmetry is a real finding, not noise."
 
+### rag_snap_hyde — PARTIAL (21/30 captured, hung at q22 twice; killed)
+
+**Headline (partial): 14.3% EM (3/21)** — even worse than rag_hyde
+
+| Mode | EM | Trend |
+|---|---|---|
+| rag_simple | 26.7% (8/30) | best — diverse BM25 retrieval |
+| rag_hyde | 20.0% (6/30) | -6.7pp — HyDE biases retrieval |
+| rag_snap_hyde (partial) | 14.3% (3/21) | -12.4pp — snap+HyDE compounds wrong-hop bias |
+
+**🔬 STRONGER finding: snap+HyDE COMPOUNDS the wrong-hop failure** — snap commits to one (often wrong) hop, HyDE generates a passage anchored on that wrong commitment, BM25 retrieves passages biased toward the wrong topic, final answer doubles down. Each pipeline step amplifies the initial wrong commitment.
+
+**Meeting story expansion:** "On multi-hop, the snap+HyDE pipeline becomes a wrong-answer reinforcement loop. The methods that lift on legal/single-hop break on multi-hop because snap's confident wrong-answer biases all downstream retrieval." This is a NULL finding worth presenting — it bounds the claim "snap+HyDE works" to single-hop domains.
+
 ## Anomalies / things to investigate
 
 (empty — populated when audits flag something)
