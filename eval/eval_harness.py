@@ -758,6 +758,102 @@ def run_golden_arb_conservative(row: pd.Series, config: EvalConfig) -> dict:
     return _golden_arb_common(row, config, arb_system, "golden_arb_cons")
 
 
+_musique_paragraphs_cache: dict | None = None
+
+
+def _load_musique_paragraphs() -> dict:
+    """Load MuSiQue passages.csv into a {q_id: [{idx,title,text}, ...]} cache."""
+    global _musique_paragraphs_cache
+    if _musique_paragraphs_cache is not None:
+        return _musique_paragraphs_cache
+    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    df = pd.read_csv(os.path.join(base, "datasets/musique/passages.csv"))
+    cache: dict = {}
+    for _, r in df.iterrows():
+        cache.setdefault(str(r["q_id"]), []).append({
+            "idx": str(r["idx"]),
+            "title": str(r.get("title", "")),
+            "text": str(r["text"]),
+            "is_supporting": bool(r.get("is_supporting", False)),
+        })
+    _musique_paragraphs_cache = cache
+    return cache
+
+
+def _retrieve_musique_in_row(row: pd.Series, queries: List[str], k: int = 5,
+                             label_prefix: str = "rag") -> dict:
+    """In-row BM25 retrieval over the question's ~20 paragraphs.
+
+    Bypasses ChromaDB for MuSiQue — each question already carries its own
+    paragraph pool (gold + distractors). Cheap, deterministic, no embedding
+    model needed. Multi-query: max-score pooling across queries.
+    """
+    from rank_bm25 import BM25Okapi
+
+    cache = _load_musique_paragraphs()
+    q_id = str(row.get("idx", ""))
+    paragraphs = cache.get(q_id, [])
+    if not paragraphs:
+        return {
+            "passages": [], "evidence_store": [], "retrieved_ids": [],
+            "gold_retrieved": False, "max_ce_score": 0.0,
+        }
+
+    docs_tokens = [p["text"].lower().split() for p in paragraphs]
+    bm25 = BM25Okapi(docs_tokens)
+
+    pooled = [-1e9] * len(paragraphs)
+    for q in queries:
+        if not q:
+            continue
+        q_tokens = str(q).lower().split()
+        if not q_tokens:
+            continue
+        scores = bm25.get_scores(q_tokens)
+        for i, s in enumerate(scores):
+            if s > pooled[i]:
+                pooled[i] = float(s)
+
+    top_idxs = sorted(range(len(paragraphs)), key=lambda i: -pooled[i])[:k]
+    top = [paragraphs[i] for i in top_idxs]
+
+    passages = [f"[Source {i+1}]\n{p['title']}: {p['text']}" for i, p in enumerate(top)]
+    evidence_store = [{
+        "idx": p["idx"], "text": p["text"], "source": "musique_in_row",
+        "cross_encoder_score": pooled[top_idxs[i]],
+    } for i, p in enumerate(top)]
+    retrieved_ids = [p["idx"] for p in top]
+
+    gold_idx_str = str(row.get("gold_idx", ""))
+    gold_idxs = {s.strip() for s in gold_idx_str.split(",") if s.strip()}
+    gold_retrieved = bool(gold_idxs & set(retrieved_ids))
+    max_ce_score = max(pooled) if pooled else 0.0
+
+    _record_trace_event(
+        "retrieval",
+        label=label_prefix,
+        queries=queries,
+        rerank_query="",
+        k=k,
+        where={},
+        collection="musique_in_row",
+        embedding_model="bm25",
+        results=evidence_store,
+        retrieved_ids=retrieved_ids,
+        gold_idx=gold_idx_str,
+        gold_retrieved=gold_retrieved,
+        max_ce_score=max_ce_score,
+    )
+
+    return {
+        "passages": passages,
+        "evidence_store": evidence_store,
+        "retrieved_ids": retrieved_ids,
+        "gold_retrieved": gold_retrieved,
+        "max_ce_score": max_ce_score,
+    }
+
+
 def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
                          label_prefix: str = "rag", where: dict = None,
                          collection: str = "legal_passages",
@@ -769,6 +865,10 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
             the retrieval queries. Decouples dense retrieval from reranking (e.g., HyDE
             for embedding but raw question for cross-encoder).
     """
+    # MuSiQue uses in-row BM25 (no ChromaDB) — each question carries its own paragraph pool
+    if collection == "musique_passages":
+        return _retrieve_musique_in_row(row, queries, k=k, label_prefix=label_prefix)
+
     embedding_model = os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or None
     vs = get_vectorstore(collection, embedding_model=embedding_model)
     docs = retrieve_documents_multi_query(queries=queries, k=k, vectorstore=vs, where=where,
@@ -3860,7 +3960,7 @@ def main():
     parser.add_argument("--source-filter", default="",
                         help="Metadata source filter for retrieval, e.g. 'mbe' (default: none)")
     parser.add_argument("--dataset", default="barexam",
-                        choices=["barexam", "housing", "legal_rag", "australian", "casehold"],
+                        choices=["barexam", "housing", "legal_rag", "australian", "casehold", "musique"],
                         help="Dataset to evaluate on (default: barexam)")
 
     args = parser.parse_args()
