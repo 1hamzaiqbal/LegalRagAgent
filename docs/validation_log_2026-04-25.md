@@ -216,6 +216,25 @@ The mode runs end-to-end correctly (5-7 LLM calls/q, ~30-45s/q, fact-focused TOD
 
 **Future ablation worth running**: planning_table WITHOUT snap (use the question alone to generate TODOs) to test whether removing the snap-bias source recovers rag_simple's 26.7% baseline. If it does, that's clean evidence the failure is snap-bias, not pipeline complexity.
 
+### planning_table_no_snap N=30 (the snap-bias ablation) — 13.3% EM, 83.3% gold_retrieved
+
+**🔬 Surprising result that decomposes the multi-hop failure into TWO costs:**
+
+| Mode | EM | gold_retrieved | Calls |
+|---|---|---|---|
+| rag_simple | 26.7% | **83.3%** | 1 |
+| planning_table_no_snap | **13.3%** | **83.3%** ← matches rag_simple! | ~5-7 |
+| planning_table (with snap) | 20.7% | not measured | ~6-8 |
+| rag_hyde / rag_snap_hyde / subagent_rag | 20% | 50-60% | 2-4 |
+
+**Two distinct costs revealed:**
+1. **Snap-bias hurts retrieval**: removing snap brought gold_retrieved from ~50-60% (HyDE/snap-driven modes) up to **83% (matches rag_simple)**. So the snap-bias hypothesis IS correct — anything that conditions retrieval on snap output finds fewer gold paragraphs.
+2. **Per-TODO decomposition hurts composition**: even with PERFECT retrieval (83%), the no-snap version got the worst EM (13.3%). Splitting one rich query into 2-3 narrower per-TODO queries lets BM25 cover gold (because each TODO is targeted), but the model fails to RE-COMPOSE multi-hop facts from per-TODO findings. The single-pass `rag_simple` reads ONE retrieved set and reasons over the whole thing in one shot — no composition lossage.
+
+**Meeting talking point (revised):** "On multi-hop QA, two distinct failure modes interact. (a) Conditioning retrieval on snap reasoning biases retrieval toward wrong-hop topics — confirmed: dropping snap recovers retrieval to baseline. (b) Decomposing one rich question into per-hop sub-queries shifts the failure from retrieval to COMPOSITION — the model can't reliably re-stitch multi-hop facts from per-TODO findings. The right structure for multi-hop is probably single-shot retrieval + multi-step reasoning IN THE FINAL CALL, not retrieval-and-reasoning interleaved per hop."
+
+**Caveat:** N=30 has wide CI on EM (±~10pp). The 13.3% vs 20.7% snap-vs-no-snap EM gap is borderline noise. The gold_retrieved 83% jump (vs ~50-60% for snap-driven) is a much more robust signal at N=30.
+
 ### 🎯 E4B snap_only_in_final post-fix (54174 mode 2) — landed 2026-04-26 20:12 UTC
 
 **Headline: 57.82% (691/1195)** vs pre-fix 54.81% = **+3.01pp lift**
