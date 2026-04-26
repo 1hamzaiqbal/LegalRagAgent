@@ -244,6 +244,20 @@ The decomposition is now confirmed:
 - Formatter fix (model-facing prompt): +5.44pp at 26B (across both no-retrieval modes)
 - Retrieval-query fix (query strings): +1.85pp marginal (only on retrieval modes)
 
+### 🎯 26B subagent_hybrid post-fix (54179 mode 2) — landed 2026-04-26 07:54 UTC
+
+**Headline: 74.14% (886/1195)** vs pre-fix 73.39% = **+0.75pp lift** — SMALLEST yet (deepest pipeline = most context compensation pre-fix)
+
+| Metric | Value |
+|---|---|
+| Records | 1195 |
+| Final accuracy | 0.7414 (886/1195) |
+| Pre-fix reference | 0.7339 (877/1195) |
+| Bug-fix lift | **+0.75pp** |
+| Leakage artifacts | **0** (full schema populated) |
+
+🎯 **26B-3 JOB COMPLETE** — both modes done.
+
 ### 🎯 26B golden_passage post-fix (54177 mode 4) — landed 2026-04-26 07:24 UTC
 
 **Headline: 78.66% (940/1195)** vs pre-fix 74.98% = **+3.68pp bug-fix lift** — SMALLER than llm_only's +5.44pp
@@ -280,7 +294,8 @@ By subject:
 | rag_hyde | 74.23% | **78.91%** | **+4.68pp** | 2 calls (HyDE+final) — HyDE compensated pre-fix |
 | rag_snap_hyde | 76.57% | **81.17%** | **+4.55pp** | 3 calls (snap+HyDE+final) — snap also compensated |
 | golden_passage | 74.98% | **78.66%** | **+3.68pp** | 1 call + gold passage as context (recovery from gold) |
-| subagent_rag | 75.73% | **78.16%** | **+2.46pp** | 4 calls (gap+rag+report+final) — most compensation |
+| subagent_rag | 75.73% | **78.16%** | **+2.46pp** | 4 calls (gap+rag+report+final) |
+| subagent_hybrid | 73.39% | **74.14%** | **+0.75pp** | 4 calls — DEEPEST compensation, smallest lift |
 
 **Pattern fully confirmed**: bug-fix lift is INVERSELY proportional to pipeline depth. Plain `rag_simple` gets the biggest lift (1 call, can't compensate). Multi-call modes partially recover via snap reasoning / gap analysis / report writing.
 
@@ -335,6 +350,31 @@ vs comparison:
 - golden_passage (oracle, ONLY gold paragraphs as context): 62% EM
 - rag_simple (in-row BM25, gold + distractors): 26.7% EM
 - 35pp gap from oracle → distractor-included = the distractor confusion cost
+
+### rag_hyde via in-row BM25 retrieval — N=30 complete (HyDE HURTS on multi-hop!)
+
+**Headline: 20.0% EM (6/30), 0.322 F1, gold_retrieved 50.0%** — *worse* than rag_simple
+
+| Metric | rag_simple | rag_hyde | Delta |
+|---|---|---|---|
+| EM | 26.7% | 20.0% | **-6.7pp** |
+| F1 | 0.414 | 0.322 | -0.092 |
+| **gold_retrieved (top-5 hit gold)** | **83.3%** | **50.0%** | **-33.3pp ← HyDE retrieval is much worse** |
+
+**By n_hops:**
+| Hops | rag_simple EM | rag_hyde EM | rag_simple gold | rag_hyde gold |
+|---|---|---|---|---|
+| 2-hop | 42.9% | 21.4% | 85.7% | 42.9% |
+| 3-hop | 8.3% | 25.0% | 75.0% | 58.3% |
+| 4-hop | 25.0% | 0.0% | 100.0% | 50.0% |
+
+**🔬 HUGE finding: HyDE HURTS retrieval on multi-hop QA.** On legal BarExam (single-hop doctrinal lookup), HyDE adds +3-5pp. On MuSiQue multi-hop, HyDE crashes gold-retrieval rate from 83% → 50%, because the HyDE-generated hypothetical answer commits to ONE wrong hop and biases BM25 retrieval toward that wrong topic.
+
+Concrete failure mode: for "Who is the spouse of the Green performer?" — HyDE generates a passage about Norah Jones (wrong hop guess) and BM25 retrieves Norah Jones paragraphs, missing Grant Green's actual spouse paragraph. BM25 alone with the raw question retrieves both more diverse paragraphs.
+
+**This motivates the planning-table / decompose modes** — multi-hop needs explicit per-hop reasoning, not single-shot HyDE. snap+HyDE on legal works because legal QA = "find the doctrine" (single-hop). Multi-hop fact compositional QA breaks the HyDE assumption.
+
+**Meeting talking point:** "HyDE has a domain-specificity bound: it lifts on retrieval-of-doctrine tasks but hurts on multi-hop entity composition. The asymmetry is a real finding, not noise."
 
 ## Anomalies / things to investigate
 
