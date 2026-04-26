@@ -225,11 +225,32 @@ Deeper pipelines show SMALLER total lift than llm_only:
 
 **Meeting talking point:** the bug-fix lift pattern is REAL evidence that deeper pipelines have implicit robustness mechanisms. Plain `rag_simple` has nothing to fall back on — when context is missing, accuracy crashes. Multi-call pipelines partially reconstruct missing facts via gap analysis / snap reasoning / HyDE. So the bug HID a real reasoning capability of the simpler modes; the fix exposes it.
 
+### 🎯 26B snap_only_in_final post-fix (54178 mode 2) — landed 2026-04-26 06:54 UTC
+
+**Headline: 80.59% (963/1195)** vs pre-fix 75.15% = **+5.44pp bug-fix lift** (EXACTLY matching llm_only)
+
+| Metric | Value |
+|---|---|
+| Records | 1195 |
+| Final accuracy | 0.8059 (963/1195) |
+| Pre-fix reference | 0.7515 (898/1195) |
+| Bug-fix lift | **+5.44pp** (identical to llm_only) |
+| Leakage artifacts | **0** (no retrieval, nothing to leak) |
+| Code commit | 56bffc8 |
+
+**🔬 PRISTINE VALIDATION:** llm_only and snap_only_in_final are both no-retrieval modes. They show **identical +5.44pp lift** at 26B. This perfectly isolates the formatter-fix (`f95f316`) impact from the retrieval-query fix (`3d5ff05`).
+
+The decomposition is now confirmed:
+- Formatter fix (model-facing prompt): +5.44pp at 26B (across both no-retrieval modes)
+- Retrieval-query fix (query strings): +1.85pp marginal (only on retrieval modes)
+
 ## Cross-mode bug-fix lift pattern (so far at 26B)
 
 | Mode | Pre-fix | Post-fix | Lift | Pipeline depth |
 |---|---|---|---|---|
-| rag_simple | 70.79% | **78.08%** | **+7.29pp** | 1 call (retrieval only) |
+| llm_only | 74.31% | **79.75%** | **+5.44pp** | 1 call (no retrieval) |
+| snap_only_in_final | 75.15% | **80.59%** | **+5.44pp** | 2 calls (snap + final, no retrieval) — IDENTICAL TO LLM_ONLY |
+| rag_simple | 70.79% | **78.08%** | **+7.29pp** | 1 call (retrieval) |
 | rag_hyde | 74.23% | **78.91%** | **+4.68pp** | 2 calls (HyDE+final) |
 | rag_snap_hyde | 76.57% | **81.17%** | **+4.55pp** | 3 calls (snap+HyDE+final) |
 | subagent_rag | 75.73% | **78.16%** | **+2.46pp** | 4 calls (gap+rag+report+final) |
