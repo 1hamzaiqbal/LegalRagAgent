@@ -77,6 +77,7 @@ EVAL_MODES = {
     "double_snap":              "Double-snap: two answers, agree=use, disagree=CE-threshold RAG (2-4 calls)",
     "snap_debate":              "Snap-debate: snap then adversarial critique (2 calls, no RAG)",
     "snap_only_in_final":       "Ablation cell: snap reasoning visible to final agent, NO retrieval (2 calls)",
+    "planning_table":           "Snap → plan TODOs → per-TODO retrieve+finding → final with populated table as scratchpad (≈5-7 calls)",
 }
 
 
