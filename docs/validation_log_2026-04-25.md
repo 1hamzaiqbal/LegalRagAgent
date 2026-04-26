@@ -412,19 +412,20 @@ Concrete failure mode: for "Who is the spouse of the Green performer?" — HyDE 
 
 Adds to the MuSiQue "snap-driven methods break" pattern. subagent_rag's gap-decomposition doesn't help here, suggesting the gap-analysis step is also misled by snap's wrong-hop commitment.
 
-### rag_snap_hyde — PARTIAL (21/30 captured, hung at q22 twice; killed)
+### rag_snap_hyde N=30 — 20.0% EM, 0.349 F1, gold_retrieved 60.0%
 
-**Headline (partial): 14.3% EM (3/21)** — even worse than rag_hyde
+**Headline: 20.0% EM (6/30)** — same as rag_hyde, both worse than rag_simple
+*(Earlier log claimed 14.3% partial — that was from a SECOND attempt that was killed; the FIRST attempt actually completed cleanly to N=30 detail log `eval_rag_snap_hyde_or-gemma4-26b_20260426_0220_detail.jsonl`. The 20% number is the audited full-N=30 result.)*
 
-| Mode | EM | Trend |
-|---|---|---|
-| rag_simple | 26.7% (8/30) | best — diverse BM25 retrieval |
-| rag_hyde | 20.0% (6/30) | -6.7pp — HyDE biases retrieval |
-| rag_snap_hyde (partial) | 14.3% (3/21) | -12.4pp — snap+HyDE compounds wrong-hop bias |
+| Mode | EM | F1 | gold_retrieved |
+|---|---|---|---|
+| rag_simple | 26.7% (8/30) | 0.414 | **83.3%** |
+| rag_hyde | 20.0% (6/30) | 0.322 | 50.0% |
+| rag_snap_hyde | 20.0% (6/30) | 0.349 | 60.0% |
 
-**🔬 STRONGER finding: snap+HyDE COMPOUNDS the wrong-hop failure** — snap commits to one (often wrong) hop, HyDE generates a passage anchored on that wrong commitment, BM25 retrieves passages biased toward the wrong topic, final answer doubles down. Each pipeline step amplifies the initial wrong commitment.
+**🔬 Refined finding: HyDE pipelines hurt retrieval on multi-hop, but snap doesn't worsen it further.** Both rag_hyde and rag_snap_hyde lose retrieval quality (50-60% gold_retrieved vs rag_simple's 83%) — the HyDE-generated passage biases BM25 toward whatever entity the model committed to. Adding snap reasoning before HyDE doesn't make it dramatically worse (60% > 50% on retrieval; same 20% EM).
 
-**Meeting story expansion:** "On multi-hop, the snap+HyDE pipeline becomes a wrong-answer reinforcement loop. The methods that lift on legal/single-hop break on multi-hop because snap's confident wrong-answer biases all downstream retrieval." This is a NULL finding worth presenting — it bounds the claim "snap+HyDE works" to single-hop domains.
+**Meeting story:** "HyDE has a domain-specificity bound: it lifts on legal single-hop doctrine retrieval, but biases retrieval toward wrong-hop entities on multi-hop QA. The retrieval loss is the dominant failure — adding more snap-driven steps doesn't compound the failure significantly." Bounds the snap+HyDE claim to single-hop domains.
 
 ## Anomalies / things to investigate
 
