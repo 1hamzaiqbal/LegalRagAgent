@@ -185,6 +185,13 @@ By subject:
 - EVIDENCE: 49.5% (46/93)
 - CRIM. LAW: 48.3% (43/89) ← weakest at 8B scale
 
+### 🎯 E4B subagent_hyde post-fix (54175 mode 2) — landed 2026-04-26 22:39 UTC
+
+**Headline: 60.17% (719/1195)** vs pre-fix 57.20% = **+2.97pp lift**
+| Records | 1195 | accuracy 0.6017 | leaks 0 | full schema | LAST CLUSTER MODE |
+
+🎯 **ALL CLUSTER JOBS COMPLETE** (54173 wallclocked w/ E4B llm_only + golden_passage missing; 54174/75/76/77/78/79 all done).
+
 ### 🎯 E4B snap_hyde_report post-fix (54176 mode 2) — landed 2026-04-26 22:13 UTC
 
 **Headline: 60.75% (726/1195)**
