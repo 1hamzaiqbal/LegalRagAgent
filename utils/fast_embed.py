@@ -113,6 +113,12 @@ CORPORA = {
         "text_col": "text",
         "idx_col": "idx",
     },
+    "musique": {
+        "csv": "datasets/musique/passages.csv",
+        "collection": "musique_passages",
+        "text_col": "text",
+        "idx_col": "idx",
+    },
 }
 
 # Process in chunks of this size to avoid OOM
