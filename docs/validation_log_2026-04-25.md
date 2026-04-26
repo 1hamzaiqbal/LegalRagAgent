@@ -185,6 +185,16 @@ By subject:
 - EVIDENCE: 49.5% (46/93)
 - CRIM. LAW: 48.3% (43/89) ← weakest at 8B scale
 
+### 🎯 E4B subagent_rag post-fix (54175 mode 1) — landed 2026-04-26 10:45 UTC
+
+**Headline: 60.92% (728/1195)** vs pre-fix 57.2% = **+3.72pp lift**
+| Records | 1195 | accuracy 0.6092 | leaks 0 | full schema |
+
+### 🎯 E4B subagent_hybrid post-fix (54176 mode 1) — landed 2026-04-26 10:45 UTC
+
+**Headline: 58.83% (703/1195)** vs pre-fix 57.7% = **+1.13pp lift**
+| Records | 1195 | accuracy 0.5883 | leaks 0 | full schema |
+
 **Key cross-size pattern:** the bug-fix lift on `rag_simple` scales with model:
 - E4B (8B): +2.76pp (55.73 → 58.49)
 - 26B (25B): +7.29pp (70.79 → 78.08)
