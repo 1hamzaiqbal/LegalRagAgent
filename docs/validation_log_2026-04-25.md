@@ -140,15 +140,45 @@ By subject:
 - EVIDENCE: 69.9% (65/93)
 - CRIM. LAW: 67.4% (60/89)
 
+### 🎯 26B rag_hyde post-fix (54177 mode 2) — landed 2026-04-26 03:40 UTC
+
+**Headline: 78.91% (943/1195)** vs pre-fix 74.23% = **+4.68pp bug-fix lift**
+
+| Metric | Value |
+|---|---|
+| Records | 1195 |
+| Final accuracy | 0.7891 (943/1195) |
+| Pre-fix reference | 0.7423 (887/1195) |
+| Bug-fix lift | **+4.68pp** |
+| HyDE artifact leaks | **0** |
+| Schema fields populated | 1195/1195 |
+| Code commit | 56bffc8 |
+
+By subject:
+- nan (601): 81.2% (488/601)
+- TORTS: 83.9% (94/112)
+- CONTRACTS: 72.6% (82/113)
+- CRIM. LAW: 67.4% (60/89)
+- EVIDENCE: 72.0% (67/93)
+- CONST. LAW: 86.3% (82/95)
+- REAL PROP.: 76.1% (70/92)
+
 ## Cross-mode bug-fix lift pattern (so far at 26B)
 
 | Mode | Pre-fix | Post-fix | Lift | Pipeline depth |
 |---|---|---|---|---|
 | rag_simple | 70.79% | **78.08%** | **+7.29pp** | 1 call (retrieval only) |
+| rag_hyde | 74.23% | **78.91%** | **+4.68pp** | 2 calls (HyDE+final) |
 | rag_snap_hyde | 76.57% | **81.17%** | **+4.55pp** | 3 calls (snap+HyDE+final) |
 | subagent_rag | 75.73% | **78.16%** | **+2.46pp** | 4 calls (gap+rag+report+final) |
 
-**Pattern:** the bug-fix lift is INVERSELY proportional to pipeline depth. Plain `rag_simple` gets the biggest lift because there's no rewriting/snap to compensate for the missing context. The deeper pipelines partially recover the missing prompt-fact info via gap analysis or snap reasoning, so they show smaller lift. This is exactly the asymmetric-impact pattern we predicted but the magnitude at 26B is much larger than the N=200 smoke suggested.
+**Pattern fully confirmed**: bug-fix lift is INVERSELY proportional to pipeline depth. Plain `rag_simple` gets the biggest lift (1 call, can't compensate). Multi-call modes partially recover via snap reasoning / gap analysis / report writing.
+
+**Range compression**: pre-fix range 70.79-76.57 = 5.78pp spread across the 4 modes. Post-fix range 78.08-81.17 = **3.09pp spread**. **Methods matter LESS post-fix because base `rag_simple` is much stronger.** The "snap_hyde adds +5.8pp over rag_simple" pre-fix narrative compresses to "+3.1pp" post-fix at the same N=1195.
+
+## Anomalies / things to investigate
+
+- Embed-musique 54260 crashed mid-run with `chromadb.errors.InternalError: Error in compaction: Failed to apply logs to the metadata segment`. Failed on the FIRST batch add — likely concurrent-access issue (7 vLLM jobs reading the same chroma_db dir on NFS-engrfs while embed tries to write). Worked around by deferring embed until eval wave finishes, OR build collection in a separate dir and merge later. Not blocking for Monday.
 
 ## Anomalies / things to investigate
 
