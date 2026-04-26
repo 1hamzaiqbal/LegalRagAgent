@@ -25,8 +25,18 @@ Updated continuously by the babysit loop.
 **21:30 UTC**: cancelled 14 RL/autowatch jobs — gemma4 jobs leapfrog into a40-2205 (4×) + a100s-2305 (3×)
 **21:32 UTC**: all 7 jobs RUNNING; vLLM startup
 **21:39 UTC**: vLLM ready on all 7; eval calls in flight, no errors
+**22:01 UTC** (47 min in): all 7 healthy, 0 errors. **26B running 5-9pp HIGHER pass-rate than pre-fix at the early-question subset** — bug-fix lift visible in real time. Sample pass rates so far:
+  - E4B rag_simple 73/131 = 55.7% (matches pre-fix 55.7%)
+  - E4B rag_snap_hyde 39/63 = 61.9% (vs pre-fix 58.4%, +3.5pp)
+  - 26B rag_simple 310/389 = **79.7%** (vs pre-fix 70.8%, **+8.9pp**)
+  - 26B rag_snap_hyde 148/185 = **80.0%** (vs pre-fix 76.6%, +3.4pp)
+  - 26B subagent_rag 139/179 = 77.7% (vs pre-fix 75.7%, +2.0pp)
 
-ETA for first detail log: 26B-1 rag_simple ~02:14 UTC (5h from job start).
+Caveat: early questions only; final accuracies will narrow (the first 200-400q are not a random sample). But large enough early signal to suspect the bug impact was UNDERSTATED at N=200 post-fix smoke (E4B was within noise) — the prompt-fix lift at 26B may be ~5-8pp at full N. Will land definitively when modes complete.
+
+**22:04 UTC**: submitted MuSiQue embed job (54190) — building `musique_passages` collection on a40-2206 (idle), ~10 min ETA.
+
+ETA for first detail log: **26B-1 rag_simple ~23:39 UTC** (extrapolated from 8.3q/min current throughput, faster than initial estimate).
 
 ## Pre-wave evidence (audit reference)
 
