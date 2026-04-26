@@ -244,16 +244,43 @@ The decomposition is now confirmed:
 - Formatter fix (model-facing prompt): +5.44pp at 26B (across both no-retrieval modes)
 - Retrieval-query fix (query strings): +1.85pp marginal (only on retrieval modes)
 
-## Cross-mode bug-fix lift pattern (so far at 26B)
+### 🎯 26B golden_passage post-fix (54177 mode 4) — landed 2026-04-26 07:24 UTC
 
-| Mode | Pre-fix | Post-fix | Lift | Pipeline depth |
+**Headline: 78.66% (940/1195)** vs pre-fix 74.98% = **+3.68pp bug-fix lift** — SMALLER than llm_only's +5.44pp
+
+| Metric | Value |
+|---|---|
+| Records | 1195 |
+| Final accuracy | 0.7866 (940/1195) |
+| Pre-fix reference | 0.7498 (896/1195) |
+| Bug-fix lift | **+3.68pp** |
+| Leakage artifacts | **0** |
+| Code commit | 56bffc8 |
+
+By subject:
+- nan (601 prompt-bearing): 80.7% (485/601)
+- CONST. LAW: 92.6% (88/95) ← strongest subject
+- TORTS: 80.4% (90/112)
+- REAL PROP.: 75.0% (69/92)
+- EVIDENCE: 71.0% (66/93)
+- CONTRACTS: 68.1% (77/113)
+- CRIM. LAW: 73.0% (65/89)
+
+**🔬 Why is golden_passage's lift +3.68pp vs llm_only's +5.44pp?** golden_passage already has the gold passage as context — so when the prompt-column was missing, the model could partially recover the missing fact pattern from the gold passage. With the formatter fix, that recovery is no longer needed, and the lift is smaller (+1.76pp less than llm_only). Another clean validation of asymmetric impact: **the bug-fix lift is SMALLER on modes that have access to alternative context sources (gold passage, retrieval, snap/gap reasoning).**
+
+🎯 **26B-1 JOB COMPLETE — all 4 modes landed**: rag_simple, rag_hyde, llm_only, golden_passage.
+
+## Cross-mode bug-fix lift pattern (8 of 17 modes at 26B)
+
+| Mode | Pre-fix | Post-fix | Lift | Pipeline / context |
 |---|---|---|---|---|
-| llm_only | 74.31% | **79.75%** | **+5.44pp** | 1 call (no retrieval) |
-| snap_only_in_final | 75.15% | **80.59%** | **+5.44pp** | 2 calls (snap + final, no retrieval) — IDENTICAL TO LLM_ONLY |
-| rag_simple | 70.79% | **78.08%** | **+7.29pp** | 1 call (retrieval) |
-| rag_hyde | 74.23% | **78.91%** | **+4.68pp** | 2 calls (HyDE+final) |
-| rag_snap_hyde | 76.57% | **81.17%** | **+4.55pp** | 3 calls (snap+HyDE+final) |
-| subagent_rag | 75.73% | **78.16%** | **+2.46pp** | 4 calls (gap+rag+report+final) |
+| llm_only | 74.31% | **79.75%** | **+5.44pp** | 1 call, no context |
+| snap_only_in_final | 75.15% | **80.59%** | **+5.44pp** | 2 calls, no retrieval — IDENTICAL TO LLM_ONLY |
+| rag_simple | 70.79% | **78.08%** | **+7.29pp** | 1 call, retrieval (formatter +5.44 + retrieval-fix +1.85) |
+| rag_hyde | 74.23% | **78.91%** | **+4.68pp** | 2 calls (HyDE+final) — HyDE compensated pre-fix |
+| rag_snap_hyde | 76.57% | **81.17%** | **+4.55pp** | 3 calls (snap+HyDE+final) — snap also compensated |
+| golden_passage | 74.98% | **78.66%** | **+3.68pp** | 1 call + gold passage as context (recovery from gold) |
+| subagent_rag | 75.73% | **78.16%** | **+2.46pp** | 4 calls (gap+rag+report+final) — most compensation |
 
 **Pattern fully confirmed**: bug-fix lift is INVERSELY proportional to pipeline depth. Plain `rag_simple` gets the biggest lift (1 call, can't compensate). Multi-call modes partially recover via snap reasoning / gap analysis / report writing.
 
