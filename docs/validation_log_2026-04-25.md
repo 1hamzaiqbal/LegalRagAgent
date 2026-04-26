@@ -260,11 +260,33 @@ Tested via `or-gemma4-26b` provider (paid OpenRouter, $0.06/$0.33 per M). Cluste
 
 **Lessons learned (parallel API runs)**: Initial attempt fired 6 modes concurrently via OpenRouter — most stalled at 1-9 questions for 30 min while one (golden_passage) made progress. OpenRouter routes to multiple downstream providers; concurrent calls land on slow ones. **Solution: serial runs only**, ~3-5 min per N=50 single-call mode.
 
-### rag_simple via in-row BM25 retrieval — PARTIAL (25/50 captured before kill)
+### rag_simple via in-row BM25 retrieval — N=30 complete (with 90s timeout)
 
-**Headline (partial): 32.0% EM (8/25)** at q25 of N=50 — process hung mid-run on a slow OpenRouter route, killed before mode completion (no detail log written by harness, only at end-of-mode). Reduced default OpenAI client timeout from 300s → 90s + max_retries 0 → 1 to make hung calls fail-fast.
+**Headline: 26.7% EM (8/30), 0.414 F1**
 
-vs golden_passage 62% EM (oracle, gets gold supporting paragraphs as context). The +30pp gap = retrieval quality cost: in-row BM25 with k=5 misses some gold paragraphs, especially on multi-hop where second-hop entities have to be inferred from first-hop content. Expected — that's exactly the regime our snap+HyDE methods are designed to handle. rag_hyde / rag_snap_hyde / subagent_rag should narrow the gap.
+| Metric | Value |
+|---|---|
+| EM | 26.7% (8/30) |
+| F1 mean | 0.414 |
+| **gold_retrieved (top-5 BM25 hit gold para)** | **83.3% (25/30)** |
+| Retrieval method | in-row BM25 over the question's ~20 paragraphs |
+| k | 5 |
+
+**By n_hops:**
+| Hops | N | EM | F1 | gold_retrieved |
+|---|---|---|---|---|
+| 2-hop | 14 | 42.9% | 0.576 | 85.7% |
+| 3-hop | 12 | 8.3% | 0.255 | 75.0% |
+| 4-hop | 4 | 25.0% | 0.321 | 100.0% |
+
+**🔬 Key finding: BM25 retrieval is GOOD on MuSiQue (83% gold-retrieved), but the model fails to USE the gold paragraphs.** The gap from 83% gold-retrieved → 27% EM is purely a reasoning/composition failure, not a retrieval failure. 3-hop crashes to 8.3% EM despite 75% gold-retrieved — multi-hop COMPOSITION is the bottleneck.
+
+This is the canonical multi-hop story: retrieval is solvable; combining multiple paragraphs into a coherent chain-of-reasoning answer is the hard part. **Exactly the regime where snap+HyDE / subagent / planning-table methods should help** — they explicitly chain reasoning over multiple retrieval steps.
+
+vs comparison:
+- golden_passage (oracle, ONLY gold paragraphs as context): 62% EM
+- rag_simple (in-row BM25, gold + distractors): 26.7% EM
+- 35pp gap from oracle → distractor-included = the distractor confusion cost
 
 ## Anomalies / things to investigate
 
