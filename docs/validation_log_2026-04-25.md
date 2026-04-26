@@ -197,15 +197,24 @@ By subject:
 **Headline: 60.75% (726/1195)**
 | Records | 1195 | accuracy 0.6075 | leaks 0 | full schema | Pre-fix N=1195 not recorded (only N=200 = 66% pre-fix) |
 
-### planning_table mode (NEW, drafted + smoke-tested 2026-04-26 22:20 UTC)
+### planning_table mode (NEW) — N=29 partial via API (q30 hung, killed)
 
-Smoke N=5 on MuSiQue via OpenRouter API: **0/5 EM, F1 mean 0.23**. Small N noise expected. Mode runs end-to-end (12.1s/q × 5 = 60s); generates fact-focused TODOs and per-TODO findings correctly. Sample TODO+finding pairs show appropriate decomposition (e.g. "What are the primary filming locations for the movie The Beach?" with passage-grounded findings).
+**Headline (partial 29/30): 20.7% EM (6/29)** — matches the snap-driven mode cluster
 
-Key observations from smoke:
-- TODOs are well-formed and fact-focused (1-3 per question)
-- Findings mostly say "passages do not contain" → per-TODO BM25 misses gold paragraphs (single-TODO query is narrower than rag_simple's full-question query)
-- One success case: TODO "Where is Richmond located?" → finding "Virginia" is correct
-- Will need N=20-30 for reliable EM/F1 signal
+| Mode (MuSiQue, N≈30, 26B via API) | EM |
+|---|---|
+| golden_passage (oracle) | 62% |
+| rag_simple (BM25, no snap) | 26.7% |
+| rag_hyde | 20.0% |
+| rag_snap_hyde | 20.0% |
+| subagent_rag (N=15) | 20.0% |
+| **planning_table** | **20.7%** |
+
+**🔬 Pattern fully confirmed**: anything that conditions retrieval on snap output — HyDE, snap+HyDE, subagent gap-decomposition, planning-table TODO-generation — converges to ~20% EM on MuSiQue. Only `rag_simple` (BM25 with the raw question) retains the 26.7% baseline.
+
+The mode runs end-to-end correctly (5-7 LLM calls/q, ~30-45s/q, fact-focused TODOs, passage-grounded findings — verified in audit 2026-04-26). The accuracy plateau at 20% suggests **snap-bias is the dominant failure mode on multi-hop, regardless of which downstream pipeline consumes the snap.**
+
+**Future ablation worth running**: planning_table WITHOUT snap (use the question alone to generate TODOs) to test whether removing the snap-bias source recovers rag_simple's 26.7% baseline. If it does, that's clean evidence the failure is snap-bias, not pipeline complexity.
 
 ### 🎯 E4B snap_only_in_final post-fix (54174 mode 2) — landed 2026-04-26 20:12 UTC
 
