@@ -54,7 +54,43 @@ The babysit loop will record each landed mode's leak rate here as it lands.
 
 ## Per-mode audits (filled as modes land)
 
-(empty — modes will populate this section as they finish)
+### 🎯 26B rag_simple post-fix (54177 mode 1) — landed 2026-04-26 01:20 UTC
+
+**Headline: 78.08% (933/1195)** vs pre-fix 70.79% = **+7.29pp bug-fix lift**
+
+| Metric | Value |
+|---|---|
+| Records | 1195 |
+| Final accuracy | 0.7808 (933/1195) |
+| Pre-fix reference | 0.7079 (846/1195) at commit 770c9ac |
+| Bug-fix lift | **+7.29pp** |
+| Avg latency | 5.9s/q |
+| Avg LLM calls | 1.0 |
+| HyDE artifact leaks (top-level) | **0** |
+| Report artifact leaks | **0** |
+| Knowledge artifact leaks | **0** |
+| Call traces present | 1195/1195 |
+| Code commit | 56bffc8 |
+
+By subject (post-fix):
+- nan (prompt-bearing 601 Qs): 80.4% (483/601) ← biggest lift target, the 37% of Qs that needed the prompt fix
+- CONST. LAW: 90.5% (86/95)
+- TORTS: 77.7% (87/112)
+- REAL PROP.: 75.0% (69/92)
+- CONTRACTS: 72.6% (82/113)
+- EVIDENCE: 72.0% (67/93)
+- CRIM. LAW: 66.3% (59/89)
+
+Sample inspection (3 random records, idx mbe_1179/700/1034): all clean — full
+question/answer text, structured legal analysis in final answer, correct
+predictions, no leakage patterns observable. Question field is [:500]-truncated
+in log but model received the full text via `_fmt(row, config)`.
+
+**Verdict:** CLEAN. The +7.29pp lift is real bug-fix signal, exactly the
+pattern predicted by the asymmetric-impact hypothesis (retrieval modes most
+affected). The post-fix accuracy lands above golden_passage pre-fix (75.0%)
+for rag_simple — strongly suggests our pre-fix 26B numbers underestimated
+the true model capability.
 
 ## Anomalies / things to investigate
 
