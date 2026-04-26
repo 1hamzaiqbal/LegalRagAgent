@@ -185,6 +185,21 @@ By subject:
 - EVIDENCE: 49.5% (46/93)
 - CRIM. LAW: 48.3% (43/89) ← weakest at 8B scale
 
+### 🎯 E4B snap_hyde_report post-fix (54176 mode 2) — landed 2026-04-26 22:13 UTC
+
+**Headline: 60.75% (726/1195)**
+| Records | 1195 | accuracy 0.6075 | leaks 0 | full schema | Pre-fix N=1195 not recorded (only N=200 = 66% pre-fix) |
+
+### planning_table mode (NEW, drafted + smoke-tested 2026-04-26 22:20 UTC)
+
+Smoke N=5 on MuSiQue via OpenRouter API: **0/5 EM, F1 mean 0.23**. Small N noise expected. Mode runs end-to-end (12.1s/q × 5 = 60s); generates fact-focused TODOs and per-TODO findings correctly. Sample TODO+finding pairs show appropriate decomposition (e.g. "What are the primary filming locations for the movie The Beach?" with passage-grounded findings).
+
+Key observations from smoke:
+- TODOs are well-formed and fact-focused (1-3 per question)
+- Findings mostly say "passages do not contain" → per-TODO BM25 misses gold paragraphs (single-TODO query is narrower than rag_simple's full-question query)
+- One success case: TODO "Where is Richmond located?" → finding "Virginia" is correct
+- Will need N=20-30 for reliable EM/F1 signal
+
 ### 🎯 E4B snap_only_in_final post-fix (54174 mode 2) — landed 2026-04-26 20:12 UTC
 
 **Headline: 57.82% (691/1195)** vs pre-fix 54.81% = **+3.01pp lift**
