@@ -376,6 +376,15 @@ Concrete failure mode: for "Who is the spouse of the Green performer?" — HyDE 
 
 **Meeting talking point:** "HyDE has a domain-specificity bound: it lifts on retrieval-of-doctrine tasks but hurts on multi-hop entity composition. The asymmetry is a real finding, not noise."
 
+### subagent_rag N=15 — 20.0% EM, 0.344 F1
+
+- 2-hop (N=8): 37.5% EM
+- 3-hop (N=6): 0.0% EM
+- 4-hop (N=1): 0.0% EM
+- gold_retrieved field = 0/15 — tracking artifact (subagent uses multi-step gap retrieval, not surfaced to top-level evidence_store; not a real retrieval failure)
+
+Adds to the MuSiQue "snap-driven methods break" pattern. subagent_rag's gap-decomposition doesn't help here, suggesting the gap-analysis step is also misled by snap's wrong-hop commitment.
+
 ### rag_snap_hyde — PARTIAL (21/30 captured, hung at q22 twice; killed)
 
 **Headline (partial): 14.3% EM (3/21)** — even worse than rag_hyde
