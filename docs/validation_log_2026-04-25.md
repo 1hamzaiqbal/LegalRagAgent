@@ -35,8 +35,10 @@ Updated continuously by the babysit loop.
 Caveat: early questions only; final accuracies will narrow (the first 200-400q are not a random sample). But large enough early signal to suspect the bug impact was UNDERSTATED at N=200 post-fix smoke (E4B was within noise) — the prompt-fix lift at 26B may be ~5-8pp at full N. Will land definitively when modes complete.
 
 **22:04 UTC**: submitted MuSiQue embed job (54190) — building `musique_passages` collection on a40-2206 (idle), ~10 min ETA.
+**22:48 UTC**: 54190 silently FAILED — `Unknown corpus: musique`. Root cause: slurm_embed_musique.sh runs from `/engrfs/.../LegalRagAgent` (data repo) while my fast_embed.py update was pushed to `/engrfs/.../LegalRagAgent-clean` (code repo). Manually scp'd fixed fast_embed.py + CSVs across, resubmitted as **54218** (PENDING — a40-2206 now in use by boundclip).
+**22:48 UTC progress**: 26B-1 (rag_simple) at **839/1195 (70.2%) done**, 78.3% pass rate (657/839). Final lands in ~25 min at ~23:25 UTC.
 
-ETA for first detail log: **26B-1 rag_simple ~23:39 UTC** (extrapolated from 8.3q/min current throughput, faster than initial estimate).
+ETA for first detail log: **26B-1 rag_simple ~23:25 UTC**.
 
 ## Pre-wave evidence (audit reference)
 
