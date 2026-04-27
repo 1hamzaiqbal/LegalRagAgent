@@ -177,6 +177,31 @@ Audit agent: `audit_landings_2026-04-26_2242`
 
 A second codex dispatch for friend/foe attribution mode implementation (agent `ad1bfb685a6e6feb3`) similarly failed silently — no commits, no artifacts. Friend/foe mode design sketch is captured in task #32 / validation_log; will rebuild manually if time permits before the meeting. A third codex dispatch for iter_hyde code review (agent `a3b049be08e681d7d`) at ~00:13 UTC was still active in `ps` as of ~01:00 UTC — may yet deliver.
 
+**Update 2026-04-27 ~01:00 UTC**: ROOT CAUSE of all the silent codex failures was the codex CLI version. CLI 0.124.0 / 0.125.0 default model `gpt-5.5` was rejected by upstream API ("model requires newer Codex"). Companion CLI test directly with `--model spark --effort low` works. Codex broker for LegalRagAgent (PID 70634, 6+ hours stale) restarted; 13 zombie codex tasks (5-14 days old) bulk-cancelled; CLI upgraded to 0.126.0-alpha.4 with `gpt-5.5` working as default. **Codex now usable via codex-rescue agent with no extra flags** — defaults to `gpt-5.5 + xhigh + fast + write-mode + fresh` per `~/.codex/config.toml`. Verified by dispatching iter_hyde audit (agent `a58e57ee8200008e5` / task `task-mogsjzg4-5okahl`): completed in 15m 42s with substantive verdict.
+
+## iter_hyde Gemma 3 27B N=30 — independent CODEX audit (2026-04-27 ~01:15 UTC)
+
+Codex (model gpt-5.5, xhigh, read-only) independently verified the Phase 14 negative finding. Verdict: **REAL_FINDING**. Not a code bug, not a prompt issue, not a Gemma quirk — a genuine method limitation.
+
+Re-score: stored 2/30 = re-scored 2/30 (no extractor disagreements). 30/30 have `Answer:` marker; 28/30 `gold_retrieved=True`. Round distribution: 3 records ran 1 round, 3 ran 2, 24 ran 3 (decider firing 20% — 6/30 early-exits). Failure-mode breakdown on 5 sampled em=False rows:
+
+| Cause | Count |
+|---|---|
+| (a) chain found right span, synth compressed/lost it | 1 |
+| (b) chain confabulated wrong entity, synth followed | 3 |
+| (c) chain found right info, synth abstained | 0 |
+| (d) chain split across rounds, synth picked wrong thread | 1 |
+
+**The smoking-gun comparison** (codex's most powerful finding): on shared `idx=2hop__622308_61845` (gold "Mido"):
+- **iter_hyde** round 2 finding contained "Ray Stewart and Mido"; round 3 HyDE conditioned only on Ray Stewart, narrowing the focus → synth followed → wrong answer "Ray Stewart"
+- **multi_hyde_diverse** (same model, same question) pooled retrieval kept BOTH candidates; synth directly compared sources and picked "Mido" — correct
+
+**Mechanism**: iter_hyde's serial-conditioned-on-prior-findings architecture is BOTH a feature (chain coherence, narrowing search) AND a liability (early-round drift narrows the synth's option set; once committed, the chain pulls toward wrong answers). mhd's parallel pooling preserves multiple candidate paths until the synth chooses.
+
+**Implication for paper**: cite iter_hyde Gemma 3 27B -20pp finding as "serial chain drift" mechanism, complementary to mhd's "diversity preserves option set" mechanism. Frame both as the FIRST principled MuSiQue method-comparison (mhd > iter_hyde > rag_simple is the wrong cross-family ordering for Gemma 3 27B; mhd > iter_hyde and mhd > rag_simple is right).
+
+Codex audit task: `task-mogsjzg4-5okahl`. Output saved automatically to codex job log.
+
 ## Qwen3-32b cited 68% has 13/100 truncated — caveat needed (2026-04-26 ~23:00 UTC)
 
 Audit of `logs/eval_llm_only_groq-qwen_20260426_1941_detail.jsonl` (Qwen3-32b dense, the "Qwen3 32b dense | 68%" row in the cross-family BarExam llm_only board) found:
