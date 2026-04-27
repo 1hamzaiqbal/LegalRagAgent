@@ -3736,13 +3736,13 @@ def run_planning_table(row: pd.Series, config: EvalConfig) -> dict:
         f"## Planning Table (your sub-investigations)\n{table_text}\n\n"
         f"## Question\n{question}\n\n"
         "## Synthesis instructions\n"
-        "1. Treat the planning table findings as your PRIMARY evidence. "
-        "Do not contradict a finding — if a finding says the passages did not "
-        "contain a fact, you must NOT assert that fact from parametric memory.\n"
-        "2. If multiple findings are needed to compose the answer, walk "
-        "through the chain explicitly before concluding.\n"
-        "3. If the findings are insufficient to answer confidently, say so "
-        "and pick the best-supported option rather than guessing."
+        "1. Use the planning table findings as your PRIMARY evidence. If a "
+        "finding directly contradicts a possible answer, weight it heavily.\n"
+        "2. If multiple findings need to compose the answer, walk through "
+        "the chain explicitly before concluding.\n"
+        "3. ALWAYS commit to a final answer using the format `Answer: ...`. "
+        "Even if findings are incomplete, give your best single-span guess — "
+        "do NOT abstain or say 'information not provided'."
     )
     final_answer = _llm_call(_system_prompt(config, "rag"), final_user, label="ptable/final")
 
@@ -3866,13 +3866,13 @@ def run_planning_table_no_snap(row: pd.Series, config: EvalConfig) -> dict:
         f"## Planning Table (your sub-investigations)\n{table_text}\n\n"
         f"## Question\n{question}\n\n"
         "## Synthesis instructions\n"
-        "1. Treat the planning table findings as your PRIMARY evidence. "
-        "Do not contradict a finding — if a finding says the passages did not "
-        "contain a fact, you must NOT assert that fact from parametric memory.\n"
-        "2. If multiple findings are needed to compose the answer, walk "
-        "through the chain explicitly before concluding.\n"
-        "3. If the findings are insufficient to answer confidently, say so "
-        "and pick the best-supported option rather than guessing."
+        "1. Use the planning table findings as your PRIMARY evidence. If a "
+        "finding directly contradicts a possible answer, weight it heavily.\n"
+        "2. If multiple findings need to compose the answer, walk through "
+        "the chain explicitly before concluding.\n"
+        "3. ALWAYS commit to a final answer using the format `Answer: ...`. "
+        "Even if findings are incomplete, give your best single-span guess — "
+        "do NOT abstain or say 'information not provided'."
     )
     final_answer = _llm_call(_system_prompt(config, "rag"), final_user, label="ptable_ns/final")
 
