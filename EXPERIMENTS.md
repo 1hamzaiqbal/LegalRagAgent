@@ -21,13 +21,14 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 
 **Config:** provider=`custom` (`cluster-vllm`); models = `gemma-4-{E2B,E4B,26B-A4B,31B}-it`; dataset=`barexam`; seed=42; 0% HyDE/report leak verified via `analyze_detail_flags.py`.
 
-**Result (landed so far — wave still running):**
-- `rag_simple` N=1195 scaling: E2B **45.4%**, E4B **55.7%**, 26B-A4B **70.8%**, 31B **79.6%**. Monotonic.
-- `rag_hyde` N=1195: 26B-A4B **74.2%** (others pending).
+**Result (rescored 2026-04-27; see `docs/audit_log.md`):**
+- `rag_simple` N=1195 scaling: E2B **45.4%**, E4B **58.49%** post-prompt, 26B-A4B **78.08%** post-prompt, 31B **79.6%**. Monotonic.
+- `rag_hyde` N=1195: E4B **60.59%**, 26B-A4B **78.91%**.
+- `rag_snap_hyde` N=1195: E4B **62.18%** (+3.69pp vs rag_simple), 26B-A4B **81.17%** (+3.09pp vs rag_simple).
 - 31B N=200 matrix (seed=42): `rag_simple` 79.0%, `rag_hyde` 83.0%, `rag_snap_hyde` 85.0%, `snap_only_in_final` 84.0%.
 - E4B N=200 mini-eval (post-fix): `rag_simple` 60.5%, `rag_hyde` 59.5%, `rag_snap_hyde` **66.5%**, `snap_only_in_final` **64.0%**.
 
-**Verdict:** CONFIRMED — (a) monotonic scaling holds, (b) at E4B N=200 snap now adds **+7pp** over plain HyDE (the old 0pp was a leak artifact), (c) at 31B N=200 snap+HyDE lift drops to +2pp — method stacking collapses at bigger scale.
+**Verdict:** CONFIRMED — (a) monotonic scaling holds, (b) at E4B N=200 snap adds **+7pp** over plain HyDE, while at full N=1195 post-prompt `rag_snap_hyde` adds **+1.59pp** over `rag_hyde` and **+3.69pp** over `rag_simple`, (c) at 31B N=200 snap+HyDE lift drops to +2pp — method stacking collapses at bigger scale.
 
 **Commit:** `fdcb3da` (doc integration); live snapshot in `docs/size_comparison_matrix.md`.
 
@@ -43,6 +44,8 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 **Result:** fixed full `rag_hyde` = **57.9%** (`692/1195`), exactly matching the paired full `snap_hyde` rerun at **57.9%** and beating `llm_only` (**55.5%**) by +2.4pp. This supersedes the earlier prompt-tainted full rerun artifact.
 
 **Verdict:** CONFIRMED — once the HyDE prompt is actually fixed, snap adds **0pp** inside the HyDE family at full scale. HyDE is the real driver.
+
+**Superseded framing (2026-04-27 audit):** this April 17 full-scale comparison is pre-prompt-column-fix historical evidence. Current post-prompt N=1195 E4B shows `rag_snap_hyde` 62.18%, `rag_hyde` 60.59%, and `rag_simple` 58.49%; cite the Phase 12 audit for current BarExam claims.
 
 **Commit:** bc6e361
 

@@ -2,7 +2,7 @@
 
 Live audit log for the E4B+26B coverage wave (jobs 54173–54179).
 Each landed mode gets a row in the table below + sample inspection notes.
-Updated continuously by the babysit loop.
+Historical babysit updates are preserved below; final status is now superseded by `docs/audit_log.md`.
 
 ## Wave summary
 
@@ -13,13 +13,13 @@ Updated continuously by the babysit loop.
 
 | Job | Modes | Status | First detail-log audit |
 |---|---|---|---|
-| 54173 E4B-1 | rag_simple, rag_hyde, llm_only, golden_passage | RUNNING (mbe_24, 1.5q/min) | — |
-| 54174 E4B-2 | rag_snap_hyde, snap_only_in_final | RUNNING (mbe_12, ~0.7q/min) | — |
-| 54175 E4B-3 | subagent_rag, subagent_hyde | RUNNING (mbe_13, ~0.7q/min) | — |
-| 54176 E4B-4 | subagent_hybrid, snap_hyde_report | RUNNING (mbe_13, ~0.7q/min) | — |
-| 54177 26B-1 | rag_simple, rag_hyde, llm_only, golden_passage | RUNNING (mbe_75, ~4q/min) | — |
-| 54178 26B-2 | rag_snap_hyde, snap_only_in_final | RUNNING (mbe_30, ~1.8q/min) | — |
-| 54179 26B-3 | subagent_rag, subagent_hybrid | RUNNING (mbe_30, ~1.8q/min) | — |
+| 54173 E4B-1 | rag_simple, rag_hyde, llm_only, golden_passage | WALLCLOCKED after rag_simple + rag_hyde landed; llm_only partial, golden not started | rag_simple 58.49%, rag_hyde 60.59% |
+| 54174 E4B-2 | rag_snap_hyde, snap_only_in_final | DONE | rag_snap_hyde 62.18%, snap_only_in_final 57.82% |
+| 54175 E4B-3 | subagent_rag, subagent_hyde | DONE | subagent_rag 60.92%, subagent_hyde 60.17% |
+| 54176 E4B-4 | subagent_hybrid, snap_hyde_report | DONE | subagent_hybrid 58.83%, snap_hyde_report 60.75% |
+| 54177 26B-1 | rag_simple, rag_hyde, llm_only, golden_passage | DONE | rag_simple 78.08%, rag_hyde 78.91%, llm_only 79.75%, golden_passage 78.66% |
+| 54178 26B-2 | rag_snap_hyde, snap_only_in_final | DONE | rag_snap_hyde 81.17%, snap_only_in_final 80.59% |
+| 54179 26B-3 | subagent_rag, subagent_hybrid | DONE | subagent_rag 78.16%, subagent_hybrid 74.23% rescored |
 
 **21:14 UTC**: jobs submitted, all PENDING(Priority) blocked by my own RL queue
 **21:30 UTC**: cancelled 14 RL/autowatch jobs — gemma4 jobs leapfrog into a40-2205 (4×) + a100s-2305 (3×)
@@ -210,7 +210,7 @@ By subject:
 | subagent_rag (N=15) | 20.0% |
 | **planning_table** | **20.7%** |
 
-**🔬 Pattern fully confirmed**: anything that conditions retrieval on snap output — HyDE, snap+HyDE, subagent gap-decomposition, planning-table TODO-generation — converges to ~20% EM on MuSiQue. Only `rag_simple` (BM25 with the raw question) retains the 26.7% baseline.
+**Phase-12 pattern (superseded by Phase 13.5 for `multi_hyde_diverse`)**: snap-conditioned methods — HyDE, snap+HyDE, subagent gap-decomposition, planning-table TODO-generation — converge to ~20% EM on MuSiQue. At this point only `rag_simple` retained the 26.7% baseline; later N=100 `multi_hyde_diverse` is the first cross-family lift.
 
 The mode runs end-to-end correctly (5-7 LLM calls/q, ~30-45s/q, fact-focused TODOs, passage-grounded findings — verified in audit 2026-04-26). The accuracy plateau at 20% suggests **snap-bias is the dominant failure mode on multi-hop, regardless of which downstream pipeline consumes the snap.**
 
@@ -343,7 +343,7 @@ The decomposition is now confirmed:
 
 ### 🎯 26B subagent_hybrid post-fix (54179 mode 2) — landed 2026-04-26 07:54 UTC
 
-**Headline: 74.14% (886/1195)** vs pre-fix 73.39% = **+0.75pp lift** — SMALLEST yet (deepest pipeline = most context compensation pre-fix)
+**Headline: 74.23% (887/1195 rescored; stored 886/1195 = 74.14%)** vs pre-fix 73.39% = **+0.84pp lift** — SMALLEST yet (deepest pipeline = most context compensation pre-fix)
 
 | Metric | Value |
 |---|---|
@@ -392,7 +392,7 @@ By subject:
 | rag_snap_hyde | 76.57% | **81.17%** | **+4.55pp** | 3 calls (snap+HyDE+final) — snap also compensated |
 | golden_passage | 74.98% | **78.66%** | **+3.68pp** | 1 call + gold passage as context (recovery from gold) |
 | subagent_rag | 75.73% | **78.16%** | **+2.46pp** | 4 calls (gap+rag+report+final) |
-| subagent_hybrid | 73.39% | **74.14%** | **+0.75pp** | 4 calls — DEEPEST compensation, smallest lift |
+| subagent_hybrid | 73.39% | **74.23%** (rescored; stored 74.14%) | **+0.84pp** | 4 calls — DEEPEST compensation, smallest lift |
 
 **Pattern fully confirmed**: bug-fix lift is INVERSELY proportional to pipeline depth. Plain `rag_simple` gets the biggest lift (1 call, can't compensate). Multi-call modes partially recover via snap reasoning / gap analysis / report writing.
 
@@ -507,7 +507,7 @@ After uniform re-score with the fixed `<span>` extractor, on MuSiQue N=30:
 | rag_simple (1 query, 1 reason) | **26.7%** | **20.0%** | 83% | 87% |
 | rag_multi_query (3 queries pooled) | 23.3% | 20.0% | **87%** | 83% |
 | planning_table_no_snap_v2 (per-TODO) | 23.3% | 20.0% | 83% | **90%** |
-| **planning_table WITH snap v2** | **16.7%** ↓ | (n/a) | (audit pending) | n/a |
+| **planning_table WITH snap v2** | **16.7%** ↓ | (n/a) | audit complete; snap-bias mechanism | n/a |
 | rag_snap_hyde (snap-driven) | 20.0% | 13.3% | 60% | 50% |
 
 **🎯 Cleanest snap-ablation:** comparing planning_table WITH-snap v2 (16.7%) to planning_table NO-snap v2 (23.3%) — same v2 synthesizer prompt, same per-TODO retrieval structure, only difference is whether snap reasoning seeds the plan-gen. **Snap costs -6.6pp** point estimate in this controlled comparison.
@@ -520,7 +520,7 @@ After uniform re-score with the fixed `<span>` extractor, on MuSiQue N=30:
 - **Gold-retrieval is HIGHER WITH snap (93% vs 83%)** — the regression is purely a generation/planning-bias effect, NOT retrieval. Snap actually helps retrieval but hurts composition.
 - One degenerate 174K-char "Don → Don → Don" loop in a WITH-snap record (real model failure mode, not v2 prompt issue).
 
-**🔬 Key finding:** NO method beats `rag_simple` on MuSiQue, on EITHER model. The structured methods consistently match (~20% on Llama 70b) or underperform (-3.4pp on Gemma 4 26B) the simple baseline. **The "snap+HyDE breaks on multi-hop" finding generalizes to ALL structured methods we've tried** (snap+HyDE, subagent, planning_table with/without snap, rag_multi_query).
+**Phase-12 key finding (superseded by Phase 13.5 for `multi_hyde_diverse`)**: no then-tested structured method beat `rag_simple` on either model. The snap/ptable methods consistently matched (~20% on Llama 70b) or underperformed (-3.4pp on Gemma 4 26B) the simple baseline. `multi_hyde_diverse` later becomes the first exception at N=100.
 
 Notable: rag_multi_query and planning_table_no_snap both LIFT gold_retrieved (+4pp on Gemma, +3pp on Llama via ptable) but the model can't translate higher recall into higher EM. The bottleneck is **composition over multiple passages**, not retrieval coverage.
 
@@ -552,7 +552,7 @@ All audited clean post-hardening (pre-flight smoke + circuit breaker + think-tag
 | Llama 3.3 70b dense | Groq | **81%** | clean, 0 None preds |
 | Gemma 4 26B-A4B MoE | cluster vLLM | 79.75% | full N=1195 reference |
 | **Qwen3 30B MoE** (3B active) | OpenRouter | **70%** | direct architecture match for Gemma 4 26B-A4B; Gemma 4 +9.75pp ahead at same class |
-| Qwen3 32b dense | Groq | **68%** | think-tag strip needed; 13 records truncated mid-`<think>` |
+| Qwen3 32b dense | Groq | **68%** | think-tag strip needed; 13 records truncated mid-`<think>`; true likely 70-78% |
 | **Gemma 3 27b dense** | OpenRouter | **68%** | clean — Gemma 4 26B is **+12pp better** than Gemma 3 27b at similar size |
 | Llama 4 Scout 17b MoE | Groq | **67%** | clean, 0 None preds |
 
@@ -562,7 +562,7 @@ All audited clean post-hardening (pre-flight smoke + circuit breaker + think-tag
 - Both ~25-30B total params, ~3-4B active, same architecture class
 - Gemma 4 is **+9.75pp ahead** — meaningful at-scale lead, not noise
 
-**Story:** Llama 3.3 70b and Gemma 4 26B basically tie on llm_only BarExam at ~80%, despite ~3× param difference (70B vs 25B/3.8B-active). Qwen3 32b dense and Llama 4 Scout 17b MoE land at 67-68% — comparable to each other, well below the top tier. Qwen3 lost 13/100 records to Groq's `max_completion_tokens` default cutting off mid-`<think>`; true ceiling is probably ~75-78%.
+**Story:** Llama 3.3 70b and Gemma 4 26B basically tie on llm_only BarExam at ~80%, despite ~3× param difference (70B vs 25B/3.8B-active). Qwen3 32b dense and Llama 4 Scout 17b MoE land at 67-68% — comparable to each other, well below the top tier. Qwen3 lost 13/100 records to Groq's `max_completion_tokens` default cutting off mid-`<think>`; true ceiling is likely ~70-78%.
 
 **Hardening that made these results trustworthy:**
 - Pre-flight smoke: dies in seconds on auth/404 (caught Kimi K2 404)
@@ -575,7 +575,7 @@ All audited clean post-hardening (pre-flight smoke + circuit breaker + think-tag
 
 - **54173 (E4B-1) WALLCLOCKED at 28h** — got mode 1 rag_simple + mode 2 rag_hyde clean, but mode 3 llm_only died at 1155/1195 (no detail log written), mode 4 golden_passage never started. E4B llm_only and golden_passage cells therefore missing for the meeting. Could be re-run via API later (llm_only/golden_passage need no Chroma).
 
-- **Qwen3 32b on Groq: 13/100 records truncated mid-`<think>`** — Groq's default max_completion_tokens cuts off the model before it closes the think tag and emits `Answer: (X)`. Could bump max_tokens parameter for thinking-mode models or instruct them to stop thinking sooner. True ceiling likely +5-10pp above measured 68%.
+- **Qwen3 32b on Groq: 13/100 records truncated mid-`<think>`** — Groq's default max_completion_tokens cuts off the model before it closes the think tag and emits `Answer: (X)`. Could bump max_tokens parameter for thinking-mode models or instruct them to stop thinking sooner. True ceiling likely 70-78% rather than the measured 68%.
 
 ## MuSiQue baselines via OpenRouter API (Gemma 4 26B-A4B-it)
 
@@ -691,7 +691,7 @@ Audit `a20b99c33f0b4d088`: both Gemma logs CLEAN (0 errors / 0 None preds / 0 pl
 
 **Why mhd works (mechanism, per audit)**: single HyDE commits to ONE entity (often wrong on multi-hop), biasing BM25. Three diverse HyDEs spread retrieval across different candidate-entities, raising effective gold-retrieval. The model still has to compose across multiple passages at synthesis — that part is unchanged from rag_simple, which is why the lift is +8-12pp (decent) not +30pp (oracle territory).
 
-**Open question for next round**: would multi-ROUND HyDE (`iter_hyde`, multi-step decoder with READY-or-NEXT decider) lift further by attacking the composition bottleneck on top of the diversity bottleneck? `iter_hyde` smoke-tested clean (Haiku review verdict SAFE TO SCALE). N=30 on Gemma 3 27B in flight at commit time; will report Phase 14.
+**Resolved in Phase 14 below**: multi-ROUND HyDE (`iter_hyde`, multi-step decoder with READY-or-NEXT decider) hurts Gemma 3 27B badly at N=30. The remaining open question is Llama 70b capacity, not whether Gemma benefits.
 
 ## Phase 14 — iter_hyde N=30 on Gemma 3 27B HURTS badly (2026-04-27 ~00:34 UTC)
 
@@ -703,25 +703,25 @@ Audit `a20b99c33f0b4d088`: both Gemma logs CLEAN (0 errors / 0 None preds / 0 pl
 | `multi_hyde_diverse` (single-round) | 6/30 = 20.0% | 83% | 2 | -6.7pp (N=30 noise per audit `aded790c4e293d756`) |
 | **`iter_hyde`** (multi-round) | **2/30 = 6.7%** | **93%** | **6.6 avg** | **-20.0pp ← MULTI-ROUND HURTS** |
 
-**Mechanism (per-record audit, no codex needed)**:
+**Mechanism (Codex audit `task-mogsjzg4-5okahl` + per-record audit)**:
 - 30/30 records have `Answer:` marker — **extraction is fine**, not a code bug
 - gold_retrieved is 93% (HIGHER than rag_simple 87% and mhd 83%) — **retrieval is great**, multi-round retrieves better
 - The failure is at SYNTHESIS: model emits long verbose chain-of-thought ("Okay, let's analyze...") and confidently picks WRONG answers
 - 24/30 ran full 3 rounds (decider rarely says READY); 6/30 early-exited
 - Failure types: ~3 semantic-near (Koh Phi Phi vs island Koh Phi Phi), ~6 confidently wrong entities (Boston instead of Minnesota History Center, Kenny G instead of Bublé), ~1 abstained ("Information not provided"), ~1 emitted prose instead of span
 
-**Hypothesis: iter_hyde's chain prompt OVERLOADS Gemma 3 27B's synthesizer.** Single-round mhd has tight cause-and-effect (3 passages → 1 answer). iter_hyde shows the model a long HyDE-finding-HyDE-finding chain that lets it confabulate freely. The smaller dense model can't keep all that context coherent.
+**Hypothesis: iter_hyde's serial chain drifts and overloads Gemma 3 27B's synthesizer.** Single-round mhd preserves multiple candidate paths until synthesis. iter_hyde conditions later HyDE passages on prior findings, so early drift narrows the option set and pulls the final answer toward wrong entities.
 
 **Method × model interaction REAL** (this time on multi-round, not single-round): single-round mhd LIFTS cross-family at N=100; multi-round iter_hyde HURTS Gemma 3 27B at N=30. Whether iter_hyde HELPS Llama 70b (which has more capacity) is the next experiment. If iter_hyde lifts Llama 70b but hurts Gemma 3 27B, that's a clean "method needs model-capacity floor" finding.
 
-**Audit not yet spawned — codex broker debugged this turn (was hitting upstream `gpt-5.5` model rejection; works with `--model spark --effort low`). Internal per-record analysis confirmed: code clean, retrieval clean, synthesis is the choke point on Gemma 3 27B.**
+**Independent audit completed**: Codex re-scored 2/30 = 6.7%, verified 30/30 `Answer:` markers and 28/30 `gold_retrieved=True`, and marked the result REAL_FINDING rather than code/prompt/extractor bug. See `docs/audit_log.md` Phase 14 section.
 
 **Pending: iter_hyde N=30 Llama 70b (need to wait for Groq daily TPD reset OR use OpenRouter).**
 
 ### iter_hyde Llama 70b — DEFERRED (route exhaustion 2026-04-27 ~00:47 UTC)
 
 Two attempts to run iter_hyde N=30 on Llama 70b today failed at pre-flight:
-- `groq-llama70b`: at 100K TPD daily cap (burned ~150-200K running rag_simple N=100 + multi_hyde_diverse N=100 successfully). Groq resets at UTC midnight = 19:00 CDT, ~18 hours from now.
+- `groq-llama70b`: at 100K TPD daily cap (burned ~150-200K running rag_simple N=100 + multi_hyde_diverse N=100 successfully). Groq reset target was UTC midnight = 19:00 CDT on 2026-04-27.
 - `or-llama70b` (free tier `meta-llama/llama-3.3-70b-instruct:free`): Venice provider 429-rate-limited upstream. Three retries (5s, 10s back-off) all 429. Pre-flight gate (`SystemExit(2)`) aborted cleanly without burning questions.
 
 **Both attempts are documented evidence the pre-flight smoke gate WORKS** — saved 0 wasted questions on rate-limited routes. The legitimate methodology question (does multi-round iter_hyde HELP the bigger model even while it HURTS Gemma 3 27B?) remains open until Groq daily reset OR a paid Llama 70b OpenRouter route.

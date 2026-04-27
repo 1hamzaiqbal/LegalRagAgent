@@ -272,6 +272,20 @@ All cited cluster + Llama-N=100 headline numbers are bulletproof. The cross-size
 - `advisor_planning_table_groq-llama70b_20260426_2242` (BarExam 72%, tagged `_FAILED-EMPTY-RETRIEVAL`, do-not-cite)
 - Qwen3-32b 68% (truncation caveat documented; not contaminated, just understated)
 
+## Cleanup sweep findings 2026-04-27 — codex
+
+Scope: all 38 `logs/experiments.jsonl` rows from the last 48h where `dataset == "musique"` or `mode in {"multi_hyde_diverse", "iter_hyde", "advisor_planning_table"}`. Every detail log opened and re-scored with current `extract_answer_musique` + `musique_em_f1` for MuSiQue, or `extract_answer_mc` for BarExam. No missing detail logs. Summary `correct/total` matched detail-log stored `is_correct/len(records)` on all 38 rows. `empty_retrieval_count` matched for the one failed-empty-retrieval row.
+
+| Row | Stored EM | Re-scored EM | Cause | Verdict |
+|---|---:|---:|---|---|
+| `eval_rag_simple_groq-llama70b_20260426_1945_detail.jsonl` | 2/30 | **6/30** | four `Answer: <span>...</span>` wrappers now stripped (`Michael Bublé`, `Matt Damon`, `Saxony-Anhalt`, `Colin Firth`) | use re-scored 20.0%, not stored 6.7% |
+| `eval_rag_snap_hyde_groq-llama70b_20260426_1946_detail.jsonl` | 3/30 | **4/30** | one `Answer: <span>Socialist Party of America</span>` wrapper recovered | use re-scored 13.3% |
+| `eval_planning_table_groq-llama70b_20260426_1947_detail.jsonl` | 3/30 | **4/30** | one `Answer: <span>Colin Firth</span>` wrapper recovered | use re-scored 13.3% |
+
+Placeholder echo check: searched `final_answer` strings in the same 38 detail logs for literal `<your answer here>` and `[your answer here]`. Found 3 `<your answer here>` echoes, all in pre-`0ff67ad` rows: `planning_table_no_snap_or-gemma4-26b_20260426_2003`, `rag_multi_query_or-gemma4-26b_20260426_2054`, and `advisor_planning_table_or-gemma4-26b_20260426_2224`. Found **0 echoes after commit `0ff67ad`**, so the prompt fix holds for post-fix rows.
+
+Failed-row citation check: the only row tagged `_FAILED-EMPTY-RETRIEVAL` or `_FAILED-do-not-use` is `20260426_2242_advisor_planning_table_groq-llama70b_api-barexam-advisor-llama-n50` / `logs/eval_advisor_planning_table_groq-llama70b_20260426_2242_detail.jsonl`. It is not cited in `CLAUDE.md`, `RESEARCH.md`, `EXPERIMENTS.md`, `docs/experiment_overview.md`, or `docs/validation_log_2026-04-25.md`; only the generic guard string `_FAILED-do-not-use` appears in `RESEARCH.md` as harness behavior.
+
 ## multi_hyde_diverse cross-model N=30 (Phase 13) 2026-04-26 ~23:58 UTC
 
 Audit of new MuSiQue HyDE variant that pools BM25 over 3 diverse hypothetical passages + raw question. Re-scored with `extract_answer_musique` + `musique_em_f1`.

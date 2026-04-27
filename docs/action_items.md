@@ -8,22 +8,26 @@ Target venues:
 
 ---
 
+## Update 2026-04-27
+
+Current meeting-facing numbers are superseded by `docs/audit_log.md`, `CLAUDE.md`, `RESEARCH.md`, and `docs/experiment_overview.md`. Key changes since the 2026-04-20/21 snapshot below: Phase 12 post-prompt BarExam full-N winner is Gemma 4 26B `rag_snap_hyde` **81.17%**; E4B `rag_snap_hyde` is **62.18%**; Phase 13.5 `multi_hyde_diverse` is the first MuSiQue cross-family lift at N=100 (Llama +12pp p=0.023, Gemma 3 27B +8pp p=0.134); Phase 14 `iter_hyde` hurts Gemma 3 27B (-20pp). The historical job statuses and pre-fix HyDE narrative below are retained for audit continuity, not current citation.
+
 ## Update 2026-04-20/21
 
 - Leakage audit: every canonical HyDE-family leaderboard number in `logs/experiments.jsonl` is currently a pre-leak-fix reference. Historical `rag_hyde` passages leaked `Answer: (X)` in **100%** of samples and historical `rag_snap_hyde` passages in **74%**; `_sanitize_intermediate_text` landed in `02edbb7` on 2026-04-17 after those runs were logged and still had regex bugs.
 - Hardening landed on `hpc-setup` through `dfb6a9b`: `e508765`, `951729d`, `bf89b78`, `baef4d8`, `0b4e35d`, `71533fd`, `c85fe70`, `a377867`, `6118161`, `bab7cf5`, `a493491`. Smoke job `50812` removed generation-time HyDE leakage (`top_level_hyde_artifacts=0`) with `rag_hyde` **19/30 (63.3%)** and `rag_snap_hyde` **21/30 (70.0%)**.
 - 2026-04-21 status: `50835` mini-eval landed clean — E4B N=200 `rag_simple` 60.5%, `rag_hyde` 59.5%, `rag_snap_hyde` 66.5%, `snap_only_in_final` 64.0%, all 0% leak. **Narrative flip**: snap adds **+7pp** over plain HyDE post-fix; the old "0pp" reading was a leak artifact. `50836` downloads done (E2B + 31B cached). `50822`/`50838` superseded by full-corpus reruns.
-- **12-job cross-scale full-N=1195 wave in flight**: E2B (50986 redo after 50867 wallclocked), E4B (50858/50859), 26B-A4B (50868 core + 50990/50991/50992 expansion on parallel a100s-2305 slots), 31B (50865 core + 50993/50994/50995 queued for H100). Covers 10 modes per size: llm_only, golden_passage, rag_simple, rag_hyde, rag_snap_hyde, snap_only_in_final, subagent_rag, subagent_hyde, subagent_hybrid, snap_hyde_report. Plan + live snapshot in `docs/size_comparison_matrix.md`.
-- Landed full N=1195 rows so far (all post-fix, 0% leak): E2B `rag_simple` **45.4%**, E4B `rag_simple` **55.7%**, 26B-A4B `rag_simple` **70.8%** / `rag_hyde` **74.2%**, 31B `rag_simple` **79.6%**. Monotonic scaling. 31B N=200 matrix already landed at 79-85% across 4 modes. Do not treat the historical `57.9%` / `58.6%` HyDE numbers below as clean post-fix leaderboard results.
+- **Historical 2026-04-21 status:** 12-job cross-scale full-N=1195 wave was in flight. This snapshot is superseded by the 2026-04-27 audit; current BarExam full-N claims should cite `docs/audit_log.md`.
+- Historical landed full N=1195 rows as of 2026-04-21: E2B `rag_simple` **45.4%**, E4B `rag_simple` **55.7%**, 26B-A4B `rag_simple` **70.8%** / `rag_hyde` **74.2%**, 31B `rag_simple` **79.6%**. These E4B/26B values are superseded for current citation by the 2026-04-27 audit (E4B rag_simple **58.49%**, 26B rag_simple **78.08%**, 26B rag_hyde **78.91%**). Do not treat the historical `57.9%` / `58.6%` HyDE numbers below as clean current leaderboard results.
 
 ---
 
 ## Paper Narrative
 
-**Core claim (revised April 17):** HyDE passage generation is the primary driver of retrieval quality for legal QA — it bridges the genre gap between question-form queries and doctrinal corpus passages. Snap (letting the LLM reason first) helps plain RAG (+5pp) and parametric reasoning (+5pp), but adds zero to HyDE. Showing snap to the final decision-maker always hurts (-2 to -4pp).
+**Historical core claim (revised April 17; superseded for current citations by the 2026-04-27 audit):** HyDE passage generation is the primary driver of retrieval quality for legal QA — it bridges the genre gap between question-form queries and doctrinal corpus passages. Snap (letting the LLM reason first) helps plain RAG (+5pp) and parametric reasoning (+5pp), but adds zero to HyDE in the pre-prompt-fix comparison. Current post-prompt full-N claims should cite `docs/audit_log.md`.
 
 **Supporting evidence:**
-- Snap ablation across three families on the pre-leak-fix canonical runs: HyDE **0pp** (`rag_hyde` fixed 57.9% = `snap_hyde` 57.9% at N=1195), plain RAG **+5pp**, parametric reasoning **+5pp**; clean reruns pending
+- Snap ablation across three families on the pre-leak-fix canonical runs: HyDE **0pp** (`rag_hyde` fixed 57.9% = `snap_hyde` 57.9% at N=1195), plain RAG **+5pp**, parametric reasoning **+5pp**; superseded for current citation by the 2026-04-27 audit
 - The previous HyDE snap lift (+3pp) was a bug artifact from a broken Gemma prompt
 - Showing snap to the final agent always hurts: `snap_hyde_report_snap` 64% < `snap_hyde_report` 66%, `subagent_rag_snap` 63% < `subagent_rag` 66%, `subagent_rag_full` 62% < `subagent_rag` 66%
 - Three identified failure modes: noise, anchoring, genre mismatch
@@ -34,7 +38,7 @@ Target venues:
 ## Priority 1: Critical Experiments (MUST DO for paper)
 
 ### P1.1: Snap vs No-Snap Ablation (the paper's core comparison)
-- [x] **Pure HyDE (no snap)** — fixed full `rag_hyde` completed at **57.9%** on Gemma 4 E4B N=1195 (**pre-leak-fix canonical run; clean rerun pending**)
+- [x] **Pure HyDE (no snap)** — fixed full `rag_hyde` completed at **57.9%** on Gemma 4 E4B N=1195 (**pre-leak-fix canonical run; superseded by 2026-04-27 audit**)
 - [x] **Compare:** paired full `snap_hyde` (**57.9%**) vs fixed full `rag_hyde` (**57.9%**) = **0pp** snap contribution for HyDE on the pre-leak-fix canonical pair
 - [x] **snap_rag (62.0%) vs rag_simple (57.0%)** = already done, +5pp ✓
 - [x] **`vectorless_direct` vs `vectorless_nosnap`** — completed: **64.5% vs 59.5%**, another **+5pp** snap lift
@@ -108,7 +112,7 @@ Completed pre-2026-04-17 sprint checklists and the longer finished-results table
 
 ---
 
-## Latest Job Status
+## Latest Job Status (2026-04-20/21 historical snapshot; superseded)
 
 | Job | What | Status |
 |---|---|---|

@@ -200,7 +200,7 @@ before any new submission. The full pre-submission checklist lives in
 | `golden_passage` (oracle) | 78.66% | +0.58pp |
 | `subagent_rag` | 78.16% | +0.08pp |
 | `rag_simple` (baseline) | 78.08% | — |
-| `subagent_hybrid` | 74.14% | -3.94pp |
+| `subagent_hybrid` | 74.23% (rescored; stored 74.14%) | -3.85pp |
 
 ### Gemma 4 E4B BarExam (post-fix N=1195, 6 modes landed; llm_only + golden_passage missing — 54173 wallclocked)
 
@@ -222,7 +222,7 @@ before any new submission. The full pre-submission checklist lives in
 | Llama 3.3 70b | 81% | 70B dense |
 | **Gemma 4 26B-A4B** | **79.75%** | **25B/3.8B-active MoE** (cluster N=1195) |
 | Qwen3 30B MoE | 70% | 30B/3B-active MoE (N=100) |
-| Qwen3 32b dense | 68% (caveat: 13/100 truncated mid-`<think>` at 2048-token cap; true ≈75-78%) | 32B dense |
+| Qwen3 32b dense | 68% (caveat: 13/100 truncated mid-`<think>` at 2048-token cap; true likely 70-78%) | 32B dense |
 | Gemma 3 27b | 68% | 27B dense |
 | Llama 4 Scout 17b | 67% | 17B MoE |
 
@@ -246,7 +246,7 @@ before any new submission. The full pre-submission checklist lives in
 ### Working interpretation (current)
 
 - **`rag_snap_hyde` is the proven winner on legal MC**: +3-4pp over `rag_simple` at BOTH E4B and 26B sizes (clean cross-size lift, not noise)
-- **NO method beats `rag_simple` on multi-hop QA** across Gemma 4 26B AND Llama 70b — bottleneck is composition over multiple passages, not retrieval coverage
+- **Multi-hop QA split:** older N=30 structured methods did not beat `rag_simple`, but Phase 13.5 `multi_hyde_diverse` now lifts cross-family at N=100 (Llama +12pp p=0.023; Gemma 3 27B +8pp p=0.134). Composition remains the bottleneck after retrieval improves.
 - **Bug-fix decomposition**: formatter (`f95f316`) added +5.44pp at 26B llm_only/snap_only_in_final identically; retrieval-query (`3d5ff05`) added +1.85pp marginal on RAG modes
 - **Showing snap answer letter to the final agent always hurts** — strip the letter, keep the reasoning (regression-tested in `tests/test_sanitizer.py`)
 - **Cross-model**: Gemma 4 26B-A4B beats Qwen3 30B MoE by +9.75pp at the same MoE class; +12pp over Gemma 3 27b dense

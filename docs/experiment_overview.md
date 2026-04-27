@@ -1,6 +1,6 @@
 # Experiment Overview
 
-High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (**270+** entries as of 2026-04-26 night).
+High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (**288** entries as of 2026-04-27 early) plus `docs/audit_log.md` for cited-number verification.
 
 For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEARCH.md`. **Live ground truth + meeting story: `docs/validation_log_2026-04-25.md` and `docs/methods_characterization_2026-04-26.md`.**
 
@@ -16,8 +16,8 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 - **15 of 17 cluster post-fix N=1195 cells landed** at commit `56bffc8` (E4B llm_only + golden_passage missing — 54173 wallclocked at 28h)
 - **Bug-fix decomposition** validates clean: `llm_only` and `snap_only_in_final` both show **identical +5.44pp** lift at 26B (formatter-only, no retrieval). `rag_simple` shows +7.29pp = +5.44 formatter + +1.85pp marginal retrieval-query fix. Two no-retrieval modes producing identical lift is the strongest possible internal validation.
 - **`rag_snap_hyde` is the proven winner on legal MC**: +3.09pp at 26B (78.08 → 81.17) and +3.69pp at E4B (58.49 → 62.18). Cross-size lift, not noise.
-- **6-model BarExam llm_only N=100 board**: Llama 3.3 70b 81%, **Gemma 4 26B-A4B 79.75%**, Qwen3 30B MoE 70%, Qwen3 32b 68%, Gemma 3 27b 68%, Llama 4 Scout 17b 67%.
-- **MuSiQue cross-method × cross-model (N=30 via API)**: NO method beats `rag_simple` on multi-hop. snap+HyDE breaks (-6.7pp on Gemma 26B, -6.7pp on Llama 70b). Cleanest snap-ablation: `ptable_no_snap_v2` 23.3% vs `ptable_with_snap_v2` 16.7% (-6.6pp from snap, same prompt + same retrieval).
+- **6-model BarExam llm_only N=100 board**: Llama 3.3 70b 81%, **Gemma 4 26B-A4B 79.75%**, Qwen3 30B MoE 70%, Qwen3 32b 68% (13/100 truncated; true likely 70-78%), Gemma 3 27b 68%, Llama 4 Scout 17b 67%.
+- **MuSiQue cross-method × cross-model**: older N=30 snap/ptable methods did not beat `rag_simple`, but Phase 13.5 `multi_hyde_diverse` lifts at N=100 cross-family (Llama +12pp p=0.023; Gemma 3 27B +8pp p=0.134). Phase 14 `iter_hyde` is negative on Gemma 3 27B (-20pp vs rag_simple).
 - **Hardening** (commits `171c2c4`, `97c204a`): pre-flight smoke gate, per-question circuit breaker, summary-write guard for high-error-rate runs, think-tag stripping for Qwen3, `<span>` extractor fix for MuSiQue.
 
 ## Paper Core Result (post-prompt-fix N=1195, BarExam)
@@ -33,7 +33,7 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 | `golden_passage` (oracle) | 78.66% | +0.58pp |
 | `subagent_rag` | 78.16% | +0.08pp |
 | `rag_simple` (baseline) | 78.08% | — |
-| `subagent_hybrid` | 74.14% | -3.94pp |
+| `subagent_hybrid` | 74.23% (rescored; stored 74.14%) | -3.85pp |
 
 ### Gemma 4 E4B (8B effective)
 
@@ -70,7 +70,7 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 
 **`advisor_planning_table` reframed**: directional +2.0pp on Llama 70b at N=100 but McNemar p=0.824 — NOT statistically significant; 95% CI [-7pp, +11pp]. Frame as **cost-parity** (86% strong-LLM input-token reduction, 43% output-token reduction vs `iter_ptable`) rather than accuracy-lift. Audit `a5bbd0b5840ac0da6`.
 
-**Open question Phase 14**: would multi-ROUND HyDE (`iter_hyde`, READY-or-NEXT decider) lift further by attacking the composition bottleneck on top of the diversity bottleneck? `iter_hyde` smoke clean (Haiku review SAFE TO SCALE); N=30 on Gemma 3 27B in flight.
+**Phase 14 result**: multi-ROUND HyDE (`iter_hyde`) does **not** lift on Gemma 3 27B. N=30 lands at 2/30 = 6.7%, -20pp vs `rag_simple` despite 93% gold_retrieved; audit frames this as serial chain drift / synthesis failure. Llama 70b N=30 remains pending after route exhaustion.
 
 ## Historical (pre-prompt-fix) snapshots — kept for audit continuity
 
@@ -120,16 +120,16 @@ The combo-mode additions reinforce the anchoring result: hiding snap from the fi
 | Mode | Accuracy | Detail Log |
 |---|---|---|
 | **31B rag_simple** | **79.6% [post-fix, full N=1195]** | `logs/eval_rag_simple_cluster-vllm_20260421_1203_detail.jsonl` |
-| **26B-A4B rag_hyde** | **74.2% [post-fix, full N=1195]** | `logs/eval_rag_hyde_cluster-vllm_20260421_1112_detail.jsonl` |
-| **26B-A4B rag_simple** | **70.8% [post-fix, full N=1195]** | `logs/eval_rag_simple_cluster-vllm_20260421_0857_detail.jsonl` |
+| **26B-A4B rag_hyde** | **78.91% [post-prompt, full N=1195; supersedes 74.2%]** | see `docs/audit_log.md` |
+| **26B-A4B rag_simple** | **78.08% [post-prompt, full N=1195; supersedes 70.8%]** | see `docs/audit_log.md` |
 | golden_passage | 62.2% | `logs/eval_golden_passage_cluster-vllm_20260408_1749_detail.jsonl` |
-| **snap_hyde [E4B]** | **57.9% [pre-fix; clean rerun pending]** | `logs/eval_rag_snap_hyde_cluster-vllm_20260413_1102_detail.jsonl` |
-| **rag_hyde (fixed) [E4B]** | **57.9% [pre-fix; clean rerun pending]** | `logs/eval_rag_hyde_cluster-vllm_20260417_2047_detail.jsonl` |
+| **rag_snap_hyde [E4B]** | **62.18% [post-prompt, full N=1195; supersedes 57.9%]** | see `docs/audit_log.md` |
+| **rag_hyde [E4B]** | **60.59% [post-prompt, full N=1195; supersedes 57.9%]** | see `docs/audit_log.md` |
 | **subagent_rag (1-gap)** | **57.2%** | `logs/eval_subagent_rag_cluster-vllm_20260416_1720_detail.jsonl` |
 | **subagent_rag** | **56.9%** | `logs/eval_subagent_rag_cluster-vllm_20260414_1115_detail.jsonl` |
 | **ce_threshold** | **55.9%** | `logs/eval_ce_threshold_cluster-vllm_20260415_2022_detail.jsonl` |
 | **gap_rag_nosnap** | **55.9%** | `logs/eval_gap_rag_nosnap_cluster-vllm_20260416_0544_detail.jsonl` |
-| **E4B rag_simple** | **55.7% [post-fix, full N=1195]** | `logs/eval_rag_simple_cluster-vllm_20260421_0812_detail.jsonl` |
+| **E4B rag_simple** | **58.49% [post-prompt, full N=1195; supersedes 55.7%]** | see `docs/audit_log.md` |
 | llm_only | 55.5% | `logs/eval_llm_only_cluster-vllm_20260408_1709_detail.jsonl` |
 | rag_simple [pre-fix E4B] | 54.2% | `logs/eval_rag_simple_cluster-vllm_20260408_1813_detail.jsonl` |
 | entity_search | 53.2% | `logs/eval_entity_search_cluster-vllm_20260415_0454_detail.jsonl` |
@@ -137,7 +137,7 @@ The combo-mode additions reinforce the anchoring result: hiding snap from the fi
 | vectorless_direct | **CANCELLED** | job `43471` canceled — mode is parametric reasoning, not real corpus search |
 | vectorless_hybrid | **CANCELLED** | job `43471` canceled — same naming / validity issue |
 
-Note: the new E2B/E4B/26B/31B rows above are the landed post-fix size-comparison entries from 2026-04-21. The full E4B `snap_hyde` / `rag_hyde` rows remain pre-leak-fix historical references until the clean reruns in `docs/size_comparison_matrix.md` finish. The later 1-gap `subagent_rag` rerun improved to **57.2%**; and both `ce_threshold` and `gap_rag_nosnap` flatten at **55.9%**, barely above `llm_only` (**55.5%**). The planned full-scale "vectorless" runs were canceled because they would only validate extra reasoning steps, not corpus search.
+Note: the 2026-04-21 E4B/26B rows were superseded by the Phase 12 post-prompt audit in `docs/audit_log.md`. The older 1-gap `subagent_rag` **57.2%**, `ce_threshold` **55.9%**, `gap_rag_nosnap` **55.9%**, and `llm_only` **55.5%** rows remain historical pre-prompt context. The planned full-scale "vectorless" runs were canceled because they would only validate extra reasoning steps, not corpus search.
 Scale note: `entity_search` falls **6.8pp** from N=200 to N=1195 (`60.0% -> 53.2%`), while vector `rag_simple` falls only **2.8pp** (`57.0% -> 54.2%`). NLP entity matching is therefore less robust than vector search at scale in the current corpus setup.
 
 ### Cross-Dataset Follow-Up (Gemma 4 E4B, N=200)
@@ -149,11 +149,11 @@ Scale note: `entity_search` falls **6.8pp** from N=200 to N=1195 (`60.0% -> 53.2
 
 ## Top 10 Findings
 
-Note: the full-scale HyDE-family findings below reference the pre-leak-fix canonical E4B runs until the clean reruns finish; the clean E4B mini-eval already flips snap-over-HyDE to **+7.0pp** (`59.5% -> 66.5%`).
+Note: findings 1-2 below are historical pre-prompt-fix framing. Current post-prompt full-N claims are: E4B `rag_snap_hyde` **62.18%** vs `rag_hyde` **60.59%** and `rag_simple` **58.49%**; 26B `rag_snap_hyde` **81.17%** vs `rag_simple` **78.08%**.
 
-1. **HyDE is the real driver.** Passage-form queries bridge the genre gap between question-form queries and doctrinal corpus passages. `rag_hyde` (fixed) = `snap_hyde` = **57.9%** at full N=1195. The previous +3pp snap lift for HyDE was a bug artifact.
+1. **Historical HyDE framing:** Passage-form queries bridge the genre gap between question-form queries and doctrinal corpus passages. The April 17 pre-prompt comparison had `rag_hyde` (fixed) = `snap_hyde` = **57.9%** at full N=1195; current post-prompt numbers supersede this.
 
-2. **Snap helps plain RAG (+5pp) and parametric reasoning (+5pp), but adds zero to HyDE.** Snap is valuable when the retrieval query is the raw question (genre mismatch), but HyDE already solves that problem.
+2. **Current legal-MC framing:** `rag_snap_hyde` is the audited full-N winner on both E4B (+3.69pp over `rag_simple`) and 26B (+3.09pp over `rag_simple`). The old "zero to HyDE" claim should only be cited as pre-prompt history.
 
 3. **Showing snap to the final agent always hurts (-2 to -4pp).** Confirmed across `snap_hyde_report_snap` (64.0%), `subagent_rag_snap` (63.0%), and `subagent_rag_full` (62.0%) — all worse than their no-snap counterparts.
 
