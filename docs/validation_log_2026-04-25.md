@@ -423,9 +423,16 @@ All audited clean post-hardening (pre-flight smoke + circuit breaker + think-tag
 |---|---|---|---|
 | Llama 3.3 70b dense | Groq | **81%** | clean, 0 None preds |
 | Gemma 4 26B-A4B MoE | cluster vLLM | 79.75% | full N=1195 reference |
+| **Qwen3 30B MoE** (3B active) | OpenRouter | **70%** | direct architecture match for Gemma 4 26B-A4B; Gemma 4 +9.75pp ahead at same class |
 | Qwen3 32b dense | Groq | **68%** | think-tag strip needed; 13 records truncated mid-`<think>` |
 | **Gemma 3 27b dense** | OpenRouter | **68%** | clean — Gemma 4 26B is **+12pp better** than Gemma 3 27b at similar size |
 | Llama 4 Scout 17b MoE | Groq | **67%** | clean, 0 None preds |
+
+**Direct MoE-vs-MoE finding** (the cleanest cross-family at-scale comparison):
+- Gemma 4 26B-A4B (3.8B active): **79.75%**
+- Qwen3 30B MoE (3B active): **70%**
+- Both ~25-30B total params, ~3-4B active, same architecture class
+- Gemma 4 is **+9.75pp ahead** — meaningful at-scale lead, not noise
 
 **Story:** Llama 3.3 70b and Gemma 4 26B basically tie on llm_only BarExam at ~80%, despite ~3× param difference (70B vs 25B/3.8B-active). Qwen3 32b dense and Llama 4 Scout 17b MoE land at 67-68% — comparable to each other, well below the top tier. Qwen3 lost 13/100 records to Groq's `max_completion_tokens` default cutting off mid-`<think>`; true ceiling is probably ~75-78%.
 
