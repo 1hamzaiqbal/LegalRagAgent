@@ -180,8 +180,25 @@ def _fmt(row: pd.Series, config: EvalConfig) -> str:
     return format_question_prompt(row, dataset=config.dataset)
 
 
+def _strip_think_tags(text: str) -> str:
+    """Remove <think>...</think> reasoning blocks from model output.
+
+    Qwen3 models (and some Llama variants) emit chain-of-thought wrapped in
+    `<think>...</think>` tags by default. If the response is truncated mid-think,
+    the close tag never appears and the answer is never reached. Stripping
+    closed think-blocks at extraction time means at least the visible-reasoning
+    suffix gets parsed. Open (unclosed) think-blocks indicate a truncated
+    response — we leave those alone so the caller can detect the failure.
+    """
+    if not text:
+        return ""
+    return re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL | re.IGNORECASE)
+
+
 def _extract_answer(text: str, config: EvalConfig) -> str | None:
     """Extract answer using the right extractor for the dataset."""
+    # Strip closed <think>...</think> blocks before extraction (Qwen3, etc.)
+    text = _strip_think_tags(text)
     if config.dataset == "housing":
         return extract_answer_yn(text)
     if config.dataset == "casehold":
@@ -3998,9 +4015,30 @@ def run_eval(config: EvalConfig):
         print(f"Tag: {config.tag}")
     print(f"{'=' * 70}\n")
 
+    # Pre-flight smoke: fire ONE test call to catch auth/404 failures BEFORE
+    # iterating questions. Audit 2026-04-26 caught 7 silent-auth-failure rows
+    # where 100% of records errored and the run wrote a misleading 0% accuracy.
+    # Skip for cluster-vllm (already running locally and visible).
+    if config.provider not in ("custom", "cluster-vllm"):
+        try:
+            _smoke = _base_llm_call(
+                "You are a test endpoint.",
+                "Reply with exactly: OK",
+                label="preflight_smoke",
+            )
+            if not _smoke or "OK" not in _smoke.upper():
+                print(f"[preflight] WARNING: smoke returned unexpected: {_smoke!r}")
+            else:
+                print(f"[preflight] provider={config.provider} OK")
+        except Exception as exc:
+            print(f"[preflight] FAILED for provider={config.provider}: {exc}")
+            print(f"[preflight] aborting before logging garbage. Verify API key/model availability.")
+            raise SystemExit(2)
+
     results = []
     correct = 0
     total_start = time.time()
+    consecutive_errors = 0
 
     is_open_ended = config.dataset in ("legal_rag", "australian")
     is_short_span = config.dataset == "musique"
@@ -4069,6 +4107,21 @@ def run_eval(config: EvalConfig):
             predicted = None
             is_correct = False
             error = str(e)
+
+        # Circuit breaker: if 5 consecutive questions error, the run is broken —
+        # abort before logging more garbage. Common cause: auth, rate-limit,
+        # model-not-found.
+        if error:
+            consecutive_errors += 1
+            if consecutive_errors >= 5:
+                print(
+                    f"\n[circuit-breaker] {consecutive_errors} consecutive errors. "
+                    f"Last error: {error[:200]}\n"
+                    f"[circuit-breaker] Aborting at question {i+1} to avoid garbage results."
+                )
+                raise SystemExit(3)
+        else:
+            consecutive_errors = 0
 
         elapsed = time.time() - q_start
         metrics = _get_metrics()
@@ -4224,6 +4277,21 @@ def run_eval(config: EvalConfig):
         "detail_log": detail_path,
         "git_commit": _git_commit_short(),
     }
+
+    # Audit 2026-04-26 caught silent-failure rows polluting experiments.jsonl
+    # (100% errors → accuracy=0.0 logged as legitimate baseline). Refuse to
+    # append a normal-looking row when the run was mostly broken; tag it
+    # explicitly instead.
+    error_count = sum(1 for r in results if r.get("error"))
+    error_rate = error_count / max(n, 1)
+    if error_rate > 0.5:
+        summary["tag"] = (config.tag + "_FAILED-do-not-use").lstrip("_")
+        summary["error_count"] = error_count
+        summary["error_rate"] = round(error_rate, 3)
+        print(
+            f"\n[summary-guard] {error_count}/{n} ({error_rate:.0%}) records errored. "
+            f"Tagging summary as FAILED-do-not-use to avoid polluting analysis."
+        )
 
     experiments_path = os.path.join("logs", "experiments.jsonl")
     with open(experiments_path, "a") as f:
