@@ -52,16 +52,20 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 
 ## Multi-hop ceiling story (MuSiQue)
 
-| Mode | Gemma 4 26B (N=30) | Llama 70b (N=30) |
+| Mode | Gemma 4 26B | Llama 70b |
 |---|---|---|
-| `rag_simple` | **26.7%** | **20.0%** |
-| `rag_multi_query` | 23.3% | 20.0% |
-| `planning_table_no_snap` v2 | 23.3% | 20.0% |
-| `planning_table_with_snap` v2 | 16.7% | n/a |
-| `rag_snap_hyde` | 20.0% | 13.3% |
-| `golden_passage` (oracle) | 62% | n/a |
+| `rag_simple` | **26.7%** (N=30) | 20.0% (N=30) / **21.0%** (N=100) |
+| `rag_multi_query` | 23.3% (N=30) | 20.0% (N=30) |
+| `planning_table_no_snap` v2 | 23.3% (N=30) | 20.0% (N=30) |
+| `planning_table_with_snap` v2 | 16.7% (N=30) | n/a |
+| `iterative_planning_table` | 20.0% (N=30) | 23.3% (N=30) |
+| `advisor_planning_table` (cheap-plan/strong-synth) | 23.3% (N=30) | 23.3% (N=30) / **23.0% (N=100)** |
+| `rag_snap_hyde` | 20.0% (N=30) | 13.3% (N=30) |
+| `golden_passage` (oracle) | 62% (N=30) | n/a |
 
-NO method beats `rag_simple` on multi-hop across either model. Snap-bias hurts; multi-query and planning_table improve gold_retrieved (+3-4pp) but model can't translate retrieval recall into EM. **Bottleneck is composition over multiple passages, not retrieval coverage.**
+NO method significantly beats `rag_simple` on multi-hop across either model. Snap-bias hurts; multi-query and planning_table improve gold_retrieved (+3-4pp) but model can't translate retrieval recall into EM. **Bottleneck is composition over multiple passages, not retrieval coverage.**
+
+**Advisor N=100 follow-up (Llama 70b)**: directional +2.0pp vs `rag_simple` (23.0% vs 21.0%), but McNemar paired p=0.824 — NOT statistically significant; 95% CI [-7pp, +11pp] crosses zero. The N=30 "advisor never loses to rag_simple" property dissolved at N=100 (b=11, c=9). Frame as **cost-parity** (86% strong-LLM input-token reduction, 43% output-token reduction vs `iter_ptable`) rather than accuracy-lift. Audit `a5bbd0b5840ac0da6`, validation_log § "advisor_planning_table on Llama 70b — N=100 follow-up".
 
 ## Historical (pre-prompt-fix) snapshots — kept for audit continuity
 

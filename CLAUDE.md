@@ -226,15 +226,19 @@ before any new submission. The full pre-submission checklist lives in
 | Gemma 3 27b | 68% | 27B dense |
 | Llama 4 Scout 17b | 67% | 17B MoE |
 
-### MuSiQue (multi-hop) — methods DON'T LIFT cross-model
+### MuSiQue (multi-hop) — methods DON'T LIFT significantly cross-model
 
-| Mode | Gemma 4 26B (N=30) | Llama 70b (N=30) |
+| Mode | Gemma 4 26B | Llama 70b |
 |---|---|---|
-| `rag_simple` | **26.7%** | **20.0%** ← baseline best on multi-hop |
-| `rag_multi_query` | 23.3% | 20.0% |
-| `planning_table_no_snap` v2 | 23.3% | 20.0% |
-| `rag_snap_hyde` | 20.0% | 13.3% |
-| `golden_passage` (oracle) | 62% | n/a |
+| `rag_simple` | **26.7%** (N=30) | 20.0% (N=30) / **21.0%** (N=100) ← baseline |
+| `rag_multi_query` | 23.3% (N=30) | 20.0% (N=30) |
+| `planning_table_no_snap` v2 | 23.3% (N=30) | 20.0% (N=30) |
+| `iterative_planning_table` | 20.0% (N=30) | 23.3% (N=30) |
+| `advisor_planning_table` (cheap-plan) | 23.3% (N=30) | 23.0% (N=100, +2pp directional, McNemar p=0.82) |
+| `rag_snap_hyde` | 20.0% (N=30) | 13.3% (N=30) |
+| `golden_passage` (oracle) | 62% (N=30) | n/a |
+
+`advisor_planning_table` reframes from "+3.3pp lift on Llama" (N=30, b=5/c=0 trending p=0.063) to **cost-parity at N=100** (+2.0pp, p=0.82, b=11/c=9). Cite as 86% strong-LLM input-token / 43% output-token reduction vs `iter_ptable` at parity EM. Audit `a5bbd0b5840ac0da6`.
 
 ### Working interpretation (current)
 
