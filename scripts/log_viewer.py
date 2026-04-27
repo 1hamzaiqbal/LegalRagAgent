@@ -200,8 +200,13 @@ dl dd { margin-left: 16px; font-size: 12px; }
 .dict { background: #fafafa; border-left: 2px solid #bdc3c7; padding-left: 8px; }
 details summary { cursor: pointer; color: #2980b9; font-size: 12px; }
 .empty { padding: 40px; text-align: center; color: #777; }
-.summary-bar { background: #ecf0f1; padding: 10px 20px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd; }
+.summary-bar { background: #ecf0f1; padding: 10px 20px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .summary-bar strong { color: #222; }
+.filter-link { padding: 3px 10px; border-radius: 3px; text-decoration: none; color: #2980b9; border: 1px solid #bdc3c7; background: white; font-size: 12px; }
+.filter-link:hover { background: #d6eaf8; }
+.filter-link.filter-active { background: #2980b9; color: white; border-color: #2980b9; }
+.filter-link.filter-active .filter-count { color: #ecf0f1; }
+.filter-count { color: #95a5a6; font-size: 11px; }
 .error { background: #e74c3c; color: white; padding: 10px 16px; margin: 12px; border-radius: 4px; }
 """
 
@@ -325,32 +330,61 @@ class Handler(http.server.BaseHTTPRequestHandler):
         path = params.get("path", [""])[0]
         i = int(params.get("i", ["0"])[0])
         find_id = params.get("find", [""])[0]
+        flt = params.get("filter", ["all"])[0]
         if not path:
             return self._home()
         try:
-            resolved, rows = LOADED.get(path) or load_jsonl(path)
-            LOADED[path] = (resolved, rows)
+            resolved, all_rows = LOADED.get(path) or load_jsonl(path)
+            LOADED[path] = (resolved, all_rows)
         except Exception as e:
             self._send_html(page(f'<div class="error">Error loading {html.escape(path)}: {html.escape(str(e))}</div><p><a href="/">← back</a></p>'))
             return
 
-        total = len(rows)
-        if find_id:
-            for j, r in enumerate(rows):
+        # Compute summary stats from ALL rows (not filtered)
+        all_total = len(all_rows)
+        pass_count = sum(1 for r in all_rows if r.get("is_correct") is True)
+        fail_count = sum(1 for r in all_rows if r.get("is_correct") is False)
+        empty_pred = sum(1 for r in all_rows if not (r.get("predicted_answer") or "").strip())
+
+        # Apply filter — keep original index in the row tuple so user can see "[#827 of 1195]"
+        def matches(row, f):
+            if f == "all": return True
+            if f == "pass": return row.get("is_correct") is True
+            if f == "fail": return row.get("is_correct") is False
+            if f == "empty": return not (row.get("predicted_answer") or "").strip()
+            return True
+
+        # filtered list of (orig_index, row)
+        filtered = [(idx, r) for idx, r in enumerate(all_rows) if matches(r, flt)]
+        f_total = len(filtered)
+
+        if find_id and filtered:
+            for j, (_, r) in enumerate(filtered):
                 rid = str(r.get("idx") or r.get("record_id") or "")
                 if find_id in rid:
                     i = j
                     break
-        i = max(0, min(i, total - 1))
 
-        # Compute summary stats
-        pass_count = sum(1 for r in rows if r.get("is_correct") is True)
-        fail_count = sum(1 for r in rows if r.get("is_correct") is False)
-        empty_pred = sum(1 for r in rows if not (r.get("predicted_answer") or "").strip())
+        if f_total == 0:
+            no_match = f'<div class="empty">No records match filter "{html.escape(flt)}". <a href="/view?path={urllib.parse.quote(path)}&i=0&filter=all">show all</a></div>'
+            body = f"""
+            <div class="controls">
+                <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap">
+                    <a href="/" style="color:#3498db; text-decoration:none">← home</a>
+                    <span style="color:#bdc3c7; font-size:12px">{html.escape(resolved)}</span>
+                </div>
+            </div>
+            {self._filter_bar(path, flt, all_total, pass_count, fail_count, empty_pred)}
+            {no_match}
+            """
+            self._send_html(page(body, title=f"{Path(resolved).name} [filter:{flt}]"))
+            return
 
-        prev_link = f'/view?path={urllib.parse.quote(path)}&i={max(0,i-1)}'
-        next_link = f'/view?path={urllib.parse.quote(path)}&i={min(total-1,i+1)}'
-        rec = rows[i]
+        i = max(0, min(i, f_total - 1))
+        orig_idx, rec = filtered[i]
+
+        prev_link = f'/view?path={urllib.parse.quote(path)}&i={max(0,i-1)}&filter={flt}'
+        next_link = f'/view?path={urllib.parse.quote(path)}&i={min(f_total-1,i+1)}&filter={flt}'
 
         body = f"""
         <div class="controls">
@@ -358,24 +392,39 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 <a href="/" style="color:#3498db; text-decoration:none">← home</a>
                 <span style="color:#bdc3c7; font-size:12px">{html.escape(resolved)}</span>
                 <a id="btn-prev" href="{prev_link}"><button {'disabled' if i==0 else ''}>← prev (←/p)</button></a>
-                <span>record {i+1} of {total}</span>
-                <a id="btn-next" href="{next_link}"><button {'disabled' if i>=total-1 else ''}>next (→/n) →</button></a>
+                <span>record {i+1} of {f_total}{' (filtered)' if flt != 'all' else ''} · orig #{orig_idx+1} of {all_total}</span>
+                <a id="btn-next" href="{next_link}"><button {'disabled' if i>=f_total-1 else ''}>next (→/n) →</button></a>
                 <form action="/view" method="GET" style="display:inline">
                     <input type="hidden" name="path" value="{html.escape(path)}">
-                    jump to: <input type="number" name="i" value="{i+1}" min="1" max="{total}"> <button type="submit">go</button>
+                    <input type="hidden" name="filter" value="{flt}">
+                    jump to: <input type="number" name="i" value="{i+1}" min="1" max="{f_total}"> <button type="submit">go</button>
                 </form>
                 <form action="/view" method="GET" style="display:inline">
                     <input type="hidden" name="path" value="{html.escape(path)}">
+                    <input type="hidden" name="filter" value="{flt}">
                     find id: <input type="text" name="find" placeholder="substring of record id"> <button type="submit">find</button>
                 </form>
             </div>
         </div>
-        <div class="summary-bar">
-            <strong>{total} records</strong> · {pass_count} PASS · {fail_count} FAIL · {empty_pred} empty pred · accuracy: <strong>{(pass_count*100/total if total else 0):.1f}%</strong>
-        </div>
-        {render_record(rec, i, total)}
+        {self._filter_bar(path, flt, all_total, pass_count, fail_count, empty_pred)}
+        {render_record(rec, orig_idx, all_total)}
         """
-        self._send_html(page(body, title=f"{Path(resolved).name} [{i+1}/{total}]"))
+        self._send_html(page(body, title=f"{Path(resolved).name} [{i+1}/{f_total} {flt}]"))
+
+    def _filter_bar(self, path, current, all_total, pass_count, fail_count, empty_pred):
+        def link(name, label, count):
+            active = "filter-active" if current == name else ""
+            return f'<a href="/view?path={urllib.parse.quote(path)}&i=0&filter={name}" class="filter-link {active}">{label} <span class="filter-count">({count})</span></a>'
+        acc = (pass_count*100/all_total if all_total else 0)
+        return f"""
+        <div class="summary-bar">
+            <strong>{all_total} records</strong> · accuracy <strong>{acc:.1f}%</strong> · filter:
+            {link('all', 'All', all_total)}
+            {link('pass', '✓ PASS', pass_count)}
+            {link('fail', '✗ FAIL', fail_count)}
+            {link('empty', 'empty pred', empty_pred)}
+        </div>
+        """
 
     def _send_html(self, content):
         self.send_response(200)

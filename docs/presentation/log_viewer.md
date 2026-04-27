@@ -21,7 +21,15 @@ Stop with Ctrl-C.
 **View page:**
 - Header shows: record N of total, pred (orange), gold (green), PASS/FAIL badge
 - Long fields (`snap_text`, `hyde_passages`, `final_answer`, `evidence_store` etc.) are collapsed by default — click to expand
-- Summary bar shows: N records, PASS/FAIL counts, empty-pred count, accuracy
+- Summary bar shows: total / accuracy + clickable filter chips (All / ✓ PASS / ✗ FAIL / empty pred)
+
+**Filtering by status:**
+- Click `✓ PASS` (count) to view only correct records
+- Click `✗ FAIL` (count) to view only incorrect records
+- Click `empty pred` (count) to find parse failures / runaway loops
+- Click `All` to clear the filter
+- When filtered, position bar shows both: `record 5 of 71 (filtered) · orig #9 of 200`
+- Navigation/jump/find-id all stay within the active filter
 
 **Navigation:**
 - ← / → arrow keys (or `p` / `n`) — prev/next record
