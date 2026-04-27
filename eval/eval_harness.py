@@ -3766,6 +3766,84 @@ def run_planning_table(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_rag_multi_query(row: pd.Series, config: EvalConfig) -> dict:
+    """Multi-query rag_simple: 2-3 question rewrites → pool retrievals → answer once.
+
+    NEW method designed to test whether RETRIEVAL DIVERSITY alone (without snap,
+    HyDE, or per-hop decomposition) beats single-query rag_simple on multi-hop.
+
+    Avoids both failure modes from earlier multi-hop runs:
+      - Snap-bias: never generates a hypothesis answer that biases retrieval
+      - Composition tax: still has ONE final reasoning step over all retrieved
+        passages (like rag_simple), not per-hop synthesis
+
+    Steps (~3 LLM calls):
+      1. Generate 2 question rewrites that target different sub-aspects of the
+         multi-hop question
+      2. Retrieve k=3 passages for each rewrite + the original question
+      3. Pool, dedupe, top-k=5 by max BM25 score
+      4. Answer once with the pooled passages + original question
+    """
+    question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
+
+    # Step 1: rewrite generation
+    rewrite_system = (
+        "You are a research planner. Given a multi-hop question, write TWO "
+        "different sub-question rewrites that target different aspects of the "
+        "question. The goal is RETRIEVAL DIVERSITY — each rewrite should be "
+        "phrased to find DIFFERENT passages than the original.\n\n"
+        "Output exactly two rewrites, one per line, in this format:\n"
+        "REWRITE: <question rephrased to target hop 1 / entity A>\n"
+        "REWRITE: <question rephrased to target hop 2 / entity B>\n\n"
+        "STRICT OUTPUT RULES:\n"
+        "- Do NOT pick an answer\n"
+        "- Each rewrite is a question, not a statement\n"
+        "- Phrase each to surface DIFFERENT topics than the original"
+    )
+    rewrite_user = f"## Multi-hop Question\n{question_intermediate}"
+    rewrite_raw = _llm_call(rewrite_system, rewrite_user, label="multi_query/rewrite")
+
+    rewrites: list[str] = []
+    for line in rewrite_raw.splitlines():
+        line = line.strip()
+        m = re.match(r"^\s*(?:\*\*)?\s*REWRITE\s*[:\-]\s*(?:\*\*)?\s*(.+?)\s*(?:\*\*)?\s*$", line, re.IGNORECASE)
+        if m:
+            rewrite = m.group(1).strip().lstrip("-•").strip()
+            if rewrite:
+                rewrites.append(rewrite)
+    rewrites = rewrites[:2]
+
+    # Always include the original question as a query — even if rewrites fail
+    raw_question = _retrieval_question(row)
+    queries = [raw_question] + rewrites
+
+    # Step 2-3: retrieve once with the pooled query list (max-pool over queries)
+    retrieval = _retrieve_and_format(
+        row, queries, k=5,
+        label_prefix="multi_query",
+        where=_where_from_config(config),
+        collection=_collection_for_config(config),
+    )
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Step 4: single-shot answer with pooled passages
+    user = (
+        f"## Retrieved Passages (from {len(queries)} diverse queries)\n{passage_block}\n\n"
+        f"## Question\n{question}"
+    )
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="multi_query/answer")
+
+    return {
+        "final_answer": answer,
+        "rewrites": rewrites,
+        "n_queries": len(queries),
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
 def run_planning_table_no_snap(row: pd.Series, config: EvalConfig) -> dict:
     """Ablation of planning_table — generates TODOs from the QUESTION ALONE, no snap.
 
@@ -3949,6 +4027,7 @@ MODE_RUNNERS = {
     "snap_only_in_final": run_snap_only_in_final,
     "planning_table": run_planning_table,
     "planning_table_no_snap": run_planning_table_no_snap,
+    "rag_multi_query": run_rag_multi_query,
 }
 
 
