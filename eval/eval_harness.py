@@ -1092,6 +1092,8 @@ def run_multi_hyde_diverse(row: pd.Series, config: EvalConfig) -> dict:
     ]
     routed_to = None
     if not hyde_passages:
+        if not (raw or "").strip():
+            raise RuntimeError("multi_hyde_diverse generate returned empty response")
         raw_hyde_passages = [raw or question_intermediate]
         hyde_passages = [_sanitize_intermediate_text(raw or question_intermediate, fallback=question_intermediate)]
         routed_to = "single_hyde_fallback_empty_gen"
@@ -4285,9 +4287,11 @@ def run_iter_hyde(row: pd.Series, config: EvalConfig) -> dict:
     )
     initial_user = f"## Multi-hop Question\n{question_intermediate}"
     initial_raw = _llm_call(initial_hyde_system, initial_user, label="iter_hyde/init_hyde")
+    routed_to = None
     current_hyde = _sanitize_intermediate_text(initial_raw, fallback=question_intermediate).strip()
     if not current_hyde:
         current_hyde = question_intermediate
+        routed_to = "iter_hyde_initial_empty_fallback"
 
     table_entries: list[dict] = []
     all_retrieved_ids: list[str] = []
@@ -4369,6 +4373,7 @@ def run_iter_hyde(row: pd.Series, config: EvalConfig) -> dict:
             next_hyde = _sanitize_intermediate_text(m.group(1), fallback=question_intermediate).strip()
         if not next_hyde:
             early_exit = True
+            routed_to = "iter_hyde_early_exit_empty_decider"
             break
         current_hyde = next_hyde
 
@@ -4389,6 +4394,8 @@ def run_iter_hyde(row: pd.Series, config: EvalConfig) -> dict:
         "do NOT abstain or say 'information not provided'."
     )
     final_answer = _llm_call(_system_prompt(config, "rag"), final_user, label="iter_hyde/final")
+    if not (final_answer or "").strip():
+        raise RuntimeError("iter_hyde final answer returned empty response")
 
     gold_idx = str(row.get("gold_idx", ""))
     gold_idxs = {s.strip() for s in gold_idx.split(",") if s.strip()}
@@ -4402,6 +4409,7 @@ def run_iter_hyde(row: pd.Series, config: EvalConfig) -> dict:
         "early_exit": early_exit,
         "retrieved_ids": list(dict.fromkeys(all_retrieved_ids)),
         "gold_retrieved": gold_retrieved,
+        "routed_to": routed_to,
         "evidence_store": [
             {"idx": eid, "text": "", "source": "iter_hyde", "cross_encoder_score": 0.0}
             for eid in dict.fromkeys(all_retrieved_ids)
