@@ -80,6 +80,7 @@ EVAL_MODES = {
     "planning_table":           "Snap → plan TODOs → per-TODO retrieve+finding → final with populated table as scratchpad (≈5-7 calls)",
     "planning_table_no_snap":   "Ablation of planning_table: TODOs generated from QUESTION ALONE (no snap). Tests if snap-bias is the multi-hop failure source",
     "rag_multi_query":          "Multi-query rag_simple: 2 question rewrites + original → pool retrievals → answer once. Tests if retrieval diversity alone beats single-query (no snap, no per-hop)",
+    "iterative_planning_table": "Multi-round planning_table (deep research style): generate ONE focused TODO per round, retrieve + find, then decide READY-or-NEXT-TODO. Up to 3 rounds. Each next TODO is conditioned on prior findings.",
 }
 
 

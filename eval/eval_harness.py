@@ -3766,6 +3766,178 @@ def run_planning_table(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_iterative_planning_table(row: pd.Series, config: EvalConfig) -> dict:
+    """Multi-round (deep-research-style) planning_table.
+
+    Inspired by Anthropic deep-research / advisor patterns. Where `planning_table`
+    decomposes once upfront and runs all TODOs in parallel, this version:
+
+      1. Generates ONE focused next-TODO conditioned on findings so far
+      2. Retrieves + writes a finding for that TODO
+      3. Asks the model: "ready to answer, or need another sub-question?"
+      4. Loops up to MAX_ROUNDS (3) — early-exit if model says READY
+      5. Final answer with the full populated trace
+
+    The hypothesis: 1-shot ptable produces TODOs that are bad guesses about
+    what's needed; iteratively letting the model see results and decide the
+    next TODO should yield more useful retrievals on multi-hop.
+
+    Steps: 1 (initial TODO) + per round: retrieve + finding + ready-check +
+    next-TODO, capped at 3 rounds → ~7-10 LLM calls per question.
+    """
+    MAX_ROUNDS = 3
+    question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
+
+    # Step 1: generate initial focused TODO
+    initial_todo_system = (
+        "You are a research planner working on a multi-hop question. Given the "
+        "question, produce ONE focused sub-question that you would investigate "
+        "FIRST to start answering the multi-hop chain.\n\n"
+        "Output exactly one line in this format:\n"
+        "TODO: <focused first sub-question>\n\n"
+        "Rules:\n"
+        "- Pick the most upstream / foundational sub-question (what entity to identify first)\n"
+        "- Do NOT pick an answer; output only the TODO line\n"
+        "- Be specific and fact-focused"
+    )
+    initial_user = f"## Multi-hop Question\n{question_intermediate}"
+    initial_raw = _llm_call(initial_todo_system, initial_user, label="iter_ptable/init_todo")
+    initial_todo = ""
+    for line in initial_raw.splitlines():
+        m = re.match(r"^\s*(?:\*\*)?\s*TODO\s*[:\-]\s*(?:\*\*)?\s*(.+?)\s*(?:\*\*)?\s*$", line.strip(), re.IGNORECASE)
+        if m:
+            initial_todo = m.group(1).strip().lstrip("-•").strip()
+            break
+    if not initial_todo:
+        initial_todo = question_intermediate  # fallback
+
+    # Round loop
+    table_entries: list[dict] = []
+    all_retrieved_ids: list[str] = []
+    current_todo = initial_todo
+    finding_system = (
+        "You are a research assistant. Answer the sub-question concisely "
+        "(2-3 sentences max) using ONLY the retrieved passages. If the passages "
+        "don't contain the answer, say so explicitly. Do NOT pick a multiple-choice letter."
+    )
+    next_todo_system_template = (
+        "You are a research planner working iteratively on a multi-hop question. "
+        "You have completed {n_rounds} sub-investigations so far (the planning "
+        "table below). Your job: decide whether the planning table is now "
+        "sufficient to answer the original question, or whether you need ONE "
+        "more sub-investigation.\n\n"
+        "Output EXACTLY ONE of these two formats:\n\n"
+        "READY: I have enough information to answer the question.\n\n"
+        "OR\n\n"
+        "TODO: <next focused sub-question conditioned on what you've learned>\n\n"
+        "Rules:\n"
+        "- Only emit READY if you can confidently answer from the findings\n"
+        "- If picking TODO, the next sub-question should USE the prior findings "
+        "to narrow what to investigate (e.g., if Round 1 found 'X is in Country Y', "
+        "Round 2 might ask about a fact specific to Country Y)\n"
+        "- Do NOT restate the original question or commit to an answer"
+    )
+    rounds_completed = 0
+    early_exit = False
+    for round_idx in range(MAX_ROUNDS):
+        # Retrieve + finding for current TODO
+        retrieval = _retrieve_and_format(
+            row, [current_todo], k=3,
+            label_prefix=f"iter_ptable/r{round_idx}",
+            where=_where_from_config(config),
+            collection=_collection_for_config(config),
+        )
+        passages_block = "\n\n".join(retrieval["passages"]) if retrieval["passages"] else "(no passages retrieved)"
+        finding_user = (
+            f"## Retrieved Passages\n{passages_block}\n\n"
+            f"## Sub-Question\n{current_todo}"
+        )
+        finding = _generate_report(
+            finding_system,
+            finding_user,
+            label=f"iter_ptable/finding_r{round_idx}",
+            fallback="No relevant information found in the retrieved passages.",
+        )
+        table_entries.append({
+            "todo": current_todo,
+            "finding": finding["text"],
+            "evidence_ids": retrieval.get("retrieved_ids", []),
+            "round": round_idx + 1,
+        })
+        all_retrieved_ids.extend(retrieval.get("retrieved_ids", []))
+        rounds_completed += 1
+
+        # Don't ask for more TODOs after the last allowed round — go to final answer
+        if round_idx + 1 >= MAX_ROUNDS:
+            break
+
+        # Decide: READY or next TODO?
+        table_text = "\n\n".join(
+            f"### Round {e['round']} — TODO: {e['todo']}\n**Finding:** {e['finding']}"
+            for e in table_entries
+        )
+        decide_user = (
+            f"## Original Question\n{question_intermediate}\n\n"
+            f"## Planning Table So Far\n{table_text}"
+        )
+        decide_system = next_todo_system_template.format(n_rounds=len(table_entries))
+        decide_raw = _llm_call(decide_system, decide_user, label=f"iter_ptable/decide_r{round_idx}")
+
+        # Parse: READY or TODO
+        decide_clean = decide_raw.strip()
+        if re.search(r"\bREADY\b", decide_clean[:200], re.IGNORECASE) and not re.search(r"\bTODO\s*:", decide_clean[:200], re.IGNORECASE):
+            early_exit = True
+            break
+        next_todo = ""
+        for line in decide_clean.splitlines():
+            m = re.match(r"^\s*(?:\*\*)?\s*TODO\s*[:\-]\s*(?:\*\*)?\s*(.+?)\s*(?:\*\*)?\s*$", line.strip(), re.IGNORECASE)
+            if m:
+                next_todo = m.group(1).strip().lstrip("-•").strip()
+                break
+        if not next_todo:
+            # No clean TODO emitted, treat as ready
+            early_exit = True
+            break
+        current_todo = next_todo
+
+    # Final answer with full table + v2-style synthesizer instructions
+    table_text = "\n\n".join(
+        f"### Round {e['round']} — TODO: {e['todo']}\n**Finding:** {e['finding']}"
+        for e in table_entries
+    )
+    final_user = (
+        f"## Iterative Planning Table\n{table_text}\n\n"
+        f"## Question\n{question}\n\n"
+        "## Synthesis instructions\n"
+        "1. Use the planning table findings as your PRIMARY evidence; weight a "
+        "finding heavily if it directly addresses an option.\n"
+        "2. Walk through the multi-hop chain explicitly, naming each intermediate "
+        "entity from the findings, before concluding.\n"
+        "3. ALWAYS commit to a final answer using the format `Answer: ...`. "
+        "Even if the chain is incomplete, give your best single-span guess; "
+        "do NOT abstain or say 'information not provided'."
+    )
+    final_answer = _llm_call(_system_prompt(config, "rag"), final_user, label="iter_ptable/final")
+
+    gold_idx = str(row.get("gold_idx", ""))
+    gold_idxs = {s.strip() for s in gold_idx.split(",") if s.strip()}
+    gold_retrieved = bool(gold_idxs & set(all_retrieved_ids)) if gold_idxs else False
+
+    return {
+        "final_answer": final_answer,
+        "planning_table": table_entries,
+        "rounds_completed": rounds_completed,
+        "early_exit": early_exit,
+        "retrieved_ids": list(dict.fromkeys(all_retrieved_ids)),
+        "gold_retrieved": gold_retrieved,
+        "evidence_store": [
+            {"idx": eid, "text": "", "source": "iter_ptable", "cross_encoder_score": 0.0}
+            for eid in dict.fromkeys(all_retrieved_ids)
+        ],
+    }
+
+
 def run_rag_multi_query(row: pd.Series, config: EvalConfig) -> dict:
     """Multi-query rag_simple: 2-3 question rewrites → pool retrievals → answer once.
 
@@ -4028,6 +4200,7 @@ MODE_RUNNERS = {
     "planning_table": run_planning_table,
     "planning_table_no_snap": run_planning_table_no_snap,
     "rag_multi_query": run_rag_multi_query,
+    "iterative_planning_table": run_iterative_planning_table,
 }
 
 
