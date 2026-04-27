@@ -398,6 +398,19 @@ By subject:
 
 **Range compression**: pre-fix range 70.79-76.57 = 5.78pp spread across the 4 modes. Post-fix range 78.08-81.17 = **3.09pp spread**. **Methods matter LESS post-fix because base `rag_simple` is much stronger.** The "snap_hyde adds +5.8pp over rag_simple" pre-fix narrative compresses to "+3.1pp" post-fix at the same N=1195.
 
+## Cross-MODEL test of v2 synthesizer prompt fix (planning_table_no_snap)
+
+The v2 prompt added +10pp on Gemma 4 26B (13.3% → 23.3%). Tested cross-model:
+
+| Model | rag_simple | ptable_no_snap_v2 | Δ vs baseline |
+|---|---|---|---|
+| Gemma 4 26B | 26.7% | 23.3% | -3.4pp |
+| Llama 3.3 70b | 20.0% | **20.0%** | **0pp** |
+
+**Cross-model finding:** with the v2 synthesizer prompt, planning_table_no_snap is **competitive with rag_simple** on multi-hop across both model families — neither dominantly better nor a clear loss. Per-TODO retrieval+findings doesn't ADD value but isn't ACTIVELY hurting either, in contrast to v0's -13.4pp gap on Gemma 4 26B. The v2 prompt fix generalizes; the structure is roughly cost-neutral.
+
+Implication: the "decomposition tax" framing was wrong. Per-TODO structured retrieval + synthesis is a viable design pattern with the right synthesizer prompt — not better than rag_simple on this benchmark, but architecturally clean and ready for further experimentation (e.g. iterative TODOs, cheaper-LLM advisor patterns).
+
 ## Cross-MODEL × cross-METHOD on MuSiQue N=30 — pattern is NOT Gemma-specific
 
 After fixing `<span>` extraction bug (commit `97c204a`), re-scored both models:
