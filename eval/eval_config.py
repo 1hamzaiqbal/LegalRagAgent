@@ -257,12 +257,16 @@ def format_musique_prompt(row: pd.Series) -> str:
     Short-answer prompt — the model should produce a single span/entity, not
     a paragraph. We keep the framing tight so EM/F1 against the gold span
     works without judging every minor wording difference.
+
+    Earlier the placeholder was `<span>` which Llama 3.3 70b copied literally
+    (emitting `Answer: <span>Foo</span>`). Removed the angle-bracket
+    placeholder; extractor also strips HTML-like tags defensively.
     """
     question = str(row["question"])
     return (
         f"{question}\n\n"
         "Answer with a brief span — a single entity, date, or short phrase. "
-        "Provide your answer as: Answer: <span>"
+        "Provide your answer in the exact form: Answer: <your answer here>"
     )
 
 
@@ -270,13 +274,19 @@ def extract_answer_musique(text: str) -> str:
     """Extract the short-answer span after 'Answer:'.
 
     Open-ended; we return the raw span text and let the EM/F1 scorer
-    handle alias matching downstream.
+    handle alias matching downstream. Defensively strips HTML-like wrapping
+    tags (`<span>...</span>`, `<answer>...</answer>`) some instruction-tuned
+    models emit when the prompt mentions a placeholder.
     """
     cleaned = (text or "").replace("*", "")
     m = re.search(r"(?:Answer|ANSWER)\s*[:\s]\s*(.+?)(?:\n|$)", cleaned)
-    if m:
-        return m.group(1).strip().rstrip(".").strip()
-    return cleaned.strip().splitlines()[-1].rstrip(".").strip() if cleaned.strip() else ""
+    span = m.group(1).strip().rstrip(".").strip() if m else (
+        cleaned.strip().splitlines()[-1].rstrip(".").strip() if cleaned.strip() else ""
+    )
+    # Strip wrapping HTML-like tags: <span>X</span>, <answer>X</answer>, etc.
+    span = re.sub(r"^\s*<[a-zA-Z_][a-zA-Z0-9_]*>\s*", "", span)
+    span = re.sub(r"\s*</[a-zA-Z_][a-zA-Z0-9_]*>\s*$", "", span)
+    return span.strip()
 
 
 def musique_em_f1(predicted: str, gold: str, aliases: list[str] | None = None) -> tuple[bool, float]:
