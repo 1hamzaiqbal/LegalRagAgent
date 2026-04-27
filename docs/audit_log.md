@@ -244,3 +244,51 @@ All 8 E4B modes clean: 0 errors total, 1 None pred (in `rag_snap_hyde` — withi
 All cited cluster + Llama-N=100 headline numbers are bulletproof. The cross-size method-effect story (`rag_snap_hyde` +3.69pp at E4B, +3.09pp at 26B over `rag_simple`) is the strongest paper claim and survives independent re-scoring. The only contaminated numbers in the entire experiments.jsonl pool are:
 - `advisor_planning_table_groq-llama70b_20260426_2242` (BarExam 72%, tagged `_FAILED-EMPTY-RETRIEVAL`, do-not-cite)
 - Qwen3-32b 68% (truncation caveat documented; not contaminated, just understated)
+
+## multi_hyde_diverse cross-model N=30 (Phase 13) 2026-04-26 ~23:58 UTC
+
+Audit of new MuSiQue HyDE variant that pools BM25 over 3 diverse hypothetical passages + raw question. Re-scored with `extract_answer_musique` + `musique_em_f1`.
+
+### Per-log summary
+
+| Log | N | Stored EM | Re-scored EM | Disagree | Errors | None | gold_retr | `<your answer here>` echo (angle/square) | `<span>`-wrapped FA |
+|---|---|---|---|---|---|---|---|---|---|
+| `eval_multi_hyde_diverse_groq-llama70b_20260426_2317` | 30 | 8 | **8/30 = 26.7%** | 0 | 0 | 0 | 24/30 | 0 / 0 | 0 |
+| `eval_multi_hyde_diverse_or-gemma27b_20260426_2358` | 30 | 6 | **6/30 = 20.0%** | 0 | 0 | 0 | 25/30 | 0 / 0 | 0 |
+| `eval_rag_simple_groq-llama70b_20260426_1945` | 30 | 2 | **6/30 = 20.0%** | 4 | 0 | 0 | 26/30 | 0 / 0 | 17/30 |
+| `eval_rag_simple_or-gemma27b_20260426_2355` | 30 | 8 | **8/30 = 26.7%** | 0 | 0 | 0 | 26/30 | 0 / 0 | 0 |
+
+`routed_to` field absent in every record (4×30); not used by these modes. Llama rag_simple's 4 disagreements are exactly the predicted pre-`<span>`-fix recoveries: `Michael Bublé`, `Matt Damon`, `Saxony-Anhalt`, `Colin Firth` — all literal `Answer: <span>X</span>` wraps now stripped by extractor.
+
+### Paired stats (shared idx N=30 each)
+
+| Pair | mhd EM | rag EM | Δ | b/c | McNemar exact 2-sided p | Bootstrap 95% CI on Δ (10K) |
+|---|---|---|---|---|---|---|
+| Llama 70b mhd vs rag_simple | 8/30 | 6/30 | **+6.7pp** | 3/1 | 0.6250 | [−6.67pp, +20.00pp] |
+| Gemma 3 27B mhd vs rag_simple | 6/30 | 8/30 | **−6.7pp** | 1/3 | 0.6250 | [−20.00pp, +6.67pp] |
+
+User's b/c/p numbers all confirmed exactly.
+
+### Spot-checks (seed=42, 3/log)
+
+All 12 extractor decisions agree with human judgment. Notable:
+- `Rabbi Dovber Schneuri` vs gold `Dovber Schneuri` (Llama mhd) — judged "prefix mismatch", extractor correctly EM=False (no alias).
+- `Low 40s and upper 30s °F` vs gold `upper 40s–lower 50s °F` — paraphrase, EM=False ✓ (gold not retrieved).
+- `<span>Colin Firth</span>` (Llama rag) → extractor strips tags → EM=True ✓ (this is the bug-fix at work).
+- `Minnesota` vs gold `Minnesota History Center` — partial answer, EM=False, judged "wrong" ✓.
+
+### Cross-model interpretation
+
+Mirror-symmetry (+6.7/−6.7) is **suspiciously clean and almost certainly noise**, not a real method×model interaction:
+
+1. **Both pairs sit at McNemar p=0.625** — the b+c=4 discordant cells per pair are identical to flipping a coin 4 times and asking if 3-vs-1 is significant.
+2. **Bootstrap CIs cross zero in BOTH directions** — neither delta is distinguishable from 0 at α=0.05.
+3. **ZERO same-question opposite-method outcomes across models**: I checked the joint set (`mhd_T,rag_F` for one model AND `mhd_F,rag_T` for the other) — empty in both directions. The discordants are on disjoint questions, so the apparent "method helps Llama / hurts Gemma" story is not driven by any individual question where the methods truly diverge by model — it's just where each model's noise floor happened to fall.
+4. **gold_retrieved 24-26/30 across all 4 logs** (≈83-87%) — retrieval is not the bottleneck at this slice; differences are dominated by reasoning/extraction noise.
+
+### Verdict
+
+- `eval_multi_hyde_diverse_groq-llama70b_20260426_2317_detail.jsonl` — **CLEAN** (cite as 8/30 = 26.7%, but per-pair effect not significant)
+- `eval_multi_hyde_diverse_or-gemma27b_20260426_2358_detail.jsonl` — **CLEAN** (cite as 6/30 = 20.0%, but per-pair effect not significant)
+- `eval_rag_simple_groq-llama70b_20260426_1945_detail.jsonl` — **CLEAN AFTER RESCORE** (cite as 6/30 = 20.0%, NOT stored 2/30; pre-`<span>`-fix run, must use re-scored value)
+- `eval_rag_simple_or-gemma27b_20260426_2355_detail.jsonl` — **CLEAN** (cite as 8/30 = 26.7%)
