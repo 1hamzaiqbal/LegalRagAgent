@@ -22,7 +22,7 @@
 ---
 
 ### Log 2: `eval_multi_hyde_diverse_or-gemma27b_20260427_0404_detail.jsonl` (Gemma 27B mhd)
-- **N=200, EM=31.0%** (expected ~30%, +1pp delta within noise)
+- **N=200, EM=31.0%** (+2.5pp vs 28.5% baseline; p=0.5901 NULL)
 - **Dataset**: MuSiQue
 - **Provider**: Openrouter Gemma 3 27B dense
 - **Retrieval rate**: 100%
@@ -31,7 +31,7 @@
   - Sample: Rec 195 `aliases=['IND', 'IN', 'India', 'in', 'Republic of India', 'Hindustan']`
 - **Prediction format**: Correct (1 char per record)
 - **Sample audit** (20 records): No anomalies
-- **Critical check** (NULL result claim): The log shows N=200 with EM=31.0%, NOT NULL. EM is properly populated, no systematic empty predictions.
+- **Critical check** (NULL label): EM is populated at 31.0%; the paired effect is statistically NULL (p=0.5901).
 - **Verdict**: ✅ **CLEAN**
 
 ---
@@ -109,7 +109,7 @@
 - **Cross-provider parity**: Scout multi_query (30.5%) ≈ Gemma 27B multi_query (28.5%) — both methods show stability
 
 ### BarExam Cross-Domain (Log 6)
-- **Dataset alignment**: All records confirm `dataset='barexam'` (not MuSiQue contamination)
+- **Dataset alignment**: All records confirm `dataset='barexam'` (not a MuSiQue mix-up)
 - **Question ID range**: 200 unique `idx` values spanning `mbe_*` range (proper sampling)
 - **Accuracy**: 82.0% matches expected performance for Gemma 4 26B on BarExam mhd mode
 - **Evidence structure**: All 200 records have exactly 5 evidence passages + 5 retrieved_ids (consistent retrieval depth)
@@ -123,13 +123,13 @@
 2. **Prediction format**: All predictions are well-formed (single characters for MC, no runaway generations).
 3. **Reasoning traces**: Present and valid. HyDE aliases properly stored in Log 2.
 
-### ⚠️ Clarification: Log 2 "NULL Result" Claim
-- The label claimed EM=**NULL** for Gemma 27B mhd, but the actual log shows **EM=31.0%**
-- Hypothesis: The NULL annotation refers to an earlier failed run or incomplete log. This finalized log is complete and clean.
+### ⚠️ Clarification: Log 2 "NULL" Label
+- Gemma 27B mhd is **31.0%, +2.5pp, p=0.5901 NULL**.
+- The NULL annotation is statistical, not an empty-result claim.
 - No systemic empty predictions (0% empty_rate across sample). The run succeeded.
 
 ### ⚠️ Minor Cross-Method Variance
-- MuSiQue mhd shows +1–2pp over baseline (Gemma 27B: 28.5%→31.0%, Scout: 30.0%→30.5%)
+- MuSiQue mhd shows small or null lifts (Gemma 27B: 28.5%→31.0%, +2.5pp, p=0.5901 NULL; Scout: 30.0%→30.5%)
 - At N=200, this is within noise (95% CI ~±4pp per binomial). Consistent direction but not yet significant.
 - BarExam mhd (82.0%) remains strong, indicating the method works cross-dataset.
 
@@ -142,9 +142,9 @@
 - **Confidence**: 95%+ on data integrity, retrieval flow, and format correctness
 - **Top 2 Concerns**: 
   1. MuSiQue N=200 insufficient to detect +1–2pp lift as significant (need N≥500 for p<0.05)
-  2. Log 2 "NULL" annotation mismatch suggests handoff confusion; clarify labeling convention
+  2. Log 2 "NULL" annotation should be read as statistical NULL, not empty EM
 
-- **Recommendation**: All 6 logs are **safe to use for Tier 2 discussion**. BarExam cross-domain result (82.0%) validates method stability.
+- **Recommendation**: MuSiQue rows are safe for Tier 2 discussion. Keep the BarExam cross-domain row source-pending per `docs/mcnemar_2026-04-27.md`.
 
 ---
 

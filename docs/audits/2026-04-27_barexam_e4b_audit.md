@@ -2,7 +2,7 @@
 
 **Scope**: 8 detail logs, N=1195 each, sampled 20 records per log (5 start + 5 middle + 5 end + 5 random) + full-log scans.
 
-**Focus**: Truncation, empty/garbage predictions, tag leakage, snap-letter leakage, format anomalies, empty retrieval, routing fallbacks.
+**Focus**: Truncation, empty/garbage predictions, tag leakage, snap-letter echo, format anomalies, empty retrieval, routing fallbacks.
 
 ---
 

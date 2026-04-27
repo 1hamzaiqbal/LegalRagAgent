@@ -6,10 +6,10 @@ Change reason: append today’s Tier 2 McNemar verdicts without rewriting older 
 
 | Finding | Verified verdict |
 |---|---|
-| Llama 70b MuSiQue `multi_hyde_diverse` N=200 | 35.5% vs `rag_simple` 27.5%; +8.0pp; McNemar p=0.0195 SIG; paper headline |
+| Llama 70b MuSiQue `multi_hyde_diverse` N=200 | 35.5% vs `rag_simple` 27.5%; +8pp; McNemar p=0.0195 SIG; paper headline |
 | Gemma 3 27B MuSiQue `multi_hyde_diverse` N=200 | 31.0% vs 28.5%; +2.5pp; p=0.5901 NULL |
 | Llama 70b mechanism control | `rag_multi_query` 29.0%; +1.5pp; p=0.728 NS, so HyDE-style passages explain about +6.5pp of the +8pp MHD lift |
-| Llama 70b negatives | `rag_snap_hyde` -3.5pp p=0.36 NS; `iter_hyde` -3.0pp p=0.47 NS; `subagent_rag` -12.0pp p=0.0007 SIG negative |
+| Llama 70b negatives | `rag_snap_hyde` -3.5pp p=0.36 NS; `iter_hyde` -3.0pp p=0.47 NS; `subagent_rag` real -12.0pp p=0.0007 SIG negative with gap-routing over-abstention caveat |
 | Friend/foe attribution probe | real but limited: 10/60 outcome changes; see `docs/friend_foe_bias_analysis_2026-04-27.md` |
 
 Independent verification trail for every headline number cited in the meeting docs. Each row links to: (a) the detail log on disk, (b) the audit subagent verdict (if any), (c) any caveat.

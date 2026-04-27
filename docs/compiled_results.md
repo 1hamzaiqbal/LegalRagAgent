@@ -2,10 +2,10 @@
 
 ## Update 2026-04-27 ~12:30 CDT
 
-Change reason: housekeeping sweep after `docs/signoff_log.md` promoted the final Llama 70b N=200 MuSiQue matrix. This update supersedes older lower-file notes that still treated `subagent_rag` as unaudited or `rag_multi_query` as pending: `subagent_rag` is now a signed significant negative (15.5%, -12.0pp, p=0.0007), and Llama `rag_multi_query` is 29.0% (+1.5pp, p=0.728 NS). Current HEAD: `44427ad`.
+Change reason: housekeeping sweep after `docs/signoff_log.md` promoted the final Llama 70b N=200 MuSiQue matrix. This update supersedes older lower-file notes that still treated `subagent_rag` as unaudited or `rag_multi_query` as pending: `subagent_rag` is now a signed significant negative (15.5%, -12.0pp, p=0.0007), and Llama `rag_multi_query` is 29.0% (+1.5pp, p=0.728 NS). Current HEAD: `a50f67a`.
 
 Last updated: 2026-04-27 ~12:30 CDT
-Branch: hpc-setup, HEAD: 44427ad
+Branch: hpc-setup, HEAD: a50f67a
 Source-of-truth for cited numbers: docs/audit_log.md (post-fix authoritative for BarExam Tier 3),
 docs/mcnemar_2026-04-27.md (paired tests), logs/experiments.jsonl (raw run summaries).
 
@@ -26,7 +26,7 @@ Notation: `exp row` gives the `logs/experiments.jsonl` run-id timestamp prefix w
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags in sampled `rag_simple`/`rag_snap_hyde` records |
 | Empty/garbage pred | 2/15: `mbe_0` and `mbe_1` have `predicted_answer=null` in `eval_rag_simple_cluster-vllm_20260425_2020_detail.jsonl` |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): option letters appear only as normal multiple-choice analysis/final answer text, not as hidden snap-stage echo |
+| Snap-letter echo | 0/15 (BarExam): option letters appear only as normal multiple-choice analysis/final answer text, not as hidden snap-stage echo |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 14/15 sampled IDs, with non-empty evidence except the two `rag_simple` null-start records |
 | Empty retrieval | 13.3% empty: 2/15 sampled IDs empty in `rag_simple`; `rag_snap_hyde` sample had non-empty retrieval |
 | Format anomalies | 0/15: expected `predicted_answer`, `correct_answer`, and `idx`/`record_id` fields present; schema uses `correct_answer` as the gold field |
@@ -41,7 +41,7 @@ Verdict: MINOR — isolated startup null predictions/empty retrieval in the base
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags in sampled `rag_simple`/`rag_snap_hyde` records |
 | Empty/garbage pred | 0/15 sampled; full scan found 1 raw null parsed prediction at `mbe_95` in `eval_rag_snap_hyde_cluster-vllm_20260426_0614_detail.jsonl` |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): option letters appear only as normal multiple-choice analysis/final answer text |
+| Snap-letter echo | 0/15 (BarExam): option letters appear only as normal multiple-choice analysis/final answer text |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 14/15 sampled IDs, with evidence present |
 | Empty retrieval | 0.0% empty: 0/15 sampled retrieval-required IDs empty |
 | Format anomalies | 0/15: expected `predicted_answer`, `correct_answer`, and `idx`/`record_id` fields present |
@@ -71,7 +71,7 @@ Discrepancy to preserve: `logs/experiments.jsonl` has older full-corpus rows for
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): no hidden snap-stage echo; this mode has no snap stage |
+| Snap-letter echo | 0/15 (BarExam): no hidden snap-stage echo; this mode has no snap stage |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; exact gold is injected by design |
 | Empty retrieval | skipped: `golden_passage` is in `_NO_CHROMA_MODES` |
 | Format anomalies | 0/15: expected fields present |
@@ -86,7 +86,7 @@ Verdict: CLEAN
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): no hidden snap-stage echo; this mode has no snap stage |
+| Snap-letter echo | 0/15 (BarExam): no hidden snap-stage echo; this mode has no snap stage |
 | routed_to fallbacks | 0/15 triggered: no `routed_to` |
 | Empty retrieval | skipped: `llm_only` is in `_NO_CHROMA_MODES` |
 | Format anomalies | 0/15: expected fields present |
@@ -101,7 +101,7 @@ Verdict: CLEAN
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): option letters appear only as normal multiple-choice analysis/final answer text |
+| Snap-letter echo | 0/15 (BarExam): option letters appear only as normal multiple-choice analysis/final answer text |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 14/15 sampled records, with evidence present |
 | Empty retrieval | 0.0% empty: 0/15 sampled retrieval-required records empty |
 | Format anomalies | 0/15: expected fields present |
@@ -116,7 +116,7 @@ Verdict: MINOR — exact-gold retrieval is low on BarExam, but sampled evidence 
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 2/15: `mbe_0` and `mbe_1` have `predicted_answer=null` |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): option letters appear only as normal multiple-choice analysis/final answer text |
+| Snap-letter echo | 0/15 (BarExam): option letters appear only as normal multiple-choice analysis/final answer text |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 14/15 sampled records |
 | Empty retrieval | 13.3% empty: 2/15 sampled retrieval-required records empty, matching the null predictions |
 | Format anomalies | 0/15: expected fields present |
@@ -131,7 +131,7 @@ Verdict: MINOR — two sampled startup records are null/empty-retrieval failures
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
+| Snap-letter echo | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 14/15 sampled records, with evidence present |
 | Empty retrieval | 0.0% empty: 0/15 sampled retrieval-required records empty |
 | Format anomalies | 0/15: expected fields present |
@@ -146,7 +146,7 @@ Verdict: MINOR — low exact-gold retrieval is a BarExam retrieval caveat; sampl
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): snap visibility is intentional for this ablation; no hidden leakage beyond the mode design |
+| Snap-letter echo | 0/15 (BarExam): snap visibility is intentional for this ablation; no hidden echo beyond the mode design |
 | routed_to fallbacks | 0/15 triggered: no `routed_to` |
 | Empty retrieval | skipped: `snap_only_in_final` is in `_NO_CHROMA_MODES` |
 | Format anomalies | 0/15: expected fields present |
@@ -161,7 +161,7 @@ Verdict: CLEAN
 | Truncation | 0/15 sampled; full scan found 1 abrupt final tail at `mbe_1009` |
 | Empty/garbage pred | 0/15 sampled; full scan found 2 null parsed predictions (`mbe_1009`, `mbe_1146`) |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
+| Snap-letter echo | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 15/15 sampled records, with evidence present |
 | Empty retrieval | 0.0% in sample; full scan found 8/1195 empty retrieval records |
 | Format anomalies | 0/15: expected fields present |
@@ -176,7 +176,7 @@ Verdict: MINOR — low-rate raw parser/retrieval artifacts remain, consistent wi
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15 sampled; full scan found no null parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
+| Snap-letter echo | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 15/15 sampled records, with evidence present |
 | Empty retrieval | 0.0% in sample; full scan found 8/1195 empty retrieval records |
 | Format anomalies | 0/15: expected fields present |
@@ -204,7 +204,7 @@ Verdict: MINOR — sampled outputs are clean, but full-log empty retrieval and l
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): option letters appear only as normal multiple-choice analysis/final answer text |
+| Snap-letter echo | 0/15 (BarExam): option letters appear only as normal multiple-choice analysis/final answer text |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 14/15 sampled records, with evidence present |
 | Empty retrieval | 0.0% empty: 0/15 sampled retrieval-required records empty |
 | Format anomalies | 0/15: expected fields present |
@@ -219,7 +219,7 @@ Verdict: MINOR — exact-gold retrieval is low on BarExam, but sampled evidence 
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): option letters appear only as normal multiple-choice analysis/final answer text |
+| Snap-letter echo | 0/15 (BarExam): option letters appear only as normal multiple-choice analysis/final answer text |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 14/15 sampled records, with evidence present |
 | Empty retrieval | 0.0% empty: 0/15 sampled retrieval-required records empty |
 | Format anomalies | 0/15: expected fields present |
@@ -234,7 +234,7 @@ Verdict: MINOR — exact-gold retrieval is low on BarExam; sample is otherwise c
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15 sampled; full scan found 1 raw null parsed prediction at `mbe_95` |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
+| Snap-letter echo | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 14/15 sampled records, with evidence present |
 | Empty retrieval | 0.0% empty: 0/15 sampled retrieval-required records empty |
 | Format anomalies | 0/15: expected fields present |
@@ -249,7 +249,7 @@ Verdict: MINOR — one non-sampled raw parser miss remains; the sampled record s
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
+| Snap-letter echo | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 14/15 sampled records, with evidence present |
 | Empty retrieval | 0.0% empty: 0/15 sampled retrieval-required records empty |
 | Format anomalies | 0/15: expected fields present |
@@ -264,7 +264,7 @@ Verdict: MINOR — exact-gold retrieval is low on BarExam; sample is otherwise c
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): snap visibility is intentional for this ablation; no hidden leakage beyond the mode design |
+| Snap-letter echo | 0/15 (BarExam): snap visibility is intentional for this ablation; no hidden echo beyond the mode design |
 | routed_to fallbacks | 0/15 triggered: no `routed_to` |
 | Empty retrieval | skipped: `snap_only_in_final` is in `_NO_CHROMA_MODES` |
 | Format anomalies | 0/15: expected fields present |
@@ -279,7 +279,7 @@ Verdict: CLEAN
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
+| Snap-letter echo | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 15/15 sampled records, with evidence present |
 | Empty retrieval | 0.0% empty: 0/15 sampled retrieval-required records empty |
 | Format anomalies | 0/15: expected fields present |
@@ -294,7 +294,7 @@ Verdict: MINOR — sampled outputs are clean, but exact-gold retrieval remains l
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
+| Snap-letter echo | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 15/15 sampled records, with evidence present |
 | Empty retrieval | 0.0% empty: 0/15 sampled retrieval-required records empty |
 | Format anomalies | 0/15: expected fields present |
@@ -309,7 +309,7 @@ Verdict: MINOR — sampled outputs are clean, but exact-gold retrieval remains l
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
+| Snap-letter echo | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 15/15 sampled records, with evidence present |
 | Empty retrieval | 0.0% empty: 0/15 sampled retrieval-required records empty |
 | Format anomalies | 0/15: expected fields present |
@@ -325,12 +325,12 @@ Verdict: MINOR — sampled outputs are clean, but exact-gold retrieval remains l
 | Mode | EM | n | Δ vs rag_simple | McNemar p | Detail log | Commit | Audit verdict |
 |---|---:|---:|---:|---:|---|---|---|
 | `rag_simple` | 55/200 = 27.5% | 200 | baseline | — | `logs/eval_rag_simple_groq-llama70b_20260427_0952_detail.jsonl`; exp row `20260427_0952`; doc `docs/mcnemar_2026-04-27.md` | row `31e69db`; result doc `6b58ddb` | MINOR — 1/20 sampled `predicted_answer='None'`; full scan 6/200 |
-| `multi_hyde_diverse` | 71/200 = 35.5% | 200 | +8.0pp | 0.0195 SIG | `logs/eval_multi_hyde_diverse_groq-llama70b_20260427_1010_detail.jsonl`; exp row `20260427_1010`; doc `docs/mcnemar_2026-04-27.md` | row `31e69db`; result doc `3ab2f51`/`6b58ddb` | MINOR — 1/20 sampled `predicted_answer='None'`; full scan 3/200 plus 1 routed fallback |
+| `multi_hyde_diverse` | 71/200 = 35.5% | 200 | +8pp | 0.0195 SIG | `logs/eval_multi_hyde_diverse_groq-llama70b_20260427_1010_detail.jsonl`; exp row `20260427_1010`; doc `docs/mcnemar_2026-04-27.md` | row `31e69db`; result doc `3ab2f51`/`6b58ddb` | MINOR — 1/20 sampled `predicted_answer='None'`; full scan 3/200 plus 1 routed fallback |
 | `rag_multi_query` | 58/200 = 29.0% | 200 | +1.5pp | 0.728 NS | `logs/eval_rag_multi_query_groq-llama70b_20260427_1112_detail.jsonl`; exp row `20260427_1112`; doc `docs/mcnemar_2026-04-27.md` | row `75e8038`; result doc `75e8038`/`44427ad` | CLEAN enough for mechanism: diversity alone is non-significant |
 | `rag_snap_hyde` | 48/200 = 24.0% | 200 | -3.5pp | 0.36 NS | `logs/eval_rag_snap_hyde_groq-llama70b_20260427_1019_detail.jsonl`; exp row `20260427_1019`; doc `docs/mcnemar_2026-04-27.md` | row `3ab2f51`; result doc `21e687a` | MINOR — 1/20 sampled `predicted_answer='None'`; full scan 2/200 |
 | `iter_hyde` | 49/200 = 24.5% | 200 | -3.0pp | 0.47 NS | `logs/eval_iter_hyde_groq-llama70b_20260427_1036_detail.jsonl`; exp row `20260427_1036`; doc `docs/mcnemar_2026-04-27.md` | row `21e687a`; result doc `6b58ddb` | CLEAN |
 | `subagent_rag` | 31/200 = 15.5% | 200 | -12.0pp | 0.0007 SIG negative | `logs/eval_subagent_rag_groq-llama70b_20260427_1044_detail.jsonl`; exp row `20260427_1044`; doc `docs/mcnemar_2026-04-27.md` | row `6b58ddb`; result doc `75e8038`/`44427ad` | APPROVED as negative; see signoff log Section B |
-| `iterative_planning_table` | 72/200 = 36.0% | 200 | +8.5pp | 0.0533 TRENDING | `logs/eval_iterative_planning_table_groq-llama70b_20260427_1208_detail.jsonl`; exp row `20260427_1208`; doc `docs/mcnemar_2026-04-27.md` | row `44427ad`; result doc 12:30 update | SOURCE VERIFIED — cite as trending, not fully significant |
+| `iterative_planning_table` | 72/200 = 36.0% | 200 | +8.5pp | 0.0533 TRENDING-SIG | `logs/eval_iterative_planning_table_groq-llama70b_20260427_1208_detail.jsonl`; exp row `20260427_1208`; doc `docs/mcnemar_2026-04-27.md` | row `44427ad`; result doc 12:30 update | SOURCE VERIFIED — cite as TRENDING-SIG, not fully significant |
 | `advisor_planning_table` | 46/200 = 23.0% | 200 | -4.5pp | 0.222 NS | `logs/eval_advisor_planning_table_groq-llama70b_20260427_1216_detail.jsonl`; exp row `20260427_1216`; doc `docs/mcnemar_2026-04-27.md` | row `44427ad`; result doc 12:30 update | SOURCE VERIFIED — negative/neutral control |
 
 #### Audit — `rag_simple` Llama 70b MuSiQue N=200 (20 records sampled)
@@ -339,7 +339,7 @@ Verdict: MINOR — sampled outputs are clean, but exact-gold retrieval remains l
 | Truncation | 0/20 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 1/20: `2hop__748182_78303` parsed as `None`; full scan found 6/200 |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 3/20 sampled records |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -354,7 +354,7 @@ Verdict: MINOR — low-rate `Answer: None` parsing, already counted as misses; r
 | Truncation | 0/20 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 1/20: `2hop__374767_152023` parsed as `None`; full scan found 3/200 |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 sampled; full scan found 1/200 `single_hyde_fallback_only_2_passages` at `2hop__28287_89399` |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -369,7 +369,7 @@ Verdict: MINOR — paper-headline row has low-rate `None` predictions and one ex
 | Truncation | 0/20 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 1/20: `2hop__748182_78303` parsed as `None`; full scan found 2/200 |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 7/20 sampled records |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -384,7 +384,7 @@ Verdict: MINOR — low-rate `None` predictions; no empty retrieval or hidden fal
 | Truncation | 0/20 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/20: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 2/20 sampled records |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -398,7 +398,7 @@ Verdict: CLEAN
 | Mode | EM | n | Δ vs rag_simple | McNemar p | Detail log | Commit | Audit verdict |
 |---|---:|---:|---:|---:|---|---|---|
 | `rag_simple` | 57/200 = 28.5% | 200 | baseline | — | `logs/eval_rag_simple_or-gemma27b_20260427_0309_detail.jsonl`; exp row `20260427_0309`; doc `docs/mcnemar_2026-04-27.md` | row `c8bcd05`; result doc `83fb2fc` | CLEAN |
-| `multi_hyde_diverse` | 62/200 = 31.0% | 200 | +2.5pp | 0.5901 NS | `logs/eval_multi_hyde_diverse_or-gemma27b_20260427_0404_detail.jsonl`; exp row `20260427_0404`; doc `docs/mcnemar_2026-04-27.md` | row `a3aee05`; result doc `83fb2fc` | MINOR — full scan found 1 truncated/abrupt parsed answer outside sample |
+| `multi_hyde_diverse` | 62/200 = 31.0% | 200 | +2.5pp | 0.5901 NULL | `logs/eval_multi_hyde_diverse_or-gemma27b_20260427_0404_detail.jsonl`; exp row `20260427_0404`; doc `docs/mcnemar_2026-04-27.md` | row `a3aee05`; result doc `83fb2fc` | MINOR — full scan found 1 truncated/abrupt parsed answer outside sample |
 
 #### Audit — `rag_simple` Gemma 3 27B MuSiQue N=200 (20 records sampled)
 | Confound | Status |
@@ -406,7 +406,7 @@ Verdict: CLEAN
 | Truncation | 0/20 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/20: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 2/20 sampled records |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -421,7 +421,7 @@ Verdict: CLEAN
 | Truncation | 0/20 sampled; full scan found 1 abrupt/truncated parsed answer at `4hop1__726391_153080_33952_33939` |
 | Empty/garbage pred | 0/20: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 3/20 sampled records |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -445,7 +445,7 @@ Verdict: MINOR — isolated full-log truncation outside the sample; no empty ret
 | Truncation | 0/20 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/20 sampled; full scan found 2/100 `None` predictions |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 3/20 sampled records |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -460,7 +460,7 @@ Verdict: MINOR — low-rate `None` outputs outside the sample; no retrieval/fall
 | Truncation | 0/20 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 1/20: `2hop__364489_861485` parsed as `None`; full scan found 3/100 |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 4/20 sampled records |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -475,7 +475,7 @@ Verdict: MINOR — low-rate `None` outputs; retrieval sample is non-empty and no
 | Truncation | 0/20 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/20 sampled; full scan found 3/200 `None` predictions |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 2/20 sampled records |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -490,7 +490,7 @@ Verdict: MINOR — low-rate `None` outputs outside the sample; no retrieval/fall
 | Truncation | 0/20 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 1/20: `2hop__435184_84856` parsed as `None`; full scan found 3/200 |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 3/20 sampled records |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -503,7 +503,7 @@ Verdict: MINOR — low-rate `None` outputs; retrieval sample is non-empty and no
 
 | Model | rag_simple N=200 | rag_multi_query N=200 | mhd N=200 | Diversity comp | HyDE comp | Direct refs | Audit verdict |
 |---|---:|---:|---:|---:|---:|---|---|
-| Llama 70b | 27.5% (`20260427_0952`) | 29.0% (`20260427_1112`) | 35.5% (`20260427_1010`) | +1.5pp observed; p=0.728 NS | +6.5pp residual from answer-passage HyDE | `logs/eval_rag_simple_groq-llama70b_20260427_0952_detail.jsonl`; `logs/eval_rag_multi_query_groq-llama70b_20260427_1112_detail.jsonl`; `logs/eval_multi_hyde_diverse_groq-llama70b_20260427_1010_detail.jsonl`; docs `docs/mcnemar_2026-04-27.md`; commits `31e69db`, `75e8038`, `3ab2f51`, `44427ad` | Mechanism now Tier 2: diversity alone NS, MHD SIG |
+| Llama 70b | 27.5% (`20260427_0952`) | 29.0% (`20260427_1112`) | 35.5% (`20260427_1010`) | +1.5pp observed; p=0.728 NS | +6.5pp residual from answer-passage HyDE | `logs/eval_rag_simple_groq-llama70b_20260427_0952_detail.jsonl`; `logs/eval_rag_multi_query_groq-llama70b_20260427_1112_detail.jsonl`; `logs/eval_multi_hyde_diverse_groq-llama70b_20260427_1010_detail.jsonl`; docs `docs/mcnemar_2026-04-27.md`; commits `31e69db`, `75e8038`, `3ab2f51`, `44427ad` | Mechanism now Tier 2: diversity alone NS, MHD 35.5%, +8pp, p=0.0195 SIG |
 | Gemma 3 27B | 28.5% (`20260427_0309`) | 28.5% (`20260427_0536`) | 31.0% (`20260427_0404`) | 0.0pp observed | +2.5pp observed, but McNemar p=0.5901 NULL | `logs/eval_rag_simple_or-gemma27b_20260427_0309_detail.jsonl`; `logs/eval_rag_multi_query_or-gemma27b_20260427_0536_detail.jsonl`; `logs/eval_multi_hyde_diverse_or-gemma27b_20260427_0404_detail.jsonl`; doc `docs/mcnemar_2026-04-27.md`; commits `c8bcd05`, `0d51b36`, `a3aee05`, `83fb2fc` | MINOR — full scan found one truncated mhd answer outside sample |
 | Llama 4 Scout | 30.0% (`20260427_0459`) | 30.5% (`20260427_0332`) | pending at N=200; N=100 was 29.0% (`20260427_0249`) | +0.5pp observed at N=200 | pending | `logs/eval_rag_simple_groq-scout_20260427_0459_detail.jsonl`; `logs/eval_rag_multi_query_groq-scout_20260427_0332_detail.jsonl`; `logs/eval_multi_hyde_diverse_groq-scout_20260427_0249_detail.jsonl`; doc `docs/signoff_log.md`; commits `6b7a922`, `a3aee05`, `46fe19b` | MINOR — sampled `None` outputs; N=200 mhd audit deferred until run exists |
 | Qwen3 30B MoE | N=100 only: 24.0% (`20260427_0334`) | pending | N=100 only: 28.0% (`20260427_0448`) | pending | N=100 +4pp total; not decomposed | `logs/eval_rag_simple_or-qwen3-30b-moe_20260427_0334_detail.jsonl`; `logs/eval_multi_hyde_diverse_or-qwen3-30b-moe_20260427_0448_detail.jsonl`; doc `docs/signoff_log.md`; commit `a3aee05` | MINOR — 2/20 sampled empty/null predictions and 1 sampled empty retrieval |
@@ -514,7 +514,7 @@ Verdict: MINOR — low-rate `None` outputs; retrieval sample is non-empty and no
 | Truncation | 0/20 sampled; full scan found 1 abrupt `rag_multi_query` N=100 answer at `4hop1__88342_49853_128008_46748` |
 | Empty/garbage pred | 2/20 sampled: `multi_hyde_diverse` `2hop__511296_2684` and `rag_simple` `2hop__748182_78303` parsed as `None`; full scan 11/500 artifacts |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 sampled; full scan found 1 `multi_hyde_diverse` fallback (`single_hyde_fallback_only_2_passages`) |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -529,7 +529,7 @@ Verdict: MINOR — mechanism row is now source-verified at Tier 2; diversity alo
 | Truncation | 0/20 sampled; full scan found 1 abrupt/truncated `multi_hyde_diverse` answer at `4hop1__726391_153080_33952_33939` |
 | Empty/garbage pred | 0/20: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 6/20 sampled IDs across cited logs |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -544,7 +544,7 @@ Verdict: MINOR — one full-log truncation outside the sample; no empty retrieva
 | Truncation | 0/20 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 2/20 sampled: `multi_hyde_diverse` `2hop__364489_861485` and `rag_multi_query` `2hop__435184_84856` parsed as `None`; full scan 9/500 artifacts |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 7/20 sampled IDs across cited logs |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -559,7 +559,7 @@ Verdict: MINOR — low-rate `None` outputs; N=200 mhd remains deferred because n
 | Truncation | 0/20 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 2/20 sampled: `4hop3__39836_29339_508306_70744` null and `3hop2__92991_89854_76291` empty string in `multi_hyde_diverse`; full scan 4/200 artifacts |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 6/20 sampled IDs across cited logs |
 | Empty retrieval | 5.0% empty: 1/20 sampled retrieval-required records empty (`4hop3__39836_29339_508306_70744`) |
 | Format anomalies | 0/20: expected fields present |
@@ -585,7 +585,7 @@ Brief: 4/30 Gemma + 6/30 Llama outcome changes; reference `docs/friend_foe_bias_
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/15 triggered: no `routed_to` |
 | Empty retrieval | skipped: `friend_foe_attribution` is in `_NO_CHROMA_MODES` |
 | Format anomalies | 0/15: expected fields present |
@@ -600,7 +600,7 @@ Verdict: CLEAN
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15: no empty, `None`, placeholder, or whitespace-only parsed predictions |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/15 triggered: no `routed_to` |
 | Empty retrieval | skipped: `friend_foe_attribution` is in `_NO_CHROMA_MODES` |
 | Format anomalies | 0/15: expected fields present |
@@ -624,7 +624,7 @@ Verdict: CLEAN
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/15 sampled; full scan found 4 `None`/empty artifacts in cited baseline logs |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 1/15 triggered: Scout `iter_hyde` record `2hop__704217_82341` has `routed_to=iter_hyde_early_exit_empty_decider` |
 | Empty retrieval | 0.0% empty: 0/15 sampled retrieval-required records empty |
 | Format anomalies | 0/15: expected fields present |
@@ -639,7 +639,7 @@ Verdict: MINOR — the negative finding stays directional; one sampled Scout fal
 | Truncation | 0/20 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 1/20: baseline `rag_simple` `2hop__748182_78303` parsed as `None`; full scan 6/400 artifacts across cited logs |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 4/20 sampled IDs across cited logs |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -654,7 +654,7 @@ Verdict: MINOR — cite as neutral/not significant, not active harm; the `iter_h
 | Truncation | 0/20 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 1/20 sampled ID (`2hop__748182_78303`) has `None` in both `rag_snap_hyde` and `rag_simple`; full scan 8/400 artifacts |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 7/20 sampled IDs across cited logs |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -669,7 +669,7 @@ Verdict: MINOR — suitable as method-specificity evidence with the low-rate `No
 | Truncation | 0/15 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 2/15 sampled: 26B `rag_simple` `mbe_0` and `mbe_1` null; full scan also found E4B `rag_snap_hyde` `mbe_95` null |
 | `<think>` leakage | 0/15: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
+| Snap-letter echo | 0/15 (BarExam): no hidden snap-stage echo found in final answers |
 | routed_to fallbacks | 0/15 triggered: no `routed_to`; `gold_retrieved=false` on 14/15 sampled IDs across cited logs |
 | Empty retrieval | 13.3% empty: 2/15 sampled IDs empty in the 26B `rag_simple` baseline log |
 | Format anomalies | 0/15: expected fields present |
@@ -694,7 +694,7 @@ Verdict: MINOR — positive BarExam result is still citeable only with the exist
 | `gemma4_full` mhd-pair × Gemma 4 26B-A4B × N=2400 MuSiQue | KILLED at operator snapshot q431/2400; `rag_simple` partial 30.9%; OR-Gemma runaway-loop hang. Do not cite as Tier 3. | pending / not found locally | operator-provided current snapshot; no `/tmp/*gemma*` or `logs/` backing file found in this workspace | Tier 2.5 partial only, serving-caveated |
 | `qwen_full` mhd-pair × Qwen3 30B MoE × N=2400 MuSiQue | Running at operator snapshot q1058/2400; `rag_simple` partial 26.1%. | pending / not found locally | operator-provided current snapshot; no `/tmp/*qwen*` or `logs/` backing file found in this workspace | Tier 2.5 partial only until full audit lands |
 | SLURM 55107 BarExam mhd+iter_hyde × Gemma 4 26B-A4B N=200 | Still running; operator snapshot says mhd 82% done and iter_hyde ~q106+/200 with 78.3% partial PASS rate. | pending / not found locally | `docs/mcnemar_2026-04-27.md`; `docs/signoff_log.md`; user-provided current snapshot | source pending; do not cite paired p=0.499 as landed |
-| `subagent_rag` × Llama 70b N=200 | Completed and signed as a significant negative: 31/200 = 15.5%, -12.0pp vs `rag_simple`, McNemar p=0.0007. | `logs/eval_subagent_rag_groq-llama70b_20260427_1044_detail.jsonl` | `logs/experiments.jsonl` row `20260427_1044`; `docs/mcnemar_2026-04-27.md`; `docs/signoff_log.md` | APPROVED as negative evidence; not a candidate improvement |
+| `subagent_rag` × Llama 70b N=200 | Completed and signed as a real -12pp finding: 31/200 = 15.5%, -12.0pp vs `rag_simple`, McNemar p=0.0007. | `logs/eval_subagent_rag_groq-llama70b_20260427_1044_detail.jsonl` | `logs/experiments.jsonl` row `20260427_1044`; `docs/mcnemar_2026-04-27.md`; `docs/signoff_log.md` | APPROVED with gap-routing over-abstention caveat |
 
 #### Audit — `subagent_rag` Llama 70b MuSiQue N=200 (20 records sampled)
 | Confound | Status |
@@ -702,7 +702,7 @@ Verdict: MINOR — positive BarExam result is still citeable only with the exist
 | Truncation | 0/20 records flagged: no abrupt cutoffs or unmatched `<think>` tags |
 | Empty/garbage pred | 0/20 sampled; full scan found 1/200 `predicted_answer='None'` at `3hop1__857_846_7846` |
 | `<think>` leakage | 0/20: parsed predictions contain no `<think>` or `</think>` substrings |
-| Snap letter leakage | N/A: MuSiQue is not BarExam |
+| Snap-letter echo | N/A: MuSiQue is not BarExam |
 | routed_to fallbacks | 0/20 triggered: no `routed_to`; `gold_retrieved=false` on 20/20 sampled records and 200/200 full records |
 | Empty retrieval | 0.0% empty: 0/20 sampled retrieval-required records empty |
 | Format anomalies | 0/20: expected fields present |
@@ -717,14 +717,14 @@ Verdict: CAVEAT — retrieval is non-empty but exact-gold tracking is 0/200, so 
 - All N=100 runs as definitive; at most Tier 1 directional unless reinforced by N=200+.
 - The `advisor_planning_table` BarExam N=50 FAILED-EMPTY-RETRIEVAL row in `logs/experiments.jsonl`: `20260426_2242_advisor_planning_table_groq-llama70b_api-barexam-advisor-llama-n50_FAILED-EMPTY-RETRIEVAL`; detail log `logs/eval_advisor_planning_table_groq-llama70b_20260426_2242_detail.jsonl`; doc `docs/audit_log.md`; commit `45f1e03`; empty retrieval 50/50.
 - Pre-fix BarExam numbers before formatter/retrieval-query fixes `f95f316` and `3d5ff05`; use post-fix `docs/audit_log.md` values.
-- Any positive framing of `subagent_rag` on Llama 70b MuSiQue; it is now signed negative evidence (-12.0pp, p=0.0007).
+- Any positive framing of `subagent_rag` on Llama 70b MuSiQue without the gap-routing over-abstention caveat; it is now a real -12pp finding (p=0.0007).
 - `gemma4_full` as Tier 3 or full-corpus evidence; it was killed at q431/2400 and is only a serving-caveated Tier 2.5 partial snapshot.
 - `iterative_planning_table` × Gemma 27B from OR-Gemma; the operator snapshot says it was killed at q29/200 after runaway latency.
 - BarExam Gemma 4 26B-A4B mhd paired p=0.499 as a landed result until SLURM 55107 writes a source detail log under `logs/`.
 
 ## Reproducibility appendix
 
-- Current HEAD: `44427ad` (`docs: signoff_log Section F+G — codex retroactively audited 15 historical N>=200 runs`).
+- Current HEAD: `a50f67a` (`docs: codex refinement loop — caveats reframed, 06_next_steps added, examples ground-truthed`).
 - Recent result commits from `git log --oneline -30`: `6b58ddb`, `21e687a`, `3ab2f51`, `83fb2fc`, `6b7a922`, `a3aee05`, `800c454`, `77dd9da`, `393e12f`, `5f8b723`, `8bbf0e7`.
 - Historical hardening commits required for BarExam interpretation: `f95f316` (prompt column in BarExam formatting), `3d5ff05` (prompt column in retrieval/rerank query paths), `ed15eb7` (extractor fallback + routed_to marker), `171c2c4` (pre-flight/circuit/summary/think-tag guard).
 - Data-state caveat: `logs/experiments.jsonl` is dirty in the current worktree. The latest MuSiQue rows are directly verifiable locally, but the JSONL edits themselves have not all been committed. The post-fix Tier 3 BarExam detail logs are under ignored `logs/` paths and absent from `logs/experiments.jsonl`; the committed audit trail for those values is `docs/audit_log.md`.

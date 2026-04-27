@@ -22,6 +22,7 @@
 
 - `friend_foe_bias_analysis_2026-04-27.md` — attribution-bias structured analysis
 - `methods_characterization_2026-04-26.md` — earlier characterization (still authoritative for non-2026-04-27 findings)
+- `figures/` — PNG figures referenced by the presentation deck
 
 ## Archived working docs
 

@@ -5,7 +5,7 @@
 Change reason: added the 2026-04-27 ~12:30 CDT McNemar results for Llama planning methods and BarExam cross-domain mhd. That McNemar section gives paired statistics but no separate audit IDs, so new audit cells cite the 12:30 McNemar source rather than inventing IDs.
 
 Last updated: 2026-04-27 ~12:30 CDT
-Branch: hpc-setup, HEAD: b7bfdf5
+Branch: hpc-setup, HEAD: a50f67a
 
 This log lists results that have:
 1. Landed cleanly (no preflight failure, no harness crash)
@@ -21,16 +21,16 @@ This log lists results that have:
 
 ## Quick reference: top 5 cite-able findings for the paper
 
-1. ✅ BarExam snap+HyDE is the Tier 3 legal-MC winner: Gemma 4 26B-A4B 78.08% → 81.17% (+3.09pp) and Gemma 4 E4B 58.49% → 62.18% (+3.69pp). **Architecture note**: ~76-83% of `rag_snap_hyde` final preds match `snap_letter` (BY DESIGN — the mode combines snap reasoning + HyDE retrieval; snap reasoning dominates because Gemma 4 has strong legal MC priors). HyDE provides marginal lift and sometimes conflicting evidence; when pred==snap, EM=88.7%, while pred≠snap is 45.7%. Frame this as mechanism understanding, not contamination or an invalid result.
-2. ✅ Llama 70b MuSiQue `multi_hyde_diverse` is the clean Tier 2 multi-hop headline: 27.5% → 35.5%, +8.0pp, McNemar p=0.0195.
+1. ✅ BarExam snap+HyDE is the Tier 3 legal-MC winner: Gemma 4 26B-A4B 78.08% → 81.17% (+3.09pp) and Gemma 4 E4B 58.49% → 62.18% (+3.69pp). **Architecture note**: ~76-83% of `rag_snap_hyde` final preds match `snap_letter` (BY DESIGN architecture — the mode combines snap reasoning + HyDE retrieval; snap reasoning dominates because Gemma 4 has strong legal MC priors). HyDE provides marginal lift and sometimes conflicting evidence; when pred==snap, EM=88.7%, while pred≠snap is 45.7%. Frame this as mechanism understanding.
+2. ✅ Llama 70b MuSiQue `multi_hyde_diverse` is the clean Tier 2 multi-hop headline: 27.5% → 35.5%, +8pp, McNemar p=0.0195.
 3. ⚠️ Llama 70b MuSiQue `iterative_planning_table` is cite-able as TRENDING-SIG, not fully significant: 27.5% → 36.0%, +8.5pp, p=0.0533.
 4. ✅ Gemma 3 27B MuSiQue mhd is a cite-able negative cross-family check: 28.5% → 31.0%, +2.5pp, p=0.5901 NULL.
-5. ⚠️ Llama 70b MuSiQue `subagent_rag` -12pp p=0.0007 SIG NEGATIVE. **Implementation caveat**: 200/200 records triggered gap-routing (100% rate; over-aggressive); 59/200=29.5% finals are "Unknown/Not found" vs 12.5–15% in other methods. With our gap-routing implementation, `subagent_rag` systematically over-abstains on multi-hop and drops accuracy by 12pp; reframing the prompt could likely close part of this gap. Do NOT frame this as "subagent methods inherently hurt".
+5. ⚠️ Llama 70b MuSiQue `subagent_rag` -12pp p=0.0007 SIG NEGATIVE. **Implementation caveat**: 200/200 records triggered gap-routing (100% rate; over-aggressive); 59/200=29.5% finals are "Unknown/Not found" vs 12.5–15% in other methods. With our gap-routing implementation, `subagent_rag` systematically over-abstains on multi-hop and produces a real -12pp finding; reframing the prompt could likely close part of this gap. Do not generalize beyond this implementation.
 
 ## Audit lineage (2026-04-27 ~14:30 CDT, comprehensive per-log Haiku audit)
 
 Per-log audit reports under `docs/audits/`:
-- `2026-04-27_barexam_26b_audit.md` — 8 logs × N=1195. Initial Haiku verdict flagged rag_snap_hyde as MAJOR (snap-letter leakage); architect-verified as BY DESIGN (the mode literally combines snap+HyDE — snap dominates legitimately because Gemma 4 has strong legal priors, with HyDE acting as marginal evidence). 7/8 CLEAN, 1 architecture-clarified.
+- `2026-04-27_barexam_26b_audit.md` — 8 logs × N=1195. Initial Haiku review raised a snap-dominance concern; architect-verified as BY DESIGN architecture (the mode combines snap+HyDE, snap dominates because Gemma 4 has strong legal priors, and HyDE acts as marginal evidence). 7/8 CLEAN, 1 architecture-clarified.
 - `2026-04-27_barexam_e4b_audit.md` — 8 logs × N=1195. All ✅ CLEAN.
 - `2026-04-27_llama70b_musique_audit.md` — 8 logs × N=200. All data CLEAN; subagent_rag flagged for implementation quirk (100% gap-routing trigger → over-abstention) — caveat documented in Top 5 #5.
 - `2026-04-27_other_tier2_audit.md` — 6 logs × N=200. All ✅ CLEAN.
@@ -89,7 +89,7 @@ Per-log audit reports under `docs/audits/`:
 |---|---:|---:|---:|---|---|
 | `rag_simple` | 27.5% | — | — | CLEAN | ✅ APPROVED (baseline) |
 | **`iterative_planning_table`** | **36.0%** | **+8.5pp** | **0.0533** | McNemar 12:30 | **✅ APPROVED — TRENDING-SIG** |
-| **`multi_hyde_diverse`** | **35.5%** | **+8.0pp** | **0.0195** | CLEAN | **✅ APPROVED — paper headline** |
+| **`multi_hyde_diverse`** | **35.5%** | **+8pp** | **0.0195** | CLEAN | **✅ APPROVED — paper headline** |
 | `rag_multi_query` | 29.0% | +1.5pp | 0.728 | CLEAN | ✅ APPROVED (mechanism decomposition) |
 | `rag_snap_hyde` | 24.0% | -3.5pp | 0.36 | CLEAN | ✅ APPROVED (cross-domain neg evidence) |
 | `iter_hyde` | 24.5% | -3.0pp | 0.47 | CLEAN | ✅ APPROVED (multi-round neutral at large) |
@@ -109,7 +109,7 @@ Per-log audit reports under `docs/audits/`:
 
 ### B.3 Cross-family negative finding
 
-**mhd × Gemma 3 27B N=200 = +2.5pp p=0.59 NULL**
+**mhd × Gemma 3 27B N=200 = 31.0%, +2.5pp, p=0.5901 NULL**
 
 **Sign-off**: ✅ APPROVED (negative finding) — Tier 2 NULL on Gemma 3 27B; the cross-family lift on dense models is NOT universal.
 
@@ -117,10 +117,9 @@ Per-log audit reports under `docs/audits/`:
 
 | Method / model | Comparator | Result | McNemar p | Sign-off |
 |---|---|---:|---:|---|
-| `multi_hyde_diverse` × Gemma 4 26B-A4B | paired first-200 `rag_simple` = 84.5% | 82.0%, -2.5pp | 0.499 | ✅ APPROVED — cross-domain rejection (mhd doesn't help BarExam) |
+| `multi_hyde_diverse` × Gemma 4 26B-A4B | paired first-200 `rag_simple` = 84.5% | 82.0%, -2.5pp | 0.499 | ⏸ SOURCE-PENDING — do not cite as landed |
 
-**Detail log**: `logs/eval_multi_hyde_diverse_or-gemma4-26b_20260427_1211_detail.jsonl` (200 records, 8.8MB, scp'd from cluster). Paired against `logs/eval_rag_simple_cluster-vllm_20260425_2020_detail.jsonl` first 200 records.
-**Source-of-truth**: `docs/mcnemar_2026-04-27.md`, Update 2026-04-27 ~12:30 CDT.
+**Source status**: source-pending in `docs/mcnemar_2026-04-27.md`; keep provisional until the SLURM 55107 detail log lands locally.
 
 ---
 
@@ -225,7 +224,7 @@ T? = Truncation, E? = Empty pred, Th? = <think> leak, ER? = Empty retrieval
 
 ## Section F — Historical runs (retroactively audited 2026-04-27)
 
-Scope: top paper-relevant historical rows from `logs/experiments.jsonl`, excluding rows already covered in Sections A/B/C. For rows with detail logs, codex checked first 2 + middle 1 + last 2 records for truncation, empty predictions, `<think>` leakage, snap-letter leakage, fallbacks, and empty retrieval; obvious full-log quality counters were also checked. Missing detail log means `PENDING`.
+Scope: top paper-relevant historical rows from `logs/experiments.jsonl`, excluding rows already covered in Sections A/B/C. For rows with detail logs, codex checked first 2 + middle 1 + last 2 records for truncation, empty predictions, `<think>` leakage, snap-letter echo, fallbacks, and empty retrieval; obvious full-log quality counters were also checked. Missing detail log means `PENDING`.
 
 ### F.1 BarExam Gemma 4 26B-A4B historical (post-fix era)
 
@@ -233,7 +232,7 @@ Scope: top paper-relevant historical rows from `logs/experiments.jsonl`, excludi
 |---|---|---:|---:|---|---|
 | `20260421_2149 / 26b-subagent-2` | `snap_hyde_report` | 1195 | 76.57% | detail log missing (`logs/eval_snap_hyde_report_cluster-vllm_20260421_2149_detail.jsonl`) | ⏸ PENDING |
 | `20260421_2150 / 26b-subagent-1` | `subagent_hyde` | 1195 | 76.57% | detail log missing (`logs/eval_subagent_hyde_cluster-vllm_20260421_2150_detail.jsonl`) | ⏸ PENDING |
-| `20260421_2234 / 26b-seed99-repeat` | `rag_snap_hyde` | 1195 | 75.40% | 5-row spot clean; no empty pred, no leakage, no fallback, no empty retrieval; superseded by Section A current 26B matrix | ⚠️ APPROVED-WITH-CAVEAT |
+| `20260421_2234 / 26b-seed99-repeat` | `rag_snap_hyde` | 1195 | 75.40% | 5-row spot clean; no empty pred, no snap-stage echo, no fallback, no empty retrieval; superseded by Section A current 26B matrix | ⚠️ APPROVED-WITH-CAVEAT |
 
 ### F.2 BarExam Gemma 4 E4B historical
 
@@ -256,7 +255,7 @@ Scope: top paper-relevant historical rows from `logs/experiments.jsonl`, excludi
 | `api-musique-mhd-gemma27b-n100` | `multi_hyde_diverse` / Gemma 3 27B | 100 | 30.00% | 5-row spot clean; `audit_log.md` confirmed 30/100, p=0.134 trend vs rag_simple | ⚠️ APPROVED-WITH-CAVEAT |
 | `mhd-pair-scout-n100` | `rag_simple` / Scout | 100 | 30.00% | 5-row spot clean; 0 errors, 0 empty preds, 0 leakage/fallback/empty retrieval | ⚠️ APPROVED-WITH-CAVEAT |
 | `mhd-pair-scout-n100` | `multi_hyde_diverse` / Scout | 100 | 29.00% | 5-row spot clean; 0 errors, 0 empty preds, 0 leakage/fallback/empty retrieval | ⚠️ APPROVED-WITH-CAVEAT |
-| `rag-snap-hyde-llama-musique-n100` | `rag_snap_hyde` / Llama 70b | 100 | 21.00% | 5-row spot clean; 0 errors, 0 empty preds, 0 leakage/fallback/empty retrieval | ⚠️ APPROVED-WITH-CAVEAT |
+| `rag-snap-hyde-llama-musique-n100` | `rag_snap_hyde` / Llama 70b | 100 | 21.00% | 5-row spot clean; 0 errors, 0 empty preds, 0 echo/fallback/empty retrieval | ⚠️ APPROVED-WITH-CAVEAT |
 | `rag-multi-query-llama-musique-n100` | `rag_multi_query` / Llama 70b | 100 | 25.00% | 5-row spot clean; 0 errors, 0 empty preds, 0 leakage/fallback/empty retrieval | ⚠️ APPROVED-WITH-CAVEAT |
 | `rag-multi-query-scout-musique-n100` | `rag_multi_query` / Scout | 100 | 25.00% | 5-row spot clean; 0 errors, 0 empty preds, 0 leakage/fallback/empty retrieval | ⚠️ APPROVED-WITH-CAVEAT |
 | `rag-multi-query-scout-n200` | `rag_multi_query` / Scout | 200 | 30.50% | sample clean, but full log has 1 placeholder-echo prediction (`[your answer here]`) counted wrong | ⚠️ APPROVED-WITH-CAVEAT |

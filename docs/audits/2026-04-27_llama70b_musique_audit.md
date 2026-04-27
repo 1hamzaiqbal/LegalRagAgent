@@ -12,7 +12,7 @@
 |---|---|---|---|---|
 | `rag_simple` | 200 | 27.5% | ⚠️ MINOR | 6 empty preds, baseline for comparison |
 | `multi_hyde_diverse` | 200 | 35.5% | ✅ CLEAN | **+8pp SIG**, 199/200 have 3 hyde passages |
-| `iterative_planning_table` | 200 | 36.0% | ✅ CLEAN | +8.5pp TRENDING, clean reasoning traces |
+| `iterative_planning_table` | 200 | 36.0% | ✅ CLEAN | +8.5pp, p=0.0533 TRENDING-SIG, clean reasoning traces |
 | `rag_multi_query` | 200 | 29.0% | ✅ CLEAN | NS, standard multi-query retrieval |
 | `rag_snap_hyde` | 200 | 24.0% | ⚠️ MINOR | 2 empty preds, but consistent synthesis |
 | `iter_hyde` | 200 | 24.5% | ✅ CLEAN | Iterative hyde passages, stable |
@@ -50,7 +50,7 @@
   - No evidence retrieved: 0/200
   - LLM calls: mean=2.0, median=2 (hyde + synthesis)
   - Hyde passage presence: **199/200 have exactly 3 passages** (min=2, max=3)
-  - Hyde contains answer artifact: 0/200 (no contamination)
+  - Hyde contains answer artifact: 0/200
   - Multi-paragraph final answers: 41/200 (20.5%)
 - **Sample audit** (20 records across distribution):
   - All hyde_passages populated with distinct text
@@ -61,11 +61,11 @@
   - 3-diverse HyDE hypotheses passed to BM25 for pooling
   - Answer artifacts explicitly NOT present (clean separation)
   - Composition/synthesis still single round like baseline
-- **Conclusion**: **METHOD IS CLEAN AND REPRODUCIBLE**. The +8pp lift is real, not a data artifact.
+- **Conclusion**: **METHOD IS CLEAN AND REPRODUCIBLE**. The 35.5%, +8pp, p=0.0195 lift is real, not a data artifact.
 
 ---
 
-### 3. `iterative_planning_table_groq-llama70b_20260427_1208` — 36.0% (+8.5pp TRENDING)
+### 3. `iterative_planning_table_groq-llama70b_20260427_1208` — 36.0%, +8.5pp, p=0.0533 TRENDING-SIG
 **Verdict: ✅ CLEAN**
 
 - **Accuracy**: 36.0% (72/200) ✅ matches expected
@@ -137,7 +137,7 @@
 ---
 
 ### 8. `subagent_rag_groq-llama70b_20260427_1044` — 15.5% (-12pp SIG NEG, implementation caveat)
-**Verdict: ⚠️ MINOR (data is clean, but METHOD shows critical regression)**
+**Verdict: ⚠️ MINOR (data is clean; implementation over-abstains)**
 
 **Implementation caveat for paper**: This method causes a significant regression under the current gap-routing prompt. The data is clean, but the routing logic over-abstains.
 
@@ -211,7 +211,7 @@
 ✅ **Multi-hop specific**: No MC answer letters, open-ended span format  
 ✅ **HyDE structural compliance** — 199/200 have 3 passages, 0% answer artifacts  
 
-⚠️ **Implementation caveat**: `subagent_rag` has a -12pp regression under this gap-routing implementation. Cite it as systematic over-abstention, not as evidence that subagent methods inherently fail.
+⚠️ **Implementation caveat**: `subagent_rag` has a real -12pp result under this gap-routing implementation. Cite it as systematic over-abstention, not as a broad subagent-method verdict.
 
 ---
 
@@ -219,7 +219,7 @@
 
 1. **`multi_hyde_diverse` (+8pp SIG)**: ✅ APPROVED for paper. Data is pristine, mechanism is clear, lift is reproducible.
 
-2. **`iterative_planning_table` (+8.5pp TRENDING)**: ✅ APPROVED. Clean data, higher cost (4 calls) but valid method. Consider noting cost/benefit in paper.
+2. **`iterative_planning_table` (36.0%, +8.5pp, p=0.0533 TRENDING-SIG)**: ✅ APPROVED. Clean data, higher cost (4 calls) but valid method. Consider noting cost/benefit in paper.
 
 3. **`subagent_rag` (-12pp SIG NEG)**: ⚠️ APPROVED-WITH-CAVEAT as an implementation finding. Gap detection is overly aggressive (100% detection rate) and gap-filling systematically makes answers worse; prompt reframing should be tested before making broader subagent claims.
 
@@ -237,4 +237,4 @@
 | Input tokens | 833 | 1535 | 1181 |
 | Evidence items per Q | 5 | 5 | 5.0 |
 
-**Data integrity score: 98%** (only `subagent_rag` method causes regression, not data corruption).
+**Data integrity score: 98%** (`subagent_rag` is a real -12pp finding with gap-routing over-abstention, not data corruption).

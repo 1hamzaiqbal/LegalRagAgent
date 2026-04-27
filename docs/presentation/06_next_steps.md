@@ -8,7 +8,7 @@
 
 - [ ] Re-run `gemma4_full` and Gemma planning on cluster vLLM after SLURM 55107 finishes - why: OR-served Gemma had runaway-loop serving failures, so cluster vLLM is the usable serving path - owner / dataset / model / mode: cluster operator / MuSiQue / Gemma 4 26B-A4B and Gemma 3/4 planning target / `multi_hyde_diverse` + `iterative_planning_table`.
 
-- [ ] Cross-model check `iterative_planning_table` on Gemma 4 and Qwen - why: Llama 70b is TRENDING-SIG at +8.5pp, but the method needs non-Llama confirmation - owner / dataset / model / mode: eval/HPC operator / MuSiQue / Gemma 4 26B-A4B + Qwen3 30B MoE / `iterative_planning_table`.
+- [ ] Cross-model check `iterative_planning_table` on Gemma 4 and Qwen - why: Llama 70b is 36.0%, +8.5pp, p=0.0533 TRENDING-SIG, but the method needs non-Llama confirmation - owner / dataset / model / mode: eval/HPC operator / MuSiQue / Gemma 4 26B-A4B + Qwen3 30B MoE / `iterative_planning_table`.
 
 ## Methodology improvements
 
