@@ -294,3 +294,49 @@ Mirror-symmetry (+6.7/−6.7) is **suspiciously clean and almost certainly noise
 - `eval_multi_hyde_diverse_or-gemma27b_20260426_2358_detail.jsonl` — **CLEAN** (cite as 6/30 = 20.0%, but per-pair effect not significant)
 - `eval_rag_simple_groq-llama70b_20260426_1945_detail.jsonl` — **CLEAN AFTER RESCORE** (cite as 6/30 = 20.0%, NOT stored 2/30; pre-`<span>`-fix run, must use re-scored value)
 - `eval_rag_simple_or-gemma27b_20260426_2355_detail.jsonl` — **CLEAN** (cite as 8/30 = 26.7%)
+
+## multi_hyde_diverse cross-model N=100 (Phase 13.5) 2026-04-27 ~00:25 UTC
+
+Audit of NEW Gemma 3 27B mhd vs rag_simple paired N=100 logs anchoring the "mhd lifts MuSiQue cross-model" headline. Cross-checked against the Llama 70b N=100 pair re-scored in the same pass.
+
+### Per-log integrity
+
+| Log | N | Stored EM | Re-scored EM | None preds | Errors | Placeholder echoes | routed_to | gold_retrieved |
+|---|---|---|---|---|---|---|---|---|
+| `eval_multi_hyde_diverse_or-gemma27b_20260427_0025_detail.jsonl` | 100 | 30 | **30** | 0 | 0 | **0** | **0** | 91/100 = 91.0% |
+| `eval_rag_simple_or-gemma27b_20260427_0012_detail.jsonl` | 100 | 22 | **22** | 0 | 0 | 0 | 0 | 83/100 = 83.0% |
+
+Stored == re-scored exactly on both. **0 placeholder echoes** confirms `<your answer here>` template residue is absent. **0 routed_to fallbacks** confirms commit `5f8b723` invariant (no silent fallback added to mhd) holds. mhd's gold_retrieved is +8pp over rag_simple — diverse HyDE genuinely improves passage recall.
+
+### Paired stats (re-derived from seed=42 bootstrap, 10000 iters)
+
+- McNemar exact 2-sided: b=15 (mhd-only-correct), c=7 (rag-only-correct), discordants=22, **p=0.1338** ← matches claim (0.134)
+- Both right=15, both wrong=63
+- Bootstrap 95% CI on (mhd_em − rag_em): mean **+8.00pp**, **95% CI [-1.00pp, +17.00pp]** ← matches claim
+- The CI brushes zero on the lower edge (CI=-1pp) ⇒ "trending" framing is honest; not p<0.05.
+
+### Spot-check (seed=42, 5 each)
+
+All 5 MHD spot-checks scored em=False are legitimate losses (substring partial-match, paraphrase, "Not specified", wrong-entity wikipedia paste). Extraction is doing the right thing on each: e.g. `Saxony` vs gold `Saxony-Anhalt` correctly EM=False (F1=0.67), `Ondine` vs full string EM=False (F1=0.18) — the model genuinely produced incomplete answers, not an extractor bug.
+
+### 3 mhd-only-correct discordants — sampled (seed=43)
+
+1. **qidx=2hop__123148_5385** (gold='11,900'): MHD retrieved correct passage about U. of Oklahoma and answered 11,900; RAG missed the alma-mater hop (`Cannot be determined`, gold_ret=False). **Genuine retrieval lift.**
+2. **qidx=2hop__42578_55840** (gold='Colin Firth'): MHD found and named Colin Firth from passage; RAG didn't retrieve the King's Speech passage and fell back to the *character* `King George VI` (gold_ret=False). **Genuine retrieval+answer lift.**
+3. **qidx=3hop1__465684_160545_60577** (gold='Ko Phi Phi Leh'): Both retrieved gold; RAG stopped at `Thailand` (1-hop), MHD chained to `Ko Phi Phi Leh`. **Genuine reasoning lift downstream of retrieval.**
+
+None are lucky guesses. All 3 trace to the +8pp gold_retrieved lift or downstream multi-hop chaining over the same passages.
+
+### Cross-FAMILY consistency (Llama 70b N=100 re-derived in same pass)
+
+| Model | MHD | RAG | Δ | b | c | McNemar p | gold_ret MHD/RAG |
+|---|---|---|---|---|---|---|---|
+| Llama 3.3 70b dense | 33 | 21 | +12pp | 18 | 6 | **0.0227** | 86/83 |
+| Gemma 3 27B dense | 30 | 22 | +8pp | 15 | 7 | **0.1338** | 91/83 |
+
+Same direction (b > c, MHD > RAG), same gold_retrieved lift signature, same magnitude class. Llama crosses p<0.05 at the same N; Gemma is one or two unlucky discordants away from significance. **Consistent with a real cross-FAMILY effect** (Llama 3 vs Gemma 3, both dense), not a fluke on one model. Neither pair is a single coin-flip-narrow margin like the prior N=30 mirror.
+
+### Verdict
+
+- `eval_multi_hyde_diverse_or-gemma27b_20260427_0025_detail.jsonl` — **CLEAN** (cite as 30/100 = 30.0%; pair Δ=+8pp, p=0.134 trending; honest framing required)
+- `eval_rag_simple_or-gemma27b_20260427_0012_detail.jsonl` — **CLEAN** (cite as 22/100 = 22.0%)

@@ -672,6 +672,27 @@ Adds to the MuSiQue "snap-driven methods break" pattern. subagent_rag's gap-deco
 
 **Meeting story:** "HyDE has a domain-specificity bound: it lifts on legal single-hop doctrine retrieval, but biases retrieval toward wrong-hop entities on multi-hop QA. The retrieval loss is the dominant failure — adding more snap-driven steps doesn't compound the failure significantly." Bounds the snap+HyDE claim to single-hop domains.
 
+## Phase 13.5 — multi_hyde_diverse N=100 cross-FAMILY lift on MuSiQue (2026-04-27 ~00:25 UTC)
+
+**HEADLINE FINDING (cross-MODEL, cross-FAMILY at N=100):**
+
+Single-round `multi_hyde_diverse` (3 diverse candidate hypothetical answer-passages with DIFFERENT entities/angles, pool BM25 retrieval across all 3 + raw question, single synthesis call) lifts MuSiQue EM cross-FAMILY:
+
+| Model | rag_simple | multi_hyde_diverse | Δ | McNemar p | Bootstrap 95% CI | gold_ret |
+|---|---|---|---|---|---|---|
+| **Llama 3.3 70b dense (Groq)** | 21/100 = 21.0% | **33/100 = 33.0%** | **+12.0pp** | **0.023 ✅ sig** | [+3pp, +22pp] strict+ | 83→86% |
+| **Gemma 3 27B dense (OpenRouter)** | 22/100 = 22.0% | **30/100 = 30.0%** | **+8.0pp** | 0.134 trending | [-1pp, +17pp] mostly+ | 83→91% |
+
+Audit `a20b99c33f0b4d088`: both Gemma logs CLEAN (0 errors / 0 None preds / 0 placeholder echoes / 0 routed_to fallbacks). Spot-checked discordants on Gemma — 3 mhd-only-correct cases were genuine method wins, including a multi-hop chain where mhd reached 2-hop while rag stopped at 1-hop. Cross-family direction is consistent (b > c on both, non-trivial discordant counts 22-24 unlike the prior N=30 mirror which was 4 noise-flipped discordants).
+
+**Interpretation**: the N=30 mirror-symmetry (Llama +6.7 / Gemma -6.7) was sampling noise as the prior audit predicted — at N=100 both models lift, with the bigger model (Llama 70b) reaching statistical significance. mhd's gold_retrieved lift on Gemma (+8pp from 83→91%) shows the diversity is structurally helping retrieval, not just rolling lucky synthesis dice.
+
+**Frame for the meeting**: "First multi-hop method to lift cross-FAMILY at N=100. Single-round HyDE-diversity (3 candidates pooled + anchor question), no iteration, ~2 LLM calls per question. Cost: same as `rag_simple` plus one HyDE-gen call. Llama 70b +12pp sig; Gemma 3 27B +8pp trending. The cross-family pattern is the story, not either single p-value."
+
+**Why mhd works (mechanism, per audit)**: single HyDE commits to ONE entity (often wrong on multi-hop), biasing BM25. Three diverse HyDEs spread retrieval across different candidate-entities, raising effective gold-retrieval. The model still has to compose across multiple passages at synthesis — that part is unchanged from rag_simple, which is why the lift is +8-12pp (decent) not +30pp (oracle territory).
+
+**Open question for next round**: would multi-ROUND HyDE (`iter_hyde`, multi-step decoder with READY-or-NEXT decider) lift further by attacking the composition bottleneck on top of the diversity bottleneck? `iter_hyde` smoke-tested clean (Haiku review verdict SAFE TO SCALE). N=30 on Gemma 3 27B in flight at commit time; will report Phase 14.
+
 ## Anomalies / things to investigate
 
 (empty — populated when audits flag something)

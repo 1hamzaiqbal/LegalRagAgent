@@ -226,19 +226,22 @@ before any new submission. The full pre-submission checklist lives in
 | Gemma 3 27b | 68% | 27B dense |
 | Llama 4 Scout 17b | 67% | 17B MoE |
 
-### MuSiQue (multi-hop) — methods DON'T LIFT significantly cross-model
+### MuSiQue (multi-hop) — `multi_hyde_diverse` is the FIRST cross-FAMILY lift (Phase 13.5)
 
-| Mode | Gemma 4 26B | Llama 70b |
-|---|---|---|
-| `rag_simple` | **26.7%** (N=30) | 20.0% (N=30) / **21.0%** (N=100) ← baseline |
-| `rag_multi_query` | 23.3% (N=30) | 20.0% (N=30) |
-| `planning_table_no_snap` v2 | 23.3% (N=30) | 20.0% (N=30) |
-| `iterative_planning_table` | 20.0% (N=30) | 23.3% (N=30) |
-| `advisor_planning_table` (cheap-plan) | 23.3% (N=30) | 23.0% (N=100, +2pp directional, McNemar p=0.82) |
-| `rag_snap_hyde` | 20.0% (N=30) | 13.3% (N=30) |
-| `golden_passage` (oracle) | 62% (N=30) | n/a |
+| Mode | Gemma 4 26B | Gemma 3 27B | Llama 70b |
+|---|---|---|---|
+| `rag_simple` (baseline) | 26.7% (N=30) | **22.0%** (N=100) | **21.0%** (N=100) |
+| `rag_multi_query` | 23.3% (N=30) | — | 20.0% (N=30) |
+| `planning_table_no_snap` v2 | 23.3% (N=30) | — | 20.0% (N=30) |
+| `iterative_planning_table` | 20.0% (N=30) | — | 23.3% (N=30) |
+| `advisor_planning_table` (cheap-plan) | 23.3% (N=30) | — | 23.0% (N=100, +2pp p=0.82, cost-parity not lift) |
+| **`multi_hyde_diverse`** (NEW) | — | **30.0% (N=100, +8pp p=0.134 trending)** | **33.0% (N=100, +12pp p=0.023 ✅ sig)** |
+| `rag_snap_hyde` | 20.0% (N=30) | — | 13.3% (N=30) |
+| `golden_passage` (oracle) | 62% (N=30) | — | 47% (N=30) |
 
-`advisor_planning_table` reframes from "+3.3pp lift on Llama" (N=30, b=5/c=0 trending p=0.063) to **cost-parity at N=100** (+2.0pp, p=0.82, b=11/c=9). Cite as 86% strong-LLM input-token / 43% output-token reduction vs `iter_ptable` at parity EM. Audit `a5bbd0b5840ac0da6`.
+**`multi_hyde_diverse` is the first method to lift MuSiQue cross-FAMILY** (Llama 3 dense + Gemma 3 dense, +12pp sig + +8pp trending at N=100). Single round, ~2 LLM calls per question, 3 diverse HyDE passages pooled with raw question for BM25 retrieval. Audit `a20b99c33f0b4d088`. The cross-family direction-consistency is the story, not either single p-value. Mechanism: 3-way HyDE diversity raises effective gold_retrieval (+3-8pp), composition still happens at synthesis like rag_simple — which is why the lift is +8-12pp not +30pp.
+
+`advisor_planning_table` is a cost-parity method (86% strong-LLM input-token / 43% output-token reduction vs `iter_ptable` at parity EM, audit `a5bbd0b5840ac0da6`), not an accuracy lift method.
 
 ### Working interpretation (current)
 
