@@ -1,48 +1,71 @@
 # Experiment Overview
 
-High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (**210** entries as of 2026-04-21).
+High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (**270+** entries as of 2026-04-26 night).
 
-For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEARCH.md`.
-<!-- Intentional overlap with docs/meeting_2026_04_17.md: this file is the cleaned synthesis, while the meeting notes preserve point-in-time discussion. Some duplicated summary content is expected and should not be removed automatically. -->
+For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEARCH.md`. **Live ground truth + meeting story: `docs/validation_log_2026-04-25.md` and `docs/methods_characterization_2026-04-26.md`.**
 
 ## Timeline
 
-- Phases 0-3 (March 22 to April 11): harness/baseline setup, small-model audit, and embedding comparison are complete.
-- Phases 4-6 (April 10-13): gap-family fixes, anchoring controls, and historical `vectorless_*` / parametric-reasoning work are complete.
-- Phases 7-9 (April 14-16): cross-dataset checks, structured-search follow-up, and the first full rerun block are complete.
-- → see `docs/archive/phases_early.md` for the full Phase 0-9 timeline and the archived 2026-04-19 cluster-status snapshot.
+- Phases 0-9 (March 22 to April 16): harness/baseline setup, embedding comparison, gap-family, anchoring, vectorless, cross-dataset checks. → archived in `docs/archive/phases_early.md`.
+- Phase 10 (April 17): HyDE fix + combo modes.
+- Phase 11 (April 22): **Prompt-column bug discovered + patched** (commits `f95f316` + `3d5ff05`). BarExam dataset has a `prompt` column with shared fact pattern for 445/1195 questions (37%). The harness was silently dropping it from BOTH the model-facing prompt AND 11 retrieval call sites. Every BarExam number before commit `3d5ff05` is a pre-prompt-fix reference.
+- **Phase 12 (April 25-26): Coverage wave + cross-family validation.**
 
-### Phase 10: HyDE Fix + Combo Modes (April 17)
-- **Fixed `rag_hyde` full N=1195: 57.9%** — matches `snap_hyde` exactly. The +3pp snap lift for HyDE was a bug artifact.
-- Fixed `rag_hyde` N=200: **66.0%** (validates the prompt fix)
-- `snap_hyde_report` N=200: **66.0%** (snap_hyde + summarization = no gain)
-- `snap_hyde_report_snap` N=200: **64.0%** (showing snap hurts -2pp)
-- `subagent_rag_snap` N=200: **63.0%** (showing snap hurts -3pp vs 66.0%)
-- `subagent_rag_full` N=200: **62.0%** (max info hurts -4pp vs 66.0%)
-- **Key finding: showing snap to the final agent ALWAYS hurts (-2 to -4pp)**
-- `logs/experiments.jsonl` reached **195** entries
+### Phase 12 highlights (current)
 
-## 2026-04-20: Leakage audit
+- **15 of 17 cluster post-fix N=1195 cells landed** at commit `56bffc8` (E4B llm_only + golden_passage missing — 54173 wallclocked at 28h)
+- **Bug-fix decomposition** validates clean: `llm_only` and `snap_only_in_final` both show **identical +5.44pp** lift at 26B (formatter-only, no retrieval). `rag_simple` shows +7.29pp = +5.44 formatter + +1.85pp marginal retrieval-query fix. Two no-retrieval modes producing identical lift is the strongest possible internal validation.
+- **`rag_snap_hyde` is the proven winner on legal MC**: +3.09pp at 26B (78.08 → 81.17) and +3.69pp at E4B (58.49 → 62.18). Cross-size lift, not noise.
+- **6-model BarExam llm_only N=100 board**: Llama 3.3 70b 81%, **Gemma 4 26B-A4B 79.75%**, Qwen3 30B MoE 70%, Qwen3 32b 68%, Gemma 3 27b 68%, Llama 4 Scout 17b 67%.
+- **MuSiQue cross-method × cross-model (N=30 via API)**: NO method beats `rag_simple` on multi-hop. snap+HyDE breaks (-6.7pp on Gemma 26B, -6.7pp on Llama 70b). Cleanest snap-ablation: `ptable_no_snap_v2` 23.3% vs `ptable_with_snap_v2` 16.7% (-6.6pp from snap, same prompt + same retrieval).
+- **Hardening** (commits `171c2c4`, `97c204a`): pre-flight smoke gate, per-question circuit breaker, summary-write guard for high-error-rate runs, think-tag stripping for Qwen3, `<span>` extractor fix for MuSiQue.
 
-A leakage audit on 2026-04-20 found answer-letter contamination in the HyDE-family retrieval query: **100%** of historical `rag_hyde` passages and **74%** of historical `rag_snap_hyde` passages began with `Answer: (X)`. `_sanitize_intermediate_text` was added in `02edbb7` on 2026-04-17, but it landed after the canonical N=1195 runs were logged and still had regex bugs, so every canonical HyDE-family leaderboard number in `logs/experiments.jsonl` is currently a pre-leak-fix reference.
+## Paper Core Result (post-prompt-fix N=1195, BarExam)
 
-Hardening landed on `hpc-setup` through `dfb6a9b`: `e508765`, `951729d`, `bf89b78`, `baef4d8`, `0b4e35d`, `71533fd`, `c85fe70`, `a377867`, `6118161`, `bab7cf5`, `a493491`. Smoke job `50812` confirmed generation-time cleanup with `rag_hyde` **19/30 (63.3%)** and `rag_snap_hyde` **21/30 (70.0%)**, both with `top_level_hyde_artifacts=0`; clean reruns are in flight via `50835`, `50836`, and pending job `50822`.
+### Gemma 4 26B-A4B (3.8B active, MoE)
 
-## 2026-04-21: Post-Fix Size-Comparison Wave
+| Mode | EM | Δ vs `rag_simple` |
+|---|---|---|
+| `rag_snap_hyde` | **81.17%** | **+3.09pp** ← winner |
+| `snap_only_in_final` | 80.59% | +2.51pp |
+| `llm_only` | 79.75% | +1.67pp |
+| `rag_hyde` | 78.91% | +0.83pp |
+| `golden_passage` (oracle) | 78.66% | +0.58pp |
+| `subagent_rag` | 78.16% | +0.08pp |
+| `rag_simple` (baseline) | 78.08% | — |
+| `subagent_hybrid` | 74.14% | -3.94pp |
 
-- Clean E4B mini-eval `50835` finished at `rag_simple` **60.5%**, `rag_hyde` **59.5%**, `rag_snap_hyde` **66.5%**, and `snap_only_in_final` **64.0%**, all with 0% leak.
-- Narrative flip: the old "snap adds 0pp to HyDE" read was a leak artifact; clean E4B N=200 now shows snap adds **+7.0pp** over `rag_hyde` (**59.5% → 66.5%**).
-- Landed full N=1195 post-fix rows already show monotonic `rag_simple` scaling: E2B **45.4%**, E4B **55.7%**, 26B-A4B **70.8%**, 31B **79.6%**; 26B-A4B `rag_hyde` has also landed at **74.2%**.
+### Gemma 4 E4B (8B effective)
 
-## Paper Core Result (Gemma 4 E4B, BarExam)
+| Mode | EM | Δ vs `rag_simple` |
+|---|---|---|
+| `rag_snap_hyde` | **62.18%** | **+3.69pp** ← same winner |
+| `subagent_rag` | 60.92% | +2.43pp |
+| `snap_hyde_report` | 60.75% | +2.26pp |
+| `rag_hyde` | 60.59% | +2.10pp |
+| `subagent_hyde` | 60.17% | +1.68pp |
+| `subagent_hybrid` | 58.83% | +0.34pp |
+| `rag_simple` | 58.49% | — |
+| `snap_only_in_final` | 57.82% | -0.67pp |
 
-| Family | No-snap mode | No-snap acc | Snap mode | Snap acc | Snap lift |
-|---|---|---|---|---|---|
-| HyDE retrieval* | `rag_hyde` | 57.9% [pre-fix] | `snap_hyde` | 57.9% [pre-fix] | **0.0pp** (full N=1195 repaired comparison) |
-| Plain RAG* | `rag_simple` | 57.0% | `snap_rag` | 62.0% | **+5.0pp** |
-| Parametric reasoning | `vectorless_nosnap` | 59.5% | `vectorless_direct` | 64.5% | **+5.0pp** |
+`rag_snap_hyde` lifts +3-4pp over `rag_simple` consistently across both model sizes — **method effect is real and cross-size**, not a scaling artifact.
 
-*HyDE uses the repaired full N=1195 comparison because the original April 14 N=200 `rag_hyde` row was prompt-tainted. Those canonical `rag_hyde` / `rag_snap_hyde` runs are still pre-leak-fix historical references after the 2026-04-20 audit; the earlier `rag_snap_hyde` **58.6%** peak was also pre-fix. Plain-RAG uses the existing `gte-large` April 10 reference pair so the comparison stays aligned with the paper's main ablation setting.
+## Multi-hop ceiling story (MuSiQue)
+
+| Mode | Gemma 4 26B (N=30) | Llama 70b (N=30) |
+|---|---|---|
+| `rag_simple` | **26.7%** | **20.0%** |
+| `rag_multi_query` | 23.3% | 20.0% |
+| `planning_table_no_snap` v2 | 23.3% | 20.0% |
+| `planning_table_with_snap` v2 | 16.7% | n/a |
+| `rag_snap_hyde` | 20.0% | 13.3% |
+| `golden_passage` (oracle) | 62% | n/a |
+
+NO method beats `rag_simple` on multi-hop across either model. Snap-bias hurts; multi-query and planning_table improve gold_retrieved (+3-4pp) but model can't translate retrieval recall into EM. **Bottleneck is composition over multiple passages, not retrieval coverage.**
+
+## Historical (pre-prompt-fix) snapshots — kept for audit continuity
+
+The Paper Core Result table previously cited HyDE-family numbers at 57.9% / +0pp snap lift (full N=1195 pre-fix) and 60.5% / 66.5% (E4B N=200 post-leak-fix-only). Both are superseded by the Phase 12 post-prompt-fix matrix above. See `docs/archive/research_legacy_blocks.md` for the older tables.
 
 ## Key Results (Gemma 4 E4B, BarExam)
 
