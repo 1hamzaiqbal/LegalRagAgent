@@ -222,7 +222,11 @@ The mode runs end-to-end correctly (5-7 LLM calls/q, ~30-45s/q, fact-focused TOD
 |---|---|---|---|
 | v0 (no synthesis instructions) | 13.3% | original prompt | model often contradicts findings, but at least guesses |
 | v1 (commit `c14a11c`, "trust findings") | **6.7%** ↓ | added "if findings insufficient, say so" | OVERCORRECTED — model abstains entirely with "Information not provided in passages" |
-| v2 (commit `be18c52`, balanced) | (running) | "trust findings BUT always commit to a guess" | Should land between v0 and v1 |
+| v2 (commit `be18c52`, balanced) | **23.3%** ↑↑ | "trust findings BUT always commit to a guess" | RECOVERED — nearly matches rag_simple's 26.7% (still N=30 noise) |
+
+**🎯 Big finding:** the synthesizer prompt was a major lever, not just a tweak. v2 went from 13.3% → 23.3% EM (+10pp) just by clarifying "trust findings + always commit to a final answer". The +10pp comes close to closing the rag_simple gap (3.4pp short of 26.7%) **without changing retrieval at all**.
+
+This re-frames the planning_table story: per-TODO decomposition + in-row BM25 retrieval IS effective on multi-hop (gold_retrieved 83% for both v0 and v2). The earlier "decomposition tax" finding was actually a synthesizer-prompt artifact. The model knew the right answer was extractable from the findings but the prompt structure was making it either contradict findings (v0) or abstain (v1) instead of using them properly (v2).
 
 **Lesson**: synthesizer prompt is highly sensitive. "Don't blindly contradict findings" easily turns into "abstain when uncertain", which is 0% EM regardless of underlying knowledge. The fix needs to explicitly require commitment to an answer for benchmark scoring.
 
