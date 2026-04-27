@@ -2,10 +2,10 @@
 
 ## Update 2026-04-27 ~12:30 CDT
 
-Change reason: housekeeping metadata refresh after branch HEAD advanced to `44427ad`. Existing Section B remains the current cite-or-not gate for today’s MuSiQue McNemar verdicts; no verdicts were weakened or promoted in this edit.
+Change reason: added the 2026-04-27 ~12:30 CDT McNemar results for Llama planning methods and BarExam cross-domain mhd. That McNemar section gives paired statistics but no separate audit IDs, so new audit cells cite the 12:30 McNemar source rather than inventing IDs.
 
 Last updated: 2026-04-27 ~12:30 CDT
-Branch: hpc-setup, HEAD: 44427ad
+Branch: hpc-setup, HEAD: b7bfdf5
 
 This log lists results that have:
 1. Landed cleanly (no preflight failure, no harness crash)
@@ -67,15 +67,17 @@ This log lists results that have:
 
 ## Section B — Tier 2 / N=200 paired McNemar
 
-### B.1 Llama 70b MuSiQue method matrix (PAPER HEADLINE)
+### B.1 Llama 70b MuSiQue method matrix (PAPER HEADLINE + TRENDING)
 
 | Mode | EM | Δ | McNemar p | Audit | Sign-off |
 |---|---:|---:|---:|---|---|
 | `rag_simple` | 27.5% | — | — | CLEAN | ✅ APPROVED (baseline) |
+| **`iterative_planning_table`** | **36.0%** | **+8.5pp** | **0.0533** | McNemar 12:30 | **✅ APPROVED — TRENDING-SIG** |
 | **`multi_hyde_diverse`** | **35.5%** | **+8.0pp** | **0.0195** | CLEAN | **✅ APPROVED — paper headline** |
 | `rag_multi_query` | 29.0% | +1.5pp | 0.728 | CLEAN | ✅ APPROVED (mechanism decomposition) |
 | `rag_snap_hyde` | 24.0% | -3.5pp | 0.36 | CLEAN | ✅ APPROVED (cross-domain neg evidence) |
 | `iter_hyde` | 24.5% | -3.0pp | 0.47 | CLEAN | ✅ APPROVED (multi-round neutral at large) |
+| `advisor_planning_table` | 23.0% | -4.5pp | 0.222 | McNemar 12:30 | ✅ APPROVED — NS but informative negative |
 | **`subagent_rag`** | **15.5%** | **-12.0pp** | **0.0007** | CLEAN | **✅ APPROVED — sig negative** |
 
 **Detail logs**: `logs/eval_*_groq-llama70b_2026042700{52..1112}_detail.jsonl` (commit `f9b73c3`).
@@ -94,6 +96,14 @@ This log lists results that have:
 **mhd × Gemma 3 27B N=200 = +2.5pp p=0.59 NULL**
 
 **Sign-off**: ✅ APPROVED (negative finding) — Tier 2 NULL on Gemma 3 27B; the cross-family lift on dense models is NOT universal.
+
+### B.4 BarExam cross-domain (paired N=200)
+
+| Method / model | Comparator | Result | McNemar p | Sign-off |
+|---|---|---:|---:|---|
+| `multi_hyde_diverse` × Gemma 4 26B-A4B | paired first-200 `rag_simple` = 84.5% | 82.0%, -2.5pp | 0.499 | ✅ APPROVED — cross-domain rejection of mhd transfer to BarExam |
+
+**Source-of-truth**: `docs/mcnemar_2026-04-27.md`, Update 2026-04-27 ~12:30 CDT.
 
 ---
 
@@ -130,7 +140,7 @@ iter_hyde × Llama 70b N=200 = -3pp p=0.47 NS (audit CLEAN).
 
 | Run | Status | Expected sign-off check |
 |---|---|---|
-| SLURM 55107 BarExam mhd+iter_hyde × Gemma 4 26B-A4B N=200 | RUNNING ~q120/200 mhd phase | Audit on landing, expected ✅ APPROVED if no MAJOR |
+| SLURM 55107 BarExam iter_hyde × Gemma 4 26B-A4B N=200 | IN FLIGHT after mhd landed | Audit on landing, expected ✅ APPROVED if no MAJOR |
 | `gemma4_full` mhd-pair × Gemma 4 26B-A4B × N=2400 MuSiQue | RUNNING ~q360/2400 (rag_simple = 32.7%) | Tier 3 sign-off pending full-run + audit |
 | `qwen_full` mhd-pair × Qwen3 30B MoE × N=2400 MuSiQue | RUNNING ~q830/2400 (rag_simple = 26.7%) | Tier 3 sign-off pending full-run + audit |
 
