@@ -376,11 +376,31 @@ By subject:
 
 **Range compression**: pre-fix range 70.79-76.57 = 5.78pp spread across the 4 modes. Post-fix range 78.08-81.17 = **3.09pp spread**. **Methods matter LESS post-fix because base `rag_simple` is much stronger.** The "snap_hyde adds +5.8pp over rag_simple" pre-fix narrative compresses to "+3.1pp" post-fix at the same N=1195.
 
+## Cross-family BarExam llm_only N=100 baselines via API (2026-04-26 ~02:35 UTC)
+
+All audited clean post-hardening (pre-flight smoke + circuit breaker + think-tag strip + summary-write guard, commit `171c2c4`).
+
+| Model | Provider | EM | Notes |
+|---|---|---|---|
+| Llama 3.3 70b dense | Groq | **81%** | clean, 0 None preds |
+| Gemma 4 26B-A4B MoE | cluster vLLM | 79.75% | full N=1195 reference |
+| Qwen3 32b dense | Groq | **68%** | think-tag strip needed; 13 records truncated mid-`<think>` |
+| Llama 4 Scout 17b MoE | Groq | **67%** | clean, 0 None preds |
+
+**Story:** Llama 3.3 70b and Gemma 4 26B basically tie on llm_only BarExam at ~80%, despite ~3× param difference (70B vs 25B/3.8B-active). Qwen3 32b dense and Llama 4 Scout 17b MoE land at 67-68% — comparable to each other, well below the top tier. Qwen3 lost 13/100 records to Groq's `max_completion_tokens` default cutting off mid-`<think>`; true ceiling is probably ~75-78%.
+
+**Hardening that made these results trustworthy:**
+- Pre-flight smoke: dies in seconds on auth/404 (caught Kimi K2 404)
+- Think-tag strip: Qwen3 went from 1/5 = 20% (broken extraction) to 4/5 = 80% (real signal) on smoke
+- Without these we'd have ~7 ghost rows polluting experiments.jsonl
+
 ## Anomalies / things to investigate
 
 - Embed-musique 54260 crashed mid-run with `chromadb.errors.InternalError: Error in compaction: Failed to apply logs to the metadata segment`. Failed on the FIRST batch add — likely concurrent-access issue (7 vLLM jobs reading the same chroma_db dir on NFS-engrfs while embed tries to write). Worked around by **building in-row BM25 retrieval for MuSiQue** (commit 1ddb88a) — each MuSiQue question carries its own ~20 paragraph pool, so we don't need a global Chroma collection. RAG modes now work on MuSiQue without ChromaDB.
 
 - **54173 (E4B-1) WALLCLOCKED at 28h** — got mode 1 rag_simple + mode 2 rag_hyde clean, but mode 3 llm_only died at 1155/1195 (no detail log written), mode 4 golden_passage never started. E4B llm_only and golden_passage cells therefore missing for the meeting. Could be re-run via API later (llm_only/golden_passage need no Chroma).
+
+- **Qwen3 32b on Groq: 13/100 records truncated mid-`<think>`** — Groq's default max_completion_tokens cuts off the model before it closes the think tag and emits `Answer: (X)`. Could bump max_tokens parameter for thinking-mode models or instruct them to stop thinking sooner. True ceiling likely +5-10pp above measured 68%.
 
 ## MuSiQue baselines via OpenRouter API (Gemma 4 26B-A4B-it)
 
