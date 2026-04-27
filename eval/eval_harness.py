@@ -3567,6 +3567,80 @@ def run_self_verify(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_friend_foe_attribution(row: pd.Series, config: EvalConfig) -> dict:
+    """Attribution-bias probe: snap answer, then review the same snap three ways.
+
+    The self-attribution review is used as final_answer for scoring because it is
+    the natural baseline; the foe and control reviews are logged to compare how
+    attribution framing changes scrutiny of the identical snap content.
+    4 LLM calls, no retrieval.
+    """
+    question = _fmt(row, config)
+
+    # Step 1: Snap answer
+    snap_text = _llm_call(_system_prompt(config, "answer"), question, label="friend_foe/snap")
+    if not (snap_text or "").strip():
+        raise RuntimeError("friend_foe_attribution snap pass returned empty response")
+
+    try:
+        idx_position = int(row.name)
+    except (TypeError, ValueError):
+        idx_position = sum((i + 1) * ord(ch) for i, ch in enumerate(question))
+
+    foe_names = ("Grok-2", "GPT-4o", "an unknown source")
+    foe_label = foe_names[idx_position % len(foe_names)]
+    review_system = _system_prompt(config, "rag")
+
+    self_user = (
+        "Here is your earlier response to the question. Review it and produce a final answer.\n\n"
+        f"## Earlier response\n{snap_text}\n\n"
+        f"## Question\n{question}"
+    )
+    foe_user = (
+        f"Here is a response from {foe_label} to the question. Review it and produce a final answer.\n\n"
+        f"## Response from {foe_label}\n{snap_text}\n\n"
+        f"## Question\n{question}"
+    )
+    control_user = (
+        "Here is a candidate response to the question. Review it and produce a final answer.\n\n"
+        f"## Candidate response\n{snap_text}\n\n"
+        f"## Question\n{question}"
+    )
+
+    self_review_answer = _llm_call(review_system, self_user, label="friend_foe/self_review")
+    if not (self_review_answer or "").strip():
+        raise RuntimeError("friend_foe_attribution self review returned empty response")
+    foe_review_answer = _llm_call(review_system, foe_user, label="friend_foe/foe_review")
+    if not (foe_review_answer or "").strip():
+        raise RuntimeError("friend_foe_attribution foe review returned empty response")
+    control_review_answer = _llm_call(review_system, control_user, label="friend_foe/control_review")
+    if not (control_review_answer or "").strip():
+        raise RuntimeError("friend_foe_attribution control review returned empty response")
+
+    snap_extracted = _extract_answer(snap_text, config)
+
+    def kept_snap(review_text: str) -> bool:
+        if snap_extracted in (None, ""):
+            return False
+        return bool(_extract_answer(review_text, config) == snap_extracted)
+
+    return {
+        "final_answer": self_review_answer,
+        "formatted_question": question,
+        "snap_answer": snap_text,
+        "self_review_answer": self_review_answer,
+        "foe_review_answer": foe_review_answer,
+        "control_review_answer": control_review_answer,
+        "foe_label": foe_label,
+        "self_kept_snap": kept_snap(self_review_answer),
+        "foe_kept_snap": kept_snap(foe_review_answer),
+        "control_kept_snap": kept_snap(control_review_answer),
+        "evidence_store": [],
+        "retrieved_ids": [],
+        "gold_retrieved": False,
+    }
+
+
 def run_double_snap(row: pd.Series, config: EvalConfig) -> dict:
     """Double-snap: two independent answers. If same → use it. If different → CE-threshold RAG.
     Tests the cheapest confidence signal (2 calls when confident). 2-4 LLM calls."""
@@ -4547,9 +4621,10 @@ def run_planning_table_no_snap(row: pd.Series, config: EvalConfig) -> dict:
 # vectorless / pure-LLM modes.
 _NO_CHROMA_MODES = {
     "llm_only", "snap_only_in_final", "decompose", "self_verify",
-    "double_snap", "snap_debate", "vectorless_direct", "vectorless_role",
-    "vectorless_elements", "vectorless_choice_map", "vectorless_nosnap",
-    "golden_passage", "golden_arbitration", "golden_arb_conservative",
+    "friend_foe_attribution", "double_snap", "snap_debate",
+    "vectorless_direct", "vectorless_role", "vectorless_elements",
+    "vectorless_choice_map", "vectorless_nosnap", "golden_passage",
+    "golden_arbitration", "golden_arb_conservative",
 }
 
 
@@ -4614,6 +4689,7 @@ MODE_RUNNERS = {
     "advisor_planning_table": run_advisor_planning_table,
     "multi_hyde_diverse": run_multi_hyde_diverse,
     "iter_hyde": run_iter_hyde,
+    "friend_foe_attribution": run_friend_foe_attribution,
 }
 
 
