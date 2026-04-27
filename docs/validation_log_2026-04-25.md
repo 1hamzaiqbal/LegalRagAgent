@@ -411,6 +411,25 @@ The v2 prompt added +10pp on Gemma 4 26B (13.3% → 23.3%). Tested cross-model:
 
 Implication: the "decomposition tax" framing was wrong. Per-TODO structured retrieval + synthesis is a viable design pattern with the right synthesizer prompt — not better than rag_simple on this benchmark, but architecturally clean and ready for further experimentation (e.g. iterative TODOs, cheaper-LLM advisor patterns).
 
+## NEW: iterative_planning_table — first method with directional lift on multi-hop
+
+| Mode (Llama 70b N=30) | EM | F1 | gold_retrieved |
+|---|---|---|---|
+| **iterative_planning_table** | **23.3%** (7/30) | 0.340 | **93.3%** ← highest |
+| ptable_no_snap_v2 | 20.0% (6/30) | 0.382 | 90.0% |
+| rag_simple | 20.0% (6/30) | 0.351 | 86.7% |
+
+**Caveat (audit 2026-04-26):** +3.3pp lift over rag_simple = 1 extra correct question. McNemar paired test on N=30 gives **p = 1.000**; bootstrap 95% CI on EM delta = [-13pp, +20pp]. **Not statistically significant.** Need N≥200 before publishing as a real lift.
+
+**Mechanism IS observable per-record** (the strongest part of this result):
+- Multi-round structure runs: 25/30 used full 3 rounds, 5 early-exited
+- gold_retrieved IS genuinely highest (93% vs 87% rag_simple) — multi-round queries find more gold
+- One TRUE multi-hop chain success: Bumping → Naches → Yakima (R1 finds first hop, R2 conditions on R1 to find second hop)
+- One R3-pivot success: when R1/R2 fail to ground "Malcolm Graham", R3 pivots to "players who played BOTH West Ham AND Ajax" → finds Mido (gold)
+- F1 LOWER than ptable_no_snap_v2 (0.340 vs 0.382) — wins are concentrated on EM-clean entities; losses give shorter answers
+
+**Gemma 4 26B iter_ptable still in flight** — need to confirm cross-model.
+
 ## Multi-hop methods DON'T LIFT — null finding generalizes cross-model
 
 After uniform re-score with the fixed `<span>` extractor, on MuSiQue N=30:
