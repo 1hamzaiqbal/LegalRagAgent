@@ -1567,6 +1567,10 @@ def _run_gap(row: pd.Series, config: EvalConfig,
     gaps = _gap_analysis(snap_answer, question_intermediate)
 
     # Step 3: No gaps → use snap directly (unless reports_nosnap, then fresh answer)
+    # Audit 2026-04-26 (silent_fallback_audit) caught that small-model runs hit
+    # this fallback ~40% of the time, silently degrading to llm_only or snap-only
+    # while reporting as the original mode. Add `routed_to` marker so post-hoc
+    # analysis can stratify.
     if not gaps:
         if final_input in ("reports_nosnap", "reports_and_evidence", "no_snap", "evidence_only"):
             # Don't leak snap — make a fresh answer call
@@ -1586,6 +1590,7 @@ def _run_gap(row: pd.Series, config: EvalConfig,
                 "evidence_store": [],
                 "retrieved_ids": [],
                 "gold_retrieved": False,
+                "routed_to": "llm_only_fallback_no_gaps",  # silent-fallback marker
             }
         return {
             "final_answer": snap_answer,
@@ -1602,6 +1607,7 @@ def _run_gap(row: pd.Series, config: EvalConfig,
             "evidence_store": [],
             "retrieved_ids": [],
             "gold_retrieved": False,
+            "routed_to": "snap_only_fallback_no_gaps",  # silent-fallback marker
         }
 
     # Step 4: Per-gap retrieval

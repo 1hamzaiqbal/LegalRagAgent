@@ -141,9 +141,15 @@ def _load_generic_questions(config: EvalConfig, csv_path: str) -> pd.DataFrame:
 
 
 def extract_answer_mc(text: str) -> str | None:
-    """Extract multiple-choice answer letter (A-D) from LLM response."""
-    # Strip markdown bold markers so **Answer:** (D) becomes Answer: (D)
-    cleaned = text.replace('*', '')
+    """Extract multiple-choice answer letter (A-D) from LLM response.
+
+    Audit 2026-04-26 caught: housing extractor falls back to last
+    standalone Y/N when no explicit "Answer:" line; MC extractor had
+    no fallback → silent FAIL on prose-style answers like "the answer
+    is C" without the marker. Added a "last standalone A-D letter"
+    fallback gated to runs without an explicit Answer block.
+    """
+    cleaned = (text or "").replace('*', '')
     patterns = [
         r'(?:Answer|ANSWER)[:\s]*\(?([A-D])\)?',
         r'\b([A-D])\b\s*(?:is correct|is the (?:best|correct|strongest))',
@@ -152,12 +158,19 @@ def extract_answer_mc(text: str) -> str | None:
         matches = re.findall(pattern, cleaned)
         if matches:
             return matches[-1]  # last match = conclusion
+    # Fallback: last standalone A-D letter anywhere in the text
+    matches = re.findall(r'\b([A-D])\b', cleaned)
+    if matches:
+        return matches[-1]
     return None
 
 
 def extract_answer_mc5(text: str) -> str | None:
-    """Extract 5-way multiple-choice answer letter (A-E) from LLM response."""
-    cleaned = text.replace('*', '')
+    """Extract 5-way multiple-choice answer letter (A-E) from LLM response.
+
+    Same "last standalone letter" fallback as extract_answer_mc.
+    """
+    cleaned = (text or "").replace('*', '')
     patterns = [
         r'(?:Answer|ANSWER)[:\s]*\(?([A-E])\)?',
         r'\b([A-E])\b\s*(?:is correct|is the (?:best|correct|strongest))',
@@ -166,6 +179,9 @@ def extract_answer_mc5(text: str) -> str | None:
         matches = re.findall(pattern, cleaned)
         if matches:
             return matches[-1]
+    matches = re.findall(r'\b([A-E])\b', cleaned)
+    if matches:
+        return matches[-1]
     return None
 
 
