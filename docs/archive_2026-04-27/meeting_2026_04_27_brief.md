@@ -1,3 +1,4 @@
+# ARCHIVED 2026-04-27 — superseded by docs/narrative_2026_04_27.md
 # 2026-04-27 Meeting Brief: Phase 12-14
 
 ## Update 2026-04-27 ~12:30 CDT

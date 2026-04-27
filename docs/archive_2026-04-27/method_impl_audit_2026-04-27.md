@@ -1,3 +1,4 @@
+# ARCHIVED 2026-04-27 — superseded by docs/rigour_signoff.md
 # Method Implementation Audit 2026-04-27
 
 ## run_multi_hyde_diverse

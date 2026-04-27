@@ -1,3 +1,4 @@
+# ARCHIVED 2026-04-27 — superseded by docs/signoff_log.md
 # Runs in flight (snapshot 2026-04-27 ~02:50 CDT)
 
 ## Cluster (SLURM)

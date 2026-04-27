@@ -6,7 +6,7 @@ Change reason: stale top-level overview still led with N=100 cross-family MHD fr
 
 High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (**316** entries as of 2026-04-27 ~12:30 CDT) plus `docs/audit_log.md` for cited-number verification.
 
-For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEARCH.md`. **Live ground truth + meeting story: `docs/validation_log_2026-04-25.md` and `docs/methods_characterization_2026-04-26.md`.**
+For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEARCH.md`. **Paper-grade reading order: `docs/signoff_log.md`, `docs/narrative_2026_04_27.md`, `docs/mcnemar_2026-04-27.md`, and `docs/compiled_results.md`.**
 
 ## Timeline
 

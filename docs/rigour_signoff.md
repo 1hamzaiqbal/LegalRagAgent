@@ -73,6 +73,7 @@ Every new SLURM submission must be able to answer YES to each.
 | 2026-04-21 | Snap-key schema inconsistency (snap1 vs snap_answer) | `17127c0` | (no test — normalization at harness level) |
 | 2026-04-21 | Entity-search hard-codes barexam paths | `17127c0` | (manual — fallback now auditable via `entity_fallback` field) |
 | 2026-04-22 | BarExam `prompt` column dropped (37% of questions missing fact pattern) | `f95f316` | `tests/test_formatter.py` — verifies formatted prompts and retrieval-query helpers include prompt content |
+| 2026-04-27 | Silent empty-generation fallback in `multi_hyde_diverse` / `iter_hyde` | `393e12f` | manual audit: empty HyDE/final responses now raise or carry explicit routing; `friend_foe_attribution` already failed fast |
 
 ## Clean-rerun protocol
 
@@ -95,6 +96,7 @@ When we decide to run the definitive post-fix matrix:
 - MuSiQue Tier 2 source: `docs/mcnemar_2026-04-27.md` plus `docs/compiled_results.md`.
 - N<200 rows are Tier 1 direction-only, even when p<0.05.
 - Regression tests exist for the prompt-column fix and sanitizer path: `tests/test_formatter.py`, `tests/test_sanitizer.py`.
+- Implementation audit work-product from 2026-04-27 is archived; the retained methodology takeaway is the silent-empty fallback row in the bug catalog above.
 
 ## Signing off
 

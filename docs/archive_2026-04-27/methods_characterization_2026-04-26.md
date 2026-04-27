@@ -1,3 +1,4 @@
+# ARCHIVED 2026-04-27 — superseded by docs/narrative_2026_04_27.md
 # Methods characterization — 2026-04-26
 
 ## Update 2026-04-27 ~12:30 CDT

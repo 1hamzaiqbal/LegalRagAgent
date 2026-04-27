@@ -1,3 +1,4 @@
+# ARCHIVED 2026-04-27 — superseded by docs/mcnemar_2026-04-27.md
 # multi_hyde_diverse Mechanism Decomposition (preliminary, Tier 1 N=100)
 
 ## Status

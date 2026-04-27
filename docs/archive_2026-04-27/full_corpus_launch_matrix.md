@@ -1,3 +1,4 @@
+# ARCHIVED 2026-04-27 — superseded by docs/signoff_log.md
 # Full Corpus Launch Matrix (snapshot 2026-04-27 ~03:30 CDT)
 
 This snapshot plans the next full-corpus wave around methods that already survived paired checks, log-quality review, and the current empty-retrieval / preflight guardrails in HEAD (`c8bcd05`). MuSiQue full validation means 2400 questions; BarExam full validation means 1195 questions.

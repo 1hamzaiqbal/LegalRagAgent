@@ -1,3 +1,4 @@
+# ARCHIVED 2026-04-27 — superseded by docs/action_items.md
 # Captain's Plan 2026-04-27 (5-hour horizon to meeting)
 
 ## 1. Coverage matrix as of 2026-04-27 09:45 CDT

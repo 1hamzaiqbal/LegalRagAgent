@@ -1,3 +1,4 @@
+# ARCHIVED 2026-04-27 — superseded by docs/compiled_results.md
 # Log Quality Audit 2026-04-27 ~03:05 CDT
 
 ## Summary

@@ -1,3 +1,4 @@
+# ARCHIVED 2026-04-27 — superseded by docs/README.md
 # Cleanup sweep 2026-04-27
 
 ## Update 2026-04-27 ~12:30 CDT
