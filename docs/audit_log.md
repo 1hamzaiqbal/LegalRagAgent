@@ -193,3 +193,54 @@ Audit of `logs/eval_llm_only_groq-qwen_20260426_1941_detail.jsonl` (Qwen3-32b de
 Files:
 - `/Users/hamzaiqbal/grad/LegalRagAgent/logs/eval_llm_only_groq-qwen_20260426_1941_detail.jsonl`
 - Cross-check at-cap rate: 13/13 None-preds had output_tokens ≥ 2046
+
+## Phase 12 cluster verification — every cited cluster headline is bulletproof (2026-04-26 ~23:15 UTC)
+
+Independent re-score of every cited cluster BarExam number under the current extractor (handles `<span>` wrap-strip, last-standalone-A-D fallback, think-tag strip). Every cluster claim in CLAUDE.md / RESEARCH.md / experiment_overview.md / validation_log_2026-04-25.md verified directly from disk:
+
+### Cross-size `rag_simple` BarExam scaling (N=1195 each, all clean)
+
+| Run | Stored = Re-scored | Cited model | Errors | None |
+|---|---|---|---|---|
+| `rag_simple_cluster-vllm_20260421_0802` | 542/1195 = **45.4%** | E2B | 0 | 0 |
+| `rag_simple_cluster-vllm_20260421_0812` | 666/1195 = **55.7%** | E4B | 0 | 0 |
+| `rag_simple_cluster-vllm_20260421_0857` | 846/1195 = **70.8%** | 26B-A4B | 0 | 0 |
+| `rag_simple_cluster-vllm_20260421_1203` | 951/1195 = **79.6%** | 31B | 0 | 0 |
+
+Monotonic scaling story: every step of the cross-size cited table re-scores identically.
+
+### Gemma 4 26B-A4B Phase 12 modes (cluster, N=1195 each)
+
+| Mode | Stored | Re-scored | Cited | Notes |
+|---|---|---|---|---|
+| `rag_snap_hyde` | 970/1195 = 81.17% | **81.17%** | 81.17% | ✓ headline winner |
+| `snap_only_in_final` | 963/1195 = 80.59% | **80.59%** | 80.59% | ✓ |
+| `subagent_rag` | 934/1195 = 78.16% | **78.16%** | 78.16% | ✓ |
+| `subagent_hybrid` | 886/1195 = 74.14% | **887/1195 = 74.23%** | 74.14%/74.23% | +1 record from extractor fallback (matches prior audit `a5d0f6457732180b9`) |
+
+### Gemma 4 E4B Phase 12 modes (cluster, N=1195 each)
+
+| Mode | Stored | Re-scored | Cited | Notes |
+|---|---|---|---|---|
+| `rag_snap_hyde` | 743/1195 = 62.18% | **62.18%** | 62.18% | ✓ same winner as 26B |
+| `subagent_rag` | 728/1195 = 60.92% | **60.92%** | 60.92% | ✓ |
+| `snap_hyde_report` | 726/1195 = 60.75% | **60.75%** | 60.75% | ✓ |
+| `rag_hyde` | 724/1195 = 60.59% | **60.59%** | 60.59% | ✓ |
+| `subagent_hyde` | 719/1195 = 60.17% | **60.17%** | 60.17% | ✓ |
+| `subagent_hybrid` | 703/1195 = 58.83% | **58.83%** | 58.83% | ✓ |
+| `rag_simple` | 699/1195 = 58.49% | **58.49%** | 58.49% | ✓ baseline |
+| `snap_only_in_final` | 691/1195 = 57.82% | **57.82%** | 57.82% | ✓ |
+
+All 8 E4B modes clean: 0 errors total, 1 None pred (in `rag_snap_hyde` — within normal noise).
+
+### Llama 70b cross-family BarExam llm_only N=100 (2026-04-26)
+
+| Path | Stored | Re-scored | Disagreements | Errors | None |
+|---|---|---|---|---|---|
+| `eval_llm_only_groq-llama70b_20260426_1930` | **81/100 = 81.0%** | **81/100** | 0 | 0 | 0 |
+
+### Conclusion
+
+All cited cluster + Llama-N=100 headline numbers are bulletproof. The cross-size method-effect story (`rag_snap_hyde` +3.69pp at E4B, +3.09pp at 26B over `rag_simple`) is the strongest paper claim and survives independent re-scoring. The only contaminated numbers in the entire experiments.jsonl pool are:
+- `advisor_planning_table_groq-llama70b_20260426_2242` (BarExam 72%, tagged `_FAILED-EMPTY-RETRIEVAL`, do-not-cite)
+- Qwen3-32b 68% (truncation caveat documented; not contaminated, just understated)

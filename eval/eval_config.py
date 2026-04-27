@@ -278,15 +278,20 @@ def format_musique_prompt(row: pd.Series) -> str:
     a paragraph. We keep the framing tight so EM/F1 against the gold span
     works without judging every minor wording difference.
 
-    Earlier the placeholder was `<span>` which Llama 3.3 70b copied literally
-    (emitting `Answer: <span>Foo</span>`). Removed the angle-bracket
-    placeholder; extractor also strips HTML-like tags defensively.
+    Placeholder history:
+      - Originally `<span>` — Llama 3.3 70b echoed `Answer: <span>Foo</span>`
+        (commit 97c204a fixed the extractor to strip wrapping HTML tags).
+      - Then `<your answer here>` — Gemma 4 26B echoed the literal placeholder
+        text on a 2026-04-26 multi_hyde_diverse N=30 run.
+      - Now `[your answer here]` (square brackets) — conventional, neither
+        model echoes square-bracket placeholders.
+    Extractor also defensively strips wrapping HTML-like tags.
     """
     question = str(row["question"])
     return (
         f"{question}\n\n"
         "Answer with a brief span — a single entity, date, or short phrase. "
-        "Provide your answer in the exact form: Answer: <your answer here>"
+        "Provide your answer in the exact form: Answer: [your answer here]"
     )
 
 
