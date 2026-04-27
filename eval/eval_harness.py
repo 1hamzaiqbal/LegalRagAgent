@@ -3712,9 +3712,20 @@ def run_planning_table(row: pd.Series, config: EvalConfig) -> dict:
         f"### TODO {i+1}: {e['todo']}\n**Finding:** {e['finding']}"
         for i, e in enumerate(table_entries)
     )
+    # Audit 2026-04-26 found 17/30 records where findings said "passages do
+    # not contain X" but the final agent ignored them and asserted a parametric
+    # guess anyway. Tighten the synthesizer instruction explicitly.
     final_user = (
         f"## Planning Table (your sub-investigations)\n{table_text}\n\n"
-        f"## Question\n{question}"
+        f"## Question\n{question}\n\n"
+        "## Synthesis instructions\n"
+        "1. Treat the planning table findings as your PRIMARY evidence. "
+        "Do not contradict a finding — if a finding says the passages did not "
+        "contain a fact, you must NOT assert that fact from parametric memory.\n"
+        "2. If multiple findings are needed to compose the answer, walk "
+        "through the chain explicitly before concluding.\n"
+        "3. If the findings are insufficient to answer confidently, say so "
+        "and pick the best-supported option rather than guessing."
     )
     final_answer = _llm_call(_system_prompt(config, "rag"), final_user, label="ptable/final")
 
@@ -3831,9 +3842,20 @@ def run_planning_table_no_snap(row: pd.Series, config: EvalConfig) -> dict:
         f"### TODO {i+1}: {e['todo']}\n**Finding:** {e['finding']}"
         for i, e in enumerate(table_entries)
     )
+    # Audit 2026-04-26 found 17/30 records where findings said "passages do
+    # not contain X" but the final agent ignored them and asserted a parametric
+    # guess anyway. Tighten the synthesizer instruction explicitly.
     final_user = (
         f"## Planning Table (your sub-investigations)\n{table_text}\n\n"
-        f"## Question\n{question}"
+        f"## Question\n{question}\n\n"
+        "## Synthesis instructions\n"
+        "1. Treat the planning table findings as your PRIMARY evidence. "
+        "Do not contradict a finding — if a finding says the passages did not "
+        "contain a fact, you must NOT assert that fact from parametric memory.\n"
+        "2. If multiple findings are needed to compose the answer, walk "
+        "through the chain explicitly before concluding.\n"
+        "3. If the findings are insufficient to answer confidently, say so "
+        "and pick the best-supported option rather than guessing."
     )
     final_answer = _llm_call(_system_prompt(config, "rag"), final_user, label="ptable_ns/final")
 
