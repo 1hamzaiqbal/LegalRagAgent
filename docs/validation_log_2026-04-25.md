@@ -226,6 +226,14 @@ The mode runs end-to-end correctly (5-7 LLM calls/q, ~30-45s/q, fact-focused TOD
 
 **🎯 Big finding:** the synthesizer prompt was a major lever, not just a tweak. v2 went from 13.3% → 23.3% EM (+10pp) just by clarifying "trust findings + always commit to a final answer". The +10pp comes close to closing the rag_simple gap (3.4pp short of 26.7%) **without changing retrieval at all**.
 
+**Audit-verified v2 commits properly**: 27/30 records produce a committed `Answer:` line (vs 26/30 in v0). What looked like "increased hedging" is actually narrative reasoning before commit ("findings incomplete, my best answer is X"). 4 wins / 1 loss vs v0:
+- WIN `3hop1__475351_*`: "Indian" → "India" (alias matching kicks in)
+- WIN `3hop1__773338_*`: v0 abstained-then-guessed "United Nations"; v2 committed "Politburo" (correct)
+- WIN `3hop1__831499_*`: "1977" → "1970s" (alias)
+- LOSS `2hop__835710_*`: v0 "Michael Bublé" (correct); v2 "Rob Thomas" (regression)
+
+Net: +3 EM, +0.132 F1. Single regression is N=30 noise; worth a tighter N=100 check before declaring v2 strictly dominant.
+
 This re-frames the planning_table story: per-TODO decomposition + in-row BM25 retrieval IS effective on multi-hop (gold_retrieved 83% for both v0 and v2). The earlier "decomposition tax" finding was actually a synthesizer-prompt artifact. The model knew the right answer was extractable from the findings but the prompt structure was making it either contradict findings (v0) or abstain (v1) instead of using them properly (v2).
 
 **Lesson**: synthesizer prompt is highly sensitive. "Don't blindly contradict findings" easily turns into "abstain when uncertain", which is 0% EM regardless of underlying knowledge. The fix needs to explicitly require commitment to an answer for benchmark scoring.
