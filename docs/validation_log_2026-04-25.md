@@ -423,7 +423,15 @@ After uniform re-score with the fixed `<span>` extractor, on MuSiQue N=30:
 | **planning_table WITH snap v2** | **16.7%** ↓ | (n/a) | (audit pending) | n/a |
 | rag_snap_hyde (snap-driven) | 20.0% | 13.3% | 60% | 50% |
 
-**🎯 Cleanest snap-ablation:** comparing planning_table WITH-snap v2 (16.7%) to planning_table NO-snap v2 (23.3%) — same v2 synthesizer prompt, same per-TODO retrieval structure, only difference is whether snap reasoning seeds the plan-gen. **Snap costs -6.6pp** in this controlled comparison. Direct evidence that snap-bias is the multi-hop failure mechanism.
+**🎯 Cleanest snap-ablation:** comparing planning_table WITH-snap v2 (16.7%) to planning_table NO-snap v2 (23.3%) — same v2 synthesizer prompt, same per-TODO retrieval structure, only difference is whether snap reasoning seeds the plan-gen. **Snap costs -6.6pp** point estimate in this controlled comparison.
+
+**Statistical caveat (audit 2026-04-26):** McNemar paired test on N=30 gives p=0.727, bootstrap 95% CI on the EM delta = [-10pp, +23pp]. Direction is consistent with all other multi-hop snap results but the -6.6pp magnitude is NOT statistically significant at this N. Recommendation: scale to N=100+ before committing the exact magnitude.
+
+**Mechanism IS observable per-record** (the strongest part of this result):
+- **Direct snap-letter echo**: 12/30 WITH-snap predictions match the snap_answer; **9 of those 12 are wrong** (snap was wrong + agent regurgitated)
+- **TODO over-specification**: WITH-snap TODOs fold snap's named entity into the sub-question (e.g., "players for both West Ham AND Ajax" instead of clean "players for West Ham" / "for Ajax"). Biases retrieval queries.
+- **Gold-retrieval is HIGHER WITH snap (93% vs 83%)** — the regression is purely a generation/planning-bias effect, NOT retrieval. Snap actually helps retrieval but hurts composition.
+- One degenerate 174K-char "Don → Don → Don" loop in a WITH-snap record (real model failure mode, not v2 prompt issue).
 
 **🔬 Key finding:** NO method beats `rag_simple` on MuSiQue, on EITHER model. The structured methods consistently match (~20% on Llama 70b) or underperform (-3.4pp on Gemma 4 26B) the simple baseline. **The "snap+HyDE breaks on multi-hop" finding generalizes to ALL structured methods we've tried** (snap+HyDE, subagent, planning_table with/without snap, rag_multi_query).
 
