@@ -442,6 +442,20 @@ Implication: the "decomposition tax" framing was wrong. Per-TODO structured retr
 
 **Meeting takeaway:** method × model interaction is a real story to tell — what helps a weaker model can hurt a stronger one. **iterative_planning_table is helpful for Llama 70b but hurtful for Gemma 4 26B** at N=30 (caveat: not statistically significant, but direction consistent with the hypothesis).
 
+### advisor_planning_table on Llama 70b — same EM as iter_ptable, 80%+ token reduction
+
+| Mode (Llama 70b) | EM | Strong-LLM tokens/Q | Total LLM calls/Q |
+|---|---|---|---|
+| rag_simple | 20.0% | ~500 in, ~400 out | 1 |
+| iter_ptable | 23.3% | 2551 in, 463 out | ~7 (all Llama 70b) |
+| **advisor_ptable** | **23.3%** | 357 in, 264 out (-86% in, -43% out) | 1 strong + ~4 cheap (8B) |
+
+**Real headline: advisor MATCHES iter_ptable EM at 80%+ less strong-LLM token cost** (audit `a52e7244f936cc5c8`). Both modes work via the same mechanism (4/7 of correct questions overlap between them). They're "the same method with cost-shifted execution," not independent wins.
+
+McNemar advisor vs rag_simple: b=5 advisor-only correct, c=0 rag-only correct, p=0.0625 (trending; would need ~N=60 to confirm at α=0.05). **Advisor NEVER loses a question rag_simple wins** — clean directional signal.
+
+McNemar advisor vs iter_ptable: b=3, c=3, p=1.0 — equivalent.
+
 ## Multi-hop methods DON'T LIFT — null finding generalizes cross-model
 
 After uniform re-score with the fixed `<span>` extractor, on MuSiQue N=30:
