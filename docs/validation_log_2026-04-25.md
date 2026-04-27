@@ -216,6 +216,16 @@ The mode runs end-to-end correctly (5-7 LLM calls/q, ~30-45s/q, fact-focused TOD
 
 **Future ablation worth running**: planning_table WITHOUT snap (use the question alone to generate TODOs) to test whether removing the snap-bias source recovers rag_simple's 26.7% baseline. If it does, that's clean evidence the failure is snap-bias, not pipeline complexity.
 
+### planning_table_no_snap synthesizer-prompt iteration log
+
+| Variant | EM (N=30) | What changed | Evidence |
+|---|---|---|---|
+| v0 (no synthesis instructions) | 13.3% | original prompt | model often contradicts findings, but at least guesses |
+| v1 (commit `c14a11c`, "trust findings") | **6.7%** ↓ | added "if findings insufficient, say so" | OVERCORRECTED — model abstains entirely with "Information not provided in passages" |
+| v2 (commit `be18c52`, balanced) | (running) | "trust findings BUT always commit to a guess" | Should land between v0 and v1 |
+
+**Lesson**: synthesizer prompt is highly sensitive. "Don't blindly contradict findings" easily turns into "abstain when uncertain", which is 0% EM regardless of underlying knowledge. The fix needs to explicitly require commitment to an answer for benchmark scoring.
+
 ### planning_table_no_snap N=30 (the snap-bias ablation) — 13.3% EM, 83.3% gold_retrieved
 
 **🔬 Surprising result that decomposes the multi-hop failure into TWO costs:**
