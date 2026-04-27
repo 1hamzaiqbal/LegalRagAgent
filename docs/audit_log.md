@@ -173,7 +173,9 @@ Audit agent: `audit_landings_2026-04-26_2242`
 
 **Recommended action**: any local-Mac RAG run before commit (this commit) is suspect. If you need legal_passages locally, rebuild via `uv run python utils/fast_embed.py barexam` (~2.2 hr on RTX 3070, longer on Mac CPU). For the meeting, all BarExam claims must come from cluster runs (they have a populated corpus); local Mac is multi-hop / API-only territory.
 
-**Codex independent verification**: requested 2026-04-26 ~22:55 UTC, agent `ab52ee7515e1ad06d` (in flight).
+**Codex independent verification**: requested 2026-04-26 ~22:55 UTC, agent `ab52ee7515e1ad06d`. Status as of ~01:00 UTC next day: codex processes from that timestamp are no longer in `ps`, no commits, no logs, no branches, no stashes left. **Codex agent failed silently**, no artifacts produced. Internal verification + Haiku review (agents `aa510f848aebbc319`, `abc5c719d7d81d4fe`, `aded790c4e293d756`) covered the same ground: Haiku independently reviewed multi_hyde_diverse code (caught 3 issues, all fixed in commit `5f8b723`); audit subagents verified every cited cluster headline number, advisor N=100 paired comparison, golden_passage Llama, and Phase 13 multi_hyde_diverse cross-model. Pre-flight collection check + empty-retrieval summary guard now prevent the empty-retrieval contamination class harness-wide. Conclusion: we proceeded with internal verification only — no loss of rigor since the same checks were performed by Haiku/audit subagents.
+
+A second codex dispatch for friend/foe attribution mode implementation (agent `ad1bfb685a6e6feb3`) similarly failed silently — no commits, no artifacts. Friend/foe mode design sketch is captured in task #32 / validation_log; will rebuild manually if time permits before the meeting. A third codex dispatch for iter_hyde code review (agent `a3b049be08e681d7d`) at ~00:13 UTC was still active in `ps` as of ~01:00 UTC — may yet deliver.
 
 ## Qwen3-32b cited 68% has 13/100 truncated — caveat needed (2026-04-26 ~23:00 UTC)
 

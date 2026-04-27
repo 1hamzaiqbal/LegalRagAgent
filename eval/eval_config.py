@@ -83,6 +83,7 @@ EVAL_MODES = {
     "iterative_planning_table": "Multi-round planning_table (deep research style): generate ONE focused TODO per round, retrieve + find, then decide READY-or-NEXT-TODO. Up to 3 rounds. Each next TODO is conditioned on prior findings.",
     "advisor_planning_table":   "Two-LLM advisor pattern: cheap LLM (Llama 8B) does plan + per-TODO findings; STRONG LLM (config.provider) does final synthesis. Tests if allocating reasoning capacity to synthesis (vs intermediates) helps.",
     "multi_hyde_diverse":       "Multi-HyDE diverse: 3 candidate hypothetical answer-passages with DIFFERENT entities/angles, pool retrievals across all + raw question. Targets the single-hop commitment bias on multi-hop QA (HyDE commits to one wrong entity → biased retrieval).",
+    "iter_hyde":                "Iterative HyDE (multi-round): generate ONE HyDE passage per round conditioned on prior findings, retrieve, write finding, then decide READY-or-NEXT-HYDE (max 3 rounds). HyDE-style analog of iterative_planning_table. Targets multi-hop COMPOSITION bottleneck (not just retrieval coverage like multi_hyde_diverse).",
 }
 
 

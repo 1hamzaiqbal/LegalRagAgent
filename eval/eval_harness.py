@@ -4165,6 +4165,176 @@ def run_iterative_planning_table(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_iter_hyde(row: pd.Series, config: EvalConfig) -> dict:
+    """Multi-round HyDE conditioned on prior-round findings. The deep-research
+    answer to single-round `multi_hyde_diverse`.
+
+    User feedback 2026-04-26: "multi hop is going to be bad unless it has
+    multi step or multiple rounds." Single-round mhd fights the *single-hop
+    commitment bias* of HyDE but does NOT fight the *composition over
+    multiple passages* bottleneck.
+
+    Per round:
+      1. Generate ONE HyDE passage (encyclopedia/textbook style, 2-3 sentences)
+         conditioned on what the prior rounds' findings established. Round 1
+         HyDE is the next-hop-likely-entity; round 2 HyDE is conditioned on
+         round 1's finding; etc.
+      2. Use that HyDE passage as the retrieval query (embeds well in dense
+         retrievers, BM25-tokenizes for in-row MuSiQue).
+      3. Write a 2-3 sentence finding from the retrieved passages.
+      4. Ask the synth-decider node: "READY to answer, or need another HyDE
+         round?" — early-exit if READY (mirrors iter_planning_table).
+      5. Max MAX_ROUNDS = 3.
+
+    Final synthesis sees the full HyDE-finding chain, walks through the
+    multi-hop reasoning explicitly, commits to a final answer.
+
+    Steps: 1 (initial HyDE) + per round: retrieve + finding + ready-check +
+    next-HyDE, capped at 3 rounds → ~7-10 LLM calls per question (same as
+    iter_planning_table).
+    """
+    MAX_ROUNDS = 3
+    question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
+
+    initial_hyde_system = (
+        "You are an encyclopedia author. Given a multi-hop question, write ONE "
+        "short hypothetical answer-passage (2-3 sentences) about the FIRST "
+        "intermediate fact you would need to investigate.\n\n"
+        "Rules:\n"
+        "- Focus on the FIRST hop (the upstream entity to identify), not the "
+        "final answer\n"
+        "- Write factual encyclopedia/textbook prose — not a question, not a "
+        "multiple-choice letter\n"
+        "- Do NOT use angle brackets, square brackets, or placeholders\n"
+        "- Be specific and entity-rich (helps BM25 retrieval)"
+    )
+    initial_user = f"## Multi-hop Question\n{question_intermediate}"
+    initial_raw = _llm_call(initial_hyde_system, initial_user, label="iter_hyde/init_hyde")
+    current_hyde = _sanitize_intermediate_text(initial_raw, fallback=question_intermediate).strip()
+    if not current_hyde:
+        current_hyde = question_intermediate
+
+    table_entries: list[dict] = []
+    all_retrieved_ids: list[str] = []
+    finding_system = (
+        "You are a research assistant. Read the retrieved passages and write a "
+        "concise finding (2-3 sentences) about the sub-investigation focus. "
+        "If the passages don't contain the answer, say so explicitly. Do NOT "
+        "pick a multiple-choice letter."
+    )
+    next_hyde_system_template = (
+        "You are an encyclopedia author working iteratively on a multi-hop "
+        "question. You have completed {n_rounds} HyDE-and-find round(s) so far "
+        "(the chain below). Your job: decide whether the chain is now "
+        "sufficient to answer the original question, or whether you need ONE "
+        "more HyDE round.\n\n"
+        "Output EXACTLY ONE of these two formats:\n\n"
+        "READY: I have enough information to answer the question.\n\n"
+        "OR\n\n"
+        "HYDE: <one short hypothetical-answer passage (2-3 sentences) about the "
+        "next intermediate fact, conditioned on what's been learned>\n\n"
+        "Rules:\n"
+        "- Only emit READY if the chain unambiguously composes to an answer\n"
+        "- If picking HYDE, USE the prior findings to focus the next passage "
+        "(e.g., if Round 1 found 'Movie X stars Actor Y', Round 2 might HyDE "
+        "facts about Actor Y's other roles)\n"
+        "- Do NOT pick a multiple-choice letter or commit to a final answer"
+    )
+    rounds_completed = 0
+    early_exit = False
+    for round_idx in range(MAX_ROUNDS):
+        retrieval = _retrieve_and_format(
+            row, [current_hyde], k=3,
+            label_prefix=f"iter_hyde/r{round_idx}",
+            where=_where_from_config(config),
+            collection=_collection_for_config(config),
+        )
+        passages_block = "\n\n".join(retrieval["passages"]) if retrieval["passages"] else "(no passages retrieved)"
+        finding_user = (
+            f"## Retrieved Passages\n{passages_block}\n\n"
+            f"## HyDE Focus (round {round_idx + 1})\n{current_hyde}"
+        )
+        finding = _generate_report(
+            finding_system,
+            finding_user,
+            label=f"iter_hyde/finding_r{round_idx}",
+            fallback="No relevant information found in the retrieved passages.",
+        )
+        table_entries.append({
+            "hyde": current_hyde,
+            "finding": finding["text"],
+            "evidence_ids": retrieval.get("retrieved_ids", []),
+            "round": round_idx + 1,
+        })
+        all_retrieved_ids.extend(retrieval.get("retrieved_ids", []))
+        rounds_completed += 1
+
+        if round_idx + 1 >= MAX_ROUNDS:
+            break
+
+        chain_text = "\n\n".join(
+            f"### Round {e['round']} — HyDE: {e['hyde']}\n**Finding:** {e['finding']}"
+            for e in table_entries
+        )
+        decide_user = (
+            f"## Original Question\n{question_intermediate}\n\n"
+            f"## HyDE-Finding Chain So Far\n{chain_text}"
+        )
+        decide_system = next_hyde_system_template.format(n_rounds=len(table_entries))
+        decide_raw = _llm_call(decide_system, decide_user, label=f"iter_hyde/decide_r{round_idx}")
+
+        decide_clean = decide_raw.strip()
+        if re.search(r"\bREADY\b", decide_clean[:200], re.IGNORECASE) and not re.search(r"\bHYDE\s*:", decide_clean[:200], re.IGNORECASE):
+            early_exit = True
+            break
+        next_hyde = ""
+        m = re.search(r"^\s*(?:\*\*)?\s*HYDE\s*[:\-]\s*(?:\*\*)?\s*(.+?)\s*(?:\*\*)?\s*$",
+                      decide_clean, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+        if m:
+            next_hyde = _sanitize_intermediate_text(m.group(1), fallback=question_intermediate).strip()
+        if not next_hyde:
+            early_exit = True
+            break
+        current_hyde = next_hyde
+
+    chain_text = "\n\n".join(
+        f"### Round {e['round']} — HyDE: {e['hyde']}\n**Finding:** {e['finding']}"
+        for e in table_entries
+    )
+    final_user = (
+        f"## Iterative HyDE Chain\n{chain_text}\n\n"
+        f"## Question\n{question}\n\n"
+        "## Synthesis instructions\n"
+        "1. Use the HyDE-finding chain as your PRIMARY evidence. If a finding "
+        "directly addresses an option, weight it heavily.\n"
+        "2. Walk through the multi-hop chain explicitly, naming each "
+        "intermediate entity from the findings, before concluding.\n"
+        "3. ALWAYS commit to a final answer using the format `Answer: ...`. "
+        "Even if the chain is incomplete, give your best single-span guess; "
+        "do NOT abstain or say 'information not provided'."
+    )
+    final_answer = _llm_call(_system_prompt(config, "rag"), final_user, label="iter_hyde/final")
+
+    gold_idx = str(row.get("gold_idx", ""))
+    gold_idxs = {s.strip() for s in gold_idx.split(",") if s.strip()}
+    gold_retrieved = bool(gold_idxs & set(all_retrieved_ids)) if gold_idxs else False
+
+    return {
+        "final_answer": final_answer,
+        "formatted_question": question,
+        "hyde_chain": table_entries,
+        "rounds_completed": rounds_completed,
+        "early_exit": early_exit,
+        "retrieved_ids": list(dict.fromkeys(all_retrieved_ids)),
+        "gold_retrieved": gold_retrieved,
+        "evidence_store": [
+            {"idx": eid, "text": "", "source": "iter_hyde", "cross_encoder_score": 0.0}
+            for eid in dict.fromkeys(all_retrieved_ids)
+        ],
+    }
+
+
 def run_rag_multi_query(row: pd.Series, config: EvalConfig) -> dict:
     """Multi-query rag_simple: 2-3 question rewrites → pool retrievals → answer once.
 
@@ -4443,6 +4613,7 @@ MODE_RUNNERS = {
     "iterative_planning_table": run_iterative_planning_table,
     "advisor_planning_table": run_advisor_planning_table,
     "multi_hyde_diverse": run_multi_hyde_diverse,
+    "iter_hyde": run_iter_hyde,
 }
 
 
