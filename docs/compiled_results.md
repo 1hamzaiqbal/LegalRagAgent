@@ -330,6 +330,8 @@ Verdict: MINOR — sampled outputs are clean, but exact-gold retrieval remains l
 | `rag_snap_hyde` | 48/200 = 24.0% | 200 | -3.5pp | 0.36 NS | `logs/eval_rag_snap_hyde_groq-llama70b_20260427_1019_detail.jsonl`; exp row `20260427_1019`; doc `docs/mcnemar_2026-04-27.md` | row `3ab2f51`; result doc `21e687a` | MINOR — 1/20 sampled `predicted_answer='None'`; full scan 2/200 |
 | `iter_hyde` | 49/200 = 24.5% | 200 | -3.0pp | 0.47 NS | `logs/eval_iter_hyde_groq-llama70b_20260427_1036_detail.jsonl`; exp row `20260427_1036`; doc `docs/mcnemar_2026-04-27.md` | row `21e687a`; result doc `6b58ddb` | CLEAN |
 | `subagent_rag` | 31/200 = 15.5% | 200 | -12.0pp | 0.0007 SIG negative | `logs/eval_subagent_rag_groq-llama70b_20260427_1044_detail.jsonl`; exp row `20260427_1044`; doc `docs/mcnemar_2026-04-27.md` | row `6b58ddb`; result doc `75e8038`/`44427ad` | APPROVED as negative; see signoff log Section B |
+| `iterative_planning_table` | 72/200 = 36.0% | 200 | +8.5pp | 0.0533 TRENDING | `logs/eval_iterative_planning_table_groq-llama70b_20260427_1208_detail.jsonl`; exp row `20260427_1208`; doc `docs/mcnemar_2026-04-27.md` | row `44427ad`; result doc 12:30 update | SOURCE VERIFIED — cite as trending, not fully significant |
+| `advisor_planning_table` | 46/200 = 23.0% | 200 | -4.5pp | 0.222 NS | `logs/eval_advisor_planning_table_groq-llama70b_20260427_1216_detail.jsonl`; exp row `20260427_1216`; doc `docs/mcnemar_2026-04-27.md` | row `44427ad`; result doc 12:30 update | SOURCE VERIFIED — negative/neutral control |
 
 #### Audit — `rag_simple` Llama 70b MuSiQue N=200 (20 records sampled)
 | Confound | Status |
@@ -519,7 +521,7 @@ Verdict: MINOR — low-rate `None` outputs; retrieval sample is non-empty and no
 | Sampled records | `2hop__121145_561444`, `2hop__86689_728109`, `3hop1__462960_160545_62931`, ..., `4hop3__547073_88460_30152_20999`, `4hop3__524186_219173_548463_72134`, `3hop1__79039_131926_87157` |
 | Audited at | 2026-04-27 ~11:18 CDT by codex |
 
-Verdict: MINOR — mechanism row is usable as preliminary mechanism evidence, but the pending Llama N=200 `rag_multi_query` run remains unaudited until it completes.
+Verdict: MINOR — mechanism row is now source-verified at Tier 2; diversity alone remains non-significant and should not be framed as a standalone win.
 
 #### Audit — Gemma 3 27B mechanism row (20 records sampled)
 | Confound | Status |
@@ -689,9 +691,9 @@ Verdict: MINOR — positive BarExam result is still citeable only with the exist
 
 | Run | Status | Detail log | Source | Audit verdict |
 |---|---|---|---|---|
-| `gemma4_full` mhd-pair × Gemma 4 26B-A4B × N=2400 MuSiQue | In flight; `/tmp/mhd_pair_gemma4_full.log` tail showed `[324/2400]` (~13.5%) on the current local read, close to the requested ~12% snapshot | pending | `/tmp/mhd_pair_gemma4_full.log`; `docs/mcnemar_2026-04-27.md` lists Gemma 4 26B-A4B full MuSiQue in flight | audit deferred until run completes |
-| `qwen_full` mhd-pair × Qwen3 30B MoE × N=2400 MuSiQue | In flight; `/tmp/mhd_pair_qwen_full.log` tail showed `[791/2400]` (~33.0%), close to the requested ~30% snapshot | pending | `/tmp/mhd_pair_qwen_full.log`; `docs/mcnemar_2026-04-27.md` lists Qwen3 30B MoE full MuSiQue in flight | audit deferred until run completes |
-| SLURM BarExam mhd+iter_hyde × Gemma 4 26B-A4B N=200 | Pending/unverified locally. User supplied SLURM `55107`; docs conflict with older `55040` / `55094`, and live `ps` was blocked by sandbox. | pending | `docs/mcnemar_2026-04-27.md`; `docs/signoff_log.md`; user-provided current snapshot | audit deferred until run completes |
+| `gemma4_full` mhd-pair × Gemma 4 26B-A4B × N=2400 MuSiQue | KILLED at operator snapshot q431/2400; `rag_simple` partial 30.9%; OR-Gemma runaway-loop hang. Do not cite as Tier 3. | pending / not found locally | operator-provided current snapshot; no `/tmp/*gemma*` or `logs/` backing file found in this workspace | Tier 2.5 partial only, serving-caveated |
+| `qwen_full` mhd-pair × Qwen3 30B MoE × N=2400 MuSiQue | Running at operator snapshot q1058/2400; `rag_simple` partial 26.1%. | pending / not found locally | operator-provided current snapshot; no `/tmp/*qwen*` or `logs/` backing file found in this workspace | Tier 2.5 partial only until full audit lands |
+| SLURM 55107 BarExam mhd+iter_hyde × Gemma 4 26B-A4B N=200 | Still running; operator snapshot says mhd 82% done and iter_hyde ~q106+/200 with 78.3% partial PASS rate. | pending / not found locally | `docs/mcnemar_2026-04-27.md`; `docs/signoff_log.md`; user-provided current snapshot | source pending; do not cite paired p=0.499 as landed |
 | `subagent_rag` × Llama 70b N=200 | Completed and signed as a significant negative: 31/200 = 15.5%, -12.0pp vs `rag_simple`, McNemar p=0.0007. | `logs/eval_subagent_rag_groq-llama70b_20260427_1044_detail.jsonl` | `logs/experiments.jsonl` row `20260427_1044`; `docs/mcnemar_2026-04-27.md`; `docs/signoff_log.md` | APPROVED as negative evidence; not a candidate improvement |
 
 #### Audit — `subagent_rag` Llama 70b MuSiQue N=200 (20 records sampled)
@@ -716,6 +718,9 @@ Verdict: CAVEAT — retrieval is non-empty but exact-gold tracking is 0/200, so 
 - The `advisor_planning_table` BarExam N=50 FAILED-EMPTY-RETRIEVAL row in `logs/experiments.jsonl`: `20260426_2242_advisor_planning_table_groq-llama70b_api-barexam-advisor-llama-n50_FAILED-EMPTY-RETRIEVAL`; detail log `logs/eval_advisor_planning_table_groq-llama70b_20260426_2242_detail.jsonl`; doc `docs/audit_log.md`; commit `45f1e03`; empty retrieval 50/50.
 - Pre-fix BarExam numbers before formatter/retrieval-query fixes `f95f316` and `3d5ff05`; use post-fix `docs/audit_log.md` values.
 - Any positive framing of `subagent_rag` on Llama 70b MuSiQue; it is now signed negative evidence (-12.0pp, p=0.0007).
+- `gemma4_full` as Tier 3 or full-corpus evidence; it was killed at q431/2400 and is only a serving-caveated Tier 2.5 partial snapshot.
+- `iterative_planning_table` × Gemma 27B from OR-Gemma; the operator snapshot says it was killed at q29/200 after runaway latency.
+- BarExam Gemma 4 26B-A4B mhd paired p=0.499 as a landed result until SLURM 55107 writes a source detail log under `logs/`.
 
 ## Reproducibility appendix
 

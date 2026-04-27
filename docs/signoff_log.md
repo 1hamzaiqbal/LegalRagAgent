@@ -19,6 +19,14 @@ This log lists results that have:
 - ⏸ **PENDING** — landed but awaiting audit
 - ❌ **REJECTED** — known confound, do not cite
 
+## Quick reference: top 5 cite-able findings for the paper
+
+1. ✅ BarExam snap+HyDE is the Tier 3 legal-MC winner: Gemma 4 26B-A4B 78.08% → 81.17% (+3.09pp) and Gemma 4 E4B 58.49% → 62.18% (+3.69pp), with the documented low exact-gold retrieval/parser caveats.
+2. ✅ Llama 70b MuSiQue `multi_hyde_diverse` is the clean Tier 2 multi-hop headline: 27.5% → 35.5%, +8.0pp, McNemar p=0.0195.
+3. ⚠️ Llama 70b MuSiQue `iterative_planning_table` is cite-able as TRENDING-SIG, not fully significant: 27.5% → 36.0%, +8.5pp, p=0.0533.
+4. ✅ Gemma 3 27B MuSiQue mhd is a cite-able negative cross-family check: 28.5% → 31.0%, +2.5pp, p=0.5901 NULL.
+5. ✅ Llama 70b MuSiQue `subagent_rag` is cite-able negative evidence: 27.5% → 15.5%, -12.0pp, p=0.0007.
+
 ---
 
 ## Section A — Tier 3 / Full corpus
@@ -42,16 +50,16 @@ This log lists results that have:
 
 ### A.2 BarExam Gemma 4 E4B method matrix at N=1195
 
-| Mode | EM | Audit | Sign-off |
-|---|---:|---|---|
-| `rag_simple` | 58.49% | MINOR | ⚠️ APPROVED-WITH-CAVEAT |
-| `rag_hyde` | 60.59% | MINOR | ✅ APPROVED |
-| `rag_snap_hyde` | 62.18% | ⏸ PENDING | ⏸ PENDING |
-| `snap_hyde_report` | 60.75% | ⏸ PENDING | ⏸ PENDING |
-| `snap_only_in_final` | 57.82% | ⏸ PENDING | ⏸ PENDING |
-| `subagent_hybrid` | 58.83% | ⏸ PENDING | ⏸ PENDING |
-| `subagent_hyde` | 60.17% | ⏸ PENDING | ⏸ PENDING |
-| `subagent_rag` | 60.92% | ⏸ PENDING | ⏸ PENDING |
+| Mode | EM | Audit | Sign-off | Caveat |
+|---|---:|---|---|---|
+| `rag_simple` | 58.49% | MINOR | ⚠️ APPROVED-WITH-CAVEAT | low exact-gold retrieval; no sampled parser issue |
+| `rag_hyde` | 60.59% | MINOR | ✅ APPROVED | low exact-gold retrieval (generic to dataset) |
+| `rag_snap_hyde` | 62.18% | MINOR | ✅ APPROVED | one raw null parsed prediction in full scan; sample clean |
+| `snap_hyde_report` | 60.75% | MINOR | ✅ APPROVED | low exact-gold retrieval (generic to dataset) |
+| `snap_only_in_final` | 57.82% | CLEAN | ✅ APPROVED | — |
+| `subagent_hybrid` | 58.83% | MINOR | ✅ APPROVED | low exact-gold retrieval (generic to dataset) |
+| `subagent_hyde` | 60.17% | MINOR | ✅ APPROVED | low exact-gold retrieval (generic to dataset) |
+| `subagent_rag` | 60.92% | MINOR | ✅ APPROVED | low exact-gold retrieval (generic to dataset) |
 
 **Detail logs**: `logs/eval_*_cluster-vllm_20260426_*_detail.jsonl` (E4B); see `docs/compiled_results.md` Section 1.3.
 
@@ -61,7 +69,7 @@ This log lists results that have:
 - Gemma 4 26B-A4B: +3.09pp (78.08% → 81.17%)
 - Gemma 4 E4B: +3.69pp (58.49% → 62.18%)
 
-**Sign-off**: ✅ APPROVED (Tier 3, cross-size confirmed, codex per-entry audit passed for 26B; E4B audit pending but no MAJOR concerns expected from codex's pattern).
+**Sign-off**: ✅ APPROVED (Tier 3, cross-size confirmed; both sizes have post-fix detail-log/audit support, with the caveats listed above).
 
 ---
 
@@ -80,7 +88,7 @@ This log lists results that have:
 | `advisor_planning_table` | 23.0% | -4.5pp | 0.222 | McNemar 12:30 | ✅ APPROVED — NS but informative negative |
 | **`subagent_rag`** | **15.5%** | **-12.0pp** | **0.0007** | CLEAN | **✅ APPROVED — sig negative** |
 
-**Detail logs**: `logs/eval_*_groq-llama70b_2026042700{52..1112}_detail.jsonl` (commit `f9b73c3`).
+**Detail logs**: `logs/eval_*_groq-llama70b_20260427_{0952,1010,1019,1036,1044,1112,1208,1216}_detail.jsonl`.
 **Source-of-truth**: `docs/mcnemar_2026-04-27.md`.
 
 ### B.2 Mechanism decomposition (Llama 70b N=200)
@@ -101,8 +109,9 @@ This log lists results that have:
 
 | Method / model | Comparator | Result | McNemar p | Sign-off |
 |---|---|---:|---:|---|
-| `multi_hyde_diverse` × Gemma 4 26B-A4B | paired first-200 `rag_simple` = 84.5% | 82.0%, -2.5pp | 0.499 | ✅ APPROVED — cross-domain rejection of mhd transfer to BarExam |
+| `multi_hyde_diverse` × Gemma 4 26B-A4B | paired first-200 `rag_simple` = 84.5% | 82.0%, -2.5pp | 0.499 | ✅ APPROVED — cross-domain rejection (mhd doesn't help BarExam) |
 
+**Detail log**: `logs/eval_multi_hyde_diverse_or-gemma4-26b_20260427_1211_detail.jsonl` (200 records, 8.8MB, scp'd from cluster). Paired against `logs/eval_rag_simple_cluster-vllm_20260425_2020_detail.jsonl` first 200 records.
 **Source-of-truth**: `docs/mcnemar_2026-04-27.md`, Update 2026-04-27 ~12:30 CDT.
 
 ---
@@ -140,8 +149,8 @@ iter_hyde × Llama 70b N=200 = -3pp p=0.47 NS (audit CLEAN).
 
 | Run | Status | Spot-check verdict | Expected sign-off |
 |---|---|---|---|
-| SLURM 55107 BarExam mhd+iter_hyde × Gemma 4 26B-A4B N=200 | mhd 100% done (164/200=82%), iter_hyde at q106+/200 (78.3% partial PASS rate) | LEGIT — clean, no leakage, no errors, healthy answers | Expected ✅ APPROVED on landing |
-| `qwen_full` mhd-pair × Qwen3 30B MoE × N=2400 MuSiQue | RUNNING ~q1058/2400 (rag_simple = 26.1%, slow but progressing) | LEGIT — no leakage, healthy answers, occasional latency outliers (recovered) | Expected ✅ APPROVED on landing (will be partial at meeting time) |
+| SLURM 55107 BarExam mhd+iter_hyde × Gemma 4 26B-A4B N=200 | still running; operator snapshot says mhd 82% done and iter_hyde at q106+/200 (78.3% partial PASS rate) | LEGIT by operator spot-check, but source detail log not present locally | Expected ✅ APPROVED only after landing + source log |
+| `qwen_full` mhd-pair × Qwen3 30B MoE × N=2400 MuSiQue | RUNNING ~q1058/2400 (rag_simple = 26.1%, slow but progressing) | LEGIT by operator spot-check, but source log not present locally | Tier 2.5 partial only until full run + audit land |
 
 ### Section D — KILLED jobs (cannot be relied on as Tier 2/3 results)
 
