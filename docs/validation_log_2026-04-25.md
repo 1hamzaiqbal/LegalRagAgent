@@ -718,6 +718,19 @@ Audit `a20b99c33f0b4d088`: both Gemma logs CLEAN (0 errors / 0 None preds / 0 pl
 
 **Pending: iter_hyde N=30 Llama 70b (need to wait for Groq daily TPD reset OR use OpenRouter).**
 
+### iter_hyde Llama 70b — DEFERRED (route exhaustion 2026-04-27 ~00:47 UTC)
+
+Two attempts to run iter_hyde N=30 on Llama 70b today failed at pre-flight:
+- `groq-llama70b`: at 100K TPD daily cap (burned ~150-200K running rag_simple N=100 + multi_hyde_diverse N=100 successfully). Groq resets at UTC midnight = 19:00 CDT, ~18 hours from now.
+- `or-llama70b` (free tier `meta-llama/llama-3.3-70b-instruct:free`): Venice provider 429-rate-limited upstream. Three retries (5s, 10s back-off) all 429. Pre-flight gate (`SystemExit(2)`) aborted cleanly without burning questions.
+
+**Both attempts are documented evidence the pre-flight smoke gate WORKS** — saved 0 wasted questions on rate-limited routes. The legitimate methodology question (does multi-round iter_hyde HELP the bigger model even while it HURTS Gemma 3 27B?) remains open until Groq daily reset OR a paid Llama 70b OpenRouter route.
+
+**Phase 14 meeting story (current)**:
+- `multi_hyde_diverse` (single-round HyDE diversity) is the **first multi-hop method to lift cross-FAMILY at N=100** (Llama +12pp sig, Gemma +8pp trending).
+- `iter_hyde` (multi-round HyDE) HURTS Gemma 3 27B at N=30 (-20pp vs rag_simple). Per-record analysis: retrieval is great (93% gold_retrieved), but the long HyDE-finding chain overloads the smaller model's synthesizer.
+- Llama 70b iter_hyde test pending — would distinguish "multi-round needs capacity floor" (if Llama lifts) from "multi-round adds no value cross-family, single-round captures the gain" (if Llama also flat or hurts).
+
 ## Anomalies / things to investigate
 
 (empty — populated when audits flag something)
