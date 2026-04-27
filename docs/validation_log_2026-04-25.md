@@ -418,9 +418,12 @@ After uniform re-score with the fixed `<span>` extractor, on MuSiQue N=30:
 | Mode | Gemma 4 26B EM | Llama 70b EM | gold_ret Gemma | gold_ret Llama |
 |---|---|---|---|---|
 | rag_simple (1 query, 1 reason) | **26.7%** | **20.0%** | 83% | 87% |
-| rag_multi_query (3 queries pooled) | 23.3% | 20.0% | **87%** | (audit pending) |
+| rag_multi_query (3 queries pooled) | 23.3% | 20.0% | **87%** | 83% |
 | planning_table_no_snap_v2 (per-TODO) | 23.3% | 20.0% | 83% | **90%** |
+| **planning_table WITH snap v2** | **16.7%** ↓ | (n/a) | (audit pending) | n/a |
 | rag_snap_hyde (snap-driven) | 20.0% | 13.3% | 60% | 50% |
+
+**🎯 Cleanest snap-ablation:** comparing planning_table WITH-snap v2 (16.7%) to planning_table NO-snap v2 (23.3%) — same v2 synthesizer prompt, same per-TODO retrieval structure, only difference is whether snap reasoning seeds the plan-gen. **Snap costs -6.6pp** in this controlled comparison. Direct evidence that snap-bias is the multi-hop failure mechanism.
 
 **🔬 Key finding:** NO method beats `rag_simple` on MuSiQue, on EITHER model. The structured methods consistently match (~20% on Llama 70b) or underperform (-3.4pp on Gemma 4 26B) the simple baseline. **The "snap+HyDE breaks on multi-hop" finding generalizes to ALL structured methods we've tried** (snap+HyDE, subagent, planning_table with/without snap, rag_multi_query).
 

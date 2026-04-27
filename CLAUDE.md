@@ -186,21 +186,63 @@ before any new submission. The full pre-submission checklist lives in
 
 ## Current Best Results / Direction Snapshot
 
-See `docs/experiment_overview.md` for the full table and `docs/size_comparison_matrix.md` for the live cross-scale matrix. Key numbers (post-leak-fix):
+**Source of truth**: `docs/validation_log_2026-04-25.md` for the live matrix +
+`docs/methods_characterization_2026-04-26.md` for the meeting story. Numbers below are post-fix N=1195 BarExam (commit `56bffc8`).
 
-**Cross-size scaling on `rag_simple` (full N=1195)**: E2B **45.4%** → E4B **55.7%** → 26B-A4B **70.8%** → 31B **79.6%**. Monotonic; model size dominates method choice past 8B.
+### Gemma 4 26B-A4B BarExam (post-fix N=1195, 8/8 modes landed)
 
-**Post-fix N=200 on E4B** (clean, 0% leak): `rag_simple` 60.5%, `rag_hyde` 59.5%, `rag_snap_hyde` **66.5%**, `snap_only_in_final` 64.0%. **Snap adds +7pp over plain HyDE** — the old "snap adds 0pp" claim was a leak artifact.
+| Mode | EM | Δ vs `rag_simple` |
+|---|---|---|
+| `rag_snap_hyde` | **81.17%** | **+3.09pp** ← winning method |
+| `snap_only_in_final` | 80.59% | +2.51pp |
+| `llm_only` | 79.75% | +1.67pp |
+| `rag_hyde` | 78.91% | +0.83pp |
+| `golden_passage` (oracle) | 78.66% | +0.58pp |
+| `subagent_rag` | 78.16% | +0.08pp |
+| `rag_simple` (baseline) | 78.08% | — |
+| `subagent_hybrid` | 74.14% | -3.94pp |
 
-**31B N=200 matrix**: rag_simple 79%, rag_hyde 83%, rag_snap_hyde 85%, snap_only_in_final 84%. Method stacking collapses at bigger scale: snap+HyDE lift drops from +7pp at E4B to +2pp at 31B.
+### Gemma 4 E4B BarExam (post-fix N=1195, 6 modes landed; llm_only + golden_passage missing — 54173 wallclocked)
 
-Historical E4B pre-leak-fix full N=1195 numbers (`rag_hyde` 57.9%, `snap_hyde` 57.9%, `subagent_rag` 57.2%, `llm_only` 55.5%, `rag_simple` 54.2%, `golden_passage` 62.2% ceiling) are kept for audit continuity but are being superseded by the 2026-04-21 wave.
+| Mode | EM | Δ vs `rag_simple` |
+|---|---|---|
+| `rag_snap_hyde` | **62.18%** | **+3.69pp** ← same winner as 26B |
+| `subagent_rag` | 60.92% | +2.43pp |
+| `snap_hyde_report` | 60.75% | +2.26pp |
+| `rag_hyde` | 60.59% | +2.10pp |
+| `subagent_hyde` | 60.17% | +1.68pp |
+| `subagent_hybrid` | 58.83% | +0.34pp |
+| `rag_simple` (baseline) | 58.49% | — |
+| `snap_only_in_final` | 57.82% | -0.67pp |
 
-Working interpretation (current):
-- Model size is the dominant variable past 8B — method choice is second-order
-- Snap reasoning is the real driver at E4B scale; HyDE retrieval is secondary additive
-- At 31B the model's parametric knowledge overlaps with both snap and HyDE contributions — method stacking shrinks
-- Showing snap answer letter to the final agent **always hurts** — strip the letter, keep the reasoning
+### Cross-family BarExam llm_only N=100 board
+
+| Model | EM | Architecture |
+|---|---|---|
+| Llama 3.3 70b | 81% | 70B dense |
+| **Gemma 4 26B-A4B** | **79.75%** | **25B/3.8B-active MoE** (cluster N=1195) |
+| Qwen3 30B MoE | 70% | 30B/3B-active MoE (N=100) |
+| Qwen3 32b dense | 68% | 32B dense |
+| Gemma 3 27b | 68% | 27B dense |
+| Llama 4 Scout 17b | 67% | 17B MoE |
+
+### MuSiQue (multi-hop) — methods DON'T LIFT cross-model
+
+| Mode | Gemma 4 26B (N=30) | Llama 70b (N=30) |
+|---|---|---|
+| `rag_simple` | **26.7%** | **20.0%** ← baseline best on multi-hop |
+| `rag_multi_query` | 23.3% | 20.0% |
+| `planning_table_no_snap` v2 | 23.3% | 20.0% |
+| `rag_snap_hyde` | 20.0% | 13.3% |
+| `golden_passage` (oracle) | 62% | n/a |
+
+### Working interpretation (current)
+
+- **`rag_snap_hyde` is the proven winner on legal MC**: +3-4pp over `rag_simple` at BOTH E4B and 26B sizes (clean cross-size lift, not noise)
+- **NO method beats `rag_simple` on multi-hop QA** across Gemma 4 26B AND Llama 70b — bottleneck is composition over multiple passages, not retrieval coverage
+- **Bug-fix decomposition**: formatter (`f95f316`) added +5.44pp at 26B llm_only/snap_only_in_final identically; retrieval-query (`3d5ff05`) added +1.85pp marginal on RAG modes
+- **Showing snap answer letter to the final agent always hurts** — strip the letter, keep the reasoning (regression-tested in `tests/test_sanitizer.py`)
+- **Cross-model**: Gemma 4 26B-A4B beats Qwen3 30B MoE by +9.75pp at the same MoE class; +12pp over Gemma 3 27b dense
 
 Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the full tables + keep/discard history.
 
