@@ -138,11 +138,13 @@ iter_hyde × Llama 70b N=200 = -3pp p=0.47 NS (audit CLEAN).
 
 ## Section D — In flight (will sign off when landed + audited)
 
-| Run | Status | Expected sign-off check |
-|---|---|---|
-| SLURM 55107 BarExam iter_hyde × Gemma 4 26B-A4B N=200 | IN FLIGHT after mhd landed | Audit on landing, expected ✅ APPROVED if no MAJOR |
-| `gemma4_full` mhd-pair × Gemma 4 26B-A4B × N=2400 MuSiQue | RUNNING ~q360/2400 (rag_simple = 32.7%) | Tier 3 sign-off pending full-run + audit |
-| `qwen_full` mhd-pair × Qwen3 30B MoE × N=2400 MuSiQue | RUNNING ~q830/2400 (rag_simple = 26.7%) | Tier 3 sign-off pending full-run + audit |
+| Run | Status | Spot-check verdict (Haiku 12:50 CDT) | Expected sign-off |
+|---|---|---|---|
+| SLURM 55107 BarExam mhd+iter_hyde × Gemma 4 26B-A4B N=200 | mhd 100% done (164/200=82%), iter_hyde at q106/200 (78.3% partial PASS rate) | LEGIT — clean, no leakage, no errors, healthy answers | Expected ✅ APPROVED on landing |
+| `gemma4_full` mhd-pair × Gemma 4 26B-A4B × N=2400 MuSiQue (or-gemma4-26b API) | RUNNING ~q431/2400 (rag_simple = 30.9%) | ⚠️ SUSPICIOUS — 9 placeholder `[your answer here]` leaks (~2% rate) + extreme-latency runaway-loop generations (one 47-min query) | ⚠️ APPROVED-WITH-CAVEAT — flag ~2% leakage, post-hoc filter placeholder records |
+| `qwen_full` mhd-pair × Qwen3 30B MoE × N=2400 MuSiQue | RUNNING ~q1029/2400 (rag_simple = 26.4%) | LEGIT — no leakage, healthy answers, 2 latency outliers (recovered) | Expected ✅ APPROVED on landing |
+
+**Note on gemma4_full caveat**: The SAME model (Gemma 4 26B-A4B) on cluster vLLM (SLURM 55107) shows ZERO leakage. The placeholder leak is specific to OR-served Gemma 4 26B — likely a serving-quirk not a model bug. Cluster vLLM remains gold-standard for Gemma 4 26B; OR is acceptable with the documented caveat.
 
 ---
 
