@@ -1,10 +1,48 @@
 # LegalRagAgent
 
-## Update 2026-04-27 ~12:30 CDT
-
-Change reason: housekeeping sweep after Tier 2 MuSiQue sign-off. Current citation gate is `docs/signoff_log.md`; detailed audit reference is `docs/compiled_results.md`. The latest confirmed MuSiQue paper headline is Llama 70b `multi_hyde_diverse` N=200 at **35.5%** vs `rag_simple` **27.5%** (+8.0pp, McNemar p=0.0195). Gemma 3 27B N=200 is a NULL (+2.5pp, p=0.5901), so cross-family MHD is not confirmed yet. N<200 rows are direction-only.
-
 Legal RAG research project studying **when retrieval helps legal QA and when it hurts**.
+
+## 🎯 Start here — meeting / paper-grade reading order
+
+| Read in order | What's there |
+|---|---|
+| 1. [`docs/signoff_log.md`](docs/signoff_log.md) | Cite-or-not gate: APPROVED / WITH-CAVEAT / PENDING / REJECTED per result |
+| 2. [`docs/narrative_2026_04_27.md`](docs/narrative_2026_04_27.md) | Story arc: why this work, what was tried, what we found, model assessments |
+| 3. [`docs/mcnemar_2026-04-27.md`](docs/mcnemar_2026-04-27.md) | Every paired McNemar test with b/c counts and 95% CIs |
+| 4. [`docs/compiled_results.md`](docs/compiled_results.md) | Per-entry audited details with detail-log paths, commit SHAs, audit verdicts |
+
+**Quick navigation: [`docs/presentation/00_index.md`](docs/presentation/00_index.md)** — landing page with Q&A cheatsheet pointing to results tables, methods explained, takeaways, datasets+models, log index, next steps, and figures.
+
+**Figures**: [`docs/presentation/figures/`](docs/presentation/figures/) — 7 PNGs (paper headline matrix, BarExam cross-size, mechanism decomposition, cross-domain specificity, cross-family check, BarExam full matrix, cost vs accuracy). Captions in [`figures/captions.md`](docs/presentation/figures/captions.md).
+
+**Log viewer**: `python scripts/log_viewer.py` → http://localhost:8765 — drag-drop or path-entry, PASS/FAIL filter, navigation, pretty-printed records. See [`docs/presentation/log_viewer.md`](docs/presentation/log_viewer.md).
+
+## Headline results (audited 2026-04-27)
+
+**BarExam Tier 3 (full corpus N=1195)** — `rag_snap_hyde` wins cross-size on Gemma 4:
+- Gemma 4 26B-A4B: 78.08% → **81.17%** (+3.09pp)
+- Gemma 4 E4B: 58.49% → **62.18%** (+3.69pp)
+
+**MuSiQue Tier 2 (N=200 paired McNemar) — Llama 3.3 70b dense paper headline:**
+- `rag_simple` 27.5% (baseline)
+- **`multi_hyde_diverse`** 35.5%, **+8.0pp p=0.0195 SIG** ✅ * (full-corpus replicate would solidify)
+- `iterative_planning_table` 36.0%, +8.5pp p=0.0533 TRENDING-SIG * (full-corpus replicate would solidify)
+- `subagent_rag` 15.5%, **-12.0pp p=0.0007 SIG NEGATIVE** (gap-routing over-abstains, implementation caveat)
+- All other methods NS
+
+**Mechanism (Tier 2)**: mhd's +8pp lift = ~+1.5pp from query diversity (NS) + ~+6.5pp from HyDE-style answer-bearing passages. **HyDE-style passages do ~80% of the work.**
+
+**Cross-domain**: BarExam method (snap+HyDE) does NOT carry to MuSiQue (-3.5pp NS). MuSiQue method (mhd) does NOT carry to BarExam paired (-2.5pp NS). Methods are domain-specific.
+
+**Cross-family caveat**: Llama 70b SIG +8pp; Gemma 3 27B NULL +2.5pp p=0.59. Multi-hop lift is not yet universal across dense families. Full-corpus runs in flight.
+
+## Methodology hardening
+
+- **Tier system**: N=100 directional only, N=200+ paired McNemar = citeable (Tier 2), full corpus = paper headline (Tier 3)
+- **Per-entry audits**: 30 detail logs spot-checked for truncation / `<think>` leakage / empty preds / silent fallbacks (`docs/audits/`)
+- **Pre-flight gate**: catches API auth fails (DeepSeek), runaway-rate limits (Venice 429), empty retrieval before logging garbage
+- **Paired McNemar infrastructure**: `scripts/compute_mcnemar.py`
+- **OR-Gemma serving caveat**: runaway-loop generations on iterative methods caught and documented; cluster vLLM remains gold-standard for Gemma 4
 
 The repo contains two layers:
 - `main.py` — the full LangGraph agentic pipeline / demo system
@@ -12,27 +50,21 @@ The repo contains two layers:
 
 **Project direction:** the long-term goal is still a strong full agentic pipeline, but the current research program is rebuilding toward it atomically from smaller, controlled retrieval strategies and only keeping improvements that survive fixed-eval scrutiny.
 
-**Current headline results:**
-- BarExam full-N best: Gemma 4 26B-A4B `rag_snap_hyde` = **81.17%** (N=1195, post-prompt, audited); historical Llama 70B `ce_threshold` = **80.0%** (N=200)
-- HousingQA best: `rag_snap_hyde` on Llama 70B = **56.0%** (N=200)
-- CaseHOLD best: `llm_only` / `confidence_gated` = **72.5%** (N=200)
-- Best small-model full tier: **Gemma 4 E4B** — `rag_snap_hyde` **62.18%**, `subagent_rag` **60.92%**, `snap_hyde_report` **60.75%**, `rag_hyde` **60.59%** at N=1195 post-prompt
-- MuSiQue multi-hop: Llama 70B `multi_hyde_diverse` is the current Tier 2 paper headline at **35.5%** vs `rag_simple` **27.5%** (N=200, +8.0pp, p=0.0195); Gemma 3 27B MHD is **31.0%** vs **28.5%** (N=200, +2.5pp, p=0.5901 NULL).
-- Working interpretation: `rag_snap_hyde` is the current legal-MC winner; `multi_hyde_diverse` is the current Llama multi-hop exception; showing snap to the final agent still hurts.
-- **Multi-turn reasoning** (historical `vectorless_*` family): `vectorless_direct` **64.5%**, `vectorless_hybrid` **65.0%** — LLM parametric knowledge, not corpus search
-- **Real structured search** (in progress): case summary index + NLP entity graph for actual corpus navigation without embeddings
-- `logs/experiments.jsonl` contains **316** records as of 2026-04-27 ~12:30 CDT
-- 61 eval modes registered; `vectorless_keyword` is the only registered mode with no run row found in `logs/experiments.jsonl`
+The repo contains two layers:
+- `main.py` — the full LangGraph agentic pipeline / demo system
+- `eval/` — the current research loop, where simpler adaptive methods are benchmarked against heavier agentic variants
 
-See `RESEARCH.md` for the current state + queue, and `EXPERIMENTS.md` for the full keep/discard history.
+**Project direction:** the long-term goal is still a strong full agentic pipeline, but the current research program is rebuilding toward it atomically from smaller, controlled retrieval strategies and only keeping improvements that survive fixed-eval scrutiny.
+
+**Other domains (historical, not paper-grade)**: HousingQA `rag_snap_hyde` on Llama 70B = 56% (N=200); CaseHOLD `llm_only` / `confidence_gated` = 72.5% (N=200). See `RESEARCH.md` for the running state and `EXPERIMENTS.md` for the full keep/discard history.
 
 ## Setup
 
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/1hamzaiqbal/LegalRagAgent.git
-cd LegalRagAgent
+git clone https://github.com/shrango/adaptive-plan-and-solve-agent.git
+cd adaptive-plan-and-solve-agent
 uv sync
 ```
 
@@ -82,38 +114,9 @@ uv run python eval/eval_harness.py --mode confidence_gated --provider groq-llama
 uv run python llm_config.py
 ```
 
-## Key Results (N=200, seed=42 unless noted)
+## Audited paper-grade results (full table)
 
-| Mode | BarExam (Llama 70B) | HousingQA (Llama 70B) | CaseHOLD (Llama 70B) |
-|---|---|---|---|
-| llm_only | 64% | 47% | 72.5% |
-| rag_snap_hyde | 76.5% | **56%** | 71% |
-| confidence_gated | **79%** | 50.5% | 72.5% |
-| ce_threshold | **80%** | — | — |
-
-RAG helps most when the model has a genuine knowledge gap (HousingQA). On better-known domains, retrieval is often neutral or harmful unless carefully gated.
-
-Current Gemma 4 E4B audited full snapshot (N=1195, BarExam): `rag_snap_hyde` **62.18%**, `subagent_rag` **60.92%**, `snap_hyde_report` **60.75%**, `rag_hyde` **60.59%**, `rag_simple` **58.49%**.
-
-### HPC Cluster Results (N=1195 full BarExam, local vLLM inference)
-
-| Model | llm_only | golden_passage | rag_simple | rag_hyde | rag_snap_hyde |
-|---|---|---|---|---|---|
-| Gemma 4 E4B | — | — | 58.49% | 60.59% | **62.18%** |
-| Gemma 4 26B-A4B | 79.75% | 78.66% | 78.08% | 78.91% | **81.17%** |
-
-E4B `llm_only` and `golden_passage` were not completed in the Phase 12 wave; the job wallclocked after `rag_simple` and `rag_hyde`. Older 57.9%/58.6% HyDE-family rows are pre-prompt-fix historical references.
-
-### Embedding Model Comparison (Gemma 4 E4B, N=200, BarExam)
-
-| Embedding Model | Params | rag_simple | rag_snap_hyde |
-|---|---|---|---|
-| gte-large-en-v1.5 (baseline) | 434M | 57.0% | **65.5%** |
-| legal-bert-base-uncased | 110M | **62.0%** | 60.0% |
-| stella-en-400M-v5 | 400M | 61.0% | 60.0% |
-| bge-m3 | 568M | 61.0% | 60.0% |
-
-All alternative embedders beat baseline on `rag_simple` (+4-5pp), but `rag_snap_hyde` flattens differences to ~60%. This suggests HyDE-generated passages are already well-matched by the baseline embedder, while raw questions benefit from different embedding geometry.
+For the full audited matrix — including BarExam Tier 3 N=1195 on both Gemma 4 sizes and the Llama 70b N=200 method matrix with paired McNemar p-values — see [`docs/presentation/01_results_tables.md`](docs/presentation/01_results_tables.md). Methodology and citation rules are in [`docs/signoff_log.md`](docs/signoff_log.md).
 
 ## Pipeline Architecture
 
@@ -162,19 +165,28 @@ utils/
   download_housingqa.py    # HousingQA dataset fetcher
   download_new_datasets.py # CaseHOLD, Legal-RAG-QA, Australian Legal QA fetcher
 scripts/hpc/               # SLURM job scripts for WashU HPC cluster
-scripts/run_embedding_probe.sh  # Local embedding diagnostics
-docs/                      # HPC throughput data, setup logs, experiment summaries
+scripts/log_viewer.py      # Local detail-log viewer (drag-drop, PASS/FAIL filter, prev/next nav)
+scripts/compute_mcnemar.py # Paired McNemar exact 2-sided test + bootstrap CI
+scripts/analyze_friend_foe_bias.py  # Attribution-bias structured analysis
+docs/
+  README.md                # Documentation index — start here
+  signoff_log.md           # Cite-or-not gate (paper-grade)
+  narrative_2026_04_27.md  # Story arc + model assessments
+  mcnemar_2026-04-27.md    # Paired statistical tests
+  compiled_results.md      # Per-entry audited details
+  audit_log.md             # BarExam Tier 3 source-of-truth (post-fix)
+  rigour_signoff.md        # Methodology + pre-submission checklist
+  presentation/            # 6 docs + figures/ + log_viewer guide
+  audits/                  # Per-log audit reports (4 files, ~30 logs sampled)
+  archive_2026-04-27/      # Superseded working docs (kept for traceability)
 RESEARCH.md                # Research state, experiment queue, session handoff
 EXPERIMENTS.md             # Full experiment log (hypothesis → result → verdict)
 CLAUDE.md                  # Operational source of truth
-ideas/                     # Archived idea docs (active queue in RESEARCH.md)
-agentic_ideas/             # Gitignored scratch notes / archive directory
+tests/                     # Regression tests for formatter and sanitizer hardening
 logs/                      # Eval output (gitignored)
 datasets/                  # Downloaded data (gitignored)
 chroma_db/                 # Vector store (gitignored)
 ```
-
-tests/                    # Regression tests for formatter and sanitizer hardening
 
 ## Datasets
 
