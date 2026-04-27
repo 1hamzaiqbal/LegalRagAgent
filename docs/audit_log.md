@@ -86,3 +86,23 @@ For every NEW result that lands, the workflow is:
 5. **Commit + push** with the audit reference in the commit message
 
 This pattern was applied to: ptable_no_snap_v2 (audit `a5d0f6457732180b9`), ptable_with_snap_v2 (audit `ad761cf8dc0f64234`), iter_ptable Llama (audit `aa74ab56dcabb1d29`), advisor Llama (audit `a52e7244f936cc5c8` running), Qwen3 30B MoE (audit `a82dc3b08ebe4203a`).
+
+## MuSiQue N=100 paired anchor — advisor pattern vs rag_simple (Llama 70b)
+
+Audited 2026-04-26 for the "advisor pattern (cheap LLM plans/finds, strong LLM synthesizes)" claim. Both runs at N=100, same shared idx set (100/100 overlap).
+
+| Mode | Stored EM | Re-scored EM | Errors | None preds | gold_retrieved | routed_to | Verdict |
+|---|---|---|---|---|---|---|---|
+| `advisor_planning_table` (advisor=groq-llama8b, main=groq-llama70b) | 23/100 | **23/100** | 0 | 0 | 88% | 0 | CLEAN |
+| `rag_simple` (groq-llama70b) | 21/100 | **21/100** | 0 | 0 | 83% | 0 | CLEAN |
+
+- **Provider integrity (advisor log)**: `advisor_provider='groq-llama8b'` and `provider='groq-llama70b'` on all 100 rows. `advisor_model='llama-3.1-8b-instant'`, todos_count avg ~3, planning_table populated with `{todo, finding, evidence_ids}`. Cheap-plan / strong-synthesize claim holds row-by-row.
+- **Spot-check (5 rows from each, seed=42)**: extractor agrees with human judgment. One borderline advisor row (`2hop__51113_84616`) returned `None` because synthesis went meandering — defensible miss, not extractor bug. Rag_simple emits clean `Answer: …` markers; advisor emits longer chain-of-thought, both extracted correctly.
+- **Paired McNemar (N=100)**: both_right=12, both_wrong=68, b(adv+/rag-)=11, c(adv-/rag+)=9 → **two-sided exact p = 0.824**. Differential is well within sampling noise.
+- **Bootstrap 95% CI on (advisor_em - rag_em)**: +0.02 with **CI [-0.07, +0.11]** (10K resamples, paired). Includes 0.
+
+**Verdict: CLEAN, but NOT statistically significant.** Both numbers are correctly extracted, both runs healthy (0 errors, 0 None preds, 0 silent fallbacks). The +2pp advisor lift is directional only — at N=100 paired, p=0.82 and CI spans zero. Cite as "advisor pattern matches rag_simple within noise at N=100; cheap planner ≠ accuracy regression" rather than as a win. If the paper claims a lift, scale up N or reframe as cost/latency parity.
+
+Files:
+- `/Users/hamzaiqbal/grad/LegalRagAgent/logs/eval_advisor_planning_table_groq-llama70b_20260426_2229_detail.jsonl`
+- `/Users/hamzaiqbal/grad/LegalRagAgent/logs/eval_rag_simple_groq-llama70b_20260426_2226_detail.jsonl`

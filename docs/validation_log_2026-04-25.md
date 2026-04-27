@@ -456,6 +456,28 @@ McNemar advisor vs rag_simple: b=5 advisor-only correct, c=0 rag-only correct, p
 
 McNemar advisor vs iter_ptable: b=3, c=3, p=1.0 — equivalent.
 
+### advisor_planning_table on Llama 70b — N=100 follow-up (2026-04-26 ~22:30 UTC)
+
+Scaled the headline advisor-vs-rag_simple comparison from N=30 to N=100 to test whether the +3.3pp directional lift holds. Both runs landed cleanly. **Result: lift shrinks to +2.0pp and is NOT statistically significant.**
+
+| Mode (Llama 70b, N=100) | EM | gold_retrieved | errors | none_preds | routed_to fallback |
+|---|---|---|---|---|---|
+| rag_simple | 21/100 (21.0%) | 83% | 0 | 0 | 0 |
+| **advisor_planning_table** (advisor=groq-llama8b, main=groq-llama70b) | 23/100 (23.0%) | 88% | 0 | 0 | 0 |
+
+**Paired McNemar (N=100, 100/100 idx overlap)**: both_right=12, both_wrong=68, b(adv+/rag-)=11, c(adv-/rag+)=9 → **two-sided exact p = 0.824**. Bootstrap 95% CI on (advisor_em − rag_em) = **[-7pp, +11pp]**, includes 0.
+
+**Update vs N=30 result**: at N=30 the McNemar discordant cells were b=5, c=0 ("advisor never loses" was true at small N and motivated the trending-p=0.0625 framing). At N=100, c=9 — i.e., **advisor DOES lose 9 questions that rag_simple gets right**. The "never loses" claim was a small-N artifact, not a real property of the method. The +3.3pp directional lift at N=30 has shrunk to +2.0pp at N=100 with a CI that comfortably crosses zero.
+
+**Re-frame for paper**: NOT "advisor lifts EM" but "advisor matches rag_simple within sampling noise at N=100, while reducing strong-LLM input tokens 86% and output tokens 43%." That is, the value proposition is **cost/latency parity, not accuracy gain**, on this benchmark.
+
+**Provider integrity verified row-by-row** (audit `a5bbd0b5840ac0da6`): on all 100 advisor rows, `advisor_provider='groq-llama8b'`, `advisor_model='llama-3.1-8b-instant'`, main `provider='groq-llama70b'`. Cheap-LLM-plans / strong-LLM-synthesizes mechanism holds.
+
+**Files**:
+- `logs/eval_advisor_planning_table_groq-llama70b_20260426_2229_detail.jsonl`
+- `logs/eval_rag_simple_groq-llama70b_20260426_2226_detail.jsonl`
+- Audit verdict: `docs/audit_log.md` § "MuSiQue N=100 paired anchor"
+
 ### Cross-MODEL × cross-METHOD picture (NEW summary)
 
 | Mode | Gemma 4 26B | Llama 70b | Direction |
@@ -468,12 +490,13 @@ McNemar advisor vs iter_ptable: b=3, c=3, p=1.0 — equivalent.
 | ptable_with_snap_v2 | 16.7% (-10) | n/a | snap-bias hurts |
 | rag_snap_hyde | 20.0% (-6.7) | 13.3% (-6.7) | breaks on multi-hop both models |
 
-**Headline: advisor_planning_table is the only method that's universally non-harmful and provides lift where the model needs it.**
-- On Llama 70b: +3.3pp (same lift as iter_ptable; trending p=0.063, would need N=60 to confirm at α=0.05; NEVER loses to rag_simple)
-- On Gemma 4 26B: matches ptable_no_snap_v2 (-3.4pp, equivalent to other competitive methods)
-- Plus 80%+ strong-LLM token reduction vs iter_ptable
+**Headline (revised after N=100 follow-up): advisor_planning_table matches `rag_simple` within sampling noise on Llama 70b at N=100, with substantial strong-LLM token savings.**
+- **Llama 70b N=30**: 23.3% vs rag_simple 20.0% — directional +3.3pp, McNemar p=0.0625 (trending; b=5, c=0).
+- **Llama 70b N=100** (audit `a5bbd0b5840ac0da6`): 23.0% vs rag_simple 21.0% — directional +2.0pp, **McNemar p=0.824** (b=11, c=9). 95% CI [-7pp, +11pp] includes 0. The N=30 "never loses" property dissolved at N=100.
+- **Gemma 4 26B (N=30)**: matches ptable_no_snap_v2 (-3.4pp, equivalent to other competitive methods).
+- **Cost story (still real)**: 86% strong-LLM input-token reduction, 43% output-token reduction vs iter_ptable on the same benchmark.
 
-This is the **first defensible "method that helps without hurting" cross-model.**
+**Cite as "cost-parity method" not "accuracy lift method"** at current N. To claim a true accuracy lift on this benchmark would need N≫100 to detect a 2pp delta with paired McNemar power.
 
 ## Multi-hop methods DON'T LIFT — null finding generalizes cross-model
 
