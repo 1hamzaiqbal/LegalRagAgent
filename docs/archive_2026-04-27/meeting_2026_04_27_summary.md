@@ -1,3 +1,5 @@
+<!-- ARCHIVED 2026-04-27 — superseded by docs/narrative_2026_04_27.md -->
+
 # Monday meeting summary — 2026-04-27
 
 Source: `docs/validation_log_2026-04-25.md` (cluster post-fix wave, commit `56bffc8`),

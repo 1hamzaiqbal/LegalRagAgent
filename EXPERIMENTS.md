@@ -54,7 +54,7 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 
 **Verdict:** CONFIRMED — (a) monotonic scaling holds, (b) at E4B N=200 snap adds **+7pp** over plain HyDE, while at full N=1195 post-prompt `rag_snap_hyde` adds **+1.59pp** over `rag_hyde` and **+3.69pp** over `rag_simple`, (c) at 31B N=200 snap+HyDE lift drops to +2pp — method stacking collapses at bigger scale.
 
-**Commit:** `fdcb3da` (doc integration); live snapshot in `docs/size_comparison_matrix.md`.
+**Commit:** `fdcb3da` (doc integration); old live snapshot archived at `docs/archive_2026-04-27/size_comparison_matrix.md`; current paper-grade snapshot in `docs/compiled_results.md`.
 
 ---
 

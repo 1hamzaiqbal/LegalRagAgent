@@ -1,3 +1,5 @@
+<!-- ARCHIVED 2026-04-27 — superseded by docs/compiled_results.md -->
+
 # Gemma 4 Size-Comparison Matrix (post leak-fix)
 
 > **⚠ 2026-04-22 methodology bug (commit `f95f316`)**: Every full-N=1195

@@ -1,3 +1,5 @@
+<!-- ARCHIVED 2026-04-27 — superseded by docs/audit_log.md -->
+
 # Log trustworthiness audit — 2026-04-26 (round 3, deep)
 
 Subagent-produced audit specifically targeting "are our logs trustworthy" —

@@ -1,3 +1,5 @@
+<!-- ARCHIVED 2026-04-27 — superseded by docs/action_items.md -->
+
 # Pause State — 2026-04-22
 
 This session paused at **2026-04-22 ~04:50 UTC** so that another time-sensitive

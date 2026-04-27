@@ -21,8 +21,7 @@
 ## Topical analyses (paper-grade, narrower scope)
 
 - `friend_foe_bias_analysis_2026-04-27.md` — attribution-bias structured analysis
-- `methods_characterization_2026-04-26.md` — earlier characterization (still authoritative for non-2026-04-27 findings)
-- `figures/` — PNG figures referenced by the presentation deck
+- `presentation/figures/` — 7 PNG figures (paper headline matrix, BarExam cross-size, mechanism, cross-domain, cross-family, BarExam full matrix, cost vs accuracy) + `captions.md`
 
 ## Archived working docs
 

@@ -1,3 +1,5 @@
+<!-- ARCHIVED 2026-04-27 — superseded by docs/experiment_overview.md -->
+
 # LegalRagAgent: Experiment Summary
 
 Historical summary generated on 2026-03-30 from an early experiment snapshot. Current `logs/experiments.jsonl` now has 170 experiments across 5 datasets, 10+ models, and 44 eval modes.

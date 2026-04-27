@@ -285,5 +285,5 @@ The 2026-04-03 audit marker and the audited April 17 meeting-action table are pr
 | `CLAUDE.md` | Operational source of truth (how to run, environment notes) |
 | `logs/experiments.jsonl` | Machine-readable results (one JSON record per run) |
 | `ideas/actionable_ideas.md` | Idea backlog archive (active queue is here) |
-| `docs/experiment_summary.md` | Narrative experiment summary (generated 2026-03-30) |
+| `docs/experiment_overview.md` | Current experiment overview (old March summary archived at `docs/archive_2026-04-27/experiment_summary.md`) |
 | `docs/cluster_workflow.md` | Cluster bring-up plan for local inference + full evals |

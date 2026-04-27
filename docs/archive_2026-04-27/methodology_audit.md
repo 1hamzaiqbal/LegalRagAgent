@@ -1,3 +1,5 @@
+<!-- ARCHIVED 2026-04-27 — superseded by docs/audit_log.md -->
+
 # Methodology Audit
 
 Date: 2026-04-17

@@ -1,3 +1,5 @@
+<!-- ARCHIVED 2026-04-27 — superseded by docs/compiled_results.md -->
+
 # Scale × Config Interactions
 
 > **2026-04-22 prompt-bug fix landed in `f95f316` + `3d5ff05`**: the BarExam

@@ -1,3 +1,5 @@
+<!-- ARCHIVED 2026-04-27 — superseded by docs/rigour_signoff.md -->
+
 # Code audit — eval/eval_harness.py + eval/eval_config.py — 2026-04-26
 
 Empirical audit before scaling. **Verdict: SAFE TO SCALE 5-10x** with two
