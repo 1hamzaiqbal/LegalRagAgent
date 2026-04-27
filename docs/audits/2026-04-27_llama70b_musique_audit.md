@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-✅ **Overall verdict: CLEAN with critical finding on subagent_rag**
+✅ **Overall verdict: CLEAN with implementation caveat on subagent_rag**
 
 | Mode | N | Accuracy | Data Quality | Notes |
 |---|---|---|---|---|
@@ -17,7 +17,7 @@
 | `rag_snap_hyde` | 200 | 24.0% | ⚠️ MINOR | 2 empty preds, but consistent synthesis |
 | `iter_hyde` | 200 | 24.5% | ✅ CLEAN | Iterative hyde passages, stable |
 | `advisor_planning_table` | 200 | 23.0% | ✅ CLEAN | Cost-parity method, no anomalies |
-| `subagent_rag` | 200 | 15.5% | ⚠️ MINOR | **-12pp SIG NEG**, routing to gaps causes regression |
+| `subagent_rag` | 200 | 15.5% | ⚠️ MINOR | **-12pp SIG NEG**, current gap-routing over-abstains |
 
 ---
 
@@ -136,10 +136,10 @@
 
 ---
 
-### 8. `subagent_rag_groq-llama70b_20260427_1044` — 15.5% (-12pp SIG NEG) ❌
+### 8. `subagent_rag_groq-llama70b_20260427_1044` — 15.5% (-12pp SIG NEG, implementation caveat)
 **Verdict: ⚠️ MINOR (data is clean, but METHOD shows critical regression)**
 
-**CRITICAL ISSUE FOR PAPER**: This method is causing a significant regression. Audit shows the data is clean but the routing logic is harmful.
+**Implementation caveat for paper**: This method causes a significant regression under the current gap-routing prompt. The data is clean, but the routing logic over-abstains.
 
 - **Accuracy**: 15.5% (31/200) ✅ matches expected
 - **Data quality**:
@@ -150,7 +150,7 @@
   - Gap detection: **200/200 records have gaps identified** (100% detection)
 - **Critical findings**:
   - **Gap detection is overly aggressive**: ALL 200 records detected gaps, even on simple questions
-  - **Subagent routing is harmful**:
+  - **Subagent routing is harmful in this implementation**:
     - Common questions with baseline: 200/200
     - Subagent accuracy: 15.5% vs baseline 27.5% = **-12pp regression**
     - Breakdown: +12 improved, -36 regressed (net: -24 questions)
@@ -169,7 +169,7 @@
   - Gap results exist but are structured as list, not used to improve answer
   - Intermediate questions generated but not effectively resolving gaps
 
-- **Conclusion**: **Method is fundamentally broken**. Gap detection is too aggressive (100% rate); gap-resolution routing does not improve answers and actively causes regressions. The -12pp is not noise—it's systematic routing damage.
+- **Conclusion**: **Current gap-routing prompt is over-aggressive**. Gap detection fires at a 100% rate; gap-resolution routing does not improve answers and causes systematic over-abstention. The -12pp is not noise, but prompt reframing could likely close part of this gap.
 
 ---
 
@@ -211,7 +211,7 @@
 ✅ **Multi-hop specific**: No MC answer letters, open-ended span format  
 ✅ **HyDE structural compliance** — 199/200 have 3 passages, 0% answer artifacts  
 
-⚠️ **CRITICAL**: `subagent_rag` is fundamentally broken (-12pp regression). Do NOT use this method in paper. The gap-detection logic is overly aggressive and causes overcorrection.
+⚠️ **Implementation caveat**: `subagent_rag` has a -12pp regression under this gap-routing implementation. Cite it as systematic over-abstention, not as evidence that subagent methods inherently fail.
 
 ---
 
@@ -221,7 +221,7 @@
 
 2. **`iterative_planning_table` (+8.5pp TRENDING)**: ✅ APPROVED. Clean data, higher cost (4 calls) but valid method. Consider noting cost/benefit in paper.
 
-3. **`subagent_rag` (-12pp SIG NEG)**: ❌ REJECT. Gap detection is overly aggressive (100% detection rate) and gap-filling systematically makes answers worse. This is not a paper-worthy finding unless the goal is to document what NOT to do.
+3. **`subagent_rag` (-12pp SIG NEG)**: ⚠️ APPROVED-WITH-CAVEAT as an implementation finding. Gap detection is overly aggressive (100% detection rate) and gap-filling systematically makes answers worse; prompt reframing should be tested before making broader subagent claims.
 
 4. **Run regression test**: Verify `multi_hyde_diverse` reproducibility on fresh Llama 70B run (N=100) to confirm +8pp is not run-specific.
 

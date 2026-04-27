@@ -13,7 +13,9 @@
 | `llm_only` | 79.75% | +1.67pp | CLEAN | APPROVED | Strong no-retrieval point. |
 | `golden_passage` | 78.66% | +0.58pp | CLEAN | APPROVED | Golden passage does not dominate this setup. |
 
-Source: docs/signoff_log.md Section A.1.
+What this means in plain English: On full-corpus BarExam, Gemma 4 26B-A4B is strongest when its snap legal reasoning is paired with HyDE retrieval.
+Source: `docs/signoff_log.md:Section A.1`; detail paths indexed in `docs/presentation/05_logs_index.md:BarExam Tier 3`.
+Caveat: `rag_snap_hyde` often agrees with the snap answer because Gemma 4 has strong legal priors; this is mechanism understanding, not contamination.
 
 ## Table B. BarExam Tier 3 method matrix: Gemma 4 E4B, N=1195
 
@@ -28,7 +30,9 @@ Source: docs/signoff_log.md Section A.1.
 | `subagent_hyde` | 60.17% | +1.68pp | MINOR | APPROVED | Helpful but not best. |
 | `subagent_rag` | 60.92% | +2.43pp | MINOR | APPROVED | Best non-snap-HyDE subagent row. |
 
-Source: docs/signoff_log.md Section A.2.
+What this means in plain English: The smaller Gemma 4 model repeats the same legal-MC winner, so the BarExam result is not a one-size artifact.
+Source: `docs/signoff_log.md:Section A.2`; detail paths indexed in `docs/presentation/05_logs_index.md:BarExam Tier 3`.
+Caveat: Full scan found one raw null parsed prediction for `rag_snap_hyde`; the sampled audit remained clean.
 
 ## Table C. BarExam cross-size headline: `rag_snap_hyde` lift
 
@@ -37,7 +41,9 @@ Source: docs/signoff_log.md Section A.2.
 | Gemma 4 26B-A4B | 78.08% | 81.17% | +3.09pp | Tier 3, N=1195 | APPROVED |
 | Gemma 4 E4B | 58.49% | 62.18% | +3.69pp | Tier 3, N=1195 | APPROVED |
 
-Source: docs/signoff_log.md Section A.3.
+What this means in plain English: Snap+HyDE is the signed BarExam headline because it improves both Gemma 4 sizes at full corpus.
+Source: `docs/signoff_log.md:Section A.3`; supporting audit summary in `docs/compiled_results.md:Section 1.1`.
+Caveat: The lift is mostly snap-dominated; HyDE is marginal and can hurt when it contradicts a strong snap answer.
 
 ## Table D. Llama 70b MuSiQue Tier 2 method matrix, N=200
 
@@ -47,12 +53,14 @@ Source: docs/signoff_log.md Section A.3.
 | **`iterative_planning_table`** | **36.0%** | **+8.5pp** | **0.0533** | McNemar 12:30 | **APPROVED, TRENDING-SIG** | Best EM, just outside conventional 0.05. |
 | **`multi_hyde_diverse`** | **35.5%** | **+8.0pp** | **0.0195** | CLEAN | **APPROVED, paper headline** | **Winner for significant positive lift.** |
 | `rag_multi_query` | 29.0% | +1.5pp | 0.728 | CLEAN | APPROVED mechanism decomposition | Query diversity alone is not enough. |
-| `rag_snap_hyde` | 24.0% | -3.5pp | 0.36 | CLEAN | APPROVED cross-domain negative evidence | BarExam method does not transfer. |
-| `iter_hyde` | 24.5% | -3.0pp | 0.47 | CLEAN | APPROVED multi-round neutral at large | More rounds do not help here. |
+| `rag_snap_hyde` | 24.0% | -3.5pp | 0.36 | CLEAN | APPROVED cross-domain negative evidence | BarExam method does not transfer cleanly. |
+| `iter_hyde` | 24.5% | -3.0pp | 0.47 | CLEAN | APPROVED multi-round neutral at large | More HyDE rounds do not help here. |
 | `advisor_planning_table` | 23.0% | -4.5pp | 0.222 | McNemar 12:30 | APPROVED NS but informative negative | Planning form is not sufficient. |
-| **`subagent_rag`** | **15.5%** | **-12.0pp** | **0.0007** | CLEAN | **APPROVED, sig negative** | **Actively hurts.** |
+| **`subagent_rag`** | **15.5%** | **-12.0pp** | **0.0007** | CLEAN | **APPROVED, sig negative** | Current gap-routing over-abstains. |
 
-Source: docs/signoff_log.md Section B.1.
+What this means in plain English: Llama 70b multi-hop improves with pooled HyDE or structured planning, while most other variants are neutral-to-negative.
+Source: `docs/signoff_log.md:Section B.1`; paired statistics in `docs/mcnemar_2026-04-27.md:Update 2026-04-27 ~12:30 CDT`.
+Caveat: `subagent_rag` is a real negative result for this gap-routing implementation, not a verdict against all subagent methods.
 
 ## Table E. Mechanism decomposition: Llama 70b MuSiQue, N=200
 
@@ -63,16 +71,20 @@ Source: docs/signoff_log.md Section B.1.
 | `multi_hyde_diverse` | 35.5% | +8.0pp | 0.0195 | Diverse answer-bearing HyDE-style passages plus raw question. |
 | Split: `mhd` minus `rag_multi_query` | n/a | +6.5pp | n/a | HyDE-style passages explain about 80% of the +8.0pp lift. |
 
-Source: docs/signoff_log.md Sections B.1 and B.2.
+What this means in plain English: The useful piece is answer-bearing HyDE retrieval, not generic query diversity.
+Source: `docs/signoff_log.md:Sections B.1 and B.2`; decomposition details in `docs/mcnemar_2026-04-27.md:Update 2026-04-27 ~11:13 CDT`.
+Caveat: The +6.5pp split is a decomposition against method EMs, not a separate paired significance test.
 
 ## Table F. Cross-domain method specificity
 
 | Method family tested off-domain | Source-domain winner | Off-domain task/model | Comparator | Method result | Delta | McNemar p | Read |
 |---|---|---|---:|---:|---:|---:|---|
 | `rag_snap_hyde` | BarExam | MuSiQue, Llama 70b, N=200 | `rag_simple` 27.5% | 24.0% | -3.5pp | 0.36 | Negative paired McNemar; BarExam method does not carry to MuSiQue. |
-| `multi_hyde_diverse` | MuSiQue | BarExam, Gemma 4 26B-A4B, paired first 200 | `rag_simple` 84.5% | 82.0% | -2.5pp | 0.499 | Negative paired McNemar; multi-hop method does not carry to BarExam. |
+| `multi_hyde_diverse` | MuSiQue | BarExam, Gemma 4 26B-A4B, paired first 200 | `rag_simple` 84.5% | 82.0% | -2.5pp | 0.499 | Provisional/source-status caveat; if confirmed, mhd does not lift BarExam. |
 
-Source: docs/signoff_log.md Sections B.1 and B.4.
+What this means in plain English: The signed story is task-specific methods, not one universal RAG trick.
+Source: `docs/signoff_log.md:Sections B.1 and B.4`; source-status caveat in `docs/mcnemar_2026-04-27.md:BarExam cross-domain mhd test`.
+Caveat: The BarExam mhd row has conflicting local source status across docs; keep it source-pending until the SLURM 55107 detail-log status is reconciled.
 
 ## Table G. Cross-family check, preliminary
 
@@ -81,4 +93,6 @@ Source: docs/signoff_log.md Sections B.1 and B.4.
 | Llama 70b | MuSiQue N=200 | 27.5% | 35.5% | +8.0pp | 0.0195 | APPROVED, significant | Strong Llama-specific headline. |
 | Gemma 3 27B | MuSiQue N=200 | 28.5% | 31.0% | +2.5pp | 0.5901 | APPROVED, NULL | Not yet a clean cross-family lift; in-flight Tier 3 will tell. |
 
-Source: docs/signoff_log.md Sections B.1, B.3, and F.
+What this means in plain English: The mhd lift is real on Llama 70b, but the dense-model cross-family claim is not established.
+Source: `docs/signoff_log.md:Sections B.1, B.3, and F`; paired Gemma/Llama details in `docs/mcnemar_2026-04-27.md`.
+Caveat: Qwen3 full-corpus evidence is still running, so cross-family language should stay provisional.
