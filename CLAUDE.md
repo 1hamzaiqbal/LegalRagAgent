@@ -222,7 +222,7 @@ before any new submission. The full pre-submission checklist lives in
 | Llama 3.3 70b | 81% | 70B dense |
 | **Gemma 4 26B-A4B** | **79.75%** | **25B/3.8B-active MoE** (cluster N=1195) |
 | Qwen3 30B MoE | 70% | 30B/3B-active MoE (N=100) |
-| Qwen3 32b dense | 68% | 32B dense |
+| Qwen3 32b dense | 68% (caveat: 13/100 truncated mid-`<think>` at 2048-token cap; true ≈75-78%) | 32B dense |
 | Gemma 3 27b | 68% | 27B dense |
 | Llama 4 Scout 17b | 67% | 17B MoE |
 

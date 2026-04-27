@@ -174,3 +174,22 @@ Audit agent: `audit_landings_2026-04-26_2242`
 **Recommended action**: any local-Mac RAG run before commit (this commit) is suspect. If you need legal_passages locally, rebuild via `uv run python utils/fast_embed.py barexam` (~2.2 hr on RTX 3070, longer on Mac CPU). For the meeting, all BarExam claims must come from cluster runs (they have a populated corpus); local Mac is multi-hop / API-only territory.
 
 **Codex independent verification**: requested 2026-04-26 ~22:55 UTC, agent `ab52ee7515e1ad06d` (in flight).
+
+## Qwen3-32b cited 68% has 13/100 truncated — caveat needed (2026-04-26 ~23:00 UTC)
+
+Audit of `logs/eval_llm_only_groq-qwen_20260426_1941_detail.jsonl` (Qwen3-32b dense, the "Qwen3 32b dense | 68%" row in the cross-family BarExam llm_only board) found:
+
+- **13/100 records have `predicted_answer=None`** (effectively wrong by default, contributing -13pp to the cited 68%)
+- **All 13 had `output_tokens` ≥ 2046** (max ≈ 2049) — they hit the **2048-token max_tokens cap**
+- Inspection: each None-pred record starts with `<think>\nOkay, let's try to figure...` and ends mid-sentence in the reasoning, never closing the `</think>` tag and never reaching `Answer: X`. The think-tag-strip helper (commit `171c2c4`) only fires on CLOSED `<think>...</think>` blocks, so unclosed truncated reasoning falls through and `extract_answer_mc` finds no `Answer:` marker.
+- Other models in the same board emit ~500-2000 tokens for an MC answer; Qwen3-32b averages 4943 chars (~1500 tokens) on OK records and the 13 truncated records spent the full 2048 tokens reasoning before emitting any conclusion.
+
+**Implication**: Qwen3-32b's "true" llm_only accuracy is likely **70-78%** (depending on how the 13 truncated reason chains would have resolved). Our cited 68% understates the model and is a methodology artifact (output-token cap, not model capability).
+
+**Verdict**: KEEP-WITH-CAVEAT. Update validation_log + experiment_overview rows for "Qwen3 32b dense | 68%" to read "Qwen3 32b dense | 68% (13/100 truncated mid-`<think>` at 2048 tokens; true score likely higher)". Re-running with `max_tokens=4096` is a one-shot fix but eats Groq TPD budget; defer unless Qwen becomes a headline claim.
+
+**Other models in the cross-family board verified CLEAN** (0 None preds): Llama 70b (81%), Gemma 27b (68%), Llama 4 Scout (67%), Qwen3-30B-MoE (70%), GPT-5.4-mini (74%), Gemma 4 26B cluster (79.7%). The truncation issue is Qwen3-dense-specific (verbose `<think>` reasoning).
+
+Files:
+- `/Users/hamzaiqbal/grad/LegalRagAgent/logs/eval_llm_only_groq-qwen_20260426_1941_detail.jsonl`
+- Cross-check at-cap rate: 13/13 None-preds had output_tokens ≥ 2046

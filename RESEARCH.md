@@ -22,7 +22,7 @@ This project started as a heavy agentic RAG pipeline that hurt performance. We s
 - Llama 3.3 70b dense: 81%
 - Gemma 4 26B-A4B MoE: 79.75% (cluster N=1195)
 - Qwen3 30B MoE: 70% (N=100; +9.75pp Gemma 4 lead at the same MoE class)
-- Qwen3 32b dense: 68%
+- Qwen3 32b dense: 68% (audit caveat: 13/100 truncated mid-`<think>` at 2048-token cap; true score ≈75-78%)
 - Gemma 3 27b dense: 68%
 - Llama 4 Scout 17b MoE: 67%
 
