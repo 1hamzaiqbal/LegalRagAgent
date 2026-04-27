@@ -1,6 +1,10 @@
 # Experiment Overview
 
-High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (**288** entries as of 2026-04-27 early) plus `docs/audit_log.md` for cited-number verification.
+## Update 2026-04-27 ~12:30 CDT
+
+Change reason: stale top-level overview still led with N=100 cross-family MHD framing. Current Tier 2 result: Llama 70b MuSiQue `multi_hyde_diverse` N=200 is **35.5%** vs `rag_simple` **27.5%** (+8.0pp, p=0.0195 SIG), while Gemma 3 27B N=200 is NULL (+2.5pp, p=0.5901). Mechanism: Llama `rag_multi_query` is only +1.5pp NS (p=0.728), so HyDE-style passages explain most of the MHD lift.
+
+High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (**316** entries as of 2026-04-27 ~12:30 CDT) plus `docs/audit_log.md` for cited-number verification.
 
 For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEARCH.md`. **Live ground truth + meeting story: `docs/validation_log_2026-04-25.md` and `docs/methods_characterization_2026-04-26.md`.**
 
@@ -17,7 +21,7 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 - **Bug-fix decomposition** validates clean: `llm_only` and `snap_only_in_final` both show **identical +5.44pp** lift at 26B (formatter-only, no retrieval). `rag_simple` shows +7.29pp = +5.44 formatter + +1.85pp marginal retrieval-query fix. Two no-retrieval modes producing identical lift is the strongest possible internal validation.
 - **`rag_snap_hyde` is the proven winner on legal MC**: +3.09pp at 26B (78.08 → 81.17) and +3.69pp at E4B (58.49 → 62.18). Cross-size lift, not noise.
 - **6-model BarExam llm_only N=100 board**: Llama 3.3 70b 81%, **Gemma 4 26B-A4B 79.75%**, Qwen3 30B MoE 70%, Qwen3 32b 68% (13/100 truncated; true likely 70-78%), Gemma 3 27b 68%, Llama 4 Scout 17b 67%.
-- **MuSiQue cross-method × cross-model**: older N=30 snap/ptable methods did not beat `rag_simple`, but Phase 13.5 `multi_hyde_diverse` lifts at N=100 cross-family (Llama +12pp p=0.023; Gemma 3 27B +8pp p=0.134). Phase 14 `iter_hyde` is negative on Gemma 3 27B (-20pp vs rag_simple).
+- **MuSiQue cross-method × cross-model**: Tier 2 now confirms MHD on Llama 70b N=200 (+8.0pp, p=0.0195) but NULLs Gemma 3 27B N=200 (+2.5pp, p=0.5901). Phase 14 `iter_hyde` is directionally negative on small models and NS at Llama N=200.
 - **Hardening** (commits `171c2c4`, `97c204a`): pre-flight smoke gate, per-question circuit breaker, summary-write guard for high-error-rate runs, think-tag stripping for Qwen3, `<span>` extractor fix for MuSiQue.
 
 ## Paper Core Result (post-prompt-fix N=1195, BarExam)
@@ -52,6 +56,15 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 
 ## Multi-hop ceiling story (MuSiQue)
 
+Current Tier 2 matrix supersedes the older N=100 cross-family headline:
+
+| Mode | Llama 70b N=200 | Gemma 3 27B N=200 |
+|---|---:|---:|
+| `rag_simple` | 27.5% | 28.5% |
+| `multi_hyde_diverse` | **35.5%** (+8.0pp, p=0.0195 SIG) | 31.0% (+2.5pp, p=0.5901 NULL) |
+| `rag_multi_query` | 29.0% (+1.5pp, p=0.728 NS) | 28.5% |
+| `subagent_rag` | 15.5% (-12.0pp, p=0.0007 SIG negative) | — |
+
 | Mode | Gemma 4 26B | Gemma 3 27B | Llama 70b |
 |---|---|---|---|
 | `rag_simple` (baseline) | 26.7% (N=30) | **22.0%** (N=100) | **21.0%** (N=100) |
@@ -64,7 +77,7 @@ For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEAR
 | `rag_snap_hyde` | 20.0% (N=30) | — | 13.3% (N=30) |
 | `golden_passage` (oracle) | 62% (N=30) | — | 47% (N=30) |
 
-**Phase 13.5 headline: `multi_hyde_diverse` is the FIRST multi-hop method to lift cross-FAMILY at N=100.** Llama 3.3 70b dense +12pp sig (McNemar p=0.023, 95% CI [+3pp, +22pp] strictly positive); Gemma 3 27B dense +8pp trending (p=0.134, CI [-1pp, +17pp] mostly positive). Cross-family direction consistent (b > c on both, non-trivial discordant counts). Audit `a20b99c33f0b4d088` verified both Gemma logs CLEAN — discordants are genuine method wins (one mhd-only-correct row chained 1-hop → 2-hop where rag_simple stopped at 1-hop).
+**Historical Phase 13.5 direction-only note:** `multi_hyde_diverse` was the first N=100 multi-hop method to lift in the same direction on Llama 70b and Gemma 3 27B, but current citeable claims must use the Tier 2 table above.
 
 **Mechanism**: single HyDE commits to ONE entity, biasing BM25 retrieval. Three diverse HyDEs spread retrieval across multiple candidate-entities, raising effective gold-retrieval (+3pp Llama, +8pp Gemma). Composition still happens at synthesis like `rag_simple`, which is why the lift is +8-12pp not +30pp. **Single-round only — no iteration**, ~2 LLM calls per question, same cost class as `rag_simple` plus one HyDE-gen call.
 

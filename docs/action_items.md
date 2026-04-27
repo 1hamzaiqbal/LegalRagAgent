@@ -1,5 +1,9 @@
 # Action Items — Paper Sprint
 
+## Update 2026-04-27 ~12:30 CDT
+
+Change reason: housekeeping sweep after Tier 2 MuSiQue sign-off. Completed: Llama 70b N=200 method matrix, exact McNemar infrastructure (`scripts/compute_mcnemar.py`), friend/foe analysis script (`scripts/analyze_friend_foe_bias.py`), and N<200 citation gating. Current follow-ups: audit the running Tier 3/full MuSiQue jobs when they land; do not cite Gemma 3 27B MHD as confirmed (+2.5pp, p=0.5901 NULL); keep `subagent_rag` on MuSiQue as a significant negative (-12.0pp, p=0.0007), not a candidate improvement.
+
 Target venues:
 - **EMNLP 2026** — due May 20, 2026 (8 pages)
 - **ICML AI4Law Workshop** — due May 22, 2026 (8 pages)

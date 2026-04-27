@@ -1,5 +1,16 @@
 # Cleanup sweep 2026-04-27
 
+## Update 2026-04-27 ~12:30 CDT
+
+Change reason: broad housekeeping sweep under protected-running-eval constraints. Findings:
+
+- Eval registry: 61 registered modes; `vectorless_keyword` is the only registered mode with no `logs/experiments.jsonl` run row. Not commented in `eval/eval_config.py` because this sweep was explicitly barred from editing eval files.
+- Tests: `tests/test_formatter.py` and `tests/test_sanitizer.py` are referenced by docs and pytest config; no orphaned test file found.
+- Root `*.py`: `main.py`, `rag_utils.py`, `llm_config.py`, and `web_scraper.py` are all referenced/imported; no dead root Python file found.
+- Broken doc paths: no missing non-log repo paths found in Markdown backtick references; log/dataset paths were left read-only.
+- Stale TODO: `docs/rigour_signoff.md` said `tests/test_formatter.py` still needed to be added; updated because the test file exists.
+- SLURM dedup: no exact duplicate script hashes. Superseded comments were added only where content and recent commits show one-off wrappers were replaced by parameterized/API launchers.
+
 Files audited: `CLAUDE.md`, `RESEARCH.md`, `EXPERIMENTS.md`, `README.md`, `docs/experiment_overview.md`, `docs/validation_log_2026-04-25.md`, `docs/action_items.md`, `docs/meeting_2026_04_17.md`, `docs/audit_log.md`, and all last-48h target rows in `logs/experiments.jsonl` with `dataset == "musique"` or mode in `multi_hyde_diverse`, `iter_hyde`, `advisor_planning_table`.
 
 Files modified: `CLAUDE.md`, `RESEARCH.md`, `EXPERIMENTS.md`, `README.md`, `docs/experiment_overview.md`, `docs/validation_log_2026-04-25.md`, `docs/action_items.md`, `docs/meeting_2026_04_17.md`, `docs/audit_log.md`, and this report.

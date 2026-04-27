@@ -1,5 +1,9 @@
 # LegalRagAgent
 
+## Update 2026-04-27 ~12:30 CDT
+
+Change reason: housekeeping sweep after Tier 2 MuSiQue sign-off. Current citation gate is `docs/signoff_log.md`; detailed audit reference is `docs/compiled_results.md`. The latest confirmed MuSiQue paper headline is Llama 70b `multi_hyde_diverse` N=200 at **35.5%** vs `rag_simple` **27.5%** (+8.0pp, McNemar p=0.0195). Gemma 3 27B N=200 is a NULL (+2.5pp, p=0.5901), so cross-family MHD is not confirmed yet. N<200 rows are direction-only.
+
 Legal RAG research project studying **when retrieval helps legal QA and when it hurts**.
 
 The repo contains two layers:
@@ -13,12 +17,12 @@ The repo contains two layers:
 - HousingQA best: `rag_snap_hyde` on Llama 70B = **56.0%** (N=200)
 - CaseHOLD best: `llm_only` / `confidence_gated` = **72.5%** (N=200)
 - Best small-model full tier: **Gemma 4 E4B** — `rag_snap_hyde` **62.18%**, `subagent_rag` **60.92%**, `snap_hyde_report` **60.75%**, `rag_hyde` **60.59%** at N=1195 post-prompt
-- MuSiQue multi-hop: `multi_hyde_diverse` is the first cross-family lift at N=100 (Llama 70B **33.0%** vs 21.0%, +12pp p=0.023; Gemma 3 27B **30.0%** vs 22.0%, +8pp p=0.134). `iter_hyde` hurts Gemma 3 27B at N=30 (**6.7%**, -20pp vs rag_simple).
-- Working interpretation: `rag_snap_hyde` is the current legal-MC winner; `multi_hyde_diverse` is the current multi-hop exception; showing snap to the final agent still hurts.
+- MuSiQue multi-hop: Llama 70B `multi_hyde_diverse` is the current Tier 2 paper headline at **35.5%** vs `rag_simple` **27.5%** (N=200, +8.0pp, p=0.0195); Gemma 3 27B MHD is **31.0%** vs **28.5%** (N=200, +2.5pp, p=0.5901 NULL).
+- Working interpretation: `rag_snap_hyde` is the current legal-MC winner; `multi_hyde_diverse` is the current Llama multi-hop exception; showing snap to the final agent still hurts.
 - **Multi-turn reasoning** (historical `vectorless_*` family): `vectorless_direct` **64.5%**, `vectorless_hybrid` **65.0%** — LLM parametric knowledge, not corpus search
 - **Real structured search** (in progress): case summary index + NLP entity graph for actual corpus navigation without embeddings
-- `logs/experiments.jsonl` contains **288** records as of 2026-04-27 early
-- 53 eval modes tested across retrieval, reasoning, gap, and subagent architectures
+- `logs/experiments.jsonl` contains **316** records as of 2026-04-27 ~12:30 CDT
+- 61 eval modes registered; `vectorless_keyword` is the only registered mode with no run row found in `logs/experiments.jsonl`
 
 See `RESEARCH.md` for the current state + queue, and `EXPERIMENTS.md` for the full keep/discard history.
 
@@ -146,7 +150,7 @@ llm_config.py              # 30+ LLM provider configs, LRU-cached
 web_scraper.py             # DuckDuckGo + trafilatura for web_search steps
 skills/                    # 4 prompt files: planner, query_rewriter, synthesize_and_cite, synthesizer
 eval/
-  eval_harness.py          # Unified eval: 53 modes, 5 datasets, JSONL logging
+  eval_harness.py          # Unified eval: 61 modes, 5 datasets, JSONL logging
   eval_config.py           # Config, question loaders, answer extractors
   eval_analyze.py          # Post-hoc JSONL analysis
   curate_questions.py      # One-time question curation utility
@@ -170,7 +174,7 @@ datasets/                  # Downloaded data (gitignored)
 chroma_db/                 # Vector store (gitignored)
 ```
 
-Local cache-only directories such as `legal_rag/`, `playtests/`, and `tests/` may exist in a checkout, but they currently only contain `__pycache__` artifacts rather than tracked source files.
+tests/                    # Regression tests for formatter and sanitizer hardening
 
 ## Datasets
 

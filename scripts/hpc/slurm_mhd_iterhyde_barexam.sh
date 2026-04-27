@@ -1,4 +1,6 @@
 #!/bin/bash
+# SUPERSEDED by scripts/hpc/slurm_mhd_iterhyde_barexam_api.sh for the current BarExam mhd/iter_hyde run.
+# Reason: commit 46fe19b added the API-LLM variant after the vLLM 26B path OOMed on A40.
 # Cross-domain validation: does multi_hyde_diverse / iter_hyde lift on BarExam (legal MC)?
 #
 # Phase 13.5 finding (MuSiQue multi-hop): mhd lifts cross-FAMILY at N=100

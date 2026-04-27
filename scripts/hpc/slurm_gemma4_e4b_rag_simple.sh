@@ -1,4 +1,6 @@
 #!/bin/bash
+# SUPERSEDED by scripts/hpc/slurm_gemma4_rerun.sh for current E4B coverage submissions.
+# Reason: the parameterized rerun script covers rag_simple via MODES and is what submit_e4b26b_coverage.sh calls.
 #SBATCH -p general-gpu
 #SBATCH -A engr-lab-jacobsn
 #SBATCH --gpus 1

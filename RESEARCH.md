@@ -1,12 +1,16 @@
 # Research Program
 
+## Update 2026-04-27 ~12:30 CDT
+
+Change reason: housekeeping sweep after Tier 2 MuSiQue sign-off. The active headline is now narrower than the earlier cross-family N=100 framing: Llama 70b `multi_hyde_diverse` N=200 is **35.5%** vs `rag_simple` **27.5%** (+8.0pp, McNemar p=0.0195), while Gemma 3 27B N=200 is **31.0%** vs **28.5%** (+2.5pp, p=0.5901 NULL). Mechanism at Llama N=200: HyDE-style answer passages account for about +6.5pp of the +8pp lift; query diversity alone is +1.5pp NS (p=0.728). N<200 results below are direction-only.
+
 Persistent research state for the LegalRagAgent project. Read this first in any new session.
 
 This project started as a heavy agentic RAG pipeline that hurt performance. We stripped it down, systematically tested each component, and found that simpler adaptive strategies beat complex ones. The long-term goal is still a strong full agentic pipeline, but we're rebuilding toward it intentionally and atomically — testing each element's effectiveness and documenting what works about the research process itself.
 
 ## Current execution status (2026-04-27 early, ahead of Monday meeting)
 
-**Live ground truth** is `docs/validation_log_2026-04-25.md`. Methods narrative is `docs/methods_characterization_2026-04-26.md`. Meeting summary is `docs/meeting_2026_04_27_summary.md`.
+**Live ground truth** is `docs/signoff_log.md` for cite-or-not status, `docs/compiled_results.md` for audit detail, and `docs/mcnemar_2026-04-27.md` for paired MuSiQue tests. Older live-matrix docs remain historical context.
 
 ### Coverage wave landed (commit `56bffc8`)
 
@@ -26,7 +30,18 @@ This project started as a heavy agentic RAG pipeline that hurt performance. We s
 - Gemma 3 27b dense: 68%
 - Llama 4 Scout 17b MoE: 67%
 
-**MuSiQue (multi-hop) — Phase 13.5 adds the first cross-family lift:**
+**MuSiQue (multi-hop) — Tier 2 update supersedes Phase 13.5 framing:**
+
+| Mode | Llama 70b N=200 | Gemma 3 27B N=200 |
+|---|---|---|
+| `rag_simple` | **27.5%** | **28.5%** |
+| `multi_hyde_diverse` | **35.5%** (+8.0pp, p=0.0195 SIG) | **31.0%** (+2.5pp, p=0.5901 NULL) |
+| `rag_multi_query` | 29.0% (+1.5pp, p=0.728 NS) | 28.5% |
+| `rag_snap_hyde` | 24.0% (-3.5pp, p=0.36 NS) | — |
+| `iter_hyde` | 24.5% (-3.0pp, p=0.47 NS) | direction-only negative at N=30 |
+| `subagent_rag` | 15.5% (-12.0pp, p=0.0007 SIG negative) | — |
+
+Older Phase 13.5 N=100 rows remain useful mechanism context but are not confirmed claims:
 
 | Mode | Gemma-side result | Llama 70b result |
 |---|---|---|
@@ -38,7 +53,7 @@ This project started as a heavy agentic RAG pipeline that hurt performance. We s
 | `multi_hyde_diverse` (N=100) | Gemma 3 27B: **30.0%** vs 22.0% rag_simple (+8pp, p=0.134 trending) | **33.0%** vs 21.0% rag_simple (+12pp, p=0.023 sig) |
 | `iter_hyde` (Gemma 3 27B N=30) | **6.7%** vs 26.7% rag_simple (-20pp; Phase 14 negative) | pending |
 
-Older N=30 snap/ptable methods did not beat `rag_simple`; the current exception is `multi_hyde_diverse` at N=100. snap-driven methods still underperform, and Phase 14 shows multi-round `iter_hyde` hurts Gemma 3 27B despite high retrieval. Bottleneck is composition over multiple passages after retrieval improves.
+Older N=30 snap/ptable methods did not beat `rag_simple`; the confirmed exception is `multi_hyde_diverse` on Llama 70b at N=200. Snap-driven methods still underperform, and Phase 14 shows multi-round `iter_hyde` hurts smaller models directionally while staying NS at Llama N=200. Bottleneck is composition over multiple passages after retrieval improves.
 
 **Cleanest snap-ablation:** `planning_table_no_snap_v2` 23.3% vs `planning_table_with_snap_v2` 16.7% on Gemma 4 26B — same prompt, same retrieval, only difference is snap-seeded plan-gen. Snap costs -6.6pp.
 
@@ -124,7 +139,7 @@ Older cross-model comparison tables are archived alongside the legacy dataset ta
 ### Key findings (2026-04-26 update)
 
 1. **`rag_snap_hyde` is the proven winner on legal MC across model sizes**: +3.09pp over rag_simple at 26B, +3.69pp at E4B. Cross-size lift is real, not a noise artifact.
-2. **MuSiQue method story split:** Phase 13.5 `multi_hyde_diverse` is the first cross-family lift at N=100 (Llama +12pp p=0.023; Gemma 3 27B +8pp p=0.134), while older snap/ptable methods still fail to beat `rag_simple`.
+2. **MuSiQue method story split:** Tier 2 confirms `multi_hyde_diverse` on Llama 70b N=200 (+8pp, p=0.0195), but Gemma 3 27B N=200 is NULL (+2.5pp, p=0.5901). Older snap/ptable methods still fail to beat `rag_simple`.
 3. **Snap-bias is real on multi-hop**: cleanest ablation = ptable_no_snap_v2 23.3% vs ptable_with_snap_v2 16.7% (same prompt, same retrieval). Snap costs -6.6pp.
 4. **Retrieval recall is NOT the multi-hop bottleneck** — multi_query and ptable_no_snap both improve gold_retrieved (+3-4pp) but the model can't translate that into EM. Composition over multiple passages is the actual bottleneck.
 5. **Bug-fix decomposition is rock-solid**: llm_only and snap_only_in_final both show identical +5.44pp formatter-only lift (no retrieval, so this is pure prompt-context recovery). `rag_simple` shows +7.29pp = +5.44 formatter + +1.85pp retrieval-query marginal.

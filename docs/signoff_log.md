@@ -1,7 +1,11 @@
 # Sign-off Log — verified results approved for paper/meeting citation
 
-Last updated: 2026-04-27 ~11:30 CDT
-Branch: hpc-setup, HEAD: f9b73c3
+## Update 2026-04-27 ~12:30 CDT
+
+Change reason: housekeeping metadata refresh after branch HEAD advanced to `44427ad`. Existing Section B remains the current cite-or-not gate for today’s MuSiQue McNemar verdicts; no verdicts were weakened or promoted in this edit.
+
+Last updated: 2026-04-27 ~12:30 CDT
+Branch: hpc-setup, HEAD: 44427ad
 
 This log lists results that have:
 1. Landed cleanly (no preflight failure, no harness crash)

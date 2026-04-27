@@ -1,5 +1,9 @@
 # CLAUDE.md
 
+## Update 2026-04-27 ~12:30 CDT
+
+Change reason: housekeeping sweep after Llama 70b N=200 MuSiQue sign-off. Current citation gate is `docs/signoff_log.md`; audit details are in `docs/compiled_results.md`. The Current Best Results section below now includes the paper headline: Llama 70b `multi_hyde_diverse` N=200 **35.5%** vs `rag_simple` **27.5%** (+8.0pp, p=0.0195). Gemma 3 27B MHD N=200 is NULL (+2.5pp, p=0.5901), and N<200 rows stay direction-only.
+
 Source-of-truth context for working in this codebase. Verify claims against `main.py` before relying on them.
 
 ## Environment Note
@@ -23,7 +27,7 @@ Current research direction: the original heavy pipeline underperformed, but the 
 - `docs/hpc_setup_log.md` — cluster SSH, paths, venvs, bad nodes
 - `EXPERIMENTS.md` — full hypothesis → result → verdict log
 - `RESEARCH.md` — research state, experiment queue, session handoff
-- `logs/experiments.jsonl` — machine-readable results (source of truth, 195 entries)
+- `logs/experiments.jsonl` — machine-readable results (316 entries as of 2026-04-27 ~12:30 CDT)
 
 ## Runtime Architecture
 
@@ -186,8 +190,18 @@ before any new submission. The full pre-submission checklist lives in
 
 ## Current Best Results / Direction Snapshot
 
-**Source of truth**: `docs/validation_log_2026-04-25.md` for the live matrix +
-`docs/methods_characterization_2026-04-26.md` for the meeting story. Numbers below are post-fix N=1195 BarExam (commit `56bffc8`).
+**Source of truth**: `docs/signoff_log.md` for cite-or-not status, `docs/compiled_results.md` for audit details, and `docs/mcnemar_2026-04-27.md` for paired MuSiQue tests. Numbers below are post-fix BarExam Tier 3 or MuSiQue Tier 2 unless explicitly marked direction-only.
+
+### Llama 70b MuSiQue (Tier 2 N=200, paper headline)
+
+| Mode | EM | Δ vs `rag_simple` | McNemar p | Verdict |
+|---|---:|---:|---:|---|
+| `rag_simple` | 27.5% | — | — | baseline |
+| **`multi_hyde_diverse`** | **35.5%** | **+8.0pp** | **0.0195** | **SIG — paper headline** |
+| `rag_multi_query` | 29.0% | +1.5pp | 0.728 | NS |
+| `rag_snap_hyde` | 24.0% | -3.5pp | 0.36 | NS |
+| `iter_hyde` | 24.5% | -3.0pp | 0.47 | NS |
+| `subagent_rag` | 15.5% | -12.0pp | 0.0007 | SIG negative |
 
 ### Gemma 4 26B-A4B BarExam (post-fix N=1195, 8/8 modes landed)
 
@@ -226,7 +240,7 @@ before any new submission. The full pre-submission checklist lives in
 | Gemma 3 27b | 68% | 27B dense |
 | Llama 4 Scout 17b | 67% | 17B MoE |
 
-### MuSiQue (multi-hop) — `multi_hyde_diverse` is the FIRST cross-FAMILY lift (Phase 13.5)
+### MuSiQue (multi-hop) — older direction-only rows
 
 | Mode | Gemma 4 26B | Gemma 3 27B | Llama 70b |
 |---|---|---|---|
@@ -235,18 +249,18 @@ before any new submission. The full pre-submission checklist lives in
 | `planning_table_no_snap` v2 | 23.3% (N=30) | — | 20.0% (N=30) |
 | `iterative_planning_table` | 20.0% (N=30) | — | 23.3% (N=30) |
 | `advisor_planning_table` (cheap-plan) | 23.3% (N=30) | — | 23.0% (N=100, +2pp p=0.82, cost-parity not lift) |
-| **`multi_hyde_diverse`** (NEW) | — | **30.0% (N=100, +8pp p=0.134 trending)** | **33.0% (N=100, +12pp p=0.023 ✅ sig)** |
+| **`multi_hyde_diverse`** (direction-only N=100 context) | — | **30.0% (N=100, +8pp p=0.134 trending)** | **33.0% (N=100, +12pp p=0.023)** |
 | `rag_snap_hyde` | 20.0% (N=30) | — | 13.3% (N=30) |
 | `golden_passage` (oracle) | 62% (N=30) | — | 47% (N=30) |
 
-**`multi_hyde_diverse` is the first method to lift MuSiQue cross-FAMILY** (Llama 3 dense + Gemma 3 dense, +12pp sig + +8pp trending at N=100). Single round, ~2 LLM calls per question, 3 diverse HyDE passages pooled with raw question for BM25 retrieval. Audit `a20b99c33f0b4d088`. The cross-family direction-consistency is the story, not either single p-value. Mechanism: 3-way HyDE diversity raises effective gold_retrieval (+3-8pp), composition still happens at synthesis like rag_simple — which is why the lift is +8-12pp not +30pp.
+These N=100/N=30 rows are preserved as direction-only context. They are superseded for confirmed claims by the Llama 70b N=200 table above and the Gemma 3 27B N=200 NULL.
 
 `advisor_planning_table` is a cost-parity method (86% strong-LLM input-token / 43% output-token reduction vs `iter_ptable` at parity EM, audit `a5bbd0b5840ac0da6`), not an accuracy lift method.
 
 ### Working interpretation (current)
 
 - **`rag_snap_hyde` is the proven winner on legal MC**: +3-4pp over `rag_simple` at BOTH E4B and 26B sizes (clean cross-size lift, not noise)
-- **Multi-hop QA split:** older N=30 structured methods did not beat `rag_simple`, but Phase 13.5 `multi_hyde_diverse` now lifts cross-family at N=100 (Llama +12pp p=0.023; Gemma 3 27B +8pp p=0.134). Composition remains the bottleneck after retrieval improves.
+- **Multi-hop QA split:** `multi_hyde_diverse` is confirmed on Llama 70b N=200 (+8pp, p=0.0195), but Gemma 3 27B N=200 is NULL (+2.5pp, p=0.5901); cross-family confirmation awaits Tier 3/full runs.
 - **Bug-fix decomposition**: formatter (`f95f316`) added +5.44pp at 26B llm_only/snap_only_in_final identically; retrieval-query (`3d5ff05`) added +1.85pp marginal on RAG modes
 - **Showing snap answer letter to the final agent always hurts** — strip the letter, keep the reasoning (regression-tested in `tests/test_sanitizer.py`)
 - **Cross-model**: Gemma 4 26B-A4B beats Qwen3 30B MoE by +9.75pp at the same MoE class; +12pp over Gemma 3 27b dense

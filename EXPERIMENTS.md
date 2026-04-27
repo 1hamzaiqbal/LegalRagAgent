@@ -1,5 +1,9 @@
 # Experiment Log
 
+## Update 2026-04-27 ~12:30 CDT
+
+Change reason: housekeeping sweep after today’s Tier 2 MuSiQue McNemar confirmations. Added the Llama 70b N=200 method-matrix hypothesis tests and verdicts at the top. Source gate: `docs/signoff_log.md`, `docs/compiled_results.md`, `docs/mcnemar_2026-04-27.md`, and matching `logs/experiments.jsonl` rows.
+
 Running record of hypotheses, experiments, and results. Add new entries at the top.
 
 ## Format
@@ -13,6 +17,26 @@ Running record of hypotheses, experiments, and results. Add new entries at the t
 **Verdict:** CONFIRMED / REFUTED / MIXED — with evidence
 **Commit:** hash
 ```
+
+### 2026-04-27 — Llama 70b MuSiQue Tier 2 method matrix
+**Hypothesis:** `multi_hyde_diverse` should lift multi-hop QA by preserving multiple answer-bearing retrieval paths, while heavier iterative/subagent plans may add composition noise.
+
+**Change:** Ran paired MuSiQue N=200 comparisons on Llama 70b against `rag_simple`, then tested the mechanism control (`rag_multi_query`) and negative controls (`rag_snap_hyde`, `iter_hyde`, `subagent_rag`).
+
+**Config:** dataset=`musique`, provider=`groq-llama70b`, N=200, paired on `idx`; exact McNemar binomial tests from `scripts/compute_mcnemar.py`.
+
+**Result:**
+- `multi_hyde_diverse`: 71/200 = **35.5%** vs `rag_simple` 55/200 = **27.5%**; **+8.0pp**, p=**0.0195** SIG.
+- `rag_multi_query`: 58/200 = **29.0%**; +1.5pp, p=0.728 NS.
+- `rag_snap_hyde`: 48/200 = **24.0%**; -3.5pp, p=0.36 NS.
+- `iter_hyde`: 49/200 = **24.5%**; -3.0pp, p=0.47 NS.
+- `subagent_rag`: 31/200 = **15.5%**; **-12.0pp**, p=**0.0007** SIG negative.
+
+**Verdict:** CONFIRMED for Llama 70b only. MHD is the sole significant positive lift in this matrix; the lift is mostly HyDE-style answer passages (~+6.5pp beyond `rag_multi_query`), while diversity alone is small and non-significant. Cross-family is not confirmed because Gemma 3 27B N=200 is NULL (+2.5pp, p=0.5901).
+
+**Commit:** current branch HEAD `44427ad`; rows `20260427_0952`, `20260427_1010`, `20260427_1019`, `20260427_1036`, `20260427_1044`, `20260427_1112`.
+
+---
 
 ### 2026-04-21 — Post-fix size-comparison wave (landed rows)
 **Hypothesis:** Once the `Answer: (X)` HyDE leakage is cleaned up, (a) rag_simple scales monotonically with model size, (b) snap adds real lift over HyDE that the leak had been masking, and (c) larger models shrink method-stacking gains.

@@ -1,5 +1,9 @@
 # 2026-04-27 Meeting Brief: Phase 12-14
 
+## Update 2026-04-27 ~12:30 CDT
+
+Change reason: this brief is superseded. Use `docs/meeting_2026_04_27_brief_v2.md` plus its 12:30 update block, `docs/signoff_log.md`, and `docs/compiled_results.md`. The older N=100 cross-family MHD headline below is no longer the citeable story: Llama 70b N=200 is confirmed (+8.0pp, p=0.0195), but Gemma 3 27B N=200 is NULL (+2.5pp, p=0.5901).
+
 ## Section 1 — Headline
 
 multi_hyde_diverse is the FIRST multi-hop method to lift cross-FAMILY at N=100: Llama 3.3 70b dense reaches 33% vs 21% `rag_simple` (+12pp, McNemar p=0.023), while Gemma 3 27B dense reaches 30% vs 22% (+8pp, p=0.134 trending). Cross-family direction is consistent: MHD beats RAG on both families, with b > c and matching gold-retrieval lift signatures. The cross-family pattern is the story, not either single p-value. Audit trail: `docs/audit_log.md` and live matrix: `docs/validation_log_2026-04-25.md`.

@@ -1,5 +1,17 @@
 # Methods characterization — 2026-04-26
 
+## Update 2026-04-27 ~12:30 CDT
+
+Change reason: supersede the 2026-04-26 method characterization with today’s Tier 2 MuSiQue findings while preserving the historical analysis below. Current characterization:
+
+| Method family | Current verdict |
+|---|---|
+| `rag_snap_hyde` on BarExam | Still the audited legal-MC winner: 26B +3.09pp and E4B +3.69pp over `rag_simple` at N=1195 |
+| `multi_hyde_diverse` on MuSiQue | Confirmed only on Llama 70b N=200: +8.0pp, p=0.0195; Gemma 3 27B N=200 is NULL (+2.5pp, p=0.5901) |
+| Mechanism decomposition | Llama `rag_multi_query` is +1.5pp NS (p=0.728); HyDE-style answer-bearing passages account for about +6.5pp of MHD’s +8pp lift |
+| Heavy planning/subagent paths | `subagent_rag` actively hurts Llama MuSiQue N=200 (-12.0pp, p=0.0007); `iter_hyde` is NS at Llama N=200 and directionally bad on smaller models |
+| Citation tier | N<200 rows below are direction-only, not confirmed claims |
+
 Synthesis of when methods (HyDE, snap+HyDE, subagent, planning_table)
 beat the simple `rag_simple` baseline vs when they hurt. Built from all
 post-fix data landed through 2026-04-26 ~02:50 UTC.

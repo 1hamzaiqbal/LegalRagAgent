@@ -1,7 +1,11 @@
 # Compiled Results — paper-grade, audit-referenced
 
-Last updated: 2026-04-27 ~10:40 CDT
-Branch: hpc-setup, HEAD: 6b58ddb547d481e1d000b5f1c163174856fec9bd
+## Update 2026-04-27 ~12:30 CDT
+
+Change reason: housekeeping sweep after `docs/signoff_log.md` promoted the final Llama 70b N=200 MuSiQue matrix. This update supersedes older lower-file notes that still treated `subagent_rag` as unaudited or `rag_multi_query` as pending: `subagent_rag` is now a signed significant negative (15.5%, -12.0pp, p=0.0007), and Llama `rag_multi_query` is 29.0% (+1.5pp, p=0.728 NS). Current HEAD: `44427ad`.
+
+Last updated: 2026-04-27 ~12:30 CDT
+Branch: hpc-setup, HEAD: 44427ad
 Source-of-truth for cited numbers: docs/audit_log.md (post-fix authoritative for BarExam Tier 3),
 docs/mcnemar_2026-04-27.md (paired tests), logs/experiments.jsonl (raw run summaries).
 
@@ -322,8 +326,10 @@ Verdict: MINOR — sampled outputs are clean, but exact-gold retrieval remains l
 |---|---:|---:|---:|---:|---|---|---|
 | `rag_simple` | 55/200 = 27.5% | 200 | baseline | — | `logs/eval_rag_simple_groq-llama70b_20260427_0952_detail.jsonl`; exp row `20260427_0952`; doc `docs/mcnemar_2026-04-27.md` | row `31e69db`; result doc `6b58ddb` | MINOR — 1/20 sampled `predicted_answer='None'`; full scan 6/200 |
 | `multi_hyde_diverse` | 71/200 = 35.5% | 200 | +8.0pp | 0.0195 SIG | `logs/eval_multi_hyde_diverse_groq-llama70b_20260427_1010_detail.jsonl`; exp row `20260427_1010`; doc `docs/mcnemar_2026-04-27.md` | row `31e69db`; result doc `3ab2f51`/`6b58ddb` | MINOR — 1/20 sampled `predicted_answer='None'`; full scan 3/200 plus 1 routed fallback |
+| `rag_multi_query` | 58/200 = 29.0% | 200 | +1.5pp | 0.728 NS | `logs/eval_rag_multi_query_groq-llama70b_20260427_1112_detail.jsonl`; exp row `20260427_1112`; doc `docs/mcnemar_2026-04-27.md` | row `75e8038`; result doc `75e8038`/`44427ad` | CLEAN enough for mechanism: diversity alone is non-significant |
 | `rag_snap_hyde` | 48/200 = 24.0% | 200 | -3.5pp | 0.36 NS | `logs/eval_rag_snap_hyde_groq-llama70b_20260427_1019_detail.jsonl`; exp row `20260427_1019`; doc `docs/mcnemar_2026-04-27.md` | row `3ab2f51`; result doc `21e687a` | MINOR — 1/20 sampled `predicted_answer='None'`; full scan 2/200 |
 | `iter_hyde` | 49/200 = 24.5% | 200 | -3.0pp | 0.47 NS | `logs/eval_iter_hyde_groq-llama70b_20260427_1036_detail.jsonl`; exp row `20260427_1036`; doc `docs/mcnemar_2026-04-27.md` | row `21e687a`; result doc `6b58ddb` | CLEAN |
+| `subagent_rag` | 31/200 = 15.5% | 200 | -12.0pp | 0.0007 SIG negative | `logs/eval_subagent_rag_groq-llama70b_20260427_1044_detail.jsonl`; exp row `20260427_1044`; doc `docs/mcnemar_2026-04-27.md` | row `6b58ddb`; result doc `75e8038`/`44427ad` | APPROVED as negative; see signoff log Section B |
 
 #### Audit — `rag_simple` Llama 70b MuSiQue N=200 (20 records sampled)
 | Confound | Status |
@@ -495,7 +501,7 @@ Verdict: MINOR — low-rate `None` outputs; retrieval sample is non-empty and no
 
 | Model | rag_simple N=200 | rag_multi_query N=200 | mhd N=200 | Diversity comp | HyDE comp | Direct refs | Audit verdict |
 |---|---:|---:|---:|---:|---:|---|---|
-| Llama 70b | 27.5% (`20260427_0952`) | pending at N=200; N=100 was 25.0% (`20260427_0325`) | 35.5% (`20260427_1010`) | N=100 only: +4pp | N=100 only: +8pp beyond multi-query | `logs/eval_rag_simple_groq-llama70b_20260427_0952_detail.jsonl`; `logs/eval_rag_multi_query_groq-llama70b_20260427_0325_detail.jsonl`; `logs/eval_multi_hyde_diverse_groq-llama70b_20260427_1010_detail.jsonl`; docs `docs/mhd_mechanism_2026-04-27.md`, `docs/mcnemar_2026-04-27.md`; commits `31e69db`, `77dd9da`, `3ab2f51`, `6b58ddb` | MINOR — sampled `None` outputs plus full-scan one truncation and one mhd fallback; N=200 multi-query audit deferred until run exists |
+| Llama 70b | 27.5% (`20260427_0952`) | 29.0% (`20260427_1112`) | 35.5% (`20260427_1010`) | +1.5pp observed; p=0.728 NS | +6.5pp residual from answer-passage HyDE | `logs/eval_rag_simple_groq-llama70b_20260427_0952_detail.jsonl`; `logs/eval_rag_multi_query_groq-llama70b_20260427_1112_detail.jsonl`; `logs/eval_multi_hyde_diverse_groq-llama70b_20260427_1010_detail.jsonl`; docs `docs/mcnemar_2026-04-27.md`; commits `31e69db`, `75e8038`, `3ab2f51`, `44427ad` | Mechanism now Tier 2: diversity alone NS, MHD SIG |
 | Gemma 3 27B | 28.5% (`20260427_0309`) | 28.5% (`20260427_0536`) | 31.0% (`20260427_0404`) | 0.0pp observed | +2.5pp observed, but McNemar p=0.5901 NULL | `logs/eval_rag_simple_or-gemma27b_20260427_0309_detail.jsonl`; `logs/eval_rag_multi_query_or-gemma27b_20260427_0536_detail.jsonl`; `logs/eval_multi_hyde_diverse_or-gemma27b_20260427_0404_detail.jsonl`; docs `docs/mcnemar_2026-04-27.md`, `docs/meeting_2026_04_27_brief_v2.md`; commits `c8bcd05`, `0d51b36`, `a3aee05`, `83fb2fc` | MINOR — full scan found one truncated mhd answer outside sample |
 | Llama 4 Scout | 30.0% (`20260427_0459`) | 30.5% (`20260427_0332`) | pending at N=200; N=100 was 29.0% (`20260427_0249`) | +0.5pp observed at N=200 | pending | `logs/eval_rag_simple_groq-scout_20260427_0459_detail.jsonl`; `logs/eval_rag_multi_query_groq-scout_20260427_0332_detail.jsonl`; `logs/eval_multi_hyde_diverse_groq-scout_20260427_0249_detail.jsonl`; docs `docs/meeting_2026_04_27_brief_v2.md`, `docs/log_quality_audit_2026-04-27.md`; commits `6b7a922`, `a3aee05`, `46fe19b` | MINOR — sampled `None` outputs; N=200 mhd audit deferred until run exists |
 | Qwen3 30B MoE | N=100 only: 24.0% (`20260427_0334`) | pending | N=100 only: 28.0% (`20260427_0448`) | pending | N=100 +4pp total; not decomposed | `logs/eval_rag_simple_or-qwen3-30b-moe_20260427_0334_detail.jsonl`; `logs/eval_multi_hyde_diverse_or-qwen3-30b-moe_20260427_0448_detail.jsonl`; doc `docs/meeting_2026_04_27_brief_v2.md`; commit `a3aee05` | MINOR — 2/20 sampled empty/null predictions and 1 sampled empty retrieval |
@@ -686,7 +692,7 @@ Verdict: MINOR — positive BarExam result is still citeable only with the exist
 | `gemma4_full` mhd-pair × Gemma 4 26B-A4B × N=2400 MuSiQue | In flight; `/tmp/mhd_pair_gemma4_full.log` tail showed `[324/2400]` (~13.5%) on the current local read, close to the requested ~12% snapshot | pending | `/tmp/mhd_pair_gemma4_full.log`; `docs/mcnemar_2026-04-27.md` lists Gemma 4 26B-A4B full MuSiQue in flight | audit deferred until run completes |
 | `qwen_full` mhd-pair × Qwen3 30B MoE × N=2400 MuSiQue | In flight; `/tmp/mhd_pair_qwen_full.log` tail showed `[791/2400]` (~33.0%), close to the requested ~30% snapshot | pending | `/tmp/mhd_pair_qwen_full.log`; `docs/mcnemar_2026-04-27.md` lists Qwen3 30B MoE full MuSiQue in flight | audit deferred until run completes |
 | SLURM BarExam mhd+iter_hyde × Gemma 4 26B-A4B N=200 | Pending/unverified locally. User supplied SLURM `55107`; docs conflict with older `55040` / `55094`, and live `ps` was blocked by sandbox. | pending | `docs/mcnemar_2026-04-27.md`; `docs/meeting_2026_04_27_brief_v2.md`; user-provided current snapshot | audit deferred until run completes |
-| `subagent_rag` × Llama 70b N=200 | No longer in flight in local sources: `/tmp/captain_llama70b_subagent.log` completed 31/200 = 15.5%, with detail log and dirty `logs/experiments.jsonl` row `20260427_1044`; no paired McNemar/audit doc yet, so do not promote to paper-grade. | `logs/eval_subagent_rag_groq-llama70b_20260427_1044_detail.jsonl` | `/tmp/captain_llama70b_subagent.log`; `logs/experiments.jsonl` row `20260427_1044`; row commit `6b58ddb` | MAJOR — `gold_retrieved=false` on 20/20 sampled and 200/200 full records; do not cite |
+| `subagent_rag` × Llama 70b N=200 | Completed and signed as a significant negative: 31/200 = 15.5%, -12.0pp vs `rag_simple`, McNemar p=0.0007. | `logs/eval_subagent_rag_groq-llama70b_20260427_1044_detail.jsonl` | `logs/experiments.jsonl` row `20260427_1044`; `docs/mcnemar_2026-04-27.md`; `docs/signoff_log.md` | APPROVED as negative evidence; not a candidate improvement |
 
 #### Audit — `subagent_rag` Llama 70b MuSiQue N=200 (20 records sampled)
 | Confound | Status |
@@ -701,7 +707,7 @@ Verdict: MINOR — positive BarExam result is still citeable only with the exist
 | Sampled records | `2hop__121145_561444`, `2hop__86689_728109`, `3hop1__462960_160545_62931`, ..., `4hop3__547073_88460_30152_20999`, `4hop3__524186_219173_548463_72134`, `3hop1__79039_131926_87157` |
 | Audited at | 2026-04-27 ~11:18 CDT by codex |
 
-Verdict: MAJOR — retrieval is non-empty but never retrieves the exact gold passage in this run; keep the row as in-flight/negative context only and do not cite as paper-grade.
+Verdict: CAVEAT — retrieval is non-empty but exact-gold tracking is 0/200, so do not use this row for retrieval-recall mechanism claims. The paired EM result itself is signed as negative evidence in `docs/signoff_log.md`.
 
 ## Section 8 — What NOT to cite (failed runs / contaminated rows)
 
@@ -709,11 +715,11 @@ Verdict: MAJOR — retrieval is non-empty but never retrieves the exact gold pas
 - All N=100 runs as definitive; at most Tier 1 directional unless reinforced by N=200+.
 - The `advisor_planning_table` BarExam N=50 FAILED-EMPTY-RETRIEVAL row in `logs/experiments.jsonl`: `20260426_2242_advisor_planning_table_groq-llama70b_api-barexam-advisor-llama-n50_FAILED-EMPTY-RETRIEVAL`; detail log `logs/eval_advisor_planning_table_groq-llama70b_20260426_2242_detail.jsonl`; doc `docs/audit_log.md`; commit `45f1e03`; empty retrieval 50/50.
 - Pre-fix BarExam numbers before formatter/retrieval-query fixes `f95f316` and `3d5ff05`; use post-fix `docs/audit_log.md` values.
-- `subagent_rag` Llama 70b N=200 15.5% as paper-grade until a paired comparison/audit doc exists and the dirty `logs/experiments.jsonl` row is committed or otherwise archived.
+- Any positive framing of `subagent_rag` on Llama 70b MuSiQue; it is now signed negative evidence (-12.0pp, p=0.0007).
 
 ## Reproducibility appendix
 
-- Current HEAD: `6b58ddb` (`analysis: Llama 70b N=200 Tier 2 method matrix complete`).
+- Current HEAD: `44427ad` (`docs: signoff_log Section F+G — codex retroactively audited 15 historical N>=200 runs`).
 - Recent result commits from `git log --oneline -30`: `6b58ddb`, `21e687a`, `3ab2f51`, `83fb2fc`, `6b7a922`, `a3aee05`, `800c454`, `77dd9da`, `393e12f`, `5f8b723`, `8bbf0e7`.
 - Historical hardening commits required for BarExam interpretation: `f95f316` (prompt column in BarExam formatting), `3d5ff05` (prompt column in retrieval/rerank query paths), `ed15eb7` (extractor fallback + routed_to marker), `171c2c4` (pre-flight/circuit/summary/think-tag guard).
 - Data-state caveat: `logs/experiments.jsonl` is dirty in the current worktree. The latest MuSiQue rows are directly verifiable locally, but the JSONL edits themselves have not all been committed. The post-fix Tier 3 BarExam detail logs are under ignored `logs/` paths and absent from `logs/experiments.jsonl`; the committed audit trail for those values is `docs/audit_log.md`.

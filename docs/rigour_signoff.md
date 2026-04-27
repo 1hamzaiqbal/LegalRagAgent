@@ -1,5 +1,9 @@
 # Rigour Sign-Off Framework
 
+## Update 2026-04-27 ~12:30 CDT
+
+Change reason: methodology bookkeeping sweep. Tier system is now explicit: Tier 3/full-corpus and Tier 2 N>=200 paired tests can be cited when signed off; Tier 1/N<200 is direction-only. Sign-off gate is `docs/signoff_log.md`; detailed evidence is `docs/compiled_results.md`; paired significance uses `scripts/compute_mcnemar.py`; attribution-bias analysis uses `scripts/analyze_friend_foe_bias.py`.
+
 Before any new eval run is trusted for the paper, these checks must pass.
 Keep this doc updated as we discover new failure modes.
 
@@ -68,7 +72,7 @@ Every new SLURM submission must be able to answer YES to each.
 | 2026-04-21 | No-retrieval modes omit `gold_retrieved`/`retrieved_ids`/`evidence_store` | `e9ed9ab` | (manual — check via `compare_mini_eval.py` output) |
 | 2026-04-21 | Snap-key schema inconsistency (snap1 vs snap_answer) | `17127c0` | (no test — normalization at harness level) |
 | 2026-04-21 | Entity-search hard-codes barexam paths | `17127c0` | (manual — fallback now auditable via `entity_fallback` field) |
-| 2026-04-22 | BarExam `prompt` column dropped (37% of questions missing fact pattern) | `f95f316` | **ADD** `tests/test_formatter.py` — test that format_question_prompt includes prompt content when non-empty |
+| 2026-04-22 | BarExam `prompt` column dropped (37% of questions missing fact pattern) | `f95f316` | `tests/test_formatter.py` — verifies formatted prompts and retrieval-query helpers include prompt content |
 
 ## Clean-rerun protocol
 
@@ -84,18 +88,13 @@ When we decide to run the definitive post-fix matrix:
    delta + confidence band. Claims need |delta| ≥ 2× the CI to be
    "significant."
 
-## Current status (2026-04-22)
+## Current status (2026-04-27)
 
-- Last known bug: `prompt` column (fixed in f95f316)
-- Codex audit in flight (aaf6cb75992bbc6be) — sweeping all 5 datasets
-  for similar silent-column-drop bugs
-- Regression test for the prompt-column fix: **TODO** (will add now)
-- Tag `clean-rerun-v1` not yet applied — waiting for Codex sweep
-- 7 in-flight jobs (50858/65/68, 50986, 50991-2, 51023-4) are all
-  pre-f95f316 and will be labeled as `[pre-prompt-fix]`
-- Validation runs 51179 (E4B N=200) + 51180 (31B N=200) are post-f95f316
-  and will give the delta. These count as pre-`clean-rerun-v1` also
-  because Codex may find more issues before we tag.
+- Current cite-or-not source: `docs/signoff_log.md`.
+- BarExam Tier 3 source: `docs/audit_log.md`; current full-corpus numbers are definitive there.
+- MuSiQue Tier 2 source: `docs/mcnemar_2026-04-27.md` plus `docs/compiled_results.md`.
+- N<200 rows are Tier 1 direction-only, even when p<0.05.
+- Regression tests exist for the prompt-column fix and sanitizer path: `tests/test_formatter.py`, `tests/test_sanitizer.py`.
 
 ## Signing off
 
