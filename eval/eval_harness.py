@@ -1057,6 +1057,77 @@ def run_rag_multi_hyde(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_multi_hyde_diverse(row: pd.Series, config: EvalConfig) -> dict:
+    """Multi-HyDE designed to fight single-hop commitment bias on multi-hop QA.
+
+    Failure mode being attacked: on MuSiQue, single HyDE commits to ONE
+    wrong-hop entity (e.g. "Norah Jones" for "spouse of the Green performer")
+    and BM25 retrieves only that entity's paragraphs, missing the actual gold.
+
+    Mitigation: generate THREE diverse candidate answer-passages (different
+    entities/angles), pool BM25/dense retrieval across all + the raw question
+    as an anchor. Diversity is encouraged in the prompt but not enforced by
+    de-duplication beyond the natural BM25 max-pooling.
+    """
+    question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
+
+    system = (
+        "You are a research assistant. Given a question, write THREE different "
+        "short hypothetical answer-passages (2-3 sentences each).\n\n"
+        "Diversity rules:\n"
+        "- Each passage must give a DIFFERENT plausible answer or focus on a "
+        "DIFFERENT entity/aspect/sub-question\n"
+        "- Do NOT label them with numbers, headers, or bullets\n"
+        "- Do NOT pick a multiple-choice letter (A/B/C/D) or commit to a single answer\n"
+        "- Write each passage in factual encyclopedia/textbook style\n"
+        "- Separate the three passages with one blank line"
+    )
+    raw = _llm_call(system, question_intermediate, label="multi_hyde_diverse/generate")
+
+    raw_hyde_passages = [p.strip() for p in raw.split("\n\n") if p.strip() and len(p.strip()) > 30]
+    hyde_passages = [
+        _sanitize_intermediate_text(p, fallback=question_intermediate)
+        for p in raw_hyde_passages
+    ]
+    routed_to = None
+    if not hyde_passages:
+        raw_hyde_passages = [raw or question_intermediate]
+        hyde_passages = [_sanitize_intermediate_text(raw or question_intermediate, fallback=question_intermediate)]
+        routed_to = "single_hyde_fallback_empty_gen"
+    elif len(hyde_passages) < 3:
+        routed_to = f"single_hyde_fallback_only_{len(hyde_passages)}_passages"
+
+    queries = hyde_passages + [question_intermediate]
+
+    retrieval = _retrieve_and_format(
+        row, queries, k=5, label_prefix="multi_hyde_diverse",
+        where=_where_from_config(config),
+        collection=_collection_for_config(config),
+    )
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="multi_hyde_diverse/answer")
+
+    out = {
+        "final_answer": answer,
+        "formatted_question": question,
+        "retrieval_queries": hyde_passages,
+        "rerank_query": "",
+        "hyde_passages": hyde_passages,
+        "hyde_passages_raw": raw_hyde_passages,
+        "n_hyde_passages": len(hyde_passages),
+        "hyde_contains_answer_artifact": any(_contains_answer_artifact(p) for p in raw_hyde_passages),
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+    if routed_to:
+        out["routed_to"] = routed_to
+    return out
+
+
 def run_rag_snap_hyde(row: pd.Series, config: EvalConfig) -> dict:
     """Snap-informed HyDE: LLM answers first, then generates targeted HyDE passage based on its reasoning."""
     question = _fmt(row, config)
@@ -4299,6 +4370,19 @@ def run_planning_table_no_snap(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+# Modes that do NOT use ChromaDB retrieval. Used by pre-flight collection
+# check and the empty-retrieval summary guard to skip non-RAG modes.
+# Includes golden_passage variants (they INJECT row['golden_passage'] into the
+# prompt rather than retrieving from a vector store) and the historical
+# vectorless / pure-LLM modes.
+_NO_CHROMA_MODES = {
+    "llm_only", "snap_only_in_final", "decompose", "self_verify",
+    "double_snap", "snap_debate", "vectorless_direct", "vectorless_role",
+    "vectorless_elements", "vectorless_choice_map", "vectorless_nosnap",
+    "golden_passage", "golden_arbitration", "golden_arb_conservative",
+}
+
+
 MODE_RUNNERS = {
     "full_pipeline": run_full_pipeline,
     "llm_only": run_llm_only,
@@ -4358,6 +4442,7 @@ MODE_RUNNERS = {
     "rag_multi_query": run_rag_multi_query,
     "iterative_planning_table": run_iterative_planning_table,
     "advisor_planning_table": run_advisor_planning_table,
+    "multi_hyde_diverse": run_multi_hyde_diverse,
 }
 
 
@@ -4443,6 +4528,32 @@ def run_eval(config: EvalConfig):
             print(f"[preflight] FAILED for provider={config.provider}: {exc}")
             print(f"[preflight] aborting before logging garbage. Verify API key/model availability.")
             raise SystemExit(2)
+
+    # Pre-flight collection check: verify the configured ChromaDB collection
+    # has docs BEFORE the run starts. Catches the "empty corpus → silent zero
+    # retrieval → garbage findings" failure mode discovered 2026-04-26 on the
+    # advisor BarExam run (50/50 rows had retrieved_ids=[], all findings said
+    # "No answer available", but the strong LLM still produced 72% from
+    # parametric knowledge — a misleading number we almost cited).
+    # Skip for modes that don't use ChromaDB (musique uses in-row BM25;
+    # llm_only and snap_only_in_final don't retrieve at all).
+    if config.dataset != "musique" and config.mode not in _NO_CHROMA_MODES:
+        try:
+            from rag_utils import get_vectorstore
+            _coll_name = _collection_for_config(config) if "_collection_for_config" in globals() else "legal_passages"
+            _vs = get_vectorstore(_coll_name, embedding_model=os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or None)
+            _coll_count = _vs._collection.count() if hasattr(_vs, "_collection") else None
+            if _coll_count is not None and _coll_count == 0:
+                print(f"[preflight] FAILED: collection '{_coll_name}' is EMPTY (0 docs).")
+                print(f"[preflight] mode={config.mode} requires retrieval but corpus is missing.")
+                print(f"[preflight] Rebuild via: uv run python utils/fast_embed.py barexam (or housing)")
+                raise SystemExit(4)
+            elif _coll_count is not None:
+                print(f"[preflight] collection={_coll_name} has {_coll_count:,} docs OK")
+        except SystemExit:
+            raise
+        except Exception as exc:
+            print(f"[preflight] WARNING: could not verify collection: {exc}")
 
     results = []
     correct = 0
@@ -4701,6 +4812,24 @@ def run_eval(config: EvalConfig):
             f"\n[summary-guard] {error_count}/{n} ({error_rate:.0%}) records errored. "
             f"Tagging summary as FAILED-do-not-use to avoid polluting analysis."
         )
+
+    # Empty-retrieval guard: if a RAG mode produced 0 retrieved docs on >50%
+    # of rows, the corpus or routing is broken and the accuracy number reflects
+    # parametric knowledge of the LLM only — not the method. Tag as FAILED.
+    # Discovered 2026-04-26 on advisor BarExam where legal_passages had 0 docs
+    # on this Mac and 50/50 rows had retrieved_ids=[] but accuracy=72%.
+    is_rag_mode = config.mode not in _NO_CHROMA_MODES and config.dataset != "musique"
+    if is_rag_mode:
+        empty_ret = sum(1 for r in results if r.get("retrieved_ids") == [])
+        empty_ret_rate = empty_ret / max(n, 1)
+        if empty_ret_rate > 0.5:
+            summary["tag"] = (config.tag + "_FAILED-EMPTY-RETRIEVAL").lstrip("_")
+            summary["empty_retrieval_rate"] = round(empty_ret_rate, 3)
+            summary["empty_retrieval_count"] = empty_ret
+            print(
+                f"\n[summary-guard] {empty_ret}/{n} ({empty_ret_rate:.0%}) records had empty retrieval. "
+                f"Tagging summary as FAILED-EMPTY-RETRIEVAL — accuracy is from parametric LLM knowledge, not the method."
+            )
 
     experiments_path = os.path.join("logs", "experiments.jsonl")
     with open(experiments_path, "a") as f:

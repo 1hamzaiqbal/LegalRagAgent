@@ -106,3 +106,71 @@ Audited 2026-04-26 for the "advisor pattern (cheap LLM plans/finds, strong LLM s
 Files:
 - `/Users/hamzaiqbal/grad/LegalRagAgent/logs/eval_advisor_planning_table_groq-llama70b_20260426_2229_detail.jsonl`
 - `/Users/hamzaiqbal/grad/LegalRagAgent/logs/eval_rag_simple_groq-llama70b_20260426_2226_detail.jsonl`
+
+## Multi-method × multi-dataset landings 2026-04-26 ~22:42 UTC
+
+Two new landings audited together: a MuSiQue golden_passage Llama-vs-Gemma comparison, and a BarExam advisor_planning_table paired against llm_only Llama. Both were re-scored with current extractors, provider/model integrity verified, and per-record sampled.
+
+### Landing 1: MuSiQue Llama 70b golden_passage N=30 vs Gemma 4 26B golden_passage N=50
+
+| Metric | Llama 70b N=30 | Gemma 4 26B N=50 |
+|---|---|---|
+| Stored / Re-scored EM | 14/30 = 46.67% (rescored matches) | 31/50 = 62.0% (rescored matches) |
+| Avg F1 | 0.648 | 0.759 |
+| F1≥0.7 lenient rate | 50.0% (15/30) | 64.0% (32/50) |
+| Errors / None preds | 0 / 0 | 0 / 0 |
+| gold_passage present | 30/30 | 50/50 |
+| Provider/Mode/Dataset | groq-llama70b / golden_passage / musique (clean) | or-gemma4-26b / golden_passage / musique (clean) |
+
+Same-idx overlap (30 shared questions): both EM=13, only Llama EM=1, only Gemma EM=4, neither=12. F1≥0.7 lenient on overlap: Llama 50% vs Gemma 60%. The 5 cells where one model wins differ across the two models (`2hop__82858_654855`, `3hop1__491648_339990_15538`, `3hop1__773338_42197_18397`, `3hop2__230_89048_66294`, `4hop1__166471_49925_13759_736921`) — failures aren't on the same questions, so this is a real model-capability difference, not a single hard subset.
+
+Of Llama's 16 EM=False: 7 prefix/article mismatches (e.g., `Rabbi Dovber Schneuri` vs `Dovber Schneuri`, `Koh Phi Phi` vs `island Koh Phi Phi`, `to the Politburo` vs `the Politburo`), 1 different-paraphrase mid-F1, 8 genuinely wrong (`17th century` vs `13 December 1642`, etc.). Gemma's 19 EM=False: 10 prefix/article, 1 paraphrase, 8 genuinely wrong — same shape, more correct ones underneath.
+
+**Verdict: REAL ceiling difference.** Strict-EM normalization quirk explains ~3-7pp on each side equally; Gemma's lead survives F1≥0.7 lenient (60% vs 50% on the 30-overlap, 64% vs 50% overall). The "compositional bottleneck differs by model" claim is supported. Safer cite is "F1≥0.7 lenient: Gemma 64% / Llama 50% on shared idxs" alongside the strict EM figures rather than just 62% vs 46.7% headline. Llama's gap is REAL, not normalization noise.
+
+### Landing 2: BarExam advisor_planning_table Llama 70b N=50 (paired vs llm_only)
+
+| Metric | advisor_planning_table | llm_only |
+|---|---|---|
+| Stored / Re-scored is_correct | 36/50 = 72.0% (matches) | 42/50 = 84.0% (paired N=50) |
+| Errors / None preds / extraction failures | 0 / 0 / 0 | 0 / 0 / 0 |
+| Provider | groq-llama70b (synth), groq-llama8b (advisor, llama-3.1-8b-instant) — verified all 50 rows | groq-llama70b |
+| **`retrieved_ids`** | **EMPTY on 50/50 rows** | n/a |
+| **`gold_retrieved=True`** | **0/50 rows** | n/a |
+| **`evidence_store`** | **EMPTY on 50/50 rows** | n/a |
+| Per-step `evidence_ids` | EMPTY on 150/150 step entries | n/a |
+| Findings text | "No answer available" / "No information is available to answer this question" on 150/150 step findings | n/a |
+
+Cross-check: same advisor harness on MuSiQue (`...2229_detail.jsonl` N=100) shows `gold_retrieved=True` 88/100 and zero empty `retrieved_ids`. The retrieval failure is **BarExam-specific in this run** — `_retrieve_and_format` at line 893 of eval_harness.py routes BarExam through ChromaDB `legal_passages`, but every call returned 0 docs.
+
+McNemar paired (50 overlap): both right 32, b(advisor+/llm-)=4, c(advisor-/llm+)=10, both wrong 4. Continuity-corrected χ²=1.79, p≈0.18. Sampling 3 advisor-wrong/llm-right rows (`mbe_377`, `mbe_900`, `mbe_761`): in all 3 the advisor's planning_table findings were ALL "No answer available", and the strong synth still had to guess from doctrine — drifted to a wrong letter. The 4 advisor-right/llm-wrong rows look like dice rolls, not method wins (same empty findings).
+
+**Verdict: ARTIFACT, not a real method failure.** The -12pp gap is driven by a broken retrieval pipeline (50/50 rows zero passages on legal_passages collection in this run), not by the cheap-LLM 8B systematically misleading the synthesizer. Findings carried zero signal — cheap LLM correctly said "no information available" — and the 70B synth faced the SAME doctrinal-only task as llm_only but with ~150 useless "no answer" lines as distractor context. This degrades the synth's accuracy. **DO NOT CITE the -12pp legal-MC regression.** Re-run `advisor_planning_table` on barexam after diagnosing why `_retrieve_and_format` returned empty on legal_passages here (env var or session-level chroma issue at 22:42 UTC; the 22:29 MuSiQue run on same provider/same harness retrieved fine, so the harness code is OK — likely a transient ChromaDB / collection state issue). Until then the only safe BarExam claim is "advisor pattern not yet measured on BarExam at N=50 with retrieval working".
+
+Files:
+- `/Users/hamzaiqbal/grad/LegalRagAgent/logs/eval_golden_passage_groq-llama70b_20260426_2239_detail.jsonl`
+- `/Users/hamzaiqbal/grad/LegalRagAgent/logs/eval_golden_passage_or-gemma4-26b_20260426_0007_detail.jsonl`
+- `/Users/hamzaiqbal/grad/LegalRagAgent/logs/eval_advisor_planning_table_groq-llama70b_20260426_2242_detail.jsonl`
+- `/Users/hamzaiqbal/grad/LegalRagAgent/logs/eval_llm_only_groq-llama70b_20260426_1930_detail.jsonl`
+- Comparison advisor with retrieval working: `/Users/hamzaiqbal/grad/LegalRagAgent/logs/eval_advisor_planning_table_groq-llama70b_20260426_2229_detail.jsonl` (N=100 musique, 88/100 gold_retrieved)
+
+Audit agent: `audit_landings_2026-04-26_2242`
+
+### Root cause + scope (2026-04-26 ~22:50 UTC, post-audit)
+
+**Root cause confirmed**: this Mac's `chroma_db/` has `legal_passages` collection with **0 docs** (verified via `chromadb.PersistentClient(path='./chroma_db').get_collection('legal_passages').count() == 0`). This is NOT a transient issue — the local corpus is missing entirely. All cluster runs are unaffected (cluster has its own `chroma_db/` populated).
+
+**Scope of contamination on local Mac BarExam runs** (audit script run against `logs/eval_*_barexam_detail.jsonl`):
+- Confirmed bogus: `eval_advisor_planning_table_groq-llama70b_20260426_2242_detail.jsonl` (50/50 empty_ret, 72.0% — tagged `_FAILED-EMPTY-RETRIEVAL` in experiments.jsonl)
+- All other recent local BarExam runs that retrieve: 0.2-4% empty rows = within normal noise (queries that genuinely don't match anything in the corpus); these come from CLUSTER, where the corpus IS populated
+
+**False positive**: `golden_passage_cluster-vllm_20260421_1658_detail.jsonl` flagged 1195/1195 empty_ret — but `golden_passage` mode INJECTS the row's `golden_passage` field directly into the prompt instead of retrieving. By design. Added `golden_passage`/`golden_arbitration`/`golden_arb_conservative` to `_NO_CHROMA_MODES` to suppress this false positive in future audits.
+
+**Harness fixes applied (commit pending)**:
+1. **Pre-flight collection check** (`eval/eval_harness.py` ~line 4509): before iterating questions, fetch the configured ChromaDB collection and abort with `SystemExit(4)` if `count() == 0` and the mode requires retrieval. Prints `[preflight] FAILED: collection 'X' is EMPTY (0 docs)`. Skipped for `_NO_CHROMA_MODES` (golden, llm_only, vectorless, etc.) and for `dataset == "musique"` (in-row BM25, no Chroma).
+2. **Empty-retrieval summary guard** (`eval/eval_harness.py` ~line 4798): at end-of-run, if a RAG mode produced `retrieved_ids == []` on >50% of rows, tag the summary `_FAILED-EMPTY-RETRIEVAL` with `empty_retrieval_rate` and `empty_retrieval_count` recorded. Mirrors the existing `_FAILED-do-not-use` error-rate guard.
+3. **`_NO_CHROMA_MODES` set** (module-level constant): now includes the golden modes plus the historical no-retrieval list, so both pre-flight and post-hoc guards skip them correctly.
+
+**Recommended action**: any local-Mac RAG run before commit (this commit) is suspect. If you need legal_passages locally, rebuild via `uv run python utils/fast_embed.py barexam` (~2.2 hr on RTX 3070, longer on Mac CPU). For the meeting, all BarExam claims must come from cluster runs (they have a populated corpus); local Mac is multi-hop / API-only territory.
+
+**Codex independent verification**: requested 2026-04-26 ~22:55 UTC, agent `ab52ee7515e1ad06d` (in flight).
