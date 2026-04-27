@@ -2,12 +2,27 @@
 
 This snapshot plans the next full-corpus wave around methods that already survived paired checks, log-quality review, and the current empty-retrieval / preflight guardrails in HEAD (`c8bcd05`). MuSiQue full validation means 2400 questions; BarExam full validation means 1195 questions.
 
+## Sample-size citation tiers (paper-grade calibration, 2026-04-27)
+
+User calibration: N<200 numbers cannot be trusted as legitimate performance numbers.
+Concrete demonstration in this batch: Gemma 27B `rag_simple` jumped from 22% (N=100) to 28.5% (N=200) — a 6.5pp swing from sample variance alone.
+
+- **Tier 0 (N=30)**: smoke / triage / direction signal only. NEVER cite.
+- **Tier 1 (N=100)**: paired McNemar OK for "trending" language but treat as preliminary.
+- **Tier 2 (N=200+)**: minimum citeable for paper.
+- **Tier 3 (full corpus, 1195 BarExam / 2400 MuSiQue)**: paper headline.
+
+What we have at Tier 2+ right now (citeable):
+- BarExam `rag_snap_hyde` cross-size: Gemma 4 26B-A4B +3.09pp (N=1195) and E4B +3.69pp (N=1195).
+- (Everything MuSiQue is currently Tier 1 or below; mhd Gemma 27B N=200 is the first Tier 2 attempt.)
+
 ## Robustness gates: must pass BEFORE launching full-corpus
 
-For each method x model: passes if (a) >=2 cross-family validations at N>=100, (b) clean log audit, (c) silent-empty bug fixes in HEAD.
+For each method x model: passes if (a) >=2 cross-family validations at N>=200, (b) clean log audit, (c) silent-empty bug fixes in HEAD.
 
 Currently passing:
-- `mhd` x {Llama 70b, Gemma 27B} on MuSiQue N=100 (Gemma N=200 in flight to convert trending -> sig).
+- BarExam `rag_snap_hyde` (N=1195 Gemma 4 26B-A4B + N=1195 Gemma 4 E4B).
+- `mhd` x {Llama 70b, Gemma 27B} on MuSiQue is N=100 only — needs N=200 confirmation before Tier 3 launch (Gemma N=200 in flight).
 
 Baseline findings:
 - `multi_hyde_diverse` (`mhd`) is the proven robust method on MuSiQue multi-hop:
@@ -25,7 +40,18 @@ Source notes:
 - Derived from `docs/audit_log.md` and `docs/validation_log_2026-04-25.md`: Llama 70b `mhd` +12pp p=0.023; Gemma 27B `mhd` +8pp p=0.134; BarExam `rag_snap_hyde` +3.09pp / +3.69pp; Qwen3 30B MoE BarExam 70% clean baseline.
 - `docs/run_audit_2026-04-27.md` marks the relevant N=100 MuSiQue rows clean, and `docs/log_quality_audit_2026-04-27.md` found no truncation / empty-output corruption in sampled latest logs, with only interpretive groundedness caveats.
 
-## Tier 1 — full-corpus runs to fire when current N=100 batch lands
+## Tier 2 (N=200) follow-ups: queue these BEFORE jumping to Tier 3 full-corpus
+
+| Mode | Model | Provider | Dataset | Trigger |
+|---|---|---|---|---|
+| `mhd` + `rag_simple` pair | Llama 70b | `groq-llama70b` | MuSiQue | After Groq daily TPD reset (19:00 CDT). Convert N=100 +12pp to N=200 paired McNemar. |
+| `mhd` + `rag_simple` pair | Qwen3 30B MoE | `or-qwen3-30b-moe` | MuSiQue | After current N=100 pair lands (~50 min). Confirms or refutes capacity-floor on Qwen MoE. |
+| `mhd` + `rag_simple` pair | Llama 4 Scout | `groq-scout` | MuSiQue | If we want to confirm flat finding — low priority since direction is clear. |
+| `rag_multi_query` + `rag_simple` pair | Llama 70b | `groq-llama70b` | MuSiQue | After current N=100 ablation lands (~10 min). Confirms diversity-vs-HyDE mechanism. |
+
+Tier 2 is the gate to Tier 3. Don't launch Tier 3 corpus jobs on a method/model pair until paired Tier 2 N=200 lands clean.
+
+## Tier 3 — full-corpus runs to fire when Tier 2 N=200 confirms
 
 | Order | Mode | Model | Provider | Dataset | N | ETA | Where | Why |
 |---:|---|---|---|---|---:|---|---|---|
