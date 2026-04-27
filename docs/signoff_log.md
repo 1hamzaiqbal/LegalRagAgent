@@ -138,13 +138,29 @@ iter_hyde × Llama 70b N=200 = -3pp p=0.47 NS (audit CLEAN).
 
 ## Section D — In flight (will sign off when landed + audited)
 
-| Run | Status | Spot-check verdict (Haiku 12:50 CDT) | Expected sign-off |
+| Run | Status | Spot-check verdict | Expected sign-off |
 |---|---|---|---|
-| SLURM 55107 BarExam mhd+iter_hyde × Gemma 4 26B-A4B N=200 | mhd 100% done (164/200=82%), iter_hyde at q106/200 (78.3% partial PASS rate) | LEGIT — clean, no leakage, no errors, healthy answers | Expected ✅ APPROVED on landing |
-| `gemma4_full` mhd-pair × Gemma 4 26B-A4B × N=2400 MuSiQue (or-gemma4-26b API) | RUNNING ~q431/2400 (rag_simple = 30.9%) | ⚠️ SUSPICIOUS — 9 placeholder `[your answer here]` leaks (~2% rate) + extreme-latency runaway-loop generations (one 47-min query) | ⚠️ APPROVED-WITH-CAVEAT — flag ~2% leakage, post-hoc filter placeholder records |
-| `qwen_full` mhd-pair × Qwen3 30B MoE × N=2400 MuSiQue | RUNNING ~q1029/2400 (rag_simple = 26.4%) | LEGIT — no leakage, healthy answers, 2 latency outliers (recovered) | Expected ✅ APPROVED on landing |
+| SLURM 55107 BarExam mhd+iter_hyde × Gemma 4 26B-A4B N=200 | mhd 100% done (164/200=82%), iter_hyde at q106+/200 (78.3% partial PASS rate) | LEGIT — clean, no leakage, no errors, healthy answers | Expected ✅ APPROVED on landing |
+| `qwen_full` mhd-pair × Qwen3 30B MoE × N=2400 MuSiQue | RUNNING ~q1058/2400 (rag_simple = 26.1%, slow but progressing) | LEGIT — no leakage, healthy answers, occasional latency outliers (recovered) | Expected ✅ APPROVED on landing (will be partial at meeting time) |
 
-**Note on gemma4_full caveat**: The SAME model (Gemma 4 26B-A4B) on cluster vLLM (SLURM 55107) shows ZERO leakage. The placeholder leak is specific to OR-served Gemma 4 26B — likely a serving-quirk not a model bug. Cluster vLLM remains gold-standard for Gemma 4 26B; OR is acceptable with the documented caveat.
+### Section D — KILLED jobs (cannot be relied on as Tier 2/3 results)
+
+| Run | Status at kill | Reason killed | Citation guidance |
+|---|---|---|---|
+| `gemma4_full` mhd-pair × Gemma 4 26B-A4B × N=2400 MuSiQue (or-gemma4-26b API) | KILLED 2026-04-27 14:00 CDT at q431/2400 (rag_simple partial = 30.9%) | Hung 73+ min on q432 due to OR-served Gemma 4 26B runaway-loop generation (one 91k-char looped answer at q431 took 601s; subsequent query never returned) | ⚠️ Tier 2.5 partial — citeable ONLY as "Gemma 4 26B-A4B `rag_simple` MuSiQue N=431 = 30.9% (partial, OR-Gemma serving cut short by runaway loops)". Do NOT cite as Tier 3. |
+| `iterative_planning_table` × Gemma 27B N=200 (or-gemma27b) | KILLED 2026-04-27 14:00 CDT at q29/200 | Same OR-Gemma issue — one query took 2405s = 40 min. Projected ETA was 10+ hours. | ❌ DO NOT CITE — N=29 is below Tier 0 threshold and contains a 40-min outlier. |
+
+### Section D' — OR-served Gemma serving issue (methodology finding)
+
+**Discovered 2026-04-27 ~13:00 CDT:** OpenRouter-served Gemma models (Gemma 4 26B-A4B and Gemma 3 27B) exhibit pathological **runaway-loop generations** on iterative or multi-step prompts. Symptoms:
+- Single queries occasionally take 600s, 1200s, 2400s instead of normal 5-30s
+- Answer text contains repetitive looping (e.g., "Lou Boudreau (no), it is Lou Boudreau (no)..." for 91k chars)
+- ~2% of `rag_simple` (single-call) MuSiQue queries echoed `[your answer here]` placeholder and looped
+- Effect compounds in iterative/multi-call modes: `iter_planning_table × Gemma 27B` was projected to take 10+ hours for N=200
+
+**Mitigation**: Use cluster vLLM (Gemma 4 26B-A4B served locally via vLLM nightly + transformers 5.5.0) instead of OR API for Gemma. SLURM 55107 confirms cluster vLLM is clean — same model, no leakage, normal latencies.
+
+**Implication for meeting**: Whenever cited Gemma results were collected via OR, prefer cluster vLLM equivalents. The `gemma4_full` partial result (q431=30.9% rag_simple Gemma 4 26B MuSiQue) should be treated as a noisy lower-bound, not a Tier 2/3 cite-able number.
 
 ---
 
