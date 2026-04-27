@@ -2,6 +2,8 @@
 
 ## Immediate (before Tier 3 full-corpus claims)
 
+Temporary 2026-04-27 handoff addendum: read [`../meeting_notes_042726.md`](../meeting_notes_042726.md) before launching new cluster work. It adds the latest meeting asks: golden-passage sanity checks, top-1 vs top-5 retrieval-depth ablation, Snap-HyDE 2-call efficiency variant, dataset×model×method planning, and authorship/time-budget coordination.
+
 - [ ] Llama 70b MuSiQue mhd full-corpus N=2400 - why: promote the signed N=200 `multi_hyde_diverse` headline from Tier 2 to Tier 3 - owner / dataset / model / mode: eval/HPC operator / MuSiQue / Llama 70b / `rag_simple` + `multi_hyde_diverse`.
 
 - [ ] Wait for `qwen_full` to land and audit it - why: Qwen3 30B MoE is the live cross-family full-corpus check, currently Tier 2.5 partial only - owner / dataset / model / mode: eval/HPC operator / MuSiQue / Qwen3 30B MoE / `rag_simple` + `multi_hyde_diverse`.

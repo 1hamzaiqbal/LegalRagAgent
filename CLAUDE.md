@@ -21,6 +21,7 @@ Current research direction: the original heavy pipeline underperformed, but the 
 ## Key Documentation
 
 - `docs/experiment_overview.md` — high-level experiment summary + results table + validity checklist
+- `docs/meeting_notes_042726.md` — temporary 2026-04-27 meeting/HPC handoff: golden-passage sanity, top-1 vs top-5, Snap-HyDE 2-call, dataset×model×method plan
 - `docs/action_items.md` — paper sprint task list with deadlines (EMNLP May 20, ICML AI4Law May 22)
 - `docs/meeting_2026_04_17.md` — latest meeting notes with method breakdown and log examples
 - `docs/hpc_throughput.md` — cluster timing data and model comparison

@@ -13,6 +13,8 @@ Legal RAG research project studying **when retrieval helps legal QA and when it 
 
 **Quick navigation: [`docs/presentation/00_index.md`](docs/presentation/00_index.md)** — landing page with Q&A cheatsheet pointing to results tables, methods explained, takeaways, datasets+models, log index, next steps, and figures.
 
+**Temporary 2026-04-27 handoff: [`docs/meeting_notes_042726.md`](docs/meeting_notes_042726.md)** — latest meeting asks for the HPC-access agent: golden-passage sanity, top-1 vs top-5 retrieval depth, Snap-HyDE 2-call ablation, dataset×model×method planning, deadlines/authorship.
+
 **Figures**: [`docs/presentation/figures/`](docs/presentation/figures/) — 7 PNGs (paper headline matrix, BarExam cross-size, mechanism decomposition, cross-domain specificity, cross-family check, BarExam full matrix, cost vs accuracy). Captions in [`figures/captions.md`](docs/presentation/figures/captions.md).
 
 **Log viewer**: `python scripts/log_viewer.py` → http://localhost:8765 — drag-drop or path-entry, PASS/FAIL filter, navigation, pretty-printed records. See [`docs/presentation/log_viewer.md`](docs/presentation/log_viewer.md).
@@ -43,12 +45,6 @@ Legal RAG research project studying **when retrieval helps legal QA and when it 
 - **Pre-flight gate**: catches API auth fails (DeepSeek), runaway-rate limits (Venice 429), empty retrieval before logging garbage
 - **Paired McNemar infrastructure**: `scripts/compute_mcnemar.py`
 - **OR-Gemma serving caveat**: runaway-loop generations on iterative methods caught and documented; cluster vLLM remains gold-standard for Gemma 4
-
-The repo contains two layers:
-- `main.py` — the full LangGraph agentic pipeline / demo system
-- `eval/` — the current research loop, where simpler adaptive methods are benchmarked against heavier agentic variants
-
-**Project direction:** the long-term goal is still a strong full agentic pipeline, but the current research program is rebuilding toward it atomically from smaller, controlled retrieval strategies and only keeping improvements that survive fixed-eval scrutiny.
 
 The repo contains two layers:
 - `main.py` — the full LangGraph agentic pipeline / demo system

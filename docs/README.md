@@ -15,6 +15,7 @@
 
 ## Live state
 
+- `meeting_notes_042726.md` — temporary 2026-04-27 meeting/HPC handoff: golden sanity checks, top-1 vs top-5 ablation, dataset×model×method plan
 - `action_items.md` — current TODOs
 - `experiment_overview.md` — high-level experiment summary
 
