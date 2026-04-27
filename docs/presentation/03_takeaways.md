@@ -6,11 +6,11 @@
 
 - BarExam snap agreement is a caveat, not a rejection. Gemma 4 has strong legal priors, snap reasoning dominates, and HyDE supplies marginal lift or occasional conflicting evidence; this is BY DESIGN architecture and mechanism understanding.
 
-- MuSiQue has a multi-hop winner on Llama 70b: `multi_hyde_diverse` is the clean significant simple-method lift at N=200, 35.5%, +8pp, p=0.0195.
+- MuSiQue has a multi-hop winner on Llama 70b: `multi_hyde_diverse` is the clean significant simple-method lift at N=200, 35.5%, +8pp, p=0.0195. * (Tier 2 paired; full-corpus replicate would solidify).
 
 📊 [`figures/01_llama70b_method_matrix.png`](figures/01_llama70b_method_matrix.png) — paper headline 8-method bar chart
 
-- Complex methods are not uniformly bad. `iterative_planning_table` reaches 36.0%, +8.5pp, p=0.0533 TRENDING-SIG; `subagent_rag` is a real -12.0pp finding because current gap-routing over-abstains, and prompt reframing could likely close part of that gap.
+- Complex methods are not uniformly bad. `iterative_planning_table` reaches 36.0%, +8.5pp, p=0.0533 TRENDING-SIG. * (Tier 2 paired; full-corpus replicate would solidify). `subagent_rag` is a real -12.0pp finding because current gap-routing over-abstains, and prompt reframing could likely close part of that gap.
 
 - The mechanism is not just query diversity. `rag_multi_query` adds only +1.5pp and is non-significant, while HyDE-style answer passages explain about +6.5pp of the +8pp `multi_hyde_diverse` lift.
 

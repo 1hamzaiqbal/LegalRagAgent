@@ -64,7 +64,7 @@ Caveat: The lift is mostly snap-dominated; HyDE is marginal and can hurt when it
 
 What this means in plain English: Llama 70b multi-hop improves with pooled HyDE or structured planning, while most other variants are neutral-to-negative.
 Source: `docs/signoff_log.md:Section B.1`; paired statistics in `docs/mcnemar_2026-04-27.md:Update 2026-04-27 ~12:30 CDT`.
-Caveat: `subagent_rag` is a real negative result for this gap-routing implementation, not a verdict against all subagent methods.
+Caveat: At N=200 paired, `subagent_rag` is a real negative result for this gap-routing implementation; a full-corpus replicate would solidify the Llama matrix.
 
 📊 Figure: [`figures/01_llama70b_method_matrix.png`](figures/01_llama70b_method_matrix.png) — paper headline 8-method matrix.
 💰 Cost view: [`figures/07_cost_vs_accuracy.png`](figures/07_cost_vs_accuracy.png) — LLM calls / input tokens / output tokens / efficiency frontier (mhd is cheapest of the lifters).
@@ -80,7 +80,7 @@ Caveat: `subagent_rag` is a real negative result for this gap-routing implementa
 
 What this means in plain English: The useful piece is answer-bearing HyDE retrieval, not generic query diversity.
 Source: `docs/signoff_log.md:Sections B.1 and B.2`; decomposition details in `docs/mcnemar_2026-04-27.md:Update 2026-04-27 ~11:13 CDT`.
-Caveat: The +6.5pp split is a decomposition against method EMs, not a separate paired significance test.
+Caveat: At N=200 paired, the +6.5pp split is a decomposition against method EMs, not a separate paired significance test; a full-corpus replicate would solidify it.
 
 📊 Figure: [`figures/03_mechanism_decomposition.png`](figures/03_mechanism_decomposition.png) — diversity vs HyDE split.
 
@@ -93,7 +93,7 @@ Caveat: The +6.5pp split is a decomposition against method EMs, not a separate p
 
 What this means in plain English: The signed story is task-specific methods, not one universal RAG trick.
 Source: `docs/signoff_log.md:Sections B.1 and B.4`; source-status caveat in `docs/mcnemar_2026-04-27.md:BarExam cross-domain mhd test`.
-Caveat: The BarExam mhd row has conflicting local source status across docs; keep it source-pending until the SLURM 55107 detail-log status is reconciled.
+Caveat: At N=200 paired, keep the BarExam mhd row source-pending until the SLURM 55107 detail-log status or a full-corpus replicate solidifies cross-domain wording.
 
 📊 Figure: [`figures/04_cross_domain_specificity.png`](figures/04_cross_domain_specificity.png) — native-vs-cross-domain Δ for each method.
 
@@ -106,7 +106,7 @@ Caveat: The BarExam mhd row has conflicting local source status across docs; kee
 
 What this means in plain English: The mhd lift is real on Llama 70b, but the dense-model cross-family claim is not established.
 Source: `docs/signoff_log.md:Sections B.1, B.3, and F`; paired Gemma/Llama details in `docs/mcnemar_2026-04-27.md`.
-Caveat: Qwen3 full-corpus evidence is still running, so cross-family language should stay provisional.
+Caveat: At N=200 paired, Qwen3 full-corpus evidence is still running, so cross-family language should stay provisional until a cross-family replicate solidifies it.
 
 📊 Figure: [`figures/05_cross_family_check.png`](figures/05_cross_family_check.png) — Llama SIG vs Gemma 3 27B NULL.
 
