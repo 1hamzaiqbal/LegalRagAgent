@@ -411,6 +411,23 @@ The v2 prompt added +10pp on Gemma 4 26B (13.3% → 23.3%). Tested cross-model:
 
 Implication: the "decomposition tax" framing was wrong. Per-TODO structured retrieval + synthesis is a viable design pattern with the right synthesizer prompt — not better than rag_simple on this benchmark, but architecturally clean and ready for further experimentation (e.g. iterative TODOs, cheaper-LLM advisor patterns).
 
+## Multi-hop methods DON'T LIFT — null finding generalizes cross-model
+
+After uniform re-score with the fixed `<span>` extractor, on MuSiQue N=30:
+
+| Mode | Gemma 4 26B EM | Llama 70b EM | gold_ret Gemma | gold_ret Llama |
+|---|---|---|---|---|
+| rag_simple (1 query, 1 reason) | **26.7%** | **20.0%** | 83% | 87% |
+| rag_multi_query (3 queries pooled) | 23.3% | 20.0% | **87%** | (audit pending) |
+| planning_table_no_snap_v2 (per-TODO) | 23.3% | 20.0% | 83% | **90%** |
+| rag_snap_hyde (snap-driven) | 20.0% | 13.3% | 60% | 50% |
+
+**🔬 Key finding:** NO method beats `rag_simple` on MuSiQue, on EITHER model. The structured methods consistently match (~20% on Llama 70b) or underperform (-3.4pp on Gemma 4 26B) the simple baseline. **The "snap+HyDE breaks on multi-hop" finding generalizes to ALL structured methods we've tried** (snap+HyDE, subagent, planning_table with/without snap, rag_multi_query).
+
+Notable: rag_multi_query and planning_table_no_snap both LIFT gold_retrieved (+4pp on Gemma, +3pp on Llama via ptable) but the model can't translate higher recall into higher EM. The bottleneck is **composition over multiple passages**, not retrieval coverage.
+
+This holds across model families (Gemma 4 MoE + Llama dense) and active-param scales (3.8B vs 70B). Strong cross-model evidence that current method designs don't help on multi-hop entity composition.
+
 ## Cross-MODEL × cross-METHOD on MuSiQue N=30 — pattern is NOT Gemma-specific
 
 After fixing `<span>` extraction bug (commit `97c204a`), re-scored both models:
