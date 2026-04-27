@@ -21,11 +21,19 @@ This log lists results that have:
 
 ## Quick reference: top 5 cite-able findings for the paper
 
-1. ✅ BarExam snap+HyDE is the Tier 3 legal-MC winner: Gemma 4 26B-A4B 78.08% → 81.17% (+3.09pp) and Gemma 4 E4B 58.49% → 62.18% (+3.69pp), with the documented low exact-gold retrieval/parser caveats.
+1. ✅ BarExam snap+HyDE is the Tier 3 legal-MC winner: Gemma 4 26B-A4B 78.08% → 81.17% (+3.09pp) and Gemma 4 E4B 58.49% → 62.18% (+3.69pp). **Architecture note**: ~76-83% of `rag_snap_hyde` final preds match `snap_letter` (BY DESIGN — the mode combines snap reasoning + HyDE retrieval; snap dominates because Gemma 4 has strong legal MC priors). Sub-finding: when pred==snap, EM=88.7%; when pred≠snap (HyDE disagrees), EM=45.7% — HyDE retrieval sometimes provides conflicting evidence that hurts. Cite alongside the headline lift, not as a contamination.
 2. ✅ Llama 70b MuSiQue `multi_hyde_diverse` is the clean Tier 2 multi-hop headline: 27.5% → 35.5%, +8.0pp, McNemar p=0.0195.
 3. ⚠️ Llama 70b MuSiQue `iterative_planning_table` is cite-able as TRENDING-SIG, not fully significant: 27.5% → 36.0%, +8.5pp, p=0.0533.
 4. ✅ Gemma 3 27B MuSiQue mhd is a cite-able negative cross-family check: 28.5% → 31.0%, +2.5pp, p=0.5901 NULL.
-5. ✅ Llama 70b MuSiQue `subagent_rag` is cite-able negative evidence: 27.5% → 15.5%, -12.0pp, p=0.0007.
+5. ⚠️ Llama 70b MuSiQue `subagent_rag` -12pp p=0.0007 SIG NEGATIVE. **Implementation caveat**: 200/200 records triggered gap-routing (100% rate; over-aggressive); 59/200=29.5% finals are "Unknown/Not found" vs 12.5–15% in other methods. The -12pp is REAL but confounded by gap-detection over-abstention; honest framing is "our subagent_rag with this gap-routing implementation hurts multi-hop QA via systemic over-abstention", NOT "subagent methods inherently hurt".
+
+## Audit lineage (2026-04-27 ~14:30 CDT, comprehensive per-log Haiku audit)
+
+Per-log audit reports under `docs/audits/`:
+- `2026-04-27_barexam_26b_audit.md` — 8 logs × N=1195. Initial Haiku verdict flagged rag_snap_hyde as MAJOR (snap-letter leakage); architect-verified as BY DESIGN (the mode literally combines snap+HyDE — snap dominates legitimately because Gemma 4 has strong legal priors). 7/8 CLEAN, 1 architecture-clarified.
+- `2026-04-27_barexam_e4b_audit.md` — 8 logs × N=1195. All ✅ CLEAN.
+- `2026-04-27_llama70b_musique_audit.md` — 8 logs × N=200. All data CLEAN; subagent_rag flagged for implementation quirk (100% gap-routing trigger → over-abstention) — caveat documented in Top 5 #5.
+- `2026-04-27_other_tier2_audit.md` — 6 logs × N=200. All ✅ CLEAN.
 
 ---
 
