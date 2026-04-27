@@ -428,7 +428,19 @@ Implication: the "decomposition tax" framing was wrong. Per-TODO structured retr
 - One R3-pivot success: when R1/R2 fail to ground "Malcolm Graham", R3 pivots to "players who played BOTH West Ham AND Ajax" → finds Mido (gold)
 - F1 LOWER than ptable_no_snap_v2 (0.340 vs 0.382) — wins are concentrated on EM-clean entities; losses give shorter answers
 
-**Gemma 4 26B iter_ptable still in flight** — need to confirm cross-model.
+**Gemma 4 26B iter_ptable N=30 = 20.0% EM** (gold_retrieved 77%, mean 2.9 rounds) — DOWN from rag_simple 26.7% AND ptable_no_snap_v2 23.3%. **Iter HURTS by -6.7pp on Gemma.**
+
+**Method × model interaction is REAL and in opposite directions:**
+| Mode | Gemma 4 26B | Llama 70b |
+|---|---|---|
+| rag_simple | **26.7%** | 20.0% |
+| iter_ptable | 20.0% (-6.7pp) | **23.3%** (+3.3pp) |
+| ptable_no_snap_v2 | 23.3% | 20.0% |
+| rag_multi_query | 23.3% | 20.0% |
+
+**Interpretation hypothesis:** Gemma 4 26B already has strong single-shot answers; the iterative loop creates more opportunities to commit to wrong intermediate findings. Llama 70b benefits from explicit reasoning structure since its 1-shot reasoning is weaker on multi-hop.
+
+**Meeting takeaway:** method × model interaction is a real story to tell — what helps a weaker model can hurt a stronger one. **iterative_planning_table is helpful for Llama 70b but hurtful for Gemma 4 26B** at N=30 (caveat: not statistically significant, but direction consistent with the hypothesis).
 
 ## Multi-hop methods DON'T LIFT — null finding generalizes cross-model
 
