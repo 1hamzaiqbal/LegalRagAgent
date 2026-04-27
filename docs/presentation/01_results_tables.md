@@ -17,6 +17,8 @@ What this means in plain English: On full-corpus BarExam, Gemma 4 26B-A4B is str
 Source: `docs/signoff_log.md:Section A.1`; detail paths indexed in `docs/presentation/05_logs_index.md:BarExam Tier 3`.
 Caveat: `rag_snap_hyde` often agrees with the snap answer because Gemma 4 has strong legal priors; this is BY DESIGN architecture and mechanism understanding.
 
+📊 Figure: [`figures/06_barexam_26b_full_matrix.png`](figures/06_barexam_26b_full_matrix.png) — full method matrix, sorted by EM.
+
 ## Table B. BarExam Tier 3 method matrix: Gemma 4 E4B, N=1195
 
 | Mode | EM | Delta vs `rag_simple` | Audit | Sign-off | Slide read |
@@ -44,7 +46,8 @@ Caveat: Full scan found one raw null parsed prediction for `rag_snap_hyde`; the 
 What this means in plain English: Snap+HyDE is the signed BarExam headline because it improves both Gemma 4 sizes at full corpus.
 Source: `docs/signoff_log.md:Section A.3`; supporting audit summary in `docs/compiled_results.md:Section 1.1`.
 Caveat: The lift is mostly snap-dominated; HyDE is marginal and can hurt when it contradicts a strong snap answer.
-Figure: `docs/figures/01*.png`.
+
+📊 Figure: [`figures/02_barexam_cross_size.png`](figures/02_barexam_cross_size.png) — paired bars on both Gemma 4 sizes.
 
 ## Table D. Llama 70b MuSiQue Tier 2 method matrix, N=200
 
@@ -62,7 +65,9 @@ Figure: `docs/figures/01*.png`.
 What this means in plain English: Llama 70b multi-hop improves with pooled HyDE or structured planning, while most other variants are neutral-to-negative.
 Source: `docs/signoff_log.md:Section B.1`; paired statistics in `docs/mcnemar_2026-04-27.md:Update 2026-04-27 ~12:30 CDT`.
 Caveat: `subagent_rag` is a real negative result for this gap-routing implementation, not a verdict against all subagent methods.
-Figure: `docs/figures/02*.png`.
+
+📊 Figure: [`figures/01_llama70b_method_matrix.png`](figures/01_llama70b_method_matrix.png) — paper headline 8-method matrix.
+💰 Cost view: [`figures/07_cost_vs_accuracy.png`](figures/07_cost_vs_accuracy.png) — LLM calls / input tokens / output tokens / efficiency frontier (mhd is cheapest of the lifters).
 
 ## Table E. Mechanism decomposition: Llama 70b MuSiQue, N=200
 
@@ -76,7 +81,8 @@ Figure: `docs/figures/02*.png`.
 What this means in plain English: The useful piece is answer-bearing HyDE retrieval, not generic query diversity.
 Source: `docs/signoff_log.md:Sections B.1 and B.2`; decomposition details in `docs/mcnemar_2026-04-27.md:Update 2026-04-27 ~11:13 CDT`.
 Caveat: The +6.5pp split is a decomposition against method EMs, not a separate paired significance test.
-Figure: `docs/figures/03*.png`.
+
+📊 Figure: [`figures/03_mechanism_decomposition.png`](figures/03_mechanism_decomposition.png) — diversity vs HyDE split.
 
 ## Table F. Cross-domain method specificity
 
@@ -88,7 +94,8 @@ Figure: `docs/figures/03*.png`.
 What this means in plain English: The signed story is task-specific methods, not one universal RAG trick.
 Source: `docs/signoff_log.md:Sections B.1 and B.4`; source-status caveat in `docs/mcnemar_2026-04-27.md:BarExam cross-domain mhd test`.
 Caveat: The BarExam mhd row has conflicting local source status across docs; keep it source-pending until the SLURM 55107 detail-log status is reconciled.
-Figure: `docs/figures/04*.png`.
+
+📊 Figure: [`figures/04_cross_domain_specificity.png`](figures/04_cross_domain_specificity.png) — native-vs-cross-domain Δ for each method.
 
 ## Table G. Cross-family check, preliminary
 
@@ -100,4 +107,9 @@ Figure: `docs/figures/04*.png`.
 What this means in plain English: The mhd lift is real on Llama 70b, but the dense-model cross-family claim is not established.
 Source: `docs/signoff_log.md:Sections B.1, B.3, and F`; paired Gemma/Llama details in `docs/mcnemar_2026-04-27.md`.
 Caveat: Qwen3 full-corpus evidence is still running, so cross-family language should stay provisional.
-Figure: `docs/figures/05*.png`.
+
+📊 Figure: [`figures/05_cross_family_check.png`](figures/05_cross_family_check.png) — Llama SIG vs Gemma 3 27B NULL.
+
+---
+
+📂 **All figures**: [`figures/captions.md`](figures/captions.md) — full captions + cross-references for the 6 PNG figures.
