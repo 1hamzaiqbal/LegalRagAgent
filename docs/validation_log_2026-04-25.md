@@ -376,6 +376,23 @@ By subject:
 
 **Range compression**: pre-fix range 70.79-76.57 = 5.78pp spread across the 4 modes. Post-fix range 78.08-81.17 = **3.09pp spread**. **Methods matter LESS post-fix because base `rag_simple` is much stronger.** The "snap_hyde adds +5.8pp over rag_simple" pre-fix narrative compresses to "+3.1pp" post-fix at the same N=1195.
 
+## Cross-MODEL × cross-METHOD on MuSiQue N=30 — pattern is NOT Gemma-specific
+
+After fixing `<span>` extraction bug (commit `97c204a`), re-scored both models:
+
+| Mode | Gemma 4 26B | Llama 3.3 70b | Pattern |
+|---|---|---|---|
+| rag_simple | **26.7%** | **20.0%** | both: best simple-method |
+| rag_snap_hyde | 20.0% | 13.3% | both: -6.7pp from rag_simple |
+| planning_table | 20.7% | 13.3% | both: similar to rag_snap_hyde |
+| golden_passage (oracle) | 62.0% | (not tested) | retrieval ceiling |
+
+**Cross-model result:** the "snap+HyDE breaks on multi-hop" finding holds for BOTH model families. rag_simple > snap-driven methods on MuSiQue regardless of model. The retrieval-bias mechanism is generic.
+
+Both models also show: planning_table ≈ rag_snap_hyde (both ~6-13pp below rag_simple). Decomposition + per-hop retrieval doesn't help either model.
+
+Llama 70b absolute level is lower (20% vs Gemma's 26.7%) but the relative pattern is preserved.
+
 ## Cross-family BarExam llm_only N=100 baselines via API (2026-04-26 ~02:35 UTC)
 
 All audited clean post-hardening (pre-flight smoke + circuit breaker + think-tag strip + summary-write guard, commit `171c2c4`).
