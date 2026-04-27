@@ -3766,6 +3766,156 @@ def run_planning_table(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_advisor_planning_table(row: pd.Series, config: EvalConfig) -> dict:
+    """Two-LLM advisor pattern: cheap LLM does plan + per-TODO findings,
+    strong LLM does the final synthesis.
+
+    Inspired by Anthropic deep-research / Claude Code advisor patterns.
+    Cost story: most LLM calls are the plan-gen + per-TODO findings (4-6
+    cheap calls); ONE expensive synthesis call sees the populated table.
+    Tests whether allocating reasoning capacity to synthesis (vs spreading
+    across cheap intermediate steps) helps multi-hop.
+
+    Provider config:
+      - "advisor" / cheap LLM: Llama 3.3 8b instant (Groq, 14.4K RPD/500K TPD)
+      - "synthesizer" / strong LLM: whatever the eval is run with (config.provider)
+
+    Note: cheap LLM is HARDCODED to groq-llama8b for this initial impl.
+    Future: add EVAL_ADVISOR_PROVIDER env var.
+
+    Steps (~5-7 cheap calls + 1 strong call):
+      1. (cheap) gen 2-3 fact-focused TODOs from question alone (no snap)
+      2. for each TODO: (cheap) retrieve + finding
+      3. (strong) final answer with full populated table + v2 synthesis prompt
+    """
+    import os
+    from llm_config import _resolve_provider, PROVIDERS
+    from openai import OpenAI
+
+    question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
+
+    # Build a separate cheap-LLM client (advisor)
+    advisor_provider = os.getenv("EVAL_ADVISOR_PROVIDER", "groq-llama8b")
+    if advisor_provider not in PROVIDERS:
+        raise RuntimeError(f"advisor provider '{advisor_provider}' not in llm_config.PROVIDERS")
+    advisor_base, advisor_key_env, advisor_model, _, _ = PROVIDERS[advisor_provider]
+    advisor_key = os.getenv(advisor_key_env, "")
+    if not advisor_key:
+        raise RuntimeError(f"advisor provider '{advisor_provider}' needs env var {advisor_key_env}")
+    advisor_client = OpenAI(base_url=advisor_base, api_key=advisor_key, timeout=60, max_retries=1)
+
+    def cheap_call(system: str, user: str, label: str = "advisor") -> str:
+        """Direct call bypassing the global llm provider — uses cheap_advisor model."""
+        try:
+            r = advisor_client.chat.completions.create(
+                model=advisor_model,
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+                temperature=0.0,
+                max_tokens=512,
+            )
+            return r.choices[0].message.content or ""
+        except Exception as exc:
+            return ""  # fallback to empty; caller handles
+
+    # Step 1 (cheap): plan-gen
+    plan_system = (
+        "You are a research planner. Read a multi-hop question and emit 2-3 "
+        "fact-focused sub-questions to investigate.\n\n"
+        "Format:\n"
+        "TODO: <focused sub-question>\n"
+        "TODO: <focused sub-question>\n"
+        "TODO: <focused sub-question>\n\n"
+        "Rules:\n"
+        "- Sub-questions decompose multi-hop into single-hop facts\n"
+        "- Do NOT pick an answer; only emit TODO lines"
+    )
+    plan_raw = cheap_call(plan_system, f"## Question\n{question_intermediate}", label="advisor/plan")
+
+    todos: list[str] = []
+    for line in plan_raw.splitlines():
+        m = re.match(r"^\s*(?:\*\*)?\s*TODO\s*[:\-]\s*(?:\*\*)?\s*(.+?)\s*(?:\*\*)?\s*$", line.strip(), re.IGNORECASE)
+        if m:
+            todos.append(m.group(1).strip().lstrip("-•").strip())
+    seen: set[str] = set()
+    deduped = []
+    for t in todos:
+        norm = re.sub(r"\s+", " ", t.lower().strip().rstrip("?.!"))
+        if norm and norm not in seen:
+            seen.add(norm)
+            deduped.append(t)
+    todos = deduped[:3]
+    if not todos:
+        todos = [question_intermediate]
+
+    # Step 2 (cheap per-TODO): retrieve + finding using advisor LLM
+    table_entries: list[dict] = []
+    all_retrieved_ids: list[str] = []
+    finding_system = (
+        "You are a research assistant. Answer the sub-question concisely "
+        "(2-3 sentences) using ONLY the retrieved passages. If the passages "
+        "do not contain the answer, say so. Do NOT pick a multiple-choice letter."
+    )
+    for i, todo in enumerate(todos):
+        retrieval = _retrieve_and_format(
+            row, [todo], k=3,
+            label_prefix=f"advisor/todo_{i}",
+            where=_where_from_config(config),
+            collection=_collection_for_config(config),
+        )
+        passages_block = "\n\n".join(retrieval["passages"]) if retrieval["passages"] else "(no passages retrieved)"
+        finding_text = cheap_call(
+            finding_system,
+            f"## Retrieved Passages\n{passages_block}\n\n## Sub-Question\n{todo}",
+            label=f"advisor/finding_{i}",
+        )
+        if not finding_text:
+            finding_text = "No relevant information found in the retrieved passages."
+        table_entries.append({
+            "todo": todo,
+            "finding": finding_text,
+            "evidence_ids": retrieval.get("retrieved_ids", []),
+        })
+        all_retrieved_ids.extend(retrieval.get("retrieved_ids", []))
+
+    # Step 3 (STRONG / config.provider): final synthesis
+    table_text = "\n\n".join(
+        f"### TODO {i+1}: {e['todo']}\n**Finding:** {e['finding']}"
+        for i, e in enumerate(table_entries)
+    )
+    final_user = (
+        f"## Planning Table (sub-investigations from research advisor)\n{table_text}\n\n"
+        f"## Question\n{question}\n\n"
+        "## Synthesis instructions\n"
+        "1. Use the planning table findings as your PRIMARY evidence; weight a "
+        "finding heavily if it directly addresses an option.\n"
+        "2. Walk through the multi-hop chain explicitly, naming each intermediate "
+        "entity from the findings, before concluding.\n"
+        "3. ALWAYS commit to a final answer using the format `Answer: ...`. "
+        "Even if the chain is incomplete, give your best single-span guess; "
+        "do NOT abstain or say 'information not provided'."
+    )
+    final_answer = _llm_call(_system_prompt(config, "rag"), final_user, label="advisor/synth")
+
+    gold_idx = str(row.get("gold_idx", ""))
+    gold_idxs = {s.strip() for s in gold_idx.split(",") if s.strip()}
+    gold_retrieved = bool(gold_idxs & set(all_retrieved_ids)) if gold_idxs else False
+
+    return {
+        "final_answer": final_answer,
+        "planning_table": table_entries,
+        "todos_count": len(todos),
+        "advisor_provider": advisor_provider,
+        "advisor_model": advisor_model,
+        "retrieved_ids": list(dict.fromkeys(all_retrieved_ids)),
+        "gold_retrieved": gold_retrieved,
+        "evidence_store": [
+            {"idx": eid, "text": "", "source": "advisor", "cross_encoder_score": 0.0}
+            for eid in dict.fromkeys(all_retrieved_ids)
+        ],
+    }
+
+
 def run_iterative_planning_table(row: pd.Series, config: EvalConfig) -> dict:
     """Multi-round (deep-research-style) planning_table.
 
@@ -4201,6 +4351,7 @@ MODE_RUNNERS = {
     "planning_table_no_snap": run_planning_table_no_snap,
     "rag_multi_query": run_rag_multi_query,
     "iterative_planning_table": run_iterative_planning_table,
+    "advisor_planning_table": run_advisor_planning_table,
 }
 
 
