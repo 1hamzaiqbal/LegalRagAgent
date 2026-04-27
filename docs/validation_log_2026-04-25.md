@@ -693,6 +693,31 @@ Audit `a20b99c33f0b4d088`: both Gemma logs CLEAN (0 errors / 0 None preds / 0 pl
 
 **Open question for next round**: would multi-ROUND HyDE (`iter_hyde`, multi-step decoder with READY-or-NEXT decider) lift further by attacking the composition bottleneck on top of the diversity bottleneck? `iter_hyde` smoke-tested clean (Haiku review verdict SAFE TO SCALE). N=30 on Gemma 3 27B in flight at commit time; will report Phase 14.
 
+## Phase 14 — iter_hyde N=30 on Gemma 3 27B HURTS badly (2026-04-27 ~00:34 UTC)
+
+**HEADLINE: iter_hyde Gemma 3 27B N=30 = 2/30 = 6.7% — that's -20pp BELOW `rag_simple` (26.7%) and -13pp below single-round `multi_hyde_diverse` (20.0%).**
+
+| Mode (Gemma 3 27B N=30) | EM | gold_retrieved | LLM calls/q | Result |
+|---|---|---|---|---|
+| `rag_simple` | 8/30 = 26.7% | 87% | 1 | baseline |
+| `multi_hyde_diverse` (single-round) | 6/30 = 20.0% | 83% | 2 | -6.7pp (N=30 noise per audit `aded790c4e293d756`) |
+| **`iter_hyde`** (multi-round) | **2/30 = 6.7%** | **93%** | **6.6 avg** | **-20.0pp ← MULTI-ROUND HURTS** |
+
+**Mechanism (per-record audit, no codex needed)**:
+- 30/30 records have `Answer:` marker — **extraction is fine**, not a code bug
+- gold_retrieved is 93% (HIGHER than rag_simple 87% and mhd 83%) — **retrieval is great**, multi-round retrieves better
+- The failure is at SYNTHESIS: model emits long verbose chain-of-thought ("Okay, let's analyze...") and confidently picks WRONG answers
+- 24/30 ran full 3 rounds (decider rarely says READY); 6/30 early-exited
+- Failure types: ~3 semantic-near (Koh Phi Phi vs island Koh Phi Phi), ~6 confidently wrong entities (Boston instead of Minnesota History Center, Kenny G instead of Bublé), ~1 abstained ("Information not provided"), ~1 emitted prose instead of span
+
+**Hypothesis: iter_hyde's chain prompt OVERLOADS Gemma 3 27B's synthesizer.** Single-round mhd has tight cause-and-effect (3 passages → 1 answer). iter_hyde shows the model a long HyDE-finding-HyDE-finding chain that lets it confabulate freely. The smaller dense model can't keep all that context coherent.
+
+**Method × model interaction REAL** (this time on multi-round, not single-round): single-round mhd LIFTS cross-family at N=100; multi-round iter_hyde HURTS Gemma 3 27B at N=30. Whether iter_hyde HELPS Llama 70b (which has more capacity) is the next experiment. If iter_hyde lifts Llama 70b but hurts Gemma 3 27B, that's a clean "method needs model-capacity floor" finding.
+
+**Audit not yet spawned — codex broker debugged this turn (was hitting upstream `gpt-5.5` model rejection; works with `--model spark --effort low`). Internal per-record analysis confirmed: code clean, retrieval clean, synthesis is the choke point on Gemma 3 27B.**
+
+**Pending: iter_hyde N=30 Llama 70b (need to wait for Groq daily TPD reset OR use OpenRouter).**
+
 ## Anomalies / things to investigate
 
 (empty — populated when audits flag something)
