@@ -1180,6 +1180,241 @@ def run_rag_snap_hyde(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def _adaptive_snap_route_system(config: EvalConfig) -> str:
+    """Adaptive routing system prompt: same shape as snap_hyde_2call but with
+    a ## Route block (with reason) before ## Passage. The model self-decides
+    whether retrieval would meaningfully help. If SUFFICIENT, the harness
+    returns the parsed answer directly (1 LLM call total). If NEEDS_RETRIEVAL,
+    the harness proceeds with snap_hyde_2call's retrieval + synth call.
+
+    Per codex review (docs/codex_review_adaptive_snap_route.md):
+    - "When in doubt → NEEDS_RETRIEVAL" framing biased model toward 100%
+      retrieval on MuSiQue. Replaced with a change-of-answer test: only
+      route NEEDS_RETRIEVAL if the model can name a specific missing fact
+      whose truth would change the answer.
+    - Mandatory ## Route Reason block forces actual reasoning instead of
+      defaulting to retrieval out of caution.
+    """
+    base_answer = _system_prompt(config, "answer")
+    routing_instruction = (
+        "\n\nADDITIONAL OUTPUT REQUIREMENTS (REQUIRED, do not skip):\n"
+        "After your final 'Answer:' line, append a blank line, then a header that reads exactly:\n"
+        "## Route\n"
+        "Followed by exactly one of these two tokens on its own line, with no surrounding text.\n"
+        "Apply this routing RULE exactly (do not override based on personal confidence intuition):\n"
+        "\n"
+        "STEP 1: Inspect the question format above.\n"
+        "  Case A: the question displays multiple-choice options (e.g. labels (A), (B), (C), (D), (E), "
+        "or 'Yes/No'). Then proceed to STEP 2.\n"
+        "  Case B: the question requires an OPEN-ENDED short answer — a specific name, date, place, "
+        "number, or short phrase, with NO displayed options. Then choose NEEDS_RETRIEVAL. Your "
+        "factual recall on specific named entities (especially multi-hop) is unreliable.\n"
+        "\n"
+        "STEP 2 (only if Case A): decide whether the displayed candidates are disambiguable from "
+        "the prompt's stated facts and well-established general or legal doctrine alone.\n"
+        "  - If yes (you can identify the correct option without needing to look up a specific "
+        "external precedent, statute, or factual lookup) → SUFFICIENT.\n"
+        "  - If no (a specific external fact, holding, statute, or precedent would change which "
+        "option is correct) → NEEDS_RETRIEVAL.\n"
+        "\n"
+        "Then a header that reads exactly:\n"
+        "## Route Reason\n"
+        "Followed by a single sentence. If SUFFICIENT, name the cue (e.g. 'multiple-choice with "
+        "decisive distinguishing language across options'). If NEEDS_RETRIEVAL, name the specific "
+        "missing fact whose retrieved value could change your answer (e.g., 'the exact founding "
+        "year of X', 'the holding text of Y v. Z'). Do NOT restate your answer.\n"
+        "\n"
+        "Then a header that reads exactly:\n"
+        "## Passage\n"
+        "Followed by a 2-3 sentence reference passage stating the controlling rule, doctrine, "
+        "fact, or principle most relevant to this question. The passage will be used to retrieve "
+        "supporting context from a corpus if NEEDS_RETRIEVAL was selected. Constraints:\n"
+        "- Do NOT mention any answer choice (no '(A)', '(B)', 'Yes', 'No', etc.) in the passage.\n"
+        "- Do NOT use 'Answer:', 'Passage:' headers inside the block, no bold, no bullets.\n"
+        "- Write in plain reference / encyclopedia / treatise style — state the relevant fact "
+        "or rule directly so it could appear verbatim in a knowledge source.\n"
+        "All four blocks (answer, ## Route, ## Route Reason, ## Passage) are required."
+    )
+    return base_answer + routing_instruction
+
+
+def _split_route_snap_hyde(raw: str, fallback_passage: str) -> dict:
+    """Parse adaptive_snap_route output into a dict with separate per-block flags.
+
+    Expected structure: <snap_block> ## Route <token> ## Route Reason <sentence>
+    ## Passage <passage>. Returns:
+      - snap_block: text before ## Route (raw answer + reasoning)
+      - route: 'SUFFICIENT' | 'NEEDS_RETRIEVAL' | 'NEEDS_RETRIEVAL' (default on parse failure)
+      - route_reason: the model's stated reason, or '' if absent
+      - hyde_passage: parsed passage or fallback
+      - route_parse_ok: True iff the route token was found AND was a known value
+                       (in the slice between ## Route and ## Route Reason / ## Passage,
+                       not anywhere in the response)
+      - passage_parse_ok: True iff a non-empty passage block was parsed
+    """
+    text = raw or ""
+    snap_block = text.strip()
+    route = "NEEDS_RETRIEVAL"  # default on full-parse failure (conservative — runs full pipeline)
+    route_reason = ""
+    hyde_passage = fallback_passage
+    route_parse_ok = False
+    passage_parse_ok = False
+
+    route_idx = -1
+    for marker in ("## Route", "##Route", "## route"):
+        idx = text.find(marker)
+        if idx >= 0:
+            route_idx = idx
+            snap_block = text[:idx].strip()
+            after_route = text[idx + len(marker):]
+            break
+
+    if route_idx < 0:
+        return {
+            "snap_block": snap_block, "route": route, "route_reason": route_reason,
+            "hyde_passage": hyde_passage, "route_parse_ok": False, "passage_parse_ok": False,
+        }
+
+    # Find the ## Route Reason and ## Passage headers to scope ROUTE token search.
+    reason_idx = -1
+    for marker in ("## Route Reason", "## Route reason", "##Route Reason"):
+        idx = after_route.find(marker)
+        if idx >= 0:
+            reason_idx = idx
+            reason_marker = marker
+            break
+
+    passage_idx = -1
+    for marker in ("## Passage", "##Passage", "## passage"):
+        idx = after_route.find(marker)
+        if idx >= 0:
+            passage_idx = idx
+            passage_marker = marker
+            break
+
+    # Slice the route-token region: between ## Route and the next header.
+    end_of_route = min(i for i in (reason_idx, passage_idx, len(after_route)) if i >= 0)
+    route_slice = after_route[:end_of_route]
+    route_match = re.search(r"\b(SUFFICIENT|NEEDS[_\s]*RETRIEVAL)\b", route_slice, re.IGNORECASE)
+    if route_match:
+        token = route_match.group(1).upper().replace(" ", "_")
+        route = "SUFFICIENT" if token == "SUFFICIENT" else "NEEDS_RETRIEVAL"
+        route_parse_ok = True
+
+    # Parse ## Route Reason (one-line reason between ## Route Reason and ## Passage).
+    if reason_idx >= 0:
+        reason_start = reason_idx + len(reason_marker)
+        reason_end = passage_idx if passage_idx >= 0 else len(after_route)
+        if reason_end > reason_start:
+            route_reason = after_route[reason_start:reason_end].strip()
+
+    # Parse ## Passage block.
+    if passage_idx >= 0:
+        tail = after_route[passage_idx + len(passage_marker):].strip()
+        sanitized = _sanitize_intermediate_text(tail, fallback=fallback_passage)
+        if sanitized:
+            hyde_passage = sanitized
+            passage_parse_ok = True
+
+    return {
+        "snap_block": snap_block, "route": route, "route_reason": route_reason,
+        "hyde_passage": hyde_passage,
+        "route_parse_ok": route_parse_ok, "passage_parse_ok": passage_parse_ok,
+    }
+
+
+def run_adaptive_snap_route(row: pd.Series, config: EvalConfig) -> dict:
+    """Adaptive snap-routing: model self-decides whether retrieval is needed.
+
+    Step 1 (always): single LLM call produces snap answer + ## Route token
+                     (SUFFICIENT or NEEDS_RETRIEVAL) + ## Passage HyDE block.
+    Step 2 (conditional): if NEEDS_RETRIEVAL, retrieve on the HyDE passage and
+                          run a synthesis call. If SUFFICIENT, return the snap
+                          directly without retrieval.
+
+    Variable cost: 1 LLM call when SUFFICIENT, 2 LLM calls when NEEDS_RETRIEVAL.
+    Tests whether per-question bottleneck-aware routing beats fixed methods.
+    """
+    question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
+
+    # Step 1: single call producing snap + route + reason + hyde passage
+    raw = _llm_call(_adaptive_snap_route_system(config), question, label="adaptive/snap_route_hyde")
+    parsed = _split_route_snap_hyde(raw, fallback_passage=question_intermediate)
+    snap_block = parsed["snap_block"]
+    route = parsed["route"]
+    route_reason = parsed["route_reason"]
+    hyde_passage = parsed["hyde_passage"]
+    route_parse_ok = parsed["route_parse_ok"]
+    passage_parse_ok = parsed["passage_parse_ok"]
+    snap_letter = _extract_answer(snap_block, config)
+    hyde_contains_answer = _contains_answer_artifact(hyde_passage)
+
+    # Audit-parity fields (matching snap_hyde_2call's contract).
+    out_base = {
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
+        "snap_answer": snap_block,
+        "snap_letter": snap_letter,
+        "snap_route_raw": raw,
+        "route_decision": route,
+        "route_reason": route_reason,
+        "route_parse_ok": route_parse_ok,
+        "passage_parse_ok": passage_parse_ok,
+        "adaptive_parse_ok": route_parse_ok and passage_parse_ok,
+        "hyde_passage": hyde_passage,
+        "hyde_passage_raw": raw,
+        "hyde_contains_answer_artifact": hyde_contains_answer,
+        "rerank_query": "",
+    }
+
+    if route == "SUFFICIENT":
+        # Early exit — 1 LLM call total. Score the parsed snap_block; the
+        # dataset-specific extractor downstream picks the answer letter/span
+        # out of it. Per codex P1: the raw snap_block is structured and may
+        # contain rationale before the Answer line; passing it as final_answer
+        # is OK because every harness extractor scopes to the post-Answer
+        # token. We keep final_answer = snap_block (matching snap_only_in_final
+        # convention) rather than artificially trimming.
+        out_base["final_answer"] = snap_block
+        out_base["llm_calls_actual"] = 1
+        out_base["final_context_fields"] = ["snap_only"]
+        out_base["final_prompt_preview"] = _preview_text(question)
+        out_base["evidence_store"] = []
+        out_base["retrieved_ids"] = []
+        out_base["retrieval_queries"] = []
+        out_base["gold_retrieved"] = False
+        if not route_parse_ok:
+            out_base["routed_to"] = "adaptive_route_parse_failed_default_needs_retrieval"
+        return out_base
+
+    # NEEDS_RETRIEVAL: snap_hyde_2call-style retrieval + synth.
+    retrieval = _retrieve_and_format(row, [hyde_passage], k=config.retrieval_k, label_prefix="adaptive",
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="adaptive/answer")
+
+    out_base.update({
+        "final_answer": answer,
+        "llm_calls_actual": 2,
+        "final_context_fields": ["retrieved_passages", "question"],
+        "final_prompt_preview": _preview_text(user),
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+        "retrieval_queries": [hyde_passage],
+    })
+    if not (route_parse_ok and passage_parse_ok):
+        markers = []
+        if not route_parse_ok: markers.append("route")
+        if not passage_parse_ok: markers.append("passage")
+        out_base["routed_to"] = f"adaptive_parse_failed_fallback_question_({'+'.join(markers)})"
+    return out_base
+
+
 def _snap_hyde_2call_system(config: EvalConfig) -> str:
     """Compose a dataset-aware 2call system prompt: dataset's normal 'answer'
     system prompt + an additional requirement to emit a '## Passage' block
@@ -4812,6 +5047,7 @@ MODE_RUNNERS = {
     "rag_snap_hyde": run_rag_snap_hyde,
     "rag_snap_hyde_1call": run_rag_snap_hyde_1call,
     "rag_snap_hyde_2call": run_rag_snap_hyde_2call,
+    "adaptive_snap_route": run_adaptive_snap_route,
     "snap_hyde_aligned": run_snap_hyde_aligned,
     "gap_hyde": run_gap_hyde,
     "gap_hyde_ev": run_gap_hyde_ev,
