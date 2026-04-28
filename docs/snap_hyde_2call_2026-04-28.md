@@ -83,9 +83,26 @@ headline winner."
 | `snap_hyde_2call` v1 (broken parser, 14.5% parse_ok) | `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_0033_detail.jsonl` | 26.0% |
 | **`snap_hyde_2call` v2 (98.5% parse_ok)** | `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_0040_detail.jsonl` | **37.0%** |
 
+## Top-1 retrieval-depth ablation (added 2026-04-28)
+
+| Method | top-5 EM | top-1 EM | Δ | McNemar p |
+|---|---:|---:|---:|---:|
+| `snap_hyde_2call` | 37.0% | **24.0%** | **-13pp** | **6.88e-05** |
+
+snap_hyde_2call at top-1 (98% parse_ok, evidence_store len=1 verified on 200/200)
+loses -13pp — middle of the depth-robustness pack. Drops more than `rag_snap_hyde`
+(-10pp, smallest) and less than the no-snap methods (-14.5 to -16.5pp). Confirms
+the broader "snap-first methods are more depth-robust" pattern: snap_hyde_2call
+is snap-first and behaves accordingly.
+
+Notably, snap_hyde_2call at top-1 (24.0%) exactly matches `rag_snap_hyde` at top-5
+(24.0%) and is slightly below `rag_simple` at top-5 (27.5%). So at top-1, the
+2call mode's accuracy advantage over the 3-call mode disappears — the lift
+needs the full retrieval depth to materialize.
+
 ## Open questions / next checks
 
 1. **Cross-dataset**: SLURM 55451 (running) tests `snap_hyde_2call` on Gemma 4 26B-A4B × BarExam N=200. Does the efficiency variant preserve the +3.09pp BarExam lift?
-2. **Cross-family**: re-run on Gemma 3 27B and Qwen3 30B MoE × MuSiQue N=200. Does the +9.5pp lift over `rag_simple` reproduce on other dense / MoE models, or is this a Llama-specific quirk?
-3. **Mechanism decomposition**: pair `snap_hyde_2call` against a 2-call ablation that uses the same combined prompt but throws away the snap reasoning before final synth (passes only the HyDE passage forward). If the gap closes, the snap-anchor-then-synthesize architecture is doing real work; if it doesn't, the gain is purely from the dataset-matched HyDE prompt.
-4. **Replication at full corpus**: promote to N=2400 MuSiQue full-corpus once cross-family is confirmed.
+2. **Cross-family**: `snap_hyde_2call` × Gemma 3 27B × MuSiQue N=200 in flight via OR. Does the +9.5pp lift over `rag_simple` reproduce on other dense / MoE models?
+3. **Snap-only ablation (in flight)**: `snap_only_in_final` × Llama 70b × MuSiQue N=200 — if this matches snap_hyde_2call's 37.0%, the retrieval is doing very little and the win is mostly the snap+passage prompt shape forcing better reasoning.
+4. **Replication at full corpus**: promote to N=2400 MuSiQue full-corpus once cross-family + snap-only mechanism are confirmed.
