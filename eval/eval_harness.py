@@ -985,7 +985,7 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
     )
 
     # Step 2: Retrieve using the hypothetical passage as query
-    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="hyde",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=config.retrieval_k, label_prefix="hyde",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -1038,7 +1038,7 @@ def run_rag_multi_hyde(row: pd.Series, config: EvalConfig) -> dict:
         hyde_passages = [_sanitize_intermediate_text(raw, fallback=question_intermediate)]
 
     # Retrieve with each passage, pool results
-    retrieval = _retrieve_and_format(row, hyde_passages, k=5, label_prefix="multi_hyde",
+    retrieval = _retrieve_and_format(row, hyde_passages, k=config.retrieval_k, label_prefix="multi_hyde",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -1103,7 +1103,7 @@ def run_multi_hyde_diverse(row: pd.Series, config: EvalConfig) -> dict:
     queries = hyde_passages + [question_intermediate]
 
     retrieval = _retrieve_and_format(
-        row, queries, k=5, label_prefix="multi_hyde_diverse",
+        row, queries, k=config.retrieval_k, label_prefix="multi_hyde_diverse",
         where=_where_from_config(config),
         collection=_collection_for_config(config),
     )
@@ -1149,7 +1149,7 @@ def run_rag_snap_hyde(row: pd.Series, config: EvalConfig) -> dict:
     )
 
     # Step 3: Retrieve
-    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="snap_hyde",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=config.retrieval_k, label_prefix="snap_hyde",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -1202,7 +1202,7 @@ def run_snap_hyde_aligned(row: pd.Series, config: EvalConfig) -> dict:
     )
 
     # Step 3: Retrieve using HyDE for dense embedding, but rerank against raw question
-    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="snap_hyde_aligned",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=config.retrieval_k, label_prefix="snap_hyde_aligned",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config),
                                      rerank_query=raw_question)
@@ -1337,7 +1337,7 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
         # Subagent: RAG retrieves → LLM reads and summarizes findings
         query = subq or desc
         retrieval = _retrieve_and_format(
-            row, [query], k=5, label_prefix=f"sub_rag_{gap_idx}",
+            row, [query], k=config.retrieval_k, label_prefix=f"sub_rag_{gap_idx}",
             where=_where_from_config(config),
             collection=_collection_for_config(config),
             rerank_query=raw_question,
@@ -1382,7 +1382,7 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
         )
 
         retrieval = _retrieve_and_format(
-            row, [hyde["text"]], k=5, label_prefix=f"sub_hyde_{gap_idx}",
+            row, [hyde["text"]], k=config.retrieval_k, label_prefix=f"sub_hyde_{gap_idx}",
             where=_where_from_config(config),
             collection=_collection_for_config(config),
             rerank_query=raw_question,
@@ -1464,7 +1464,7 @@ def _gap_retrieve(gap: dict, question: str, row: pd.Series,
         query = subq or desc
 
     retrieval = _retrieve_and_format(
-        row, [query], k=5, label_prefix=f"gap_{method}_{gap_idx}",
+        row, [query], k=config.retrieval_k, label_prefix=f"gap_{method}_{gap_idx}",
         where=_where_from_config(config),
         collection=_collection_for_config(config),
         rerank_query=raw_question,
@@ -1853,7 +1853,7 @@ def run_snap_hyde_report(row: pd.Series, config: EvalConfig) -> dict:
     )
 
     # Step 3: Retrieve using HyDE passage
-    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="shr",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=config.retrieval_k, label_prefix="shr",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -1919,7 +1919,7 @@ def run_snap_hyde_report_snap(row: pd.Series, config: EvalConfig) -> dict:
     )
 
     # Step 3: Retrieve
-    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="shrs",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=config.retrieval_k, label_prefix="shrs",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -1985,7 +1985,7 @@ def run_snap_rag(row: pd.Series, config: EvalConfig) -> dict:
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Retrieve with raw question, rerank against raw question (same as rag_simple)
-    retrieval = _retrieve_and_format(row, [raw_question], k=5, label_prefix="snap_rag",
+    retrieval = _retrieve_and_format(row, [raw_question], k=config.retrieval_k, label_prefix="snap_rag",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -2019,7 +2019,7 @@ def run_snap_rag_nosnap(row: pd.Series, config: EvalConfig) -> dict:
     snap_answer = _llm_call(_system_prompt(config, "answer"), question, label="snap_rag_ns/snap")
     snap_letter = _extract_answer(snap_answer, config)
 
-    retrieval = _retrieve_and_format(row, [raw_question], k=5, label_prefix="snap_rag_ns",
+    retrieval = _retrieve_and_format(row, [raw_question], k=config.retrieval_k, label_prefix="snap_rag_ns",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -2337,7 +2337,7 @@ def run_vectorless_keyword(row: pd.Series, config: EvalConfig) -> dict:
             seen.add(idx)
             unique_docs.append(doc)
 
-    reranked = rerank_with_cross_encoder(raw_question, unique_docs, top_k=5)
+    reranked = rerank_with_cross_encoder(raw_question, unique_docs, top_k=config.retrieval_k)
 
     passages = [f"[Source {i+1}]\n{doc.page_content}" for i, doc in enumerate(reranked)]
     evidence_store = [{"idx": doc.metadata.get("idx", ""), "text": doc.page_content,
@@ -2542,7 +2542,7 @@ def run_entity_search(row: pd.Series, config: EvalConfig) -> dict:
         doc = Document(page_content=str(r['text']), metadata={"idx": str(r['idx'])})
         docs.append(doc)
 
-    reranked = rerank_with_cross_encoder(raw_question, docs, top_k=5)
+    reranked = rerank_with_cross_encoder(raw_question, docs, top_k=config.retrieval_k)
 
     passages = [f"[Source {i+1}]\n{doc.page_content}" for i, doc in enumerate(reranked)]
     evidence_store = [{"idx": doc.metadata.get("idx", ""), "text": doc.page_content,
@@ -2621,7 +2621,7 @@ def run_snap_entity_search(row: pd.Series, config: EvalConfig) -> dict:
 
     docs = [Document(page_content=str(r['text']), metadata={"idx": str(r['idx'])})
             for _, r in candidates.iterrows()]
-    reranked = rerank_with_cross_encoder(raw_question, docs, top_k=5)
+    reranked = rerank_with_cross_encoder(raw_question, docs, top_k=config.retrieval_k)
 
     passages = [f"[Source {i+1}]\n{doc.page_content}" for i, doc in enumerate(reranked)]
     evidence_store = [{"idx": doc.metadata.get("idx", ""), "text": doc.page_content,
@@ -2705,7 +2705,7 @@ def run_snap_entity_informed(row: pd.Series, config: EvalConfig) -> dict:
 
     docs = [Document(page_content=str(r['text']), metadata={"idx": str(r['idx'])})
             for _, r in candidates.iterrows()]
-    reranked = rerank_with_cross_encoder(raw_question, docs, top_k=5)
+    reranked = rerank_with_cross_encoder(raw_question, docs, top_k=config.retrieval_k)
 
     passages = [f"[Source {i+1}]\n{doc.page_content}" for i, doc in enumerate(reranked)]
     evidence_store = [{"idx": doc.metadata.get("idx", ""), "text": doc.page_content,
@@ -2749,7 +2749,7 @@ def run_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
     )
 
     # Step 3: Retrieve
-    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="ce_thresh",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=config.retrieval_k, label_prefix="ce_thresh",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
 
@@ -2841,7 +2841,7 @@ def run_snap_hyde_aspect(row: pd.Series, config: EvalConfig) -> dict:
                 aspect_parsed["exception"] = exception_query
 
     # Step 4: Multi-query retrieval (pools candidates from all queries, reranks against primary)
-    retrieval = _retrieve_and_format(row, queries, k=5, label_prefix="aspect",
+    retrieval = _retrieve_and_format(row, queries, k=config.retrieval_k, label_prefix="aspect",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -2953,7 +2953,7 @@ def run_rag_devil_hyde(row: pd.Series, config: EvalConfig) -> dict:
 
     # Step 4: Retrieve with BOTH passages pooled
     collection = _collection_for_config(config)
-    retrieval = _retrieve_and_format(row, [support["text"], devil["text"]], k=5,
+    retrieval = _retrieve_and_format(row, [support["text"], devil["text"]], k=config.retrieval_k,
                                      label_prefix="devil_hyde",
                                      where=_where_from_config(config),
                                      collection=collection)
@@ -3010,7 +3010,7 @@ def run_rag_top2_hyde(row: pd.Series, config: EvalConfig) -> dict:
 
     # Step 4: Retrieve with both HyDE passages
     collection = _collection_for_config(config)
-    retrieval = _retrieve_and_format(row, [hyde_1["text"], hyde_2["text"]], k=5,
+    retrieval = _retrieve_and_format(row, [hyde_1["text"], hyde_2["text"]], k=config.retrieval_k,
                                      label_prefix="top2_hyde",
                                      where=_where_from_config(config),
                                      collection=collection)
@@ -3053,7 +3053,7 @@ def run_rag_hyde_arb(row: pd.Series, config: EvalConfig) -> dict:
         label="hyde_arb/generate",
         fallback=question_intermediate,
     )
-    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="hyde_arb",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=config.retrieval_k, label_prefix="hyde_arb",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -3111,7 +3111,7 @@ def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
     question_intermediate = _fmt_intermediate(row, config)
     queries = _rewrite_query(question_intermediate)
 
-    retrieval = _retrieve_and_format(row, queries, k=5, label_prefix="rewrite",
+    retrieval = _retrieve_and_format(row, queries, k=config.retrieval_k, label_prefix="rewrite",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -3133,7 +3133,7 @@ def run_rag_simple(row: pd.Series, config: EvalConfig) -> dict:
     question = _fmt(row, config)
     raw_question = _retrieval_question(row)
 
-    retrieval = _retrieve_and_format(row, [raw_question], k=5, label_prefix="simple",
+    retrieval = _retrieve_and_format(row, [raw_question], k=config.retrieval_k, label_prefix="simple",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -3160,7 +3160,7 @@ def run_rag_arbitration(row: pd.Series, config: EvalConfig) -> dict:
     snap_letter = _extract_answer(snap_answer, config)
 
     # Step 2: Retrieve
-    retrieval = _retrieve_and_format(row, queries, k=5, label_prefix="rag_arb",
+    retrieval = _retrieve_and_format(row, queries, k=config.retrieval_k, label_prefix="rag_arb",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -3424,7 +3424,7 @@ def run_conf_ce_threshold(row: pd.Series, config: EvalConfig) -> dict:
         fallback=question_intermediate,
     )
 
-    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="conf_ce",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=config.retrieval_k, label_prefix="conf_ce",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
 
@@ -3512,7 +3512,7 @@ def run_confidence_gated(row: pd.Series, config: EvalConfig) -> dict:
         fallback=question_intermediate,
     )
 
-    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="conf_gate",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=config.retrieval_k, label_prefix="conf_gate",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
@@ -3674,7 +3674,7 @@ def run_double_snap(row: pd.Series, config: EvalConfig) -> dict:
         fallback=question_intermediate,
     )
 
-    retrieval = _retrieve_and_format(row, [hyde["text"]], k=5, label_prefix="dsnap",
+    retrieval = _retrieve_and_format(row, [hyde["text"]], k=config.retrieval_k, label_prefix="dsnap",
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
 
@@ -4432,7 +4432,7 @@ def run_rag_multi_query(row: pd.Series, config: EvalConfig) -> dict:
       1. Generate 2 question rewrites that target different sub-aspects of the
          multi-hop question
       2. Retrieve k=3 passages for each rewrite + the original question
-      3. Pool, dedupe, top-k=5 by max BM25 score
+      3. Pool, dedupe, configured top-k by max BM25 score
       4. Answer once with the pooled passages + original question
     """
     question = _fmt(row, config)
@@ -4471,7 +4471,7 @@ def run_rag_multi_query(row: pd.Series, config: EvalConfig) -> dict:
 
     # Step 2-3: retrieve once with the pooled query list (max-pool over queries)
     retrieval = _retrieve_and_format(
-        row, queries, k=5,
+        row, queries, k=config.retrieval_k,
         label_prefix="multi_query",
         where=_where_from_config(config),
         collection=_collection_for_config(config),
@@ -5123,6 +5123,8 @@ def main():
     parser.add_argument("--dataset", default="barexam",
                         choices=["barexam", "housing", "legal_rag", "australian", "casehold", "musique"],
                         help="Dataset to evaluate on (default: barexam)")
+    parser.add_argument("--retrieval-k", type=int, default=5,
+                        help="Final top-k after rerank for retrieval modes (default 5; meeting ask: top-1 vs top-5 ablation)")
 
     args = parser.parse_args()
 
@@ -5139,6 +5141,7 @@ def main():
         tag=args.tag,
         source_filter=args.source_filter,
         dataset=args.dataset,
+        retrieval_k=args.retrieval_k,
     )
 
     run_eval(config)
