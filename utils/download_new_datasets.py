@@ -228,6 +228,63 @@ def prep_musique():
     print(f"musique corpus: {len(corpus_df)} unique paragraphs -> {out_dir}/passages.csv")
 
 
+def prep_legalbench_scalr():
+    """LegalBench SCALR: 5-way MC over Supreme Court holdings (571 test items).
+
+    Schema source (`nguha/legalbench`, scalr config):
+      - index, question, choice_0..choice_4, answer (int 0-4)
+
+    We rewrite to CaseHOLD-compatible schema:
+      - idx, question, choice_a..choice_e, answer (letter A-E)
+      so that the existing `format_casehold_prompt` and `extract_answer_mc5`
+      can be reused verbatim.
+
+    Also build a holdings corpus: union of all 5*571=2855 choice texts,
+    deduped, suitable for `casehold_holdings`-style retrieval.
+    """
+    out_dir = "datasets/legalbench_scalr"
+    os.makedirs(out_dir, exist_ok=True)
+
+    ds = load_dataset("nguha/legalbench", "scalr")["test"]
+
+    # First pass: build holdings corpus with stable idx assignments.
+    holdings = {}  # text -> idx for dedup
+    for row in ds:
+        for c in (row["choice_0"], row["choice_1"], row["choice_2"], row["choice_3"], row["choice_4"]):
+            c = (c or "").strip()
+            if c and c not in holdings:
+                holdings[c] = f"scalr_holding_{len(holdings)}"
+
+    # Second pass: write questions with gold_idx pointing to the corpus holding
+    # that matches the correct displayed choice. Lets gold_retrieved become a
+    # meaningful retrieval-quality metric (the corpus contains the gold holding).
+    rows = []
+    for row in ds:
+        ans_int = int(row["answer"])
+        gold_text = row[f"choice_{ans_int}"].strip()
+        gold_idx = holdings.get(gold_text, "")
+        rows.append({
+            "idx": f"scalr_{row['index']}",
+            "question": row["question"],
+            "choice_a": row["choice_0"],
+            "choice_b": row["choice_1"],
+            "choice_c": row["choice_2"],
+            "choice_d": row["choice_3"],
+            "choice_e": row["choice_4"],
+            "answer": chr(ord("A") + ans_int),
+            "gold_idx": gold_idx,
+        })
+
+    df = pd.DataFrame(rows)
+    df.to_csv(os.path.join(out_dir, "test.csv"), index=False)
+    print(f"legalbench_scalr test: {len(df)} rows -> {out_dir}/test.csv")
+
+    corpus_rows = [{"idx": idx, "text": text} for text, idx in holdings.items()]
+    corpus_df = pd.DataFrame(corpus_rows)
+    corpus_df.to_csv(os.path.join(out_dir, "holdings_corpus.csv"), index=False)
+    print(f"legalbench_scalr holdings corpus: {len(corpus_df)} unique holdings -> {out_dir}/holdings_corpus.csv")
+
+
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else "all"
 
@@ -239,3 +296,5 @@ if __name__ == "__main__":
         prep_casehold()
     if target in ("musique", "all"):
         prep_musique()
+    if target in ("legalbench_scalr", "scalr", "all"):
+        prep_legalbench_scalr()

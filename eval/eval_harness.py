@@ -203,6 +203,8 @@ def _extract_answer(text: str, config: EvalConfig) -> str | None:
         return extract_answer_yn(text)
     if config.dataset == "casehold":
         return extract_answer_mc5(text)
+    if config.dataset == "legalbench_scalr":
+        return extract_answer_mc5(text)
     if config.dataset == "musique":
         # Short-answer span — extract the post-Answer span, EM/F1 scored downstream
         return extract_answer_musique(text)
@@ -636,6 +638,7 @@ DATASET_COLLECTIONS = {
     "australian": "australian_legal",
     "casehold": "casehold_holdings",
     "musique": "musique_passages",
+    "legalbench_scalr": "legalbench_scalr_holdings",
 }
 
 
@@ -5281,7 +5284,7 @@ def main():
     parser.add_argument("--source-filter", default="",
                         help="Metadata source filter for retrieval, e.g. 'mbe' (default: none)")
     parser.add_argument("--dataset", default="barexam",
-                        choices=["barexam", "housing", "legal_rag", "australian", "casehold", "musique"],
+                        choices=["barexam", "housing", "legal_rag", "australian", "casehold", "musique", "legalbench_scalr"],
                         help="Dataset to evaluate on (default: barexam)")
     parser.add_argument("--retrieval-k", type=int, default=5,
                         help="Final top-k after rerank for retrieval modes (default 5; meeting ask: top-1 vs top-5 ablation)")

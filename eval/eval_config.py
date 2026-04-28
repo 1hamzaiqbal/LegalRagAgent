@@ -19,7 +19,7 @@ class EvalConfig:
     verbose: bool = False
     tag: str = ""                     # optional label for the run
     source_filter: str = ""           # optional metadata filter, e.g. "mbe" to search MBE docs only
-    dataset: str = "barexam"          # "barexam" | "housing" | "legal_rag" | "australian" | "casehold" | "musique"
+    dataset: str = "barexam"          # "barexam" | "housing" | "legal_rag" | "australian" | "casehold" | "musique" | "legalbench_scalr"
     embedding_model: str = ""         # override embedding model for retrieval (e.g., "BAAI/bge-m3")
     retrieval_k: int = 5              # final top-k after rerank for retrieval modes
 
@@ -103,6 +103,8 @@ def load_questions(config: EvalConfig) -> pd.DataFrame:
         return _load_generic_questions(config, "datasets/casehold/test.csv")
     if config.dataset == "musique":
         return _load_generic_questions(config, "datasets/musique/questions.csv")
+    if config.dataset == "legalbench_scalr":
+        return _load_generic_questions(config, "datasets/legalbench_scalr/test.csv")
 
     if config.questions == "curated":
         path = os.path.join(os.path.dirname(__file__), "question_sets", "curated_30.csv")
@@ -215,6 +217,8 @@ def format_question_prompt(row: pd.Series, dataset: str = "barexam") -> str:
         return format_housing_prompt(row)
     if dataset == "casehold":
         return format_casehold_prompt(row)
+    if dataset == "legalbench_scalr":
+        return format_casehold_prompt(row)  # same 5-way MC schema as CaseHOLD
     if dataset in ("legal_rag", "australian"):
         return format_open_prompt(row)
     if dataset == "musique":

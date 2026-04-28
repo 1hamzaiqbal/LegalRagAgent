@@ -113,6 +113,12 @@ CORPORA = {
         "text_col": "text",
         "idx_col": "idx",
     },
+    "legalbench_scalr": {
+        "csv": "datasets/legalbench_scalr/holdings_corpus.csv",
+        "collection": "legalbench_scalr_holdings",
+        "text_col": "text",
+        "idx_col": "idx",
+    },
     "musique": {
         "csv": "datasets/musique/passages.csv",
         "collection": "musique_passages",
