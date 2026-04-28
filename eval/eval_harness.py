@@ -1177,18 +1177,26 @@ def run_rag_snap_hyde(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
-_SNAP_HYDE_2CALL_SYSTEM = (
-    "You are a legal expert answering a multiple-choice question. "
-    "Produce TWO labeled blocks in this exact order:\n\n"
-    "## Reasoning\n"
-    "Step-by-step legal analysis. End this block with a line of the form: Answer: (X)\n\n"
-    "## Passage\n"
-    "A 2-3 sentence passage in the style of a legal treatise or casebook that states the controlling "
-    "rule, doctrine, holding, or exception relevant to the question. This passage will be used to "
-    "retrieve supporting authority. Do NOT mention any answer choice or letter in this block. "
-    "Do NOT use 'Answer:', 'Passage:' headers, bullet points, or markdown bolding inside the block. "
-    "State the doctrinal text directly."
-)
+def _snap_hyde_2call_system(config: EvalConfig) -> str:
+    """Compose a dataset-aware 2call system prompt: dataset's normal 'answer'
+    system prompt + an additional requirement to emit a '## Passage' block
+    after the answer. Keeps dataset-appropriate answer formatting (MC letter,
+    Yes/No, open-ended) while adding the passage block for retrieval."""
+    base_answer = _system_prompt(config, "answer")
+    passage_instruction = (
+        "\n\nADDITIONAL OUTPUT REQUIREMENT (REQUIRED, do not skip):\n"
+        "After your final 'Answer:' line, append a blank line, then a header line that reads exactly:\n"
+        "## Passage\n"
+        "Followed by a 2-3 sentence reference passage that states the controlling rule, doctrine, "
+        "fact, or principle most relevant to this question. The passage will be used to retrieve "
+        "supporting context from a corpus. Constraints for the passage block:\n"
+        "- Do NOT mention any answer choice (no '(A)', '(B)', 'Yes', 'No', etc.) in the passage.\n"
+        "- Do NOT use 'Answer:', 'Passage:' headers inside the block, no bold, no bullets.\n"
+        "- Write in plain reference / encyclopedia / treatise style — state the relevant fact "
+        "or rule directly so it could appear verbatim in a knowledge source.\n"
+        "Both the answer block AND the '## Passage' block are required."
+    )
+    return base_answer + passage_instruction
 
 
 def _split_snap_and_hyde(raw: str, fallback_passage: str) -> tuple[str, str, bool]:
@@ -1220,7 +1228,7 @@ def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
     question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Single LLM call producing snap reasoning + HyDE passage.
-    combined_raw = _llm_call(_SNAP_HYDE_2CALL_SYSTEM, question, label="snap_hyde_2call/snap_and_hyde")
+    combined_raw = _llm_call(_snap_hyde_2call_system(config), question, label="snap_hyde_2call/snap_and_hyde")
     snap_block, hyde_passage, parse_ok = _split_snap_and_hyde(combined_raw, fallback_passage=question_intermediate)
     snap_letter = _extract_answer(snap_block, config)
     hyde_contains_answer = _contains_answer_artifact(hyde_passage)
