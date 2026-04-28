@@ -111,4 +111,8 @@ needs the full retrieval depth to materialize.
    This is the OPPOSITE of BarExam, where Gemma 4 26B-A4B `llm_only` (79.75%) is already
    near-ceiling and `rag_snap_hyde` adds only +3pp. **MuSiQue is retrieval-bottlenecked;
    BarExam is reasoning-bottlenecked.** Same architecture, different bottleneck.
-4. **Replication at full corpus**: promote to N=2400 MuSiQue full-corpus once cross-family + snap-only mechanism are confirmed.
+4. **HyDE-without-snap mechanism comparator (LANDED)**: `rag_hyde` × Llama 70b × MuSiQue N=200 = **18.0%** — *below* rag_simple baseline (-9.5pp, p=0.005, b/c=31/12). At equal call budget (2 calls/Q) `snap_hyde_2call` beats `rag_hyde` by **+19pp (p=6.97e-08, b/c=45/7)**. So at fixed cost, snap does essentially ALL the work; pure HyDE on MuSiQue is *harmful* (the model hallucinates a passage from a multi-hop question and the embedding pulls noisy contexts). The snap_hyde_2call lift therefore decomposes at fixed call budget as:
+   - rag_hyde alone: -9.5pp vs rag_simple
+   - snap_hyde_2call: +9.5pp vs rag_simple
+   - **Snap reasoning contributes ~+19pp net** at the 2-call budget, by both lifting answer accuracy AND undoing HyDE's MuSiQue penalty. Mechanism: the snap-conditioned passage prompt is answer-anchored ("write a passage stating the controlling rule given my snap answer X"), which is far better-targeted than a question-only HyDE on multi-hop. Source log: `logs/eval_rag_hyde_groq-llama70b_20260428_0055_detail.jsonl`.
+5. **Replication at full corpus**: promote to N=2400 MuSiQue full-corpus once cross-family + cluster Gemma confirm.
