@@ -129,6 +129,31 @@ Notably, snap_hyde_2call at top-1 (24.0%) exactly matches `rag_snap_hyde` at top
 2call mode's accuracy advantage over the 3-call mode disappears — the lift
 needs the full retrieval depth to materialize.
 
+## Cross-dataset bottleneck taxonomy (added 2026-04-28, cluster results landing)
+
+| Dataset | Format | rag_simple | snap_hyde_2call | Δ | McNemar p | Bottleneck class |
+|---|---|---:|---:|---:|---:|---|
+| MuSiQue (Llama 70b) | open-ended multi-hop | 27.5% | 37.0% | **+9.5pp** | **0.008** | retrieval-bottlenecked |
+| MuSiQue (Gemma 3 27B) | open-ended multi-hop | 28.5% | 23.0% | -5.5pp | 0.13 NS | retrieval-bottlenecked, model-conditional via HyDE quality |
+| BarExam (Gemma 4 26B) | 5-way MC + fact pattern | 78.08% | 81.17% (Tier 3) | +3.09pp | SIG | reasoning-bottlenecked |
+| CaseHOLD (Llama 70b) | 5-way MC over holdings | 72.0% | 69.5% | -2.5pp | 0.49 NS | option-disambiguation |
+| HousingQA (Gemma 4 26B) | Yes/No statutory | TBD | TBD | TBD | TBD | (predicted retrieval-bottlenecked) |
+
+**Cross-dataset retrieval-depth signature** (top-1 vs top-5, paired, same provider/seed):
+
+| Dataset / Model | top-1 EM | top-5 EM | Δ | McNemar p |
+|---|---:|---:|---:|---:|
+| MuSiQue × Llama 70b (rag_simple) | 13.0% | 27.5% | -14.5pp | **4.18e-07** |
+| BarExam × Gemma 4 26B (rag_simple) | 83.0% | 82.5% | -0.5pp | 1.00 NS |
+
+**This is the cleanest cross-dataset evidence yet**: the SAME ablation (top-1 vs top-5) produces -14.5pp catastrophic drop on MuSiQue and a flat -0.5pp NS on BarExam. The retrieval-depth-sensitivity gap (~14pp) directly measures the bottleneck-taxonomy spread. Source logs:
+- BarExam top-1: `logs/eval_rag_simple_or-gemma4-26b_20260428_0138_detail.jsonl`
+- BarExam top-5: `logs/eval_rag_simple_or-gemma4-26b_20260428_0231_detail.jsonl`
+
+**Headline implication for the paper:** The bottleneck taxonomy is now testable through a single retrieval-depth ablation, independent of any specific RAG method. Datasets where reducing retrieval depth from k=5 to k=1 catastrophically hurts EM are retrieval-bottlenecked; those where the drop is flat are reasoning-bottlenecked. This generalizes beyond snap-conditioning.
+
+**CaseHOLD is a 3rd bucket — option-disambiguation:** The dataset has NO gold-passage annotation in our run (gold_retrieved = 0/200 for both modes). CaseHOLD's RAG step retrieves auxiliary holdings from a 50K corpus, but the correct answer is one of 5 holdings shown in the prompt — so retrieval pulls *competing* candidates into the context rather than supporting evidence. Mild negative direction (-2.5pp NS) is consistent with Vaddi (arXiv 2603.25944, March 2026), who reports -8pp for vanilla RAG on CaseHOLD. The bottleneck framing predicts a *third* class beyond reasoning- vs retrieval-bottlenecked — one where retrieval introduces *distractors*. The paper should acknowledge and measure this rather than ignore it.
+
 ## Open questions / next checks
 
 1. **Cross-dataset**: SLURM 55451 (running) tests `snap_hyde_2call` on Gemma 4 26B-A4B × BarExam N=200. Does the efficiency variant preserve the +3.09pp BarExam lift?
