@@ -15,8 +15,15 @@ On Llama 3.3 70B × MuSiQue N=200 (paired McNemar within same Groq slot, seed=42
 |---|---:|---:|---:|---:|---:|
 | `rag_simple` | 27.5% | **13.0%** | **-14.5pp** | **4.18e-07** | 32 / 3 |
 | `multi_hyde_diverse` | 35.5% | **19.0%** | **-16.5pp** | **5.42e-07** | 39 / 6 |
-| `rag_snap_hyde` | (24.0% baseline) | (running) | (running) | (running) | (running) |
-| `rag_multi_query` | (29.0% baseline) | (queued) | (queued) | (queued) | (queued) |
+| `rag_snap_hyde` | 24.0% | **14.0%** | **-10.0pp** | **0.0012** | 28 / 8 |
+| `rag_multi_query` | (29.0% baseline) | (running) | (running) | (running) | (running) |
+
+**Sub-finding: snap-first methods are more retrieval-depth-robust.** `rag_snap_hyde` lost
+only -10pp at top-1 vs -14.5pp for `rag_simple` and -16.5pp for `multi_hyde_diverse`. Even
+on MuSiQue (where snap_hyde is cross-domain negative at top-5), the snap-first prior
+absorbs the retrieval-depth shock better. Mechanism: snap reasoning happens *before*
+retrieval, so cutting passages from 5 to 1 hurts the final synthesis less when the model
+has already committed to a prior answer it can defend.
 
 Both landed methods drop **-14 to -17pp** when restricted to a single retrieved
 passage. Multi-hop reasoning genuinely needs multiple passages — this is not
