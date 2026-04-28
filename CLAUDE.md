@@ -1,8 +1,19 @@
 # CLAUDE.md
 
-## Update 2026-04-27 ~12:30 CDT
+## Update 2026-04-28 (post-2026-04-27 meeting)
 
-Change reason: housekeeping sweep after Llama 70b N=200 MuSiQue sign-off. Current citation gate is `docs/signoff_log.md`; audit details are in `docs/compiled_results.md`. The Current Best Results section below now includes the paper headline: Llama 70b `multi_hyde_diverse` N=200 **35.5%** vs `rag_simple` **27.5%** (+8.0pp, p=0.0195). Gemma 3 27B MHD N=200 is NULL (+2.5pp, p=0.5901), and N<200 rows stay direction-only.
+**Headline shift**: snap_hyde_2call is the new MuSiQue Llama 70b winner at **+9.5pp p=0.008** (vs prior multi_hyde_diverse +8.0pp p=0.0195). The paper-grade story has pivoted from "multi_hyde_diverse wins multi-hop" to a **bottleneck taxonomy** measurable via a single ablation: top-1 vs top-5 retrieval depth.
+
+**Cleanest cross-dataset evidence** (added 2026-04-28):
+- MuSiQue × Llama 70b rag_simple top-1 vs top-5 = **-14.5pp p=4.18e-07** (catastrophic — retrieval-bottlenecked)
+- BarExam × Gemma 4 26B rag_simple top-1 vs top-5 = **-0.5pp p=1.00 NS** (flat — reasoning-bottlenecked)
+- ~14pp gap is the bottleneck-taxonomy signature, method-independent.
+
+**Mechanism finding** (new): the Llama-vs-Gemma snap_hyde_2call split on MuSiQue is explained by HyDE-passage gold-recall delta. Llama 70b's HyDE passages improve gold-hit by +2.5pp; Gemma 27B's degrade it by -7.5pp. Same parametric floor (snap_only_in_final: Llama 9.5%, Gemma 9.0%), opposite retrieval and EM outcomes.
+
+**Open**: full-corpus N=2400 Llama 70b paired blocked by Groq RPD limit (1K/day vs 4800 calls needed). Cerebras would unlock it but no API key configured.
+
+Current citation gates: `docs/signoff_log.md`, `docs/snap_hyde_2call_2026-04-28.md`, `docs/lit_review_2026-04-28.md`, `docs/top1_ablation_2026-04-28.md`, `docs/meeting_notes_042726.md`.
 
 Source-of-truth context for working in this codebase. Verify claims against `main.py` before relying on them.
 
