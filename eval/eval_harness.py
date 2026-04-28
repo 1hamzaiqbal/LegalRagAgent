@@ -1177,6 +1177,88 @@ def run_rag_snap_hyde(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+_SNAP_HYDE_2CALL_SYSTEM = (
+    "You are a legal expert answering a multiple-choice question. "
+    "Produce TWO labeled blocks in this exact order:\n\n"
+    "## Reasoning\n"
+    "Step-by-step legal analysis. End this block with a line of the form: Answer: (X)\n\n"
+    "## Passage\n"
+    "A 2-3 sentence passage in the style of a legal treatise or casebook that states the controlling "
+    "rule, doctrine, holding, or exception relevant to the question. This passage will be used to "
+    "retrieve supporting authority. Do NOT mention any answer choice or letter in this block. "
+    "Do NOT use 'Answer:', 'Passage:' headers, bullet points, or markdown bolding inside the block. "
+    "State the doctrinal text directly."
+)
+
+
+def _split_snap_and_hyde(raw: str, fallback_passage: str) -> tuple[str, str, bool]:
+    """Parse a 2-call combined response into (snap_block, hyde_passage, parse_ok).
+
+    Tries the canonical '## Passage' header first, then a few common variants.
+    On parse failure, returns (raw, fallback_passage, False) so the caller can
+    log a routed_to marker.
+    """
+    text = raw or ""
+    for marker in ("## Passage", "##Passage", "## passage", "**Passage:**", "Passage:"):
+        if marker in text:
+            head, _, tail = text.partition(marker)
+            snap_block = head.strip()
+            hyde_passage = _sanitize_intermediate_text(tail.strip(), fallback=fallback_passage)
+            if hyde_passage:
+                return snap_block, hyde_passage, True
+    return text.strip(), fallback_passage, False
+
+
+def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
+    """2-call efficiency variant of rag_snap_hyde: snap + HyDE in one LLM call,
+    then retrieve, then final synthesis. Same final-context as rag_snap_hyde
+    (retrieved passages only — snap letter NOT shown to final agent).
+
+    Goal: preserve most of the rag_snap_hyde lift with 33% fewer LLM calls.
+    """
+    question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
+
+    # Step 1: Single LLM call producing snap reasoning + HyDE passage.
+    combined_raw = _llm_call(_SNAP_HYDE_2CALL_SYSTEM, question, label="snap_hyde_2call/snap_and_hyde")
+    snap_block, hyde_passage, parse_ok = _split_snap_and_hyde(combined_raw, fallback_passage=question_intermediate)
+    snap_letter = _extract_answer(snap_block, config)
+    hyde_contains_answer = _contains_answer_artifact(hyde_passage)
+
+    # Step 2: Retrieve using parsed HyDE passage (same retrieval as rag_snap_hyde).
+    retrieval = _retrieve_and_format(row, [hyde_passage], k=config.retrieval_k, label_prefix="snap_hyde_2call",
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Step 3: Final synthesis (call #2). Snap letter NOT shown — same final-context contract as rag_snap_hyde.
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="snap_hyde_2call/answer")
+
+    out = {
+        "final_answer": answer,
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
+        "snap_answer": snap_block,
+        "snap_letter": snap_letter,
+        "snap_and_hyde_raw": combined_raw,
+        "snap_hyde_2call_parse_ok": parse_ok,
+        "hyde_passage": hyde_passage,
+        "hyde_passage_raw": combined_raw,
+        "hyde_contains_answer_artifact": hyde_contains_answer,
+        "retrieval_queries": [hyde_passage],
+        "rerank_query": "",
+        "final_context_fields": ["retrieved_passages", "question"],
+        "final_prompt_preview": _preview_text(user),
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+    if not parse_ok:
+        out["routed_to"] = "snap_hyde_2call_parse_failed_fallback_to_question"
+    return out
+
+
 def run_snap_hyde_aligned(row: pd.Series, config: EvalConfig) -> dict:
     """Snap-HyDE with question-aligned reranking.
 
@@ -4649,6 +4731,7 @@ MODE_RUNNERS = {
     "rag_hyde_arb": run_rag_hyde_arb,
     "rag_multi_hyde": run_rag_multi_hyde,
     "rag_snap_hyde": run_rag_snap_hyde,
+    "rag_snap_hyde_2call": run_rag_snap_hyde_2call,
     "snap_hyde_aligned": run_snap_hyde_aligned,
     "gap_hyde": run_gap_hyde,
     "gap_hyde_ev": run_gap_hyde_ev,
