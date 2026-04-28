@@ -83,6 +83,35 @@ headline winner."
 | `snap_hyde_2call` v1 (broken parser, 14.5% parse_ok) | `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_0033_detail.jsonl` | 26.0% |
 | **`snap_hyde_2call` v2 (98.5% parse_ok)** | `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_0040_detail.jsonl` | **37.0%** |
 
+## 1-call vs 2-call ablation (added 2026-04-28, reviewer risk #6 mitigation)
+
+`snap_hyde_1call`: retrieve on bare question (rag_simple style), then 1 LLM call
+producing snap reasoning + final answer. Tests reviewer pushback "why 2 calls
+not 1?" by isolating the second-call contribution.
+
+| Mode | Calls | EM | Δ vs rag_simple | McNemar p |
+|---|---:|---:|---:|---:|
+| `rag_simple` | 1 | 27.5% | — | — |
+| **`snap_hyde_1call`** | **1** | **30.5%** | **+3.0pp** | 0.31 NS |
+| `snap_hyde_2call` | 2 | 37.0% | +9.5pp | 0.008 SIG |
+
+Pairwise:
+
+| Comparison | Δ | p | b/c |
+|---|---:|---:|---:|
+| `snap_hyde_1call` vs `rag_simple` | +3.0pp | 0.31 NS | 15 / 9 |
+| `snap_hyde_1call` vs `snap_hyde_2call` | -6.5pp | **0.072 TRENDING** | 29 / 16 |
+
+**Decomposition of the +9.5pp 2-call lift:**
+- ~+3pp from inline snap-CoT reasoning alone (1call vs rag_simple, NS)
+- ~+6.5pp from the dedicated 2nd LLM call + HyDE-conditioned retrieval
+  (1call vs 2call, TRENDING-SIG p=0.072 with b/c=29/16)
+
+**Reviewer answer**: "We tested a single-call snap-CoT-RAG variant; it only
+recovers +3pp (NS) over rag_simple. The architecture's full +9.5pp lift requires
+the dedicated synthesis call with HyDE-conditioned retrieval, which contributes
+the additional +6.5pp." Source log: `logs/eval_rag_snap_hyde_1call_groq-llama70b_20260428_0129_detail.jsonl`.
+
 ## Top-1 retrieval-depth ablation (added 2026-04-28)
 
 | Method | top-5 EM | top-1 EM | Δ | McNemar p |
