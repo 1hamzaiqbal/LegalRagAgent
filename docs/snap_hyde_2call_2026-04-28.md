@@ -103,7 +103,7 @@ needs the full retrieval depth to materialize.
 ## Open questions / next checks
 
 1. **Cross-dataset**: SLURM 55451 (running) tests `snap_hyde_2call` on Gemma 4 26B-A4B × BarExam N=200. Does the efficiency variant preserve the +3.09pp BarExam lift?
-2. **Cross-family**: `snap_hyde_2call` × Gemma 3 27B × MuSiQue N=200 in flight via OR. Does the +9.5pp lift over `rag_simple` reproduce on other dense / MoE models?
+2. **Cross-family (LANDED, NEGATIVE)**: `snap_hyde_2call` × Gemma 3 27B × MuSiQue N=200 = **23.0%** vs `rag_simple` (Gemma 27B baseline) **28.5%** → **-5.5pp NULL (p=0.13, b/c=16/27)**. Direction is negative, not just "no lift." Combined with the prior `multi_hyde_diverse` × Gemma 27B N=200 NULL (+2.5pp, p=0.59), this is **two methods × one model** failing to reproduce the Llama 70b lift. Working interpretation: the +9.5pp `snap_hyde_2call` lift is **Llama-class-model-dependent** on MuSiQue; Gemma 27B does not benefit from snap-conditioned HyDE on multi-hop. The paper must drop "model-agnostic on multi-hop" framing and replace with model-conditional language. Source log: `logs/eval_rag_snap_hyde_2call_or-gemma27b_20260428_0127_detail.jsonl`.
 3. **Snap-only ablation (LANDED)**: `snap_only_in_final` × Llama 70b × MuSiQue N=200 = **9.5%** (vs snap_hyde_2call 37.0%, -27.5pp p=3.29e-14; vs rag_simple 27.5%, -18pp p=1.01e-07). MuSiQue is **retrieval-dominant** for Llama 70b: without corpus access, the model only gets 9.5%. The decomposition of the snap_hyde_2call lift is therefore:
    - ~+18pp from retrieval alone (rag_simple 27.5% − snap_only 9.5%)
    - ~+9.5pp from snap+HyDE-prompt shaping (snap_hyde_2call 37.0% − rag_simple 27.5%)

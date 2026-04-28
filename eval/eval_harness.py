@@ -1217,6 +1217,74 @@ def _split_snap_and_hyde(raw: str, fallback_passage: str) -> tuple[str, str, boo
     return text.strip(), fallback_passage, False
 
 
+def _snap_hyde_1call_system(config: EvalConfig) -> str:
+    """1call ablation: dataset's normal 'rag' (retrieved-passages-aware) system prompt
+    plus an instruction to think through the controlling rule before answering.
+
+    No HyDE-conditioned retrieval — caller retrieves on the bare question
+    (rag_simple-style) and provides passages. Single LLM call total.
+    """
+    base_rag = _system_prompt(config, "rag")
+    snap_instruction = (
+        "\n\nADDITIONAL OUTPUT REQUIREMENT (REQUIRED, do not skip):\n"
+        "Before your final 'Answer:' line, write a header line that reads exactly:\n"
+        "## Reasoning\n"
+        "Followed by 2-4 sentences in which you commit to a tentative answer and state the "
+        "controlling rule, doctrine, fact, or principle that supports it. Then on a new "
+        "block write:\n"
+        "## Answer\n"
+        "Followed by the final answer in the dataset's required format. Both blocks are required."
+    )
+    return base_rag + snap_instruction
+
+
+def run_rag_snap_hyde_1call(row: pd.Series, config: EvalConfig) -> dict:
+    """1call ablation of rag_snap_hyde_2call: retrieve on bare question (rag_simple
+    style), then 1 LLM call producing snap reasoning + final answer using
+    retrieved passages.
+
+    Tests reviewer pushback "why 2 calls and not 1?" by isolating the
+    contribution of the second LLM call. If 1call ≈ 2call, the snap-conditioned
+    HyDE retrieval and the dedicated synthesis call are both unnecessary.
+    """
+    question = _fmt(row, config)
+    raw_question = _retrieval_question(row)
+
+    # Retrieve on the bare question (no HyDE).
+    retrieval = _retrieve_and_format(row, [raw_question], k=config.retrieval_k, label_prefix="snap_hyde_1call",
+                                     where=_where_from_config(config),
+                                     collection=_collection_for_config(config))
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    # Single LLM call: snap reasoning + answer with retrieved passages.
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    raw = _llm_call(_snap_hyde_1call_system(config), user, label="snap_hyde_1call/reason_and_answer")
+
+    # Parse: prefer "## Answer" header; fall back to whole text (extractor will find Answer: line).
+    final_text = raw
+    parse_ok = False
+    for marker in ("## Answer", "##Answer", "## answer"):
+        if marker in raw:
+            _, _, tail = raw.partition(marker)
+            final_text = tail.strip()
+            parse_ok = True
+            break
+
+    return {
+        "final_answer": final_text,
+        "snap_reason_and_answer_raw": raw,
+        "snap_hyde_1call_parse_ok": parse_ok,
+        "formatted_question": question,
+        "retrieval_queries": [raw_question],
+        "rerank_query": raw_question,
+        "final_context_fields": ["retrieved_passages", "question"],
+        "final_prompt_preview": _preview_text(user),
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
 def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
     """2-call efficiency variant of rag_snap_hyde: snap + HyDE in one LLM call,
     then retrieve, then final synthesis. Same final-context as rag_snap_hyde
@@ -4739,6 +4807,7 @@ MODE_RUNNERS = {
     "rag_hyde_arb": run_rag_hyde_arb,
     "rag_multi_hyde": run_rag_multi_hyde,
     "rag_snap_hyde": run_rag_snap_hyde,
+    "rag_snap_hyde_1call": run_rag_snap_hyde_1call,
     "rag_snap_hyde_2call": run_rag_snap_hyde_2call,
     "snap_hyde_aligned": run_snap_hyde_aligned,
     "gap_hyde": run_gap_hyde,

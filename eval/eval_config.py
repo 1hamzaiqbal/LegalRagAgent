@@ -37,6 +37,7 @@ EVAL_MODES = {
     "rag_hyde_arb":             "HyDE retrieval + snap-then-review arbitration (conservative)",
     "rag_multi_hyde":           "Multi-HyDE: 3 hypothetical passages (rule/exception/application)",
     "rag_snap_hyde":            "Snap-informed HyDE: answer first, then targeted retrieval",
+    "rag_snap_hyde_1call":      "1-call ablation: retrieve on bare question (rag_simple style), then 1 LLM call producing snap reasoning + final answer (tests whether 2nd LLM call is necessary)",
     "rag_snap_hyde_2call":      "2-call snap+HyDE: snap reasoning + HyDE passage in one LLM call, then retrieve + final synth (efficiency variant of rag_snap_hyde)",
     "snap_hyde_aligned":        "Snap-HyDE aligned: HyDE for dense retrieval, raw question for cross-encoder reranking",
     "gap_hyde":                 "Gap-informed HyDE: snap + gaps + evidence in final (full context)",
