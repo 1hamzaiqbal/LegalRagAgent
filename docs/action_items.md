@@ -1,5 +1,22 @@
 # Action Items — Paper Sprint
 
+## Update 2026-04-27 evening — meeting follow-ups
+
+Source: [`docs/meeting_notes_042726.md`](meeting_notes_042726.md). Key new asks:
+
+1. **Golden-passage paradox — DONE** (audit landed). See [`docs/golden_paradox_audit_2026-04-27.md`](golden_paradox_audit_2026-04-27.md). Headline: gold-passage injection is roughly symmetric (96 hurt vs 83 helped, net -1.09pp); the dominant failure is anchoring, not insufficient evidence; gold-passage length distribution is identical across paradox / win / match buckets. **Action**: rename `golden_passage` from "oracle ceiling" to "single gold-passage control" in paper tables.
+2. **Top-1 vs top-5 retrieval-depth ablation** — in flight via `--retrieval-k` CLI flag (codex). Run paired N=200 first on `rag_simple`, `rag_snap_hyde`, `multi_hyde_diverse`, `rag_multi_query` before promoting to full corpus. Report EM + gold-retrieved + token cost.
+3. **`rag_snap_hyde_2call`** — snap+HyDE in a single LLM call, then retrieve, then synthesize. Goal: preserve the +3pp BarExam lift with 33% fewer LLM calls. Do not expose snap letter to final unless intentional.
+4. **Re-run llm_only / golden_passage on the same 4 models** if any methodology has changed since the cited Tier 3 logs (currently 2026-04-26 cluster-vllm runs are the source of truth — no rerun needed unless a fix lands).
+5. **Lift-source decomposition** — for each candidate lift method, log llm_calls + retrieved_ids + evidence diversity + snap-vs-final agreement + token/latency. Already partially in place.
+6. **Dataset × model × method matrix** — keep tight: BarExam + MuSiQue (current), add FRAMES (https://huggingface.co/datasets/google/frames-benchmark) and SCALR / MLEB-SCALR (https://huggingface.co/datasets/isaacus/mleb-scalr) when bandwidth allows.
+7. **HyRe / multi-hyde-diverse literature sweep** — does the diverse-HyDE pattern exist under another name (Query2Doc, RAG-Fusion, Chain-of-Note, HyRe)? Frame the contribution as "task-specific retrieval shaping" rather than "new universal trick".
+8. **Authorship / time-budget coordination** — async with team, separate from code work.
+
+Live status of cluster work (do not rerun without ops sync):
+- `qwen_full` MuSiQue mhd-pair × Qwen3 30B MoE × N=2400 (task #63) — operator-side.
+- `SLURM 55107` BarExam mhd+iter_hyde × Gemma 4 26B-A4B × N=200 (task #70) — operator-side.
+
 ## Update 2026-04-27 ~12:30 CDT
 
 Change reason: housekeeping sweep after Tier 2 MuSiQue sign-off. Completed: Llama 70b N=200 method matrix, exact McNemar infrastructure (`scripts/compute_mcnemar.py`), friend/foe analysis script (`scripts/analyze_friend_foe_bias.py`), and N<200 citation gating. Current follow-ups: audit the running Tier 3/full MuSiQue jobs when they land; do not cite Gemma 3 27B MHD as confirmed (+2.5pp, p=0.5901 NULL); keep `subagent_rag` on MuSiQue as a significant negative (-12.0pp, p=0.0007), not a candidate improvement.
