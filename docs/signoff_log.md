@@ -343,3 +343,18 @@ Current BarExam citations must use the post-fix source-of-truth values in `docs/
 
 - `20260426_1917_llm_only_groq-llama70b_api-cross-llama70b` (`api-cross-llama70b`, N=100) — summary has 0 correct, 0 avg LLM calls, 0 input/output tokens.
 - `20260426_1917_llm_only_deepseek_api-cross-deepseek` (`api-cross-deepseek`, N=100) — summary has 0 correct, 0 avg LLM calls, 0 input/output tokens.
+
+---
+
+## Section H — Top-1 retrieval-depth ablation (audited 2026-04-28)
+
+Scope: Llama 70B Groq x MuSiQue x N=200 paired top-1 vs top-5 retrieval-depth ablation, seed=42. The `--retrieval-k` CLI flag landed in commit `b286279`; audit doc `docs/audits/2026-04-28_top1_ablation_audit.md` verifies all top-1 rows have exactly one `evidence_store` item and one `retrieved_ids` item, with exact 200-row `idx` intersections against the top-5 baselines.
+
+| Method | Top-5 detail log | Top-1 detail log | Paired N | Top-5 EM | Top-1 EM | Delta | McNemar p | Audit | Sign-off |
+|---|---|---|---:|---:|---:|---:|---:|---|---|
+| `rag_simple` | `logs/eval_rag_simple_groq-llama70b_20260427_0952_detail.jsonl` | `logs/eval_rag_simple_groq-llama70b_20260428_0011_detail.jsonl` | 200 | 27.5% | 13.0% | -14.5pp | 4.176981747e-07 | MINOR; `retrieval_k=1` proof clean, but 23/200 abstention-like predictions and one runaway/truncated output; see `docs/audits/2026-04-28_top1_ablation_audit.md` | ⚠️ APPROVED-WITH-CAVEAT |
+| `rag_multi_query` | `logs/eval_rag_multi_query_groq-llama70b_20260427_1112_detail.jsonl` | `logs/eval_rag_multi_query_groq-llama70b_20260428_0029_detail.jsonl` | 200 | 29.0% | 14.0% | -15.0pp | 5.299581744e-06 | MINOR; `retrieval_k=1` proof clean, but 25/200 abstention-like predictions and one runaway/truncated output; see `docs/audits/2026-04-28_top1_ablation_audit.md` | ⚠️ APPROVED-WITH-CAVEAT |
+| `rag_snap_hyde` | `logs/eval_rag_snap_hyde_groq-llama70b_20260427_1019_detail.jsonl` | `logs/eval_rag_snap_hyde_groq-llama70b_20260428_0025_detail.jsonl` | 200 | 24.0% | 14.0% | -10.0pp | 0.001193242962 | MINOR; `retrieval_k=1` proof clean, no obvious final truncation, but 27/200 abstention-like predictions; see `docs/audits/2026-04-28_top1_ablation_audit.md` | ⚠️ APPROVED-WITH-CAVEAT |
+| `multi_hyde_diverse` | `logs/eval_multi_hyde_diverse_groq-llama70b_20260427_1010_detail.jsonl` | `logs/eval_multi_hyde_diverse_groq-llama70b_20260428_0019_detail.jsonl` | 200 | 35.5% | 19.0% | -16.5pp | 5.417768989e-07 | MINOR; `retrieval_k=1` proof clean, no obvious final truncation, but 20/200 abstention-like predictions; see `docs/audits/2026-04-28_top1_ablation_audit.md` | ⚠️ APPROVED-WITH-CAVEAT |
+
+Citation guidance: cite as a clean retrieval-depth ablation with caveat that top-1 is an under-context stress test and materially increases abstention-like predictions. Do not frame the lower top-1 EM as a harness/retrieval-k failure; the audit proves top-1 retrieval was applied on 800/800 top-1 rows.
