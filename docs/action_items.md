@@ -5,8 +5,37 @@
 Source: [`docs/meeting_notes_042726.md`](meeting_notes_042726.md). Key new asks:
 
 1. **Golden-passage paradox — DONE** (audit landed). See [`docs/golden_paradox_audit_2026-04-27.md`](golden_paradox_audit_2026-04-27.md). Headline: gold-passage injection is roughly symmetric (96 hurt vs 83 helped, net -1.09pp); the dominant failure is anchoring, not insufficient evidence; gold-passage length distribution is identical across paradox / win / match buckets. **Action**: rename `golden_passage` from "oracle ceiling" to "single gold-passage control" in paper tables.
-2. **Top-1 vs top-5 retrieval-depth ablation** — in flight via `--retrieval-k` CLI flag (codex). Run paired N=200 first on `rag_simple`, `rag_snap_hyde`, `multi_hyde_diverse`, `rag_multi_query` before promoting to full corpus. Report EM + gold-retrieved + token cost.
-3. **`rag_snap_hyde_2call`** — snap+HyDE in a single LLM call, then retrieve, then synthesize. Goal: preserve the +3pp BarExam lift with 33% fewer LLM calls. Do not expose snap letter to final unless intentional.
+2. **Top-1 vs top-5 retrieval-depth ablation** — `--retrieval-k` CLI flag landed (commit `b286279`). Suggested paired N=200 launch list (do not launch without ops sync, mind Groq RPD = 1000 / TPD = 100K):
+
+   ```bash
+   # BarExam, Llama 70b, top-1 vs top-5 paired (rag_simple + rag_snap_hyde)
+   uv run python eval/eval_harness.py --mode rag_simple    --provider groq-llama70b --questions 200 --dataset barexam --retrieval-k 1
+   uv run python eval/eval_harness.py --mode rag_simple    --provider groq-llama70b --questions 200 --dataset barexam --retrieval-k 5
+   uv run python eval/eval_harness.py --mode rag_snap_hyde --provider groq-llama70b --questions 200 --dataset barexam --retrieval-k 1
+   uv run python eval/eval_harness.py --mode rag_snap_hyde --provider groq-llama70b --questions 200 --dataset barexam --retrieval-k 5
+
+   # MuSiQue, Llama 70b, top-1 vs top-5 paired (rag_simple + multi_hyde_diverse + rag_multi_query)
+   uv run python eval/eval_harness.py --mode rag_simple         --provider groq-llama70b --questions 200 --dataset musique --retrieval-k 1
+   uv run python eval/eval_harness.py --mode rag_simple         --provider groq-llama70b --questions 200 --dataset musique --retrieval-k 5
+   uv run python eval/eval_harness.py --mode multi_hyde_diverse --provider groq-llama70b --questions 200 --dataset musique --retrieval-k 1
+   uv run python eval/eval_harness.py --mode multi_hyde_diverse --provider groq-llama70b --questions 200 --dataset musique --retrieval-k 5
+   uv run python eval/eval_harness.py --mode rag_multi_query    --provider groq-llama70b --questions 200 --dataset musique --retrieval-k 1
+   uv run python eval/eval_harness.py --mode rag_multi_query    --provider groq-llama70b --questions 200 --dataset musique --retrieval-k 5
+
+   # Cluster vLLM Gemma 4 26B-A4B BarExam top-1 paired (rag_simple + rag_snap_hyde) — re-uses existing top-5 Tier 3 baselines
+   # (run on cluster via SLURM script under scripts/hpc/; do NOT launch via OR for Gemma due to runaway-loop serving issue)
+   ```
+
+   Pair the `--retrieval-k 1` runs against the existing N=200 / Tier 3 top-5 baselines using `scripts/compute_mcnemar.py`. Report: EM, paired delta, McNemar p, gold_retrieved rate, mean input tokens, mean retrieved-passage chars.
+
+3. **`rag_snap_hyde_2call`** — landed (commit pending). 2-call efficiency variant: single LLM call producing snap reasoning + HyDE passage in one response (parsed apart with `## Passage` marker), then retrieve + final synth. Goal: preserve the +3pp BarExam lift with 33% fewer LLM calls. Same final-context contract as `rag_snap_hyde` (snap letter NOT shown to final agent). Failed-parse cases marked with `routed_to: snap_hyde_2call_parse_failed_fallback_to_question`. Suggested paired N=200 first launch:
+
+   ```bash
+   uv run python eval/eval_harness.py --mode rag_snap_hyde       --provider groq-llama70b --questions 200 --dataset barexam
+   uv run python eval/eval_harness.py --mode rag_snap_hyde_2call --provider groq-llama70b --questions 200 --dataset barexam
+   ```
+
+   Compare via paired McNemar; check `snap_hyde_2call_parse_ok` rate before citing efficiency claim.
 4. **Re-run llm_only / golden_passage on the same 4 models** if any methodology has changed since the cited Tier 3 logs (currently 2026-04-26 cluster-vllm runs are the source of truth — no rerun needed unless a fix lands).
 5. **Lift-source decomposition** — for each candidate lift method, log llm_calls + retrieved_ids + evidence diversity + snap-vs-final agreement + token/latency. Already partially in place.
 6. **Dataset × model × method matrix** — keep tight: BarExam + MuSiQue (current), add FRAMES (https://huggingface.co/datasets/google/frames-benchmark) and SCALR / MLEB-SCALR (https://huggingface.co/datasets/isaacus/mleb-scalr) when bandwidth allows.

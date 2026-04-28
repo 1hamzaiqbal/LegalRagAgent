@@ -42,6 +42,37 @@ when both are run on the same model with the same fact pattern, and where the li
 
 Source data + code: `scripts/audit_golden_paradox.py`, run on the 4 paths listed below.
 
+## Independent peer-review verification (Haiku subagent, blind to my conclusions)
+
+A Haiku subagent independently re-ran the audit without seeing this doc. All headline numbers matched exactly (79.75 / 78.66 / 78.08 / 81.17). It confirmed: symmetric flip (96 hurt / 83 helped, 1.16:1), no length signal (identical medians of 500 chars across buckets), and the anchoring claim (87% same-wrong-pred between snap_hyde and golden_passage in the paradox-and-snap_hyde-failed subset, vs my own 84.8% measurement on the same data).
+
+It also added two findings I had not run:
+
+### 30-case manual deep-dive of paradox failure modes
+
+| Bucket | Count | % | Description |
+|---|---:|---:|---|
+| (D) Model misapplied a relevant gold passage | 15 | 50% | Gold contains the right rule; model cited it but reached the wrong answer |
+| (A) Gold passage topically irrelevant | 9 | 30% | Gold cites a different legal area entirely — dataset curation issue (reglab keyword-pairing) |
+| (B) Distractor / partially-on-topic gold | 6 | 20% | Gold cites a related-but-wrong rule that misdirects the model |
+| (C) Questionable label | 0 | 0% | Reglab's "correct" answer looked debatable |
+
+Implication: ~30% of the paradox is upstream dataset-quality (reglab gold labels include topically-mismatched passages), not a model failure. The remaining 70% is a real model-vs-context interaction (anchoring/misapplication).
+
+### Cross-dataset direction reversal — golden_passage HELPS on MuSiQue
+
+Peer review paired Llama 70b MuSiQue `golden_passage` (N=30) against `rag_simple` (N=30) and found golden_passage **+40pp above** rag_simple. The exact magnitude is suspect because the N=30 rag_simple comparator (6.7%) is far below our cited N=200 Llama 70b MuSiQue rag_simple baseline (27.5%) — likely an early/unrepresentative log. **But the qualitative direction is meaningful**: on multi-hop factoid QA where the model has weak priors, gold passage helps materially; on legal MC where the model has strong priors, gold passage hurts.
+
+The cleanest framing for the paper:
+
+> **Gold-passage usefulness is inversely correlated with model prior strength on the task.**
+> When the model already "knows" the answer, injected gold context is noise (BarExam: -1.09pp).
+> When the model needs facts it doesn't have, injected gold context is signal (MuSiQue: +Xpp).
+> Either way, the "oracle ceiling" framing is wrong — golden_passage is a noisy single-snippet
+> control whose net direction depends on the task.
+
+To strengthen this for citation, re-run paired golden_passage vs llm_only and golden_passage vs rag_simple on Llama 70b MuSiQue at N=200 with the same question set as our existing Tier 2 logs.
+
 
 Logs paired:
 
