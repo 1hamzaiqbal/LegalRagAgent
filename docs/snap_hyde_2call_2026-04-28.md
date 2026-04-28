@@ -104,5 +104,11 @@ needs the full retrieval depth to materialize.
 
 1. **Cross-dataset**: SLURM 55451 (running) tests `snap_hyde_2call` on Gemma 4 26B-A4B × BarExam N=200. Does the efficiency variant preserve the +3.09pp BarExam lift?
 2. **Cross-family**: `snap_hyde_2call` × Gemma 3 27B × MuSiQue N=200 in flight via OR. Does the +9.5pp lift over `rag_simple` reproduce on other dense / MoE models?
-3. **Snap-only ablation (in flight)**: `snap_only_in_final` × Llama 70b × MuSiQue N=200 — if this matches snap_hyde_2call's 37.0%, the retrieval is doing very little and the win is mostly the snap+passage prompt shape forcing better reasoning.
+3. **Snap-only ablation (LANDED)**: `snap_only_in_final` × Llama 70b × MuSiQue N=200 = **9.5%** (vs snap_hyde_2call 37.0%, -27.5pp p=3.29e-14; vs rag_simple 27.5%, -18pp p=1.01e-07). MuSiQue is **retrieval-dominant** for Llama 70b: without corpus access, the model only gets 9.5%. The decomposition of the snap_hyde_2call lift is therefore:
+   - ~+18pp from retrieval alone (rag_simple 27.5% − snap_only 9.5%)
+   - ~+9.5pp from snap+HyDE-prompt shaping (snap_hyde_2call 37.0% − rag_simple 27.5%)
+
+   This is the OPPOSITE of BarExam, where Gemma 4 26B-A4B `llm_only` (79.75%) is already
+   near-ceiling and `rag_snap_hyde` adds only +3pp. **MuSiQue is retrieval-bottlenecked;
+   BarExam is reasoning-bottlenecked.** Same architecture, different bottleneck.
 4. **Replication at full corpus**: promote to N=2400 MuSiQue full-corpus once cross-family + snap-only mechanism are confirmed.
