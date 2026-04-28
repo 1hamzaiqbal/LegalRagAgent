@@ -16,14 +16,24 @@ On Llama 3.3 70B × MuSiQue N=200 (paired McNemar within same Groq slot, seed=42
 | `rag_simple` | 27.5% | **13.0%** | **-14.5pp** | **4.18e-07** | 32 / 3 |
 | `multi_hyde_diverse` | 35.5% | **19.0%** | **-16.5pp** | **5.42e-07** | 39 / 6 |
 | `rag_snap_hyde` | 24.0% | **14.0%** | **-10.0pp** | **0.0012** | 28 / 8 |
-| `rag_multi_query` | (29.0% baseline) | (running) | (running) | (running) | (running) |
+| `rag_multi_query` | 29.0% | **14.0%** | **-15.0pp** | **5.30e-06** | 37 / 7 |
 
 **Sub-finding: snap-first methods are more retrieval-depth-robust.** `rag_snap_hyde` lost
-only -10pp at top-1 vs -14.5pp for `rag_simple` and -16.5pp for `multi_hyde_diverse`. Even
-on MuSiQue (where snap_hyde is cross-domain negative at top-5), the snap-first prior
-absorbs the retrieval-depth shock better. Mechanism: snap reasoning happens *before*
-retrieval, so cutting passages from 5 to 1 hurts the final synthesis less when the model
-has already committed to a prior answer it can defend.
+only -10pp at top-1 vs -14.5 to -16.5pp for the three "no-snap" methods. Even on MuSiQue
+(where snap_hyde is cross-domain negative at top-5), the snap-first prior absorbs the
+retrieval-depth shock better. Mechanism: snap reasoning happens *before* retrieval, so
+cutting passages from 5 to 1 hurts the final synthesis less when the model has already
+committed to a prior answer it can defend.
+
+**Method clustering at top-1**: all 4 methods land at 13-19% top-1 EM (vs 24-35.5% top-5).
+The `mhd` lift over `rag_simple` shrinks from +8pp at top-5 to +6pp at top-1 — the
+method-choice effect persists in *direction* but is dominated in *absolute terms* by
+the passage-count effect. Cleanest paper framing:
+
+> On multi-hop QA, retrieval depth (top-k) is a first-order knob; method choice
+> (rag_simple / mhd / multi_query / snap_hyde) is a second-order knob. The
+> headline mhd lift is robust across retrieval depths, but the absolute accuracy
+> ceiling at top-1 (~19%) is far below any method's top-5 ceiling (~35%).
 
 Both landed methods drop **-14 to -17pp** when restricted to a single retrieved
 passage. Multi-hop reasoning genuinely needs multiple passages — this is not
