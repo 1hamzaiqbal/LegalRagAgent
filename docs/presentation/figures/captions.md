@@ -8,6 +8,22 @@ All figures live in `docs/presentation/figures/` as PNGs. Click any figure path 
 
 Source data: `docs/signoff_log.md` Section B.1 + `docs/mcnemar_2026-04-27.md`.
 
+Historical note: this figure predates the 2026-04-28 `snap_hyde_2call` pivot.
+Use `08_musique_snap_hyde_2call_pivot.png` for the current class-report
+MuSiQue headline.
+
+## `08_musique_snap_hyde_2call_pivot.png`
+
+**Llama 3.3 70b × MuSiQue N=200 — current snap-HyDE 2-call pivot.**
+`snap_hyde_2call` reaches 37.0% EM (+9.5pp, p=0.0079), above
+`multi_hyde_diverse` at 35.5% (+8.0pp, p=0.0195) and
+`iterative_planning_table` at 36.0% (+8.5pp, p=0.0533). The baseline is
+`rag_simple` at 27.5%; current `subagent_rag` is a significant negative at
+15.5% (-12.0pp, p=0.0007).
+
+Source data: `docs/snap_hyde_2call_2026-04-28.md` and `docs/signoff_log.md`
+Section B.1.
+
 ## `02_barexam_cross_size.png`
 
 **BarExam Tier 3 (full corpus N=1195) — `rag_snap_hyde` wins on both Gemma 4 sizes.** Gemma 4 26B-A4B: 78.08% → 81.17% (+3.09pp). Gemma 4 E4B: 58.49% → 62.18% (+3.69pp). The lift is consistent cross-size, which is what makes this a paper-grade Tier 3 finding rather than single-model noise.

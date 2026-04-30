@@ -114,6 +114,9 @@ current paper claims:
 
 ## Presentation Materials
 
+- `final_class_report_2026-04-30.tex` and `final_class_report_2026-04-30.pdf`
+  - class-report draft after the bottleneck-taxonomy pivot, with refreshed
+  tables, figures, caveats, and golden-passage mechanism explanation.
 - `presentation/00_index.md` - entrypoint for presentation docs.
 - `presentation/01_results_tables.md` - presentation-facing result tables.
 - `presentation/02_methods_explained.md` - method descriptions.
