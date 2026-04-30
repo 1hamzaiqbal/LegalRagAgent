@@ -91,6 +91,14 @@ top-1 by +17.5pp (p=3.62e-07). Gold-hit rate keeps rising from top-5 to top-10
 intervention is therefore "give the model a small candidate set," not
 "maximize retrieved depth."
 
+Log audit note: `docs/scalr_depth_disagreement_2026-04-30.md` confirms the
+three SCALR logs share the same 200-question slice, have no empty retrieval or
+error rows, and have clean artifact flags. It also records a legacy detail-log
+serialization bug: SCALR choices were logged as `A-D` even though the prompt and
+scorer were 5-way (`A-E`). Accuracy and `gold_idx` retrieval analyses remain
+usable; qualitative option-text analysis should read the CSV or future fixed
+logs.
+
 CaseHOLD now lands on the BarExam side of the split, not the SCALR side:
 top-1 is 70.5% versus top-5 72.0% (-1.5pp, McNemar p=0.678, b/c=10/13).
 The paired `snap_hyde_2call` result is also flat/negative at 69.5%

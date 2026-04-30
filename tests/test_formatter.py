@@ -178,6 +178,84 @@ def test_non_barexam_datasets_untouched():
     assert "30 days notice" in p
 
 
+def test_legalbench_scalr_prompt_includes_choice_e():
+    """SCALR is a 5-way holding-selection dataset, same displayed schema as CaseHOLD."""
+    row = _row(
+        idx="scalr_test",
+        question="Citing context",
+        choice_a="holding A",
+        choice_b="holding B",
+        choice_c="holding C",
+        choice_d="holding D",
+        choice_e="holding E",
+        answer="E",
+    )
+    prompt = format_question_prompt(row, dataset="legalbench_scalr")
+
+    for letter in "ABCDE":
+        assert f"({letter})" in prompt
+    assert "holding E" in prompt
+    assert "Which of the following holdings" in prompt
+
+
+def test_legalbench_scalr_detail_logging_uses_five_choices():
+    """Regression: SCALR detail logs must not drop choice_e."""
+    import re as _re
+
+    src = (ROOT / "eval" / "eval_harness.py").read_text()
+    match = _re.search(
+        r"(def _mc_choice_letters\(dataset: str\).*?)\n\ndef _retrieval_question",
+        src,
+        _re.DOTALL,
+    )
+    assert match, "MC choice logging helpers not found in eval_harness.py"
+    ns = {"pd": pd}
+    exec(match.group(1), ns)
+
+    row = _row(
+        choice_a="holding A",
+        choice_b="holding B",
+        choice_c="holding C",
+        choice_d="holding D",
+        choice_e="holding E",
+    )
+    choices = ns["_record_choices"](row, "legalbench_scalr")
+
+    assert list(choices.keys()) == list("ABCDE")
+    assert choices["E"] == "holding E"
+    assert ns["_gold_choice_text"](row, "E") == "holding E"
+
+
+def test_legalbench_scalr_intermediate_prompt_uses_holding_schema():
+    """SCALR intermediate generators should see all five candidate holdings."""
+    import re as _re
+    from types import SimpleNamespace
+
+    src = (ROOT / "eval" / "eval_harness.py").read_text()
+    match = _re.search(
+        r"(def _fmt_intermediate\(row: pd\.Series, config: EvalConfig\) -> str:.*?)\n\ndef _contains_answer_artifact",
+        src,
+        _re.DOTALL,
+    )
+    assert match, "_fmt_intermediate helper not found in eval_harness.py"
+    ns = {"pd": pd}
+    exec(match.group(1), ns)
+
+    row = _row(
+        question="Citing context",
+        choice_a="holding A",
+        choice_b="holding B",
+        choice_c="holding C",
+        choice_d="holding D",
+        choice_e="holding E",
+    )
+    out = ns["_fmt_intermediate"](row, SimpleNamespace(dataset="legalbench_scalr"))
+
+    assert "## Candidate Holdings" in out
+    assert "holding E" in out
+    assert "(E)" not in out
+
+
 if __name__ == "__main__":
     count_pass = count_fail = 0
     test_funcs = [v for k, v in globals().items() if k.startswith("test_") and callable(v)]

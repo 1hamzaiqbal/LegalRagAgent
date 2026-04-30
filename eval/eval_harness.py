@@ -213,6 +213,24 @@ def _extract_answer(text: str, config: EvalConfig) -> str | None:
     return extract_answer_mc(text)
 
 
+def _mc_choice_letters(dataset: str) -> str:
+    """Return displayed MC labels for dataset-specific detail logging."""
+    return "ABCDE" if dataset in ("casehold", "legalbench_scalr") else "ABCD"
+
+
+def _record_choices(row: pd.Series, dataset: str) -> dict[str, str]:
+    return {
+        letter: str(row.get(f"choice_{letter.lower()}", ""))[:200]
+        for letter in _mc_choice_letters(dataset)
+    }
+
+
+def _gold_choice_text(row: pd.Series, gold: str) -> str:
+    if not gold:
+        return ""
+    return str(row.get(f"choice_{gold.lower()}", ""))[:500]
+
+
 def _retrieval_question(row: pd.Series) -> str:
     """Full query text for retrieval/rerank — includes BarExam prompt column
     (shared fact pattern) when present. Many call sites used to just do
@@ -241,7 +259,7 @@ def _fmt_intermediate(row: pd.Series, config: EvalConfig) -> str:
         state = str(row.get("state", ""))
         return f"Regarding {state} housing law:\n\n{row['question']}"
 
-    if config.dataset == "casehold":
+    if config.dataset in ("casehold", "legalbench_scalr"):
         context = str(row["question"])
         holdings = []
         for letter in ["A", "B", "C", "D", "E"]:
@@ -496,7 +514,7 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
             "statute, regulation, or rule that would support that alternative. Write in reference style."
         )
         return prompts.get(role, prompts["answer"])
-    if config.dataset == "casehold":
+    if config.dataset in ("casehold", "legalbench_scalr"):
         prompts = {
             "answer": (
                 "You are a legal expert specializing in case law. Read the citing context from a court opinion "
@@ -5248,7 +5266,7 @@ def run_eval(config: EvalConfig):
         gold = str(row["answer"]).strip()
         if config.dataset == "housing":
             gold = gold.capitalize()
-        elif config.dataset in ("barexam", "casehold"):
+        elif config.dataset in ("barexam", "casehold", "legalbench_scalr"):
             gold = gold.upper()
         # open-ended: gold stays as-is
 
@@ -5346,20 +5364,15 @@ def run_eval(config: EvalConfig):
             record["trace_schema_version"] = 1
         if config.dataset == "housing":
             record["state"] = str(row.get("state", ""))
-        elif config.dataset == "casehold":
-            record["choices"] = {
-                letter: str(row.get(f"choice_{letter.lower()}", ""))[:200]
-                for letter in "ABCDE"
-            }
+        elif config.dataset in ("casehold", "legalbench_scalr"):
+            record["choices"] = _record_choices(row, config.dataset)
+            record["gold_passage"] = _gold_choice_text(row, gold)
         elif config.dataset == "australian":
             record["jurisdiction"] = str(row.get("jurisdiction", ""))
         elif config.dataset == "legal_rag":
             record["relevant_passages"] = str(row.get("relevant_passages", ""))
         else:
-            record["choices"] = {
-                letter: str(row.get(f"choice_{letter.lower()}", ""))
-                for letter in "ABCD"
-            }
+            record["choices"] = _record_choices(row, config.dataset)
             record["gold_passage"] = str(row.get("gold_passage", ""))[:500]
         # Merge mode-specific fields (evidence_store, audit_log, etc.)
         for k, v in result.items():
