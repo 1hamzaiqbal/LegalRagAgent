@@ -14,8 +14,14 @@
 \usepackage{multirow}
 \usepackage{tabularx}
 \usepackage{array}
+\usepackage{placeins}
+\hypersetup{hidelinks}
 
 \graphicspath{{presentation/figures/}{../}}
+
+\makeatletter
+\renewcommand{\@notice}{}
+\makeatother
 
 \newcommand{\method}[1]{\texttt{\detokenize{#1}}}
 \newcommand{\dataset}[1]{\textsc{#1}}
@@ -54,7 +60,10 @@ BarExam, MuSiQue, CaseHOLD, LegalBench-SCALR, and HousingQA. A simple
 retrieval-depth diagnostic separates regimes: MuSiQue with Llama 70B collapses
 when retrieval is restricted from top-5 to top-1 passages (27.5\% to 13.0\%,
 -14.5pp, McNemar $p=4.18\times10^{-7}$), while BarExam with Gemma 4 26B is
-flat under the same ablation (82.5\% to 83.0\%, $p=1.00$). We use
+flat under the same ablation (82.5\% to 83.0\%, $p=1.00$). LegalBench-SCALR
+and HousingQA show that legal tasks can also be retrieval-depth sensitive:
+SCALR drops from 77.0\% to 59.5\% at top-1, and HousingQA improves
+directionally from 50.5\% at top-1 to 58.0\% at top-10. We use
 snap-conditioned retrieval as the main method vehicle: the model first commits
 to a tentative answer and a HyDE-style passage, retrieves on that passage, and
 then synthesizes a final answer. On MuSiQue, a two-call snap-HyDE variant
@@ -129,6 +138,14 @@ behavior, including gains on ContractNLI and degradation on CaseHOLD
 benefit as a measurable bottleneck signature rather than a universal property
 of the retriever.
 
+This boundary matters. We do not claim that snap-HyDE is fundamentally novel
+relative to HyDE, generated-query retrieval, or active retrieval. Instead, the
+contribution is a diagnostic matrix: no-context, top-1/top-5 retrieval,
+single gold-passage controls, generated-query methods, and snap-anchored
+variants together identify whether a benchmark is retrieval-depth limited,
+query-formulation limited, evidence-utilization limited, or answer-option
+disambiguation limited.
+
 \section{System and Method}
 
 \subsection{Initial agentic legal RAG system}
@@ -141,20 +158,12 @@ needed. This design was useful for exploring legal-agent architecture, but
 the evaluation showed that its many moving pieces made it hard to identify
 where accuracy gains or losses came from.
 
-\begin{figure}[t]
+\begin{figure}[!htbp]
   \centering
-  \fbox{\begin{minipage}{0.92\textwidth}
-  \centering
-  \textbf{Initial agentic loop}\\[0.5em]
-  Query $\rightarrow$ Plan $\rightarrow$ Retrieve/Synthesize $\rightarrow$
-  Judge $\rightarrow$ Replan if needed $\rightarrow$ Final answer\\[0.6em]
-  \textbf{Final evaluation focus}\\[0.5em]
-  Fixed benchmark slice $\rightarrow$ controlled retrieval method
-  $\rightarrow$ paired accuracy and retrieval-depth ablations
-  \end{minipage}}
+  \includegraphics[width=0.94\textwidth]{09_bottleneck_rag_graphical_abstract.png}
   \caption{Project pivot. The initial architecture emphasized a full legal
-  research agent. The final experiments emphasize controlled method
-  comparisons and bottleneck diagnostics.}
+  research agent. The final experiments sort questions through controlled
+  retrieval interventions and ask which bottleneck produces success or failure.}
   \label{fig:pivot}
 \end{figure}
 
@@ -189,17 +198,20 @@ We use retrieval-depth sensitivity as a simple diagnostic. If reducing
 accuracy, the benchmark-model pair is retrieval-bottlenecked. If the result is
 flat, additional retrieval depth is not the active bottleneck. This diagnostic
 is method-independent because it can be applied before testing more elaborate
-retrieval shaping.
+retrieval shaping. It is still a retrieval-policy stress test, not pure
+final-context truncation: in our harness, the cross-encoder reranker selects
+the final top-$k$ passages from a first-stage pool of roughly $3k$ candidates.
 
 \section{Experimental Setup}
 
 \paragraph{Datasets.}
-We evaluate on BarExam QA, MuSiQue, CaseHOLD, LegalBench-SCALR, MLEB-SCALR,
-and HousingQA. BarExam is a legal multiple-choice benchmark over bar-exam fact
-patterns. MuSiQue is open-ended multi-hop QA. CaseHOLD and SCALR test holding
-selection among candidate legal holdings. HousingQA tests yes/no statutory
-reasoning over state housing law. MLEB-SCALR is used as a retrieval-only
-calibration benchmark with qrels.
+For answer-quality experiments, we evaluate on BarExam QA, MuSiQue, CaseHOLD,
+LegalBench-SCALR, and HousingQA. BarExam is a legal multiple-choice benchmark
+over bar-exam fact patterns. MuSiQue is open-ended multi-hop QA. CaseHOLD and
+SCALR test holding selection among candidate legal holdings. HousingQA tests
+yes/no statutory reasoning over state housing law. We also use MLEB-SCALR as
+a retrieval-only calibration benchmark with qrels, not as a headline
+answer-accuracy result.
 
 \paragraph{Models.}
 The main legal full-corpus results use Gemma 4 26B-A4B and Gemma 4 E4B served
@@ -214,11 +226,12 @@ same question slice. For retrieval-only SCALR, we report Recall@k, MRR@k, and
 nDCG@k. We treat small samples as directional and emphasize full-corpus or
 paired $N=200$ results when drawing conclusions.
 
+\FloatBarrier
 \section{Results}
 
 \subsection{BarExam: snap-first reasoning beats raw retrieval and gold context}
 
-\begin{table}[t]
+\begin{table}[!htbp]
 \centering
 \caption{BarExam Tier 3 method matrix: Gemma 4 26B-A4B, $N=1195$.}
 \label{tab:barexam26b}
@@ -240,9 +253,11 @@ The BarExam result is the cleanest full-corpus legal finding. On Gemma 4
 26B-A4B, \method{rag_snap_hyde} reaches 81.17\%, beating \method{rag_simple}
 by +3.09pp. The same winner appears on Gemma 4 E4B, improving from 58.49\% to
 62.18\% (+3.69pp). Figure~\ref{fig:barexam_cross_size} shows the cross-size
-pattern.
+pattern. The row is approved with a minor caveat: the audited
+\method{rag_simple} baseline included 2/15 sampled startup null predictions
+with empty retrieval, while the headline re-scored totals still hold.
 
-\begin{figure}[t]
+\begin{figure}[!htbp]
   \centering
   \includegraphics[width=0.72\textwidth]{02_barexam_cross_size.png}
   \caption{BarExam full-corpus cross-size result. \method{rag_snap_hyde}
@@ -260,7 +275,7 @@ asking it to reconcile with retrieved text.
 
 \subsection{MuSiQue: retrieval depth is first-order}
 
-\begin{table}[t]
+\begin{table}[!htbp]
 \centering
 \caption{Llama 70B MuSiQue paired results, $N=200$.}
 \label{tab:musique}
@@ -286,12 +301,13 @@ improvement with paired McNemar $p=0.0079$. \method{multi_hyde_diverse} and
 \method{subagent_rag} implementation is significantly worse because its
 gap-routing prompts over-abstain.
 
-\begin{figure}[t]
+\begin{figure}[!htbp]
   \centering
   \includegraphics[width=0.82\textwidth]{08_musique_snap_hyde_2call_pivot.png}
   \caption{Current MuSiQue pivot for Llama 70B, $N=200$. The two-call
-  snap-HyDE variant is the strongest significant method in this slice; the
-  current subagent routing implementation over-abstains.}
+  snap-HyDE variant has the best point estimate and is significant versus
+  \method{rag_simple}; it is not statistically separated from
+  \method{multi_hyde_diverse} or \method{iterative_planning_table}.}
   \label{fig:musique_matrix}
 \end{figure}
 
@@ -304,40 +320,51 @@ system retrieves enough evidence.
 
 \subsection{Cross-dataset bottleneck taxonomy}
 
-\begin{table}[t]
+\begin{table}[!htbp]
 \centering
 \caption{Retrieval-depth and method behavior across datasets.}
 \label{tab:taxonomy}
 \small
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.18\textwidth}
->{\raggedright\arraybackslash}p{0.20\textwidth}
->{\raggedright\arraybackslash}p{0.18\textwidth}
-X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.23\textwidth}
+>{\raggedright\arraybackslash}p{0.36\textwidth}
+>{\raggedright\arraybackslash}X}
 \toprule
-Dataset / model & Key diagnostic & Observed behavior & Bottleneck read\\
+Dataset / model & Retrieval-depth diagnostic & Bottleneck read / caveat\\
 \midrule
-MuSiQue / Llama 70B & top-5 to top-1 \method{rag_simple} & 27.5\% to 13.0\% &
-Retrieval-bottlenecked: multi-hop needs multiple passages.\\
-BarExam / Gemma 4 26B & top-5 to top-1 \method{rag_simple} & 82.5\% to 83.0\% &
-Reasoning/anchoring-bottlenecked: retrieval depth is flat.\\
-CaseHOLD / Llama 70B & top-5 to top-1 and 2-call & 72.0\% to 70.5\%; 2-call
-69.5\% & Option disambiguation: retrieval can surface competing holdings.\\
-LegalBench-SCALR / Llama 70B & top-5 to top-1 & 77.0\% to 59.5\% &
-Candidate-depth limited: a small candidate set helps, but top-10 adds little
-over top-5.\\
-HousingQA / Gemma 4 26B & top-k sweep and state filtering & in progress &
-Predicted statutory retrieval bottleneck; state metadata is now wired.\\
+MuSiQue / Llama 70B &
+top-5 27.5\% to top-1 13.0\% (-14.5pp, $p=4.18{\times}10^{-7}$) &
+Retrieval-depth limited; \method{snap_hyde_2call} adds a query-formulation
+lift to 37.0\%.\\
+BarExam / Gemma 4 26B &
+top-5 82.5\% to top-1 83.0\% (+0.5pp, $p=1.00$) &
+Depth-flat; the full-corpus snap lift is modest and anchoring-driven, not
+more-documents-driven.\\
+CaseHOLD / Llama 70B &
+top-5 72.0\% to top-1 70.5\% (-1.5pp, $p=0.678$); two-call 69.5\% &
+Answer-flat under current harness; do not cite gold-hit until repaired
+CaseHOLD Chroma is rebuilt.\\
+LegalBench-SCALR / Llama 70B &
+top-5 77.0\% to top-1 59.5\% (-17.5pp, $p=1.05{\times}10^{-8}$);
+top-10 = 77.0\% &
+Candidate-depth limited, then saturated by top-5 despite higher top-10
+gold-hit.\\
+HousingQA / Gemma 4 26B &
+top-1 50.5\% to top-10 58.0\% (+7.5pp, $p=0.0722$);
+two-call 57.0\% &
+Directional statutory retrieval-depth signal; state metadata and gold mapping
+remain caveats.\\
 \bottomrule
 \end{tabularx}
 \end{table}
+\FloatBarrier
 
 This table is the main conceptual result. Legal QA is not one regime. BarExam
-is flat under retrieval depth, while SCALR is sharply candidate-depth limited.
-CaseHOLD appears answer-flat under current runs, though we repaired the
-gold-option retrieval mapping so future runs can measure gold-hit properly.
-HousingQA is the next statutory test: the harness now has state-filtered
-retrieval so we can ask whether matching the question's state is enough to
-recover accuracy.
+and CaseHOLD are answer-flat under current depth and two-call probes, while
+SCALR and HousingQA are retrieval-depth sensitive. The CaseHOLD row is a
+negative control, not retrieval-recall evidence: old logs report 0/200
+gold-hit because the gold-option mapping was not addressable until the repair.
+HousingQA is now a landed directional result rather than merely a queued
+statutory test.
 
 \section{Mechanism Analysis}
 
@@ -354,10 +381,24 @@ In the paired Gemma 4 26B BarExam audit, \method{llm_only} gets 79.75\% while
 \method{golden_passage} gets 78.66\%. The transition table shows 96
 \method{llm_only}-correct answers flipped wrong by the gold passage, compared
 with 83 \method{llm_only}-wrong answers fixed by the passage. Meanwhile,
-\method{rag_snap_hyde} reaches 81.17\%. The mechanism is snap anchoring:
-the model commits to a legal answer before retrieval can over-anchor it on a
-single snippet. The retrieval component still adds marginal value, but most of
-the BarExam lift comes from snap-first reasoning.
+\method{rag_snap_hyde} reaches 81.17\%. A 30-case manual audit split the
+paradox cases into topically irrelevant gold passages (30\%),
+relevant-but-misapplied passages (50\%), and distractor or partial-rule
+passages (20\%). Snap anchoring is therefore helpful but not magic:
+\method{rag_snap_hyde} still follows the wrong gold-induced answer in 28 of
+the 96 paradox cases. The mechanism is that snap-first reasoning gives the
+model an initial legal answer to reconcile against evidence, rather than
+letting one provided snippet dominate the first read.
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.86\textwidth]{11_barexam_golden_snap_mechanism.png}
+  \caption{BarExam mechanism audit. The single gold-passage control is not an
+  oracle ceiling: it flips more \method{llm_only}-correct answers wrong than
+  wrong answers right, while snap-first methods recover some of that loss.}
+  \label{fig:golden_mechanism}
+\end{figure}
+\FloatBarrier
 
 \subsection{Why snap-HyDE is model-conditional on MuSiQue}
 
@@ -368,30 +409,44 @@ move retrieval away from gold passages, and EM falls. This explains why
 helps only when the model can write a generated passage that matches the
 corpus style and points retrieval toward the right evidence.
 
-\begin{figure}[t]
+\begin{table}[!htbp]
   \centering
-  \includegraphics[width=0.78\textwidth]{03_mechanism_decomposition.png}
-  \caption{MuSiQue mechanism decomposition. Query diversity alone is small;
-  the larger gain comes from answer-bearing HyDE-style passages.}
-  \label{fig:mechanism}
-\end{figure}
+  \caption{MuSiQue snap-HyDE mechanism by model, $N=200$.}
+  \label{tab:model_conditional}
+  \small
+  \begin{tabular}{lcccc}
+  \toprule
+  Model & RAG EM & 2-call EM & RAG gold-hit & 2-call gold-hit\\
+  \midrule
+  Llama 70B & 27.5\% & 37.0\% & 84.0\% & 86.5\%\\
+  Gemma 27B & 28.5\% & 23.0\% & 84.0\% & 76.5\%\\
+  \bottomrule
+  \end{tabular}
+\end{table}
+\FloatBarrier
 
 \subsection{Cost and practicality}
 
 The final methods are intentionally much cheaper than the first agentic loop.
 The full LangGraph agent used many calls per question and made debugging
 difficult. \method{snap_hyde_2call} fixes the budget at two LLM calls per
-question, while \method{multi_hyde_diverse} and planning-table methods spend
-more calls. Figure~\ref{fig:cost} shows that the useful methods are not just
-the highest-accuracy methods; cost per question matters.
+question, with about 1,384 total tokens per question. It slightly exceeds
+\method{multi_hyde_diverse} in EM at a similar two-call budget and far lower
+latency, while \method{iterative_planning_table} spends 6.8 calls and roughly
+2,929 tokens per question for a similar point estimate. Figure~\ref{fig:cost}
+shows that the useful methods are not just the highest-accuracy methods; cost
+per question matters.
 
-\begin{figure}[t]
+\begin{figure}[!htbp]
   \centering
-  \includegraphics[width=0.86\textwidth]{07_cost_vs_accuracy.png}
-  \caption{Cost vs.\ accuracy on Llama 70B MuSiQue. Fixed-cost snap-HyDE and
-  multi-HyDE methods are more practical than high-call iterative agents.}
+  \includegraphics[width=0.90\textwidth]{10_musique_current_budget_frontier.png}
+  \caption{Current cost vs.\ accuracy frontier on Llama 70B MuSiQue, $N=200$.
+  Marker size tracks LLM calls. \method{snap_hyde_2call} is the best current
+  point estimate at fixed two-call cost, while iterative planning spends far
+  more calls for comparable EM.}
   \label{fig:cost}
 \end{figure}
+\FloatBarrier
 
 \section{Limitations}
 
@@ -401,8 +456,9 @@ robust. The BarExam result is full-corpus and cross-size, but its effect size
 is modest; it should be presented as a mechanism result rather than a dramatic
 accuracy breakthrough. CaseHOLD previously lacked meaningful gold-option
 retrieval instrumentation; we repaired the mapping, but new retrieval claims
-require a rebuilt Chroma collection and fresh logs. HousingQA state-filtered
-retrieval has been wired and submitted, but its result is not included here.
+require a rebuilt Chroma collection and fresh logs. HousingQA has landed only
+as a directional N=200 diagnostic; the top-10 lift is suggestive, but state
+metadata and weak gold-hit mapping still need a cleaner causal audit.
 
 The method is also provider- and model-dependent. OpenRouter-served Gemma runs
 showed runaway-loop behavior on iterative prompts, so Gemma results should
@@ -426,6 +482,8 @@ legal RAG systems.
 {\small
 \bibliographystyle{plain}
 \begin{thebibliography}{20}
+\setlength{\itemsep}{0pt}
+\setlength{\parskip}{0pt}
 
 \bibitem{hyde2023}
 Luyu Gao, Xueguang Ma, Jimmy Lin, and Jamie Callan.

@@ -19,10 +19,45 @@ MuSiQue headline.
 `multi_hyde_diverse` at 35.5% (+8.0pp, p=0.0195) and
 `iterative_planning_table` at 36.0% (+8.5pp, p=0.0533). The baseline is
 `rag_simple` at 27.5%; current `subagent_rag` is a significant negative at
-15.5% (-12.0pp, p=0.0007).
+15.5% (-12.0pp, p=0.0007). Treat `snap_hyde_2call` as the best point estimate
+and lowest-cost lifting arm here, not as statistically separated from MHD or
+iterative planning.
 
 Source data: `docs/snap_hyde_2call_2026-04-28.md` and `docs/signoff_log.md`
 Section B.1.
+
+## `09_bottleneck_rag_graphical_abstract.png`
+
+**Bottleneck-typed RAG graphical abstract.** AI-generated process schematic
+used in the class report to replace the earlier text-only pivot box. It shows
+legal documents and model priors feeding controlled retrieval interventions,
+then splitting into successful and failed evidence-use paths. It is conceptual,
+not a quantitative result.
+
+Source: generated with the local `imagegen` skill on 2026-04-30.
+
+## `10_musique_current_budget_frontier.png`
+
+**Current budget frontier — Llama 70B × MuSiQue N=200.** Scatter plot of EM
+against average total tokens per question, with point size/color tracking LLM
+calls and method family, plus a call-budget panel. Includes the current
+`snap_hyde_2call` pivot: 37.0% EM, 2.00 calls/q, 1,135 input + 249 output
+tokens/q. It replaces the older `07_cost_vs_accuracy.png` in the class report.
+
+Source data: `docs/evidence_matrix_2026-04-30.md` and current MuSiQue detail
+logs listed there.
+
+## `11_barexam_golden_snap_mechanism.png`
+
+**BarExam golden-passage mechanism — Gemma 4 26B-A4B N=1195.** Bars compare
+`rag_simple`, `golden_passage`, `llm_only`, `snap_only_in_final`, and
+`rag_snap_hyde`; the right panel shows the paired `llm_only` vs
+`golden_passage` flip asymmetry (96 correct answers hurt vs 83 wrong answers
+helped). Use this to explain why the single gold-passage control is not an
+oracle ceiling.
+
+Source data: `docs/golden_paradox_audit_2026-04-27.md` and
+`docs/methods_vs_golden_audit_2026-04-27.md`.
 
 ## `02_barexam_cross_size.png`
 
