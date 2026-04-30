@@ -61,20 +61,47 @@ hypothesis: efficient orchestration plus auditable shared state.
 - `scripts/build_router_training_set.py` - joins completed detail logs by
   question ID, extracts cheap task features, records per-arm correctness/cost,
   and labels each row with oracle accuracy/reward arms.
+- `scripts/train_router_baseline.py` - evaluates fixed arms, majority-oracle
+  labels, and a reward-optimized one-rule router on random and
+  leave-one-dataset-out splits.
 - `eval/evidence_ledger.py` - minimal structured evidence-ledger contract.
 - `tests/test_evidence_ledger.py` - regression tests for validation and prompt
   rendering.
+- `docs/router_probe_findings_2026-04-30.md` - interpretation of the first
+  offline router result.
+- `docs/router_baseline_report_2026-04-30.md` - generated baseline table for
+  `rag` vs `two_call` on four N=200 slices.
 
 These are scaffolds, not an online eval mode. The branch deliberately starts
 offline so we can answer whether routing is learnable before adding another
 expensive harness mode.
 
+## First Offline Probe Result
+
+The first common-arm table tests `rag` vs `two_call` across MuSiQue, BarExam,
+CaseHOLD, and LegalBench-SCALR. A one-rule router using static task features
+plus cheap retrieval-probe fields beats both fixed arms on a random split
+(74.5% vs 71.5% fixed `two_call` and 69.0% fixed `rag`), but
+leave-one-dataset-out behavior is brittle:
+
+- it identifies MuSiQue as a `two_call` regime;
+- it over/under-spends on legal MC datasets;
+- the oracle still has 4-10pp absolute headroom depending on the held-out
+  dataset.
+
+This is useful evidence for the combined story. Cheap prompt-shape routing is
+not enough; the controller likely needs structured evidence state before it can
+decide when escalation is worth the cost.
+
 ## Next Implementation Steps
 
-1. Generate router training CSVs for MuSiQue, BarExam, CaseHOLD, and
-   LegalBench-SCALR using existing logs.
-2. Add `scripts/train_router_baseline.py`:
-   - logistic regression / gradient boosting baseline,
+1. Add richer router features from cheap online probes:
+   - direct-answer stability across two samples,
+   - k=1 vs k=5 answer change,
+   - answer-option/evidence overlap,
+   - source disagreement or contradiction flags.
+2. Add a stronger router baseline:
+   - logistic regression / gradient boosting,
    - leave-one-dataset-out split,
    - static-best vs learned-router vs oracle.
 3. Add a ledger subagent eval mode:

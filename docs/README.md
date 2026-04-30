@@ -24,8 +24,10 @@ are historical context only.
    vs EMNLP positioning, multi-agent evidence sharing, and legal-agent novelty.
 8. `evidence_budgeted_ledger_router_plan.md` - branch plan combining
    bottleneck-aware routing with a shared evidence ledger for legal agents.
-9. `paper_narrative_2026-04-28.md` - current paper skeleton after the pivot.
-10. `compiled_results.md` - audited result ledger with direct log paths, caveats,
+9. `router_probe_findings_2026-04-30.md` - first offline router diagnostic:
+   real oracle headroom, but brittle cheap-feature generalization.
+10. `paper_narrative_2026-04-28.md` - current paper skeleton after the pivot.
+11. `compiled_results.md` - audited result ledger with direct log paths, caveats,
    and per-row provenance.
 
 ## Evidence Ledgers
@@ -36,6 +38,8 @@ are historical context only.
 - `router_oracle_musique_2026-04-30.md` and
   `router_oracle_barexam_2026-04-30.md` - offline routing headroom generated
   by `scripts/evaluate_routing_oracle.py`.
+- `router_baseline_report_2026-04-30.md` - generated report from
+  `scripts/train_router_baseline.py` over common `rag` vs `two_call` arms.
 - `audit_log.md` - BarExam post-fix audit truth and historical guardrails.
 - `mcnemar_2026-04-27.md` - paired tests from the pre-pivot MuSiQue matrix.
 - `docs/audits/` - focused audit artifacts by dataset/model/date.
@@ -98,4 +102,4 @@ Before citing a result:
 4. If sources disagree, prefer the newest audit/signoff document and preserve
    the disagreement as a caveat rather than silently reconciling it.
 
-Branch: `hpc-setup`.
+Branch: `codex/evidence-ledger-router`.
