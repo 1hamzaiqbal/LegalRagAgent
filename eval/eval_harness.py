@@ -700,6 +700,61 @@ def _collection_for_config(config: EvalConfig) -> str:
     return DATASET_COLLECTIONS.get(config.dataset, "legal_passages")
 
 
+def _coerce_gold_ids(value) -> list[str]:
+    """Normalize scalar/list/comma/JSON gold-id fields to a list of strings."""
+    if value is None:
+        return []
+    try:
+        if pd.isna(value):
+            return []
+    except (TypeError, ValueError):
+        pass
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped or stripped.lower() == "nan":
+            return []
+        if stripped.startswith("[") or stripped.startswith("{"):
+            try:
+                parsed = json.loads(stripped)
+            except json.JSONDecodeError:
+                parsed = None
+            if parsed is not None:
+                return _coerce_gold_ids(parsed)
+        return [part.strip() for part in stripped.split(",") if part.strip()]
+    if isinstance(value, dict):
+        ids: list[str] = []
+        for item in value.values():
+            ids.extend(_coerce_gold_ids(item))
+        return ids
+    if isinstance(value, (list, tuple, set)):
+        ids = []
+        for item in value:
+            ids.extend(_coerce_gold_ids(item))
+        return ids
+    return [str(value).strip()] if str(value).strip() else []
+
+
+def _gold_ids(row: pd.Series) -> list[str]:
+    """Return all acceptable retrieval target ids for a question row.
+
+    Most datasets use ``gold_idx``. Legal-RAG-QA is packaged with a
+    ``relevant_passages`` list instead, so accept that as the fallback target set.
+    """
+    ids = _coerce_gold_ids(row.get("gold_idx", ""))
+    if ids:
+        return list(dict.fromkeys(ids))
+    return list(dict.fromkeys(_coerce_gold_ids(row.get("relevant_passages", ""))))
+
+
+def _gold_idx_string(row: pd.Series) -> str:
+    return ",".join(_gold_ids(row))
+
+
+def _is_gold_retrieved(row: pd.Series, retrieved_ids: list[str]) -> bool:
+    gold = set(_gold_ids(row))
+    return bool(gold & {str(idx) for idx in retrieved_ids}) if gold else False
+
+
 def run_full_pipeline(row: pd.Series, config: EvalConfig) -> dict:
     """Run the full agentic pipeline and capture complete state."""
     question = format_question_prompt(row, dataset=config.dataset)
@@ -716,9 +771,8 @@ def run_full_pipeline(row: pd.Series, config: EvalConfig) -> dict:
             planning_table.append(s)
 
     # Check if gold passage was retrieved
-    gold_idx = str(row.get("gold_idx", ""))
     retrieved_ids = [ev.get("idx", "") for ev in result.get("evidence_store", [])]
-    gold_retrieved = gold_idx in retrieved_ids if gold_idx else False
+    gold_retrieved = _is_gold_retrieved(row, retrieved_ids)
 
     return {
         "final_answer": result.get("final_answer", ""),
@@ -753,11 +807,12 @@ def run_golden_passage(row: pd.Series, config: EvalConfig) -> dict:
     # The gold passage was injected directly — mark gold_retrieved=True so
     # downstream analyzers don't report this mode as "no retrieval". Keep the
     # retrieved_ids/evidence_store shape consistent with retrieval modes.
-    gold_idx = str(row.get("gold_idx", ""))
+    gold_ids = _gold_ids(row)
+    gold_idx = ",".join(gold_ids)
     return {
         "final_answer": answer,
-        "gold_retrieved": bool(gold_idx),
-        "retrieved_ids": [gold_idx] if gold_idx else [],
+        "gold_retrieved": bool(gold_ids),
+        "retrieved_ids": gold_ids,
         "evidence_store": [{"idx": gold_idx, "text": gold, "cross_encoder_score": 0.0}] if gold_idx else [],
     }
 
@@ -945,9 +1000,9 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
             "cross_encoder_score": ce_score,
         })
 
-    gold_idx = str(row.get("gold_idx", ""))
+    gold_idx = _gold_idx_string(row)
     retrieved_ids = [ev["idx"] for ev in evidence_store]
-    gold_retrieved = gold_idx in retrieved_ids if gold_idx else False
+    gold_retrieved = _is_gold_retrieved(row, retrieved_ids)
     max_ce_score = max((ev["cross_encoder_score"] for ev in evidence_store), default=0.0)
 
     _record_trace_event(
@@ -2142,7 +2197,7 @@ def _run_gap(row: pd.Series, config: EvalConfig,
         "final_prompt_preview": _preview_text(final_user),
         "evidence_store": all_evidence,
         "retrieved_ids": all_ids,
-        "gold_retrieved": gold_idx in all_ids if gold_idx else False,
+        "gold_retrieved": _is_gold_retrieved(row, all_ids),
     }
 
 
@@ -2776,7 +2831,7 @@ def run_vectorless_keyword(row: pd.Series, config: EvalConfig) -> dict:
         "keywords": keywords,
         "evidence_store": evidence_store,
         "retrieved_ids": retrieved_ids,
-        "gold_retrieved": gold_idx in retrieved_ids if gold_idx else False,
+        "gold_retrieved": _is_gold_retrieved(row, retrieved_ids),
     }
 
 
@@ -2976,7 +3031,7 @@ def run_entity_search(row: pd.Series, config: EvalConfig) -> dict:
         "snap_letter": None,
         "evidence_store": evidence_store,
         "retrieved_ids": retrieved_ids,
-        "gold_retrieved": gold_idx in retrieved_ids if gold_idx else False,
+        "gold_retrieved": _is_gold_retrieved(row, retrieved_ids),
     }
 
 
@@ -3055,7 +3110,7 @@ def run_snap_entity_search(row: pd.Series, config: EvalConfig) -> dict:
         "snap_letter": snap_letter,
         "evidence_store": evidence_store,
         "retrieved_ids": retrieved_ids,
-        "gold_retrieved": gold_idx in retrieved_ids if gold_idx else False,
+        "gold_retrieved": _is_gold_retrieved(row, retrieved_ids),
     }
 
 
@@ -3139,7 +3194,7 @@ def run_snap_entity_informed(row: pd.Series, config: EvalConfig) -> dict:
         "snap_letter": snap_letter,
         "evidence_store": evidence_store,
         "retrieved_ids": retrieved_ids,
-        "gold_retrieved": gold_idx in retrieved_ids if gold_idx else False,
+        "gold_retrieved": _is_gold_retrieved(row, retrieved_ids),
     }
 
 
@@ -4313,10 +4368,8 @@ def run_planning_table(row: pd.Series, config: EvalConfig) -> dict:
     )
     final_answer = _llm_call(_system_prompt(config, "rag"), final_user, label="ptable/final")
 
-    # Gold-retrieved tracking — accept if ANY gold idx appears across the per-TODO retrievals
-    gold_idx = str(row.get("gold_idx", ""))
-    gold_idxs = {s.strip() for s in gold_idx.split(",") if s.strip()}
-    gold_retrieved = bool(gold_idxs & set(all_retrieved_ids)) if gold_idxs else False
+    # Gold-retrieved tracking — accept if ANY gold id appears across per-TODO retrievals.
+    gold_retrieved = _is_gold_retrieved(row, all_retrieved_ids)
 
     return {
         "final_answer": final_answer,
@@ -4464,9 +4517,7 @@ def run_advisor_planning_table(row: pd.Series, config: EvalConfig) -> dict:
     )
     final_answer = _llm_call(_system_prompt(config, "rag"), final_user, label="advisor/synth")
 
-    gold_idx = str(row.get("gold_idx", ""))
-    gold_idxs = {s.strip() for s in gold_idx.split(",") if s.strip()}
-    gold_retrieved = bool(gold_idxs & set(all_retrieved_ids)) if gold_idxs else False
+    gold_retrieved = _is_gold_retrieved(row, all_retrieved_ids)
 
     return {
         "final_answer": final_answer,
@@ -4637,9 +4688,7 @@ def run_iterative_planning_table(row: pd.Series, config: EvalConfig) -> dict:
     )
     final_answer = _llm_call(_system_prompt(config, "rag"), final_user, label="iter_ptable/final")
 
-    gold_idx = str(row.get("gold_idx", ""))
-    gold_idxs = {s.strip() for s in gold_idx.split(",") if s.strip()}
-    gold_retrieved = bool(gold_idxs & set(all_retrieved_ids)) if gold_idxs else False
+    gold_retrieved = _is_gold_retrieved(row, all_retrieved_ids)
 
     return {
         "final_answer": final_answer,
@@ -4811,9 +4860,7 @@ def run_iter_hyde(row: pd.Series, config: EvalConfig) -> dict:
     if not (final_answer or "").strip():
         raise RuntimeError("iter_hyde final answer returned empty response")
 
-    gold_idx = str(row.get("gold_idx", ""))
-    gold_idxs = {s.strip() for s in gold_idx.split(",") if s.strip()}
-    gold_retrieved = bool(gold_idxs & set(all_retrieved_ids)) if gold_idxs else False
+    gold_retrieved = _is_gold_retrieved(row, all_retrieved_ids)
 
     return {
         "final_answer": final_answer,
@@ -5019,9 +5066,7 @@ def run_planning_table_no_snap(row: pd.Series, config: EvalConfig) -> dict:
     )
     final_answer = _llm_call(_system_prompt(config, "rag"), final_user, label="ptable_ns/final")
 
-    gold_idx = str(row.get("gold_idx", ""))
-    gold_idxs = {s.strip() for s in gold_idx.split(",") if s.strip()}
-    gold_retrieved = bool(gold_idxs & set(all_retrieved_ids)) if gold_idxs else False
+    gold_retrieved = _is_gold_retrieved(row, all_retrieved_ids)
 
     return {
         "final_answer": final_answer,
@@ -5350,7 +5395,7 @@ def run_eval(config: EvalConfig):
             "llm_calls": metrics["count"],
             "input_tokens": metrics["input_tokens"],
             "output_tokens": metrics["output_tokens"],
-            "gold_idx": str(row.get("gold_idx", "")),
+            "gold_idx": _gold_idx_string(row),
             "final_answer": answer_text[:500] if is_open_ended else answer_text,
             "mode": config.mode,
             "provider": config.provider,

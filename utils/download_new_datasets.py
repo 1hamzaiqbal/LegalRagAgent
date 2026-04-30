@@ -15,7 +15,9 @@ def prep_legal_rag_qa():
     # Corpus: 190 passages
     corpus_ds = load_dataset("isaacus/legal-rag-qa")["test"]
     corpus_rows = []
+    corpus_text_by_id = {}
     for row in corpus_ds:
+        corpus_text_by_id[str(row["id"])] = row["text"]
         corpus_rows.append({
             "idx": row["id"],
             "title": row["title"],
@@ -31,12 +33,23 @@ def prep_legal_rag_qa():
     qa_ds = load_dataset("isaacus/legal-rag-qa", "qa")["test"]
     qa_rows = []
     for row in qa_ds:
+        relevant_passages = row["relevant_passages"]
+        relevant_ids = []
+        for passage in relevant_passages:
+            if isinstance(passage, dict):
+                pid = passage.get("id") or passage.get("idx") or passage.get("passage_id")
+            else:
+                pid = passage
+            if pid is not None:
+                relevant_ids.append(str(pid))
         qa_rows.append({
             "idx": row["id"],
             "question": row["question"],
             "answer": row["answer"],
             "requires_supplemental": row["requires_supplemental"],
-            "relevant_passages": json.dumps(row["relevant_passages"]),
+            "relevant_passages": json.dumps(relevant_passages),
+            "gold_idx": ",".join(relevant_ids),
+            "gold_passage": "\n\n".join(corpus_text_by_id.get(pid, "") for pid in relevant_ids),
         })
     qa_df = pd.DataFrame(qa_rows)
     qa_df.to_csv(os.path.join(out_dir, "questions.csv"), index=False)
