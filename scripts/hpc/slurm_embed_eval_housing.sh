@@ -1,16 +1,20 @@
 #!/bin/bash
-# End-to-end: embed HousingQA statutes into Chroma, then run paired
-# rag_simple + rag_snap_hyde_2call × OR-Gemma 4 26B-A4B × HousingQA N=200.
+# End-to-end: embed HousingQA statutes into Chroma, then run the clean
+# retrieval-depth diagnostic slice:
+#   rag_simple k=1, rag_simple k=5, rag_simple k=10, rag_snap_hyde_2call k=5
+# × OR-Gemma 4 26B-A4B × HousingQA N=200.
 #
 # Why bundled: prior split job (55489) failed at preflight because
 # housing_statutes collection was registered but unembedded. Embedding 1.8M
 # statutes is ~3-6h on a single cluster GPU; eval is ~30 min via OR. Total
-# wallclock fits comfortably in 8h SBATCH window.
+# wallclock fits in one longer SBATCH window and avoids a partial "embedded but
+# not evaluated" state.
 #
 # Bottleneck-taxonomy 4th dataset: tests whether snap_hyde_2call lifts on
 # Yes/No statutory QA over a huge sparse corpus. Predict: retrieval-
 # bottlenecked (like MuSiQue) — model already knows Yes/No, hard part is
-# finding the controlling statute.
+# finding the controlling statute. The k=1/5/10 slice tests retrieval-depth
+# sensitivity; the 2-call arm tests answer-conditioned pseudo-doc retrieval.
 
 #SBATCH -p general-gpu
 #SBATCH -A engr-lab-jacobsn
@@ -18,8 +22,8 @@
 #SBATCH --exclude=r28-1801,a100-2207,a100s-2305,a100s-2306,a100s-2307,a100s-2308
 #SBATCH -c 8
 #SBATCH --mem=96G
-#SBATCH -t 08:00:00
-#SBATCH -J embed-eval-housing
+#SBATCH -t 10:00:00
+#SBATCH -J embed-eval-housing-k
 #SBATCH -o /engrfs/tmp/jacobsn/hiqbal_legalrag/logs/%j.out
 
 set -euo pipefail
@@ -37,12 +41,27 @@ PROVIDER=${PROVIDER:-or-gemma4-26b}
 N_QUESTIONS=${N_QUESTIONS:-200}
 SEED=${SEED:-42}
 TAG_SUFFIX=${TAG_SUFFIX:-snap-hyde-2call-pair-${PROVIDER}-housing-n${N_QUESTIONS}}
+DOWNLOAD_HOUSING=${DOWNLOAD_HOUSING:-1}
+RETRIEVAL_K=${RETRIEVAL_K:-5}
 
-if [[ -n "${MODES:-}" ]]; then
+if [[ -n "${RUN_SPECS:-}" ]]; then
+  # shellcheck disable=SC2206
+  RUN_SPECS_ARR=(${RUN_SPECS})
+elif [[ -n "${MODES:-}" ]]; then
+  # Backward-compatible mode list: all modes use RETRIEVAL_K.
+  RUN_SPECS_ARR=()
   # shellcheck disable=SC2206
   MODES_ARR=(${MODES})
+  for mode in "${MODES_ARR[@]}"; do
+    RUN_SPECS_ARR+=("${mode}:${RETRIEVAL_K}:k${RETRIEVAL_K}")
+  done
 else
-  MODES_ARR=(rag_simple rag_snap_hyde_2call)
+  RUN_SPECS_ARR=(
+    rag_simple:1:top1
+    rag_simple:5:top5
+    rag_simple:10:top10
+    rag_snap_hyde_2call:5:2call
+  )
 fi
 
 mkdir -p "$LOG_DIR" "$HF_CACHE" "$XDG_CACHE_HOME" "$TORCH_HOME" "$REPO/logs"
@@ -72,6 +91,17 @@ fi
 
 source "$EVAL_VENV/bin/activate"
 
+if [[ "$DOWNLOAD_HOUSING" != "0" && ! -f "datasets/housing_qa/questions.csv" ]]; then
+  echo "[$(date -Is)] HousingQA questions missing; downloading dataset"
+  python utils/download_housingqa.py
+fi
+
+if [[ ! -f "datasets/housing_qa/statutes.csv" || ! -f "datasets/housing_qa/questions.csv" ]]; then
+  echo "[$(date -Is)] ERROR: HousingQA files missing under $REPO/datasets/housing_qa"
+  echo "[$(date -Is)] Expected statutes.csv and questions.csv"
+  exit 4
+fi
+
 echo "[$(date -Is)] === STAGE 1: embed HousingQA statutes into Chroma ==="
 echo "[$(date -Is)] Corpus: datasets/housing_qa/statutes.csv (~1.8M statutes)"
 echo "[$(date -Is)] Target collection: housing_statutes"
@@ -85,12 +115,19 @@ echo "[$(date -Is)] === Embedding complete; collection status ==="
 python -c "
 import chromadb
 client = chromadb.PersistentClient(path='$CHROMA_DB_DIR')
+housing_count = None
 for col in client.list_collections():
+    name = getattr(col, 'name', str(col))
     try:
-        n = col.count()
+        collection = client.get_collection(name)
+        n = collection.count()
     except Exception as e:
         n = f'ERROR: {e}'
-    print(f'  {col.name}: {n}')
+    print(f'  {name}: {n}')
+    if name == 'housing_statutes':
+        housing_count = n
+if not isinstance(housing_count, int) or housing_count <= 0:
+    raise SystemExit('housing_statutes collection missing or empty after embedding')
 "
 
 # Now go offline for eval to mirror other cluster jobs.
@@ -99,14 +136,22 @@ export TRANSFORMERS_OFFLINE=1
 export HF_DATASETS_OFFLINE=1
 
 echo
-echo "[$(date -Is)] === STAGE 2: paired eval rag_simple + rag_snap_hyde_2call × HousingQA N=$N_QUESTIONS ==="
+echo "[$(date -Is)] === STAGE 2: HousingQA k-sweep + 2-call eval N=$N_QUESTIONS ==="
 echo "[$(date -Is)] LLM=$PROVIDER (OpenRouter), dataset=housing, seed=$SEED"
+echo "[$(date -Is)] Run specs: ${RUN_SPECS_ARR[*]}"
 
 FAILURES=0
-FAILED_MODES=()
-for mode in "${MODES_ARR[@]}"; do
+FAILED_SPECS=()
+for spec in "${RUN_SPECS_ARR[@]}"; do
+  IFS=: read -r mode retrieval_k spec_tag <<< "$spec"
+  if [[ -z "$mode" || -z "$retrieval_k" ]]; then
+    echo "[$(date -Is)] Invalid RUN_SPEC '$spec'; expected mode:k[:tag]"
+    exit 5
+  fi
+  spec_tag=${spec_tag:-k${retrieval_k}}
+  run_tag="${TAG_SUFFIX}-${spec_tag}-k${retrieval_k}"
   echo
-  echo "[$(date -Is)] --- MODE $mode ---"
+  echo "[$(date -Is)] --- MODE $mode retrieval_k=$retrieval_k tag=$run_tag ---"
   set +e
   LLM_PROVIDER="$PROVIDER" \
   python eval/eval_harness.py \
@@ -115,7 +160,8 @@ for mode in "${MODES_ARR[@]}"; do
     --questions "$N_QUESTIONS" \
     --seed "$SEED" \
     --dataset housing \
-    --tag "$TAG_SUFFIX"
+    --retrieval-k "$retrieval_k" \
+    --tag "$run_tag"
   status=$?
   set -e
 
@@ -126,21 +172,19 @@ for mode in "${MODES_ARR[@]}"; do
 
   if [[ "$status" -ne 0 ]]; then
     FAILURES=$((FAILURES + 1))
-    FAILED_MODES+=("$mode")
-    echo "[$(date -Is)] MODE FAILED: $mode (exit $status)"
+    FAILED_SPECS+=("$spec")
+    echo "[$(date -Is)] SPEC FAILED: $spec (exit $status)"
   else
-    echo "[$(date -Is)] MODE OK: $mode"
+    echo "[$(date -Is)] SPEC OK: $spec"
   fi
 done
 
 if [[ "$FAILURES" -gt 0 ]]; then
-  echo "[$(date -Is)] Completed with failures: ${FAILED_MODES[*]}"
+  echo "[$(date -Is)] Completed with failures: ${FAILED_SPECS[*]}"
   exit 1
 fi
 
 echo
 echo "[$(date -Is)] All stages complete. Pull logs and run paired McNemar:"
-echo "  rsync -av wustl:$REPO/logs/eval_*_${PROVIDER}_*${TAG_SUFFIX}*detail.jsonl logs/"
-echo "  uv run python scripts/compute_mcnemar.py \\"
-echo "    logs/eval_rag_simple_${PROVIDER}_*${TAG_SUFFIX}*detail.jsonl \\"
-echo "    logs/eval_rag_snap_hyde_2call_${PROVIDER}_*${TAG_SUFFIX}*detail.jsonl"
+echo "  rsync -av wustl:$REPO/logs/eval_*_${PROVIDER}_*_detail.jsonl logs/"
+echo "  python scripts/build_speculative_metrics_report.py --log housing_top1=<detail> --log housing_top5=<detail> --log housing_top10=<detail> --log housing_2call=<detail> --out docs/housing_speculative_metrics_<date>.md"

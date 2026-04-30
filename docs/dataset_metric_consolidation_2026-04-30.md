@@ -65,6 +65,9 @@ Implemented now:
   report from either a manifest or explicit detail logs.
 - `docs/speculative_metrics_report_2026-04-30.md` applies the report to the
   current 15-log bottleneck manifest.
+- `scripts/score_retrieval_qrels.py` scores retrieval-only Recall@k,
+  Precision@k, Hit@k, MRR@k, and nDCG@k from detail logs plus qrels, or from
+  logged `gold_idx` when qrels are already embedded in the detail rows.
 
 Adjacent metric families worth adopting later:
 
@@ -138,8 +141,9 @@ intervention that matches the measured failure.
 
 ## Wiring Gaps
 
-1. Retrieval-only qrels scorer: needed for MLEB-SCALR and LegalBench-RAG
-   style metrics. Add Recall@k, MRR@k, nDCG@k, and snippet-overlap hooks.
+1. Retrieval-only qrels scorer extension: `scripts/score_retrieval_qrels.py`
+   now covers document-id qrels. LegalBench-RAG still needs character/span
+   overlap hooks for snippet-level precision.
 2. Legal RAG Bench loader: add corpus/QA downloader, retrieval collection, and
    correctness/groundedness/retrieval-accuracy judge schema.
 3. Legal-RAG-QA local restoration: the downloader/harness path is fixed, but
@@ -154,11 +158,10 @@ intervention that matches the measured failure.
 6. Generated-context typing: split `hyde_passage`, `snap_reasoning`,
    `verifier_rationale`, and `agent_report` so compression is interpretable.
 7. CaseHOLD gold mapping: repair before more CaseHOLD retrieval claims.
-8. HousingQA local restoration and diagnostic run: current local
-   `datasets/housing_qa/questions.csv` is absent. Restore data and verify
-   `housing_statutes`, then run k=1/k=5/k=10 plus `two_call`; this is the
-   missing legal dataset that should most directly test Zheng's retrieval-helps
-   regime.
+8. HousingQA diagnostic run: local CSVs were restored on 2026-04-30, but
+   `housing_statutes` must be embedded on cluster. Use
+   `scripts/hpc/slurm_embed_eval_housing.sh`, which now runs `rag_simple`
+   k=1/k=5/k=10 plus `rag_snap_hyde_2call` k=5 after embedding.
 
 ## Next Experiments
 
@@ -167,8 +170,9 @@ Priority order:
 1. HousingQA depth and pseudo-doc slice on cluster: `rag_simple` k=1/k=5/k=10
    plus `rag_snap_hyde_2call`, N=200 first. This tests whether the Zheng
    "retrieval helps obscure statutes" regime matches our bottleneck taxonomy.
-2. Retrieval-only scorer for MLEB-SCALR or LegalBench-RAG-mini. This adds a
-   pure retrieval axis without another expensive LLM run.
+2. Retrieval-only scorer on MLEB-SCALR or LegalBench-RAG-mini. The generic
+   qrels scorer is in place for ID-level qrels; LegalBench-RAG-mini needs
+   span-overlap adaptation.
 3. Mini SpecRAG probe on MuSiQue and SCALR only: cluster top-k docs, generate
    3 answer+rationale drafts, verify with one model call. Success criterion is
    not raw accuracy alone; it must show row-level selection explains why MuSiQue
