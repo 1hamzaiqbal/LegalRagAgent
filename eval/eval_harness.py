@@ -5474,14 +5474,23 @@ def run_eval(config: EvalConfig):
     # on this Mac and 50/50 rows had retrieved_ids=[] but accuracy=72%.
     is_rag_mode = config.mode not in _NO_CHROMA_MODES and config.dataset != "musique"
     if is_rag_mode:
-        empty_ret = sum(1 for r in results if r.get("retrieved_ids") == [])
-        empty_ret_rate = empty_ret / max(n, 1)
+        retrieval_checked = [
+            r for r in results
+            if not (
+                config.mode == "adaptive_snap_route"
+                and r.get("route_decision") == "SUFFICIENT"
+            )
+        ]
+        empty_ret = sum(1 for r in retrieval_checked if r.get("retrieved_ids") == [])
+        empty_ret_rate = empty_ret / max(len(retrieval_checked), 1)
         if empty_ret_rate > 0.5:
             summary["tag"] = (config.tag + "_FAILED-EMPTY-RETRIEVAL").lstrip("_")
             summary["empty_retrieval_rate"] = round(empty_ret_rate, 3)
             summary["empty_retrieval_count"] = empty_ret
+            summary["empty_retrieval_checked_count"] = len(retrieval_checked)
             print(
-                f"\n[summary-guard] {empty_ret}/{n} ({empty_ret_rate:.0%}) records had empty retrieval. "
+                f"\n[summary-guard] {empty_ret}/{len(retrieval_checked)} ({empty_ret_rate:.0%}) "
+                f"retrieval-attempted records had empty retrieval. "
                 f"Tagging summary as FAILED-EMPTY-RETRIEVAL — accuracy is from parametric LLM knowledge, not the method."
             )
 

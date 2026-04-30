@@ -28,7 +28,7 @@ Source: [`docs/meeting_notes_042726.md`](meeting_notes_042726.md). Key new asks:
 
    Pair the `--retrieval-k 1` runs against the existing N=200 / Tier 3 top-5 baselines using `scripts/compute_mcnemar.py`. Report: EM, paired delta, McNemar p, gold_retrieved rate, mean input tokens, mean retrieved-passage chars.
 
-3. **`rag_snap_hyde_2call`** — landed (commit pending). 2-call efficiency variant: single LLM call producing snap reasoning + HyDE passage in one response (parsed apart with `## Passage` marker), then retrieve + final synth. Goal: preserve the +3pp BarExam lift with 33% fewer LLM calls. Same final-context contract as `rag_snap_hyde` (snap letter NOT shown to final agent). Failed-parse cases marked with `routed_to: snap_hyde_2call_parse_failed_fallback_to_question`. Suggested paired N=200 first launch:
+3. **`rag_snap_hyde_2call`** — landed. 2-call efficiency variant: single LLM call producing snap reasoning + HyDE passage in one response (parsed apart with `## Passage` marker), then retrieve + final synth. Goal: preserve the +3pp BarExam lift with 33% fewer LLM calls. Same final-context contract as `rag_snap_hyde` (snap letter NOT shown to final agent). Failed-parse cases marked with `routed_to: snap_hyde_2call_parse_failed_fallback_to_question`. Initial paired N=200 runs are now summarized in `docs/snap_hyde_2call_2026-04-28.md`: Llama 70B MuSiQue is significant at +9.5pp, while Gemma 4 26B BarExam N=200 is directional only at +3.0pp, p=0.377. Reference rerun pattern:
 
    ```bash
    uv run python eval/eval_harness.py --mode rag_snap_hyde       --provider groq-llama70b --questions 200 --dataset barexam

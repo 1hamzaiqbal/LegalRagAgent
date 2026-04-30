@@ -1,5 +1,11 @@
 # Review: `adaptive_snap_route`
 
+## Update 2026-04-29
+
+Implementation status after `ffdb4a9`: P0 route parsing is fixed with separate `route_parse_ok` and `passage_parse_ok`; P1 routed-to fallback and audit-parity fields are present; P2 prompt framing was changed to a format/type + change-of-answer rule. The SUFFICIENT branch still scores `final_answer = snap_block` by design, relying on the existing dataset extractors, so keep the scoring-target caveat below as a conscious tradeoff rather than an unresolved blocker.
+
+Eval status: adaptive remains exploratory, not paper-facing. V4 routed MuSiQue N=100 to `NEEDS_RETRIEVAL` on 100/100 rows and landed at 26%, while LegalBench-SCALR N=100 routed 95/100 rows to `SUFFICIENT` and landed at 76%. The original summary guard falsely tagged SCALR as `FAILED-EMPTY-RETRIEVAL` because SUFFICIENT rows intentionally have `retrieved_ids=[]`; this was patched after the review to count only retrieval-attempted rows for `adaptive_snap_route`.
+
 1. **[P0] Fix route-parse auditing before paper runs.** `_split_route_snap_hyde` defaults `route = "NEEDS_RETRIEVAL"` (`eval/eval_harness.py:1231-1235`) but later sets `parse_ok = True` solely when the passage parses (`1260-1268`). A malformed route token plus valid passage silently becomes `NEEDS_RETRIEVAL` with `adaptive_parse_ok=True` and no `routed_to`.
 2. **[P1] Make the SUFFICIENT `final_answer` answer-only/sanitized.** The early branch scores `out_base["final_answer"] = snap_block` (`1304-1307`). Keep raw text in `snap_answer`, but score a parsed final-answer block/span to avoid rationale or formatting leakage.
 3. **[P1] Complete `routed_to` fallback handling.** Current markers only fire when `not parse_ok` (`1313-1315`, `1336-1338`), missing route-token default cases; the SUFFICIENT marker text says `default_to_sufficient`, but the parser never defaults to SUFFICIENT (`1233`).

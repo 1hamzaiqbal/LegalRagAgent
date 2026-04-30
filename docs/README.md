@@ -1,45 +1,87 @@
-# Documentation Index — LegalRagAgent
+# Documentation Index - LegalRagAgent
 
-## Read this for paper-grade results (in order)
+Updated 2026-04-30. This file is the consolidation layer for the paper sprint:
+use it to decide which docs are current, which are evidence ledgers, and which
+are historical context only.
 
-1. **`signoff_log.md`** — paper-grade citation gate. APPROVED / WITH-CAVEAT / PENDING / REJECTED per result. **Start here.**
-2. **`narrative_2026_04_27.md`** — story arc: why this work, what was tried, what we found, model assessments.
-3. **`mcnemar_2026-04-27.md`** — every paired McNemar test from 2026-04-27 with b/c counts and 95% CIs.
-4. **`compiled_results.md`** — per-entry audited details with direct paths to detail logs, commit SHAs, CLEAN/MINOR/MAJOR audit verdicts.
+## Current Reading Path
 
-## Methodology + integrity
+1. `../CLAUDE.md` - operational source of truth for agents: commands, env notes,
+   current headline, and methodology gates.
+2. `signoff_log.md` - cite-or-not gate for paper claims. If a result is not
+   approved or explicitly caveated here, treat it as not paper-grade.
+3. `snap_hyde_2call_2026-04-28.md` - current bottleneck-taxonomy pivot:
+   `snap_hyde_2call`, MuSiQue mechanism, BarExam 2-call directional result,
+   CaseHOLD/LegalBench-SCALR option-disambiguation replicate.
+4. `top1_ablation_2026-04-28.md` - retrieval-depth signature: MuSiQue top-1
+   collapse vs BarExam top-1/top-5 flatness.
+5. `paper_narrative_2026-04-28.md` - current paper skeleton after the pivot.
+6. `compiled_results.md` - audited result ledger with direct log paths, caveats,
+   and per-row provenance.
 
-- `rigour_signoff.md` — methodology and pre-submission checklist
-- `audit_log.md` — BarExam Tier 3 post-fix source-of-truth (cluster vLLM detail logs)
-- `validation_log_2026-04-25.md` — running validation log
+## Evidence Ledgers
 
-## Live state
+- `logs/experiments.jsonl` - machine-readable run summaries.
+- `audit_log.md` - BarExam post-fix audit truth and historical guardrails.
+- `mcnemar_2026-04-27.md` - paired tests from the pre-pivot MuSiQue matrix.
+- `docs/audits/` - focused audit artifacts by dataset/model/date.
+- `verification_2026-04-27.md` - older source-gating pass; useful for why some
+  2026-04-27 claims stayed provisional.
 
-- `meeting_notes_042726.md` — temporary 2026-04-27 meeting/HPC handoff: golden sanity checks, top-1 vs top-5 ablation, dataset×model×method plan
-- `action_items.md` — current TODOs
-- `experiment_overview.md` — high-level experiment summary
+## Current Planning
 
-## Topical analyses (paper-grade, narrower scope)
+- `action_items.md` - paper-sprint task list. Some older sections remain for
+  audit continuity; prefer dated update blocks at the top.
+- `meeting_notes_042726.md` - meeting handoff that motivated golden-passage,
+  top-k, 2-call, and dataset-matrix work.
+- `datasets_frames_scalr_2026-04-28.md` - FRAMES and SCALR scoping. Important:
+  LegalBench-SCALR 5-way MC has landed; MLEB-SCALR retrieval-only is still a
+  separate unresolved benchmark.
+- `lit_review_2026-04-28.md` - literature grounding for the bottleneck taxonomy.
 
-- `friend_foe_bias_analysis_2026-04-27.md` — attribution-bias structured analysis
-- `presentation/figures/` — 7 PNG figures (paper headline matrix, BarExam cross-size, mechanism, cross-domain, cross-family, BarExam full matrix, cost vs accuracy) + `captions.md`
+## Historical Or Superseded Context
 
-## Archived working docs
+These files can still be useful, but do not use them as the first source for
+current paper claims:
 
-- `archive_2026-04-27/` — 10 point-in-time docs from this session (trackers, initial audits, preliminary briefs, mechanism)
-- `archive/` — older completed or legacy materials
+- `narrative_2026_04_27.md` - superseded by `paper_narrative_2026-04-28.md`.
+- `experiment_overview.md` - high-level experiment summary; verify any numbers
+  against current signoff and result ledgers before citing.
+- `meeting_2026_04_17.md` - older meeting notes, now mostly historical.
+- `validation_log_2026-04-25.md` - running validation log from an earlier phase.
+- `golden_paradox_audit_2026-04-27.md` and
+  `methods_vs_golden_audit_2026-04-27.md` - still useful for mechanism details,
+  but narrower than the current paper framing.
+- `archive_2026-04-27/` and `archive/` - archived working docs retained for
+  traceability.
+
+## Presentation Materials
+
+- `presentation/00_index.md` - entrypoint for presentation docs.
+- `presentation/01_results_tables.md` - presentation-facing result tables.
+- `presentation/02_methods_explained.md` - method descriptions.
+- `presentation/03_takeaways.md` - talk takeaways.
+- `presentation/04_datasets_and_models.md` - dataset/model context.
+- `presentation/05_logs_index.md` - source logs behind presentation claims.
+- `presentation/06_next_steps.md` - presentation-facing next steps.
 
 ## Cluster / HPC
 
-- `hpc_setup_log.md`, `hpc_throughput.md`, `hpc_qwen3_8b_eval.md`, `hpc_qwen3_8b_baseline_golden.md`, `cluster_workflow.md`
+- `hpc_setup_log.md`
+- `hpc_throughput.md`
+- `hpc_qwen3_8b_eval.md`
+- `hpc_qwen3_8b_baseline_golden.md`
+- `cluster_workflow.md`
 
-## How to validate a result before citing
+## Validation Rule
 
-1. Look it up in `signoff_log.md` — find its sign-off level
-2. Cross-reference in `compiled_results.md` for per-entry audit verdict + direct log path
-3. For statistical claims, verify in `mcnemar_2026-04-27.md`
-4. For BarExam Tier 3, the source-of-truth is `audit_log.md` (post-fix re-scored values)
+Before citing a result:
 
-If a result is not in any of those four docs at APPROVED level, do not cite.
+1. Find its signoff status in `signoff_log.md`.
+2. Confirm the source log or audit path in `compiled_results.md`,
+   `snap_hyde_2call_2026-04-28.md`, or `top1_ablation_2026-04-28.md`.
+3. For paired claims, verify the McNemar row and b/c counts where available.
+4. If sources disagree, prefer the newest audit/signoff document and preserve
+   the disagreement as a caveat rather than silently reconciling it.
 
-Branch: `hpc-setup`. Source-of-truth HEAD when the latest signoff was committed: see `signoff_log.md` header.
+Branch: `hpc-setup`.

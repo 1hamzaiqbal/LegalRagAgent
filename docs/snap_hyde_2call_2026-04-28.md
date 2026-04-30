@@ -66,11 +66,11 @@ So the +13pp gain over `rag_snap_hyde` decomposes as:
   to commit to a snap answer + relevant doctrine reference together)
 
 Both contributions are corpus/dataset specific. The cluster Gemma 4 26B-A4B
-BarExam test (SLURM 55451) will reveal whether the same +efficiency / +accuracy
-win holds on legal MC, where the original `rag_snap_hyde` was already the
-winner. That comparison is the cleaner test of "does fewer calls preserve the
-existing lift," vs this MuSiQue test which is "does the new mode become a new
-headline winner."
+BarExam test (SLURM 55451) landed directionally but not significantly:
+`rag_simple` top-5 82.5% versus `snap_hyde_2call` 85.5% (+3.0pp, p=0.377,
+parse_ok=200/200). That comparison is the cleaner test of "does fewer calls
+preserve the existing lift," and the current answer is "directionally yes at
+N=200, but not enough for a standalone significance claim."
 
 ## Source-of-truth log paths
 
@@ -135,7 +135,7 @@ needs the full retrieval depth to materialize.
 |---|---|---:|---:|---:|---:|---|
 | MuSiQue (Llama 70b) | open-ended multi-hop | 27.5% | 37.0% | **+9.5pp** | **0.008** | retrieval-bottlenecked |
 | MuSiQue (Gemma 3 27B) | open-ended multi-hop | 28.5% | 23.0% | -5.5pp | 0.13 NS | retrieval-bottlenecked, model-conditional via HyDE quality |
-| BarExam (Gemma 4 26B) | 5-way MC + fact pattern | 78.08% | 81.17% (Tier 3) | +3.09pp | SIG | reasoning-bottlenecked |
+| BarExam (Gemma 4 26B) | 5-way MC + fact pattern | 82.5% (N=200 top-5) | 85.5% (N=200 2call) | +3.0pp | 0.377 NS | reasoning-bottlenecked; direction matches Tier 3 `rag_snap_hyde` +3.09pp |
 | CaseHOLD (Llama 70b) | 5-way MC over holdings | 72.0% | 69.5% | -2.5pp | 0.49 NS | option-disambiguation |
 | **LegalBench-SCALR (Llama 70b)** | **5-way MC over holdings** | **77.0%** | **75.0%** | **-2.0pp** | **0.50 NS** | **option-disambiguation (replicates CaseHOLD)** |
 | HousingQA (Gemma 4 26B) | Yes/No statutory | TBD | TBD | TBD | TBD | (predicted retrieval-bottlenecked) |
@@ -161,7 +161,7 @@ For SCALR specifically, gold_retrieved is meaningful (corpus contains the gold h
 
 ## Open questions / next checks
 
-1. **Cross-dataset**: SLURM 55451 (running) tests `snap_hyde_2call` on Gemma 4 26B-A4B × BarExam N=200. Does the efficiency variant preserve the +3.09pp BarExam lift?
+1. **Cross-dataset (LANDED, DIRECTIONAL)**: SLURM 55451 tested `snap_hyde_2call` on Gemma 4 26B-A4B × BarExam N=200. Result: `rag_simple` top-5 82.5% (165/200) vs `snap_hyde_2call` 85.5% (171/200), +3.0pp, McNemar p=0.377 NS, parse_ok=200/200, gold_retrieved=18/200. This preserves the direction of the Tier 3 `rag_snap_hyde` +3.09pp result, but is not independently significant at N=200. Source logs: `logs/eval_rag_simple_or-gemma4-26b_20260428_0231_detail.jsonl`; `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260428_1435_detail.jsonl`.
 2. **Cross-family (LANDED, MECHANISM-EXPLAINED)**: `snap_hyde_2call` × Gemma 3 27B × MuSiQue N=200 = **23.0%** vs `rag_simple` (Gemma 27B baseline) **28.5%** → **-5.5pp NULL (p=0.13, b/c=16/27)**. The negative direction is not noise — it has a clean mechanism explanation:
 
    **Gold-passage retrieval rate (does retrieval find a gold passage?):**

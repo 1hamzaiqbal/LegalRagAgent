@@ -1,4 +1,4 @@
-# Top-1 vs top-5 retrieval-depth ablation — running
+# Top-1 vs top-5 retrieval-depth ablation — landed partial
 
 Meeting 2026-04-27 ask #4: "Check lift between passing in top-1 retrieved vs
 top-5 retrieved, see if more passages boost or hurt performance."
@@ -51,19 +51,19 @@ absolute accuracy is dominated by passage count, not method choice.** This means
 Citation-grade rule of thumb: **passage count is a first-order knob; method
 choice is a second-order knob** for multi-hop factoid QA on Llama 70B.
 
-## Cross-dataset check (in flight)
+## Cross-dataset check (landed for `rag_simple`)
 
-SLURM 55452 runs `rag_simple` and `rag_snap_hyde` × {top-1, top-5} on
-Gemma 4 26B-A4B × BarExam N=200 via OR-Gemma. Pair within same provider
-slot (within-job McNemar). Question: does top-1 hurt legal MC the same way
-it hurts multi-hop, or is the BarExam snap-first regime more robust to
-retrieval depth?
+SLURM 55452 landed the `rag_simple` top-1/top-5 pair on Gemma 4 26B-A4B ×
+BarExam N=200 via OR-Gemma. `rag_simple` is flat: top-1 83.0% versus top-5
+82.5% (-0.5pp, McNemar p=1.00 NS). This is the clean cross-dataset contrast
+against MuSiQue's -14.5pp `rag_simple` drop. The regular `rag_snap_hyde`
+top-1 detail log is not present locally; do not cite that depth comparison
+until it lands.
 
-Hypothesis: smaller drop on BarExam, because snap-first methods rely less
-on retrieved passages. The +3pp BarExam `rag_snap_hyde` lift is largely
-snap-driven (per `docs/methods_vs_golden_audit_2026-04-27.md`), so cutting
-retrieval depth should hurt less. If confirmed, it's a clean cross-dataset
-asymmetry: multi-hop QA wants more passages; legal MC tolerates fewer.
+Related SLURM 55451 result: `snap_hyde_2call` on the same BarExam N=200 slice
+landed at 85.5% versus the top-5 `rag_simple` 82.5% (+3.0pp, p=0.377 NS,
+parse_ok=200/200). That preserves the direction of the Tier 3 `rag_snap_hyde`
+lift but is directional, not independently significant.
 
 ## Implementation notes
 
@@ -85,6 +85,8 @@ asymmetry: multi-hop QA wants more passages; legal MC tolerates fewer.
 | Llama 70b MuSiQue mhd top-5 baseline | `logs/eval_multi_hyde_diverse_groq-llama70b_20260427_1010_detail.jsonl` |
 | Llama 70b MuSiQue mhd top-1 | `logs/eval_multi_hyde_diverse_groq-llama70b_20260428_0019_detail.jsonl` |
 | Llama 70b MuSiQue rag_snap_hyde top-5 baseline | `logs/eval_rag_snap_hyde_groq-llama70b_20260427_1019_detail.jsonl` |
-| Llama 70b MuSiQue rag_snap_hyde top-1 | (running 2026-04-28) |
-| Gemma 4 26B BarExam top-1 vs top-5 | (SLURM 55452, in flight) |
-| Gemma 4 26B BarExam snap_hyde_2call vs rag_snap_hyde | (SLURM 55451, in flight) |
+| Llama 70b MuSiQue rag_snap_hyde top-1 | `logs/eval_rag_snap_hyde_groq-llama70b_20260428_0025_detail.jsonl` |
+| Gemma 4 26B BarExam rag_simple top-1 | `logs/eval_rag_simple_or-gemma4-26b_20260428_0138_detail.jsonl` |
+| Gemma 4 26B BarExam rag_simple top-5 | `logs/eval_rag_simple_or-gemma4-26b_20260428_0231_detail.jsonl` |
+| Gemma 4 26B BarExam rag_snap_hyde top-5 | `logs/eval_rag_snap_hyde_or-gemma4-26b_20260428_0257_detail.jsonl` |
+| Gemma 4 26B BarExam snap_hyde_2call N=200 | `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260428_1435_detail.jsonl` |

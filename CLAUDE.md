@@ -39,7 +39,7 @@ Current research direction: the original heavy pipeline underperformed, but the 
 - `docs/hpc_setup_log.md` — cluster SSH, paths, venvs, bad nodes
 - `EXPERIMENTS.md` — full hypothesis → result → verdict log
 - `RESEARCH.md` — research state, experiment queue, session handoff
-- `logs/experiments.jsonl` — machine-readable results (316 entries as of 2026-04-27 ~12:30 CDT)
+- `logs/experiments.jsonl` — machine-readable results (348 entries as of 2026-04-30 cleanup)
 
 ## Runtime Architecture
 
@@ -202,14 +202,16 @@ before any new submission. The full pre-submission checklist lives in
 
 ## Current Best Results / Direction Snapshot
 
-**Source of truth**: `docs/signoff_log.md` for cite-or-not status, `docs/compiled_results.md` for audit details, and `docs/mcnemar_2026-04-27.md` for paired MuSiQue tests. Numbers below are post-fix BarExam Tier 3 or MuSiQue Tier 2 unless explicitly marked direction-only.
+**Source of truth**: `docs/signoff_log.md` for cite-or-not status, `docs/compiled_results.md` for audit details, `docs/snap_hyde_2call_2026-04-28.md` for the 2026-04-28 bottleneck-taxonomy pivot, and `docs/mcnemar_2026-04-27.md` for the earlier paired MuSiQue matrix. Numbers below are post-fix BarExam Tier 3 or MuSiQue Tier 2 unless explicitly marked direction-only.
 
-### Llama 70b MuSiQue (Tier 2 N=200, paper headline)
+### Llama 70b MuSiQue (Tier 2 N=200, current paper headline)
 
 | Mode | EM | Δ vs `rag_simple` | McNemar p | Verdict |
 |---|---:|---:|---:|---|
 | `rag_simple` | 27.5% | — | — | baseline |
-| **`multi_hyde_diverse`** | **35.5%** | **+8.0pp** | **0.0195** | **SIG — paper headline** |
+| **`snap_hyde_2call`** | **37.0%** | **+9.5pp** | **0.0079** | **SIG — current paper headline** |
+| `iterative_planning_table` | 36.0% | +8.5pp | 0.0533 | TRENDING-SIG |
+| `multi_hyde_diverse` | 35.5% | +8.0pp | 0.0195 | SIG — superseded headline, still citeable |
 | `rag_multi_query` | 29.0% | +1.5pp | 0.728 | NS |
 | `rag_snap_hyde` | 24.0% | -3.5pp | 0.36 | NS |
 | `iter_hyde` | 24.5% | -3.0pp | 0.47 | NS |
