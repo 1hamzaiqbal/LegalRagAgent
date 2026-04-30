@@ -15,13 +15,18 @@ are historical context only.
    CaseHOLD/LegalBench-SCALR option-disambiguation replicate.
 4. `top1_ablation_2026-04-28.md` - retrieval-depth signature: MuSiQue top-1
    collapse vs BarExam top-1/top-5 flatness.
-5. `paper_narrative_2026-04-28.md` - current paper skeleton after the pivot.
-6. `compiled_results.md` - audited result ledger with direct log paths, caveats,
+5. `research_strategy_2026-04-30.md` - current strategy reset: novelty
+   boundary, grounded motivation, harness gaps, and recommended next
+   experiments.
+6. `paper_narrative_2026-04-28.md` - current paper skeleton after the pivot.
+7. `compiled_results.md` - audited result ledger with direct log paths, caveats,
    and per-row provenance.
 
 ## Evidence Ledgers
 
 - `logs/experiments.jsonl` - machine-readable run summaries.
+- `evidence_matrix_2026-04-30.md` - reproducible matrix generated from landed
+  detail logs by `scripts/build_evidence_matrix.py`.
 - `audit_log.md` - BarExam post-fix audit truth and historical guardrails.
 - `mcnemar_2026-04-27.md` - paired tests from the pre-pivot MuSiQue matrix.
 - `docs/audits/` - focused audit artifacts by dataset/model/date.
