@@ -20,8 +20,12 @@ are historical context only.
    experiments.
 6. `adaptive_controller_design_2026-04-30.md` - feasible path for fast
    bottleneck-aware method routing and agentic escalation.
-7. `paper_narrative_2026-04-28.md` - current paper skeleton after the pivot.
-8. `compiled_results.md` - audited result ledger with direct log paths, caveats,
+7. `agentic_legal_rag_angles_2026-04-30.md` - research-angle memo for workshop
+   vs EMNLP positioning, multi-agent evidence sharing, and legal-agent novelty.
+8. `evidence_budgeted_ledger_router_plan.md` - branch plan combining
+   bottleneck-aware routing with a shared evidence ledger for legal agents.
+9. `paper_narrative_2026-04-28.md` - current paper skeleton after the pivot.
+10. `compiled_results.md` - audited result ledger with direct log paths, caveats,
    and per-row provenance.
 
 ## Evidence Ledgers
