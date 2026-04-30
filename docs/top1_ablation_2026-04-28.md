@@ -7,7 +7,7 @@ Implementation: `--retrieval-k` CLI flag landed in commit `b286279`. Default
 behavior unchanged (k=5). Pair top-1 vs top-5 within the same provider/seed
 to isolate retrieval depth from provider/randomness drift.
 
-## TL;DR — multi-hop QA needs multiple passages, regardless of method
+## TL;DR — retrieval-depth sensitivity is a task-regime signal
 
 On Llama 3.3 70B × MuSiQue N=200 (paired McNemar within same Groq slot, seed=42):
 
@@ -51,6 +51,18 @@ absolute accuracy is dominated by passage count, not method choice.** This means
 Citation-grade rule of thumb: **passage count is a first-order knob; method
 choice is a second-order knob** for multi-hop factoid QA on Llama 70B.
 
+New 2026-04-30 check: LegalBench-SCALR also shows a catastrophic top-1 drop,
+but with a different interpretation from MuSiQue. On Llama 70B × SCALR N=200,
+`rag_simple` top-5 is 77.0% while top-1 is 59.5% (-17.5pp, McNemar p=1.05e-08,
+b/c=3/38). Gold-hit rate falls from 54.0% to 32.5%. SCALR is therefore
+retrieval-depth limited even though the `snap_hyde_2call` query-formulation
+intervention is flat/negative on the same top-5 slice.
+
+This matters for the taxonomy: "legal MC" is not one regime. BarExam is flat
+under top-1/top-5, while SCALR holding selection needs a candidate set. The
+depth ablation is not merely measuring legal-vs-nonlegal; it is detecting
+whether the task is candidate-retrieval limited.
+
 ## Cross-dataset check (landed for `rag_simple`)
 
 SLURM 55452 landed the `rag_simple` top-1/top-5 pair on Gemma 4 26B-A4B ×
@@ -64,6 +76,12 @@ Related SLURM 55451 result: `snap_hyde_2call` on the same BarExam N=200 slice
 landed at 85.5% versus the top-5 `rag_simple` 82.5% (+3.0pp, p=0.377 NS,
 parse_ok=200/200). That preserves the direction of the Tier 3 `rag_snap_hyde`
 lift but is directional, not independently significant.
+
+LegalBench-SCALR now gives the opposite cross-dataset legal result: top-1
+collapses to 59.5% from top-5 77.0% (-17.5pp, p=1.05e-08). Because
+`snap_hyde_2call` is 75.0% on the same SCALR top-5 slice (-2.0pp vs
+`rag_simple`, p=0.503), this isolates **retrieval depth** rather than
+pseudo-document query formulation as the useful intervention.
 
 ## Implementation notes
 
@@ -90,3 +108,6 @@ lift but is directional, not independently significant.
 | Gemma 4 26B BarExam rag_simple top-5 | `logs/eval_rag_simple_or-gemma4-26b_20260428_0231_detail.jsonl` |
 | Gemma 4 26B BarExam rag_snap_hyde top-5 | `logs/eval_rag_snap_hyde_or-gemma4-26b_20260428_0257_detail.jsonl` |
 | Gemma 4 26B BarExam snap_hyde_2call N=200 | `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260428_1435_detail.jsonl` |
+| Llama 70b LegalBench-SCALR rag_simple top-5 | `logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl` |
+| Llama 70b LegalBench-SCALR rag_simple top-1 | `logs/eval_rag_simple_groq-llama70b_20260429_2159_detail.jsonl` |
+| Llama 70b LegalBench-SCALR snap_hyde_2call N=200 | `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_1520_detail.jsonl` |
