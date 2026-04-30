@@ -1,5 +1,56 @@
 # Sign-off Log — verified results approved for paper/meeting citation
 
+## Update 2026-04-30 ~15:30 CDT
+
+Change reason: second adversarial report pass found that the class report had
+outpaced this signoff layer. This update is a source-gated overlay for the
+2026-04-28/30 bottleneck-taxonomy pivot; older sections are preserved below for
+traceability.
+
+Last updated: 2026-04-30 ~15:30 CDT
+Branch: `codex/evidence-ledger-router`, HEAD after report refresh: `b59cb62`
+
+### Current quick reference
+
+1. ✅ **MuSiQue Llama 70B `snap_hyde_2call` is the current N=200 method
+   vehicle**: `rag_simple` 27.5% -> `snap_hyde_2call` 37.0%, +9.5pp,
+   b/c=33/14, McNemar p=0.007943, 95% bootstrap CI [+3.0, +16.0] pp.
+   Cite as paired N=200, not full-corpus.
+2. ✅ **MuSiQue top-k collapse is the cleanest retrieval-depth diagnostic**:
+   `rag_simple` top-5 27.5% -> top-1 13.0%, -14.5pp, b/c=3/32,
+   p=4.177e-07, CI [-20.0, -9.5] pp.
+3. ✅ **BarExam top-k is depth-flat on the N=200 diagnostic slice**:
+   `rag_simple` top-5 82.5% -> top-1 83.0%, +0.5pp, b/c=18/17, p=1.0.
+   Keep separate from the full-corpus BarExam method result.
+4. ✅ **LegalBench-SCALR is candidate-depth limited then saturated**:
+   top-5 77.0% -> top-1 59.5%, -17.5pp, b/c=3/38, p=1.048e-08;
+   top-10 ties top-5 at 77.0%, b/c=8/8, p=1.0.
+5. ⚠️ **HousingQA is a directional statutory depth signal**:
+   top-1 50.5% -> top-10 58.0%, +7.5pp, b/c=38/23, p=0.0722.
+   Cite with state-metadata and low gold-hit caveats.
+6. ⚠️ **CaseHOLD is answer-flat under current logs, not retrieval-recall
+   evidence**: top-5 72.0% -> top-1 70.5%, -1.5pp, b/c=10/13, p=0.6776;
+   two-call 69.5%, -2.5pp, b/c=14/19, p=0.4869. Old gold-hit is 0/200 due to
+   instrumentation; wait for repaired Chroma rerun before retrieval claims.
+7. ✅ **MuSiQue `golden_passage` control confirms context utility is
+   task-dependent**: `golden_passage` reaches 56.5% EM, beating `rag_simple`
+   by +29.0pp (b/c=64/6, p=2.44e-13) and `snap_hyde_2call` by +19.5pp
+   (b/c=47/8, p=8.07e-08). This is a privileged-context diagnostic, not a
+   deployable method.
+
+### Current source paths
+
+- Bottleneck matrix and paired deltas: `docs/evidence_matrix_2026-04-30.md`.
+- Housing metrics and metadata caveats:
+  `docs/housing_speculative_metrics_2026-04-30.md` and
+  `docs/housing_metadata_depth_audit_2026-04-30.md`.
+- CaseHOLD instrumentation caveat and repair:
+  `docs/casehold_flatness_audit_2026-04-30.md` and
+  `docs/casehold_gold_mapping_repair_2026-04-30.md`.
+- SCALR depth audit: `docs/scalr_depth_disagreement_2026-04-30.md`.
+- MuSiQue golden control: `docs/musique_golden_passage_2026-04-30.md`.
+- Full-corpus BarExam method matrix remains Section A below.
+
 ## Update 2026-04-27 ~12:30 CDT
 
 Change reason: added the 2026-04-27 ~12:30 CDT McNemar results for Llama planning methods and BarExam cross-domain mhd. That McNemar section gives paired statistics but no separate audit IDs, so new audit cells cite the 12:30 McNemar source rather than inventing IDs.
@@ -74,8 +125,10 @@ Per-log audit reports under `docs/audits/`:
 ### A.3 BarExam cross-size headline (PAPER STORY)
 
 **`rag_snap_hyde` lifts BarExam EM at both Gemma 4 sizes:**
-- Gemma 4 26B-A4B: +3.09pp (78.08% → 81.17%)
-- Gemma 4 E4B: +3.69pp (58.49% → 62.18%)
+- Gemma 4 26B-A4B: +3.09pp (78.08% → 81.17%), b/c=124/87, McNemar p=0.0130,
+  95% bootstrap CI [+0.67, +5.44] pp.
+- Gemma 4 E4B: +3.68pp (58.49% → 62.18%), b/c=172/128, McNemar p=0.0129,
+  95% bootstrap CI [+0.92, +6.53] pp.
 
 **Sign-off**: ✅ APPROVED (Tier 3, cross-size confirmed; both sizes have post-fix detail-log/audit support, with the caveats listed above).
 
