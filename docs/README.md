@@ -28,12 +28,15 @@ are historical context only.
    vs EMNLP positioning, multi-agent evidence sharing, and legal-agent novelty.
 10. `evidence_budgeted_ledger_router_plan.md` - branch plan combining
    bottleneck-aware routing with a shared evidence ledger for legal agents.
-11. `router_probe_findings_2026-04-30.md` - first offline router diagnostic:
+11. `specrag_lite_diagnostic_controller_2026-04-30.md` - method proposal for
+   selectively escalating to Speculative-RAG-style draft verification based on
+   cheap bottleneck diagnostics.
+12. `router_probe_findings_2026-04-30.md` - first offline router diagnostic:
    real oracle headroom, but brittle cheap-feature generalization.
-12. `dataset_metric_consolidation_2026-04-30.md` - Speculative RAG metric
+13. `dataset_metric_consolidation_2026-04-30.md` - Speculative RAG metric
    mapping, dataset spirit, and wiring gaps for LegalBench/Legal RAG Bench work.
-13. `paper_narrative_2026-04-28.md` - current paper skeleton after the pivot.
-14. `compiled_results.md` - audited result ledger with direct log paths, caveats,
+14. `paper_narrative_2026-04-28.md` - current paper skeleton after the pivot.
+15. `compiled_results.md` - audited result ledger with direct log paths, caveats,
    and per-row provenance.
 
 ## Evidence Ledgers
