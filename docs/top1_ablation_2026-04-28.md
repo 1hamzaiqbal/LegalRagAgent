@@ -84,6 +84,13 @@ collapses to 59.5% from top-5 77.0% (-17.5pp, p=1.05e-08). Because
 `rag_simple`, p=0.503), this isolates **retrieval depth** rather than
 pseudo-document query formulation as the useful intervention.
 
+The follow-up top-10 check makes the depth result sharper. Top-10 is also
+77.0%, exactly tied with top-5 (McNemar p=1.0, b/c=8/8), while top-10 beats
+top-1 by +17.5pp (p=3.62e-07). Gold-hit rate keeps rising from top-5 to top-10
+(54.0% -> 63.0%), but answer accuracy does not. For SCALR, the useful
+intervention is therefore "give the model a small candidate set," not
+"maximize retrieved depth."
+
 CaseHOLD now lands on the BarExam side of the split, not the SCALR side:
 top-1 is 70.5% versus top-5 72.0% (-1.5pp, McNemar p=0.678, b/c=10/13).
 The paired `snap_hyde_2call` result is also flat/negative at 69.5%
@@ -119,6 +126,7 @@ while SCALR is strongly candidate-depth limited.
 | Gemma 4 26B BarExam snap_hyde_2call N=200 | `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260428_1435_detail.jsonl` |
 | Llama 70b LegalBench-SCALR rag_simple top-5 | `logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl` |
 | Llama 70b LegalBench-SCALR rag_simple top-1 | `logs/eval_rag_simple_groq-llama70b_20260429_2159_detail.jsonl` |
+| Llama 70b LegalBench-SCALR rag_simple top-10 | `logs/eval_rag_simple_groq-llama70b_20260430_0054_detail.jsonl` |
 | Llama 70b LegalBench-SCALR snap_hyde_2call N=200 | `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_1520_detail.jsonl` |
 | Llama 70b CaseHOLD rag_simple top-5 | `logs/eval_rag_simple_groq-llama70b_20260428_0259_detail.jsonl` |
 | Llama 70b CaseHOLD rag_simple top-1 | `logs/eval_rag_simple_groq-llama70b_20260429_2318_detail.jsonl` |

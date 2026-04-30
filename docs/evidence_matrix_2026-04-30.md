@@ -19,6 +19,7 @@ Generated from landed detail logs only. This matrix is a triage artifact: use it
 | casehold_2call | casehold | groq-llama70b | rag_snap_hyde_2call | 200 | 139/200 (69.5%) | 0.0% | 100.0% | 0.0% | 2.00 | 2.6 | 5.0 | 1232 | 700 |
 | scalr_rag | legalbench_scalr | groq-llama70b | rag_simple | 200 | 154/200 (77.0%) | 54.0% | 100.0% | 0.0% | 1.00 | 1.9 | 5.0 | 723 | 423 |
 | scalr_rag_top1 | legalbench_scalr | groq-llama70b | rag_simple | 200 | 119/200 (59.5%) | 32.5% | 100.0% | 0.0% | 1.00 | 1.9 | 1.0 | 518 | 430 |
+| scalr_rag_top10 | legalbench_scalr | groq-llama70b | rag_simple | 200 | 154/200 (77.0%) | 63.0% | 100.0% | 0.0% | 1.00 | 2.3 | 10.0 | 979 | 417 |
 | scalr_2call | legalbench_scalr | groq-llama70b | rag_snap_hyde_2call | 200 | 150/200 (75.0%) | 55.0% | 100.0% | 0.0% | 2.00 | 3.5 | 5.0 | 1337 | 848 |
 
 ## Paired Deltas
@@ -34,6 +35,8 @@ Generated from landed detail logs only. This matrix is a triage artifact: use it
 | CaseHOLD_top1_ablation | casehold_rag | casehold_rag_top1 | idx | 200 | 72.0% | 70.5% | -1.5pp | 10/13 | 0.6776 | [-6.0, +3.0] pp |
 | CaseHOLD_2call_vs_rag | casehold_rag | casehold_2call | idx | 200 | 72.0% | 69.5% | -2.5pp | 14/19 | 0.4869 | [-8.0, +3.0] pp |
 | SCALR_top1_ablation | scalr_rag | scalr_rag_top1 | idx | 200 | 77.0% | 59.5% | -17.5pp | 3/38 | 1.048e-08 | [-23.5, -12.0] pp |
+| SCALR_top10_vs_top5 | scalr_rag | scalr_rag_top10 | idx | 200 | 77.0% | 77.0% | +0.0pp | 8/8 | 1 | [-4.0, +4.0] pp |
+| SCALR_top10_vs_top1 | scalr_rag_top1 | scalr_rag_top10 | idx | 200 | 59.5% | 77.0% | +17.5pp | 42/7 | 3.625e-07 | [+11.0, +24.0] pp |
 | SCALR_2call_vs_rag | scalr_rag | scalr_2call | idx | 200 | 77.0% | 75.0% | -2.0pp | 8/12 | 0.5034 | [-6.5, +2.5] pp |
 
 ## Parse And Route Health
@@ -51,6 +54,7 @@ Generated from landed detail logs only. This matrix is a triage artifact: use it
 - `casehold_2call`: parse `snap_hyde_2call_parse_ok=198/200`; route `routed_to: snap_hyde_2call_parse_failed_fallback_to_question=2`
 - `scalr_rag`: parse `-`; route `-`
 - `scalr_rag_top1`: parse `-`; route `-`
+- `scalr_rag_top10`: parse `-`; route `-`
 - `scalr_2call`: parse `snap_hyde_2call_parse_ok=200/200`; route `-`
 
 ## Source Logs
@@ -68,4 +72,5 @@ Generated from landed detail logs only. This matrix is a triage artifact: use it
 - `casehold_2call`: `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_0309_detail.jsonl`
 - `scalr_rag`: `logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl`
 - `scalr_rag_top1`: `logs/eval_rag_simple_groq-llama70b_20260429_2159_detail.jsonl`
+- `scalr_rag_top10`: `logs/eval_rag_simple_groq-llama70b_20260430_0054_detail.jsonl`
 - `scalr_2call`: `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_1520_detail.jsonl`
