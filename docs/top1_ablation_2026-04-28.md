@@ -59,15 +59,16 @@ retrieval-depth limited even though the `snap_hyde_2call` query-formulation
 intervention is flat/negative on the same top-5 slice.
 
 This matters for the taxonomy: "legal MC" is not one regime. BarExam is flat
-under top-1/top-5, while SCALR holding selection needs a candidate set. The
-depth ablation is not merely measuring legal-vs-nonlegal; it is detecting
-whether the task is candidate-retrieval limited.
+under top-1/top-5, CaseHOLD is also flat on the landed Llama 70B slice, while
+SCALR holding selection needs a candidate set. The depth ablation is not merely
+measuring legal-vs-nonlegal; it is detecting whether the task is
+candidate-retrieval limited.
 
 ## Cross-dataset check (landed for `rag_simple`)
 
 SLURM 55452 landed the `rag_simple` top-1/top-5 pair on Gemma 4 26B-A4B ×
 BarExam N=200 via OR-Gemma. `rag_simple` is flat: top-1 83.0% versus top-5
-82.5% (-0.5pp, McNemar p=1.00 NS). This is the clean cross-dataset contrast
+82.5% (+0.5pp, McNemar p=1.00 NS). This is the clean cross-dataset contrast
 against MuSiQue's -14.5pp `rag_simple` drop. The regular `rag_snap_hyde`
 top-1 detail log is not present locally; do not cite that depth comparison
 until it lands.
@@ -82,6 +83,14 @@ collapses to 59.5% from top-5 77.0% (-17.5pp, p=1.05e-08). Because
 `snap_hyde_2call` is 75.0% on the same SCALR top-5 slice (-2.0pp vs
 `rag_simple`, p=0.503), this isolates **retrieval depth** rather than
 pseudo-document query formulation as the useful intervention.
+
+CaseHOLD now lands on the BarExam side of the split, not the SCALR side:
+top-1 is 70.5% versus top-5 72.0% (-1.5pp, McNemar p=0.678, b/c=10/13).
+The paired `snap_hyde_2call` result is also flat/negative at 69.5%
+(-2.5pp, p=0.487). So the current legal picture is more specific than
+"legal multiple-choice needs retrieval" or "legal multiple-choice ignores
+retrieval": BarExam and CaseHOLD are candidate-set insensitive at N=200,
+while SCALR is strongly candidate-depth limited.
 
 ## Implementation notes
 
@@ -111,3 +120,6 @@ pseudo-document query formulation as the useful intervention.
 | Llama 70b LegalBench-SCALR rag_simple top-5 | `logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl` |
 | Llama 70b LegalBench-SCALR rag_simple top-1 | `logs/eval_rag_simple_groq-llama70b_20260429_2159_detail.jsonl` |
 | Llama 70b LegalBench-SCALR snap_hyde_2call N=200 | `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_1520_detail.jsonl` |
+| Llama 70b CaseHOLD rag_simple top-5 | `logs/eval_rag_simple_groq-llama70b_20260428_0259_detail.jsonl` |
+| Llama 70b CaseHOLD rag_simple top-1 | `logs/eval_rag_simple_groq-llama70b_20260429_2318_detail.jsonl` |
+| Llama 70b CaseHOLD snap_hyde_2call N=200 | `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_0309_detail.jsonl` |
