@@ -1,0 +1,297 @@
+{
+  "schema": {
+    "purpose": "Map detail logs to the hypothesis cells used in the bottleneck-aware RAG narrative.",
+    "fields": [
+      "label",
+      "detail_log",
+      "dataset",
+      "provider",
+      "mode",
+      "n_questions",
+      "retrieval_k",
+      "hypothesis",
+      "bottleneck_regime",
+      "intervention_axis",
+      "cite_status",
+      "known_caveat",
+      "source_docs"
+    ]
+  },
+  "created": "2026-04-30",
+  "entries": [
+    {
+      "label": "musique_rag",
+      "detail_log": "logs/eval_rag_simple_groq-llama70b_20260427_0952_detail.jsonl",
+      "dataset": "musique",
+      "provider": "groq-llama70b",
+      "mode": "rag_simple",
+      "n_questions": 200,
+      "retrieval_k": 5,
+      "hypothesis": "baseline multi-hop retrieved-context performance",
+      "bottleneck_regime": "retrieval_depth_and_query_formulation_limited",
+      "intervention_axis": "baseline_top5_retrieval",
+      "cite_status": "approved_with_full_caveats",
+      "known_caveat": "N=200 diagnostic slice; some abstention-like predictions in prior audit.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/musique_disagreement_audit_2026-04-30.md",
+        "docs/signoff_log.md"
+      ]
+    },
+    {
+      "label": "musique_rag_top1",
+      "detail_log": "logs/eval_rag_simple_groq-llama70b_20260428_0011_detail.jsonl",
+      "dataset": "musique",
+      "provider": "groq-llama70b",
+      "mode": "rag_simple",
+      "n_questions": 200,
+      "retrieval_k": 1,
+      "hypothesis": "top-1 retrieval depth should collapse when multi-hop needs multiple passages",
+      "bottleneck_regime": "retrieval_depth_limited",
+      "intervention_axis": "retrieval_depth_ablation",
+      "cite_status": "approved_with_full_caveats",
+      "known_caveat": "Top-1 proof is clean but has abstention-like predictions noted in audit docs.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/top1_ablation_2026-04-28.md"
+      ]
+    },
+    {
+      "label": "musique_2call",
+      "detail_log": "logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_0040_detail.jsonl",
+      "dataset": "musique",
+      "provider": "groq-llama70b",
+      "mode": "rag_snap_hyde_2call",
+      "n_questions": 200,
+      "retrieval_k": 5,
+      "hypothesis": "answer-conditioned pseudo-document retrieval rescues query-formulation failures",
+      "bottleneck_regime": "retrieval_depth_and_query_formulation_limited",
+      "intervention_axis": "pseudo_doc_query_formulation",
+      "cite_status": "approved_with_full_caveats",
+      "known_caveat": "Three parse fallbacks; N=200 diagnostic slice; full-corpus replicate not landed.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/musique_disagreement_audit_2026-04-30.md",
+        "docs/snap_hyde_2call_2026-04-28.md"
+      ]
+    },
+    {
+      "label": "musique_mhd",
+      "detail_log": "logs/eval_multi_hyde_diverse_groq-llama70b_20260427_1010_detail.jsonl",
+      "dataset": "musique",
+      "provider": "groq-llama70b",
+      "mode": "multi_hyde_diverse",
+      "n_questions": 200,
+      "retrieval_k": 5,
+      "hypothesis": "diverse pseudo-document queries rescue a subset of multi-hop retrieval failures",
+      "bottleneck_regime": "retrieval_depth_and_query_formulation_limited",
+      "intervention_axis": "diverse_pseudo_doc_query_formulation",
+      "cite_status": "approved_with_full_caveats",
+      "known_caveat": "N=200 paper-headline candidate, but Gemma 27B N=200 is null and full-corpus replicate is pending.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/musique_disagreement_audit_2026-04-30.md",
+        "docs/signoff_log.md"
+      ]
+    },
+    {
+      "label": "musique_iter",
+      "detail_log": "logs/eval_iterative_planning_table_groq-llama70b_20260427_1208_detail.jsonl",
+      "dataset": "musique",
+      "provider": "groq-llama70b",
+      "mode": "iterative_planning_table",
+      "n_questions": 200,
+      "retrieval_k": 6,
+      "hypothesis": "iterative evidence gathering rescues more retrieval misses but may introduce reasoning drift",
+      "bottleneck_regime": "retrieval_depth_and_composition_limited",
+      "intervention_axis": "iterative_planning_and_evidence_accumulation",
+      "cite_status": "trend_only",
+      "known_caveat": "McNemar p=0.0533; more gold evidence sometimes still harms baseline-correct rows.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/musique_disagreement_audit_2026-04-30.md",
+        "docs/signoff_log.md"
+      ]
+    },
+    {
+      "label": "barexam_rag_top5",
+      "detail_log": "logs/eval_rag_simple_or-gemma4-26b_20260428_0231_detail.jsonl",
+      "dataset": "barexam",
+      "provider": "or-gemma4-26b",
+      "mode": "rag_simple",
+      "n_questions": 200,
+      "retrieval_k": 5,
+      "hypothesis": "legal MC baseline should be weakly sensitive to retrieval depth",
+      "bottleneck_regime": "answer_option_or_legal_prior_dominated",
+      "intervention_axis": "baseline_top5_retrieval",
+      "cite_status": "directional_n200",
+      "known_caveat": "Cluster summary row was reconstructed from landed detail log; use full-N BarExam claims from signoff for paper-grade statements.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/top1_ablation_2026-04-28.md"
+      ]
+    },
+    {
+      "label": "barexam_rag_top1",
+      "detail_log": "logs/eval_rag_simple_or-gemma4-26b_20260428_0138_detail.jsonl",
+      "dataset": "barexam",
+      "provider": "or-gemma4-26b",
+      "mode": "rag_simple",
+      "n_questions": 200,
+      "retrieval_k": 1,
+      "hypothesis": "top-1 retrieval should be near-flat if more retrieved documents are not the bottleneck",
+      "bottleneck_regime": "answer_option_or_legal_prior_dominated",
+      "intervention_axis": "retrieval_depth_ablation",
+      "cite_status": "directional_n200",
+      "known_caveat": "N=200 diagnostic; cite as depth-flatness probe, not final BarExam performance.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/top1_ablation_2026-04-28.md"
+      ]
+    },
+    {
+      "label": "barexam_2call",
+      "detail_log": "logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260428_1435_detail.jsonl",
+      "dataset": "barexam",
+      "provider": "or-gemma4-26b",
+      "mode": "rag_snap_hyde_2call",
+      "n_questions": 200,
+      "retrieval_k": 5,
+      "hypothesis": "answer anchoring may help legal MC despite flat top-k sensitivity",
+      "bottleneck_regime": "answer_option_or_legal_prior_dominated",
+      "intervention_axis": "answer_anchoring_and_pseudo_doc_query",
+      "cite_status": "directional_n200",
+      "known_caveat": "N=200 +3.0pp is not significant; full-N rag_snap_hyde result is stronger but different mode.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/snap_hyde_2call_2026-04-28.md"
+      ]
+    },
+    {
+      "label": "casehold_rag",
+      "detail_log": "logs/eval_rag_simple_groq-llama70b_20260428_0259_detail.jsonl",
+      "dataset": "casehold",
+      "provider": "groq-llama70b",
+      "mode": "rag_simple",
+      "n_questions": 200,
+      "retrieval_k": 5,
+      "hypothesis": "holding-selection legal MC may be candidate-depth insensitive under current harness",
+      "bottleneck_regime": "candidate_depth_insensitive_current_harness",
+      "intervention_axis": "baseline_top5_retrieval",
+      "cite_status": "directional_n200",
+      "known_caveat": "Current gold_retrieved is 0/200 and cannot support retrieval-recall claims.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/casehold_flatness_audit_2026-04-30.md"
+      ]
+    },
+    {
+      "label": "casehold_rag_top1",
+      "detail_log": "logs/eval_rag_simple_groq-llama70b_20260429_2318_detail.jsonl",
+      "dataset": "casehold",
+      "provider": "groq-llama70b",
+      "mode": "rag_simple",
+      "n_questions": 200,
+      "retrieval_k": 1,
+      "hypothesis": "top-1 should remain near top-5 if CaseHOLD answer choice is not depth-limited",
+      "bottleneck_regime": "candidate_depth_insensitive_current_harness",
+      "intervention_axis": "retrieval_depth_ablation",
+      "cite_status": "directional_n200",
+      "known_caveat": "Gold-option retrieval mapping is missing; treat as answer-level flatness only.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/casehold_flatness_audit_2026-04-30.md"
+      ]
+    },
+    {
+      "label": "casehold_2call",
+      "detail_log": "logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_0309_detail.jsonl",
+      "dataset": "casehold",
+      "provider": "groq-llama70b",
+      "mode": "rag_snap_hyde_2call",
+      "n_questions": 200,
+      "retrieval_k": 5,
+      "hypothesis": "pseudo-doc query formation should not help if current harness is candidate-depth insensitive",
+      "bottleneck_regime": "candidate_depth_insensitive_current_harness",
+      "intervention_axis": "answer_anchoring_and_pseudo_doc_query",
+      "cite_status": "directional_n200",
+      "known_caveat": "Two parse fallbacks; gold_retrieved is 0/200 and not meaningful for retrieval-recall claims.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/casehold_flatness_audit_2026-04-30.md"
+      ]
+    },
+    {
+      "label": "scalr_rag",
+      "detail_log": "logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl",
+      "dataset": "legalbench_scalr",
+      "provider": "groq-llama70b",
+      "mode": "rag_simple",
+      "n_questions": 200,
+      "retrieval_k": 5,
+      "hypothesis": "SCALR should need a small candidate set but saturate before top-10",
+      "bottleneck_regime": "candidate_depth_limited_saturates_at_top5",
+      "intervention_axis": "baseline_top5_retrieval",
+      "cite_status": "directional_n200",
+      "known_caveat": "SCALR logging was fixed after early smoke rows; use this detail log and later audits only.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/scalr_depth_disagreement_2026-04-30.md"
+      ]
+    },
+    {
+      "label": "scalr_rag_top1",
+      "detail_log": "logs/eval_rag_simple_groq-llama70b_20260429_2159_detail.jsonl",
+      "dataset": "legalbench_scalr",
+      "provider": "groq-llama70b",
+      "mode": "rag_simple",
+      "n_questions": 200,
+      "retrieval_k": 1,
+      "hypothesis": "top-1 should underperform if SCALR requires a small candidate set",
+      "bottleneck_regime": "candidate_depth_limited_saturates_at_top5",
+      "intervention_axis": "retrieval_depth_ablation",
+      "cite_status": "directional_n200",
+      "known_caveat": "Use with SCALR audit; top-1 supports depth sensitivity but not top-10 benefit.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/scalr_depth_disagreement_2026-04-30.md"
+      ]
+    },
+    {
+      "label": "scalr_rag_top10",
+      "detail_log": "logs/eval_rag_simple_groq-llama70b_20260430_0054_detail.jsonl",
+      "dataset": "legalbench_scalr",
+      "provider": "groq-llama70b",
+      "mode": "rag_simple",
+      "n_questions": 200,
+      "retrieval_k": 10,
+      "hypothesis": "top-10 should increase evidence/gold hits but not answer accuracy if top-5 already saturates",
+      "bottleneck_regime": "candidate_depth_limited_saturates_at_top5",
+      "intervention_axis": "retrieval_depth_ablation",
+      "cite_status": "directional_n200",
+      "known_caveat": "Top-10 raises gold-hit rate without net accuracy gain; useful as saturation evidence.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/scalr_depth_disagreement_2026-04-30.md"
+      ]
+    },
+    {
+      "label": "scalr_2call",
+      "detail_log": "logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_1520_detail.jsonl",
+      "dataset": "legalbench_scalr",
+      "provider": "groq-llama70b",
+      "mode": "rag_snap_hyde_2call",
+      "n_questions": 200,
+      "retrieval_k": 5,
+      "hypothesis": "pseudo-doc query formulation should not help once SCALR top-5 candidate set is sufficient",
+      "bottleneck_regime": "candidate_depth_limited_saturates_at_top5",
+      "intervention_axis": "answer_anchoring_and_pseudo_doc_query",
+      "cite_status": "directional_n200",
+      "known_caveat": "Flat/negative versus top-5 rag; supports saturation rather than query-formulation limit.",
+      "source_docs": [
+        "docs/evidence_matrix_2026-04-30.md",
+        "docs/scalr_depth_disagreement_2026-04-30.md"
+      ]
+    }
+  ]
+}
