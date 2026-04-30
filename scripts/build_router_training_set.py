@@ -12,6 +12,7 @@ import argparse
 import csv
 import glob
 import json
+import math
 import re
 import statistics
 import sys
@@ -87,6 +88,18 @@ def choices_from_row(row: dict[str, Any]) -> list[str]:
     return choices
 
 
+def token_set(text: str) -> set[str]:
+    return {token.lower() for token in re.findall(r"[A-Za-z0-9_]+", text) if len(token) > 1}
+
+
+def overlap_ratio(left: str, right: str) -> float:
+    left_tokens = token_set(left)
+    if not left_tokens:
+        return 0.0
+    right_tokens = token_set(right)
+    return len(left_tokens & right_tokens) / len(left_tokens)
+
+
 def answer_format(row: dict[str, Any], choices: list[str]) -> str:
     dataset = str(row.get("dataset", ""))
     if choices:
@@ -120,6 +133,12 @@ def static_features(row: dict[str, Any]) -> dict[str, Any]:
         flags=re.IGNORECASE,
     )
     choice_lengths = [len(choice) for choice in choices]
+    choice_sets = [token_set(choice) for choice in choices]
+    choice_similarities = []
+    for i, left in enumerate(choice_sets):
+        for right in choice_sets[i + 1 :]:
+            union = left | right
+            choice_similarities.append(len(left & right) / len(union) if union else 0.0)
     return {
         "dataset": row.get("dataset", ""),
         "provider": row.get("provider", ""),
@@ -131,6 +150,8 @@ def static_features(row: dict[str, Any]) -> dict[str, Any]:
         "choice_count": len(choices),
         "avg_choice_chars": round(mean([float(v) for v in choice_lengths]), 3),
         "max_choice_chars": max(choice_lengths) if choice_lengths else 0,
+        "max_choice_jaccard": round(max(choice_similarities), 6) if choice_similarities else 0.0,
+        "avg_choice_question_overlap": round(mean([overlap_ratio(choice, question) for choice in choices]), 6),
         "named_entity_count": len(named_entities),
         "date_number_count": len(dates_numbers),
         "legal_term_count": len(legal_terms),
@@ -138,9 +159,16 @@ def static_features(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def evidence_count(row: dict[str, Any]) -> int:
+def evidence_items(row: dict[str, Any]) -> list[dict[str, Any]]:
     evidence = row.get("evidence_store")
     if isinstance(evidence, list):
+        return [item for item in evidence if isinstance(item, dict)]
+    return []
+
+
+def evidence_count(row: dict[str, Any]) -> int:
+    evidence = evidence_items(row)
+    if evidence:
         return len(evidence)
     retrieved = row.get("retrieved_ids")
     if isinstance(retrieved, list):
@@ -148,22 +176,84 @@ def evidence_count(row: dict[str, Any]) -> int:
     return 0
 
 
-def max_ce_score(row: dict[str, Any]) -> float:
+def ce_scores(row: dict[str, Any]) -> list[float]:
     scores = []
-    for item in row.get("evidence_store") or []:
-        if isinstance(item, dict) and item.get("cross_encoder_score") is not None:
+    for item in evidence_items(row):
+        if item.get("cross_encoder_score") is not None:
             try:
                 scores.append(float(item["cross_encoder_score"]))
             except (TypeError, ValueError):
                 pass
+    return scores
+
+
+def max_ce_score(row: dict[str, Any]) -> float:
+    scores = ce_scores(row)
     return max(scores) if scores else 0.0
+
+
+def normalized_score_entropy(scores: list[float]) -> float:
+    if len(scores) <= 1:
+        return 0.0
+    max_score = max(scores)
+    weights = [pow(2.718281828459045, score - max_score) for score in scores]
+    total = sum(weights)
+    if not total:
+        return 0.0
+    probs = [weight / total for weight in weights]
+    entropy = -sum(prob * math.log2(prob) for prob in probs if prob > 0)
+    return entropy / math.log2(len(scores))
+
+
+def source_key(item: dict[str, Any]) -> str:
+    source = item.get("source")
+    if source:
+        return str(source)
+    idx = str(item.get("idx", ""))
+    return idx.rsplit("_", 1)[0] if "_" in idx else idx
+
+
+def evidence_text(row: dict[str, Any]) -> str:
+    return "\n".join(str(item.get("text", "")) for item in evidence_items(row))
+
+
+def evidence_probe_metrics(row: dict[str, Any]) -> dict[str, Any]:
+    evidence = evidence_items(row)
+    scores = ce_scores(row)
+    padded = scores + [0.0] * max(0, 5 - len(scores))
+    top1, top2, _top3, _top4, top5 = padded[:5]
+    source_keys = [source_key(item) for item in evidence if source_key(item)]
+    unique_sources = len(set(source_keys))
+    text = evidence_text(row)
+    choices = choices_from_row(row)
+    choice_overlaps = sorted((overlap_ratio(choice, text) for choice in choices), reverse=True)
+    choice_overlap_max = choice_overlaps[0] if choice_overlaps else 0.0
+    choice_overlap_second = choice_overlaps[1] if len(choice_overlaps) > 1 else 0.0
+    question = str(row.get("formatted_question") or row.get("question") or "")
+    gold_idx = str(row.get("gold_idx") or "")
+    retrieved_ids = [str(value) for value in row.get("retrieved_ids") or []]
+    return {
+        "ce_top1": round(top1, 6),
+        "ce_top2": round(top2, 6),
+        "ce_top5": round(top5, 6),
+        "ce_top1_top2_margin": round(top1 - top2, 6),
+        "ce_top1_top5_margin": round(top1 - top5, 6),
+        "ce_score_entropy": round(normalized_score_entropy(scores), 6),
+        "unique_source_count": unique_sources,
+        "source_diversity": round(unique_sources / len(evidence), 6) if evidence else 0.0,
+        "retrieved_chars": len(text),
+        "question_evidence_overlap": round(overlap_ratio(question, text), 6),
+        "choice_evidence_overlap_max": round(choice_overlap_max, 6),
+        "choice_evidence_overlap_margin": round(choice_overlap_max - choice_overlap_second, 6),
+        "gold_rank": retrieved_ids.index(gold_idx) + 1 if gold_idx in retrieved_ids else 0,
+    }
 
 
 def arm_metrics(row: dict[str, Any]) -> dict[str, Any]:
     correct = compute_mcnemar.correct_flag(row)
     calls = float(row.get("llm_calls_actual", row.get("llm_calls", 0)) or 0)
     latency = float(row.get("elapsed_sec", 0) or 0)
-    return {
+    metrics = {
         "correct": int(correct),
         "calls": calls,
         "latency_sec": latency,
@@ -174,6 +264,8 @@ def arm_metrics(row: dict[str, Any]) -> dict[str, Any]:
         "max_ce_score": round(max_ce_score(row), 6),
         "parse_ok": int(all(bool(row.get(key)) for key in row if key.endswith("_parse_ok"))) if any(key.endswith("_parse_ok") for key in row) else "",
     }
+    metrics.update(evidence_probe_metrics(row))
+    return metrics
 
 
 def reward(metrics: dict[str, Any], call_penalty: float, latency_penalty: float) -> float:

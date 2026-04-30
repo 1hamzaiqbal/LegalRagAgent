@@ -79,19 +79,21 @@ expensive harness mode.
 ## First Offline Probe Result
 
 The first common-arm table tests `rag` vs `two_call` across MuSiQue, BarExam,
-CaseHOLD, and LegalBench-SCALR. A one-rule router using static task features
-plus cheap retrieval-probe fields beats both fixed arms on a random split
-(74.5% vs 71.5% fixed `two_call` and 69.0% fixed `rag`), but
-leave-one-dataset-out behavior is brittle:
+CaseHOLD, and LegalBench-SCALR. After adding evidence-state features, the
+one-rule router reaches 72.0% on a random split at 1.30 calls/q, compared with
+71.5% for fixed `two_call` at 2.00 calls/q and 69.0% for fixed `rag` at
+1.00 calls/q. Leave-one-dataset-out behavior remains brittle:
 
-- it identifies MuSiQue as a `two_call` regime;
-- it over/under-spends on legal MC datasets;
+- it partially recovers rare BarExam `two_call` flips;
+- it fails to identify MuSiQue as a `two_call` regime under held-out training;
+- it mostly collapses to cheap `rag` on CaseHOLD and LegalBench-SCALR;
 - the oracle still has 4-10pp absolute headroom depending on the held-out
   dataset.
 
 This is useful evidence for the combined story. Cheap prompt-shape routing is
-not enough; the controller likely needs structured evidence state before it can
-decide when escalation is worth the cost.
+not enough, and generic evidence-overlap features are not enough either. The
+controller likely needs structured support, contradiction, and missing-link
+state before it can decide when escalation is worth the cost.
 
 ## Next Implementation Steps
 
@@ -100,10 +102,9 @@ decide when escalation is worth the cost.
    - k=1 vs k=5 answer change,
    - answer-option/evidence overlap,
    - source disagreement or contradiction flags.
-2. Add a stronger router baseline:
-   - logistic regression / gradient boosting,
-   - leave-one-dataset-out split,
-   - static-best vs learned-router vs oracle.
+2. Add a stronger router baseline if we keep investing in routing:
+   - gradient boosting or calibrated cost-sensitive models,
+   - explicit per-regime training rather than one global model.
 3. Add a ledger subagent eval mode:
    - retrieve per gap,
    - ask role agents to emit JSON ledger entries,

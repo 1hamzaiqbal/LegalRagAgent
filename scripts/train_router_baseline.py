@@ -11,6 +11,7 @@ import argparse
 import csv
 import math
 import random
+import warnings
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
@@ -25,11 +26,39 @@ STATIC_EXCLUDE_SUFFIXES = (
     "_input_tokens",
     "_output_tokens",
     "_gold_retrieved",
+    "_gold_rank",
     "_evidence_count",
     "_max_ce_score",
+    "_ce_top1",
+    "_ce_top2",
+    "_ce_top5",
+    "_ce_top1_top2_margin",
+    "_ce_top1_top5_margin",
+    "_ce_score_entropy",
+    "_unique_source_count",
+    "_source_diversity",
+    "_retrieved_chars",
+    "_question_evidence_overlap",
+    "_choice_evidence_overlap_max",
+    "_choice_evidence_overlap_margin",
     "_parse_ok",
 )
-PROBE_SUFFIXES = ("_evidence_count", "_max_ce_score")
+PROBE_SUFFIXES = (
+    "_evidence_count",
+    "_max_ce_score",
+    "_ce_top1",
+    "_ce_top2",
+    "_ce_top5",
+    "_ce_top1_top2_margin",
+    "_ce_top1_top5_margin",
+    "_ce_score_entropy",
+    "_unique_source_count",
+    "_source_diversity",
+    "_retrieved_chars",
+    "_question_evidence_overlap",
+    "_choice_evidence_overlap_max",
+    "_choice_evidence_overlap_margin",
+)
 
 
 def load_rows(paths: list[Path]) -> list[dict[str, str]]:
@@ -130,6 +159,69 @@ def evaluate_predictions(rows: list[dict[str, str]], predictions: list[str], lab
         "invalid": invalid,
         "chosen": Counter(predictions),
     }
+
+
+def sklearn_feature_dict(row: dict[str, str], features: list[str]) -> dict[str, Any]:
+    values: dict[str, Any] = {}
+    for feature in features:
+        raw = row.get(feature, "")
+        numeric = to_float(raw)
+        values[feature] = numeric if numeric is not None else str(raw)
+    return values
+
+
+def sklearn_predictions(
+    train_rows: list[dict[str, str]],
+    test_rows: list[dict[str, str]],
+    features: list[str],
+    label_column: str,
+    arms: list[str],
+    seed: int,
+) -> list[tuple[str, list[str], str]]:
+    labels = [row[label_column] for row in train_rows]
+    if len(set(labels)) < 2:
+        return []
+    try:
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.feature_extraction import DictVectorizer
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.pipeline import make_pipeline
+    except Exception as exc:  # pragma: no cover - optional dependency path
+        return [("sklearn_unavailable", [arms[0]] * len(test_rows), type(exc).__name__)]
+
+    train_x = [sklearn_feature_dict(row, features) for row in train_rows]
+    test_x = [sklearn_feature_dict(row, features) for row in test_rows]
+    fallback = best_static_arm(train_rows, arms)
+    models = [
+        (
+            "logreg",
+            make_pipeline(
+                DictVectorizer(),
+                LogisticRegression(max_iter=1000, class_weight="balanced", random_state=seed),
+            ),
+        ),
+        (
+            "random_forest",
+            make_pipeline(
+                DictVectorizer(),
+                RandomForestClassifier(
+                    n_estimators=200,
+                    max_depth=4,
+                    min_samples_leaf=10,
+                    class_weight="balanced",
+                    random_state=seed,
+                ),
+            ),
+        ),
+    ]
+    outputs = []
+    for name, model in models:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            model.fit(train_x, labels)
+        predictions = [str(label) if str(label) in arms else fallback for label in model.predict(test_x)]
+        outputs.append((name, predictions, model.__class__.__name__))
+    return outputs
 
 
 class DecisionStump:
@@ -285,6 +377,8 @@ def evaluate_split(
     features: list[str],
     call_penalty: float,
     latency_penalty: float,
+    include_sklearn: bool,
+    seed: int,
 ) -> tuple[list[str], str]:
     static_arm = best_static_arm(train_rows, arms)
     global_label = majority([row[label_column] for row in train_rows], fallback=static_arm)
@@ -298,8 +392,13 @@ def evaluate_split(
         format_result("static_best_train", evaluate_predictions(test_rows, [static_arm] * len(test_rows), label_column)),
         format_result("majority_oracle_label", evaluate_predictions(test_rows, [global_label] * len(test_rows), label_column)),
         format_result("decision_stump", evaluate_predictions(test_rows, stump.predict(test_rows), label_column)),
-        format_result("oracle_label", evaluate_predictions(test_rows, [row[label_column] for row in test_rows], label_column)),
     ])
+    if include_sklearn:
+        for model_name, predictions, _description in sklearn_predictions(
+            train_rows, test_rows, features, label_column, arms, seed
+        ):
+            lines.append(format_result(model_name, evaluate_predictions(test_rows, predictions, label_column)))
+    lines.append(format_result("oracle_label", evaluate_predictions(test_rows, [row[label_column] for row in test_rows], label_column)))
     lines.extend([
         "",
         f"- static arm from train: `{static_arm}`",
@@ -321,6 +420,7 @@ def main() -> None:
     parser.add_argument("--include-provider-feature", action="store_true")
     parser.add_argument("--include-subject-feature", action="store_true")
     parser.add_argument("--include-probe-features", action="store_true")
+    parser.add_argument("--include-sklearn", action="store_true")
     parser.add_argument("--call-penalty", type=float, default=0.02)
     parser.add_argument("--latency-penalty", type=float, default=0.0)
     args = parser.parse_args()
@@ -339,7 +439,7 @@ def main() -> None:
         "# Router Baseline Report",
         "",
         "This report tests whether cheap static task features can predict the oracle method arm.",
-        "It is intentionally lightweight: a fixed static arm, a majority-oracle label, and a one-rule decision stump.",
+        "It is intentionally lightweight: fixed arms, a one-rule stump, and optional small sklearn baselines.",
         "",
         f"Rows: `{len(rows)}`",
         f"Arms: `{', '.join(arms)}`",
@@ -348,6 +448,7 @@ def main() -> None:
         f"Include provider feature: `{args.include_provider_feature}`",
         f"Include subject feature: `{args.include_subject_feature}`",
         f"Include retrieval-probe features: `{args.include_probe_features}`",
+        f"Include sklearn baselines: `{args.include_sklearn}`",
         f"Policy reward: `correct - {args.call_penalty:g}*calls - {args.latency_penalty:g}*sec`",
         f"Features: `{', '.join(features)}`",
         "",
@@ -356,7 +457,7 @@ def main() -> None:
     train_rows, test_rows = split_random(rows, args.test_fraction, args.seed)
     split_lines, _ = evaluate_split(
         "Random Split", train_rows, test_rows, arms, args.label_column, features,
-        args.call_penalty, args.latency_penalty,
+        args.call_penalty, args.latency_penalty, args.include_sklearn, args.seed,
     )
     lines.extend(split_lines)
 
@@ -368,7 +469,7 @@ def main() -> None:
             test = [row for row in rows if row.get("dataset", "") == dataset]
             split_lines, _ = evaluate_split(
                 f"Hold Out `{dataset}`", train, test, arms, args.label_column, features,
-                args.call_penalty, args.latency_penalty,
+                args.call_penalty, args.latency_penalty, args.include_sklearn, args.seed,
             )
             lines.extend(split_lines)
 
