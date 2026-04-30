@@ -1,5 +1,5 @@
 #!/bin/bash
-# End-to-end: embed CaseHOLD into Chroma, then run paired
+# End-to-end: repair CaseHOLD gold ids, embed into Chroma, then run paired
 # rag_simple + rag_snap_hyde_2call × Llama 70b × CaseHOLD N=200.
 #
 # Why bundled: prior split-job approach (55488) failed at preflight because
@@ -73,8 +73,11 @@ fi
 
 source "$EVAL_VENV/bin/activate"
 
-echo "[$(date -Is)] === STAGE 1: embed CaseHOLD into Chroma ==="
-echo "[$(date -Is)] Corpus: datasets/casehold/holdings_corpus.csv (~50K holdings)"
+echo "[$(date -Is)] === STAGE 1: repair CaseHOLD gold mapping ==="
+python scripts/repair_casehold_gold_mapping.py
+
+echo "[$(date -Is)] === STAGE 2: embed CaseHOLD into Chroma ==="
+echo "[$(date -Is)] Corpus: datasets/casehold/holdings_corpus.csv (~51K repaired holdings)"
 echo "[$(date -Is)] Target collection: casehold_holdings"
 echo "[$(date -Is)] Chroma dir: $CHROMA_DB_DIR"
 
@@ -98,7 +101,7 @@ export TRANSFORMERS_OFFLINE=1
 export HF_DATASETS_OFFLINE=1
 
 echo
-echo "[$(date -Is)] === STAGE 2: paired eval rag_simple + rag_snap_hyde_2call × CaseHOLD N=$N_QUESTIONS ==="
+echo "[$(date -Is)] === STAGE 3: paired eval rag_simple + rag_snap_hyde_2call × CaseHOLD N=$N_QUESTIONS ==="
 echo "[$(date -Is)] LLM=$PROVIDER, dataset=casehold, seed=$SEED"
 
 FAILURES=0
