@@ -41,6 +41,12 @@ STATIC_EXCLUDE_SUFFIXES = (
     "_question_evidence_overlap",
     "_choice_evidence_overlap_max",
     "_choice_evidence_overlap_margin",
+    "_top1_state_match",
+    "_any_state_match",
+    "_all_state_match",
+    "_state_match_frac",
+    "_unique_retrieved_states",
+    "_state_diversity",
     "_parse_ok",
 )
 PROBE_SUFFIXES = (
@@ -58,6 +64,12 @@ PROBE_SUFFIXES = (
     "_question_evidence_overlap",
     "_choice_evidence_overlap_max",
     "_choice_evidence_overlap_margin",
+    "_top1_state_match",
+    "_any_state_match",
+    "_all_state_match",
+    "_state_match_frac",
+    "_unique_retrieved_states",
+    "_state_diversity",
 )
 
 

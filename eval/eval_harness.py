@@ -3574,6 +3574,18 @@ def _where_from_config(config: EvalConfig) -> dict | None:
     return None
 
 
+def _housing_state_where(row: pd.Series, config: EvalConfig) -> dict | None:
+    """Build a HousingQA state metadata filter for Chroma retrieval."""
+    if config.dataset != "housing":
+        return _where_from_config(config)
+    state = str(row.get("state", "") or "").strip()
+    if not state:
+        return _where_from_config(config)
+    if config.source_filter:
+        return {"$and": [{"source": config.source_filter}, {"state": state}]}
+    return {"state": state}
+
+
 def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
     """Query rewrite → retrieval → answer with evidence."""
     question = _fmt(row, config)
@@ -3612,6 +3624,39 @@ def run_rag_simple(row: pd.Series, config: EvalConfig) -> dict:
 
     return {
         "final_answer": answer,
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+
+
+def run_rag_state_filter(row: pd.Series, config: EvalConfig) -> dict:
+    """HousingQA state-filtered RAG using Chroma metadata."""
+    if config.dataset != "housing":
+        result = run_rag_simple(row, config)
+        result["state_filter_fallback"] = "dataset_not_supported"
+        return result
+
+    question = _fmt(row, config)
+    raw_question = _retrieval_question(row)
+    where = _housing_state_where(row, config)
+
+    retrieval = _retrieve_and_format(
+        row,
+        [raw_question],
+        k=config.retrieval_k,
+        label_prefix="state_filter",
+        where=where,
+        collection=_collection_for_config(config),
+    )
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="rag_state_filter/answer")
+
+    return {
+        "final_answer": answer,
+        "retrieval_where": where or {},
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
@@ -5100,6 +5145,7 @@ MODE_RUNNERS = {
     "llm_only": run_llm_only,
     "rag_rewrite": run_rag_rewrite,
     "rag_simple": run_rag_simple,
+    "rag_state_filter": run_rag_state_filter,
     "golden_passage": run_golden_passage,
     "golden_arbitration": run_golden_arbitration,
     "golden_arb_conservative": run_golden_arb_conservative,

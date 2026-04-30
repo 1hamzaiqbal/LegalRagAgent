@@ -29,6 +29,7 @@ EVAL_MODES = {
     "llm_only":            "Direct LLM answer, no retrieval",
     "rag_rewrite":         "Query rewrite → retrieval → synthesize",
     "rag_simple":          "Raw question → retrieval → synthesize",
+    "rag_state_filter":    "HousingQA state-filtered RAG: retrieve only statutes matching the question state, then synthesize",
     "golden_passage":      "LLM answer with gold passage injected as context",
     "golden_arbitration":       "LLM answers naive, then reviews golden passage (neutral framing)",
     "golden_arb_conservative":  "LLM answers naive, then reviews golden passage (biased toward keeping)",

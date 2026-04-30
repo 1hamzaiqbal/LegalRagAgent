@@ -24,6 +24,14 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 import compute_mcnemar  # type: ignore  # noqa: E402
 
+_field_limit = sys.maxsize
+while True:
+    try:
+        csv.field_size_limit(_field_limit)
+        break
+    except OverflowError:
+        _field_limit //= 10
+
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
@@ -217,7 +225,58 @@ def evidence_text(row: dict[str, Any]) -> str:
     return "\n".join(str(item.get("text", "")) for item in evidence_items(row))
 
 
-def evidence_probe_metrics(row: dict[str, Any]) -> dict[str, Any]:
+def norm_state(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip()).lower()
+
+
+def load_statute_states(path: Path) -> dict[str, str]:
+    states: dict[str, str] = {}
+    with path.open(newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            idx = str(row.get("idx", "")).strip()
+            if idx:
+                states[idx] = str(row.get("state", "")).strip()
+    return states
+
+
+def split_gold_ids(row: dict[str, Any]) -> set[str]:
+    raw = row.get("gold_idx")
+    if raw is None:
+        return set()
+    if isinstance(raw, list):
+        return {str(item).strip() for item in raw if str(item).strip()}
+    return {part.strip() for part in str(raw).split(",") if part.strip()}
+
+
+def housing_state_metrics(row: dict[str, Any], statute_states: dict[str, str] | None) -> dict[str, Any]:
+    if str(row.get("dataset", "")).lower() != "housing" or not statute_states:
+        return {
+            "top1_state_match": 0,
+            "any_state_match": 0,
+            "all_state_match": 0,
+            "state_match_frac": 0.0,
+            "unique_retrieved_states": 0,
+            "state_diversity": 0.0,
+        }
+
+    q_state = norm_state(row.get("state"))
+    retrieved = [str(value) for value in row.get("retrieved_ids") or []]
+    states = [statute_states.get(idx, "") for idx in retrieved]
+    known_states = [state for state in states if state]
+    matches = [norm_state(state) == q_state for state in known_states]
+    unique_states = {norm_state(state) for state in known_states if norm_state(state)}
+    return {
+        "top1_state_match": int(bool(matches[0]) if matches else False),
+        "any_state_match": int(any(matches)),
+        "all_state_match": int(bool(matches) and all(matches)),
+        "state_match_frac": round(sum(matches) / len(matches), 6) if matches else 0.0,
+        "unique_retrieved_states": len(unique_states),
+        "state_diversity": round(len(unique_states) / len(known_states), 6) if known_states else 0.0,
+    }
+
+
+def evidence_probe_metrics(row: dict[str, Any], statute_states: dict[str, str] | None = None) -> dict[str, Any]:
     evidence = evidence_items(row)
     scores = ce_scores(row)
     padded = scores + [0.0] * max(0, 5 - len(scores))
@@ -230,9 +289,10 @@ def evidence_probe_metrics(row: dict[str, Any]) -> dict[str, Any]:
     choice_overlap_max = choice_overlaps[0] if choice_overlaps else 0.0
     choice_overlap_second = choice_overlaps[1] if len(choice_overlaps) > 1 else 0.0
     question = str(row.get("formatted_question") or row.get("question") or "")
-    gold_idx = str(row.get("gold_idx") or "")
+    gold_ids = split_gold_ids(row)
     retrieved_ids = [str(value) for value in row.get("retrieved_ids") or []]
-    return {
+    gold_ranks = [retrieved_ids.index(gold_id) + 1 for gold_id in gold_ids if gold_id in retrieved_ids]
+    metrics = {
         "ce_top1": round(top1, 6),
         "ce_top2": round(top2, 6),
         "ce_top5": round(top5, 6),
@@ -245,11 +305,13 @@ def evidence_probe_metrics(row: dict[str, Any]) -> dict[str, Any]:
         "question_evidence_overlap": round(overlap_ratio(question, text), 6),
         "choice_evidence_overlap_max": round(choice_overlap_max, 6),
         "choice_evidence_overlap_margin": round(choice_overlap_max - choice_overlap_second, 6),
-        "gold_rank": retrieved_ids.index(gold_idx) + 1 if gold_idx in retrieved_ids else 0,
+        "gold_rank": min(gold_ranks) if gold_ranks else 0,
     }
+    metrics.update(housing_state_metrics(row, statute_states))
+    return metrics
 
 
-def arm_metrics(row: dict[str, Any]) -> dict[str, Any]:
+def arm_metrics(row: dict[str, Any], statute_states: dict[str, str] | None = None) -> dict[str, Any]:
     correct = compute_mcnemar.correct_flag(row)
     calls = float(row.get("llm_calls_actual", row.get("llm_calls", 0)) or 0)
     latency = float(row.get("elapsed_sec", 0) or 0)
@@ -264,7 +326,7 @@ def arm_metrics(row: dict[str, Any]) -> dict[str, Any]:
         "max_ce_score": round(max_ce_score(row), 6),
         "parse_ok": int(all(bool(row.get(key)) for key in row if key.endswith("_parse_ok"))) if any(key.endswith("_parse_ok") for key in row) else "",
     }
-    metrics.update(evidence_probe_metrics(row))
+    metrics.update(evidence_probe_metrics(row, statute_states))
     return metrics
 
 
@@ -279,6 +341,12 @@ def main() -> None:
     parser.add_argument("--key", help="Override join key")
     parser.add_argument("--call-penalty", type=float, default=0.02)
     parser.add_argument("--latency-penalty", type=float, default=0.0)
+    parser.add_argument(
+        "--housing-statutes",
+        type=Path,
+        default=REPO_ROOT / "datasets/housing_qa/statutes.csv",
+        help="CSV with HousingQA statute idx/state columns for metadata features",
+    )
     args = parser.parse_args()
 
     rows_by_arm: dict[str, list[dict[str, Any]]] = {}
@@ -287,6 +355,13 @@ def main() -> None:
         if label in rows_by_arm:
             raise SystemExit(f"Duplicate arm label {label!r}")
         rows_by_arm[label] = load_jsonl(path)
+
+    has_housing = any(
+        str(row.get("dataset", "")).lower() == "housing"
+        for rows in rows_by_arm.values()
+        for row in rows
+    )
+    statute_states = load_statute_states(args.housing_statutes) if has_housing and args.housing_statutes.exists() else None
 
     labels = list(rows_by_arm)
     key = choose_key(rows_by_arm, args.key)
@@ -301,7 +376,7 @@ def main() -> None:
         out = {"join_key": row_key, **static_features(base_row)}
         per_arm = {}
         for label in labels:
-            metrics = arm_metrics(by_key[label][row_key])
+            metrics = arm_metrics(by_key[label][row_key], statute_states)
             per_arm[label] = metrics
             for metric_name, value in metrics.items():
                 out[f"{label}_{metric_name}"] = value

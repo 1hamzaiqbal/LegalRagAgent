@@ -35,7 +35,7 @@ Repo-grounded capability:
 | MuSiQue | 2,417 QA / 48,315 passages | QA harness; special in-row BM25 retrieval, no Chroma needed | Multi-hop retrieval depth, query formulation, bridge/composition failures | top-1 collapses; `two_call`, `mhd`, and `iter_ptable` are complementary | Not legal-domain evidence; use as mechanism analog, not legal headline |
 | LegalBench-SCALR | 571 QA / 1,733 holdings | QA harness; local Chroma ready | Supreme Court holding selection, small candidate-set retrieval | top-1 59.5%, top-5/top-10 77.0%; top-10 adds recall without net accuracy | Best read is candidate-set saturation, not "more k is better" |
 | MLEB-SCALR | 120 queries / 523 holdings / 120 qrels | Retrieval-only runner; local Chroma ready | Pure retriever calibration without LLM answer confounds | gte-large Recall@1 34.2%, Recall@5 65.0%, Recall@10 72.5% | Not a QA benchmark; do not mix into answer accuracy tables |
-| CaseHOLD | 3,600 test / 50,291 holdings | QA harness; cluster RAG ready, local collection absent | Holding-option disambiguation and distractor sensitivity | top-1/top-5/2-call are answer-flat in current N=200 audits | `gold_retrieved=0` is instrumentation, not proof retrieval failed |
+| CaseHOLD | 3,600 test / 51,296 repaired holdings | QA harness; collection rebuild needed after gold mapping repair | Holding-option disambiguation and distractor sensitivity | top-1/top-5/2-call are answer-flat in old N=200 audits | Old `gold_retrieved=0` was instrumentation; rebuild Chroma before new retrieval claims |
 | Legal-RAG-QA | Missing locally; downloader exists | QA harness once restored/embedded | Small open-ended criminal-law QA and relevant-passage recall sanity | Not currently runnable locally | Likely too small/easy for headline novelty |
 | Australian Legal QA | Missing locally; downloader exists | QA harness once restored/embedded | Open-ended jurisdiction/source grounding over synthetic QA | Not currently runnable locally | Synthetic construction may overreward source-copy behavior |
 | LegalBench-RAG | Not wired | Retrieval-only future loader | Legal snippet precision and citation granularity | No local run | Needs span/character-overlap scorer, not document-id qrels only |
@@ -46,7 +46,7 @@ Repo-grounded capability:
 | Family | Representative modes/tools | Best use | Avoid using it for |
 |---|---|---|---|
 | Direct/no retrieval | `llm_only`, `snap_only_in_final`, `vectorless_*`, `self_verify`, `snap_debate`, `friend_foe_attribution` | Parametric sufficiency, anchoring, attribution, and "do we need retrieval at all?" probes | Retrieval claims |
-| Basic retrieval/depth | `rag_simple --retrieval-k`, `rag_rewrite`, `rag_multi_query`, `golden_passage` | Top-k policy, raw retrieval value, oracle/context-utilization checks | Agentic novelty claims |
+| Basic retrieval/depth | `rag_simple --retrieval-k`, `rag_rewrite`, `rag_multi_query`, `rag_state_filter`, `golden_passage` | Top-k policy, raw retrieval value, metadata-filtered retrieval, oracle/context-utilization checks | Agentic novelty claims |
 | Pseudo-document/query formulation | `rag_hyde`, `rag_snap_hyde`, `rag_snap_hyde_2call`, `multi_hyde_diverse`, `iter_hyde` | Query-formulation bottlenecks and answer-conditioned retrieval | Datasets where top-k is flat or option choice is already saturated |
 | Decomposition/agentic | `subagent_*`, `decompose_rag`, `planning_table`, `iterative_planning_table`, `advisor_planning_table` | Multi-hop/composition probes and evidence-state experiments | Blanket "agents help legal QA" claims; MuSiQue shows extra evidence can also harm |
 | Routing/verification | `adaptive_snap_route`, `confidence_gated`, `ce_threshold`, `double_snap`, router scripts | Cost-aware escalation and cheap controller tests | Paper claims until leave-one-dataset-out improves |
@@ -91,7 +91,8 @@ failure is deeper: statute chunking, legal support utilization, or yes/no bias.
 No new infra:
 
 1. MLEB-SCALR embedding A/B locally: re-embed 523 holdings with alternative
-   embedders and score qrels.
+   embedders and score qrels. Current local A/B has `gte-large` ahead of
+   `all-MiniLM-L6-v2`; larger downloads are deferred.
 2. SCALR full/test-size reruns locally if API budget allows; local collection
    exists.
 3. MuSiQue method probes locally because the harness uses per-row retrieval,
@@ -102,7 +103,8 @@ No new infra:
 
 Cluster-ready after pulling latest branch:
 
-1. Housing state-filtered retrieval or state-aware reranking.
+1. Housing `rag_state_filter` k=5/k=10 via
+   `scripts/hpc/slurm_housing_state_filter.sh`.
 2. BarExam full-N confirmatory rows if API budget allows.
 3. CaseHOLD reruns only after gold-option retrieval mapping is fixed.
 4. Larger Housing N if the top-1 to top-10 trend needs significance.
@@ -123,7 +125,7 @@ Do not build a broad multi-agent system next. The more defensible path is:
 1. Add a Housing state-filtered retrieval arm.
 2. Build router table v2 with Housing and metadata features.
 3. Run MLEB-SCALR embedding A/B as the cheap retriever-calibration side path.
-4. Fix CaseHOLD retrieval mapping.
+4. Rebuild CaseHOLD Chroma from the repaired gold mapping.
 5. Only then implement SpecRAG-lite on the cells where the audit says draft
    diversity should matter: MuSiQue and maybe Housing, not BarExam/CaseHOLD by
    default.

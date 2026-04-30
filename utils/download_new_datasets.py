@@ -1,10 +1,17 @@
 """Download and prepare legal-rag-qa, open-australian-legal-qa, and casehold datasets."""
+import hashlib
 import json
 import os
 import sys
 
 import pandas as pd
 from datasets import load_dataset
+
+
+def stable_holding_id(text: str, prefix: str = "holding") -> str:
+    normalized = " ".join(str(text or "").split())
+    digest = hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:16]
+    return f"{prefix}_{digest}"
 
 
 def prep_legal_rag_qa():
@@ -119,11 +126,20 @@ def prep_casehold():
 
     ds = load_dataset("coastalcph/lex_glue", "case_hold")
 
+    holding_sources: dict[str, set[str]] = {}
+    holding_text: dict[str, str] = {}
     for split in ["test", "train"]:
         rows = []
         for i, row in enumerate(ds[split]):
             endings = row["endings"]
             label = row["label"]
+            answer = chr(ord("A") + label)
+            gold_text = endings[label]
+            gold_idx = stable_holding_id(gold_text, prefix="casehold")
+            for ending in endings:
+                idx = stable_holding_id(ending, prefix="casehold")
+                holding_text.setdefault(idx, ending)
+                holding_sources.setdefault(idx, set()).add(split)
             rows.append({
                 "idx": f"ch_{split}_{i}",
                 "question": row["context"],
@@ -132,25 +148,23 @@ def prep_casehold():
                 "choice_c": endings[2],
                 "choice_d": endings[3],
                 "choice_e": endings[4],
-                "answer": chr(ord("A") + label),  # 0->A, 1->B, etc.
+                "answer": answer,  # 0->A, 1->B, etc.
+                "gold_idx": gold_idx,
             })
         df = pd.DataFrame(rows)
         df.to_csv(os.path.join(out_dir, f"{split}.csv"), index=False)
         print(f"casehold {split}: {len(df)} rows -> {out_dir}/{split}.csv")
 
-    # Build holdings corpus from train set for retrieval
-    # Each unique holding becomes a passage
-    holdings = set()
+    # Build a holdings corpus from all displayed train/test options. This makes
+    # answer-choice retrieval diagnostics meaningful: test rows now have a
+    # stable gold_idx that can be checked against retrieved_ids.
     corpus_rows = []
-    for i, row in enumerate(ds["train"]):
-        for j, ending in enumerate(row["endings"]):
-            if ending not in holdings:
-                holdings.add(ending)
-                corpus_rows.append({
-                    "idx": f"holding_{len(corpus_rows)}",
-                    "text": ending,
-                    "source": "train",
-                })
+    for idx, text in sorted(holding_text.items()):
+        corpus_rows.append({
+            "idx": idx,
+            "text": text,
+            "source": "casehold_" + "+".join(sorted(holding_sources[idx])),
+        })
     corpus_df = pd.DataFrame(corpus_rows)
     corpus_df.to_csv(os.path.join(out_dir, "holdings_corpus.csv"), index=False)
     print(f"casehold holdings corpus: {len(corpus_df)} unique holdings -> {out_dir}/holdings_corpus.csv")
