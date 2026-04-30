@@ -298,6 +298,47 @@ def prep_legalbench_scalr():
     print(f"legalbench_scalr holdings corpus: {len(corpus_df)} unique holdings -> {out_dir}/holdings_corpus.csv")
 
 
+def prep_mleb_scalr():
+    """MLEB-SCALR: retrieval-only SCALR packaging with corpus, queries, qrels."""
+    out_dir = "datasets/mleb_scalr"
+    os.makedirs(out_dir, exist_ok=True)
+
+    corpus_ds = load_dataset("isaacus/mleb-scalr", "corpus")["corpus"]
+    corpus_rows = []
+    for row in corpus_ds:
+        corpus_rows.append({
+            "idx": row["_id"],
+            "title": row.get("title", ""),
+            "text": row["text"],
+        })
+    corpus_df = pd.DataFrame(corpus_rows)
+    corpus_df.to_csv(os.path.join(out_dir, "corpus.csv"), index=False)
+    print(f"mleb_scalr corpus: {len(corpus_df)} holdings -> {out_dir}/corpus.csv")
+
+    query_ds = load_dataset("isaacus/mleb-scalr", "queries")["queries"]
+    query_rows = []
+    for row in query_ds:
+        query_rows.append({
+            "idx": row["_id"],
+            "query": row["text"],
+        })
+    query_df = pd.DataFrame(query_rows)
+    query_df.to_csv(os.path.join(out_dir, "queries.csv"), index=False)
+    print(f"mleb_scalr queries: {len(query_df)} queries -> {out_dir}/queries.csv")
+
+    qrels_ds = load_dataset("isaacus/mleb-scalr", "default")["test"]
+    qrel_rows = []
+    for row in qrels_ds:
+        qrel_rows.append({
+            "query_id": row["query-id"],
+            "doc_id": row["corpus-id"],
+            "score": row.get("score", 1.0),
+        })
+    qrels_df = pd.DataFrame(qrel_rows)
+    qrels_df.to_csv(os.path.join(out_dir, "qrels.csv"), index=False)
+    print(f"mleb_scalr qrels: {len(qrels_df)} rows -> {out_dir}/qrels.csv")
+
+
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else "all"
 
@@ -311,3 +352,5 @@ if __name__ == "__main__":
         prep_musique()
     if target in ("legalbench_scalr", "scalr", "all"):
         prep_legalbench_scalr()
+    if target in ("mleb_scalr", "mleb-scalr", "all"):
+        prep_mleb_scalr()

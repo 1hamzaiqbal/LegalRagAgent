@@ -68,6 +68,10 @@ Implemented now:
 - `scripts/score_retrieval_qrels.py` scores retrieval-only Recall@k,
   Precision@k, Hit@k, MRR@k, and nDCG@k from detail logs plus qrels, or from
   logged `gold_idx` when qrels are already embedded in the detail rows.
+- `scripts/run_retrieval_qrels_eval.py` produces answer-free retrieval detail
+  logs for BEIR/MTEB-style datasets.
+- `utils/download_new_datasets.py mleb_scalr` and `utils/fast_embed.py
+  mleb_scalr` now materialize and embed the MLEB-SCALR retrieval-only corpus.
 
 Adjacent metric families worth adopting later:
 
@@ -87,7 +91,7 @@ Adjacent metric families worth adopting later:
 | HousingQA | Zheng legal RAG benchmark: practical housing statute questions with jurisdiction-specific statutory passages and yes/no answers. | Retrieval Recall@k plus downstream yes/no accuracy. | Critical missing diagnostic slice for us: it is the cleanest "obscure legal knowledge" test and should be less parametric-memory-saturated than BarExam. |
 | CaseHOLD | Five-way holding identification from legal citation context. | MC accuracy; retrieval metrics only meaningful if the gold holding is mapped into the corpus. | Current `gold_retrieved=0/200` is instrumentation, not evidence that retrieval failed. Treat current logs as answer-level only. |
 | LegalBench-SCALR | Five-way Supreme Court holding selection from question-presented text. | MC accuracy; in our packaged corpus, gold holding retrieval can be meaningful. | Top-5 helps over top-1, but top-10 adds gold hits without answer gain; this is candidate-set saturation, not a generic "more k helps" story. |
-| MLEB-SCALR | Retrieval-only packaging of the SCALR family. | qrels metrics such as Recall@k, MRR, nDCG. | Does not fit `eval_harness.py` as QA; should use a retrieval scorer or `eval/run_embedding_comparison.py`. |
+| MLEB-SCALR | Retrieval-only packaging of the SCALR family. | qrels metrics such as Recall@k, MRR, nDCG. | Does not fit `eval_harness.py` as QA; now has an answer-free local baseline path via `scripts/run_retrieval_qrels_eval.py`. |
 | LegalBench-RAG | Legal retrieval benchmark focused on minimal relevant snippets rather than broad document IDs/chunks. | Precise retrieval metrics over expert-annotated snippet targets. | Useful for retrieval-only calibration and citation granularity, not directly an answer-generation benchmark. |
 | Legal-RAG-QA | Small open-ended legal QA over 190 passages and 138 questions. | Open-ended answer judge, containment where gold answers are extractive enough, relevant-passage recall. | Existing historical results suggest it may be too easy; use for harness sanity, not headline novelty. `utils/download_new_datasets.py` now writes `gold_idx` from `relevant_passages`, and `eval_harness.py` accepts that fallback for retrieval scoring. |
 | Australian Legal QA | GPT-4-synthesized QA from Open Australian Legal Corpus snippets. | Open-ended answer judge/containment and source retrieval. | Synthetic QA may reward source-copy behavior; useful for jurisdiction/source logging and open-ended scoring plumbing. Current downloader maps each QA to a source-passage `gold_idx`. |
@@ -110,6 +114,10 @@ GROUNDED from `docs/speculative_metrics_report_2026-04-30.md`:
   full-N paired confirmation says otherwise.
 - CaseHOLD stays answer-flat and has broken gold-hit instrumentation. Fix
   retrieval mapping before saying anything about recall.
+- MLEB-SCALR gte-large retrieval-only baseline is modest despite the tiny
+  corpus: Recall@1 34.2%, Recall@5 65.0%, Recall@10 72.5%, MRR@10 45.8%,
+  nDCG@10 52.2% (`docs/mleb_scalr_retrieval_baseline_2026-04-30.md`). This
+  gives us a pure retrieval calibration point without LLM answer confounds.
 
 ## Research Gap We Can Defend
 
@@ -142,8 +150,9 @@ intervention that matches the measured failure.
 ## Wiring Gaps
 
 1. Retrieval-only qrels scorer extension: `scripts/score_retrieval_qrels.py`
-   now covers document-id qrels. LegalBench-RAG still needs character/span
-   overlap hooks for snippet-level precision.
+   and `scripts/run_retrieval_qrels_eval.py` now cover document-id qrels.
+   LegalBench-RAG still needs character/span overlap hooks for snippet-level
+   precision.
 2. Legal RAG Bench loader: add corpus/QA downloader, retrieval collection, and
    correctness/groundedness/retrieval-accuracy judge schema.
 3. Legal-RAG-QA local restoration: the downloader/harness path is fixed, but
@@ -170,9 +179,9 @@ Priority order:
 1. HousingQA depth and pseudo-doc slice on cluster: `rag_simple` k=1/k=5/k=10
    plus `rag_snap_hyde_2call`, N=200 first. This tests whether the Zheng
    "retrieval helps obscure statutes" regime matches our bottleneck taxonomy.
-2. Retrieval-only scorer on MLEB-SCALR or LegalBench-RAG-mini. The generic
-   qrels scorer is in place for ID-level qrels; LegalBench-RAG-mini needs
-   span-overlap adaptation.
+2. Embedding A/B on MLEB-SCALR: rerun `mleb_scalr` with `bge-m3`,
+   `legal-bert`, and one larger general retriever. This isolates retriever
+   variance without spending any LLM calls.
 3. Mini SpecRAG probe on MuSiQue and SCALR only: cluster top-k docs, generate
    3 answer+rationale drafts, verify with one model call. Success criterion is
    not raw accuracy alone; it must show row-level selection explains why MuSiQue

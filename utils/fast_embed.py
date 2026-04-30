@@ -119,6 +119,12 @@ CORPORA = {
         "text_col": "text",
         "idx_col": "idx",
     },
+    "mleb_scalr": {
+        "csv": "datasets/mleb_scalr/corpus.csv",
+        "collection": "mleb_scalr_holdings",
+        "text_col": "text",
+        "idx_col": "idx",
+    },
     "musique": {
         "csv": "datasets/musique/passages.csv",
         "collection": "musique_passages",
