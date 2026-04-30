@@ -18,8 +18,10 @@ are historical context only.
 5. `research_strategy_2026-04-30.md` - current strategy reset: novelty
    boundary, grounded motivation, harness gaps, and recommended next
    experiments.
-6. `paper_narrative_2026-04-28.md` - current paper skeleton after the pivot.
-7. `compiled_results.md` - audited result ledger with direct log paths, caveats,
+6. `adaptive_controller_design_2026-04-30.md` - feasible path for fast
+   bottleneck-aware method routing and agentic escalation.
+7. `paper_narrative_2026-04-28.md` - current paper skeleton after the pivot.
+8. `compiled_results.md` - audited result ledger with direct log paths, caveats,
    and per-row provenance.
 
 ## Evidence Ledgers
@@ -27,6 +29,9 @@ are historical context only.
 - `logs/experiments.jsonl` - machine-readable run summaries.
 - `evidence_matrix_2026-04-30.md` - reproducible matrix generated from landed
   detail logs by `scripts/build_evidence_matrix.py`.
+- `router_oracle_musique_2026-04-30.md` and
+  `router_oracle_barexam_2026-04-30.md` - offline routing headroom generated
+  by `scripts/evaluate_routing_oracle.py`.
 - `audit_log.md` - BarExam post-fix audit truth and historical guardrails.
 - `mcnemar_2026-04-27.md` - paired tests from the pre-pivot MuSiQue matrix.
 - `docs/audits/` - focused audit artifacts by dataset/model/date.
