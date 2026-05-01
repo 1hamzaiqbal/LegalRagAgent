@@ -56,10 +56,10 @@ Legal retrieval-augmented generation is usually summarized as one accuracy
 number, but legal QA failures are not one phenomenon. We study \hyre{}
 (Hypothetical Reasoning Embeddings), a snap-first variant of HyDE in which a
 model first reasons toward an answer and then generates the hypothetical
-retrieval text from that reasoning. We evaluate \hyre{} across BarExamQA,
-HousingQA, LegalBench-SCALR, and CaseHOLD, using one full-corpus legal result
-and paired $N=200$ diagnostics across four legal benchmarks to probe RAG
-bottlenecks. On full-corpus
+retrieval text from that reasoning. We evaluate \hyre{} across BarExamQA
+(bar questions), HousingQA (state statutes), LegalBench-SCALR (holding
+selection), and CaseHOLD (holding options), using one full-corpus legal result
+and paired $N=200$ diagnostics to probe RAG bottlenecks. On full-corpus
 BarExamQA, \method{rag_snap_hyde} improves Gemma 4 26B from 78.08\% to
 81.17\% (+3.09pp, McNemar $p=0.0130$) and Gemma 4 E4B from 58.49\% to
 62.18\% (+3.68pp, $p=0.0129$). The remaining evidence is heterogeneous in a
@@ -122,8 +122,8 @@ The forward hypothesis is that \hyre{} should become adaptive: it should
 choose whether to spend its reasoning budget on query framing, query diversity,
 candidate expansion, metadata filtering, or answer-option conversion depending
 on what the problem appears to need. This is the generalization claim we can
-defend now: not that one prompt wins every benchmark, but that legal RAG errors
-can be typed into reusable bottlenecks with reusable interventions.
+defend now: not that one prompt wins every benchmark, but that the limiting
+stage of a legal RAG pipeline can often be diagnosed and targeted directly.
 
 \section{Related Work}
 
@@ -173,23 +173,29 @@ generic pseudo-document.
 \subsection{Method ladder}
 
 The report uses an inheritance-style method ladder. Each method adds one
-capability where possible, so negative results remain interpretable.
+capability where possible, so negative results remain interpretable. Call
+counts refer to LLM generation calls per question; retrieval, embedding, and
+reranking are not counted. Thus top-$k$ and state-filter comparisons keep the
+same one-call answer budget, while HyDE and \hyre{} spend extra calls to
+generate retrieval text or snap reasoning.
 
 \begin{center}
 \small
-\begin{tabularx}{\textwidth}{lY}
+\begin{tabularx}{\textwidth}{lcY}
 \toprule
-Method & What it isolates \\
+Method & Calls & What it isolates \\
 \midrule
-\method{llm_only} & Parametric legal answer without retrieval. \\
-\method{snap_only_in_final} & Whether a first-pass answer/reasoning trace helps without retrieval. \\
-\method{rag_simple} & Standard retrieval plus answer generation. \\
-\method{rag_hyde} & Question-conditioned hypothetical document retrieval. \\
-\method{rag_snap_hyde} & \hyre{} retrieval plus final synthesis. \\
-\method{rag_snap_hyde_1call} & Whether snap reasoning alone after ordinary retrieval is enough. \\
-\method{rag_snap_hyde_2call} & Fixed-cost snap and \hyre{} passage in one first call, final synthesis in a second. \\
-\method{multi_hyde_diverse} & Multiple generated retrieval passages for query diversity. \\
-\method{subagent_rag} & Gap-routed report generation; currently used as a negative over-abstention control. \\
+\method{llm_only} & 1 & Parametric legal answer without retrieval. \\
+\method{snap_only_in_final} & 2 & Whether a first-pass answer/reasoning trace helps without retrieval. \\
+\method{golden_passage} & 1 & One labeled passage supplied as a diagnostic control, not deployable retrieval. \\
+\method{rag_simple} & 1 & Standard retrieval plus answer generation. \\
+\method{rag_state_filter} & 1 & Standard retrieval constrained by jurisdiction metadata before final answer generation. \\
+\method{rag_hyde} & 2 & Question-conditioned hypothetical document retrieval. \\
+\method{rag_snap_hyde} & 3 & Sequential \hyre{} retrieval plus final synthesis. \\
+\method{rag_snap_hyde_1call} & 1 & Ordinary retrieval, then one answer call that includes snap-style reasoning. \\
+\method{rag_snap_hyde_2call} & 2 & Fixed-cost snap and \hyre{} passage in one first call, final synthesis in a second. \\
+\method{multi_hyde_diverse} & 2 & Multiple generated retrieval passages for query diversity. \\
+\method{subagent_rag} & var. & Gap-routed report generation; currently used as a negative over-abstention control. \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -233,14 +239,15 @@ synthesis.}
 
 \subsection{Bottleneck diagnostics}
 
-We use three families of diagnostics. First, top-$k$ sensitivity tests whether
-answer accuracy depends on retrieving more than the single best passage. This
-is a retrieval-policy stress test, not pure context truncation, because the
-cross-encoder reranks a first-stage candidate pool before selecting the final
-top-$k$. Second, snap-only and HyDE-only ablations ask whether the gain comes
-from answer anchoring, generated-query retrieval, or their combination. Third,
-gold-retrieval and disagreement analyses ask whether better retrieval actually
-converts into better final answers.
+We use ``bottleneck'' to mean the pipeline stage where extra effort most changes
+the final answer. Three diagnostics locate that stage. First, top-$k$
+sensitivity tests whether answer accuracy depends on retrieving more than the
+single best passage. This is a retrieval-policy stress test, not pure context
+truncation, because the cross-encoder reranks a first-stage candidate pool
+before selecting the final top-$k$. Second, snap-only and HyDE-only ablations
+ask whether the gain comes from answer anchoring, generated-query retrieval, or
+their combination. Third, gold-retrieval and disagreement analyses ask whether
+better retrieval actually converts into better final answers.
 
 The four legal benchmarks map naturally onto different bottleneck hypotheses:
 BarExamQA tests answer anchoring under strong legal priors, HousingQA tests
@@ -339,32 +346,36 @@ legal bottleneck each dataset is probing.
 Benchmark & Active bottleneck & Best current evidence & Caveat \\
 \midrule
 BarExamQA / Gemma 4 &
-\hyre{} query anchoring under strong legal priors &
+Answer framing; retrieval depth is flat &
 Full $N=1195$: \hyre{} is +3.09pp at 26B and +3.68pp at E4B; top-5 82.5\%
 vs top-1 83.0\% on $N=200$ &
-Not a pure retrieval-depth win. \\
+Single gold passage is a noisy control, not an oracle ceiling. \\
 \addlinespace
 HousingQA / Gemma 4 &
-Jurisdiction metadata normalization/filtering &
+Jurisdiction filtering &
 $N=200$: top-1 50.5\% to top-10 58.0\% (+7.5pp, $p=0.0722$); state filter
 reaches 61.5\% at k=5 and 62.5\% at k=10 &
-State filter beats generic top-5; k=10 adds little over k=5. \\
+Generic depth helps directionally; state filtering is the cleaner signal. \\
 \addlinespace
 LegalBench-SCALR / Llama 70B &
-Retrieval-policy / candidate-set size &
+Top-5 candidate recall, then saturation &
 $N=200$: top-1 59.5\%, top-5 77.0\%, top-10 77.0\%; HyDE 77.5\%; diverse
 HyDE 75.5\% &
-Top-5 fixes the useful candidate set; generated queries do not yet add answer
-lift. \\
+Generated queries do not yet add answer lift. \\
 \addlinespace
 CaseHOLD / Llama 70B &
-Evidence-to-option conversion &
+Evidence-to-option mapping &
 $N=200$: top-1 64.5\%, top-5 69.5\%, top-10 68.0\%; HyDE and two-call both
 72.0\% &
-Better retrieval recall is not yet a reliable answer lift. \\
+Gold retrieval improves faster than answer accuracy. \\
 \bottomrule
 \end{tabularx}
 \end{table}
+
+SCALR and CaseHOLD are both holding-selection tasks, but they fail differently:
+SCALR becomes much stronger once the useful candidate set is present, while
+CaseHOLD can retrieve the gold holding more often without reliably selecting
+its answer label.
 
 Figure~\ref{fig:depth_conversion} summarizes the key diagnostic split: the
 same top-$k$ or HyDE intervention has different meaning depending on whether
@@ -439,7 +450,10 @@ control.
 
 The ablations also expose when extra calls and tokens are worth spending.
 Figure~\ref{fig:cost_accuracy} plots paired $N=200$ legal subsets with marker
-size proportional to total tokens per question. On the $N=200$ BarExam cost
+size proportional to total tokens per question. Same-call controls are the
+cleanest budget comparisons: top-$k$ and state-filter rows keep one final
+answer call, while HyDE and \hyre{} rows spend one or two additional reasoning
+or pseudo-document calls. On the $N=200$ BarExam cost
 subset, two-call \hyre{} is the cleanest budget tradeoff: it reaches 85.5\%,
 nearly matching sequential \hyre{} at 86.0\%, though the paired lift
 over \method{rag_simple} is directional rather than significant. HousingQA
@@ -459,10 +473,10 @@ budgeted routing, not as always-on \hyre{}.
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics[width=0.74\textwidth]{02_cost_accuracy.png}
-  \caption{Calls and tokens per question matter. Extra reasoning budget is
-  useful on BarExamQA, ambiguous on HousingQA and CaseHOLD, and not currently
-  justified on SCALR.}
+  \includegraphics[width=0.90\textwidth]{02_cost_accuracy.png}
+  \caption{Calls and tokens per question matter. Bubble size is total tokens
+  per question. Extra reasoning budget is useful on BarExamQA, ambiguous on
+  HousingQA and CaseHOLD, and not currently justified on SCALR.}
   \label{fig:cost_accuracy}
 \end{figure}
 
@@ -547,7 +561,7 @@ can measure which form is helping.
 \end{figure}
 \FloatBarrier
 
-The class-report claim is therefore deliberately scoped but optimistic. Across
+The resulting claim is deliberately scoped but optimistic. Across
 several legal benchmarks, we found one full-corpus legal \hyre{} lift on
 BarExamQA and several $N=200$ diagnostic signals that expose reusable
 bottlenecks; those signals define a routing agenda. That is a

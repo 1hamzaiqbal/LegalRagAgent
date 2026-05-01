@@ -226,7 +226,11 @@ def plot_cost_accuracy() -> None:
         "housing_state10": (8, 4),
         "barexam_snap": (8, 4),
         "casehold_hyde": (8, -12),
-        "casehold_2call": (8, -38),
+        "casehold_2call": (8, -34),
+    }
+    annotation_labels = {
+        "casehold_hyde": "CaseHOLD HyDE/2-call",
+        "casehold_2call": "",
     }
     colors = {
         "BarExam": "#4C78A8",
@@ -234,6 +238,17 @@ def plot_cost_accuracy() -> None:
         "SCALR": "#59A14F",
         "CaseHOLD": "#E15759",
     }
+    line_groups = {
+        "BarExam": ["barexam_top5", "barexam_2call", "barexam_snap"],
+        "Housing": ["housing_top10", "housing_state10", "housing_2call"],
+        "SCALR": ["scalr_top5", "scalr_2call"],
+        "CaseHOLD": ["casehold_top5", "casehold_hyde", "casehold_2call"],
+    }
+    for dataset, keys in line_groups.items():
+        xs = [RUNS[key]["calls_per_q"] for key in keys]
+        ys = [pct(RUNS[key]["accuracy"]) for key in keys]
+        ax.plot(xs, ys, color=colors[dataset], alpha=0.22, linewidth=1.3, zorder=1)
+
     for dataset, label, key in points:
         row = RUNS[key]
         size = max(60, row["tokens_per_q"] / 16.0)
@@ -246,22 +261,44 @@ def plot_cost_accuracy() -> None:
             edgecolor="white",
             linewidth=0.8,
             label=dataset,
+            zorder=3,
         )
-        ax.annotate(
-            f"{dataset} {label}",
-            (row["calls_per_q"], pct(row["accuracy"])),
-            textcoords="offset points",
-            xytext=offsets.get(key, (6, 4)),
-            fontsize=7,
-        )
+        annotation = annotation_labels.get(key, f"{dataset} {label}")
+        if annotation:
+            ax.annotate(
+                annotation,
+                (row["calls_per_q"], pct(row["accuracy"])),
+                textcoords="offset points",
+                xytext=offsets.get(key, (6, 4)),
+                fontsize=6.8,
+            )
     handles, labels = ax.get_legend_handles_labels()
     unique = dict(zip(labels, handles))
-    ax.legend(unique.values(), unique.keys(), frameon=False, fontsize=8, loc="lower right")
+    dataset_legend = ax.legend(unique.values(), unique.keys(), frameon=False, fontsize=8, loc="lower right")
+    ax.add_artist(dataset_legend)
+    size_handles = [
+        ax.scatter([], [], s=max(60, tokens / 16.0), color="#9AA0A6", alpha=0.38, edgecolor="white", linewidth=0.8)
+        for tokens in (1000, 3000, 5000)
+    ]
+    ax.legend(
+        size_handles,
+        ["1k", "3k", "5k"],
+        title="tokens/q",
+        frameon=False,
+        fontsize=7.2,
+        title_fontsize=7.5,
+        loc="upper left",
+        borderpad=0.2,
+        labelspacing=0.7,
+        handletextpad=1.4,
+    )
     ax.set_xlabel("LLM calls per question")
     ax.set_ylabel("Accuracy (%)")
-    ax.set_title("Accuracy/cost tradeoff on paired N=200 legal subsets", fontsize=10)
-    ax.set_xlim(0.75, 3.25)
+    ax.set_title("Accuracy vs LLM budget on paired legal subsets", fontsize=10)
+    ax.set_xlim(0.75, 3.35)
     ax.set_ylim(48, 90)
+    ax.set_xticks([1, 2, 3])
+    ax.set_xticklabels(["1 call", "2 calls", "3 calls"])
     ax.grid(alpha=0.25, linewidth=0.6)
     fig.tight_layout()
     fig.savefig(OUT / "02_cost_accuracy.png", bbox_inches="tight")
@@ -350,16 +387,16 @@ def plot_route_map() -> None:
     cols = ["Answer\nframe", "Candidate\nexpansion", "Metadata\nfilter", "Option\nconverter"]
     # 0 = not active, 1 = plausible intervention, 2 = observed support.
     values = [
-        [2, 0, 0, 1],
+        [2, 0, 0, 0],
         [0, 2, 0, 1],
         [0, 1, 2, 0],
         [0, 1, 0, 1],
     ]
     labels = [
-        ["full-corpus\n+3.09pp", "", "", "preserve\nanswer frame"],
-        ["", "top-1 -> top-5\n+17.5pp", "", "rerank\noptions"],
-        ["", "generic top-10\n+7.5pp", "state k10\n62.5%", ""],
-        ["", "k1 -> k5\n+5.0pp", "", "option-aware\nmapping"],
+        ["observed:\nHyRE +3.09pp", "", "", ""],
+        ["", "observed:\ntop-5 +17.5pp", "", "next:\noption rerank"],
+        ["", "possible:\nk10 +7.5pp", "observed:\nstate 62.5%", ""],
+        ["", "weak signal:\nk1 -> k5 +5.0pp", "", "next:\noption mapper"],
     ]
     cmap = ListedColormap(["#F7F7F7", "#F4D35E", "#5AA469"])
     fig, ax = plt.subplots(figsize=(9.8, 4.5), dpi=220)
@@ -382,8 +419,8 @@ def plot_route_map() -> None:
                 ax.text(x, y, text, ha="center", va="center", fontsize=7.2, color=color)
 
     handles = [
-        patches.Patch(facecolor="#5AA469", edgecolor="#A0A0A0", label="observed support"),
-        patches.Patch(facecolor="#F4D35E", edgecolor="#A0A0A0", label="plausible intervention"),
+        patches.Patch(facecolor="#5AA469", edgecolor="#A0A0A0", label="observed signal"),
+        patches.Patch(facecolor="#F4D35E", edgecolor="#A0A0A0", label="plausible next route"),
         patches.Patch(facecolor="#F7F7F7", edgecolor="#A0A0A0", label="not active"),
     ]
     ax.legend(
