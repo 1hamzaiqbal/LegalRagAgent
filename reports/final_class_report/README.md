@@ -11,6 +11,8 @@ main-table benchmark.
 - `main.tex` - report source.
 - `references.bib` - BibTeX references used by the report.
 - `evidence_snapshot.md` - local validation notes for the headline rows.
+- `build_figures.py` - regenerates report-specific plots from detail logs.
+- `figures/` - generated plots and `figure_metrics.csv`.
 
 ## Build
 
@@ -21,11 +23,19 @@ tectonic reports/final_class_report/main.tex
 ```
 
 The source uses the local `neurips_2024.sty` template and figures under
-`docs/presentation/figures/`.
+`docs/presentation/figures/` plus generated figures under this folder.
+
+To rebuild the generated figures first:
+
+```bash
+python reports/final_class_report/build_figures.py
+```
 
 ## Run Surface
 
-The laptop Chroma checkout is currently useful for SCALR smoke tests. The
-larger BarExamQA, HousingQA, CaseHOLD, and SCALR follow-up retrieval runs are
-cluster-backed through SLURM, so local Chroma population is not the benchmark
-scope boundary.
+Cluster follow-up scripts used for report validation live under `scripts/hpc/`.
+The current targeted additions are HousingQA state filtering via
+`scripts/hpc/slurm_housing_state_filter.sh` and SCALR snap/HyDE ablations via
+`scripts/hpc/slurm_scalr_snap_ablation.sh`. Promote those rows into the report
+only after pulling the detail logs and re-running the local sanity checks in
+`evidence_snapshot.md`.
