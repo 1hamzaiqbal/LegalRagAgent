@@ -5262,6 +5262,12 @@ def run_eval(config: EvalConfig):
     embedding_model = os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or None
 
     qa = load_questions(config)
+    if config.sample_start or config.sample_end is not None:
+        start = max(0, int(config.sample_start or 0))
+        end = None if config.sample_end is None else max(start, int(config.sample_end))
+        original_n = len(qa)
+        qa = qa.iloc[start:end].reset_index(drop=True)
+        print(f"[sample-slice] selected rows [{start}:{end if end is not None else ''}] from sampled set of {original_n}")
     n = len(qa)
 
     print(f"\n{'=' * 70}")
@@ -5557,6 +5563,9 @@ def run_eval(config: EvalConfig):
         "detail_log": detail_path,
         "git_commit": _git_commit_short(),
     }
+    if config.sample_start or config.sample_end is not None:
+        summary["sample_start"] = int(config.sample_start or 0)
+        summary["sample_end"] = config.sample_end
 
     # Audit 2026-04-26 caught silent-failure rows polluting experiments.jsonl
     # (100% errors → accuracy=0.0 logged as legitimate baseline). Refuse to
@@ -5639,6 +5648,10 @@ def main():
                         help="Dataset to evaluate on (default: barexam)")
     parser.add_argument("--retrieval-k", type=int, default=5,
                         help="Final top-k after rerank for retrieval modes (default 5; meeting ask: top-1 vs top-5 ablation)")
+    parser.add_argument("--sample-start", type=int, default=0,
+                        help="Optional start offset after deterministic question sampling")
+    parser.add_argument("--sample-end", type=int, default=None,
+                        help="Optional end offset after deterministic question sampling")
 
     args = parser.parse_args()
 
@@ -5656,6 +5669,8 @@ def main():
         source_filter=args.source_filter,
         dataset=args.dataset,
         retrieval_k=args.retrieval_k,
+        sample_start=args.sample_start,
+        sample_end=args.sample_end,
     )
 
     run_eval(config)

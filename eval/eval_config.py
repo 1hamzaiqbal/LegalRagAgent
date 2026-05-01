@@ -22,6 +22,8 @@ class EvalConfig:
     dataset: str = "barexam"          # "barexam" | "housing" | "legal_rag" | "australian" | "casehold" | "musique" | "legalbench_scalr"
     embedding_model: str = ""         # override embedding model for retrieval (e.g., "BAAI/bge-m3")
     retrieval_k: int = 5              # final top-k after rerank for retrieval modes
+    sample_start: int = 0             # optional slice start after deterministic sampling
+    sample_end: int | None = None     # optional slice end after deterministic sampling
 
 
 EVAL_MODES = {

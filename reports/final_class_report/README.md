@@ -35,7 +35,8 @@ python reports/final_class_report/build_figures.py
 
 Cluster follow-up scripts used for report validation live under `scripts/hpc/`.
 The current targeted additions are HousingQA state filtering via
-`scripts/hpc/slurm_housing_state_filter.sh` and SCALR snap/HyDE ablations via
-`scripts/hpc/slurm_scalr_snap_ablation.sh`. Promote those rows into the report
-only after pulling the detail logs and re-running the local sanity checks in
-`evidence_snapshot.md`.
+`scripts/hpc/slurm_housing_state_filter.sh` plus the chunked recovery script
+`scripts/hpc/slurm_housing_state_filter_chunks.sh`, and SCALR snap/HyDE
+ablations via `scripts/hpc/slurm_scalr_snap_ablation.sh`. Promote rows into
+the report only after pulling the detail logs and re-running the local sanity
+checks in `evidence_snapshot.md`.

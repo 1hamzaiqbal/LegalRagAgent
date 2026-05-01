@@ -63,6 +63,7 @@ RUNS = {
     "housing_top5": summarize("logs/eval_rag_simple_or-gemma4-26b_20260430_0502_detail.jsonl"),
     "housing_top10": summarize("logs/eval_rag_simple_or-gemma4-26b_20260430_0542_detail.jsonl"),
     "housing_2call": summarize("logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260430_0644_detail.jsonl"),
+    "housing_state5": summarize("logs/eval_rag_state_filter_or-gemma4-26b_20260501_1406_detail.jsonl"),
     # SCALR depth and snap-HyDE rows.
     "scalr_top1": summarize("logs/eval_rag_simple_groq-llama70b_20260429_2159_detail.jsonl"),
     "scalr_top5": summarize("logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl"),
@@ -107,11 +108,11 @@ def plot_depth_and_conversion() -> None:
     ax = axes[0]
     groups = [
         ("BarExam", ["top-1", "top-5"], ["barexam_top1", "barexam_top5"]),
-        ("Housing", ["top-1", "top-5", "top-10"], ["housing_top1", "housing_top5", "housing_top10"]),
+        ("Housing", ["top-1", "top-5", "top-10", "state-5"], ["housing_top1", "housing_top5", "housing_top10", "housing_state5"]),
         ("SCALR", ["top-1", "top-5", "top-10"], ["scalr_top1", "scalr_top5", "scalr_top10"]),
         ("CaseHOLD", ["top-1", "top-5", "top-10"], ["casehold_top1", "casehold_top5", "casehold_top10"]),
     ]
-    colors = {"top-1": "#4C78A8", "top-5": "#59A14F", "top-10": "#F28E2B"}
+    colors = {"top-1": "#4C78A8", "top-5": "#59A14F", "top-10": "#F28E2B", "state-5": "#B07AA1"}
     x = 0.0
     xticks = []
     xticklabels = []
@@ -165,6 +166,7 @@ def plot_cost_accuracy() -> None:
         ("BarExam", "snap", "barexam_snap"),
         ("BarExam", "2-call", "barexam_2call"),
         ("Housing", "top-10", "housing_top10"),
+        ("Housing", "state-5", "housing_state5"),
         ("Housing", "2-call", "housing_2call"),
         ("SCALR", "simple", "scalr_top5"),
         ("SCALR", "2-call", "scalr_2call"),
@@ -174,8 +176,9 @@ def plot_cost_accuracy() -> None:
     ]
     offsets = {
         "scalr_2call": (8, 10),
-        "casehold_2call": (8, -18),
+        "housing_top10": (8, -20),
         "housing_2call": (8, 10),
+        "housing_state5": (8, 12),
         "barexam_snap": (8, 4),
         "casehold_hyde": (8, -12),
         "casehold_2call": (8, -38),

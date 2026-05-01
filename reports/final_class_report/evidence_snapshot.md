@@ -21,6 +21,8 @@ UV_CACHE_DIR=/tmp/uv-cache HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 | SCALR `rag_simple` top-5 -> top-10 | 200 | 77.0% | 77.0% | 0.0pp | 8/8 | 1.0 | `logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl`; `logs/eval_rag_simple_groq-llama70b_20260430_0054_detail.jsonl` |
 | HousingQA `rag_simple` top-1 -> top-10 | 200 | 50.5% | 58.0% | +7.5pp | 38/23 | 0.0721774 | `logs/eval_rag_simple_or-gemma4-26b_20260430_0415_detail.jsonl`; `logs/eval_rag_simple_or-gemma4-26b_20260430_0542_detail.jsonl` |
 | HousingQA `rag_simple` top-10 -> `rag_snap_hyde_2call` | 200 | 58.0% | 57.0% | -1.0pp | 26/28 | 0.8919232 | `logs/eval_rag_simple_or-gemma4-26b_20260430_0542_detail.jsonl`; `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260430_0644_detail.jsonl` |
+| HousingQA `rag_simple` top-5 -> `rag_state_filter` k=5 | 200 | 53.5% | 61.5% | +8.0pp | 36/20 | 0.0440465 | `logs/eval_rag_simple_or-gemma4-26b_20260430_0502_detail.jsonl`; `logs/eval_rag_state_filter_or-gemma4-26b_20260501_1406_detail.jsonl` |
+| HousingQA `rag_simple` top-10 -> `rag_state_filter` k=5 | 200 | 58.0% | 61.5% | +3.5pp | 33/26 | 0.4349928 | `logs/eval_rag_simple_or-gemma4-26b_20260430_0542_detail.jsonl`; `logs/eval_rag_state_filter_or-gemma4-26b_20260501_1406_detail.jsonl` |
 | SCALR `rag_simple` top-5 -> `rag_snap_hyde_2call` | 200 | 77.0% | 75.0% | -2.0pp | 8/12 | 0.5034447 | `logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl`; `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_1520_detail.jsonl` |
 | SCALR `rag_simple` top-5 -> `rag_hyde` | 200 | 77.0% | 77.5% | +0.5pp | 9/8 | 1.0 | `logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl`; `logs/eval_rag_hyde_groq-llama70b_20260501_1515_detail.jsonl` |
 | SCALR `rag_simple` top-5 -> `rag_snap_hyde_1call` | 200 | 77.0% | 70.5% | -6.5pp | 2/15 | 0.0023499 | `logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl`; `logs/eval_rag_snap_hyde_1call_groq-llama70b_20260501_1519_detail.jsonl` |
@@ -54,9 +56,9 @@ Direct raw count check over Gemma 4 26B-A4B full-corpus logs:
   not legal-domain data; it remains an internal multi-hop mechanism check.
 - SCALR, HousingQA, and CaseHOLD are N=200 diagnostic legal slices, not
   full-corpus claims.
-- Housing state-filter job `58282` is invalid due empty retrieval; the fixed
-  run `58799` timed out at 135/200 before reaching a citeable paired row, so no
-  state-filter result is cited.
+- Housing state-filter job `58282` is invalid due empty retrieval. Fixed job
+  `58799` landed a clean k=5 row, then timed out during the k=10 leg; chunked
+  SLURM `58937` is running the remaining k=10 slices.
 - CaseHOLD repaired two-call improves gold retrieval from 16.0% to 47.0% but
   answer lift is not significant.
 - `subagent_rag` is cited only as a negative over-abstention result, not as a
@@ -66,9 +68,12 @@ Direct raw count check over Gemma 4 26B-A4B full-corpus logs:
 
 ## Live Cluster Follow-Ups
 
-- SLURM `58799`: HousingQA state-filtered retrieval at k=5 and k=10 after the
-  state-metadata casing fix timed out at 135/200 (`TIMEOUT`, 03:00:15) before
-  starting the planned k=10 leg. Do not promote the partial k=5 tail.
+- SLURM `58799`: HousingQA state-filtered k=5 landed cleanly at 123/200
+  (61.5%), 0/200 empty retrieval, 81/200 gold retrieved. The job timed out
+  during the k=10 leg at 135/200 (`TIMEOUT`, 03:00:15).
+- SLURM `58937`: chunked HousingQA k=10 state-filter rerun over the same N=200
+  deterministic sample, four 50-question slices. Duplicate k=5 chunks were
+  cancelled after the clean k=5 row above was validated.
 - SLURM `58871`: CaseHOLD repaired top-k / HyDE follow-up over the cluster
   `casehold_holdings` collection completed. All pulled rows have 200/200 rows
   and no empty retrieval: k=1 64.5% / 9.0% gold, k=10 68.0% / 19.0% gold,
@@ -97,6 +102,7 @@ The top-10 lift also changes answer bias on a yes/no task:
 |---|---:|---:|---:|---:|
 | top-1 `rag_simple` | 71/129 | 126 | 74 | 0 |
 | top-10 `rag_simple` | 71/129 | 100 | 99 | 1 |
+| k=5 `rag_state_filter` | 71/129 | 118 | 82 | 0 |
 | `rag_snap_hyde_2call` | 71/129 | 119 | 81 | 0 |
 
 This supports cautious wording: top-10 retrieval is directional, but the

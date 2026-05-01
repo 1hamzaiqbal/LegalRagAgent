@@ -3,7 +3,8 @@
 Supports multiple providers via LLM_PROVIDER env var:
   gemma, gemini-flash, gemini-flash-lite,
   groq-llama70b, groq-llama8b, groq-maverick, groq-scout, groq-gpt120b, groq-kimi, groq-qwen,
-  or-llama70b, or-gpt20b, or-gemma27b, or-qwen3-coder, or-nemotron, or-mistral, or-hermes,
+  or-llama70b, or-gpt20b, or-gemma3-4b, or-gemma27b, or-gemma4-26b, or-gemma4-31b,
+  or-qwen3-coder, or-nemotron, or-mistral, or-hermes,
   ollama, cerebras
 
 Falls back to raw LLM_BASE_URL/LLM_API_KEY/LLM_MODEL if LLM_PROVIDER is not set.
@@ -52,12 +53,14 @@ PROVIDERS = {
     # --- OpenRouter (free tier — weekly token limits, no RPD cap) ---
     "or-llama70b":        ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "meta-llama/llama-3.3-70b-instruct:free",     None, None),
     "or-gpt20b":          ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "openai/gpt-oss-20b:free",                    None, None),
+    "or-gemma3-4b":       ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-3-4b-it",                  None, None),
     "or-gemma4b":         ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-3-4b-it",                  None, None),
     "or-gemma27b":        ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-3-27b-it",                 None, None),
     # --- Gemma 4 via OpenRouter (matches our cluster vLLM Gemma 4 models) ---
     "or-gemma4-26b":      ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-4-26b-a4b-it",             None, None),
     "or-gemma4-26b-free": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-4-26b-a4b-it:free",        None, None),
     "or-gemma4-31b":      ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-4-31b-it",                 None, None),
+    "or-gemma4-31b-free": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-4-31b-it:free",            None, None),
     "or-qwen3-coder":     ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3-coder-480b-a35b:free",           None, None),
     "or-nemotron":        ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "nvidia/nemotron-nano-9b-v2:free",            None, None),
     "or-mistral":         ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "mistralai/mistral-small-3.1-24b-instruct:free", None, None),

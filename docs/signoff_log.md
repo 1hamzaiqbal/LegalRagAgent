@@ -7,7 +7,7 @@ Housing state-filter metadata casing bug, and consolidated the meeting story in
 `docs/meeting_state_2026-05-01.md`.
 
 Last updated: 2026-05-01
-Branch: `codex/evidence-ledger-router`
+Branch: `codex/final-report-snap-hyde`
 
 ### Delta since 2026-04-30 overlay
 
@@ -17,15 +17,24 @@ Branch: `codex/evidence-ledger-router`
    retrieval is now meaningful for this pair: 16.0% -> 47.0%. Cite as
    "better gold retrieval does not yet translate into reliable answer lift,"
    not as a positive method result.
-2. ❌ **Housing state-filter job `58282` is invalid as a method result**:
+2. ⚠️ **CaseHOLD repaired top-k and HyDE follow-ups landed**: k=1 is 64.5%,
+   k=5 is 69.5%, k=10 is 68.0%, and `rag_hyde` is 72.0%. The k=1 -> k=5
+   depth delta is +5.0pp with McNemar p=0.0525; k=5 -> k=10 is flat/negative
+   (-1.5pp, p=0.6072). Cite as a diagnostic option-conversion bottleneck,
+   not as a reliable answer lift.
+3. ❌ **Housing state-filter job `58282` is invalid as a method result**:
    both k=5 and k=10 runs were tagged `_FAILED-EMPTY-RETRIEVAL`, with 200/200
    rows having no retrieved evidence. The logged accuracies, 53.5% and 55.0%,
    are parametric behavior and must not be cited as state-filtered retrieval.
-3. 🔧 **Housing state-filter blocker fixed and resubmitted**:
+4. ⚠️ **Housing state-filter blocker partially unblocked**:
    `_housing_state_where(...)` now lowercases question states to match the
    lowercase statute metadata in `datasets/housing_qa/statutes.csv`. The fixed
-   cluster run is SLURM `58799`.
-4. 🧭 **Meeting framing**: top-k sensitivity should be called a cheap
+   cluster run `58799` landed a clean k=5 row: 123/200 (61.5%), 0/200 empty
+   retrieval, 81/200 gold retrieved. It beats generic top-5 by +8.0pp
+   (b/c=36/20, p=0.0440) and is directionally above generic top-10 by +3.5pp
+   (p=0.4350). The k=10 state-filter leg timed out and is rerunning as
+   chunked SLURM `58937`.
+5. 🧭 **Meeting framing**: top-k sensitivity should be called a cheap
    retrieval-policy stress test or first-pass bottleneck signal. It directly
    probes retrieval-depth/candidate-set sensitivity; query formulation,
    evidence use, metadata filtering, and option anchoring require the broader
@@ -39,8 +48,12 @@ Branch: `codex/evidence-ledger-router`
 - Pulled detail logs:
   `logs/eval_rag_simple_groq-llama70b_20260430_1738_detail.jsonl`,
   `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260430_1751_detail.jsonl`,
+  `logs/eval_rag_simple_groq-llama70b_20260501_1432_detail.jsonl`,
+  `logs/eval_rag_simple_groq-llama70b_20260501_1440_detail.jsonl`,
+  `logs/eval_rag_hyde_groq-llama70b_20260501_1449_detail.jsonl`,
   `logs/eval_rag_state_filter_or-gemma4-26b_20260430_1649_detail.jsonl`,
-  `logs/eval_rag_state_filter_or-gemma4-26b_20260430_1720_detail.jsonl`.
+  `logs/eval_rag_state_filter_or-gemma4-26b_20260430_1720_detail.jsonl`,
+  `logs/eval_rag_state_filter_or-gemma4-26b_20260501_1406_detail.jsonl`.
 
 ## Update 2026-04-30 ~15:30 CDT
 
