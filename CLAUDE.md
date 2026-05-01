@@ -61,15 +61,23 @@ Current research direction: the original heavy pipeline underperformed, but the 
 
 ## Key Documentation
 
-- `docs/experiment_overview.md` — high-level experiment summary + results table + validity checklist
-- `docs/meeting_notes_042726.md` — temporary 2026-04-27 meeting/HPC handoff: golden-passage sanity, top-1 vs top-5, Snap-HyDE 2-call, dataset×model×method plan
-- `docs/action_items.md` — paper sprint task list with deadlines (EMNLP May 20, ICML AI4Law May 22)
-- `docs/meeting_2026_04_17.md` — latest meeting notes with method breakdown and log examples
-- `docs/hpc_throughput.md` — cluster timing data and model comparison
-- `docs/hpc_setup_log.md` — cluster SSH, paths, venvs, bad nodes
-- `EXPERIMENTS.md` — full hypothesis → result → verdict log
-- `RESEARCH.md` — research state, experiment queue, session handoff
-- `logs/experiments.jsonl` — machine-readable results (357 entries as of 2026-05-01 meeting prep)
+- `docs/README.md` — concise documentation map. Start here when deciding
+  which docs are current vs historical.
+- `docs/meeting_state_2026-05-01.md` — meeting-ready state of findings,
+  blockers, open jobs, and defensible interpretation.
+- `docs/signoff_log.md` — cite-or-not gate for result claims.
+- `docs/compiled_results.md` and `logs/experiments.jsonl` — audited ledger and
+  machine-readable run summaries.
+- `docs/benchmark_method_birdseye_2026-04-30.md` — benchmark/method map and
+  harness coverage.
+- `docs/final_class_report_2026-04-30.pdf` and
+  `docs/final_class_report_2026-04-30.tex` — current class-report draft.
+- `docs/housing_state_filter_followup_2026-05-01.md` and
+  `docs/casehold_repaired_rerun_2026-05-01.md` — latest dataset-specific gates.
+- `docs/hpc_setup_log.md` and `docs/cluster_workflow.md` — cluster paths,
+  venvs, bad nodes, and launch workflow.
+- `RESEARCH.md` and `EXPERIMENTS.md` — historical running logs, not current
+  claim entrypoints.
 
 ## Runtime Architecture
 
@@ -230,16 +238,22 @@ Run `python tests/test_formatter.py` and `python tests/test_sanitizer.py`
 before any new submission. The full pre-submission checklist lives in
 `docs/rigour_signoff.md`.
 
-## Current Best Results / Direction Snapshot
+## Result Snapshot / Direction Notes
 
-**Source of truth**: `docs/signoff_log.md` for cite-or-not status, `docs/compiled_results.md` for audit details, `docs/snap_hyde_2call_2026-04-28.md` for the 2026-04-28 bottleneck-taxonomy pivot, and `docs/mcnemar_2026-04-27.md` for the earlier paired MuSiQue matrix. Numbers below are post-fix BarExam Tier 3 or MuSiQue Tier 2 unless explicitly marked direction-only.
+**Source of truth**: `docs/signoff_log.md` for cite-or-not status,
+`docs/meeting_state_2026-05-01.md` for current meeting wording,
+`docs/compiled_results.md` for audit details, and
+`docs/snap_hyde_2call_2026-04-28.md` /
+`docs/top1_ablation_2026-04-28.md` for the bottleneck-taxonomy pivot. Numbers
+below are post-fix BarExam Tier 3 or MuSiQue Tier 2 unless explicitly marked
+direction-only.
 
-### Llama 70b MuSiQue (Tier 2 N=200, current paper headline)
+### Llama 70b MuSiQue (Tier 2 N=200, current method vehicle)
 
 | Mode | EM | Δ vs `rag_simple` | McNemar p | Verdict |
 |---|---:|---:|---:|---|
 | `rag_simple` | 27.5% | — | — | baseline |
-| **`snap_hyde_2call`** | **37.0%** | **+9.5pp** | **0.0079** | **SIG — current paper headline** |
+| **`snap_hyde_2call`** | **37.0%** | **+9.5pp** | **0.0079** | **SIG; current MuSiQue vehicle** |
 | `iterative_planning_table` | 36.0% | +8.5pp | 0.0533 | TRENDING-SIG |
 | `multi_hyde_diverse` | 35.5% | +8.0pp | 0.0195 | SIG — superseded headline, still citeable |
 | `rag_multi_query` | 29.0% | +1.5pp | 0.728 | NS |
@@ -303,13 +317,21 @@ These N=100/N=30 rows are preserved as direction-only context. They are supersed
 
 ### Working interpretation (current)
 
-- **`rag_snap_hyde` is the proven winner on legal MC**: +3-4pp over `rag_simple` at BOTH E4B and 26B sizes (clean cross-size lift, not noise)
-- **Multi-hop QA split:** `multi_hyde_diverse` is confirmed on Llama 70b N=200 (+8pp, p=0.0195), but Gemma 3 27B N=200 is NULL (+2.5pp, p=0.5901); cross-family confirmation awaits Tier 3/full runs.
+- **Current frame:** retrieval behavior is bottleneck-typed. MuSiQue is
+  retrieval-depth sensitive; BarExam is depth-flat; CaseHOLD/SCALR mainly probe
+  option disambiguation and answer anchoring.
+- **`rag_snap_hyde` is the proven winner on legal MC**: +3-4pp over
+  `rag_simple` at both E4B and 26B sizes (clean cross-size lift, not noise).
+- **Multi-hop QA split:** `snap_hyde_2call` is the current MuSiQue Llama 70B
+  winner, while the earlier `multi_hyde_diverse` lift remains useful as a
+  mechanism/superseded-headline result.
 - **Bug-fix decomposition**: formatter (`f95f316`) added +5.44pp at 26B llm_only/snap_only_in_final identically; retrieval-query (`3d5ff05`) added +1.85pp marginal on RAG modes
 - **Showing snap answer letter to the final agent always hurts** — strip the letter, keep the reasoning (regression-tested in `tests/test_sanitizer.py`)
 - **Cross-model**: Gemma 4 26B-A4B beats Qwen3 30B MoE by +9.75pp at the same MoE class; +12pp over Gemma 3 27b dense
 
-Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the full tables + keep/discard history.
+Use `docs/README.md` and `docs/meeting_state_2026-05-01.md` for the current
+queue/handoff. Use `RESEARCH.md` and `EXPERIMENTS.md` as historical process logs
+only.
 
 ## Eval Scripts
 
@@ -402,6 +424,8 @@ python3 -c "import json; [print(f\"{d['timestamp']} {d['mode']:25s} {d['provider
 |---|---|---|---|---|
 | BarExam QA | `legal_passages` | 686,324 | MC (A-D) | `reglab/barexam_qa` |
 | HousingQA | `housing_statutes` | 1,837,403 | Yes/No | `reglab/housing_qa` |
+| MuSiQue | in-row BM25 / `musique_passages` on cluster | per-row passages | short-answer multi-hop | local CSV build |
+| LegalBench-SCALR | `legalbench_scalr_holdings` | 571 | MC (A-E) | LegalBench SCALR |
 | Legal-RAG-QA | `legal_rag_passages` | 190 | Open-ended | `isaacus/legal-rag-qa` |
 | Australian Legal QA | `australian_legal` | 2,124 | Open-ended | `isaacus/open-australian-legal-qa` |
 | CaseHOLD | `casehold_holdings` | 50,291 | MC (A-E) | `coastalcph/lex_glue` (case_hold) |
@@ -410,6 +434,8 @@ python3 -c "import json; [print(f\"{d['timestamp']} {d['mode']:25s} {d['provider
 
 - `datasets/barexam_qa/` — Passage CSVs and QA splits
 - `datasets/housing_qa/` — Statute CSVs and QA pairs
+- `datasets/casehold/`, `datasets/musique/`, `datasets/legalbench_scalr/` —
+  added evaluation datasets
 - `chroma_db/` — Persisted ChromaDB vector store
 - `logs/` — Eval output logs
 
@@ -421,7 +447,10 @@ python3 -c "import json; [print(f\"{d['timestamp']} {d['mode']:25s} {d['provider
 - `utils/fast_embed.py` bypasses LangChain for bulk embedding — sentence-transformers with fp16 + chunked processing. Supports `--resume`.
 - `vectorless` modes (`vectorless_direct`, `vectorless_role`, etc.) are multi-turn LLM reasoning, not real corpus search. The name is historical.
 - Real structured search (entity graph, case summaries) is being built in `utils/build_entity_graph.py` and `utils/build_case_summaries.py`.
-- Validity checklist: check answer change rate > 0%, evidence retrieval > 50%, snap accuracy consistent. See `docs/experiment_overview.md`.
-- Verify the current working branch with `git branch --show-current` before relying on branch-specific notes; active branch at the time of the 2026-04-20 leakage audit is `hpc-setup`.
+- Validity checklist: check answer change rate > 0%, evidence retrieval > 50%,
+  snap accuracy consistency, and empty-retrieval guards. See
+  `docs/rigour_signoff.md` and `docs/signoff_log.md`.
+- Verify the current working branch with `git branch --show-current` before
+  relying on branch-specific notes.
 - Sequential pipeline code archived in branch `archive/sequential-pipeline`.
-- See `RESEARCH.md` for current research state, experiment queue, and session handoff.
+- See `docs/README.md` for the current documentation path.

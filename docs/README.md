@@ -1,162 +1,159 @@
 # Documentation Index - LegalRagAgent
 
-Updated 2026-05-01. This file is the consolidation layer for the paper sprint:
-use it to decide which docs are current, which are evidence ledgers, and which
-are historical context only.
+Updated 2026-05-01. This is the repo map. It keeps the current path short and
+separates citeable state from historical working notes.
 
-## Current Reading Path
+## Start Here
 
-1. `../CLAUDE.md` - operational source of truth for agents: commands, env notes,
-   current headline, and methodology gates.
+1. `../CLAUDE.md` - operational context for agents: active snapshot, commands,
+   environment notes, methodology gates, and known cluster caveats.
 2. `meeting_state_2026-05-01.md` - meeting-ready synthesis of current findings,
-   blockers, live jobs, and defensible interpretation across datasets.
-3. `signoff_log.md` - cite-or-not gate for paper claims. If a result is not
-   approved or explicitly caveated here, treat it as not paper-grade.
-4. `snap_hyde_2call_2026-04-28.md` - current bottleneck-taxonomy pivot:
-   `snap_hyde_2call`, MuSiQue mechanism, BarExam 2-call directional result,
-   and the now-caveated CaseHOLD/LegalBench-SCALR split.
-5. `top1_ablation_2026-04-28.md` - retrieval-depth signature: MuSiQue top-1
-   collapse vs BarExam top-1/top-5 flatness.
-6. `research_strategy_2026-04-30.md` - current strategy reset: novelty
-   boundary, grounded motivation, harness gaps, and recommended next
-   experiments.
-7. `mechanism_literature_synthesis_2026-04-30.md` - connects landed results
-   to current RAG/legal-RAG literature, gaps, and research questions.
-8. `search_space_consolidation_2026-04-30.md` - targeted result-space map:
-   keep/pause/kill decisions and the next low-capacity work order.
-9. `benchmark_method_birdseye_2026-04-30.md` - current benchmark/method map:
-   what is locally present, cluster-ready, missing, and scientifically useful.
-10. `adaptive_controller_design_2026-04-30.md` - feasible path for fast
-   bottleneck-aware method routing and agentic escalation.
-11. `agentic_legal_rag_angles_2026-04-30.md` - research-angle memo for workshop
-   vs EMNLP positioning, multi-agent evidence sharing, and legal-agent novelty.
-12. `evidence_budgeted_ledger_router_plan.md` - branch plan combining
-   bottleneck-aware routing with a shared evidence ledger for legal agents.
-13. `specrag_lite_diagnostic_controller_2026-04-30.md` - method proposal for
-   selectively escalating to Speculative-RAG-style draft verification based on
-   cheap bottleneck diagnostics.
-14. `router_probe_findings_2026-04-30.md` - first offline router diagnostic:
-   real oracle headroom, but brittle cheap-feature generalization.
-15. `dataset_metric_consolidation_2026-04-30.md` - Speculative RAG metric
-   mapping, dataset spirit, and wiring gaps for LegalBench/Legal RAG Bench work.
-16. `paper_narrative_2026-04-28.md` - paper skeleton after the pivot. Some
-   labels are historical; prefer `meeting_state_2026-05-01.md` for meeting
-   wording.
-17. `compiled_results.md` - audited result ledger with direct log paths, caveats,
-   and per-row provenance.
-18. `report_adversarial_pass_2026-04-30.md` - second report-review pass:
-   subagent critiques, targeted MuSiQue golden-passage run, and queued
-   Housing/CaseHOLD gates.
+   open blockers, live jobs, and defensible interpretation.
+3. `signoff_log.md` - cite-or-not gate. If a result is absent, `PENDING`, or
+   explicitly caveated here, do not promote it to a paper-grade claim.
+4. `compiled_results.md` plus `../logs/experiments.jsonl` - audited result
+   ledger and machine-readable run summaries.
+5. `benchmark_method_birdseye_2026-04-30.md` - compact map of benchmarks,
+   methods, what each dataset tests, and harness gaps.
+6. `final_class_report_2026-04-30.pdf` or `final_class_report_2026-04-30.tex`
+   - current class-report draft with figures/tables.
 
-## Evidence Ledgers
+Five-minute path: read `meeting_state_2026-05-01.md`, then use
+`signoff_log.md` and `compiled_results.md` to verify any number before citing
+it.
 
-- `logs/experiments.jsonl` - machine-readable run summaries.
-- `evidence_matrix_2026-04-30.md` - reproducible matrix generated from landed
-  detail logs by `scripts/build_evidence_matrix.py`.
+## Current Claim Gates
+
+- Bottleneck-taxonomy pivot: `snap_hyde_2call_2026-04-28.md`.
+- Retrieval-depth signature: `top1_ablation_2026-04-28.md`.
+- MuSiQue disagreement buckets and golden-passage control:
+  `musique_disagreement_audit_2026-04-30.md` and
+  `musique_golden_passage_2026-04-30.md`.
+- CaseHOLD repaired pair: `casehold_repaired_rerun_2026-05-01.md`.
+- Housing state-filter caveat and resubmission: `housing_state_filter_followup_2026-05-01.md`.
+- SCALR depth behavior: `scalr_depth_disagreement_2026-04-30.md`.
+- BarExam post-fix audit truth: `audit_log.md`.
+
+Use these after `signoff_log.md`; they explain mechanisms and caveats, but the
+signoff log decides whether a claim is ready to cite.
+
+## If You Need...
+
+### Research Story And Literature
+
+- `research_strategy_2026-04-30.md` - novelty boundary, grounded motivation,
+  and recommended next experiments.
+- `mechanism_literature_synthesis_2026-04-30.md` - how the observed bottlenecks
+  connect to RAG/legal-RAG literature and likely gaps.
+- `search_space_consolidation_2026-04-30.md` - keep/pause/kill decisions across
+  current methods.
+- `agentic_legal_rag_angles_2026-04-30.md` - workshop vs EMNLP positioning and
+  multi-agent evidence-sharing angles.
+- `paper_narrative_2026-04-28.md` - paper skeleton after the pivot. Prefer
+  `meeting_state_2026-05-01.md` for current wording.
+
+### Methods, Metrics, And Controllers
+
+- `method_index.md` - mode taxonomy and local method names.
+- `dataset_metric_consolidation_2026-04-30.md` - Speculative-RAG metric mapping,
+  LegalBench/Legal RAG Bench dataset notes, and wiring gaps.
+- `specrag_lite_diagnostic_controller_2026-04-30.md` - selective escalation
+  proposal based on cheap bottleneck diagnostics.
+- `adaptive_controller_design_2026-04-30.md` - feasible bottleneck-aware routing
+  design.
+- `evidence_budgeted_ledger_router_plan.md` - branch plan for a shared evidence
+  ledger plus bottleneck-aware method routing.
+- `router_probe_findings_2026-04-30.md`,
+  `router_oracle_musique_2026-04-30.md`,
+  `router_oracle_barexam_2026-04-30.md`,
+  `router_baseline_report_2026-04-30.md`, and
+  `router_baseline_housing_depth_2026-04-30.md` - offline routing headroom and
+  failure modes.
+
+### Dataset Evidence
+
+- MuSiQue: `musique_disagreement_audit_2026-04-30.md`,
+  `musique_golden_passage_2026-04-30.md`.
+- BarExam: `audit_log.md`, `top1_ablation_2026-04-28.md`,
+  `snap_hyde_2call_2026-04-28.md`.
+- HousingQA: `housing_speculative_metrics_2026-04-30.md`,
+  `housing_metadata_depth_audit_2026-04-30.md`,
+  `housing_state_filter_followup_2026-05-01.md`.
+- CaseHOLD: `casehold_flatness_audit_2026-04-30.md`,
+  `casehold_gold_mapping_repair_2026-04-30.md`,
+  `casehold_repaired_rerun_2026-05-01.md`.
+- LegalBench-SCALR / MLEB-SCALR: `scalr_depth_disagreement_2026-04-30.md`,
+  `mleb_scalr_retrieval_baseline_2026-04-30.md`,
+  `mleb_scalr_embedding_ab_2026-04-30.md`.
+
+### Generated Evidence Artifacts
+
+- `evidence_matrix_2026-04-30.md` - generated hypothesis/result matrix.
 - `run_manifest_2026-04-30.json` - machine-readable map from detail logs to
-  hypotheses, bottleneck regimes, intervention axes, and caveats.
-- `speculative_metrics_report_2026-04-30.md` - reusable Speculative-RAG-aligned
-  metrics table generated by `scripts/build_speculative_metrics_report.py`.
-- `housing_speculative_metrics_2026-04-30.md` - completed HousingQA N=200
-  top-k/2-call diagnostic; shows directional top-1 to top-10 depth sensitivity.
-- `housing_metadata_depth_audit_2026-04-30.md` - offline HousingQA audit
-  joining retrieved statute ids back to state metadata.
-- `benchmark_method_birdseye_2026-04-30.md` - current benchmark/method map:
-  what is locally present, cluster-ready, missing, and scientifically useful.
-- `scripts/score_retrieval_qrels.py` - retrieval-only Recall@k, Precision@k,
-  Hit@k, MRR@k, and nDCG@k scorer for qrels or logged `gold_idx` detail rows.
-- `mleb_scalr_retrieval_baseline_2026-04-30.md` - first retrieval-only MLEB-SCALR
-  baseline with gte-large; generated from local retrieval detail log plus qrels.
-- `mleb_scalr_embedding_ab_2026-04-30.md` - retrieval-only MLEB-SCALR embedder
-  comparison; currently gte-large vs all-MiniLM with larger downloads deferred.
-- `musique_disagreement_audit_2026-04-30.md` - paired rescue/harm buckets for
-  MuSiQue `rag`, `two_call`, `mhd`, and `iter_ptable`; generated by
-  `scripts/audit_disagreement_buckets.py`.
-- `musique_golden_passage_2026-04-30.md` - Llama 70B MuSiQue N=200
-  `golden_passage` control showing privileged gold context is strongly helpful
-  on missing-fact multi-hop QA, unlike the BarExam golden-passage paradox.
-- `casehold_flatness_audit_2026-04-30.md` - paired top-1/top-5/two-call
-  flatness audit for CaseHOLD; flags current gold-retrieval instrumentation as
-  uninformative.
-- `casehold_gold_mapping_repair_2026-04-30.md` - documents the CaseHOLD
-  `gold_idx` repair and the need to rebuild CaseHOLD Chroma before new runs.
-- `casehold_repaired_rerun_2026-05-01.md` - repaired CaseHOLD pair after
-  cluster rebuild: `two_call` improves gold retrieval but not significantly
-  answer accuracy.
-- `housing_state_filter_followup_2026-05-01.md` - failed-empty-retrieval
-  Housing state-filter run, lowercase metadata fix, and resubmitted job `58799`.
-- `scalr_depth_disagreement_2026-04-30.md` - mechanism audit for SCALR
-  top-1/top-5/top-10 depth behavior and logging caveat.
-- `router_oracle_musique_2026-04-30.md` and
-  `router_oracle_barexam_2026-04-30.md` - offline routing headroom generated
-  by `scripts/evaluate_routing_oracle.py`.
-- `router_baseline_report_2026-04-30.md` - generated report from
-  `scripts/train_router_baseline.py` over common `rag` vs `two_call` arms.
-- `router_baseline_housing_depth_2026-04-30.md` - Housing-only router table
-  over top-1/top-5/top-10/two-call with state metadata features.
-- `audit_log.md` - BarExam post-fix audit truth and historical guardrails.
-- `mcnemar_2026-04-27.md` - paired tests from the pre-pivot MuSiQue matrix.
-- `docs/audits/` - focused audit artifacts by dataset/model/date.
-- `verification_2026-04-27.md` - older source-gating pass; useful for why some
-  2026-04-27 claims stayed provisional.
+  hypotheses, interventions, bottleneck regimes, and caveats.
+- `speculative_metrics_report_2026-04-30.md` - Speculative-RAG-aligned metrics
+  generated from landed detail logs.
+- `scripts/build_evidence_matrix.py`,
+  `scripts/build_speculative_metrics_report.py`,
+  `scripts/audit_disagreement_buckets.py`,
+  `scripts/evaluate_routing_oracle.py`, and
+  `scripts/score_retrieval_qrels.py` - reusable analysis scripts behind the
+  reports.
 
-## Current Planning
-
-- `action_items.md` - paper-sprint task list. Some older sections remain for
-  audit continuity; prefer dated update blocks at the top.
-- `meeting_notes_042726.md` - meeting handoff that motivated golden-passage,
-  top-k, 2-call, and dataset-matrix work.
-- `datasets_frames_scalr_2026-04-28.md` - FRAMES and SCALR scoping. Important:
-  LegalBench-SCALR 5-way MC has landed; MLEB-SCALR retrieval-only now has a
-  baseline in `mleb_scalr_retrieval_baseline_2026-04-30.md`.
-- `lit_review_2026-04-28.md` - literature grounding for the bottleneck taxonomy.
-
-## Historical Or Superseded Context
-
-These files can still be useful, but do not use them as the first source for
-current paper claims:
-
-- `narrative_2026_04_27.md` - superseded by `paper_narrative_2026-04-28.md`.
-- `experiment_overview.md` - high-level experiment summary; verify any numbers
-  against current signoff and result ledgers before citing.
-- `meeting_2026_04_17.md` - older meeting notes, now mostly historical.
-- `validation_log_2026-04-25.md` - running validation log from an earlier phase.
-- `golden_paradox_audit_2026-04-27.md` and
-  `methods_vs_golden_audit_2026-04-27.md` - still useful for mechanism details,
-  but narrower than the current paper framing.
-- `archive_2026-04-27/` and `archive/` - archived working docs retained for
-  traceability.
-
-## Presentation Materials
+### Presentation And Report Materials
 
 - `final_class_report_2026-04-30.tex` and `final_class_report_2026-04-30.pdf`
-  - class-report draft after the bottleneck-taxonomy pivot, with refreshed
-  tables, figures, caveats, and golden-passage mechanism explanation.
-- `presentation/00_index.md` - entrypoint for presentation docs.
-- `presentation/01_results_tables.md` - presentation-facing result tables.
+  - current class-report draft.
+- `report_adversarial_pass_2026-04-30.md` - reviewer-style critique and gaps to
+  substantiate.
+- `presentation/00_index.md` - presentation entrypoint.
+- `presentation/01_results_tables.md` - talk-facing result tables.
 - `presentation/02_methods_explained.md` - method descriptions.
 - `presentation/03_takeaways.md` - talk takeaways.
 - `presentation/04_datasets_and_models.md` - dataset/model context.
 - `presentation/05_logs_index.md` - source logs behind presentation claims.
-- `presentation/06_next_steps.md` - presentation-facing next steps.
+- `presentation/06_next_steps.md` - talk-facing next steps.
 
-## Cluster / HPC
+### Cluster And Reproducibility
 
-- `hpc_setup_log.md`
-- `hpc_throughput.md`
-- `hpc_qwen3_8b_eval.md`
-- `hpc_qwen3_8b_baseline_golden.md`
-- `cluster_workflow.md`
+- `hpc_setup_log.md` - cluster SSH, paths, venvs, model caches, and bad nodes.
+- `cluster_workflow.md` - practical cluster run workflow.
+- `hpc_throughput.md`, `hpc_qwen3_8b_eval.md`,
+  `hpc_qwen3_8b_baseline_golden.md` - older cluster/model timing notes.
+- `rigour_signoff.md` - methodology checklist before new claims.
+
+## Historical Or Superseded
+
+These files are retained for traceability. Do not use them as current claim
+sources without re-checking `signoff_log.md` and the detail logs.
+
+- `../RESEARCH.md` - historical running research log; useful for process, not
+  the current entrypoint.
+- `../EXPERIMENTS.md` - append-only experiment chronology; newest claim gates
+  live in this docs index and the signoff log.
+- `narrative_2026_04_27.md` - superseded by the bottleneck-taxonomy pivot.
+- `experiment_overview.md` - high-level summary from an earlier consolidation.
+- `meeting_2026_04_17.md`, `meeting_notes_042726.md`, and `action_items.md`
+  - older meeting and sprint notes.
+- `mcnemar_2026-04-27.md` - older paired-stat ledger for the multi-HyDE phase;
+  use current dataset gates before quoting it.
+- `golden_paradox_audit_2026-04-27.md`,
+  `methods_vs_golden_audit_2026-04-27.md`, and
+  `verification_2026-04-27.md` - useful mechanism context, but narrower than
+  the current framing.
+- `archive_2026-04-27/` and `archive/` - archived working docs retained for
+  audit continuity.
 
 ## Validation Rule
 
 Before citing a result:
 
-1. Find its signoff status in `signoff_log.md`.
-2. Confirm the source log or audit path in `compiled_results.md`,
-   `snap_hyde_2call_2026-04-28.md`, or `top1_ablation_2026-04-28.md`.
-3. For paired claims, verify the McNemar row and b/c counts where available.
+1. Check `signoff_log.md`.
+2. Confirm the source detail log or audit path in `compiled_results.md`,
+   `snap_hyde_2call_2026-04-28.md`, `top1_ablation_2026-04-28.md`, or the
+   dataset-specific gate above.
+3. For paired claims, verify McNemar b/c counts where available.
 4. If sources disagree, prefer the newest audit/signoff document and preserve
-   the disagreement as a caveat rather than silently reconciling it.
+   the disagreement as a caveat.
 
 Branch: `codex/evidence-ledger-router`.

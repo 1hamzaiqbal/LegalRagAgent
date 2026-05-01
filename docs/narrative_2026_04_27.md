@@ -1,5 +1,10 @@
 # Narrative — Legal/Multi-hop RAG Method Investigation (2026-04-27)
 
+> Status: superseded narrative draft. It is useful historical context, but the
+> current framing is the 2026-05-01 bottleneck-taxonomy meeting state plus the
+> `snap_hyde_2call` / top-1 ablation gates. Start with `docs/README.md` and
+> `docs/meeting_state_2026-05-01.md` before using any claim here.
+
 ## 1. Why this work
 Legal RAG has two distinct evaluation regimes in this project. BarExam is legal multiple choice: the system must retrieve or reason over legal doctrine and choose one of the answer options. MuSiQue is multi-hop open QA: the system must compose facts across several linked entities or passages. The important empirical split is that BarExam is now mostly a solved harness problem for the stronger Gemma 4 cluster models, while MuSiQue remains unstable enough that method choice changes the answer.
 

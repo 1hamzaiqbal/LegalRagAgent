@@ -1,10 +1,16 @@
 # Experiment Log
 
+> Status: historical append-only experiment chronology. For current claim
+> status, use `docs/README.md`, `docs/signoff_log.md`, and
+> `docs/compiled_results.md` before citing anything below.
+
 ## Update 2026-04-27 ~12:30 CDT
 
 Change reason: housekeeping sweep after today’s Tier 2 MuSiQue McNemar confirmations. Added the Llama 70b N=200 method-matrix hypothesis tests and verdicts at the top. Source gate: `docs/signoff_log.md`, `docs/compiled_results.md`, `docs/mcnemar_2026-04-27.md`, and matching `logs/experiments.jsonl` rows.
 
-Running record of hypotheses, experiments, and results. Add new entries at the top.
+Running record of hypotheses, experiments, and results. Add new entries at the
+top when this file is intentionally used as an experiment diary, but do not
+treat the top entry as the current paper state unless it is also signed off.
 
 ## Format
 

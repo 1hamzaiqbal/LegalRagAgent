@@ -1,12 +1,19 @@
 # Meeting notes / HPC handoff — 2026-04-27
 
+> Status: historical handoff. It was the right entrypoint on 2026-04-27, but it
+> is superseded for current work by `docs/meeting_state_2026-05-01.md`,
+> `docs/README.md`, and `docs/signoff_log.md`. Use this file only for provenance
+> on the April 27 asks.
+
 Temporary handoff note from Hamza's 2026-04-27 meeting notes plus a quick repo-state pass on branch `hpc-setup`.
 
 - Branch pulled locally: `hpc-setup`
 - Local worktree used for this pass: `/home/techguy227/grad/LegalRagAgent-hpc-setup`
 - Pulled HEAD at handoff creation: `880c851` (`docs: codex archive pass — 10 stale docs + duplicate figures/ folder moved to archive_2026-04-27/`)
 - No new evals were launched in this pass.
-- Main source docs to read first: `docs/signoff_log.md`, `docs/narrative_2026_04_27.md`, `docs/mcnemar_2026-04-27.md`, `docs/compiled_results.md`, `docs/verification_2026-04-27.md`.
+- Historical source docs at handoff creation: `docs/signoff_log.md`,
+  `docs/narrative_2026_04_27.md`, `docs/mcnemar_2026-04-27.md`,
+  `docs/compiled_results.md`, `docs/verification_2026-04-27.md`.
 
 ## 0. Current repo-state snapshot
 

@@ -1,8 +1,14 @@
 # Action Items — Paper Sprint
 
+> Status: historical sprint/task log. The current work order is in
+> `docs/meeting_state_2026-05-01.md`, `docs/search_space_consolidation_2026-04-30.md`,
+> and `docs/report_adversarial_pass_2026-04-30.md`. Treat older job statuses
+> below as provenance unless refreshed against cluster/log state.
+
 ## Update 2026-04-27 evening — meeting follow-ups
 
-Source: [`docs/meeting_notes_042726.md`](meeting_notes_042726.md). Key new asks:
+Historical source: [`docs/meeting_notes_042726.md`](meeting_notes_042726.md).
+Key asks from that meeting:
 
 1. **Golden-passage paradox — DONE** (audit landed). See [`docs/golden_paradox_audit_2026-04-27.md`](golden_paradox_audit_2026-04-27.md). Headline: gold-passage injection is roughly symmetric (96 hurt vs 83 helped, net -1.09pp); the dominant failure is anchoring, not insufficient evidence; gold-passage length distribution is identical across paradox / win / match buckets. **Action**: rename `golden_passage` from "oracle ceiling" to "single gold-passage control" in paper tables.
 2. **Top-1 vs top-5 retrieval-depth ablation** — `--retrieval-k` CLI flag landed (commit `b286279`). Suggested paired N=200 launch list (do not launch without ops sync, mind Groq RPD = 1000 / TPD = 100K):
@@ -60,7 +66,15 @@ Target venues:
 
 ## Update 2026-04-27
 
-Current meeting-facing numbers are superseded by `docs/audit_log.md`, `CLAUDE.md`, `RESEARCH.md`, and `docs/experiment_overview.md`. Key changes since the 2026-04-20/21 snapshot below: Phase 12 post-prompt BarExam full-N winner is Gemma 4 26B `rag_snap_hyde` **81.17%**; E4B `rag_snap_hyde` is **62.18%**; Phase 13.5 `multi_hyde_diverse` is the first MuSiQue cross-family lift at N=100 (Llama +12pp p=0.023, Gemma 3 27B +8pp p=0.134); Phase 14 `iter_hyde` hurts Gemma 3 27B (-20pp). The historical job statuses and pre-fix HyDE narrative below are retained for audit continuity, not current citation.
+Current meeting-facing numbers are now superseded by `docs/README.md`,
+`docs/meeting_state_2026-05-01.md`, and `docs/signoff_log.md`. Key changes
+since the 2026-04-20/21 snapshot below: Phase 12 post-prompt BarExam full-N
+winner is Gemma 4 26B `rag_snap_hyde` **81.17%**; E4B `rag_snap_hyde` is
+**62.18%**; Phase 13.5 `multi_hyde_diverse` was the first MuSiQue cross-family
+lift at N=100 (Llama +12pp p=0.023, Gemma 3 27B +8pp p=0.134); Phase 14
+`iter_hyde` hurts Gemma 3 27B (-20pp). The historical job statuses and
+pre-fix HyDE narrative below are retained for audit continuity, not current
+citation.
 
 ## Update 2026-04-20/21
 

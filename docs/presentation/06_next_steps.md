@@ -1,8 +1,17 @@
 # Next Steps / Open Work
 
+> Status: presentation-facing historical next-step list. For the current
+> 2026-05-01 work order, use `../meeting_state_2026-05-01.md`,
+> `../search_space_consolidation_2026-04-30.md`, and
+> `../report_adversarial_pass_2026-04-30.md`.
+
 ## Immediate (before Tier 3 full-corpus claims)
 
-Temporary 2026-04-27 handoff addendum: read [`../meeting_notes_042726.md`](../meeting_notes_042726.md) before launching new cluster work. It adds the latest meeting asks: golden-passage sanity checks, top-1 vs top-5 retrieval-depth ablation, Snap-HyDE 2-call efficiency variant, dataset×model×method planning, and authorship/time-budget coordination.
+Historical 2026-04-27 handoff addendum:
+[`../meeting_notes_042726.md`](../meeting_notes_042726.md) captured the meeting
+asks that led to golden-passage sanity checks, top-1 vs top-5 retrieval-depth
+ablation, Snap-HyDE 2-call, dataset/model/method planning, and
+authorship/time-budget coordination.
 
 - [ ] Llama 70b MuSiQue full-corpus N=2400 - why: test whether the N=200 bottleneck/probe story survives beyond the diagnostic slice - owner / dataset / model / mode: eval/HPC operator / MuSiQue / Llama 70b / `rag_simple` plus `snap_hyde_2call` or `multi_hyde_diverse`, depending on call budget.
 

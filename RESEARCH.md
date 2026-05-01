@@ -1,16 +1,25 @@
 # Research Program
 
+> Status: historical running log. For the current 2026-05-01 state, start with
+> `docs/README.md`, `docs/meeting_state_2026-05-01.md`, and
+> `docs/signoff_log.md`. Sections below preserve older reasoning and are useful
+> for provenance, but verify every result before citing it.
+
 ## Update 2026-04-27 ~12:30 CDT
 
 Change reason: housekeeping sweep after Tier 2 MuSiQue sign-off. The active headline is now narrower than the earlier cross-family N=100 framing: Llama 70b `multi_hyde_diverse` N=200 is **35.5%** vs `rag_simple` **27.5%** (+8.0pp, McNemar p=0.0195), while Gemma 3 27B N=200 is **31.0%** vs **28.5%** (+2.5pp, p=0.5901 NULL). Mechanism at Llama N=200: HyDE-style answer passages account for about +6.5pp of the +8pp lift; query diversity alone is +1.5pp NS (p=0.728). N<200 results below are direction-only.
 
-Persistent research state for the LegalRagAgent project. Read this first in any new session.
+Persistent historical research state for the LegalRagAgent project. Do not use
+this as the first current-state document.
 
 This project started as a heavy agentic RAG pipeline that hurt performance. We stripped it down, systematically tested each component, and found that simpler adaptive strategies beat complex ones. The long-term goal is still a strong full agentic pipeline, but we're rebuilding toward it intentionally and atomically — testing each element's effectiveness and documenting what works about the research process itself.
 
-## Current execution status (2026-04-27 early, ahead of Monday meeting)
+## Historical Execution Status (2026-04-27 early, ahead of Monday meeting)
 
-**Live ground truth** is `docs/signoff_log.md` for cite-or-not status, `docs/compiled_results.md` for audit detail, and `docs/mcnemar_2026-04-27.md` for paired MuSiQue tests. Older live-matrix docs remain historical context.
+At the time of this snapshot, ground truth was `docs/signoff_log.md` for
+cite-or-not status, `docs/compiled_results.md` for audit detail, and
+`docs/mcnemar_2026-04-27.md` for paired MuSiQue tests. For current ground truth,
+use the 2026-05-01 docs index and signoff path above.
 
 ### Coverage wave landed (commit `56bffc8`)
 
@@ -96,7 +105,7 @@ Drawn from [Karpathy autoresearch](https://github.com/karpathy/autoresearch) and
 
 ---
 
-## Current Best Results
+## Historical Best Results
 
 ### Historical cross-dataset reference
 Older Llama/Scout benchmark tables were moved out of the main research state so the active leak-fix and size-comparison front stays visible.

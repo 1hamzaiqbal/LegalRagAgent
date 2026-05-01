@@ -1,12 +1,20 @@
 # Experiment Overview
 
+> Status: historical consolidation from 2026-04-27. For the current
+> 2026-05-01 navigation path, start with `docs/README.md`,
+> `docs/meeting_state_2026-05-01.md`, and `docs/signoff_log.md`. Keep this file
+> for context, but re-check every number before citing it.
+
 ## Update 2026-04-27 ~12:30 CDT
 
 Change reason: stale top-level overview still led with N=100 cross-family MHD framing. Current Tier 2 result: Llama 70b MuSiQue `multi_hyde_diverse` N=200 is **35.5%** vs `rag_simple` **27.5%** (+8.0pp, p=0.0195 SIG), while Gemma 3 27B N=200 is NULL (+2.5pp, p=0.5901). Mechanism: Llama `rag_multi_query` is only +1.5pp NS (p=0.728), so HyDE-style passages explain most of the MHD lift.
 
 High-level summary of the LegalRagAgent experimental program. Source of truth: `logs/experiments.jsonl` (**316** entries as of 2026-04-27 ~12:30 CDT) plus `docs/audit_log.md` for cited-number verification.
 
-For individual experiment details: `EXPERIMENTS.md`. For research state: `RESEARCH.md`. **Paper-grade reading order: `docs/signoff_log.md`, `docs/narrative_2026_04_27.md`, `docs/mcnemar_2026-04-27.md`, and `docs/compiled_results.md`.**
+For individual experiment details: `EXPERIMENTS.md`. For research state:
+`RESEARCH.md`. Both are historical running logs. Current claim routing is
+`docs/README.md` -> `docs/signoff_log.md` -> `docs/compiled_results.md` plus
+dataset-specific gates.
 
 ## Timeline
 

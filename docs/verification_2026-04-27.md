@@ -1,5 +1,9 @@
 # Verification pass — paper-grade docs, 2026-04-27
 
+> Status: historical verification pass for the April 27 paper-grade docs. It is
+> useful for audit trail and discrepancy history, but the current claim path is
+> `docs/README.md`, `docs/signoff_log.md`, and the May 1 dataset-specific gates.
+
 Scope: `docs/signoff_log.md`, `docs/narrative_2026_04_27.md`, `docs/mcnemar_2026-04-27.md`, and `docs/compiled_results.md`. Read-only sources checked: `logs/experiments.jsonl`, cited `logs/*_detail.jsonl` files, `docs/audit_log.md`, and source analysis docs where cited.
 
 ## Section 1: Numbers verified ✅
