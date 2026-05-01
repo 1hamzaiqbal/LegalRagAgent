@@ -30,7 +30,7 @@
 \newcommand{\pp}{\mathrm{pp}}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 
-\title{Snap-Conditioned Retrieval for Legal RAG: A Four-Benchmark Bottleneck Study}
+\title{Toward Adaptive Snap-HyDE for Legal RAG: A Four-Benchmark Bottleneck Study}
 
 \author{%
   Hamza Iqbal \\
@@ -58,16 +58,16 @@ CaseHOLD, using one full-corpus legal result and paired $N=200$ diagnostics
 across four legal benchmarks to probe RAG bottlenecks. On full-corpus
 BarExamQA, \method{rag_snap_hyde} improves Gemma 4 26B from 78.08\% to
 81.17\% (+3.09pp, McNemar $p=0.0130$) and Gemma 4 E4B from 58.49\% to
-62.18\% (+3.68pp, $p=0.0129$). The rest of the evidence is deliberately
-mixed: BarExamQA is retrieval-depth flat, SCALR is candidate-depth sensitive
-then saturates at top-5, HousingQA improves with metadata-filtered retrieval,
-and CaseHOLD improves gold-option retrieval without a reliable answer lift.
-The contribution is therefore not a universal new RAG method, but a
-bottleneck-typed analysis showing when legal RAG needs more candidates, better
-query generation, answer anchoring, metadata filtering, or stronger
-evidence-to-option conversion. These diagnostics motivate our next method:
-adaptive snap-HyDE, where the HyDE/reasoning budget is placed on top of the
-active bottleneck instead of applied uniformly to every legal question.
+62.18\% (+3.68pp, $p=0.0129$). The remaining evidence is heterogeneous in a
+structured way: SCALR is candidate-depth sensitive then saturates at top-5,
+HousingQA improves with metadata-filtered retrieval, and CaseHOLD improves
+gold-option retrieval without yet converting that into a reliable answer lift.
+We interpret this heterogeneity as evidence for adaptive snap-HyDE: a
+controller that places HyDE-style reasoning on the active bottleneck. The
+resulting agenda is generalizable in form, even where current rows are
+$N=200$: diagnose whether a legal task needs more candidates, better query
+generation, answer anchoring, metadata filtering, or stronger
+evidence-to-option conversion, then spend the reasoning budget there.
 \end{abstract}
 
 \section{Introduction}
@@ -100,7 +100,8 @@ before asking the model to read external authority, ask it to state the issue
 and likely rule. Retrieval is then shaped by that legal frame rather than by
 the raw question alone.
 
-The current legal-only evidence is not uniformly positive, and that is useful.
+The current legal-only evidence varies by task, but it varies in a structured
+way.
 BarExamQA shows a real full-corpus snap-HyDE lift, but top-1 versus top-5
 retrieval is flat, so the lift should not be described as ``more documents
 help.'' LegalBench-SCALR shows a strong top-1 collapse and top-5 saturation,
@@ -118,7 +119,9 @@ QA remains only an internal mechanism check.
 The forward hypothesis is that snap-HyDE should become adaptive: it should
 choose whether to spend its reasoning budget on query framing, query diversity,
 candidate expansion, metadata filtering, or answer-option conversion depending
-on what the problem appears to need.
+on what the problem appears to need. This is the generalization claim we can
+defend now: not that one prompt wins every benchmark, but that legal RAG errors
+can be typed into reusable bottlenecks with reusable interventions.
 
 \section{Related Work}
 
@@ -226,6 +229,17 @@ synthesis.}
 \label{fig:method_diagram}
 \end{figure}
 
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\textwidth]{03_adaptive_snap_hyde_controller.png}
+  \caption{Grounded adaptive snap-HyDE schematic. The controller first observes
+  cheap diagnostics, then chooses a route tied to the current benchmark signal:
+  answer framing for BarExamQA, candidate expansion for SCALR,
+  jurisdiction-aware metadata filtering for HousingQA, or option conversion
+  for CaseHOLD.}
+  \label{fig:adaptive_controller_visual}
+\end{figure}
+
 \subsection{Bottleneck diagnostics}
 
 We use three families of diagnostics. First, top-$k$ sensitivity tests whether
@@ -241,7 +255,10 @@ The four legal benchmarks map naturally onto different bottleneck hypotheses:
 BarExamQA tests answer anchoring under strong legal priors, HousingQA tests
 state-specific legal retrieval, LegalBench-SCALR tests small
 candidate-set holding selection, and CaseHOLD tests whether a retrieved
-holding can be converted into the correct answer option.
+holding can be converted into the correct answer option. Keeping most
+diagnostic rows at $N=200$ also makes the comparison deliberately parallel:
+the same slice size lets us ask which mechanism changes under a fixed evidence
+budget before scaling every dataset to full corpus.
 
 \section{Experimental Setup}
 
@@ -259,7 +276,10 @@ through the shared evaluation harness. LegalBench-SCALR and CaseHOLD
 diagnostic rows use Llama 70B. HousingQA uses Gemma 4 26B. For paired claims,
 we compare runs on the same question slice and provider. Claims are scoped to
 these model/provider settings rather than presented as model-independent
-benchmark rankings.
+benchmark rankings. Except for the full-corpus BarExamQA rows, we keep the
+newer legal diagnostics at $N=200$ for parity, cost control, and fast paired
+auditing; the same harness can increase $N$ once a route has enough signal to
+justify a larger run.
 
 \paragraph{Metrics.}
 We report accuracy for multiple-choice and yes/no datasets. Paired deltas use
@@ -320,9 +340,10 @@ Figure~\ref{fig:barexam_cross_size} shows this cross-size pattern.
 \subsection{Four-benchmark legal bottleneck matrix}
 
 Table~\ref{tab:legal_matrix} is the compact result summary. It intentionally
-includes negative and directional rows. The current evidence does not show
-one method winning everywhere; it shows which legal bottleneck each dataset is
-probing.
+includes negative and directional rows because those rows identify where the
+next adaptive route should spend budget. The current evidence is therefore
+more promising as a bottleneck map than as a single leaderboard: it shows which
+legal bottleneck each dataset is probing.
 
 \begin{table}[!htbp]
 \centering
@@ -557,27 +578,40 @@ where one hypothetical passage is too narrow, tune metadata filters where
 jurisdiction is binding, and tune verifier or option-mapping logic where
 evidence conversion is binding. The stubborn cases are therefore not outside the
 framing; they define which HyDE-adjacent component still needs to be designed.
-The current evidence does not prove the adaptive controller yet, but it shows
-why that controller is the right next object to build: different legal tasks
-need different forms of retrieval-time reasoning, and the harness can measure
-which form is helping.
+The current evidence does not yet instantiate the full adaptive controller, but
+it shows why that controller is the right next object to build: different
+legal tasks need different forms of retrieval-time reasoning, and the harness
+can measure which form is helping.
 
-The class-report claim is therefore deliberately modest but concrete. We built
-and audited a legal RAG harness that can run comparable methods across several
-legal benchmarks; we found one full-corpus legal snap-HyDE lift on BarExamQA;
-we found several $N=200$ diagnostic signals that disagree with a single-method
-story; and we turned those signals into a routing agenda. That is a better
-foundation for future work than another broad sweep over loosely comparable
-prompts, because it says what should change when a method fails.
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.92\textwidth]{04_bottleneck_route_map.png}
+  \caption{Route map implied by current evidence. Green cells are supported by
+  landed rows; amber cells are promising or next-test routes. The prospect for
+  generalization comes from reusing the same bottleneck tests and routing
+  choices across legal tasks, not from claiming one fixed prompt wins
+  everywhere.}
+  \label{fig:route_map}
+\end{figure}
+
+The class-report claim is therefore deliberately scoped but optimistic. We
+built and audited a legal RAG harness that can run comparable methods across
+several legal benchmarks; we found one full-corpus legal snap-HyDE lift on
+BarExamQA; we found several $N=200$ diagnostic signals that expose reusable
+bottlenecks; and we turned those signals into a routing agenda. That is a
+better foundation for future work than another broad sweep over loosely
+comparable prompts, because it says what should change when a method fails.
 
 \section{Limitations and Future Work}
 
-The report is intentionally conservative. Only BarExamQA has a full-corpus
-legal result; HousingQA, SCALR, and CaseHOLD are paired $N=200$ diagnostic
-slices for mechanism discovery rather than final benchmark claims. HousingQA
-now has repaired k=5 and k=10 state-filter results, but they should still be
-treated as diagnostics over one deterministic slice rather than full-benchmark
-claims.
+The report is intentionally conservative about statistical scope. Only
+BarExamQA has a full-corpus legal result; HousingQA, SCALR, and CaseHOLD are
+paired $N=200$ diagnostic slices for mechanism discovery rather than final
+benchmark claims. This was also a parity choice: the same sample size made it
+possible to compare mechanisms quickly under comparable API and audit budgets.
+The limitation is scale, not wiring. HousingQA now has repaired k=5 and k=10
+state-filter results, but they should still be treated as diagnostics over one
+deterministic slice until we rerun larger samples.
 
 The method set is incomplete relative to the literature. We define Self-RAG,
 CRAG, and Speculative RAG, but do not reimplement them or log true
@@ -585,6 +619,10 @@ draft/verifier metrics. The next experiments should stay legal-only: finish
 test SCALR option grounding or reranking, test CaseHOLD option-aware synthesis
 after the gold-retrieval lift, and wire LegalBench-RAG or Legal RAG Bench
 rather than adding another generic multi-hop dataset.
+The adaptive snap-HyDE controller should be evaluated by scaling the strongest
+routes first: run larger HousingQA state-filter slices, add SCALR option
+reranking after top-5 retrieval, and test CaseHOLD option-aware conversion on
+the repaired holdings collection.
 
 \section{Conclusion}
 
@@ -592,12 +630,12 @@ The legal-only evidence supports a bottleneck-typed view of RAG. Snap-HyDE
 helps BarExamQA at full corpus, but BarExamQA is not retrieval-depth limited.
 SCALR is candidate-depth limited, HousingQA shows a real metadata-filtering
 signal, and CaseHOLD shows that better generated-query retrieval does not
-automatically convert to better answers. These mixed results are not a failure
-of the project. They
-are the project signal: before building a bigger agent or declaring a RAG
-method better, we need to know whether the legal task needs more candidates,
-better generated queries, state-aware filtering, answer anchoring, or a
-stronger evidence-to-option mapper.
+automatically convert to better answers. This is the project signal: adaptive
+legal RAG should not ask whether HyDE is globally good or bad; it should ask
+where the task's bottleneck is and apply the snap/HyDE reasoning budget there.
+That gives us a concrete and testable path from the current report to a more
+general method: diagnose the bottleneck, select the route, and scale the
+paired evaluation once the route has signal.
 
 \clearpage
 \bibliographystyle{plainnat}
