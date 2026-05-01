@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import csv
 import json
-import textwrap
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -105,6 +104,48 @@ def write_metrics() -> None:
         writer.writeheader()
         for name, row in RUNS.items():
             writer.writerow({"name": name, **row})
+
+
+def plot_barexam_cross_size() -> None:
+    fig, ax = plt.subplots(figsize=(7.3, 2.35), dpi=260)
+    rows = [
+        ("Gemma 4 26B-A4B", "N=1195 full corpus", 78.08, 81.17, "+3.09 pp"),
+        ("Gemma 4 E4B", "N=1195 full corpus", 58.49, 62.18, "+3.68 pp"),
+    ]
+    y_positions = [1, 0]
+    for y, (model, scope, simple, snap, delta) in zip(y_positions, rows):
+        ax.plot([simple, snap], [y, y], color="#AEB7B7", linewidth=2.3, solid_capstyle="round", zorder=1)
+        ax.scatter(simple, y, s=115, color="#788384", edgecolor="white", linewidth=1.1, zorder=3)
+        ax.scatter(snap, y, s=135, color="#2EAD63", edgecolor="white", linewidth=1.1, zorder=4)
+        ax.text(simple, y - 0.15, f"{simple:.2f}%", ha="center", va="top", fontsize=8.2, color="#3F4646")
+        ax.text(snap, y - 0.15, f"{snap:.2f}%", ha="center", va="top", fontsize=8.2, color="#145A32", weight="bold")
+        ax.text(
+            (simple + snap) / 2,
+            y + 0.22,
+            f"Snap-HyDE {delta}",
+            ha="center",
+            va="bottom",
+            fontsize=8.8,
+            color="#106B35",
+            weight="bold",
+        )
+
+    ax.set_yticks(y_positions)
+    ax.set_yticklabels([f"{model}\n{scope}" for model, scope, *_ in rows], fontsize=8.4)
+    ax.set_xlabel("Full-corpus accuracy (%)", fontsize=9)
+    ax.set_xlim(55.5, 84.5)
+    ax.set_ylim(-0.50, 1.45)
+    ax.set_xticks([60, 65, 70, 75, 80])
+    ax.grid(axis="x", alpha=0.22, linewidth=0.7)
+    for spine in ["top", "right", "left"]:
+        ax.spines[spine].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+    ax.tick_params(axis="x", labelsize=8)
+    ax.scatter([], [], s=90, color="#788384", label="simple RAG")
+    ax.scatter([], [], s=90, color="#2EAD63", label="snap-HyDE")
+    ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.45, 1.09), fontsize=8.0, ncol=2, handletextpad=0.4)
+    fig.subplots_adjust(left=0.24, right=0.98, top=0.80, bottom=0.26)
+    fig.savefig(OUT / "02_barexam_cross_size.png", bbox_inches="tight")
 
 
 def plot_depth_and_conversion() -> None:
@@ -207,7 +248,7 @@ def plot_cost_accuracy() -> None:
             label=dataset,
         )
         ax.annotate(
-            f"{dataset} {label}\n{row['tokens_per_q'] / 1000:.1f}k tok/q",
+            f"{dataset} {label}",
             (row["calls_per_q"], pct(row["accuracy"])),
             textcoords="offset points",
             xytext=offsets.get(key, (6, 4)),
@@ -226,146 +267,24 @@ def plot_cost_accuracy() -> None:
     fig.savefig(OUT / "02_cost_accuracy.png", bbox_inches="tight")
 
 
-def wrapped(text: str, width: int = 28) -> str:
-    return "\n".join(textwrap.wrap(text, width=width))
-
-
-def add_box(ax, xy: tuple[float, float], width: float, height: float, text: str, face: str, edge: str, fontsize: float = 8.0) -> None:
-    box = patches.FancyBboxPatch(
-        xy,
-        width,
-        height,
-        boxstyle="round,pad=0.025,rounding_size=0.025",
-        linewidth=1.1,
-        facecolor=face,
-        edgecolor=edge,
-    )
-    ax.add_patch(box)
-    ax.text(
-        xy[0] + width / 2,
-        xy[1] + height / 2,
-        text,
-        ha="center",
-        va="center",
-        fontsize=fontsize,
-        color="#1B1B1B",
-    )
-
-
-def add_arrow(ax, start: tuple[float, float], end: tuple[float, float], color: str = "#555555") -> None:
-    ax.annotate(
-        "",
-        xy=end,
-        xytext=start,
-        arrowprops={"arrowstyle": "->", "lw": 1.25, "color": color, "shrinkA": 2, "shrinkB": 2},
-    )
-
-
-def plot_adaptive_controller() -> None:
-    """Draw a grounded controller schematic tied to the observed result rows."""
-
-    fig, ax = plt.subplots(figsize=(9.8, 5.3), dpi=220)
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    ax.axis("off")
-
-    add_box(
-        ax,
-        (0.04, 0.80),
-        0.22,
-        0.11,
-        "Legal question + snap",
-        "#EEF4FB",
-        "#4C78A8",
-        9.0,
-    )
-    add_box(
-        ax,
-        (0.38, 0.80),
-        0.22,
-        0.11,
-        "Cheap diagnostics",
-        "#F8F8F8",
-        "#777777",
-        9.0,
-    )
-    add_box(
-        ax,
-        (0.74, 0.80),
-        0.22,
-        0.11,
-        "Route-specific HyDE use",
-        "#F8F8F8",
-        "#777777",
-        9.0,
-    )
-    add_arrow(ax, (0.26, 0.855), (0.38, 0.855))
-    add_arrow(ax, (0.60, 0.855), (0.74, 0.855))
-
-    headers = [("Observed signal", 0.05, 0.30), ("Route", 0.37, 0.20), ("Concrete next fix", 0.62, 0.31)]
-    for label, x, width in headers:
-        ax.text(x + width / 2, 0.72, label, ha="center", va="center", fontsize=9.2, weight="bold", color="#333333")
-
-    rows = [
-        {
-            "y": 0.60,
-            "color": "#4C78A8",
-            "route": "Answer-frame\nHyDE",
-            "signal": "BarExam: full-corpus snap-HyDE +3.09pp; top-k flat",
-            "fix": "Use snap to frame evidence, not just retrieve more text",
-        },
-        {
-            "y": 0.43,
-            "color": "#59A14F",
-            "route": "Candidate\nexpansion",
-            "signal": "SCALR: top-1 -> top-5 +17.5pp; top-10 flat",
-            "fix": "Default to k=5, then rerank or ground options",
-        },
-        {
-            "y": 0.26,
-            "color": "#F28E2B",
-            "route": "Metadata\nfiltering",
-            "signal": "Housing: state-filter k10 62.5%; 0 empty rows",
-            "fix": "Normalize jurisdiction metadata before retrieval",
-        },
-        {
-            "y": 0.09,
-            "color": "#E15759",
-            "route": "Option\nconversion",
-            "signal": "CaseHOLD: gold-hit 16% -> 47%; answer lift not reliable",
-            "fix": "Map retrieved holdings back to answer choices",
-        },
-    ]
-
-    for row in rows:
-        y = row["y"]
-        add_box(ax, (0.05, y), 0.30, 0.115, wrapped(row["signal"], 31), "#FBFBFB", row["color"], 8.0)
-        add_box(ax, (0.39, y), 0.16, 0.115, row["route"], "#FFFFFF", row["color"], 8.4)
-        add_box(ax, (0.61, y), 0.34, 0.115, wrapped(row["fix"], 38), "#FBFBFB", row["color"], 8.0)
-        add_arrow(ax, (0.35, y + 0.057), (0.39, y + 0.057), row["color"])
-        add_arrow(ax, (0.55, y + 0.057), (0.61, y + 0.057), row["color"])
-
-    fig.tight_layout()
-    fig.savefig(OUT / "03_adaptive_snap_hyde_controller.png", bbox_inches="tight")
-
-
 def plot_route_map() -> None:
     """Summarize the current evidence as routes for an adaptive controller."""
 
     rows = ["BarExamQA", "SCALR", "HousingQA", "CaseHOLD"]
     cols = ["Answer\nframe", "Candidate\nexpansion", "Metadata\nfilter", "Option\nconverter"]
-    # 0 = not active from current evidence, 1 = promising/next, 2 = supported by landed rows.
+    # 0 = not active from current evidence, 1 = diagnosed next-test route,
+    # 2 = supported by landed route evidence.
     values = [
         [2, 0, 0, 1],
-        [0, 2, 0, 2],
+        [0, 2, 0, 1],
         [0, 1, 2, 0],
-        [0, 1, 0, 2],
+        [0, 1, 0, 1],
     ]
     labels = [
         ["full-corpus\n+3.09pp", "", "", "keep frame;\naudit evidence"],
         ["", "top-1 -> top-5\n+17.5pp", "", "next:\nrerank options"],
         ["", "generic top-10\n+7.5pp", "state k10\n62.5%", ""],
-        ["", "k1 -> k5\n+5.0pp", "", "gold-hit\n+31pp"],
+        ["", "k1 -> k5\n+5.0pp", "", "next:\noption map"],
     ]
     cmap = ListedColormap(["#F7F7F7", "#F4D35E", "#5AA469"])
     fig, ax = plt.subplots(figsize=(9.8, 4.5), dpi=220)
@@ -388,8 +307,8 @@ def plot_route_map() -> None:
                 ax.text(x, y, text, ha="center", va="center", fontsize=7.2, color=color)
 
     handles = [
-        patches.Patch(facecolor="#5AA469", edgecolor="#A0A0A0", label="supported"),
-        patches.Patch(facecolor="#F4D35E", edgecolor="#A0A0A0", label="promising / next"),
+        patches.Patch(facecolor="#5AA469", edgecolor="#A0A0A0", label="landed route evidence"),
+        patches.Patch(facecolor="#F4D35E", edgecolor="#A0A0A0", label="diagnosed next test"),
         patches.Patch(facecolor="#F7F7F7", edgecolor="#A0A0A0", label="not active"),
     ]
     ax.legend(
@@ -410,9 +329,9 @@ def plot_route_map() -> None:
 
 def main() -> None:
     write_metrics()
+    plot_barexam_cross_size()
     plot_depth_and_conversion()
     plot_cost_accuracy()
-    plot_adaptive_controller()
     plot_route_map()
 
 

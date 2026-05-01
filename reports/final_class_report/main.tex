@@ -19,7 +19,7 @@
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
 \hypersetup{hidelinks}
 
-\graphicspath{{figures/}{../../docs/presentation/figures/}}
+\graphicspath{{figures/}}
 
 \makeatletter
 \renewcommand{\@notice}{}
@@ -115,7 +115,8 @@ with $p=0.4421$.
 
 We exclude MuSiQue from the main report because it is not a legal benchmark.
 The final class report is framed around four legal tasks; non-legal multi-hop
-QA remains only an internal mechanism check.
+QA remains only an internal mechanism check for retrieval-depth and
+oracle-context behavior.
 The forward hypothesis is that snap-HyDE should become adaptive: it should
 choose whether to spend its reasoning budget on query framing, query diversity,
 candidate expansion, metadata filtering, or answer-option conversion depending
@@ -229,17 +230,6 @@ synthesis.}
 \label{fig:method_diagram}
 \end{figure}
 
-\begin{figure}[!htbp]
-  \centering
-  \includegraphics[width=\textwidth]{03_adaptive_snap_hyde_controller.png}
-  \caption{Grounded adaptive snap-HyDE schematic. The controller first observes
-  cheap diagnostics, then chooses a route tied to the current benchmark signal:
-  answer framing for BarExamQA, candidate expansion for SCALR,
-  jurisdiction-aware metadata filtering for HousingQA, or option conversion
-  for CaseHOLD.}
-  \label{fig:adaptive_controller_visual}
-\end{figure}
-
 \subsection{Bottleneck diagnostics}
 
 We use three families of diagnostics. First, top-$k$ sensitivity tests whether
@@ -320,17 +310,18 @@ Method & Accuracy & $\Delta$ vs \method{rag_simple} \\
 
 The mechanism is not pure retrieval depth. On a paired $N=200$ diagnostic,
 \method{rag_simple} top-5 is 82.5\% and top-1 is 83.0\% ($p=1.0$). The
-full-corpus lift is better read as snap-conditioned query anchoring plus
-evidence reconciliation, with model-size dependence: the 26B audit suggests
-the first-pass legal frame is already strong, while retrieval/synthesis appears
-more useful on the smaller E4B model. A legal MC model can have strong prior
-knowledge of the rule; retrieval then helps only if it is framed in a way that
-does not overwrite the right legal analysis with a partial snippet.
+full-corpus lift is consistent with snap-conditioned answer framing plus
+retrieval, with model-size dependence: the 26B audit suggests much of the gain
+may come from strong first-pass legal priors rather than retrieval depth alone,
+while retrieval/synthesis appears more useful on the smaller E4B model. A
+legal MC model can have strong prior knowledge of the rule; retrieval then
+helps only if it is framed in a way that does not overwrite the right legal
+analysis with a partial snippet.
 Figure~\ref{fig:barexam_cross_size} shows this cross-size pattern.
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics[width=0.70\textwidth]{02_barexam_cross_size.png}
+  \includegraphics[width=0.95\textwidth]{02_barexam_cross_size.png}
   \caption{BarExamQA cross-size result. \method{rag_snap_hyde} improves over
   \method{rag_simple} on both Gemma 4 model sizes. The snap conditions
   retrieval; visible snap reasoning is tested by separate controls.}
@@ -362,19 +353,22 @@ vs top-1 83.0\% on $N=200$ &
 Not a pure retrieval-depth win. \\
 \addlinespace
 HousingQA / Gemma 4 &
-Depth, answer bias, and jurisdiction filtering &
-Top-1 50.5\% to top-10 58.0\% (+7.5pp, $p=0.0722$); state filter reaches
-61.5\% at k=5 and 62.5\% at k=10 &
+Jurisdiction metadata normalization/filtering &
+$N=200$: top-1 50.5\% to top-10 58.0\% (+7.5pp, $p=0.0722$); state filter
+reaches 61.5\% at k=5 and 62.5\% at k=10 &
 State filter beats generic top-5; k=10 adds little over k=5. \\
 \addlinespace
 LegalBench-SCALR / Llama 70B &
-Candidate-set size &
-Top-1 59.5\%, top-5 77.0\%, top-10 77.0\%; HyDE 77.5\%; diverse HyDE 75.5\% &
-Depth helps to top-5; generated queries do not yet add answer lift. \\
+Retrieval-policy / candidate-set size &
+$N=200$: top-1 59.5\%, top-5 77.0\%, top-10 77.0\%; HyDE 77.5\%; diverse
+HyDE 75.5\% &
+Top-5 fixes the useful candidate set; generated queries do not yet add answer
+lift. \\
 \addlinespace
 CaseHOLD / Llama 70B &
 Evidence-to-option conversion &
-Top-1 64.5\%, top-5 69.5\%, top-10 68.0\%; HyDE and two-call both 72.0\% &
+$N=200$: top-1 64.5\%, top-5 69.5\%, top-10 68.0\%; HyDE and two-call both
+72.0\% &
 Better retrieval recall is not yet a reliable answer lift. \\
 \bottomrule
 \end{tabularx}
@@ -400,23 +394,26 @@ gold retrieval, while top-5 reaches 69.5\% with 16.0\% gold retrieval
 (+5.0pp, $p=0.0525$). Top-10 retrieves more gold options (19.0\%) but drops
 to 68.0\%. HyDE retrieves the gold option in 52.0\% of rows and two-call
 snap-HyDE in 47.0\%, but both answer at 72.0\%; neither is a significant lift
-over top-5 \method{rag_simple}. If retrieval recall were sufficient, answer
-accuracy should improve sharply. It does not. This suggests an
-evidence-to-option bottleneck: retrieved holdings can still be paraphrased
-distractors, overly generic, or hard to map back to the exact candidate label.
+over top-5 \method{rag_simple}. If exact-gold retrieval were the only binding
+bottleneck, we would expect a clearer answer lift. Instead, the flat answer
+result points to an evidence-to-option bottleneck: retrieved holdings can still
+be paraphrased distractors, overly generic, or hard to map back to the exact
+candidate label.
 
-SCALR gives a different holding-selection story. Top-1 is poor, top-5 fixes
-most of the loss, top-10 adds no answer accuracy beyond top-5, and a validated
-\method{rag_hyde} follow-up is also flat at 77.5\% despite retrieving the gold
-holding in 66.0\% of rows. A one-call snap-final variant drops to 70.5\%
-($p=0.00235$ versus top-5), so simply adding a snap rationale to the final
-answer is not a free improvement on this task. Diverse HyDE also stays below
-top-5 at 75.5\%. This is not a generic ``legal holdings ignore retrieval''
-result. It says SCALR needs a small candidate set, while CaseHOLD needs better
-evidence conversion.
+SCALR gives a different holding-selection story. It is sensitive to retrieval
+policy: top-1 is too narrow, top-5 supplies the useful candidate set, top-10
+adds recall without net answer gain, and a validated \method{rag_hyde}
+follow-up is also flat at 77.5\% despite retrieving the gold holding in 66.0\%
+of rows. A one-call snap-final variant drops to 70.5\% ($p=0.00235$ versus
+top-5), so simply adding a snap rationale to the final answer is not a free
+improvement on this task. Diverse HyDE also stays below top-5 at 75.5\%. This
+is not a generic ``legal holdings ignore retrieval'' result. It says two
+apparently similar holding-selection tasks diverge: SCALR needs a compact
+candidate set, while CaseHOLD needs better evidence conversion.
 
-HousingQA is the strongest evidence that legal metadata is not optional. The
-first state-filter experiment failed because question states were display-case
+HousingQA is the strongest current evidence in this project that legally
+salient metadata can be a first-order retrieval variable. The first
+state-filter experiment failed because question states were display-case
 strings while Chroma metadata was lowercase; that failed row is rejected as
 empty retrieval. After repairing the casing bug, k=5 state-filtered retrieval
 lands at 61.5\%, with zero empty retrieval rows and 81/200 gold statutes
@@ -455,10 +452,11 @@ control.
 
 The ablations also expose when extra calls and tokens are worth spending.
 Figure~\ref{fig:cost_accuracy} plots paired $N=200$ legal slices with marker
-size proportional to total tokens per question. BarExamQA is the cleanest
-case for snap-style reasoning budget: the two-call version reaches 85.5\%,
-nearly matching the sequential snap-HyDE row at 86.0\%, while using fewer
-calls and fewer tokens per question. HousingQA behaves differently: generic
+size proportional to total tokens per question. On the $N=200$ BarExam cost
+slice, two-call snap-HyDE is the cleanest budget tradeoff: it reaches 85.5\%,
+nearly matching the sequential snap-HyDE row at 86.0\%, though the paired lift
+over \method{rag_simple} is directional rather than significant. HousingQA
+behaves differently: generic
 top-10 retrieval is one call but expensive in total tokens (4.6k tokens per
 question), while two-call snap-HyDE is slightly lower accuracy at a smaller
 3.2k tokens per question. State-filtered retrieval is now the stronger Housing
@@ -530,39 +528,15 @@ is not mapping back to choices. The result is still agentic in the sense that
 method adaptation happens on the fly, but it is experimentally cleaner because
 every route corresponds to a measured ablation cell.
 
-\begin{center}
-\small
-\begin{tabularx}{\textwidth}{p{0.21\textwidth}p{0.28\textwidth}Y}
-\toprule
-Observed signal & Likely bottleneck & Route to test next \\
-\midrule
-Top-1 fails, top-5 recovers, top-10 flat &
-Candidate-set size rather than answer reasoning &
-Use top-5 as default; spend budget on reranking or option grounding instead
-of deeper context. \\
-\addlinespace
-Snap-only beats or matches retrieval &
-Evidence is distracting or under-specified relative to legal priors &
-Keep a first-pass legal frame in final synthesis and audit whether evidence
-overwrites correct priors. \\
-\addlinespace
-Generated retrieval improves gold-hit but not answer accuracy &
-Evidence-to-answer conversion bottleneck &
-Add answer-option-aware synthesis, contradiction checks, or verifier scoring
-rather than more retrieval. \\
-\addlinespace
-Question contains jurisdiction metadata &
-Corpus filtering and metadata normalization bottleneck &
-Filter before retrieval, validate non-empty evidence, and compare against
-generic top-$k$ retrieval. \\
-\addlinespace
-Retriever scores are low or retrieved passages disagree &
-Query formulation bottleneck &
-Try snap-HyDE or diverse HyDE passages, then measure whether gold retrieval
-and answer accuracy move together. \\
-\bottomrule
-\end{tabularx}
-\end{center}
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.82\textwidth]{03_adaptive_snap_hyde_controller.png}
+  \caption{Conceptual adaptive snap-HyDE routes. The route changes with the
+  observed failure mode: answer framing, candidate-set expansion, metadata
+  filtering, or option mapping. Figure~\ref{fig:route_map} grounds these routes
+  in the current benchmark evidence.}
+  \label{fig:adaptive_routes}
+\end{figure}
 
 This framing also explains why the current negative results are useful. A
 negative CaseHOLD answer delta after a positive gold-hit delta is not just a
@@ -587,10 +561,9 @@ can measure which form is helping.
   \centering
   \includegraphics[width=0.92\textwidth]{04_bottleneck_route_map.png}
   \caption{Route map implied by current evidence. Green cells are supported by
-  landed rows; amber cells are promising or next-test routes. The prospect for
-  generalization comes from reusing the same bottleneck tests and routing
-  choices across legal tasks, not from claiming one fixed prompt wins
-  everywhere.}
+  landed route evidence; amber cells are diagnosed next-test routes. The
+  diagnostic protocol generalizes, while the current effects remain scoped to
+  the model, task, and slice sizes reported above.}
   \label{fig:route_map}
 \end{figure}
 
@@ -609,9 +582,10 @@ BarExamQA has a full-corpus legal result; HousingQA, SCALR, and CaseHOLD are
 paired $N=200$ diagnostic slices for mechanism discovery rather than final
 benchmark claims. This was also a parity choice: the same sample size made it
 possible to compare mechanisms quickly under comparable API and audit budgets.
-The limitation is scale, not wiring. HousingQA now has repaired k=5 and k=10
-state-filter results, but they should still be treated as diagnostics over one
-deterministic slice until we rerun larger samples.
+The main remaining limitation is scale after recent dataset-specific wiring
+repairs. HousingQA now has repaired k=5 and k=10 state-filter results, but
+they should still be treated as diagnostics over one deterministic slice until
+we rerun larger samples with the same preflight and gold-mapping checks.
 
 The method set is incomplete relative to the literature. We define Self-RAG,
 CRAG, and Speculative RAG, but do not reimplement them or log true
