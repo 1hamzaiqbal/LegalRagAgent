@@ -67,7 +67,7 @@ RUNS = {
     "housing_2call": summarize("logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260430_0644_detail.jsonl"),
     "housing_state5": summarize("logs/eval_rag_state_filter_or-gemma4-26b_20260501_1406_detail.jsonl"),
     "housing_state10": summarize("logs/eval_rag_state_filter_or-gemma4-26b_20260501_k10_merged_detail.jsonl"),
-    # SCALR depth and snap-HyDE rows.
+    # SCALR depth and HyRE rows.
     "scalr_top1": summarize("logs/eval_rag_simple_groq-llama70b_20260429_2159_detail.jsonl"),
     "scalr_top5": summarize("logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl"),
     "scalr_top10": summarize("logs/eval_rag_simple_groq-llama70b_20260430_0054_detail.jsonl"),
@@ -122,7 +122,7 @@ def plot_barexam_cross_size() -> None:
         ax.text(
             (simple + snap) / 2,
             y + 0.22,
-            f"Snap-HyDE {delta}",
+            f"HyRE {delta}",
             ha="center",
             va="bottom",
             fontsize=8.8,
@@ -142,7 +142,7 @@ def plot_barexam_cross_size() -> None:
     ax.tick_params(axis="y", length=0)
     ax.tick_params(axis="x", labelsize=8)
     ax.scatter([], [], s=90, color="#788384", label="simple RAG")
-    ax.scatter([], [], s=90, color="#2EAD63", label="snap-HyDE")
+    ax.scatter([], [], s=90, color="#2EAD63", label="HyRE")
     ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.45, 1.09), fontsize=8.0, ncol=2, handletextpad=0.4)
     fig.subplots_adjust(left=0.24, right=0.98, top=0.80, bottom=0.26)
     fig.savefig(OUT / "02_barexam_cross_size.png", bbox_inches="tight")
@@ -208,16 +208,16 @@ def plot_cost_accuracy() -> None:
     fig, ax = plt.subplots(figsize=(8.8, 4.6), dpi=220)
     points = [
         ("BarExam", "simple", "barexam_top5"),
-        ("BarExam", "snap", "barexam_snap"),
-        ("BarExam", "2-call", "barexam_2call"),
+        ("BarExam", "HyRE", "barexam_snap"),
+        ("BarExam", "2-call HyRE", "barexam_2call"),
         ("Housing", "top-10", "housing_top10"),
         ("Housing", "state-10", "housing_state10"),
-        ("Housing", "2-call", "housing_2call"),
+        ("Housing", "2-call HyRE", "housing_2call"),
         ("SCALR", "simple", "scalr_top5"),
-        ("SCALR", "2-call", "scalr_2call"),
+        ("SCALR", "2-call HyRE", "scalr_2call"),
         ("CaseHOLD", "top-5", "casehold_top5"),
         ("CaseHOLD", "HyDE", "casehold_hyde"),
-        ("CaseHOLD", "2-call", "casehold_2call"),
+        ("CaseHOLD", "2-call HyRE", "casehold_2call"),
     ]
     offsets = {
         "scalr_2call": (8, 10),
@@ -259,7 +259,7 @@ def plot_cost_accuracy() -> None:
     ax.legend(unique.values(), unique.keys(), frameon=False, fontsize=8, loc="lower right")
     ax.set_xlabel("LLM calls per question")
     ax.set_ylabel("Accuracy (%)")
-    ax.set_title("Accuracy/cost tradeoff on paired N=200 legal slices", fontsize=10)
+    ax.set_title("Accuracy/cost tradeoff on paired N=200 legal subsets", fontsize=10)
     ax.set_xlim(0.75, 3.25)
     ax.set_ylim(48, 90)
     ax.grid(alpha=0.25, linewidth=0.6)
@@ -267,13 +267,88 @@ def plot_cost_accuracy() -> None:
     fig.savefig(OUT / "02_cost_accuracy.png", bbox_inches="tight")
 
 
+def plot_adaptive_hyre_routes() -> None:
+    fig, ax = plt.subplots(figsize=(8.8, 4.6), dpi=260)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.axis("off")
+    ax.text(0.5, 0.93, "Adaptive HyRE routes by failure mode", ha="center", va="center", fontsize=16, weight="bold")
+    ax.text(
+        0.5,
+        0.86,
+        "Snap reasoning is baked into the hypothetical snippet, then routed to the active bottleneck.",
+        ha="center",
+        va="center",
+        fontsize=9.5,
+        color="#444444",
+    )
+
+    cards = [
+        (0.07, 0.55, "#2D6CDF", "Answer framing", "Preserve the legal issue and rule\nwhen evidence is noisy."),
+        (0.57, 0.55, "#21884A", "Candidate set", "Retrieve enough plausible options\nbefore reranking."),
+        (0.07, 0.18, "#C98200", "Metadata filter", "Constrain by jurisdiction when it\nis part of the task."),
+        (0.57, 0.18, "#C5332F", "Option mapping", "Convert retrieved holdings back\nto answer choices."),
+    ]
+
+    def card(x: float, y: float, color: str, title: str, body: str) -> None:
+        ax.add_patch(
+            patches.FancyBboxPatch(
+                (x, y),
+                0.36,
+                0.23,
+                boxstyle="round,pad=0.018,rounding_size=0.018",
+                facecolor="white",
+                edgecolor=color,
+                linewidth=1.4,
+            )
+        )
+        ax.add_patch(
+            patches.FancyBboxPatch(
+                (x + 0.02, y + 0.05),
+                0.055,
+                0.13,
+                boxstyle="round,pad=0.01,rounding_size=0.02",
+                facecolor=color,
+                edgecolor=color,
+                linewidth=0,
+                alpha=0.16,
+            )
+        )
+        ax.text(x + 0.095, y + 0.155, title, ha="left", va="center", fontsize=11.2, weight="bold", color=color)
+        ax.text(x + 0.095, y + 0.085, body, ha="left", va="center", fontsize=8.6, color="#222222")
+
+    for item in cards:
+        card(*item)
+
+    ax.add_patch(
+        patches.FancyBboxPatch(
+            (0.39, 0.425),
+            0.22,
+            0.14,
+            boxstyle="round,pad=0.018,rounding_size=0.02",
+            facecolor="#F7F8F9",
+            edgecolor="#778080",
+            linewidth=1.1,
+        )
+    )
+    ax.text(0.5, 0.505, "HyRE router", ha="center", va="center", fontsize=11, weight="bold", color="#1F2933")
+    ax.text(0.5, 0.465, "snap -> reasoning snippet", ha="center", va="center", fontsize=8.4, color="#4A5560")
+
+    arrow_targets = [(0.39, 0.62), (0.57, 0.62), (0.39, 0.29), (0.57, 0.29)]
+    arrow_starts = [(0.45, 0.565), (0.55, 0.565), (0.45, 0.425), (0.55, 0.425)]
+    for start, end in zip(arrow_starts, arrow_targets):
+        ax.annotate("", xy=end, xytext=start, arrowprops={"arrowstyle": "->", "lw": 1.1, "color": "#6B7280"})
+
+    fig.tight_layout()
+    fig.savefig(OUT / "03_adaptive_snap_hyde_controller.png", bbox_inches="tight")
+
+
 def plot_route_map() -> None:
     """Summarize the current evidence as routes for an adaptive controller."""
 
     rows = ["BarExamQA", "SCALR", "HousingQA", "CaseHOLD"]
     cols = ["Answer\nframe", "Candidate\nexpansion", "Metadata\nfilter", "Option\nconverter"]
-    # 0 = not active from current evidence, 1 = diagnosed next-test route,
-    # 2 = supported by landed route evidence.
+    # 0 = not active, 1 = plausible intervention, 2 = observed support.
     values = [
         [2, 0, 0, 1],
         [0, 2, 0, 1],
@@ -281,10 +356,10 @@ def plot_route_map() -> None:
         [0, 1, 0, 1],
     ]
     labels = [
-        ["full-corpus\n+3.09pp", "", "", "keep frame;\naudit evidence"],
-        ["", "top-1 -> top-5\n+17.5pp", "", "next:\nrerank options"],
+        ["full-corpus\n+3.09pp", "", "", "preserve\nanswer frame"],
+        ["", "top-1 -> top-5\n+17.5pp", "", "rerank\noptions"],
         ["", "generic top-10\n+7.5pp", "state k10\n62.5%", ""],
-        ["", "k1 -> k5\n+5.0pp", "", "next:\noption map"],
+        ["", "k1 -> k5\n+5.0pp", "", "option-aware\nmapping"],
     ]
     cmap = ListedColormap(["#F7F7F7", "#F4D35E", "#5AA469"])
     fig, ax = plt.subplots(figsize=(9.8, 4.5), dpi=220)
@@ -294,7 +369,7 @@ def plot_route_map() -> None:
     ax.set_xticklabels(cols, fontsize=9)
     ax.set_yticks(range(len(rows)))
     ax.set_yticklabels(rows, fontsize=9)
-    ax.set_title("Evidence-backed routes for adaptive snap-HyDE", fontsize=11, pad=12)
+    ax.set_title("Evidence-backed routes for adaptive HyRE", fontsize=11, pad=12)
     ax.tick_params(length=0)
     for spine in ax.spines.values():
         spine.set_visible(False)
@@ -307,8 +382,8 @@ def plot_route_map() -> None:
                 ax.text(x, y, text, ha="center", va="center", fontsize=7.2, color=color)
 
     handles = [
-        patches.Patch(facecolor="#5AA469", edgecolor="#A0A0A0", label="landed route evidence"),
-        patches.Patch(facecolor="#F4D35E", edgecolor="#A0A0A0", label="diagnosed next test"),
+        patches.Patch(facecolor="#5AA469", edgecolor="#A0A0A0", label="observed support"),
+        patches.Patch(facecolor="#F4D35E", edgecolor="#A0A0A0", label="plausible intervention"),
         patches.Patch(facecolor="#F7F7F7", edgecolor="#A0A0A0", label="not active"),
     ]
     ax.legend(
@@ -332,6 +407,7 @@ def main() -> None:
     plot_barexam_cross_size()
     plot_depth_and_conversion()
     plot_cost_accuracy()
+    plot_adaptive_hyre_routes()
     plot_route_map()
 
 
