@@ -50,14 +50,14 @@ facts and multi-hop evidence dominate. This sharpens the BarExam story:
 `golden_passage` is not bad in general; it is a noisy single-passage control
 when legal priors and distractor doctrines are already strong.
 
-## Runs Already Queued
+## Queued Runs Followup
 
-Do not submit duplicates.
+2026-05-01 update: both jobs completed and are no longer "pending."
 
 | Job | Name | Status at review | Script | Why it matters |
 |---:|---|---|---|---|
-| 58282 | `housing-state-filter` | pending | `scripts/hpc/slurm_housing_state_filter.sh` | Tests whether HousingQA's directional depth lift is really metadata/state filtering. |
-| 58283 | `embed-eval-casehold` | pending | `scripts/hpc/slurm_embed_eval_casehold.sh` | Rebuilds repaired CaseHOLD holdings, then reruns paired answer-quality evals with meaningful gold ids. |
+| 58282 | `housing-state-filter` | completed, invalid-empty-retrieval | `scripts/hpc/slurm_housing_state_filter.sh` | Exposed a metadata-casing bug; fixed and resubmitted as SLURM `58799`. |
+| 58283 | `embed-eval-casehold` | completed, usable | `scripts/hpc/slurm_embed_eval_casehold.sh` | Rebuilt repaired CaseHOLD holdings and landed `rag_simple` 69.5% vs `two_call` 72.0%, p=0.4421. |
 
 ## Patches Made
 

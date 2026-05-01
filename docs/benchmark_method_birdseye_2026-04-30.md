@@ -22,6 +22,8 @@ Repo-grounded capability:
 - Local Chroma currently has `mleb_scalr_holdings` and
   `legalbench_scalr_holdings`; local `legal_passages` is empty, so local
   BarExam RAG runs are blocked unless the collection is rebuilt.
+- 2026-05-01 check: local Chroma still lacks `housing_statutes` and
+  `casehold_holdings`; run Housing/CaseHOLD RAG on cluster or rebuild locally.
 - Cluster job `57949` verified usable `housing_statutes`, `legal_passages`,
   `musique_passages`, and `casehold_holdings` collections, but the cluster
   checkout should be pulled to latest before new scripts are launched.
@@ -35,7 +37,7 @@ Repo-grounded capability:
 | MuSiQue | 2,417 QA / 48,315 passages | QA harness; special in-row BM25 retrieval, no Chroma needed | Multi-hop retrieval depth, query formulation, bridge/composition failures | top-1 collapses; `two_call`, `mhd`, and `iter_ptable` are complementary | Not legal-domain evidence; use as mechanism analog, not legal headline |
 | LegalBench-SCALR | 571 QA / 1,733 holdings | QA harness; local Chroma ready | Supreme Court holding selection, small candidate-set retrieval | top-1 59.5%, top-5/top-10 77.0%; top-10 adds recall without net accuracy | Best read is candidate-set saturation, not "more k is better" |
 | MLEB-SCALR | 120 queries / 523 holdings / 120 qrels | Retrieval-only runner; local Chroma ready | Pure retriever calibration without LLM answer confounds | gte-large Recall@1 34.2%, Recall@5 65.0%, Recall@10 72.5% | Not a QA benchmark; do not mix into answer accuracy tables |
-| CaseHOLD | 3,600 test / 51,296 repaired holdings | QA harness; collection rebuild needed after gold mapping repair | Holding-option disambiguation and distractor sensitivity | top-1/top-5/2-call are answer-flat in old N=200 audits | Old `gold_retrieved=0` was instrumentation; rebuild Chroma before new retrieval claims |
+| CaseHOLD | 3,600 test / 51,296 repaired holdings | QA harness; cluster repaired pair landed | Holding-option disambiguation and distractor sensitivity | repaired `rag_simple` 69.5% vs `two_call` 72.0%, p=0.4421; gold retrieval 16.0% -> 47.0% | Repaired top-k depth rerun still needed for a fresh depth-policy claim |
 | Legal-RAG-QA | Missing locally; downloader exists | QA harness once restored/embedded | Small open-ended criminal-law QA and relevant-passage recall sanity | Not currently runnable locally | Likely too small/easy for headline novelty |
 | Australian Legal QA | Missing locally; downloader exists | QA harness once restored/embedded | Open-ended jurisdiction/source grounding over synthetic QA | Not currently runnable locally | Synthetic construction may overreward source-copy behavior |
 | LegalBench-RAG | Not wired | Retrieval-only future loader | Legal snippet precision and citation granularity | No local run | Needs span/character-overlap scorer, not document-id qrels only |
@@ -63,7 +65,7 @@ The benchmarks now separate into useful regimes:
 | Query-formulation limited | MuSiQue `two_call` and `multi_hyde_diverse` rescue partially overlapping rows | Test SpecRAG-lite only on MuSiQue/Housing after metadata filtering is checked |
 | Candidate-set limited then saturated | SCALR top-1 fails, top-5/top-10 tie, top-10 adds gold-hit without accuracy | Route to a small candidate set, then stop |
 | Answer-option/legal-prior dominated | BarExam top-k flatness; snap-style methods can still help | Frame as anchoring/option reasoning, not retrieval-depth |
-| Option-disambiguation / instrumentation-limited | CaseHOLD answer flatness plus broken `gold_retrieved` mapping | Fix retrieval instrumentation before another LLM run |
+| Option-disambiguation / evidence-utilization limited | CaseHOLD repaired pair: two-call retrieves more gold options but answer lift is NS | Use repaired logs for disagreement audit; run repaired top-k only if a fresh CaseHOLD depth claim is needed |
 | Pure retrieval calibration | MLEB-SCALR qrels baseline | Run embedding A/B locally before spending LLM budget |
 
 ## Housing Metadata Read
@@ -104,9 +106,10 @@ No new infra:
 Cluster-ready after pulling latest branch:
 
 1. Housing `rag_state_filter` k=5/k=10 via
-   `scripts/hpc/slurm_housing_state_filter.sh`.
+   `scripts/hpc/slurm_housing_state_filter.sh`; first run `58282` failed empty
+   retrieval due metadata casing, fixed and resubmitted as `58799`.
 2. BarExam full-N confirmatory rows if API budget allows.
-3. CaseHOLD reruns only after gold-option retrieval mapping is fixed.
+3. CaseHOLD repaired top-k rerun only if a fresh depth-policy claim is needed.
 4. Larger Housing N if the top-1 to top-10 trend needs significance.
 
 Needs restoration or wiring:

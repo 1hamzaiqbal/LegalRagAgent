@@ -1,5 +1,47 @@
 # Sign-off Log — verified results approved for paper/meeting citation
 
+## Update 2026-05-01 ~meeting prep
+
+Change reason: pulled completed cluster jobs `58282` and `58283`, fixed the
+Housing state-filter metadata casing bug, and consolidated the meeting story in
+`docs/meeting_state_2026-05-01.md`.
+
+Last updated: 2026-05-01
+Branch: `codex/evidence-ledger-router`
+
+### Delta since 2026-04-30 overlay
+
+1. ✅ **CaseHOLD repaired pair landed**: after rebuilding `casehold_holdings`,
+   `rag_simple` is 69.5% and `rag_snap_hyde_2call` is 72.0%, +2.5pp,
+   b/c=16/11, McNemar p=0.4421, 95% bootstrap CI [-2.5, +7.5] pp. Gold
+   retrieval is now meaningful for this pair: 16.0% -> 47.0%. Cite as
+   "better gold retrieval does not yet translate into reliable answer lift,"
+   not as a positive method result.
+2. ❌ **Housing state-filter job `58282` is invalid as a method result**:
+   both k=5 and k=10 runs were tagged `_FAILED-EMPTY-RETRIEVAL`, with 200/200
+   rows having no retrieved evidence. The logged accuracies, 53.5% and 55.0%,
+   are parametric behavior and must not be cited as state-filtered retrieval.
+3. 🔧 **Housing state-filter blocker fixed and resubmitted**:
+   `_housing_state_where(...)` now lowercases question states to match the
+   lowercase statute metadata in `datasets/housing_qa/statutes.csv`. The fixed
+   cluster run is SLURM `58799`.
+4. 🧭 **Meeting framing**: top-k sensitivity should be called a cheap
+   retrieval-policy stress test or first-pass bottleneck signal. It directly
+   probes retrieval-depth/candidate-set sensitivity; query formulation,
+   evidence use, metadata filtering, and option anchoring require the broader
+   diagnostic matrix.
+
+### New source paths
+
+- Meeting synthesis: `docs/meeting_state_2026-05-01.md`.
+- CaseHOLD repaired rerun: `docs/casehold_repaired_rerun_2026-05-01.md`.
+- Housing state-filter followup: `docs/housing_state_filter_followup_2026-05-01.md`.
+- Pulled detail logs:
+  `logs/eval_rag_simple_groq-llama70b_20260430_1738_detail.jsonl`,
+  `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260430_1751_detail.jsonl`,
+  `logs/eval_rag_state_filter_or-gemma4-26b_20260430_1649_detail.jsonl`,
+  `logs/eval_rag_state_filter_or-gemma4-26b_20260430_1720_detail.jsonl`.
+
 ## Update 2026-04-30 ~15:30 CDT
 
 Change reason: second adversarial report pass found that the class report had
@@ -73,7 +115,7 @@ This log lists results that have:
 ## Quick reference: top 5 cite-able findings for the paper (Tier 2 MuSiQue = N=200 paired; full-corpus replicate pending)
 
 1. ✅ BarExam snap+HyDE is the Tier 3 legal-MC winner: Gemma 4 26B-A4B 78.08% → 81.17% (+3.09pp) and Gemma 4 E4B 58.49% → 62.18% (+3.69pp). **Architecture note**: ~76-83% of `rag_snap_hyde` final preds match `snap_letter` (BY DESIGN architecture — the mode combines snap reasoning + HyDE retrieval; snap reasoning dominates because Gemma 4 has strong legal MC priors). HyDE provides marginal lift and sometimes conflicting evidence; when pred==snap, EM=88.7%, while pred≠snap is 45.7%. Frame this as mechanism understanding.
-2. ✅ Llama 70b MuSiQue `multi_hyde_diverse` is the clean Tier 2 N=200 paired multi-hop headline: 27.5% → 35.5%, +8pp, McNemar p=0.0195; *pending full-corpus replicate*.
+2. ✅ Llama 70b MuSiQue `multi_hyde_diverse` is the superseded pre-pivot Tier 2 N=200 paired multi-hop headline: 27.5% → 35.5%, +8pp, McNemar p=0.0195; *pending full-corpus replicate*. The current 2026-04-30/05-01 meeting vehicle is `snap_hyde_2call` plus the bottleneck taxonomy.
 3. ⚠️ Llama 70b MuSiQue `iterative_planning_table` is cite-able as N=200 paired TRENDING-SIG, not fully significant: 27.5% → 36.0%, +8.5pp, p=0.0533; *pending full-corpus replicate*.
 4. ✅ Gemma 3 27B MuSiQue mhd is a cite-able N=200 paired negative cross-family check: 28.5% → 31.0%, +2.5pp, p=0.5901 NULL; *full-corpus replicate would solidify*.
 5. ⚠️ Llama 70b MuSiQue `subagent_rag` N=200 paired -12pp p=0.0007 SIG NEGATIVE. **Implementation caveat**: 200/200 records triggered gap-routing (100% rate; over-aggressive); 59/200=29.5% finals are "Unknown/Not found" vs 12.5–15% in other methods. With our gap-routing implementation, `subagent_rag` systematically over-abstains on multi-hop and produces a real -12pp finding; reframing the prompt could likely close part of this gap. Do not generalize beyond this implementation.
@@ -142,7 +184,7 @@ Per-log audit reports under `docs/audits/`:
 |---|---:|---:|---:|---|---|
 | `rag_simple` | 27.5% | — | — | N=200 paired; CLEAN | ✅ APPROVED (baseline) |
 | **`iterative_planning_table`** | **36.0%** | **+8.5pp** | **0.0533** | N=200 paired; McNemar 12:30 | **✅ APPROVED — TRENDING-SIG (*pending full-corpus replicate*)** |
-| **`multi_hyde_diverse`** | **35.5%** | **+8pp** | **0.0195** | N=200 paired; CLEAN | **✅ APPROVED — paper headline (*pending full-corpus replicate*)** |
+| **`multi_hyde_diverse`** | **35.5%** | **+8pp** | **0.0195** | N=200 paired; CLEAN | **✅ APPROVED — superseded pre-pivot headline (*pending full-corpus replicate*)** |
 | `rag_multi_query` | 29.0% | +1.5pp | 0.728 | N=200 paired; CLEAN | ✅ APPROVED (mechanism decomposition) |
 | `rag_snap_hyde` | 24.0% | -3.5pp | 0.36 | N=200 paired; CLEAN | ✅ APPROVED (cross-domain neg evidence) |
 | `iter_hyde` | 24.5% | -3.0pp | 0.47 | N=200 paired; CLEAN | ✅ APPROVED (multi-round neutral at large) |

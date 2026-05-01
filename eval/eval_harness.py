@@ -3578,7 +3578,9 @@ def _housing_state_where(row: pd.Series, config: EvalConfig) -> dict | None:
     """Build a HousingQA state metadata filter for Chroma retrieval."""
     if config.dataset != "housing":
         return _where_from_config(config)
-    state = str(row.get("state", "") or "").strip()
+    # Housing statute metadata is embedded from `datasets/housing_qa/statutes.csv`,
+    # where state names are lowercase. Question rows keep display-case names.
+    state = str(row.get("state", "") or "").strip().lower()
     if not state:
         return _where_from_config(config)
     if config.source_filter:

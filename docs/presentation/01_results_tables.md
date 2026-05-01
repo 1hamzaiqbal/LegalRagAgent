@@ -54,19 +54,20 @@ Caveat: The lift is mostly snap-dominated; HyDE is marginal and can hurt when it
 | Mode | EM | Delta vs `rag_simple` | McNemar p | Audit | Sign-off | Slide read |
 |---|---:|---:|---:|---|---|---|
 | `rag_simple` | 27.5% | baseline | n/a | CLEAN | APPROVED baseline | Control. |
+| **`snap_hyde_2call`** | **37.0%** | **+9.5pp** | **0.0079** | CLEAN | **APPROVED, current method vehicle** | Fixed-cost answer-conditioned retrieval probe; current N=200 MuSiQue headline. |
 | **`iterative_planning_table`** | **36.0%** | **+8.5pp** | **0.0533** | McNemar 12:30 | **APPROVED, TRENDING-SIG** | Best EM, just outside conventional 0.05. |
-| **`multi_hyde_diverse`** | **35.5%** | **+8pp** | **0.0195** | CLEAN | **APPROVED, paper headline** | **Winner for significant positive lift.** |
+| **`multi_hyde_diverse`** | **35.5%** | **+8pp** | **0.0195** | CLEAN | **APPROVED, superseded pre-pivot headline** | Strong positive pseudo-doc/diverse-query arm, now secondary to the bottleneck story. |
 | `rag_multi_query` | 29.0% | +1.5pp | 0.728 | CLEAN | APPROVED mechanism decomposition | Query diversity alone is not enough. |
 | `rag_snap_hyde` | 24.0% | -3.5pp | 0.36 | CLEAN | APPROVED cross-domain negative evidence | BarExam method does not transfer cleanly. |
 | `iter_hyde` | 24.5% | -3.0pp | 0.47 | CLEAN | APPROVED multi-round neutral at large | More HyDE rounds do not help here. |
 | `advisor_planning_table` | 23.0% | -4.5pp | 0.222 | McNemar 12:30 | APPROVED NS but informative negative | Planning form is not sufficient. |
 | **`subagent_rag`** | **15.5%** | **-12.0pp** | **0.0007** | CLEAN | **APPROVED, sig negative** | Current gap-routing over-abstains. |
 
-What this means in plain English: Llama 70b multi-hop improves with pooled HyDE or structured planning, while most other variants are neutral-to-negative.
-Source: `docs/signoff_log.md:Section B.1`; paired statistics in `docs/mcnemar_2026-04-27.md:Update 2026-04-27 ~12:30 CDT`.
+What this means in plain English: Llama 70b multi-hop improves when retrieval is targeted by answer-conditioned or diverse pseudo-doc queries, while most other variants are neutral-to-negative.
+Source: `docs/signoff_log.md:2026-05-01/2026-04-30 overlays`; paired statistics in `docs/mcnemar_2026-04-27.md` and `docs/evidence_matrix_2026-04-30.md`.
 Caveat: At N=200 paired, `subagent_rag` is a real negative result for this gap-routing implementation; a full-corpus replicate would solidify the Llama matrix.
 
-📊 Figure: [`figures/01_llama70b_method_matrix.png`](figures/01_llama70b_method_matrix.png) — paper headline 8-method matrix.
+📊 Figure: [`figures/01_llama70b_method_matrix.png`](figures/01_llama70b_method_matrix.png) — pre-2call 8-method matrix.
 💰 Cost view: [`figures/07_cost_vs_accuracy.png`](figures/07_cost_vs_accuracy.png) — LLM calls / input tokens / output tokens / efficiency frontier (mhd is cheapest of the lifters).
 
 ## Table E. Mechanism decomposition: Llama 70b MuSiQue, N=200

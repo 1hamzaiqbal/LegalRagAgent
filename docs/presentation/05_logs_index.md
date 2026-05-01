@@ -30,13 +30,13 @@ This file is an index of local detail logs for presentation-cited results. Every
 | `subagent_hyde` | Gemma 4 E4B / `cluster-vllm` | `logs/eval_subagent_hyde_cluster-vllm_20260426_1739_detail.jsonl` | 1195 | APPROVED |
 | `subagent_rag` | Gemma 4 E4B / `cluster-vllm` | `logs/eval_subagent_rag_cluster-vllm_20260426_0545_detail.jsonl` | 1195 | APPROVED |
 
-## MuSiQue Tier 2: Llama 70B N=200, paper headline
+## MuSiQue Tier 2: Llama 70B N=200, bottleneck probe
 
 | Mode | Model | Detail log path | Rows | Sign-off |
 |---|---|---|---:|---|
 | `rag_simple` | Llama 3.3 70B / `groq-llama70b` | `logs/eval_rag_simple_groq-llama70b_20260427_0952_detail.jsonl` | 200 | APPROVED baseline |
 | `iterative_planning_table` | Llama 3.3 70B / `groq-llama70b` | `logs/eval_iterative_planning_table_groq-llama70b_20260427_1208_detail.jsonl` | 200 | APPROVED, TRENDING-SIG |
-| `multi_hyde_diverse` | Llama 3.3 70B / `groq-llama70b` | `logs/eval_multi_hyde_diverse_groq-llama70b_20260427_1010_detail.jsonl` | 200 | APPROVED, paper headline |
+| `multi_hyde_diverse` | Llama 3.3 70B / `groq-llama70b` | `logs/eval_multi_hyde_diverse_groq-llama70b_20260427_1010_detail.jsonl` | 200 | APPROVED, superseded pre-pivot headline |
 | `rag_multi_query` | Llama 3.3 70B / `groq-llama70b` | `logs/eval_rag_multi_query_groq-llama70b_20260427_1112_detail.jsonl` | 200 | APPROVED mechanism decomposition |
 | `rag_snap_hyde` | Llama 3.3 70B / `groq-llama70b` | `logs/eval_rag_snap_hyde_groq-llama70b_20260427_1019_detail.jsonl` | 200 | APPROVED cross-domain negative |
 | `iter_hyde` | Llama 3.3 70B / `groq-llama70b` | `logs/eval_iter_hyde_groq-llama70b_20260427_1036_detail.jsonl` | 200 | APPROVED multi-round neutral |

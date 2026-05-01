@@ -178,6 +178,32 @@ def test_non_barexam_datasets_untouched():
     assert "30 days notice" in p
 
 
+def test_housing_state_filter_uses_chroma_metadata_case():
+    """Housing state filters must match lowercase statute metadata."""
+    import re as _re
+    from types import SimpleNamespace
+
+    src = (ROOT / "eval" / "eval_harness.py").read_text()
+    match = _re.search(
+        r"(def _where_from_config\(config: EvalConfig\).*?)\n\ndef run_rag_rewrite",
+        src,
+        _re.DOTALL,
+    )
+    assert match, "state-filter helpers not found in eval_harness.py"
+    ns = {"pd": pd, "EvalConfig": object}
+    exec(match.group(1), ns)
+    _housing_state_where = ns["_housing_state_where"]
+
+    row = _row(state="New Hampshire")
+    config = SimpleNamespace(dataset="housing", source_filter="")
+    assert _housing_state_where(row, config) == {"state": "new hampshire"}
+
+    config_with_source = SimpleNamespace(dataset="housing", source_filter="housing_statute")
+    assert _housing_state_where(row, config_with_source) == {
+        "$and": [{"source": "housing_statute"}, {"state": "new hampshire"}]
+    }
+
+
 def test_legalbench_scalr_prompt_includes_choice_e():
     """SCALR is a 5-way holding-selection dataset, same displayed schema as CaseHOLD."""
     row = _row(

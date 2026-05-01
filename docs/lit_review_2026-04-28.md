@@ -4,6 +4,14 @@
 **Reviewer:** Claude (Opus 4.7) for the LegalRagAgent paper sprint
 **Working narrative being tested:** "Snap-conditioning is a model-agnostic RAG primitive whose lift mechanism is dataset-bottleneck-dependent (retrieval-bottlenecked MuSiQue vs reasoning-bottlenecked BarExam)."
 
+**Status 2026-05-01:** historical literature-positioning note. The current
+meeting framing is narrower: `snap_hyde_2call` is a probe, not the novelty
+claim; BarExam should be described as depth-flat / answer-anchoring-driven
+rather than simply reasoning-bottlenecked; and the taxonomy is a diagnostic
+matrix rather than a claim that one primitive wins across regimes. Prefer
+`docs/mechanism_literature_synthesis_2026-04-30.md` and
+`docs/meeting_state_2026-05-01.md` for current wording.
+
 ---
 
 ## 1. TL;DR

@@ -6,17 +6,17 @@
 
 - BarExam snap agreement is a caveat, not a rejection. Gemma 4 has strong legal priors, snap reasoning dominates, and HyDE supplies marginal lift or occasional conflicting evidence; this is BY DESIGN architecture and mechanism understanding.
 
-- MuSiQue has a multi-hop winner on Llama 70b: `multi_hyde_diverse` is the clean significant simple-method lift at N=200, 35.5%, +8pp, p=0.0195. * (Tier 2 paired; full-corpus replicate would solidify).
+- MuSiQue is the clean retrieval-depth/query-formulation slice. `snap_hyde_2call` is the current N=200 method vehicle at 37.0%, +9.5pp, p=0.0079; `multi_hyde_diverse` remains a strong secondary positive at 35.5%, +8pp, p=0.0195. * (Tier 2 paired; full-corpus replicate would solidify).
 
-📊 [`figures/01_llama70b_method_matrix.png`](figures/01_llama70b_method_matrix.png) — paper headline 8-method bar chart
+📊 [`figures/01_llama70b_method_matrix.png`](figures/01_llama70b_method_matrix.png) — pre-2call 8-method bar chart
 
 - Complex methods are not uniformly bad. `iterative_planning_table` reaches 36.0%, +8.5pp, p=0.0533 TRENDING-SIG. * (Tier 2 paired; full-corpus replicate would solidify). `subagent_rag` is a real -12.0pp finding because current gap-routing over-abstains, and prompt reframing could likely close part of that gap.
 
-- The mechanism is not just query diversity. `rag_multi_query` adds only +1.5pp and is non-significant, while HyDE-style answer passages explain about +6.5pp of the +8pp `multi_hyde_diverse` lift.
+- The mechanism is not just query diversity. `rag_multi_query` adds only +1.5pp and is non-significant, while answer-conditioned / HyDE-style passages are the arms that move MuSiQue.
 
 📊 [`figures/03_mechanism_decomposition.png`](figures/03_mechanism_decomposition.png) — diversity vs HyDE split
 
-- The lifts are task-specific. The BarExam method `rag_snap_hyde` is negative on MuSiQue, and the MuSiQue method `multi_hyde_diverse` is negative on BarExam paired N=200.
+- The lifts are bottleneck-specific. BarExam is depth-flat but gets a modest full-corpus snap-family lift; MuSiQue is depth-sensitive and benefits from answer-conditioned query formulation; SCALR needs a small candidate set; CaseHOLD improves gold retrieval under two-call without a reliable answer lift.
 
 📊 [`figures/04_cross_domain_specificity.png`](figures/04_cross_domain_specificity.png) — native vs cross-domain Δ
 
@@ -38,4 +38,4 @@ Source: docs/signoff_log.md Sections A.3, B.1, B.2, B.3, B.4, and D'; subagent c
 
 3. Re-test Gemma multi-hop methods on cluster vLLM rather than OR-served Gemma, since the serving issue creates runaway-loop and latency confounds.
 
-4. Treat `multi_hyde_diverse` as the next MuSiQue mainline, but require cross-family or full-corpus confirmation before calling it universal.
+4. Treat `snap_hyde_2call` as the current MuSiQue probe, but require cross-family or full-corpus confirmation before calling it universal.

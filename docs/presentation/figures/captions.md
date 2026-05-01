@@ -4,7 +4,7 @@ All figures live in `docs/presentation/figures/` as PNGs. Click any figure path 
 
 ## `01_llama70b_method_matrix.png`
 
-**Llama 3.3 70b dense × MuSiQue N=200 — paper headline.** 8 method bars sorted by mode name. Two methods lift over the rag_simple baseline: `multi_hyde_diverse` +8pp p=0.020 SIG (green) and `iterative_planning_table` +8.5pp p=0.053 TRENDING (yellow). `subagent_rag` -12pp p=0.0007 SIG NEG (red). All other methods are NS (gray). The blue dashed line is the `rag_simple` baseline at 27.5%.
+**Llama 3.3 70b dense x MuSiQue N=200, pre-2call method matrix.** 8 method bars sorted by mode name. Two methods lift over the rag_simple baseline: `multi_hyde_diverse` +8pp p=0.020 SIG (green) and `iterative_planning_table` +8.5pp p=0.053 TRENDING (yellow). `subagent_rag` -12pp p=0.0007 SIG NEG (red). `snap_hyde_2call` is the newer 2026-04-30 method vehicle and should be discussed alongside this figure. The blue dashed line is the `rag_simple` baseline at 27.5%.
 
 Source data: `docs/signoff_log.md` Section B.1 + `docs/mcnemar_2026-04-27.md`.
 

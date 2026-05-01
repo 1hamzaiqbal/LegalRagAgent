@@ -9,7 +9,7 @@ Example: `2hop__835710_7298` asks for the pop artist who began on adult contempo
 ## multi_hyde_diverse — pooled diverse HyDE
 
 What it does: generates answer-bearing hypothetical passages, retrieves over those passages plus the raw question, then answers once.
-Result: Llama 70b N=200 35.5% EM, +8pp, p=0.0195; sign-off APPROVED paper headline.
+Result: Llama 70b N=200 35.5% EM, +8pp, p=0.0195; sign-off APPROVED as a strong positive pseudo-doc arm, now secondary to `snap_hyde_2call` and the bottleneck-taxonomy framing.
 Example: `2hop__96414_47902` asks who played the title character in The Bourne Ultimatum; predicted `Matt Damon`, gold `Matt Damon`, `hyde_passages_count=3`; source `logs/eval_multi_hyde_diverse_groq-llama70b_20260427_1010_detail.jsonl:11`.
 
 ## iterative_planning_table — structured multi-hop planning

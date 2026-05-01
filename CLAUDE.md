@@ -1,19 +1,49 @@
 # CLAUDE.md
 
+## Update 2026-05-01 (meeting prep)
+
+**Current meeting frame**: lead with bottleneck-typed retrieval, not a new RAG
+recipe. `snap_hyde_2call` is a useful fixed-cost probe and the current MuSiQue
+N=200 method vehicle; the defensible contribution is the diagnostic matrix that
+separates retrieval depth, candidate-set size, query formulation, evidence use,
+metadata filtering, and answer-option anchoring.
+
+**Latest source-gated deltas**:
+- CaseHOLD repaired cluster job `58283` landed: `rag_simple` 69.5% vs
+  `rag_snap_hyde_2call` 72.0%, +2.5pp, b/c=16/11, p=0.4421. Gold retrieval is
+  now meaningful for this pair and jumps 16.0% -> 47.0%, but answer accuracy is
+  still not a reliable lift. See `docs/casehold_repaired_rerun_2026-05-01.md`.
+- Housing state-filter job `58282` is invalid as a method result: both k=5 and
+  k=10 were `_FAILED-EMPTY-RETRIEVAL`. Root cause was state-metadata casing
+  (`California` vs `california`); `_housing_state_where(...)` now lowercases the
+  filter and the fixed job is resubmitted as SLURM `58799`. See
+  `docs/housing_state_filter_followup_2026-05-01.md`.
+- Top-k sensitivity should be described as a retrieval-policy stress test or
+  first-pass bottleneck signal, not a complete causal diagnosis.
+
+Current citation gates: `docs/signoff_log.md`,
+`docs/meeting_state_2026-05-01.md`, `docs/snap_hyde_2call_2026-04-28.md`,
+`docs/top1_ablation_2026-04-28.md`, `docs/compiled_results.md`, and
+`logs/experiments.jsonl`.
+
 ## Update 2026-04-28 (post-2026-04-27 meeting)
 
 **Headline shift**: snap_hyde_2call is the new MuSiQue Llama 70b winner at **+9.5pp p=0.008** (vs prior multi_hyde_diverse +8.0pp p=0.0195). The paper-grade story has pivoted from "multi_hyde_diverse wins multi-hop" to a **bottleneck taxonomy** measurable via a single ablation: top-1 vs top-5 retrieval depth.
 
 **Cleanest cross-dataset evidence** (added 2026-04-28):
 - MuSiQue × Llama 70b rag_simple top-1 vs top-5 = **-14.5pp p=4.18e-07** (catastrophic — retrieval-bottlenecked)
-- BarExam × Gemma 4 26B rag_simple top-1 vs top-5 = **-0.5pp p=1.00 NS** (flat — reasoning-bottlenecked)
+- BarExam × Gemma 4 26B rag_simple top-1 vs top-5 = **-0.5pp p=1.00 NS** (depth-flat; full-corpus lift is better read as answer anchoring / evidence use)
 - ~14pp gap is the bottleneck-taxonomy signature, method-independent.
 
 **Mechanism finding** (new): the Llama-vs-Gemma snap_hyde_2call split on MuSiQue is explained by HyDE-passage gold-recall delta. Llama 70b's HyDE passages improve gold-hit by +2.5pp; Gemma 27B's degrade it by -7.5pp. Same parametric floor (snap_only_in_final: Llama 9.5%, Gemma 9.0%), opposite retrieval and EM outcomes.
 
 **Open**: full-corpus N=2400 Llama 70b paired blocked by Groq RPD limit (1K/day vs 4800 calls needed). Cerebras would unlock it but no API key configured.
 
-Current citation gates: `docs/signoff_log.md`, `docs/snap_hyde_2call_2026-04-28.md`, `docs/lit_review_2026-04-28.md`, `docs/top1_ablation_2026-04-28.md`, `docs/meeting_notes_042726.md`.
+Historical citation gates for the 2026-04-28 pivot were
+`docs/signoff_log.md`, `docs/snap_hyde_2call_2026-04-28.md`,
+`docs/lit_review_2026-04-28.md`, `docs/top1_ablation_2026-04-28.md`, and
+`docs/meeting_notes_042726.md`; prefer the 2026-05-01 gates above for current
+meeting claims.
 
 Source-of-truth context for working in this codebase. Verify claims against `main.py` before relying on them.
 
@@ -39,7 +69,7 @@ Current research direction: the original heavy pipeline underperformed, but the 
 - `docs/hpc_setup_log.md` — cluster SSH, paths, venvs, bad nodes
 - `EXPERIMENTS.md` — full hypothesis → result → verdict log
 - `RESEARCH.md` — research state, experiment queue, session handoff
-- `logs/experiments.jsonl` — machine-readable results (348 entries as of 2026-04-30 cleanup)
+- `logs/experiments.jsonl` — machine-readable results (357 entries as of 2026-05-01 meeting prep)
 
 ## Runtime Architecture
 
@@ -230,7 +260,7 @@ before any new submission. The full pre-submission checklist lives in
 | `rag_simple` (baseline) | 78.08% | — |
 | `subagent_hybrid` | 74.23% (rescored; stored 74.14%) | -3.85pp |
 
-### Gemma 4 E4B BarExam (post-fix N=1195, 6 modes landed; llm_only + golden_passage missing — 54173 wallclocked)
+### Gemma 4 E4B BarExam (post-fix N=1195, 8 modes landed)
 
 | Mode | EM | Δ vs `rag_simple` |
 |---|---|---|
@@ -285,7 +315,7 @@ Use `RESEARCH.md` for the current queue/handoff and `EXPERIMENTS.md` for the ful
 
 | Script | Notes |
 |---|---|
-| `eval/eval_harness.py` | Unified multi-model harness (53 modes, 5 datasets) |
+| `eval/eval_harness.py` | Unified multi-model harness (65 modes, 7 datasets) |
 | `eval/eval_config.py` | Config, question loading, answer extraction, EVAL_MODES dict |
 | `eval/eval_analyze.py` | Post-hoc analysis of JSONL logs |
 | `eval/run_experiment_queue.py` | Queue runner for batched eval submissions |

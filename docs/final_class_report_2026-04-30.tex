@@ -48,13 +48,14 @@
 
 \begin{abstract}
 RAG should be selected as a bottleneck-targeted intervention: top-$k$
-sensitivity diagnoses whether the active failure is retrieval depth, query
-formulation, evidence use, or answer-option anchoring. We began with a full
-LangGraph legal RAG agent, but exploratory results showed that extra planning
-and retrieval could distract models with strong legal priors. We therefore
-reframed the project around a bottleneck-typed evaluation across BarExam,
-MuSiQue, CaseHOLD, LegalBench-SCALR, and HousingQA. The same retrieval-depth
-policy stress test separates regimes. On Llama 70B MuSiQue, restricting
+sensitivity is a cheap first-pass signal for retrieval-depth or candidate-set
+sensitivity, while a broader diagnostic matrix separates query formulation,
+evidence use, metadata filtering, and answer-option anchoring. We began with a
+full LangGraph legal RAG agent, but exploratory results showed that extra
+planning and retrieval could distract models with strong legal priors. We
+therefore reframed the project around a bottleneck-typed evaluation across
+BarExam, MuSiQue, CaseHOLD, LegalBench-SCALR, and HousingQA. The same
+retrieval-depth policy stress test separates regimes. On Llama 70B MuSiQue, restricting
 \method{rag_simple} from top-5 to top-1 passages drops EM from 27.5\% to
 13.0\% (-14.5pp, McNemar $p=4.18\times10^{-7}$). On an N=200 Gemma 4 26B
 BarExam diagnostic, the analogous top-5/top-1 comparison is flat (82.5\% to
@@ -65,7 +66,8 @@ probe, not the novelty claim: on MuSiQue it improves Llama 70B from 27.5\% to
 37.0\% (+9.5pp, $p=0.0079$), while BarExam's full-corpus Gemma 4 26B
 \method{rag_snap_hyde} result improves from 78.08\% to 81.17\% ($N=1195$).
 The central lesson is not that one RAG method wins, but that retrieval methods
-should be chosen according to the benchmark-model bottleneck.
+should be interpreted and prioritized according to the benchmark-model
+bottleneck.
 \end{abstract}
 
 \section{Introduction}
@@ -92,7 +94,7 @@ whether enough useful passages are retrieved. Others are \emph{depth-flat}:
 the useful intervention is answer anchoring or option calibration, not more
 documents. Holding-selection tasks split further: SCALR is candidate-depth
 limited until top-5, while CaseHOLD is answer-flat under the current harness
-and still needs repaired retrieval-recall instrumentation.
+even after a repaired rerun made gold-option retrieval measurable.
 
 This framing also explains why a seemingly weak control, \method{golden_passage},
 can underperform \method{llm_only} and \method{rag_snap_hyde} on BarExam.
@@ -336,9 +338,10 @@ top-5 82.5\% to top-1 83.0\% (+0.5pp, $p=1.00$) &
 Depth-flat; the full-corpus snap lift is modest and anchoring-driven, not
 more-documents-driven.\\
 CaseHOLD / Llama 70B (N=200) &
-top-5 72.0\% to top-1 70.5\% (-1.5pp, $p=0.678$); two-call 69.5\% &
-Answer-flat under current harness; do not cite gold-hit until repaired
-CaseHOLD Chroma is rebuilt.\\
+repaired pair: \method{rag_simple} 69.5\%, \method{snap_hyde_2call} 72.0\%
+(+2.5pp, $p=0.442$) &
+Answer-flat under repaired pair; gold retrieval improves 16.0\% to 47.0\%,
+but answer accuracy does not reliably lift.\\
 LegalBench-SCALR / Llama 70B (N=200) &
 top-5 77.0\% to top-1 59.5\% (-17.5pp, $p=1.05{\times}10^{-8}$);
 top-10 = 77.0\% &
@@ -357,10 +360,10 @@ remain caveats.\\
 This table is the main conceptual result. Legal QA is not one regime. BarExam
 and CaseHOLD are answer-flat under current depth and two-call probes, while
 SCALR is retrieval-depth sensitive and HousingQA is a directional statutory
-analogue. The CaseHOLD row is a negative control, not retrieval-recall
-evidence: old logs report 0/200 gold-hit because the gold-option mapping was
-not addressable until the repair. HousingQA is now a landed directional result
-rather than merely a queued statutory test.
+analogue. The repaired CaseHOLD row is a useful negative-control mechanism
+point: better gold-option retrieval is not sufficient for reliable answer
+gain. HousingQA is now a landed directional result rather than merely a queued
+statutory test, but the explicit state-filter arm still needs a fixed rerun.
 
 \section{Mechanism Analysis}
 
@@ -464,10 +467,13 @@ statistically significant, but a larger replicate would make the claim more
 robust. The BarExam result is full-corpus and cross-size, but its effect size
 is modest; it should be presented as a mechanism result rather than a dramatic
 accuracy breakthrough. CaseHOLD previously lacked meaningful gold-option
-retrieval instrumentation; we repaired the mapping, but new retrieval claims
-require a rebuilt Chroma collection and fresh logs. HousingQA has landed only
-as a directional N=200 diagnostic; the top-10 lift is suggestive, but state
-metadata and weak gold-hit mapping still need a cleaner causal audit.
+retrieval instrumentation; the repaired pair now shows much higher two-call
+gold retrieval but no significant answer lift, and a fresh repaired top-k run
+is still needed for a clean depth-policy claim. HousingQA has landed only as a
+directional N=200 diagnostic; the top-10 lift is suggestive, but state metadata
+and weak gold-hit mapping still need a cleaner causal audit. The first
+state-filter cluster attempt failed empty retrieval due a metadata-casing bug
+and was resubmitted after the fix.
 
 The method is also provider- and model-dependent. OpenRouter-served Gemma runs
 showed runaway-loop behavior on iterative prompts, so Gemma results should

@@ -131,14 +131,23 @@ needs the full retrieval depth to materialize.
 
 ## Cross-dataset bottleneck taxonomy (added 2026-04-28, cluster results landing)
 
+**Status note 2026-05-01:** this table preserves the 2026-04-28 pivot, but the
+meeting interpretation is now narrower. SCALR and CaseHOLD should not be merged
+into one option-disambiguation replicate: SCALR is candidate-depth limited then
+saturated, while CaseHOLD is answer-flat under the repaired `rag`/`two_call`
+pair despite much higher two-call gold retrieval. Housing has a directional
+top-k signal, but the explicit state-filter run failed empty retrieval and was
+resubmitted after a metadata-casing fix. Prefer `docs/meeting_state_2026-05-01.md`
+and `docs/signoff_log.md` for live wording.
+
 | Dataset | Format | rag_simple | snap_hyde_2call | Δ | McNemar p | Bottleneck class |
 |---|---|---:|---:|---:|---:|---|
 | MuSiQue (Llama 70b) | open-ended multi-hop | 27.5% | 37.0% | **+9.5pp** | **0.008** | retrieval-bottlenecked |
 | MuSiQue (Gemma 3 27B) | open-ended multi-hop | 28.5% | 23.0% | -5.5pp | 0.13 NS | retrieval-bottlenecked, model-conditional via HyDE quality |
-| BarExam (Gemma 4 26B) | 5-way MC + fact pattern | 82.5% (N=200 top-5) | 85.5% (N=200 2call) | +3.0pp | 0.377 NS | reasoning-bottlenecked; direction matches Tier 3 `rag_snap_hyde` +3.09pp |
-| CaseHOLD (Llama 70b) | 5-way MC over holdings | 72.0% | 69.5% | -2.5pp | 0.49 NS | option-disambiguation |
-| **LegalBench-SCALR (Llama 70b)** | **5-way MC over holdings** | **77.0%** | **75.0%** | **-2.0pp** | **0.50 NS** | **option-disambiguation (replicates CaseHOLD)** |
-| HousingQA (Gemma 4 26B) | Yes/No statutory | TBD | TBD | TBD | TBD | (predicted retrieval-bottlenecked) |
+| BarExam (Gemma 4 26B) | 5-way MC + fact pattern | 82.5% (N=200 top-5) | 85.5% (N=200 2call) | +3.0pp | 0.377 NS | depth-flat / answer-anchoring signal; direction matches Tier 3 `rag_snap_hyde` +3.09pp |
+| CaseHOLD (Llama 70b, repaired pair) | 5-way MC over holdings | 69.5% | 72.0% | +2.5pp | 0.442 NS | answer-flat; better gold retrieval not yet answer lift |
+| **LegalBench-SCALR (Llama 70b)** | **5-way MC over holdings** | **77.0%** | **75.0%** | **-2.0pp** | **0.50 NS** | **candidate-depth limited then saturated; two-call not helpful** |
+| HousingQA (Gemma 4 26B) | Yes/No statutory | top-1 50.5%; top-10 58.0% | 57.0% at k=5 | top-1 -> top-10 +7.5pp | 0.0722 | directional statutory depth signal; state-filter rerun pending |
 
 **Cross-dataset retrieval-depth signature** (top-1 vs top-5, paired, same provider/seed):
 
@@ -151,9 +160,19 @@ needs the full retrieval depth to materialize.
 - BarExam top-1: `logs/eval_rag_simple_or-gemma4-26b_20260428_0138_detail.jsonl`
 - BarExam top-5: `logs/eval_rag_simple_or-gemma4-26b_20260428_0231_detail.jsonl`
 
-**Headline implication for the paper:** The bottleneck taxonomy is now testable through a single retrieval-depth ablation, independent of any specific RAG method. Datasets where reducing retrieval depth from k=5 to k=1 catastrophically hurts EM are retrieval-bottlenecked; those where the drop is flat are reasoning-bottlenecked. This generalizes beyond snap-conditioning.
+**Headline implication for the paper:** The bottleneck taxonomy is testable
+through a cheap retrieval-policy ablation plus follow-up controls. Top-1 vs
+top-5 directly probes retrieval-depth/candidate-set sensitivity. The broader
+matrix is needed before labeling query formulation, evidence use, metadata
+filtering, or answer-option anchoring.
 
-**Option-disambiguation is a coherent 3rd bucket — replicated across CaseHOLD + SCALR:** Both 5-way MC datasets over case holdings show the same pattern. CaseHOLD: 72.0% → 69.5% (-2.5pp p=0.49). SCALR: 77.0% → 75.0% (-2.0pp p=0.50). Two independent legal-MC-over-holdings benchmarks, same direction, same magnitude class. This is a genuine third bottleneck class, not a CaseHOLD-specific artifact. Mechanism: when the displayed candidates ARE the corpus (or share its style), retrieval pulls competing candidates rather than disambiguating evidence. Consistent with Vaddi (arXiv 2603.25944, March 2026) who reports -8pp for vanilla RAG on CaseHOLD.
+**Holding-selection split:** SCALR and CaseHOLD are no longer one replicated
+bucket. SCALR is candidate-depth limited: top-1 fails, top-5 fixes most of the
+answer loss, and top-10 adds recall without net accuracy. CaseHOLD now has a
+repaired `rag_simple` vs `rag_snap_hyde_2call` pair: two-call raises gold
+retrieval from 16.0% to 47.0%, but answer accuracy moves only 69.5% to 72.0%
+(+2.5pp, p=0.442). This supports "retrieval recall is not sufficient for
+answer lift" rather than "CaseHOLD retrieval is solved."
 
 For SCALR specifically, gold_retrieved is meaningful (corpus contains the gold holding, linked via per-question gold_idx populated during dataset prep). Gold-recall is essentially flat: rag_simple 54.0% → snap_hyde_2call 55.0% (+1.0pp, NS). HyDE neither helps nor hurts retrieval here — when the corpus IS the candidate set, HyDE has no leverage to add over the original question. Source logs:
 - `logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl`
@@ -186,7 +205,8 @@ For SCALR specifically, gold_retrieved is meaningful (corpus contains the gold h
 
    This is the OPPOSITE of BarExam, where Gemma 4 26B-A4B `llm_only` (79.75%) is already
    near-ceiling and `rag_snap_hyde` adds only +3pp. **MuSiQue is retrieval-bottlenecked;
-   BarExam is reasoning-bottlenecked.** Same architecture, different bottleneck.
+   BarExam is depth-flat and snap/anchoring-driven.** Same architecture,
+   different bottleneck.
 4. **HyDE-without-snap mechanism comparator (LANDED)**: `rag_hyde` × Llama 70b × MuSiQue N=200 = **18.0%** — *below* rag_simple baseline (-9.5pp, p=0.005, b/c=31/12). At equal call budget (2 calls/Q) `snap_hyde_2call` beats `rag_hyde` by **+19pp (p=6.97e-08, b/c=45/7)**. So at fixed cost, snap does essentially ALL the work; pure HyDE on MuSiQue is *harmful* (the model hallucinates a passage from a multi-hop question and the embedding pulls noisy contexts). The snap_hyde_2call lift therefore decomposes at fixed call budget as:
    - rag_hyde alone: -9.5pp vs rag_simple
    - snap_hyde_2call: +9.5pp vs rag_simple

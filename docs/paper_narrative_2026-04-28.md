@@ -1,3 +1,9 @@
+> **Status 2026-05-01:** this is a useful earlier paper skeleton, but its
+> "reasoning-bottlenecked" and "method-independent" wording is now too broad.
+> Prefer `docs/meeting_state_2026-05-01.md` and `docs/signoff_log.md` for live
+> meeting language: top-k is a retrieval-policy stress test, BarExam is
+> depth-flat / answer-anchoring-driven, and CaseHOLD/SCALR are split regimes.
+
 ### 1. Headline / proposed paper title (1-2 alternatives)
 
 1. Bottleneck-Typed Retrieval Augmentation for Legal and Multi-Hop Question Answering
