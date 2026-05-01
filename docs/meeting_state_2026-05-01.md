@@ -13,9 +13,13 @@ claim is:
 > candidate-set size, query formulation, evidence use, answer-option anchoring,
 > or metadata-constrained retrieval.
 
-`snap_hyde_2call` is a useful probe and current MuSiQue method vehicle. The
-novelty is the bottleneck diagnostic matrix and the evidence-budgeted routing
-direction, not the pseudo-document primitive itself.
+`snap_hyde_2call` is a useful probe because it makes the model write a problem
+representation before retrieval. The forward-looking method is adaptive
+snap-HyDE: keep that reasoning step, but place it on top of what the problem
+needs. The novelty is the bottleneck diagnostic matrix and the evidence-budgeted
+routing direction: decide whether HyDE should be used for query framing, query
+diversity, candidate expansion, metadata filtering, or downstream option
+conversion rather than treating it as one always-on method.
 
 ## Current Findings
 
@@ -25,7 +29,7 @@ direction, not the pseudo-document primitive itself.
 | BarExam x Gemma 4 | Legal MC is depth-flat on the N=200 top-k diagnostic, but full-corpus `rag_snap_hyde` is a signed legal-MC lift: 26B +3.09pp, E4B +3.68pp. | `docs/signoff_log.md` Section A; `docs/compiled_results.md` | Do not call this pure retrieval-depth improvement; better read is answer anchoring/evidence-use under strong legal priors. |
 | LegalBench-SCALR x Llama 70B | Candidate-depth limited then saturated: top-1 59.5%, top-5 77.0%, top-10 77.0%. | `docs/scalr_depth_disagreement_2026-04-30.md` | Top-k changes candidate pool and context depth, so call it a retrieval-policy stress test. |
 | CaseHOLD x Llama 70B | Repaired rerun now gives usable gold retrieval. `rag_snap_hyde_2call` improves gold-hit 16.0% -> 47.0% but answer accuracy only 69.5% -> 72.0%, p=0.4421. Repaired top-k is directional but not decisive: k=1 64.5%, k=5 69.5%, k=10 68.0%. | `docs/casehold_repaired_rerun_2026-05-01.md` | Better retrieval recall is not converted into a reliable answer lift at N=200. Treat top-k as a diagnostic depth-policy row, not a final benchmark claim. |
-| HousingQA x Gemma 4 | Metadata-filter signal: top-1 50.5%, top-10 58.0%, and repaired k=5 state filter 61.5%. | `docs/housing_speculative_metrics_2026-04-30.md`; `docs/housing_metadata_depth_audit_2026-04-30.md`; `docs/housing_state_filter_followup_2026-05-01.md` | k=5 state filter beats generic top-5 (p=0.044) and is directionally above top-10; k=10 state-filter chunks are still running. |
+| HousingQA x Gemma 4 | Metadata-filter signal: top-1 50.5%, top-10 58.0%, repaired k=5 state filter 61.5%, repaired k=10 state filter 62.5%. | `docs/housing_speculative_metrics_2026-04-30.md`; `docs/housing_metadata_depth_audit_2026-04-30.md`; `docs/housing_state_filter_followup_2026-05-01.md` | State filter beats generic top-5; k=10 is directionally above generic top-10 but only +1.0pp over state-filter k=5. |
 | MLEB-SCALR | Retrieval-only calibration channel. `gte-large` beats MiniLM: Recall@5 65.0% vs 57.5%. | `docs/mleb_scalr_embedding_ab_2026-04-30.md` | Not an answer-quality benchmark; keep it out of EM tables. |
 
 ## Interpretation
@@ -40,8 +44,9 @@ The signal is the pattern, not any single row:
   CaseHOLD now retrieves more gold options under two-call but still does not
   reliably lift answers.
 - Housing is the best legal-domain test for state-metadata-constrained legal
-  retrieval. The first explicit state-filter row now landed cleanly at k=5;
-  the remaining k=10 state-filter row is still running in chunks.
+  retrieval. The explicit state-filter rows now landed cleanly at k=5 and
+  k=10; k=10 improves retrieval/gold-hit but only slightly improves answer
+  accuracy over k=5.
 
 The meeting story should therefore be "we found a way to type bottlenecks,"
 not "we found one method that wins."
@@ -50,7 +55,7 @@ not "we found one method that wins."
 
 | Item | Status | What it blocks |
 |---|---|---|
-| Housing state-filter | Job `58282` failed with 100% empty retrieval due state metadata casing. Fixed job `58799` landed k=5 at 61.5%; chunked job `58937` is running k=10. | Whether Housing's top-10 lift is metadata/jurisdiction repair or generic deeper retrieval. |
+| Housing state-filter | Job `58282` failed with 100% empty retrieval due state metadata casing. Fixed job `58799` landed k=5 at 61.5%; chunked job `58937` landed k=10 at 62.5%. | Whether Housing's top-10 lift is metadata/jurisdiction repair or generic deeper retrieval is now clearer: state metadata helps, but k=10 adds little over state-filter k=5. |
 | CaseHOLD option conversion | Repaired top-k, `rag_hyde`, and `two_call` rows landed; retrieval recall improves more than answer accuracy. | A stronger CaseHOLD claim now needs option-aware synthesis or reranking, not another plain top-k rerun. |
 | Local Chroma | Local `legal_passages` is empty; local Chroma only has SCALR/MLEB-SCALR. | Local BarExam/Housing/CaseHOLD RAG runs. Use cluster or rebuild locally. |
 | Full-corpus MuSiQue Llama | Still rate-limit/provider constrained. | Turning the MuSiQue N=200 diagnostic into a full-corpus result. |
@@ -66,16 +71,21 @@ not "we found one method that wins."
   The full diagnostic matrix is needed to distinguish query formulation,
   evidence use, option anchoring, and metadata effects.
 - "Is snap-HyDE novel?" No. It is HyDE/active-retrieval adjacent. The useful
-  contribution is using fixed probes to type bottlenecks.
+  contribution is using fixed probes to type bottlenecks, then asking how a
+  HyDE-style reasoning step should be aimed for that bottleneck.
+- "Have we built the adaptive method yet?" Not fully. The report supports it as
+  the next method: the evidence shows that different legal tasks need different
+  retrieval-time reasoning interventions, and the harness can measure which one
+  is helping.
 - "Are agents bad?" No. Current unstructured subagent/gap-routing over-abstains
   on MuSiQue. The plausible agentic direction is shared evidence state and
   evidence-budgeted routing.
 
 ## Recommended Next Order
 
-1. Monitor and pull SLURM `58937`; merge the four k=10 Housing chunks, recompute
-   paired tests against generic top-10 and k=5 state filter, and update
-   `docs/housing_state_filter_followup_2026-05-01.md`.
+1. Freeze the class-report Housing story around the repaired state-filter rows:
+   k=5 61.5%, k=10 62.5%, no empty retrieval, metadata helps more than generic
+   depth.
 2. Add a CaseHOLD option-aware synthesis or reranking cell if we want to turn
    its gold-retrieval gain into an answer-conversion test.
 3. Add router v2 features from disagreement buckets and metadata hits before

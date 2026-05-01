@@ -8,6 +8,7 @@ housing_top5,logs/eval_rag_simple_or-gemma4-26b_20260430_0502_detail.jsonl,200,1
 housing_top10,logs/eval_rag_simple_or-gemma4-26b_20260430_0542_detail.jsonl,200,116,0.58,1.0,4582.57,3978.97,603.6,0,0.055
 housing_2call,logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260430_0644_detail.jsonl,200,114,0.57,2.0,3160.155,2453.305,706.85,0,0.095
 housing_state5,logs/eval_rag_state_filter_or-gemma4-26b_20260501_1406_detail.jsonl,200,123,0.615,1.0,2550.34,2146.44,403.9,0,0.405
+housing_state10,logs/eval_rag_state_filter_or-gemma4-26b_20260501_k10_merged_detail.jsonl,200,125,0.625,1.0,4692.675,4278.77,413.905,0,0.49
 scalr_top1,logs/eval_rag_simple_groq-llama70b_20260429_2159_detail.jsonl,200,119,0.595,1.0,947.17,517.655,429.515,0,0.325
 scalr_top5,logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl,200,154,0.77,1.0,1146.375,723.44,422.935,0,0.54
 scalr_top10,logs/eval_rag_simple_groq-llama70b_20260430_0054_detail.jsonl,200,154,0.77,1.0,1395.645,978.73,416.915,0,0.63

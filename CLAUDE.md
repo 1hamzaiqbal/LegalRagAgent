@@ -2,11 +2,14 @@
 
 ## Update 2026-05-01 (meeting prep)
 
-**Current meeting frame**: lead with bottleneck-typed retrieval, not a new RAG
-recipe. `snap_hyde_2call` is a useful fixed-cost probe and the current MuSiQue
-N=200 method vehicle; the defensible contribution is the diagnostic matrix that
-separates retrieval depth, candidate-set size, query formulation, evidence use,
-metadata filtering, and answer-option anchoring.
+**Current meeting frame**: lead with bottleneck-typed retrieval, not a finished
+new RAG recipe. `snap_hyde_2call` is a useful fixed-cost probe, but the forward
+method hypothesis is adaptive snap-HyDE: use the HyDE/reasoning budget on top of
+the active bottleneck, whether that is query framing, query diversity, candidate
+depth, metadata filtering, or answer-option conversion. The defensible current
+contribution is the diagnostic matrix that separates retrieval depth,
+candidate-set size, query formulation, evidence use, metadata filtering, and
+answer-option anchoring.
 
 **Latest source-gated deltas**:
 - CaseHOLD repaired cluster job `58283` landed: `rag_simple` 69.5% vs
@@ -15,8 +18,10 @@ metadata filtering, and answer-option anchoring.
   still not a reliable lift. See `docs/casehold_repaired_rerun_2026-05-01.md`.
 - Housing state-filter job `58282` is invalid as a method result: both k=5 and
   k=10 were `_FAILED-EMPTY-RETRIEVAL`. Root cause was state-metadata casing
-  (`California` vs `california`); `_housing_state_where(...)` now lowercases the
-  filter and the fixed job is resubmitted as SLURM `58799`. See
+  (`California` vs `california`). The fixed k=5 run `58799` landed at 61.5%,
+  and the chunked k=10 completion `58937` landed at 62.5% with 0 empty
+  retrieval rows and 98/200 gold retrieved. Cite as a metadata-filtering signal,
+  not as a generic deeper-retrieval result. See
   `docs/housing_state_filter_followup_2026-05-01.md`.
 - Top-k sensitivity should be described as a retrieval-policy stress test or
   first-pass bottleneck signal, not a complete causal diagnosis.
@@ -70,8 +75,8 @@ Current research direction: the original heavy pipeline underperformed, but the 
   machine-readable run summaries.
 - `docs/benchmark_method_birdseye_2026-04-30.md` — benchmark/method map and
   harness coverage.
-- `docs/final_class_report_2026-04-30.pdf` and
-  `docs/final_class_report_2026-04-30.tex` — current class-report draft.
+- `reports/final_class_report/main.pdf` and
+  `reports/final_class_report/main.tex` — current class-report draft.
 - `docs/housing_state_filter_followup_2026-05-01.md` and
   `docs/casehold_repaired_rerun_2026-05-01.md` — latest dataset-specific gates.
 - `docs/hpc_setup_log.md` and `docs/cluster_workflow.md` — cluster paths,

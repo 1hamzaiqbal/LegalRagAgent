@@ -1,7 +1,8 @@
 # Housing State-Filter Followup - 2026-05-01
 
 Purpose: record the status of the HousingQA state-filter gate. This is a
-blocker/fix note, not a citeable method result.
+blocker/fix note plus an N=200 diagnostic evidence gate; use `docs/signoff_log.md`
+to decide which claims are citeable.
 
 ## Failed Cluster Run
 
@@ -65,6 +66,7 @@ Clean landed k=5 result:
 | Mode | k | Accuracy | Detail log | Empty retrieval | Gold retrieval |
 |---|---:|---:|---|---:|---:|
 | `rag_state_filter` | 5 | 123/200 (61.5%) | `logs/eval_rag_state_filter_or-gemma4-26b_20260501_1406_detail.jsonl` | 0/200 | 81/200 |
+| `rag_state_filter` | 10 | 125/200 (62.5%) | `logs/eval_rag_state_filter_or-gemma4-26b_20260501_k10_merged_detail.jsonl` | 0/200 | 98/200 |
 
 Paired checks:
 
@@ -72,16 +74,20 @@ Paired checks:
 |---|---:|---:|---:|---:|---:|---:|---:|
 | top-5 `rag_simple` -> k=5 `rag_state_filter` | 200 | 53.5% | 61.5% | +8.0pp | 36/20 | 0.0440 | [+1.0, +15.5] pp |
 | top-10 `rag_simple` -> k=5 `rag_state_filter` | 200 | 58.0% | 61.5% | +3.5pp | 33/26 | 0.4350 | [-4.0, +11.0] pp |
+| top-5 `rag_simple` -> k=10 `rag_state_filter` | 200 | 53.5% | 62.5% | +9.0pp | 34/16 | 0.0153 | [+2.0, +15.5] pp |
+| top-10 `rag_simple` -> k=10 `rag_state_filter` | 200 | 58.0% | 62.5% | +4.5pp | 35/26 | 0.3057 | [-3.0, +12.0] pp |
+| k=5 `rag_state_filter` -> k=10 `rag_state_filter` | 200 | 61.5% | 62.5% | +1.0pp | 10/8 | 0.8145 | [-3.0, +5.5] pp |
 
 Interpretation: the casing fix converted the state filter from a parametric
-fallback into real retrieval. The k=5 result suggests jurisdiction metadata can
-beat generic k=5 retrieval and is directionally above generic top-10, but the
-top-10 state-filter leg is still needed before claiming the metadata gate is
-settled.
+fallback into real retrieval. The state-filter result beats generic k=5 and is
+directionally above generic top-10, while k=10 adds little over k=5. This
+supports a metadata-filtering bottleneck story more than a generic deeper
+retrieval story.
 
 ## Chunked k=10 Completion Run
 
 The remaining k=10 leg was relaunched as chunked SLURM array `58937` using
 `scripts/hpc/slurm_housing_state_filter_chunks.sh`. Duplicate k=5 chunks were
-cancelled after the clean k=5 log above was validated; array tasks 4--7 cover
-k=10 over the same deterministic N=200 sample in four 50-question slices.
+cancelled after the clean k=5 log above was validated; array tasks 4--7 covered
+k=10 over the same deterministic N=200 sample in four 50-question slices and
+were merged with `scripts/merge_detail_logs.py`.

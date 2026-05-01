@@ -26,14 +26,17 @@ Branch: `codex/final-report-snap-hyde`
    both k=5 and k=10 runs were tagged `_FAILED-EMPTY-RETRIEVAL`, with 200/200
    rows having no retrieved evidence. The logged accuracies, 53.5% and 55.0%,
    are parametric behavior and must not be cited as state-filtered retrieval.
-4. ⚠️ **Housing state-filter blocker partially unblocked**:
+4. ✅ **Housing state-filter blocker unblocked for N=200 diagnostics**:
    `_housing_state_where(...)` now lowercases question states to match the
    lowercase statute metadata in `datasets/housing_qa/statutes.csv`. The fixed
    cluster run `58799` landed a clean k=5 row: 123/200 (61.5%), 0/200 empty
    retrieval, 81/200 gold retrieved. It beats generic top-5 by +8.0pp
    (b/c=36/20, p=0.0440) and is directionally above generic top-10 by +3.5pp
-   (p=0.4350). The k=10 state-filter leg timed out and is rerunning as
-   chunked SLURM `58937`.
+   (p=0.4350). The chunked k=10 rerun `58937` landed cleanly at 125/200
+   (62.5%), 0/200 empty retrieval, 98/200 gold retrieved. It beats generic
+   top-5 by +9.0pp (b/c=34/16, p=0.0153), is directionally above generic top-10
+   by +4.5pp (p=0.3057), and is only +1.0pp above state-filter k=5 (p=0.8145).
+   Cite as metadata-filtering signal, not as deeper-is-always-better.
 5. 🧭 **Meeting framing**: top-k sensitivity should be called a cheap
    retrieval-policy stress test or first-pass bottleneck signal. It directly
    probes retrieval-depth/candidate-set sensitivity; query formulation,
@@ -53,7 +56,8 @@ Branch: `codex/final-report-snap-hyde`
   `logs/eval_rag_hyde_groq-llama70b_20260501_1449_detail.jsonl`,
   `logs/eval_rag_state_filter_or-gemma4-26b_20260430_1649_detail.jsonl`,
   `logs/eval_rag_state_filter_or-gemma4-26b_20260430_1720_detail.jsonl`,
-  `logs/eval_rag_state_filter_or-gemma4-26b_20260501_1406_detail.jsonl`.
+  `logs/eval_rag_state_filter_or-gemma4-26b_20260501_1406_detail.jsonl`,
+  `logs/eval_rag_state_filter_or-gemma4-26b_20260501_k10_merged_detail.jsonl`.
 
 ## Update 2026-04-30 ~15:30 CDT
 

@@ -15,7 +15,8 @@ separates citeable state from historical working notes.
    ledger and machine-readable run summaries.
 5. `benchmark_method_birdseye_2026-04-30.md` - compact map of benchmarks,
    methods, what each dataset tests, and harness gaps.
-6. `final_class_report_2026-04-30.pdf` or `final_class_report_2026-04-30.tex`
+6. `../reports/final_class_report/main.pdf` or
+   `../reports/final_class_report/main.tex`
    - current class-report draft with figures/tables.
 
 Five-minute path: read `meeting_state_2026-05-01.md`, then use
@@ -30,7 +31,8 @@ it.
   `musique_disagreement_audit_2026-04-30.md` and
   `musique_golden_passage_2026-04-30.md`.
 - CaseHOLD repaired pair: `casehold_repaired_rerun_2026-05-01.md`.
-- Housing state-filter caveat and resubmission: `housing_state_filter_followup_2026-05-01.md`.
+- Housing state-filter caveat and fixed k=5/k=10 diagnostics:
+  `housing_state_filter_followup_2026-05-01.md`.
 - SCALR depth behavior: `scalr_depth_disagreement_2026-04-30.md`.
 - BarExam post-fix audit truth: `audit_log.md`.
 
@@ -102,7 +104,8 @@ signoff log decides whether a claim is ready to cite.
 
 ### Presentation And Report Materials
 
-- `final_class_report_2026-04-30.tex` and `final_class_report_2026-04-30.pdf`
+- `../reports/final_class_report/main.tex` and
+  `../reports/final_class_report/main.pdf`
   - current class-report draft.
 - `report_adversarial_pass_2026-04-30.md` - reviewer-style critique and gaps to
   substantiate.
@@ -156,4 +159,4 @@ Before citing a result:
 4. If sources disagree, prefer the newest audit/signoff document and preserve
    the disagreement as a caveat.
 
-Branch: `codex/evidence-ledger-router`.
+Branch: `codex/final-report-snap-hyde`.

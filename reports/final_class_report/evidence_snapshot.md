@@ -23,6 +23,9 @@ UV_CACHE_DIR=/tmp/uv-cache HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 | HousingQA `rag_simple` top-10 -> `rag_snap_hyde_2call` | 200 | 58.0% | 57.0% | -1.0pp | 26/28 | 0.8919232 | `logs/eval_rag_simple_or-gemma4-26b_20260430_0542_detail.jsonl`; `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260430_0644_detail.jsonl` |
 | HousingQA `rag_simple` top-5 -> `rag_state_filter` k=5 | 200 | 53.5% | 61.5% | +8.0pp | 36/20 | 0.0440465 | `logs/eval_rag_simple_or-gemma4-26b_20260430_0502_detail.jsonl`; `logs/eval_rag_state_filter_or-gemma4-26b_20260501_1406_detail.jsonl` |
 | HousingQA `rag_simple` top-10 -> `rag_state_filter` k=5 | 200 | 58.0% | 61.5% | +3.5pp | 33/26 | 0.4349928 | `logs/eval_rag_simple_or-gemma4-26b_20260430_0542_detail.jsonl`; `logs/eval_rag_state_filter_or-gemma4-26b_20260501_1406_detail.jsonl` |
+| HousingQA `rag_simple` top-5 -> `rag_state_filter` k=10 | 200 | 53.5% | 62.5% | +9.0pp | 34/16 | 0.0153467 | `logs/eval_rag_simple_or-gemma4-26b_20260430_0502_detail.jsonl`; `logs/eval_rag_state_filter_or-gemma4-26b_20260501_k10_merged_detail.jsonl` |
+| HousingQA `rag_simple` top-10 -> `rag_state_filter` k=10 | 200 | 58.0% | 62.5% | +4.5pp | 35/26 | 0.3056774 | `logs/eval_rag_simple_or-gemma4-26b_20260430_0542_detail.jsonl`; `logs/eval_rag_state_filter_or-gemma4-26b_20260501_k10_merged_detail.jsonl` |
+| HousingQA `rag_state_filter` k=5 -> k=10 | 200 | 61.5% | 62.5% | +1.0pp | 10/8 | 0.8145294 | `logs/eval_rag_state_filter_or-gemma4-26b_20260501_1406_detail.jsonl`; `logs/eval_rag_state_filter_or-gemma4-26b_20260501_k10_merged_detail.jsonl` |
 | SCALR `rag_simple` top-5 -> `rag_snap_hyde_2call` | 200 | 77.0% | 75.0% | -2.0pp | 8/12 | 0.5034447 | `logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl`; `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260428_1520_detail.jsonl` |
 | SCALR `rag_simple` top-5 -> `rag_hyde` | 200 | 77.0% | 77.5% | +0.5pp | 9/8 | 1.0 | `logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl`; `logs/eval_rag_hyde_groq-llama70b_20260501_1515_detail.jsonl` |
 | SCALR `rag_simple` top-5 -> `rag_snap_hyde_1call` | 200 | 77.0% | 70.5% | -6.5pp | 2/15 | 0.0023499 | `logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl`; `logs/eval_rag_snap_hyde_1call_groq-llama70b_20260501_1519_detail.jsonl` |
@@ -58,7 +61,7 @@ Direct raw count check over Gemma 4 26B-A4B full-corpus logs:
   full-corpus claims.
 - Housing state-filter job `58282` is invalid due empty retrieval. Fixed job
   `58799` landed a clean k=5 row, then timed out during the k=10 leg; chunked
-  SLURM `58937` is running the remaining k=10 slices.
+  SLURM `58937` completed a clean merged k=10 row.
 - CaseHOLD repaired two-call improves gold retrieval from 16.0% to 47.0% but
   answer lift is not significant.
 - `subagent_rag` is cited only as a negative over-abstention result, not as a
@@ -72,8 +75,10 @@ Direct raw count check over Gemma 4 26B-A4B full-corpus logs:
   (61.5%), 0/200 empty retrieval, 81/200 gold retrieved. The job timed out
   during the k=10 leg at 135/200 (`TIMEOUT`, 03:00:15).
 - SLURM `58937`: chunked HousingQA k=10 state-filter rerun over the same N=200
-  deterministic sample, four 50-question slices. Duplicate k=5 chunks were
-  cancelled after the clean k=5 row above was validated.
+  deterministic sample completed in four 50-question slices. Merged result:
+  125/200 (62.5%), 0/200 empty retrieval, 98/200 gold retrieved, paired vs
+  generic top-10 +4.5pp (p=0.3057), paired vs state-filter k=5 +1.0pp
+  (p=0.8145).
 - SLURM `58871`: CaseHOLD repaired top-k / HyDE follow-up over the cluster
   `casehold_holdings` collection completed. All pulled rows have 200/200 rows
   and no empty retrieval: k=1 64.5% / 9.0% gold, k=10 68.0% / 19.0% gold,
@@ -103,6 +108,7 @@ The top-10 lift also changes answer bias on a yes/no task:
 | top-1 `rag_simple` | 71/129 | 126 | 74 | 0 |
 | top-10 `rag_simple` | 71/129 | 100 | 99 | 1 |
 | k=5 `rag_state_filter` | 71/129 | 118 | 82 | 0 |
+| k=10 `rag_state_filter` | 71/129 | 126 | 74 | 0 |
 | `rag_snap_hyde_2call` | 71/129 | 119 | 81 | 0 |
 
 This supports cautious wording: top-10 retrieval is directional, but the
@@ -127,6 +133,7 @@ for the plotted N=200 legal slices. Headline examples used in the report:
 | BarExam `rag_snap_hyde` | 86.0% | 3.0 | 3.9k | 9.5% |
 | BarExam `rag_snap_hyde_2call` | 85.5% | 2.0 | 2.8k | 9.0% |
 | Housing top-10 `rag_simple` | 58.0% | 1.0 | 4.6k | 5.5% |
+| Housing k=10 `rag_state_filter` | 62.5% | 1.0 | 4.7k | 49.0% |
 | Housing `rag_snap_hyde_2call` | 57.0% | 2.0 | 3.2k | 9.5% |
 | SCALR top-5 `rag_simple` | 77.0% | 1.0 | 1.1k | 54.0% |
 | SCALR `rag_snap_hyde_2call` | 75.0% | 2.0 | 2.2k | 55.0% |
