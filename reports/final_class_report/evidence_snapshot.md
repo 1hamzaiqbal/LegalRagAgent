@@ -20,6 +20,7 @@ UV_CACHE_DIR=/tmp/uv-cache HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 | SCALR `rag_simple` top-5 -> top-1 | 200 | 77.0% | 59.5% | -17.5pp | 3/38 | 1.04792e-08 | `logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl`; `logs/eval_rag_simple_groq-llama70b_20260429_2159_detail.jsonl` |
 | SCALR `rag_simple` top-5 -> top-10 | 200 | 77.0% | 77.0% | 0.0pp | 8/8 | 1.0 | `logs/eval_rag_simple_groq-llama70b_20260428_1508_detail.jsonl`; `logs/eval_rag_simple_groq-llama70b_20260430_0054_detail.jsonl` |
 | HousingQA `rag_simple` top-1 -> top-10 | 200 | 50.5% | 58.0% | +7.5pp | 38/23 | 0.0721774 | `logs/eval_rag_simple_or-gemma4-26b_20260430_0415_detail.jsonl`; `logs/eval_rag_simple_or-gemma4-26b_20260430_0542_detail.jsonl` |
+| CaseHOLD repaired `rag_simple` top-1 -> top-5 | 200 | 64.5% | 69.5% | +5.0pp | 16/6 | 0.0524788 | `logs/eval_rag_simple_groq-llama70b_20260501_1432_detail.jsonl`; `logs/eval_rag_simple_groq-llama70b_20260430_1738_detail.jsonl` |
 | CaseHOLD repaired `rag_simple` -> `rag_snap_hyde_2call` | 200 | 69.5% | 72.0% | +2.5pp | 16/11 | 0.4420683 | `logs/eval_rag_simple_groq-llama70b_20260430_1738_detail.jsonl`; `logs/eval_rag_snap_hyde_2call_groq-llama70b_20260430_1751_detail.jsonl` |
 | MuSiQue `rag_simple` -> `golden_passage` | 200 | 27.5% | 56.5% | +29.0pp | 64/6 | 2.44273e-13 | `logs/eval_rag_simple_groq-llama70b_20260427_0952_detail.jsonl`; `logs/eval_golden_passage_groq-llama70b_20260430_1515_detail.jsonl` |
 | BarExam 26B `rag_simple` -> `rag_snap_hyde` | 1195 | 78.08% | 81.17% | +3.096pp | 124/87 | 0.0130126 | `logs/eval_rag_simple_cluster-vllm_20260425_2020_detail.jsonl`; `logs/eval_rag_snap_hyde_cluster-vllm_20260425_2226_detail.jsonl` |
@@ -60,7 +61,8 @@ Direct raw count check over Gemma 4 26B-A4B full-corpus logs:
   123/200 (61.5%), but it is not promoted until the detail log is pulled and
   paired locally.
 - SLURM `58871`: CaseHOLD repaired top-k follow-up over the cluster
-  `casehold_holdings` collection; tail confirms non-empty retrieval and active
-  `rag_simple` evaluation.
+  `casehold_holdings` collection. The top-1 `rag_simple` leg landed at
+  129/200 (64.5%) with 18/200 gold retrieved and no empty retrieval; k=10 and
+  `rag_hyde` remain in progress in the same job.
 - SLURM `58885`: LegalBench-SCALR snap ablation, currently queued for
   resources at last check.

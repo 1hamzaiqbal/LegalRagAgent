@@ -348,18 +348,21 @@ Candidate-set limited until top-5, then saturated. \\
 \addlinespace
 CaseHOLD / Llama 70B &
 Repaired pair: 69.5\% to 72.0\%, $p=0.4421$ &
-gold retrieval 16.0\% to 47.0\% under two-call &
-Better gold retrieval does not yet convert to reliable answer lift. \\
+top-1 64.5\%, top-5 69.5\%; gold retrieval 9.0\%, 16.0\%, 47.0\% under two-call &
+Some depth signal, but better gold retrieval does not yet convert to reliable answer lift. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 The most important negative result is CaseHOLD. After repairing the holdings
-corpus and gold mapping, two-call snap-HyDE finds the gold holding much more
-often. If retrieval recall were sufficient, answer accuracy should improve
-sharply. It does not. This suggests an evidence-to-option bottleneck:
-retrieved holdings can still be paraphrased distractors, overly generic, or
-hard to map back to the exact candidate label.
+corpus and gold mapping, top-1 \method{rag_simple} reaches 64.5\% with 9.0\%
+gold retrieval, while top-5 reaches 69.5\% with 16.0\% gold retrieval
+(+5.0pp, $p=0.0525$). Two-call snap-HyDE then raises gold retrieval to 47.0\%
+but answer accuracy only reaches 72.0\% ($p=0.4421$ against top-5
+\method{rag_simple}). If retrieval recall were sufficient, answer accuracy
+should improve sharply. It does not. This suggests an evidence-to-option
+bottleneck: retrieved holdings can still be paraphrased distractors, overly
+generic, or hard to map back to the exact candidate label.
 
 SCALR gives a different holding-selection story. Top-1 is poor, top-5 fixes
 most of the loss, and top-10 adds no answer accuracy beyond top-5. This is not
@@ -406,7 +409,7 @@ Job & Purpose \\
 SLURM 58799 & HousingQA state-filtered retrieval at k=5 and k=10 after fixing
 the state-metadata casing bug. \\
 SLURM 58871 & CaseHOLD repaired top-k follow-up: \method{rag_simple} at k=1
-and k=10 plus \method{rag_hyde} at k=5. \\
+has landed at 64.5\%; k=10 plus \method{rag_hyde} at k=5 remain in progress. \\
 SLURM 58885 & LegalBench-SCALR snap ablation: \method{rag_hyde} and
 \method{rag_snap_hyde_1call} at k=5, complementing existing
 \method{rag_simple} and \method{rag_snap_hyde_2call} rows. \\
@@ -522,9 +525,9 @@ is to use them to identify where tuning should be applied.
 The next experiments should stay legal-only. First, finish HousingQA
 state-filtered retrieval and compare it to top-10 generic retrieval. Second,
 add SCALR \method{rag_hyde}, \method{rag_snap_hyde_1call}, and
-\method{multi_hyde_diverse} rows if API budget allows. Third, run repaired
-CaseHOLD top-1/top-5/top-10 after the Chroma repair so the depth-policy claim
-uses meaningful gold retrieval. Fourth, if we want a stronger retrieval
+\method{multi_hyde_diverse} rows if API budget allows. Third, finish repaired
+CaseHOLD k=10 and \method{rag_hyde} after the Chroma repair so the depth-policy
+claim uses meaningful gold retrieval. Fourth, if we want a stronger retrieval
 benchmark, wire LegalBench-RAG or Legal RAG Bench rather than adding another
 generic multi-hop dataset.
 
