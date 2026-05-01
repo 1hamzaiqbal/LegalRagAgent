@@ -10,6 +10,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.colors import ListedColormap
+from PIL import Image, ImageDraw, ImageFont
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -305,86 +306,42 @@ def plot_cost_accuracy() -> None:
 
 
 def plot_adaptive_hyre_routes() -> None:
-    fig, ax = plt.subplots(figsize=(8.8, 4.6), dpi=260)
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    ax.axis("off")
-    ax.text(0.5, 0.93, "Adaptive HyRE routes by failure mode", ha="center", va="center", fontsize=16, weight="bold")
-    ax.text(
-        0.5,
-        0.86,
-        "Snap reasoning is baked into the hypothetical snippet, then routed to the active bottleneck.",
-        ha="center",
-        va="center",
-        fontsize=9.5,
-        color="#444444",
-    )
+    """Overlay deterministic report labels onto the image-generated route base."""
+
+    base_path = OUT / "03_adaptive_hyre_imagegen_base.png"
+    img = Image.open(base_path).convert("RGB")
+    draw = ImageDraw.Draw(img)
+
+    card_title = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 29)
+    body = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial.ttf", 23)
+    center_title = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 39)
+    center_body = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial.ttf", 24)
+
+    def centered_text(x: int, y: int, text: str, font: ImageFont.FreeTypeFont, fill: str) -> None:
+        bbox = draw.textbbox((0, 0), text, font=font)
+        draw.text((x - (bbox[2] - bbox[0]) / 2, y), text, font=font, fill=fill)
 
     cards = [
-        (0.07, 0.55, "#2D6CDF", "Answer framing", "Preserve the legal issue and rule\nwhen evidence is noisy."),
-        (0.57, 0.55, "#21884A", "Candidate set", "Retrieve enough plausible options\nbefore reranking."),
-        (0.07, 0.18, "#C98200", "Metadata filter", "Constrain by jurisdiction when it\nis part of the task."),
-        (0.57, 0.18, "#C5332F", "Option mapping", "Convert retrieved holdings back\nto answer choices."),
+        (88, 86, "#1F5FD1", "Answer framing", "Preserve issue and rule\nwhen evidence is noisy."),
+        (1168, 86, "#14783C", "Candidate set", "Retrieve enough plausible\noptions before reranking."),
+        (88, 637, "#B97700", "Metadata filter", "Constrain by jurisdiction\nwhen it is part of the task."),
+        (1168, 637, "#B92A28", "Option mapping", "Map retrieved holdings\nback to answer choices."),
     ]
+    for x, y, color, title, text in cards:
+        draw.text((x, y), title, font=card_title, fill=color)
+        draw.multiline_text((x, y + 50), text, font=body, fill="#222222", spacing=7)
 
-    def card(x: float, y: float, color: str, title: str, body: str) -> None:
-        ax.add_patch(
-            patches.FancyBboxPatch(
-                (x, y),
-                0.36,
-                0.23,
-                boxstyle="round,pad=0.018,rounding_size=0.018",
-                facecolor="white",
-                edgecolor=color,
-                linewidth=1.4,
-            )
-        )
-        ax.add_patch(
-            patches.FancyBboxPatch(
-                (x + 0.02, y + 0.05),
-                0.055,
-                0.13,
-                boxstyle="round,pad=0.01,rounding_size=0.02",
-                facecolor=color,
-                edgecolor=color,
-                linewidth=0,
-                alpha=0.16,
-            )
-        )
-        ax.text(x + 0.095, y + 0.155, title, ha="left", va="center", fontsize=11.2, weight="bold", color=color)
-        ax.text(x + 0.095, y + 0.085, body, ha="left", va="center", fontsize=8.6, color="#222222")
+    centered_text(836, 392, "HyRE", center_title, "#1F2933")
+    centered_text(836, 444, "snap -> hypothetical\nlegal passage", center_body, "#4A5560")
 
-    for item in cards:
-        card(*item)
-
-    ax.add_patch(
-        patches.FancyBboxPatch(
-            (0.39, 0.425),
-            0.22,
-            0.14,
-            boxstyle="round,pad=0.018,rounding_size=0.02",
-            facecolor="#F7F8F9",
-            edgecolor="#778080",
-            linewidth=1.1,
-        )
-    )
-    ax.text(0.5, 0.505, "HyRE router", ha="center", va="center", fontsize=11, weight="bold", color="#1F2933")
-    ax.text(0.5, 0.465, "snap -> reasoning snippet", ha="center", va="center", fontsize=8.4, color="#4A5560")
-
-    arrow_targets = [(0.39, 0.62), (0.57, 0.62), (0.39, 0.29), (0.57, 0.29)]
-    arrow_starts = [(0.45, 0.565), (0.55, 0.565), (0.45, 0.425), (0.55, 0.425)]
-    for start, end in zip(arrow_starts, arrow_targets):
-        ax.annotate("", xy=end, xytext=start, arrowprops={"arrowstyle": "->", "lw": 1.1, "color": "#6B7280"})
-
-    fig.tight_layout()
-    fig.savefig(OUT / "03_adaptive_snap_hyde_controller.png", bbox_inches="tight")
+    img.save(OUT / "03_adaptive_snap_hyde_controller.png")
 
 
 def plot_route_map() -> None:
     """Summarize the current evidence as routes for an adaptive controller."""
 
     rows = ["BarExamQA", "SCALR", "HousingQA", "CaseHOLD"]
-    cols = ["Answer\nframe", "Candidate\nexpansion", "Metadata\nfilter", "Option\nconverter"]
+    cols = ["Answer\nframe", "Candidate\nset", "Metadata\nfilter", "Option\nmap"]
     # 0 = not active, 1 = plausible intervention, 2 = observed support.
     values = [
         [2, 0, 0, 0],
@@ -393,20 +350,20 @@ def plot_route_map() -> None:
         [0, 1, 0, 1],
     ]
     labels = [
-        ["observed:\nHyRE +3.09pp", "", "", ""],
-        ["", "observed:\ntop-5 +17.5pp", "", "next:\noption rerank"],
-        ["", "possible:\nk10 +7.5pp", "observed:\nstate 62.5%", ""],
-        ["", "weak signal:\nk1 -> k5 +5.0pp", "", "next:\noption mapper"],
+        ["HyRE\n+3.09pp", "", "", ""],
+        ["", "top-5\n+17.5pp", "", "next:\noption\nrerank"],
+        ["", "k10\n+7.5pp", "state\n62.5%", ""],
+        ["", "k1->k5\n+5.0pp", "", "next:\noption\nmapper"],
     ]
     cmap = ListedColormap(["#F7F7F7", "#F4D35E", "#5AA469"])
-    fig, ax = plt.subplots(figsize=(9.8, 4.5), dpi=220)
+    fig, ax = plt.subplots(figsize=(7.1, 3.2), dpi=260)
     ax.imshow(values, cmap=cmap, vmin=0, vmax=2)
 
     ax.set_xticks(range(len(cols)))
-    ax.set_xticklabels(cols, fontsize=9)
+    ax.set_xticklabels(cols, fontsize=7.2)
     ax.set_yticks(range(len(rows)))
     ax.set_yticklabels(rows, fontsize=9)
-    ax.set_title("Evidence-backed routes for adaptive HyRE", fontsize=11, pad=12)
+    ax.set_title("Evidence-backed routes for adaptive HyRE", fontsize=10, pad=8)
     ax.tick_params(length=0)
     for spine in ax.spines.values():
         spine.set_visible(False)
@@ -416,7 +373,7 @@ def plot_route_map() -> None:
             ax.add_patch(plt.Rectangle((x - 0.5, y - 0.5), 1, 1, fill=False, edgecolor="#D0D0D0", linewidth=0.8))
             if text:
                 color = "#0F2F1A" if values[y][x] == 2 else "#4D3B00"
-                ax.text(x, y, text, ha="center", va="center", fontsize=7.2, color=color)
+                ax.text(x, y, text, ha="center", va="center", fontsize=5.8, color=color, linespacing=1.14)
 
     handles = [
         patches.Patch(facecolor="#5AA469", edgecolor="#A0A0A0", label="observed signal"),
@@ -426,10 +383,10 @@ def plot_route_map() -> None:
     ax.legend(
         handles=handles,
         loc="upper center",
-        bbox_to_anchor=(0.5, -0.13),
+        bbox_to_anchor=(0.5, -0.15),
         ncol=3,
         frameon=False,
-        fontsize=8,
+        fontsize=7,
         columnspacing=1.8,
         handlelength=1.2,
         handletextpad=0.4,
