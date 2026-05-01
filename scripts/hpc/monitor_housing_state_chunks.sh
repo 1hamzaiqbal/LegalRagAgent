@@ -23,7 +23,7 @@ cd "$LOCAL_REPO"
 IFS=, read -r -a TASK_IDS <<< "$TASK_IDS_CSV"
 
 log() {
-  printf '[%s] %s\n' "$(date -Is)" "$*" | tee -a "$MONITOR_LOG"
+  printf '[%s] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*" | tee -a "$MONITOR_LOG"
 }
 
 remote_stdout_paths() {
