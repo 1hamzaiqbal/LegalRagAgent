@@ -30,6 +30,7 @@
 \newcommand{\hyre}{HyRE}
 \newcommand{\pp}{\mathrm{pp}}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
 
 \title{Toward Adaptive HyRE for Legal RAG: Reasoning-Conditioned Retrieval Across Legal Tasks}
 
@@ -341,29 +342,29 @@ legal bottleneck each dataset is probing.
 \caption{Legal benchmark matrix.}
 \label{tab:legal_matrix}
 \footnotesize
-\begin{tabularx}{\textwidth}{p{0.16\textwidth}p{0.21\textwidth}p{0.36\textwidth}Y}
+\begin{tabularx}{\textwidth}{P{0.16\textwidth}P{0.21\textwidth}P{0.36\textwidth}Y}
 \toprule
 Benchmark & Active bottleneck & Best current evidence & Caveat \\
 \midrule
-BarExamQA / Gemma 4 &
+BarExamQA, Gemma 4 &
 Answer framing; retrieval depth is flat &
 Full $N=1195$: \hyre{} is +3.09pp at 26B and +3.68pp at E4B; top-5 82.5\%
 vs top-1 83.0\% on $N=200$ &
 Single gold passage is a noisy control, not an oracle ceiling. \\
 \addlinespace
-HousingQA / Gemma 4 &
+HousingQA, Gemma 4 &
 Jurisdiction filtering &
 $N=200$: top-1 50.5\% to top-10 58.0\% (+7.5pp, $p=0.0722$); state filter
 reaches 61.5\% at k=5 and 62.5\% at k=10 &
 Generic depth helps directionally; state filtering is the cleaner signal. \\
 \addlinespace
-LegalBench-SCALR / Llama 70B &
+SCALR, Llama 70B &
 Top-5 candidate recall, then saturation &
 $N=200$: top-1 59.5\%, top-5 77.0\%, top-10 77.0\%; HyDE 77.5\%; diverse
 HyDE 75.5\% &
 Generated queries do not yet add answer lift. \\
 \addlinespace
-CaseHOLD / Llama 70B &
+CaseHOLD, Llama 70B &
 Evidence-to-option mapping &
 $N=200$: top-1 64.5\%, top-5 69.5\%, top-10 68.0\%; HyDE and two-call both
 72.0\% &
