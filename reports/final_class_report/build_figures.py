@@ -10,7 +10,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.colors import ListedColormap
-from PIL import Image, ImageDraw, ImageFont
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -306,35 +305,11 @@ def plot_cost_accuracy() -> None:
 
 
 def plot_adaptive_hyre_routes() -> None:
-    """Overlay deterministic report labels onto the image-generated route base."""
+    """Use the fully image-generated adaptive HyRE diagram."""
 
-    base_path = OUT / "03_adaptive_hyre_imagegen_base.png"
-    img = Image.open(base_path).convert("RGB")
-    draw = ImageDraw.Draw(img)
-
-    card_title = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 29)
-    body = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial.ttf", 23)
-    center_title = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 39)
-    center_body = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial.ttf", 24)
-
-    def centered_text(x: int, y: int, text: str, font: ImageFont.FreeTypeFont, fill: str) -> None:
-        bbox = draw.textbbox((0, 0), text, font=font)
-        draw.text((x - (bbox[2] - bbox[0]) / 2, y), text, font=font, fill=fill)
-
-    cards = [
-        (88, 86, "#1F5FD1", "Answer framing", "Preserve issue and rule\nwhen evidence is noisy."),
-        (1168, 86, "#14783C", "Candidate set", "Retrieve enough plausible\noptions before reranking."),
-        (88, 637, "#B97700", "Metadata filter", "Constrain by jurisdiction\nwhen it is part of the task."),
-        (1168, 637, "#B92A28", "Option mapping", "Map retrieved holdings\nback to answer choices."),
-    ]
-    for x, y, color, title, text in cards:
-        draw.text((x, y), title, font=card_title, fill=color)
-        draw.multiline_text((x, y + 50), text, font=body, fill="#222222", spacing=7)
-
-    centered_text(836, 392, "HyRE", center_title, "#1F2933")
-    centered_text(836, 444, "snap -> hypothetical\nlegal passage", center_body, "#4A5560")
-
-    img.save(OUT / "03_adaptive_snap_hyde_controller.png")
+    source = OUT / "03_adaptive_hyre_full_imagegen.png"
+    target = OUT / "03_adaptive_snap_hyde_controller.png"
+    target.write_bytes(source.read_bytes())
 
 
 def plot_route_map() -> None:
