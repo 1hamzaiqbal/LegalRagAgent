@@ -102,6 +102,12 @@ python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --dataset legalbenc
 The readiness gate requires every expected adaptive mode to be present and to
 pass `scripts/audit_adaptive_hyre_logs.py`.
 
+To run the strict gate over all four legal datasets:
+
+```bash
+scripts/check_adaptive_hyre_readiness.sh
+```
+
 ## Completion Checklist
 
 Do not treat the adaptive HyRE iteration goal as complete until all of these are
@@ -114,7 +120,7 @@ true:
 3. This readiness command exits zero for every legal dataset:
 
 ```bash
-python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --dataset <dataset> --provider cluster-vllm --require-ready
+scripts/check_adaptive_hyre_readiness.sh
 ```
 
 4. The JSON parity frontier has a non-`MISSING` adaptive policy for each
