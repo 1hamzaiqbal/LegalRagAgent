@@ -5,7 +5,7 @@ This is the current handoff for the legal-only adaptive Snap-HyDE/HyRE sweep.
 ## Current State
 
 - Branch: `codex/final-report-snap-hyde`
-- Latest pushed commit when refreshed: `6559304`.
+- Latest pushed commit when refreshed: `c5b9e2d`.
 - Repo-local status when checked: clean
 - Cluster worktree for this wave:
   `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre`.
@@ -26,17 +26,22 @@ startup. Treat jobs `66812`-`66815` as failed deployment evidence, not method
 results.
 
 The active fallback wave uses cluster retrieval/Chroma plus OpenRouter Gemma 4
-26B (`or-gemma4-26b`):
+26B (`or-gemma4-26b`). The first Housing fallback job (`66822`) was cancelled
+after repeated CUDA ECC failures in retrieval embedding on `a40-2206`; the
+replacement Housing job excludes that node.
 
 | Dataset | Job | Provider | State at handoff |
 |---|---:|---|---|
 | barexam | 66821 | `or-gemma4-26b` | submitted/running |
-| housing | 66822 | `or-gemma4-26b` | submitted/running |
+| housing | 66826 | `or-gemma4-26b` | submitted/running; excludes `a40-2206` |
 | casehold | 66823 | `or-gemma4-26b` | submitted/running |
 | legalbench_scalr | 66824 | `or-gemma4-26b` | submitted/running |
 
 Manifest:
 `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/adaptive_hyre_submit_20260509_171016.tsv`.
+
+Replacement Housing manifest:
+`/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/adaptive_hyre_submit_20260509_171813.tsv`.
 
 ## Methods To Run
 
