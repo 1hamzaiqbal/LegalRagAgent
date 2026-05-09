@@ -60,10 +60,10 @@ if [[ -n "${RUN_SPECS:-}" ]]; then
 else
   case "$DATASET" in
     housing)
-      RUN_SPECS_ARR=(rag_state_filter snap_hyre_state adaptive_snap_hyre adaptive_snap_hyre_anchor)
+      RUN_SPECS_ARR=(rag_state_filter snap_hyre_state adaptive_snap_hyre adaptive_snap_hyre_anchor adaptive_snap_hyre_diverse)
       ;;
     casehold|legalbench_scalr|barexam)
-      RUN_SPECS_ARR=(rag_simple rag_snap_hyde_2call snap_hyre_option adaptive_snap_hyre adaptive_snap_hyre_anchor)
+      RUN_SPECS_ARR=(rag_simple rag_snap_hyde_2call snap_hyre_option adaptive_snap_hyre adaptive_snap_hyre_anchor adaptive_snap_hyre_diverse)
       ;;
     *)
       echo "[$(date -Is)] ERROR: unsupported adaptive HyRE legal dataset: $DATASET"
@@ -223,7 +223,7 @@ for mode in "${RUN_SPECS_ARR[@]}"; do
   if [[ -n "$latest_log" ]]; then
     python scripts/analyze_detail_flags.py "$latest_log" || true
     case "$mode" in
-      adaptive_snap_hyre|adaptive_snap_hyre_anchor|snap_hyre_option|snap_hyre_state)
+      adaptive_snap_hyre|adaptive_snap_hyre_anchor|adaptive_snap_hyre_diverse|snap_hyre_option|snap_hyre_state)
         python scripts/audit_adaptive_hyre_logs.py "$latest_log" || true
         ;;
     esac

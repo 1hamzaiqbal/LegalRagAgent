@@ -77,11 +77,11 @@ def audit(path: Path, legal_only: bool) -> tuple[str, bool]:
 
     if legal_only and dataset not in LEGAL_DATASETS:
         failures.append(f"non_legal_dataset={dataset}")
-    adaptive_modes = {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "snap_hyre_option", "snap_hyre_state"}
+    adaptive_modes = {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse", "snap_hyre_option", "snap_hyre_state"}
     if mode in adaptive_modes and not routes:
         failures.append("missing_hyre_route")
     expected_routes = EXPECTED_ROUTES.get(dataset)
-    if mode in {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor"} and expected_routes and not set(routes).issubset(expected_routes):
+    if mode in {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse"} and expected_routes and not set(routes).issubset(expected_routes):
         failures.append(f"unexpected_routes={dict(routes)} expected_subset={sorted(expected_routes)}")
     if errors:
         failures.append(f"errors={len(errors)}")

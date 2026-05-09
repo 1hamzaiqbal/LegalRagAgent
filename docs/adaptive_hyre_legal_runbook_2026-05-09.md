@@ -21,13 +21,13 @@ RAG harness.
 Run these modes for option-style datasets:
 
 ```bash
-RUN_SPECS="rag_simple rag_snap_hyde_2call snap_hyre_option adaptive_snap_hyre adaptive_snap_hyre_anchor"
+RUN_SPECS="rag_simple rag_snap_hyde_2call snap_hyre_option adaptive_snap_hyre adaptive_snap_hyre_anchor adaptive_snap_hyre_diverse"
 ```
 
 Run these modes for HousingQA:
 
 ```bash
-RUN_SPECS="rag_state_filter snap_hyre_state adaptive_snap_hyre adaptive_snap_hyre_anchor"
+RUN_SPECS="rag_state_filter snap_hyre_state adaptive_snap_hyre adaptive_snap_hyre_anchor adaptive_snap_hyre_diverse"
 ```
 
 `adaptive_snap_hyre_anchor` is the next low-cost generalization probe: it keeps
@@ -36,6 +36,11 @@ generated HyRE passage and the raw question/intermediate prompt. This tests
 whether reasoning-shaped retrieval needs a lexical/task anchor on datasets
 where generated passages can drift away from option text, state metadata, or
 the original fact pattern.
+
+`adaptive_snap_hyre_diverse` keeps the same two LLM calls again, but retrieves
+with three query views: generated HyRE passage, raw task anchor, and sanitized
+snap reasoning. This directly tests query-diversity lift without increasing the
+model-call budget.
 
 ## Cluster Launches
 
@@ -77,7 +82,7 @@ scripts/hpc/submit_adaptive_hyre_legal_sweep.sh housing casehold
 To rerun only selected modes on a dataset:
 
 ```bash
-RUN_SPECS="snap_hyre_state adaptive_snap_hyre adaptive_snap_hyre_anchor" \
+RUN_SPECS="snap_hyre_state adaptive_snap_hyre adaptive_snap_hyre_anchor adaptive_snap_hyre_diverse" \
   scripts/hpc/submit_adaptive_hyre_legal_sweep.sh housing
 ```
 
@@ -170,11 +175,12 @@ python scripts/postprocess_adaptive_hyre_sweep.py --min-n 1
 ```
 
 The summary includes coverage and paired tests for `adaptive_snap_hyre` versus
-`adaptive_snap_hyre_anchor`, so the raw-anchor probe should show up as a
-first-class adaptive comparison rather than as an orphaned mode. It also emits
-an adaptive parity frontier: for each dataset/provider, the best adaptive
-policy is compared against the best available control with accuracy and average
-LLM-call cost.
+`adaptive_snap_hyre_anchor` and `adaptive_snap_hyre_anchor` versus
+`adaptive_snap_hyre_diverse`, so anchor probes should show up as first-class
+adaptive comparisons rather than orphaned modes. It also emits an adaptive
+parity frontier: for each dataset/provider, the best adaptive policy is
+compared against the best available control with accuracy and average LLM-call
+cost.
 
 After logs land locally, compare adaptive controls against the nearest baseline:
 

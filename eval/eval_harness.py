@@ -482,6 +482,7 @@ def _snap_hyre_retrieve_and_answer(
     rerank_query: str | None = None,
     final_system: str | None = None,
     include_raw_anchor: bool = False,
+    include_snap_anchor: bool = False,
 ) -> dict:
     """Shared 2-call HyRE path: snap+HyDE, retrieve, then synthesize."""
     question = _fmt(row, config)
@@ -502,6 +503,10 @@ def _snap_hyre_retrieve_and_answer(
     queries = [hyre_passage]
     if include_raw_anchor:
         queries.append(question_intermediate)
+    if include_snap_anchor:
+        snap_anchor = _strip_answer_line(snap_block)
+        if snap_anchor and snap_anchor not in queries:
+            queries.append(snap_anchor)
 
     retrieval = _retrieve_and_format(
         row,
@@ -541,6 +546,8 @@ def _snap_hyre_retrieve_and_answer(
         out["routed_to"] = f"{label_prefix}_parse_failed_fallback_to_question"
     if include_raw_anchor:
         out["raw_anchor_included"] = True
+    if include_snap_anchor:
+        out["snap_anchor_included"] = True
     return out
 
 
@@ -1882,6 +1889,53 @@ def run_adaptive_snap_hyre_anchor(row: pd.Series, config: EvalConfig) -> dict:
 
     out["hyre_route"] = route
     out["adaptive_policy"] = "task_shape_bottleneck_v1_raw_anchor"
+    return out
+
+
+def run_adaptive_snap_hyre_diverse(row: pd.Series, config: EvalConfig) -> dict:
+    """Adaptive HyRE with raw-question and snap-reasoning retrieval anchors.
+
+    This keeps the two-call budget fixed while testing whether retrieval should
+    diversify across the hypothetical legal passage, the original task shape,
+    and the model's own answer-side reasoning.
+    """
+    route = _adaptive_hyre_route(row, config)
+
+    if route == "state_filter":
+        out = _snap_hyre_retrieve_and_answer(
+            row,
+            config,
+            label_prefix="adaptive_snap_hyre_diverse",
+            where=_housing_state_where(row, config),
+            rerank_query=_retrieval_question(row),
+            include_raw_anchor=True,
+            include_snap_anchor=True,
+        )
+    elif route == "option_grounding":
+        out = _snap_hyre_retrieve_and_answer(
+            row,
+            config,
+            label_prefix="adaptive_snap_hyre_diverse",
+            where=_where_from_config(config),
+            final_system=_option_grounding_system(config),
+            rerank_query=_retrieval_question(row),
+            include_raw_anchor=True,
+            include_snap_anchor=True,
+        )
+        out["final_context_fields"] = ["retrieved_passages", "question", "option_grounding_instruction"]
+    else:
+        out = _snap_hyre_retrieve_and_answer(
+            row,
+            config,
+            label_prefix="adaptive_snap_hyre_diverse",
+            where=_where_from_config(config),
+            rerank_query=_retrieval_question(row),
+            include_raw_anchor=True,
+            include_snap_anchor=True,
+        )
+
+    out["hyre_route"] = route
+    out["adaptive_policy"] = "task_shape_bottleneck_v1_diverse_anchors"
     return out
 
 
@@ -5403,6 +5457,7 @@ MODE_RUNNERS = {
     "snap_hyre_state": run_snap_hyre_state,
     "adaptive_snap_hyre": run_adaptive_snap_hyre,
     "adaptive_snap_hyre_anchor": run_adaptive_snap_hyre_anchor,
+    "adaptive_snap_hyre_diverse": run_adaptive_snap_hyre_diverse,
     "gap_hyde": run_gap_hyde,
     "gap_hyde_ev": run_gap_hyde_ev,
     "gap_hyde_nosnap": run_gap_hyde_nosnap,
