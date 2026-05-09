@@ -32,7 +32,13 @@ TORCH_HOME=${TORCH_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/cache/torch}
 
 USE_VLLM=${USE_VLLM:-1}
 MODEL=${MODEL:-google/gemma-4-26B-A4B-it}
-PORT=${PORT:-8015}
+if [[ -z "${PORT:-}" ]]; then
+  if [[ -n "${SLURM_JOB_ID:-}" ]]; then
+    PORT=$((8000 + (SLURM_JOB_ID % 1000)))
+  else
+    PORT=8015
+  fi
+fi
 PROVIDER=${PROVIDER:-cluster-vllm}
 if [[ "$USE_VLLM" == "0" && "$PROVIDER" == "cluster-vllm" ]]; then
   PROVIDER=or-gemma4-26b

@@ -33,6 +33,8 @@ RUN_SPECS="rag_state_filter snap_hyre_state adaptive_snap_hyre"
 ## Cluster Launches
 
 Default path: cluster vLLM Gemma 4 26B, no paid API calls.
+The SLURM script chooses a per-job default vLLM port from `SLURM_JOB_ID`; set
+`PORT=...` only when debugging a single job manually.
 
 Before submitting, verify the cluster checkout is current and runnable:
 
