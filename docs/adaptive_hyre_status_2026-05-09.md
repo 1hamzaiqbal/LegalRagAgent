@@ -5,7 +5,7 @@ This is the current handoff for the legal-only adaptive Snap-HyDE/HyRE sweep.
 ## Current State
 
 - Branch: `codex/final-report-snap-hyde`
-- Latest pushed commit when refreshed: `c5b9e2d`.
+- Latest pushed commit when refreshed: `b027d61`.
 - Repo-local status when checked: clean
 - Cluster worktree for this wave:
   `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre`.
@@ -25,23 +25,33 @@ current settings; Housing also saw an uncorrectable ECC error during CUDA
 startup. Treat jobs `66812`-`66815` as failed deployment evidence, not method
 results.
 
-The active fallback wave uses cluster retrieval/Chroma plus OpenRouter Gemma 4
+The serial fallback wave used cluster retrieval/Chroma plus OpenRouter Gemma 4
 26B (`or-gemma4-26b`). The first Housing fallback job (`66822`) was cancelled
 after repeated CUDA ECC failures in retrieval embedding on `a40-2206`; the
-replacement Housing job excludes that node.
+replacement Housing job excluded that node. The serial API jobs were then
+cancelled because one dataset job serialized all modes and was unlikely to
+finish inside the 8h wallclock.
 
-| Dataset | Job | Provider | State at handoff |
+| Dataset | Job | Provider | State |
 |---|---:|---|---|
-| barexam | 66821 | `or-gemma4-26b` | submitted/running |
-| housing | 66826 | `or-gemma4-26b` | submitted/running; excludes `a40-2206` |
-| casehold | 66823 | `or-gemma4-26b` | submitted/running |
-| legalbench_scalr | 66824 | `or-gemma4-26b` | submitted/running |
+| barexam | 66821 | `or-gemma4-26b` | cancelled; serial job too slow |
+| housing | 66826 | `or-gemma4-26b` | cancelled; superseded by matrix |
+| casehold | 66823 | `or-gemma4-26b` | cancelled; serial job too slow |
+| legalbench_scalr | 66824 | `or-gemma4-26b` | cancelled; serial job too slow |
 
 Manifest:
 `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/adaptive_hyre_submit_20260509_171016.tsv`.
 
 Replacement Housing manifest:
 `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/adaptive_hyre_submit_20260509_171813.tsv`.
+
+The active fast matrix uses one dataset/mode per SLURM job at `N=50`, provider
+`or-gemma4-26b`, and `--exclude=a40-2206`.
+
+Manifest:
+`/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/adaptive_hyre_mode_matrix_20260509_172126.tsv`.
+
+Job range: `66827`-`66849`.
 
 ## Methods To Run
 
@@ -93,6 +103,20 @@ CHROMA_DB_DIR=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/chroma_db \
 USE_VLLM=0 \
 PROVIDER=or-gemma4-26b \
 scripts/hpc/submit_adaptive_hyre_legal_sweep.sh housing casehold
+```
+
+For the current fast matrix shape:
+
+```bash
+REPO=$PWD \
+DATA_REPO=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent \
+EVAL_VENV=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv \
+CHROMA_DB_DIR=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/chroma_db \
+N_QUESTIONS=50 \
+USE_VLLM=0 \
+PROVIDER=or-gemma4-26b \
+SBATCH_EXTRA_ARGS="--exclude=a40-2206" \
+scripts/hpc/submit_adaptive_hyre_mode_matrix.sh
 ```
 
 The launch wrapper runs:
@@ -148,7 +172,7 @@ pass `scripts/audit_adaptive_hyre_logs.py`.
 To run the strict gate over all four legal datasets:
 
 ```bash
-PROVIDER=or-gemma4-26b scripts/check_adaptive_hyre_readiness.sh
+PROVIDER=or-gemma4-26b MIN_N=50 scripts/check_adaptive_hyre_readiness.sh
 ```
 
 ## Completion Checklist
