@@ -51,6 +51,21 @@ echo "== Sweep summary, non-smoke logs only =="
 python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --provider cluster-vllm || true
 
 echo
+echo "== Adaptive readiness by dataset =="
+for dataset in barexam housing casehold legalbench_scalr; do
+  echo "-- $dataset"
+  if python scripts/postprocess_adaptive_hyre_sweep.py \
+      --min-n 20 \
+      --dataset "$dataset" \
+      --provider cluster-vllm \
+      --require-ready >/tmp/adaptive_hyre_ready_"$dataset".out 2>/tmp/adaptive_hyre_ready_"$dataset".err; then
+    echo "READY"
+  else
+    cat /tmp/adaptive_hyre_ready_"$dataset".err
+  fi
+done
+
+echo
 echo "== Recent persisted adaptive summaries =="
 if [[ -d "$LOG_DIR" ]]; then
   ls -t "$LOG_DIR"/adaptive_hyre_*.md 2>/dev/null \
