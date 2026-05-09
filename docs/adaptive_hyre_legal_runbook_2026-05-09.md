@@ -161,7 +161,7 @@ The adaptive audit should show:
 - no missing `gold_retrieved` field
 - no `snap_hyre_parse_ok=False` rows
 - route distribution matches the expected route for the dataset
-- call count is near the intended method cost
+- call count matches the intended two-call method cost
 
 Small local smoke logs may warn on `small_n`; do not promote those as result
 claims. Treat them only as harness health checks.

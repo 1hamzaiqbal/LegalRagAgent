@@ -11,6 +11,20 @@ from statistics import mean
 
 
 LEGAL_DATASETS = {"barexam", "housing", "casehold", "legalbench_scalr"}
+ADAPTIVE_MODES = {
+    "adaptive_snap_hyre",
+    "adaptive_snap_hyre_anchor",
+    "adaptive_snap_hyre_diverse",
+    "snap_hyre_option",
+    "snap_hyre_state",
+}
+EXPECTED_LLM_CALLS = {
+    "adaptive_snap_hyre": 2.0,
+    "adaptive_snap_hyre_anchor": 2.0,
+    "adaptive_snap_hyre_diverse": 2.0,
+    "snap_hyre_option": 2.0,
+    "snap_hyre_state": 2.0,
+}
 EXPECTED_ROUTES = {
     "barexam": {"option_grounding"},
     "casehold": {"option_grounding"},
@@ -77,8 +91,7 @@ def audit(path: Path, legal_only: bool) -> tuple[str, bool]:
 
     if legal_only and dataset not in LEGAL_DATASETS:
         failures.append(f"non_legal_dataset={dataset}")
-    adaptive_modes = {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse", "snap_hyre_option", "snap_hyre_state"}
-    if mode in adaptive_modes and not routes:
+    if mode in ADAPTIVE_MODES and not routes:
         failures.append("missing_hyre_route")
     expected_routes = EXPECTED_ROUTES.get(dataset)
     if mode in {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse"} and expected_routes and not set(routes).issubset(expected_routes):
@@ -91,6 +104,12 @@ def audit(path: Path, legal_only: bool) -> tuple[str, bool]:
         failures.append(f"missing_gold_retrieved_field={len(missing_gold_field)}")
     if parse_fail:
         failures.append(f"parse_fail={len(parse_fail)}")
+    expected_calls = EXPECTED_LLM_CALLS.get(mode)
+    if expected_calls is not None:
+        bad_call_rows = [r for r in rows if float(r.get("llm_calls", 0) or 0) != expected_calls]
+        if bad_call_rows:
+            counts = Counter(float(r.get("llm_calls", 0) or 0) for r in bad_call_rows)
+            failures.append(f"unexpected_llm_calls={dict(counts)} expected={expected_calls:.0f}")
     if suspicious:
         warnings.append(f"suspicious_answers={len(suspicious)}")
     if n < 20:
