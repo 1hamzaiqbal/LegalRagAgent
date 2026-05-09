@@ -13,6 +13,9 @@ if [[ "${PROVIDER:-}" == "" && "$USE_VLLM" == "0" ]]; then
   PROVIDER=or-gemma4-26b
 fi
 DRY_RUN=${DRY_RUN:-0}
+LOG_DIR=${LOG_DIR:-/engrfs/tmp/jacobsn/hiqbal_legalrag/logs}
+SUBMIT_STAMP=${SUBMIT_STAMP:-$(date +%Y%m%d_%H%M%S)}
+SUBMIT_MANIFEST=${SUBMIT_MANIFEST:-$LOG_DIR/adaptive_hyre_submit_${SUBMIT_STAMP}.tsv}
 
 if [[ "$#" -gt 0 ]]; then
   DATASETS=("$@")
@@ -25,6 +28,11 @@ echo "  script=$SCRIPT"
 echo "  datasets=${DATASETS[*]}"
 echo "  n=$N_QUESTIONS seed=$SEED k=$RETRIEVAL_K use_vllm=$USE_VLLM model=$MODEL provider=${PROVIDER:-cluster-vllm} dry_run=$DRY_RUN"
 echo "  run_specs=${RUN_SPECS:-default-by-dataset}"
+if [[ "$DRY_RUN" != "1" ]]; then
+  mkdir -p "$LOG_DIR"
+  printf 'timestamp\tdataset\tjob_name\tjob_id\tn_questions\tretrieval_k\tseed\tprovider\tuse_vllm\tmodel\trun_specs\n' > "$SUBMIT_MANIFEST"
+  echo "  submit_manifest=$SUBMIT_MANIFEST"
+fi
 
 for dataset in "${DATASETS[@]}"; do
   case "$dataset" in
@@ -58,5 +66,28 @@ for dataset in "${DATASETS[@]}"; do
   if [[ "$DRY_RUN" == "1" ]]; then
     continue
   fi
-  "${cmd[@]}"
+  submit_output=$("${cmd[@]}")
+  echo "$submit_output"
+  job_id=$(awk '/Submitted batch job/ {print $4}' <<<"$submit_output")
+  if [[ -z "$job_id" ]]; then
+    echo "ERROR: could not parse sbatch job id for $job_name" >&2
+    exit 1
+  fi
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+    "$(date -Is)" \
+    "$dataset" \
+    "$job_name" \
+    "$job_id" \
+    "$N_QUESTIONS" \
+    "$RETRIEVAL_K" \
+    "$SEED" \
+    "${PROVIDER:-cluster-vllm}" \
+    "$USE_VLLM" \
+    "$MODEL" \
+    "${RUN_SPECS:-default-by-dataset}" >> "$SUBMIT_MANIFEST"
 done
+
+if [[ "$DRY_RUN" != "1" ]]; then
+  echo
+  echo "Wrote submit manifest: $SUBMIT_MANIFEST"
+fi

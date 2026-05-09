@@ -68,6 +68,14 @@ done
 echo
 echo "== Recent persisted adaptive summaries =="
 if [[ -d "$LOG_DIR" ]]; then
+  echo
+  echo "== Recent submit manifests =="
+  ls -t "$LOG_DIR"/adaptive_hyre_submit_*.tsv 2>/dev/null \
+    | head -5 \
+    | while read -r manifest; do
+        echo "-- $manifest"
+        column -t -s $'\t' "$manifest" 2>/dev/null || cat "$manifest"
+      done
   ls -t "$LOG_DIR"/adaptive_hyre_*.md 2>/dev/null \
     | head -5 \
     | while read -r summary; do

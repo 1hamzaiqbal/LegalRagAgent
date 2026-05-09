@@ -141,6 +141,9 @@ machine-readable JSON companion with the same stem. Keep generated cluster
 summaries out of the repo checkout until we intentionally promote a specific
 one into `docs/`.
 
+The submitter also writes `$LOG_DIR/adaptive_hyre_submit_<timestamp>.tsv` with
+dataset, job name, parsed SLURM job id, provider, model, and run specs.
+
 ## Validation Gates
 
 Every landed adaptive/snap-HyRE detail log should pass:
