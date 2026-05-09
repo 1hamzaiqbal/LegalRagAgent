@@ -256,9 +256,14 @@ def build_report(
                 if d == dataset and p == provider and mode in EXPECTED_ADAPTIVE_MODES[dataset]
             )
             missing = [mode for mode in EXPECTED_ADAPTIVE_MODES[dataset] if mode not in present]
+            audit_failures = sorted(
+                mode for mode in present
+                if audit_status(selected[(dataset, mode, provider)]) != "PASS"
+            )
+            status = "READY" if not missing and not audit_failures else "MISSING"
             lines.append(
                 f"| {dataset} | {provider} | {', '.join(present) or '-'} | "
-                f"{', '.join(missing) or '-'} | {'READY' if not missing else 'MISSING'} |"
+                f"{', '.join(missing) or '-'} | {status} |"
             )
 
     append_parity_frontier(lines, selected, expected_providers=expected_providers, expected_datasets=expected_datasets)
