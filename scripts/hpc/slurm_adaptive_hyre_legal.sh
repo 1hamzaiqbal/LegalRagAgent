@@ -250,6 +250,7 @@ echo
 echo "[$(date -Is)] Writing adaptive HyRE postprocess summary"
 python scripts/postprocess_adaptive_hyre_sweep.py \
   --min-n "$N_QUESTIONS" \
+  --provider "$PROVIDER" \
   --output "$SUMMARY_LOG" \
   --json-output "$SUMMARY_JSON"
 echo "[$(date -Is)] summary_log=$SUMMARY_LOG"

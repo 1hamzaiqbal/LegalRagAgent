@@ -76,6 +76,7 @@ def select_latest(
     paths: list[Path],
     include_all_modes: bool,
     min_n: int,
+    providers: set[str] | None = None,
 ) -> dict[tuple[str, str, str], dict[str, Any]]:
     selected: dict[tuple[str, str, str], dict[str, Any]] = {}
     for path in paths:
@@ -87,6 +88,8 @@ def select_latest(
             continue
         summary = summarize_log(path, rows)
         if summary["dataset"] not in LEGAL_DATASETS:
+            continue
+        if providers is not None and summary["provider"] not in providers:
             continue
         if summary["n"] < min_n:
             continue
@@ -153,7 +156,21 @@ def pairwise_result(base: dict[str, Any], treat: dict[str, Any]) -> str:
     )
 
 
-def build_report(selected: dict[tuple[str, str, str], dict[str, Any]]) -> str:
+def _providers_for_dataset(
+    selected: dict[tuple[str, str, str], dict[str, Any]],
+    dataset: str,
+    expected_providers: set[str] | None,
+) -> list[str]:
+    providers = sorted({provider for (d, _m, provider) in selected if d == dataset})
+    if expected_providers is not None:
+        providers = sorted(set(providers) | expected_providers)
+    return providers
+
+
+def build_report(
+    selected: dict[tuple[str, str, str], dict[str, Any]],
+    expected_providers: set[str] | None = None,
+) -> str:
     by_dataset: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for (dataset, _mode, _provider), summary in selected.items():
         by_dataset[dataset].append(summary)
@@ -184,7 +201,7 @@ def build_report(selected: dict[tuple[str, str, str], dict[str, Any]]) -> str:
         "|---|---|---|---|---|",
     ])
     for dataset in LEGAL_DATASETS:
-        providers = sorted({provider for (d, _m, provider) in selected if d == dataset})
+        providers = _providers_for_dataset(selected, dataset, expected_providers)
         if not providers:
             expected = ", ".join(EXPECTED_ADAPTIVE_MODES[dataset])
             lines.append(f"| {dataset} | - | - | {expected} | MISSING |")
@@ -200,7 +217,7 @@ def build_report(selected: dict[tuple[str, str, str], dict[str, Any]]) -> str:
                 f"{', '.join(missing) or '-'} | {'READY' if not missing else 'MISSING'} |"
             )
 
-    append_parity_frontier(lines, selected)
+    append_parity_frontier(lines, selected, expected_providers=expected_providers)
 
     lines.extend([
         "",
@@ -242,10 +259,13 @@ def _summary_cell(summary: dict[str, Any] | None, field: str) -> str:
     return str(summary[field])
 
 
-def coverage_records(selected: dict[tuple[str, str, str], dict[str, Any]]) -> list[dict[str, Any]]:
+def coverage_records(
+    selected: dict[tuple[str, str, str], dict[str, Any]],
+    expected_providers: set[str] | None = None,
+) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for dataset in LEGAL_DATASETS:
-        providers = sorted({provider for (d, _m, provider) in selected if d == dataset})
+        providers = _providers_for_dataset(selected, dataset, expected_providers)
         if not providers:
             records.append({
                 "dataset": dataset,
@@ -271,10 +291,13 @@ def coverage_records(selected: dict[tuple[str, str, str], dict[str, Any]]) -> li
     return records
 
 
-def parity_records(selected: dict[tuple[str, str, str], dict[str, Any]]) -> list[dict[str, Any]]:
+def parity_records(
+    selected: dict[tuple[str, str, str], dict[str, Any]],
+    expected_providers: set[str] | None = None,
+) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for dataset in LEGAL_DATASETS:
-        providers = sorted({provider for (d, _m, provider) in selected if d == dataset})
+        providers = _providers_for_dataset(selected, dataset, expected_providers)
         if not providers:
             records.append({
                 "dataset": dataset,
@@ -324,6 +347,7 @@ def parity_records(selected: dict[tuple[str, str, str], dict[str, Any]]) -> list
 def append_parity_frontier(
     lines: list[str],
     selected: dict[tuple[str, str, str], dict[str, Any]],
+    expected_providers: set[str] | None = None,
 ) -> None:
     lines.extend([
         "",
@@ -332,7 +356,7 @@ def append_parity_frontier(
         "| Dataset | Provider | Best control | Acc | Calls | Best adaptive policy | Acc | Calls | Delta pp | Status |",
         "|---|---|---|---:|---:|---|---:|---:|---:|---|",
     ])
-    for record in parity_records(selected):
+    for record in parity_records(selected, expected_providers=expected_providers):
         best_control = record["best_control"]
         best_policy = record["best_adaptive_policy"]
         gap = record["delta_pp"]
@@ -349,7 +373,10 @@ def append_parity_frontier(
         )
 
 
-def build_json_summary(selected: dict[tuple[str, str, str], dict[str, Any]]) -> dict[str, Any]:
+def build_json_summary(
+    selected: dict[tuple[str, str, str], dict[str, Any]],
+    expected_providers: set[str] | None = None,
+) -> dict[str, Any]:
     return {
         "legal_datasets": list(LEGAL_DATASETS),
         "expected_adaptive_modes": {
@@ -362,14 +389,17 @@ def build_json_summary(selected: dict[tuple[str, str, str], dict[str, Any]]) -> 
                 key=lambda s: (s["dataset"], s["provider"], s["mode"]),
             )
         ],
-        "adaptive_coverage": coverage_records(selected),
-        "adaptive_parity_frontier": parity_records(selected),
+        "adaptive_coverage": coverage_records(selected, expected_providers=expected_providers),
+        "adaptive_parity_frontier": parity_records(selected, expected_providers=expected_providers),
     }
 
 
-def readiness_failures(selected: dict[tuple[str, str, str], dict[str, Any]]) -> list[str]:
+def readiness_failures(
+    selected: dict[tuple[str, str, str], dict[str, Any]],
+    expected_providers: set[str] | None = None,
+) -> list[str]:
     failures: list[str] = []
-    for record in coverage_records(selected):
+    for record in coverage_records(selected, expected_providers=expected_providers):
         if record["status"] != "READY":
             failures.append(
                 "coverage "
@@ -388,6 +418,11 @@ def main() -> None:
     parser.add_argument("--all-modes", action="store_true", help="Include all legal modes instead of only the adaptive sweep surface")
     parser.add_argument("--min-n", type=int, default=20, help="Minimum row count to include; use 1 for smoke logs")
     parser.add_argument(
+        "--provider",
+        action="append",
+        help="Restrict summary/readiness to one provider. May be repeated.",
+    )
+    parser.add_argument(
         "--require-ready",
         action="store_true",
         help="Exit nonzero unless all expected adaptive modes are present for every discovered legal dataset/provider.",
@@ -398,17 +433,19 @@ def main() -> None:
         discover_logs(args.log_dir, args.pattern),
         include_all_modes=args.all_modes,
         min_n=args.min_n,
+        providers=set(args.provider) if args.provider else None,
     )
-    report = build_report(selected)
+    expected_providers = set(args.provider) if args.provider else None
+    report = build_report(selected, expected_providers=expected_providers)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(report + "\n")
     if args.json_output:
         args.json_output.parent.mkdir(parents=True, exist_ok=True)
-        args.json_output.write_text(json.dumps(build_json_summary(selected), indent=2) + "\n")
+        args.json_output.write_text(json.dumps(build_json_summary(selected, expected_providers=expected_providers), indent=2) + "\n")
     print(report)
     if args.require_ready:
-        failures = readiness_failures(selected)
+        failures = readiness_failures(selected, expected_providers=expected_providers)
         if failures:
             print("\nREADINESS FAILURES", file=sys.stderr)
             for failure in failures:

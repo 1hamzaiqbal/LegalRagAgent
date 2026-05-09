@@ -48,7 +48,7 @@ fi
 
 echo
 echo "== Sweep summary, non-smoke logs only =="
-python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 || true
+python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --provider cluster-vllm || true
 
 echo
 echo "== Recent persisted adaptive summaries =="
