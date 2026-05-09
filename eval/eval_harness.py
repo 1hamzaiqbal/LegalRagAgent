@@ -1840,6 +1840,51 @@ def run_adaptive_snap_hyre(row: pd.Series, config: EvalConfig) -> dict:
     return out
 
 
+def run_adaptive_snap_hyre_anchor(row: pd.Series, config: EvalConfig) -> dict:
+    """Adaptive HyRE with a zero-extra-call raw-question retrieval anchor.
+
+    This tests the generality hypothesis that HyRE should spend the same LLM
+    budget on reasoning, while retrieval can keep a lexical/task anchor for
+    datasets where the generated legal passage drifts away from the displayed
+    options, state terms, or fact pattern.
+    """
+    route = _adaptive_hyre_route(row, config)
+
+    if route == "state_filter":
+        out = _snap_hyre_retrieve_and_answer(
+            row,
+            config,
+            label_prefix="adaptive_snap_hyre_anchor",
+            where=_housing_state_where(row, config),
+            rerank_query=_retrieval_question(row),
+            include_raw_anchor=True,
+        )
+    elif route == "option_grounding":
+        out = _snap_hyre_retrieve_and_answer(
+            row,
+            config,
+            label_prefix="adaptive_snap_hyre_anchor",
+            where=_where_from_config(config),
+            final_system=_option_grounding_system(config),
+            rerank_query=_retrieval_question(row),
+            include_raw_anchor=True,
+        )
+        out["final_context_fields"] = ["retrieved_passages", "question", "option_grounding_instruction"]
+    else:
+        out = _snap_hyre_retrieve_and_answer(
+            row,
+            config,
+            label_prefix="adaptive_snap_hyre_anchor",
+            where=_where_from_config(config),
+            rerank_query=_retrieval_question(row),
+            include_raw_anchor=True,
+        )
+
+    out["hyre_route"] = route
+    out["adaptive_policy"] = "task_shape_bottleneck_v1_raw_anchor"
+    return out
+
+
 def run_snap_hyde_aligned(row: pd.Series, config: EvalConfig) -> dict:
     """Snap-HyDE with question-aligned reranking.
 
@@ -5357,6 +5402,7 @@ MODE_RUNNERS = {
     "snap_hyre_option": run_snap_hyre_option,
     "snap_hyre_state": run_snap_hyre_state,
     "adaptive_snap_hyre": run_adaptive_snap_hyre,
+    "adaptive_snap_hyre_anchor": run_adaptive_snap_hyre_anchor,
     "gap_hyde": run_gap_hyde,
     "gap_hyde_ev": run_gap_hyde_ev,
     "gap_hyde_nosnap": run_gap_hyde_nosnap,

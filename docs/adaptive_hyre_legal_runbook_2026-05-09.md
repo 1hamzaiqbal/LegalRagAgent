@@ -21,14 +21,21 @@ RAG harness.
 Run these modes for option-style datasets:
 
 ```bash
-RUN_SPECS="rag_simple rag_snap_hyde_2call snap_hyre_option adaptive_snap_hyre"
+RUN_SPECS="rag_simple rag_snap_hyde_2call snap_hyre_option adaptive_snap_hyre adaptive_snap_hyre_anchor"
 ```
 
 Run these modes for HousingQA:
 
 ```bash
-RUN_SPECS="rag_state_filter snap_hyre_state adaptive_snap_hyre"
+RUN_SPECS="rag_state_filter snap_hyre_state adaptive_snap_hyre adaptive_snap_hyre_anchor"
 ```
+
+`adaptive_snap_hyre_anchor` is the next low-cost generalization probe: it keeps
+the same two LLM calls as `adaptive_snap_hyre`, but retrieves with both the
+generated HyRE passage and the raw question/intermediate prompt. This tests
+whether reasoning-shaped retrieval needs a lexical/task anchor on datasets
+where generated passages can drift away from option text, state metadata, or
+the original fact pattern.
 
 ## Cluster Launches
 

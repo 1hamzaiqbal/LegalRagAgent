@@ -18,7 +18,7 @@ import compute_mcnemar  # type: ignore
 
 
 LEGAL_DATASETS = ("barexam", "housing", "casehold", "legalbench_scalr")
-ADAPTIVE_MODES = {"adaptive_snap_hyre", "snap_hyre_option", "snap_hyre_state"}
+ADAPTIVE_MODES = {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "snap_hyre_option", "snap_hyre_state"}
 DEFAULT_MODES = {
     "rag_simple",
     "rag_state_filter",
@@ -26,18 +26,19 @@ DEFAULT_MODES = {
     "snap_hyre_option",
     "snap_hyre_state",
     "adaptive_snap_hyre",
+    "adaptive_snap_hyre_anchor",
 }
 DEFAULT_COMPARISONS = {
-    "barexam": [("rag_simple", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre")],
-    "casehold": [("rag_simple", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre")],
-    "legalbench_scalr": [("rag_simple", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre")],
-    "housing": [("rag_state_filter", "adaptive_snap_hyre"), ("snap_hyre_state", "adaptive_snap_hyre")],
+    "barexam": [("rag_simple", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor")],
+    "casehold": [("rag_simple", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor")],
+    "legalbench_scalr": [("rag_simple", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor")],
+    "housing": [("rag_state_filter", "adaptive_snap_hyre"), ("snap_hyre_state", "adaptive_snap_hyre"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor")],
 }
 EXPECTED_ADAPTIVE_MODES = {
-    "barexam": ("snap_hyre_option", "adaptive_snap_hyre"),
-    "casehold": ("snap_hyre_option", "adaptive_snap_hyre"),
-    "legalbench_scalr": ("snap_hyre_option", "adaptive_snap_hyre"),
-    "housing": ("snap_hyre_state", "adaptive_snap_hyre"),
+    "barexam": ("snap_hyre_option", "adaptive_snap_hyre", "adaptive_snap_hyre_anchor"),
+    "casehold": ("snap_hyre_option", "adaptive_snap_hyre", "adaptive_snap_hyre_anchor"),
+    "legalbench_scalr": ("snap_hyre_option", "adaptive_snap_hyre", "adaptive_snap_hyre_anchor"),
+    "housing": ("snap_hyre_state", "adaptive_snap_hyre", "adaptive_snap_hyre_anchor"),
 }
 
 

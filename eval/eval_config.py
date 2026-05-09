@@ -47,6 +47,7 @@ EVAL_MODES = {
     "snap_hyre_option":         "HyRE option grounding: snap-conditioned HyDE retrieval plus an option-aware final synthesis prompt for MC holding tasks",
     "snap_hyre_state":          "HyRE state grounding: snap-conditioned HyDE retrieval with HousingQA state metadata filtering when state metadata is present",
     "adaptive_snap_hyre":       "Adaptive HyRE: one bottleneck-conditioned Snap-HyDE policy for legal RAG using option grounding, state filtering, or aligned HyDE reranking based on task shape",
+    "adaptive_snap_hyre_anchor": "Adaptive HyRE + raw-question anchor: same legal bottleneck routing as adaptive_snap_hyre, but retrieves with both the HyRE passage and the original question text",
     "gap_hyde":                 "Gap-informed HyDE: snap + gaps + evidence in final (full context)",
     "gap_hyde_ev":              "Gap-informed HyDE: evidence only in final (no snap, no gap labels)",
     "gap_hyde_nosnap":          "Gap-informed HyDE: gaps + evidence in final (no snap answer)",
