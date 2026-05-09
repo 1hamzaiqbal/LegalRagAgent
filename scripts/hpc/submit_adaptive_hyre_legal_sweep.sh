@@ -9,6 +9,7 @@ RETRIEVAL_K=${RETRIEVAL_K:-5}
 SEED=${SEED:-42}
 USE_VLLM=${USE_VLLM:-1}
 MODEL=${MODEL:-google/gemma-4-26B-A4B-it}
+DRY_RUN=${DRY_RUN:-0}
 
 if [[ "$#" -gt 0 ]]; then
   DATASETS=("$@")
@@ -19,7 +20,7 @@ fi
 echo "Submitting adaptive HyRE legal sweep"
 echo "  script=$SCRIPT"
 echo "  datasets=${DATASETS[*]}"
-echo "  n=$N_QUESTIONS seed=$SEED k=$RETRIEVAL_K use_vllm=$USE_VLLM model=$MODEL"
+echo "  n=$N_QUESTIONS seed=$SEED k=$RETRIEVAL_K use_vllm=$USE_VLLM model=$MODEL dry_run=$DRY_RUN"
 
 for dataset in "${DATASETS[@]}"; do
   case "$dataset" in
@@ -32,9 +33,19 @@ for dataset in "${DATASETS[@]}"; do
   esac
 
   job_name="hyre-${dataset}"
+  cmd=(
+    sbatch
+    --job-name="$job_name"
+    --export=ALL,DATASET="$dataset",N_QUESTIONS="$N_QUESTIONS",RETRIEVAL_K="$RETRIEVAL_K",SEED="$SEED",USE_VLLM="$USE_VLLM",MODEL="$MODEL"
+    "$SCRIPT"
+  )
   echo
   echo "Submitting $job_name"
-  sbatch --job-name="$job_name" \
-    --export=ALL,DATASET="$dataset",N_QUESTIONS="$N_QUESTIONS",RETRIEVAL_K="$RETRIEVAL_K",SEED="$SEED",USE_VLLM="$USE_VLLM",MODEL="$MODEL" \
-    "$SCRIPT"
+  printf '  '
+  printf '%q ' "${cmd[@]}"
+  printf '\n'
+  if [[ "$DRY_RUN" == "1" ]]; then
+    continue
+  fi
+  "${cmd[@]}"
 done

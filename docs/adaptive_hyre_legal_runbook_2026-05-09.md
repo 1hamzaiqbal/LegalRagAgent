@@ -41,6 +41,12 @@ cd /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent
 scripts/hpc/submit_adaptive_hyre_legal_sweep.sh
 ```
 
+Preview the exact `sbatch` commands without launching:
+
+```bash
+DRY_RUN=1 scripts/hpc/submit_adaptive_hyre_legal_sweep.sh
+```
+
 Or submit selected datasets:
 
 ```bash
