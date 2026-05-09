@@ -194,6 +194,11 @@ for mode in "${RUN_SPECS_ARR[@]}"; do
   latest_log=$(ls -t "$REPO"/logs/eval_"$mode"_"${PROVIDER}"_*_detail.jsonl 2>/dev/null | head -n 1 || true)
   if [[ -n "$latest_log" ]]; then
     python scripts/analyze_detail_flags.py "$latest_log" || true
+    case "$mode" in
+      adaptive_snap_hyre|snap_hyre_option|snap_hyre_state)
+        python scripts/audit_adaptive_hyre_logs.py "$latest_log" || true
+        ;;
+    esac
   fi
 
   if [[ "$status" -ne 0 ]]; then
