@@ -5823,12 +5823,15 @@ def run_eval(config: EvalConfig):
     # --- Save detail log ---
     ts = time.strftime("%Y%m%d_%H%M")
     question_set = config.questions if config.questions in ("curated", "full") else f"n{config.questions}"
-    detail_filename = f"eval_{config.mode}_{config.provider}_{ts}_detail.jsonl"
+    detail_suffix = f"{config.dataset}_{config.tag}" if config.tag else config.dataset
+    detail_suffix = re.sub(r"[^A-Za-z0-9_.-]+", "-", detail_suffix).strip("-")
+    detail_filename = f"eval_{config.mode}_{config.provider}_{ts}_{detail_suffix}_detail.jsonl"
     detail_path = os.path.join("logs", detail_filename)
     os.makedirs("logs", exist_ok=True)
 
     with open(detail_path, "w") as f:
         for r in results:
+            r.setdefault("tag", config.tag)
             f.write(json.dumps(r) + "\n")
     print(f"\nDetail log: {detail_path}")
 
