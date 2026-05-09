@@ -34,6 +34,13 @@ RUN_SPECS="rag_state_filter snap_hyre_state adaptive_snap_hyre"
 
 Default path: cluster vLLM Gemma 4 26B, no paid API calls.
 
+Before submitting, verify the cluster checkout is current and runnable:
+
+```bash
+cd /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent
+scripts/hpc/prepare_adaptive_hyre_cluster.sh
+```
+
 Submit the full four-dataset sweep:
 
 ```bash
