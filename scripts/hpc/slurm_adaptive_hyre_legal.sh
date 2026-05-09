@@ -236,11 +236,14 @@ if [[ "$FAILURES" -gt 0 ]]; then
 fi
 
 SUMMARY_LOG="$LOG_DIR/${SUMMARY_STEM}.md"
+SUMMARY_JSON="$LOG_DIR/${SUMMARY_STEM}.json"
 echo
 echo "[$(date -Is)] Writing adaptive HyRE postprocess summary"
 python scripts/postprocess_adaptive_hyre_sweep.py \
   --min-n "$N_QUESTIONS" \
-  --output "$SUMMARY_LOG"
+  --output "$SUMMARY_LOG" \
+  --json-output "$SUMMARY_JSON"
 echo "[$(date -Is)] summary_log=$SUMMARY_LOG"
+echo "[$(date -Is)] summary_json=$SUMMARY_JSON"
 
 echo "[$(date -Is)] adaptive HyRE sweep complete"

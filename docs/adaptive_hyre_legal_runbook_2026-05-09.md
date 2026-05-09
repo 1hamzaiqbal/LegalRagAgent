@@ -117,10 +117,11 @@ postprocessed non-smoke summary:
 scripts/hpc/monitor_adaptive_hyre_sweep.sh
 ```
 
-Each completed dataset job also writes a postprocess markdown summary to
-`$LOG_DIR/adaptive_hyre_<provider>_<dataset>_n<N>_k<K>_<job>.md`. Keep generated
-cluster summaries out of the repo checkout until we intentionally promote a
-specific one into `docs/`.
+Each completed dataset job also writes postprocess summaries to
+`$LOG_DIR/adaptive_hyre_<provider>_<dataset>_n<N>_k<K>_<job>.md` and a
+machine-readable JSON companion with the same stem. Keep generated cluster
+summaries out of the repo checkout until we intentionally promote a specific
+one into `docs/`.
 
 ## Validation Gates
 
@@ -151,6 +152,14 @@ For a sweep-level summary over landed logs:
 ```bash
 python scripts/postprocess_adaptive_hyre_sweep.py \
   --output docs/adaptive_hyre_sweep_latest.md
+```
+
+For automation, also emit JSON:
+
+```bash
+python scripts/postprocess_adaptive_hyre_sweep.py \
+  --output docs/adaptive_hyre_sweep_latest.md \
+  --json-output docs/adaptive_hyre_sweep_latest.json
 ```
 
 By default this ignores smoke logs with fewer than 20 rows. For harness-health

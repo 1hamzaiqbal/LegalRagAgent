@@ -116,6 +116,25 @@ def audit_status(summary: dict[str, Any]) -> str:
     return last[0] if last else "FAIL"
 
 
+def summary_record(summary: dict[str, Any]) -> dict[str, Any]:
+    """Serializable run summary without full per-row payloads."""
+    n = summary["n"]
+    return {
+        "dataset": summary["dataset"],
+        "mode": summary["mode"],
+        "provider": summary["provider"],
+        "tag": summary["tag"],
+        "n": n,
+        "correct": summary["correct"],
+        "accuracy": summary["accuracy"],
+        "gold_retrieved": summary["gold_retrieved"],
+        "empty_retrieval": summary["empty_retrieval"],
+        "avg_llm_calls": summary["avg_llm_calls"],
+        "audit": audit_status(summary),
+        "path": str(summary["path"]),
+    }
+
+
 def pairwise_result(base: dict[str, Any], treat: dict[str, Any]) -> str:
     key_field = compute_mcnemar.choose_key_field(base["rows"], treat["rows"], None)
     result = compute_mcnemar.compute(
@@ -222,21 +241,48 @@ def _summary_cell(summary: dict[str, Any] | None, field: str) -> str:
     return str(summary[field])
 
 
-def append_parity_frontier(
-    lines: list[str],
-    selected: dict[tuple[str, str, str], dict[str, Any]],
-) -> None:
-    lines.extend([
-        "",
-        "## Adaptive Parity Frontier",
-        "",
-        "| Dataset | Provider | Best control | Acc | Calls | Best adaptive policy | Acc | Calls | Delta pp | Status |",
-        "|---|---|---|---:|---:|---|---:|---:|---:|---|",
-    ])
+def coverage_records(selected: dict[tuple[str, str, str], dict[str, Any]]) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
     for dataset in LEGAL_DATASETS:
         providers = sorted({provider for (d, _m, provider) in selected if d == dataset})
         if not providers:
-            lines.append(f"| {dataset} | - | - | - | - | - | - | - | - | MISSING |")
+            records.append({
+                "dataset": dataset,
+                "provider": "",
+                "present_adaptive_modes": [],
+                "missing_adaptive_modes": list(EXPECTED_ADAPTIVE_MODES[dataset]),
+                "status": "MISSING",
+            })
+            continue
+        for provider in providers:
+            present = sorted(
+                mode for (d, mode, p) in selected
+                if d == dataset and p == provider and mode in EXPECTED_ADAPTIVE_MODES[dataset]
+            )
+            missing = [mode for mode in EXPECTED_ADAPTIVE_MODES[dataset] if mode not in present]
+            records.append({
+                "dataset": dataset,
+                "provider": provider,
+                "present_adaptive_modes": present,
+                "missing_adaptive_modes": missing,
+                "status": "READY" if not missing else "MISSING",
+            })
+    return records
+
+
+def parity_records(selected: dict[tuple[str, str, str], dict[str, Any]]) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for dataset in LEGAL_DATASETS:
+        providers = sorted({provider for (d, _m, provider) in selected if d == dataset})
+        if not providers:
+            records.append({
+                "dataset": dataset,
+                "provider": "",
+                "best_control": None,
+                "best_adaptive_policy": None,
+                "delta_pp": None,
+                "status": "MISSING",
+            })
             continue
         for provider in providers:
             controls = [
@@ -250,26 +296,74 @@ def append_parity_frontier(
             best_control = _best_summary(controls)
             best_policy = _best_summary(policies)
             if not best_control or not best_policy:
-                lines.append(
-                    f"| {dataset} | {provider} | "
-                    f"{_summary_cell(best_control, 'mode')} | "
-                    f"{_summary_cell(best_control, 'accuracy')} | "
-                    f"{_summary_cell(best_control, 'avg_llm_calls')} | "
-                    f"{_summary_cell(best_policy, 'mode')} | "
-                    f"{_summary_cell(best_policy, 'accuracy')} | "
-                    f"{_summary_cell(best_policy, 'avg_llm_calls')} | - | MISSING |"
-                )
+                records.append({
+                    "dataset": dataset,
+                    "provider": provider,
+                    "best_control": summary_record(best_control) if best_control else None,
+                    "best_adaptive_policy": summary_record(best_policy) if best_policy else None,
+                    "delta_pp": None,
+                    "status": "MISSING",
+                })
                 continue
             gap = delta_pp(best_policy["accuracy"], best_control["accuracy"])
             status = "PARITY" if gap >= -1.0 else "GAP"
             if best_policy["accuracy"] > best_control["accuracy"]:
                 status = "LEADS"
-            lines.append(
-                f"| {dataset} | {provider} | {best_control['mode']} | "
-                f"{format_pct(best_control['accuracy'])} | {best_control['avg_llm_calls']:.2f} | "
-                f"{best_policy['mode']} | {format_pct(best_policy['accuracy'])} | "
-                f"{best_policy['avg_llm_calls']:.2f} | {gap:.1f} | {status} |"
+            records.append({
+                "dataset": dataset,
+                "provider": provider,
+                "best_control": summary_record(best_control),
+                "best_adaptive_policy": summary_record(best_policy),
+                "delta_pp": gap,
+                "status": status,
+            })
+    return records
+
+
+def append_parity_frontier(
+    lines: list[str],
+    selected: dict[tuple[str, str, str], dict[str, Any]],
+) -> None:
+    lines.extend([
+        "",
+        "## Adaptive Parity Frontier",
+        "",
+        "| Dataset | Provider | Best control | Acc | Calls | Best adaptive policy | Acc | Calls | Delta pp | Status |",
+        "|---|---|---|---:|---:|---|---:|---:|---:|---|",
+    ])
+    for record in parity_records(selected):
+        best_control = record["best_control"]
+        best_policy = record["best_adaptive_policy"]
+        gap = record["delta_pp"]
+        gap_cell = f"{gap:.1f}" if gap is not None else "-"
+        lines.append(
+            f"| {record['dataset']} | {record['provider'] or '-'} | "
+            f"{_summary_cell(best_control, 'mode')} | "
+            f"{_summary_cell(best_control, 'accuracy')} | "
+            f"{_summary_cell(best_control, 'avg_llm_calls')} | "
+            f"{_summary_cell(best_policy, 'mode')} | "
+            f"{_summary_cell(best_policy, 'accuracy')} | "
+            f"{_summary_cell(best_policy, 'avg_llm_calls')} | "
+            f"{gap_cell} | {record['status']} |"
+        )
+
+
+def build_json_summary(selected: dict[tuple[str, str, str], dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "legal_datasets": list(LEGAL_DATASETS),
+        "expected_adaptive_modes": {
+            dataset: list(modes) for dataset, modes in EXPECTED_ADAPTIVE_MODES.items()
+        },
+        "latest_logs": [
+            summary_record(summary)
+            for summary in sorted(
+                selected.values(),
+                key=lambda s: (s["dataset"], s["provider"], s["mode"]),
             )
+        ],
+        "adaptive_coverage": coverage_records(selected),
+        "adaptive_parity_frontier": parity_records(selected),
+    }
 
 
 def main() -> None:
@@ -277,6 +371,7 @@ def main() -> None:
     parser.add_argument("--log-dir", type=Path, default=REPO_ROOT / "logs")
     parser.add_argument("--pattern", default="eval_*_detail.jsonl")
     parser.add_argument("--output", type=Path, help="Optional markdown output path")
+    parser.add_argument("--json-output", type=Path, help="Optional machine-readable JSON summary path")
     parser.add_argument("--all-modes", action="store_true", help="Include all legal modes instead of only the adaptive sweep surface")
     parser.add_argument("--min-n", type=int, default=20, help="Minimum row count to include; use 1 for smoke logs")
     args = parser.parse_args()
@@ -290,6 +385,9 @@ def main() -> None:
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(report + "\n")
+    if args.json_output:
+        args.json_output.parent.mkdir(parents=True, exist_ok=True)
+        args.json_output.write_text(json.dumps(build_json_summary(selected), indent=2) + "\n")
     print(report)
 
 

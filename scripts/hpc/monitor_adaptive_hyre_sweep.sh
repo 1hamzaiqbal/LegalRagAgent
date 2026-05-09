@@ -59,6 +59,25 @@ if [[ -d "$LOG_DIR" ]]; then
         echo "-- $summary"
         sed -n '1,120p' "$summary"
       done
+  echo
+  echo "== Recent adaptive JSON summary statuses =="
+  ls -t "$LOG_DIR"/adaptive_hyre_*.json 2>/dev/null \
+    | head -5 \
+    | while read -r summary_json; do
+        echo "-- $summary_json"
+        python - "$summary_json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1]) as f:
+    payload = json.load(f)
+for record in payload.get("adaptive_parity_frontier", []):
+    print(
+        f"{record['dataset']} {record['provider'] or '-'} "
+        f"status={record['status']} delta_pp={record['delta_pp']}"
+    )
+PY
+      done
 else
   echo "missing LOG_DIR=$LOG_DIR"
 fi
