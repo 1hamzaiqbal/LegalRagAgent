@@ -69,6 +69,26 @@ Refresh at 2026-05-09 17:29 CT:
 Local runs remain possible for smoke tests, but they are not preferred for this
 wave because the cluster has the complete legal Chroma collections.
 
+Refresh at 2026-05-09 17:56 CT:
+
+- Postprocess now supports `--tag-contains`; this wave should be summarized with
+  `--tag-contains adaptive-hyre-or-gemma4-26b` so older same-provider logs do
+  not pollute the active matrix.
+- Current clean, tag-scoped N=50 parity signals:
+  - `barexam`: `rag_simple` 86.0%, `adaptive_snap_hyre` 86.0%;
+    `snap_hyre_option` has one parse failure and should not be treated as clean.
+  - `housing`: `rag_state_filter` 62.0%, `adaptive_snap_hyre` 62.0%;
+    `adaptive_snap_hyre_anchor` and `adaptive_snap_hyre_diverse` are clean at
+    60.0%.
+  - `casehold`: `rag_simple` 70.0%, `adaptive_snap_hyre_anchor` 70.0%;
+    `adaptive_snap_hyre` is clean at 64.0%.
+- Missing/active pieces:
+  - `housing` / `snap_hyre_state`: replacement job `66851` is running.
+  - `casehold` / `adaptive_snap_hyre_diverse`: original job `66843` hung after
+    8/50 and was cancelled; replacement job `66854` is running.
+  - `legalbench_scalr`: `rag_simple` completed at 72.0%; jobs `66845`-`66849`
+    are still running for the remaining modes.
+
 ## Methods To Run
 
 Option-style datasets (`barexam`, `casehold`, `legalbench_scalr`):
