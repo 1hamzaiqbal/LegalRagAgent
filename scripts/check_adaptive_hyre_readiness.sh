@@ -5,6 +5,14 @@ set -euo pipefail
 
 PROVIDER=${PROVIDER:-cluster-vllm}
 MIN_N=${MIN_N:-20}
+EVAL_VENV=${EVAL_VENV:-.venv}
+if [[ -x "$EVAL_VENV/bin/python" ]]; then
+  PYTHON_CMD=("$EVAL_VENV/bin/python")
+elif command -v uv >/dev/null 2>&1; then
+  PYTHON_CMD=(uv run python)
+else
+  PYTHON_CMD=(python)
+fi
 DATASETS=("$@")
 if [[ "$#" -eq 0 ]]; then
   DATASETS=(barexam housing casehold legalbench_scalr)
@@ -22,7 +30,7 @@ for dataset in "${DATASETS[@]}"; do
   esac
 
   echo "== $dataset | provider=$PROVIDER | min_n=$MIN_N =="
-  if python scripts/postprocess_adaptive_hyre_sweep.py \
+  if "${PYTHON_CMD[@]}" scripts/postprocess_adaptive_hyre_sweep.py \
       --min-n "$MIN_N" \
       --dataset "$dataset" \
       --provider "$PROVIDER" \

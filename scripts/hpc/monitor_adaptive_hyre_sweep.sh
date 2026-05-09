@@ -6,6 +6,14 @@ set -euo pipefail
 LOG_DIR=${LOG_DIR:-/engrfs/tmp/jacobsn/hiqbal_legalrag/logs}
 LOCAL_LOG_DIR=${LOCAL_LOG_DIR:-logs}
 USER_NAME=${USER_NAME:-$(whoami)}
+EVAL_VENV=${EVAL_VENV:-.venv}
+if [[ -x "$EVAL_VENV/bin/python" ]]; then
+  PYTHON_CMD=("$EVAL_VENV/bin/python")
+elif command -v uv >/dev/null 2>&1; then
+  PYTHON_CMD=(uv run python)
+else
+  PYTHON_CMD=(python)
+fi
 
 echo "== SLURM queue =="
 if command -v squeue >/dev/null 2>&1; then
@@ -39,8 +47,8 @@ if [[ -d "$LOCAL_LOG_DIR" ]]; then
           continue
         fi
         echo "-- $detail"
-        python scripts/analyze_detail_flags.py "$detail" || true
-        python scripts/audit_adaptive_hyre_logs.py "$detail" || true
+        "${PYTHON_CMD[@]}" scripts/analyze_detail_flags.py "$detail" || true
+        "${PYTHON_CMD[@]}" scripts/audit_adaptive_hyre_logs.py "$detail" || true
       done
 else
   echo "missing LOCAL_LOG_DIR=$LOCAL_LOG_DIR"
@@ -48,11 +56,11 @@ fi
 
 echo
 echo "== Sweep summary, non-smoke logs only =="
-python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --provider cluster-vllm || true
+"${PYTHON_CMD[@]}" scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --provider cluster-vllm || true
 
 echo
 echo "== Adaptive readiness by dataset =="
-PROVIDER=cluster-vllm MIN_N=20 scripts/check_adaptive_hyre_readiness.sh || true
+PROVIDER=cluster-vllm MIN_N=20 EVAL_VENV="$EVAL_VENV" scripts/check_adaptive_hyre_readiness.sh || true
 
 echo
 echo "== Recent persisted adaptive summaries =="
@@ -95,7 +103,7 @@ if [[ -d "$LOG_DIR" ]]; then
     | head -5 \
     | while read -r summary_json; do
         echo "-- $summary_json"
-        python - "$summary_json" <<'PY'
+        "${PYTHON_CMD[@]}" - "$summary_json" <<'PY'
 import json
 import sys
 

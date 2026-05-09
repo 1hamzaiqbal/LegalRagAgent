@@ -46,6 +46,11 @@ for dataset in "${DATASETS[@]}"; do
 
   job_name="hyre-${dataset}"
   exports="ALL,DATASET=${dataset},N_QUESTIONS=${N_QUESTIONS},RETRIEVAL_K=${RETRIEVAL_K},SEED=${SEED},USE_VLLM=${USE_VLLM},MODEL=${MODEL}"
+  for name in REPO DATA_REPO EVAL_VENV CHROMA_DB_DIR LOG_DIR HF_CACHE XDG_CACHE_HOME TORCH_HOME; do
+    if [[ "${!name:-}" != "" ]]; then
+      exports="${exports},${name}=${!name}"
+    fi
+  done
   if [[ "${PROVIDER:-}" != "" ]]; then
     exports="${exports},PROVIDER=${PROVIDER}"
   fi
