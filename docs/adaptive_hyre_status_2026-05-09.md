@@ -90,4 +90,10 @@ python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 \
   --json-output docs/adaptive_hyre_sweep_latest.json
 ```
 
+Use a strict readiness gate for automation:
+
+```bash
+python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --require-ready
+```
+
 Do not promote smoke logs or local-only checks as result claims.

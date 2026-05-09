@@ -367,6 +367,18 @@ def build_json_summary(selected: dict[tuple[str, str, str], dict[str, Any]]) -> 
     }
 
 
+def readiness_failures(selected: dict[tuple[str, str, str], dict[str, Any]]) -> list[str]:
+    failures: list[str] = []
+    for record in coverage_records(selected):
+        if record["status"] != "READY":
+            failures.append(
+                "coverage "
+                f"{record['dataset']} {record['provider'] or '-'} "
+                f"missing={','.join(record['missing_adaptive_modes'])}"
+            )
+    return failures
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--log-dir", type=Path, default=REPO_ROOT / "logs")
@@ -375,6 +387,11 @@ def main() -> None:
     parser.add_argument("--json-output", type=Path, help="Optional machine-readable JSON summary path")
     parser.add_argument("--all-modes", action="store_true", help="Include all legal modes instead of only the adaptive sweep surface")
     parser.add_argument("--min-n", type=int, default=20, help="Minimum row count to include; use 1 for smoke logs")
+    parser.add_argument(
+        "--require-ready",
+        action="store_true",
+        help="Exit nonzero unless all expected adaptive modes are present for every discovered legal dataset/provider.",
+    )
     args = parser.parse_args()
 
     selected = select_latest(
@@ -390,6 +407,13 @@ def main() -> None:
         args.json_output.parent.mkdir(parents=True, exist_ok=True)
         args.json_output.write_text(json.dumps(build_json_summary(selected), indent=2) + "\n")
     print(report)
+    if args.require_ready:
+        failures = readiness_failures(selected)
+        if failures:
+            print("\nREADINESS FAILURES", file=sys.stderr)
+            for failure in failures:
+                print(f"- {failure}", file=sys.stderr)
+            raise SystemExit(1)
 
 
 if __name__ == "__main__":

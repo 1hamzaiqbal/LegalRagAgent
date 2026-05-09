@@ -180,6 +180,12 @@ python scripts/postprocess_adaptive_hyre_sweep.py \
   --json-output docs/adaptive_hyre_sweep_latest.json
 ```
 
+To make monitors fail until every expected adaptive mode has landed:
+
+```bash
+python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --require-ready
+```
+
 By default this ignores smoke logs with fewer than 20 rows. For harness-health
 inspection only, include smoke logs with:
 
