@@ -9,6 +9,9 @@ RETRIEVAL_K=${RETRIEVAL_K:-5}
 SEED=${SEED:-42}
 USE_VLLM=${USE_VLLM:-1}
 MODEL=${MODEL:-google/gemma-4-26B-A4B-it}
+if [[ "${PROVIDER:-}" == "" && "$USE_VLLM" == "0" ]]; then
+  PROVIDER=or-gemma4-26b
+fi
 DRY_RUN=${DRY_RUN:-0}
 
 if [[ "$#" -gt 0 ]]; then
@@ -20,7 +23,7 @@ fi
 echo "Submitting adaptive HyRE legal sweep"
 echo "  script=$SCRIPT"
 echo "  datasets=${DATASETS[*]}"
-echo "  n=$N_QUESTIONS seed=$SEED k=$RETRIEVAL_K use_vllm=$USE_VLLM model=$MODEL dry_run=$DRY_RUN"
+echo "  n=$N_QUESTIONS seed=$SEED k=$RETRIEVAL_K use_vllm=$USE_VLLM model=$MODEL provider=${PROVIDER:-cluster-vllm} dry_run=$DRY_RUN"
 
 for dataset in "${DATASETS[@]}"; do
   case "$dataset" in
@@ -33,10 +36,14 @@ for dataset in "${DATASETS[@]}"; do
   esac
 
   job_name="hyre-${dataset}"
+  exports="ALL,DATASET=${dataset},N_QUESTIONS=${N_QUESTIONS},RETRIEVAL_K=${RETRIEVAL_K},SEED=${SEED},USE_VLLM=${USE_VLLM},MODEL=${MODEL}"
+  if [[ "${PROVIDER:-}" != "" ]]; then
+    exports="${exports},PROVIDER=${PROVIDER}"
+  fi
   cmd=(
     sbatch
     --job-name="$job_name"
-    --export=ALL,DATASET="$dataset",N_QUESTIONS="$N_QUESTIONS",RETRIEVAL_K="$RETRIEVAL_K",SEED="$SEED",USE_VLLM="$USE_VLLM",MODEL="$MODEL"
+    --export="$exports"
     "$SCRIPT"
   )
   echo

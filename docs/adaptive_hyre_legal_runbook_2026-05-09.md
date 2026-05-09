@@ -78,9 +78,8 @@ sbatch --job-name=hyre-scalr \
 OpenRouter fallback for quick debugging only:
 
 ```bash
-sbatch --job-name=hyre-scalr-api \
-  --export=ALL,USE_VLLM=0,PROVIDER=or-gemma4-26b,DATASET=legalbench_scalr,N_QUESTIONS=50,RETRIEVAL_K=5 \
-  scripts/hpc/slurm_adaptive_hyre_legal.sh
+USE_VLLM=0 PROVIDER=or-gemma4-26b N_QUESTIONS=50 \
+  scripts/hpc/submit_adaptive_hyre_legal_sweep.sh legalbench_scalr
 ```
 
 Monitor queue state, recent SLURM stdout, adaptive detail logs, and the

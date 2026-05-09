@@ -34,6 +34,9 @@ USE_VLLM=${USE_VLLM:-1}
 MODEL=${MODEL:-google/gemma-4-26B-A4B-it}
 PORT=${PORT:-8015}
 PROVIDER=${PROVIDER:-cluster-vllm}
+if [[ "$USE_VLLM" == "0" && "$PROVIDER" == "cluster-vllm" ]]; then
+  PROVIDER=or-gemma4-26b
+fi
 DATASET=${DATASET:-legalbench_scalr}
 N_QUESTIONS=${N_QUESTIONS:-200}
 SEED=${SEED:-42}
