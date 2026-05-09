@@ -44,6 +44,7 @@ required=(
   eval/eval_harness.py
   eval/eval_config.py
   scripts/hpc/slurm_adaptive_hyre_legal.sh
+  scripts/hpc/launch_adaptive_hyre_sweep.sh
   scripts/hpc/submit_adaptive_hyre_legal_sweep.sh
   scripts/hpc/monitor_adaptive_hyre_sweep.sh
   scripts/audit_adaptive_hyre_logs.py

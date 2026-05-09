@@ -67,6 +67,13 @@ cd /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent
 scripts/hpc/submit_adaptive_hyre_legal_sweep.sh
 ```
 
+One-command cluster launch with branch freshness and preflight:
+
+```bash
+cd /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent
+AUTO_PULL=1 scripts/hpc/launch_adaptive_hyre_sweep.sh
+```
+
 Preview the exact `sbatch` commands without launching:
 
 ```bash
