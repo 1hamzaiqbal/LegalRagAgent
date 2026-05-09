@@ -59,6 +59,8 @@ signoff log decides whether a claim is ready to cite.
 - `method_index.md` - mode taxonomy and local method names.
 - `adaptive_hyre_legal_runbook_2026-05-09.md` - current legal-only adaptive
   HyRE sweep plan, cluster launch commands, and log-audit gates.
+- `adaptive_hyre_status_2026-05-09.md` - current handoff: pushed commit,
+  cluster auth blocker, exact launch command, and missing adaptive coverage.
 - `dataset_metric_consolidation_2026-04-30.md` - Speculative-RAG metric mapping,
   LegalBench/Legal RAG Bench dataset notes, and wiring gaps.
 - `specrag_lite_diagnostic_controller_2026-04-30.md` - selective escalation
