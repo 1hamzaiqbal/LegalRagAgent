@@ -77,6 +77,13 @@ sbatch --job-name=hyre-scalr-api \
   scripts/hpc/slurm_adaptive_hyre_legal.sh
 ```
 
+Monitor queue state, recent SLURM stdout, adaptive detail logs, and the
+postprocessed non-smoke summary:
+
+```bash
+scripts/hpc/monitor_adaptive_hyre_sweep.sh
+```
+
 ## Validation Gates
 
 Every landed adaptive/snap-HyRE detail log should pass:
