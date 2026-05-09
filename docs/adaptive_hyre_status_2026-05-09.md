@@ -5,15 +5,38 @@ This is the current handoff for the legal-only adaptive Snap-HyDE/HyRE sweep.
 ## Current State
 
 - Branch: `codex/final-report-snap-hyde`
-- Use the latest pushed branch state; run `git pull --ff-only` on the cluster
-  before launching.
+- Latest pushed commit when refreshed: `6559304`.
 - Repo-local status when checked: clean
-- Direct cluster submission from this local environment is blocked:
-  `Permission denied (publickey,gssapi-keyex,gssapi-with-mic,password)`.
+- Cluster worktree for this wave:
+  `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre`.
+- The original cluster checkout
+  `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent` was dirty, so the adaptive
+  sweep was launched from the separate clean worktree.
 
 The harness and cluster path are ready, but the goal is not complete until full
 legal adaptive runs land and pass audit. Current postprocess coverage still
 marks the adaptive modes as missing for full legal runs.
+
+## Live Launch State
+
+The first `cluster-vllm` wave was submitted as jobs `66812`-`66815` and failed
+before evals. Gemma 4 26B did not fit on the A40 vLLM allocations under the
+current settings; Housing also saw an uncorrectable ECC error during CUDA
+startup. Treat jobs `66812`-`66815` as failed deployment evidence, not method
+results.
+
+The active fallback wave uses cluster retrieval/Chroma plus OpenRouter Gemma 4
+26B (`or-gemma4-26b`):
+
+| Dataset | Job | Provider | State at handoff |
+|---|---:|---|---|
+| barexam | 66821 | `or-gemma4-26b` | submitted/running |
+| housing | 66822 | `or-gemma4-26b` | submitted/running |
+| casehold | 66823 | `or-gemma4-26b` | submitted/running |
+| legalbench_scalr | 66824 | `or-gemma4-26b` | submitted/running |
+
+Manifest:
+`/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/adaptive_hyre_submit_20260509_171016.tsv`.
 
 ## Methods To Run
 
@@ -40,20 +63,31 @@ All three are intended to stay at two LLM calls per question.
 
 ## Cluster Launch
 
-From the cluster checkout:
+From the cluster worktree:
 
 ```bash
-cd /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent
-git fetch origin
-git switch codex/final-report-snap-hyde
-git pull --ff-only
-AUTO_PULL=1 scripts/hpc/launch_adaptive_hyre_sweep.sh
+cd /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre
+git fetch hamza codex/final-report-snap-hyde
+git pull --ff-only hamza codex/final-report-snap-hyde
+REPO=$PWD \
+DATA_REPO=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent \
+EVAL_VENV=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv \
+CHROMA_DB_DIR=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/chroma_db \
+USE_VLLM=0 \
+PROVIDER=or-gemma4-26b \
+scripts/hpc/submit_adaptive_hyre_legal_sweep.sh
 ```
 
 For a subset:
 
 ```bash
-AUTO_PULL=1 scripts/hpc/launch_adaptive_hyre_sweep.sh housing casehold
+REPO=$PWD \
+DATA_REPO=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent \
+EVAL_VENV=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv \
+CHROMA_DB_DIR=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/chroma_db \
+USE_VLLM=0 \
+PROVIDER=or-gemma4-26b \
+scripts/hpc/submit_adaptive_hyre_legal_sweep.sh housing casehold
 ```
 
 The launch wrapper runs:
@@ -70,6 +104,10 @@ API-free adaptive smoke tests, and the four legal Chroma collections unless
 ## Monitoring And Evidence
 
 ```bash
+PROVIDER=or-gemma4-26b \
+EVAL_VENV=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv \
+LOG_DIR=/engrfs/tmp/jacobsn/hiqbal_legalrag/logs \
+LOCAL_LOG_DIR=logs \
 scripts/hpc/monitor_adaptive_hyre_sweep.sh
 ```
 
@@ -88,7 +126,7 @@ python scripts/analyze_detail_flags.py logs/<detail_log>.jsonl
 python scripts/audit_adaptive_hyre_logs.py logs/<detail_log>.jsonl
 python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 \
   --dataset legalbench_scalr \
-  --provider cluster-vllm \
+  --provider or-gemma4-26b \
   --output docs/adaptive_hyre_sweep_latest.md \
   --json-output docs/adaptive_hyre_sweep_latest.json
 ```
@@ -96,7 +134,7 @@ python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 \
 Use a strict readiness gate for automation:
 
 ```bash
-python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --dataset legalbench_scalr --provider cluster-vllm --require-ready
+python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --dataset legalbench_scalr --provider or-gemma4-26b --require-ready
 ```
 
 The readiness gate requires every expected adaptive mode to be present and to
@@ -105,7 +143,7 @@ pass `scripts/audit_adaptive_hyre_logs.py`.
 To run the strict gate over all four legal datasets:
 
 ```bash
-scripts/check_adaptive_hyre_readiness.sh
+PROVIDER=or-gemma4-26b scripts/check_adaptive_hyre_readiness.sh
 ```
 
 ## Completion Checklist
@@ -116,7 +154,8 @@ true:
 1. Cluster launch produced submit manifests under `$LOG_DIR` for the intended
    legal datasets.
 2. Each dataset has a persisted markdown and JSON postprocess summary scoped to
-   that dataset and `cluster-vllm`.
+   that dataset and the active provider (`or-gemma4-26b` for the current
+   fallback wave).
 3. This readiness command exits zero for every legal dataset:
 
 ```bash
