@@ -6,6 +6,7 @@ set -euo pipefail
 LOG_DIR=${LOG_DIR:-/engrfs/tmp/jacobsn/hiqbal_legalrag/logs}
 LOCAL_LOG_DIR=${LOCAL_LOG_DIR:-logs}
 USER_NAME=${USER_NAME:-$(whoami)}
+PROVIDER=${PROVIDER:-cluster-vllm}
 EVAL_VENV=${EVAL_VENV:-.venv}
 if [[ -x "$EVAL_VENV/bin/python" ]]; then
   PYTHON_CMD=("$EVAL_VENV/bin/python")
@@ -56,11 +57,11 @@ fi
 
 echo
 echo "== Sweep summary, non-smoke logs only =="
-"${PYTHON_CMD[@]}" scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --provider cluster-vllm || true
+"${PYTHON_CMD[@]}" scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --provider "$PROVIDER" || true
 
 echo
 echo "== Adaptive readiness by dataset =="
-PROVIDER=cluster-vllm MIN_N=20 EVAL_VENV="$EVAL_VENV" scripts/check_adaptive_hyre_readiness.sh || true
+PROVIDER="$PROVIDER" MIN_N=20 EVAL_VENV="$EVAL_VENV" scripts/check_adaptive_hyre_readiness.sh || true
 
 echo
 echo "== Recent persisted adaptive summaries =="
