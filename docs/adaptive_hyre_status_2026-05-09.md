@@ -5,7 +5,7 @@ This is the current handoff for the legal-only adaptive Snap-HyDE/HyRE sweep.
 ## Current State
 
 - Branch: `codex/final-report-snap-hyde`
-- Latest pushed commit when refreshed: `b027d61`.
+- Latest pushed commit when refreshed: `d12df38`.
 - Repo-local status when checked: clean
 - Cluster worktree for this wave:
   `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre`.
@@ -52,6 +52,22 @@ Manifest:
 `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/adaptive_hyre_mode_matrix_20260509_172126.tsv`.
 
 Job range: `66827`-`66849`.
+
+Refresh at 2026-05-09 17:29 CT:
+
+- Jobs `66827`-`66833` and `66835`-`66843` were running with normal provider
+  preflight and early per-row output.
+- Jobs `66844`-`66849` (LegalBench-SCALR) were pending on
+  `QOSMaxJobsPerUserLimit`.
+- Job `66834` (`housing` / `snap_hyre_state`) failed during Chroma
+  `PersistentClient` startup with a disk I/O error while other Housing jobs were
+  concurrently reading the large Housing collection.
+- Replacement job `66851` was submitted for `housing` / `snap_hyre_state` only,
+  with `--exclude=a40-2206` and
+  `--dependency=afterany:66833:66835:66836:66837`.
+
+Local runs remain possible for smoke tests, but they are not preferred for this
+wave because the cluster has the complete legal Chroma collections.
 
 ## Methods To Run
 
