@@ -34,6 +34,21 @@ RUN_SPECS="rag_state_filter snap_hyre_state adaptive_snap_hyre"
 
 Default path: cluster vLLM Gemma 4 26B, no paid API calls.
 
+Submit the full four-dataset sweep:
+
+```bash
+cd /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent
+scripts/hpc/submit_adaptive_hyre_legal_sweep.sh
+```
+
+Or submit selected datasets:
+
+```bash
+scripts/hpc/submit_adaptive_hyre_legal_sweep.sh housing casehold
+```
+
+The equivalent explicit commands are:
+
 ```bash
 cd /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent
 
