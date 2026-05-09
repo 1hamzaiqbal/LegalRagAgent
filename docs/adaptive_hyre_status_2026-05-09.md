@@ -98,4 +98,7 @@ Use a strict readiness gate for automation:
 python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --dataset legalbench_scalr --provider cluster-vllm --require-ready
 ```
 
+The readiness gate requires every expected adaptive mode to be present and to
+pass `scripts/audit_adaptive_hyre_logs.py`.
+
 Do not promote smoke logs or local-only checks as result claims.

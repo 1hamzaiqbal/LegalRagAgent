@@ -294,12 +294,17 @@ def coverage_records(
                 if d == dataset and p == provider and mode in EXPECTED_ADAPTIVE_MODES[dataset]
             )
             missing = [mode for mode in EXPECTED_ADAPTIVE_MODES[dataset] if mode not in present]
+            audit_failures = sorted(
+                mode for mode in present
+                if audit_status(selected[(dataset, mode, provider)]) != "PASS"
+            )
             records.append({
                 "dataset": dataset,
                 "provider": provider,
                 "present_adaptive_modes": present,
                 "missing_adaptive_modes": missing,
-                "status": "READY" if not missing else "MISSING",
+                "audit_failed_modes": audit_failures,
+                "status": "READY" if not missing and not audit_failures else "MISSING",
             })
     return records
 
@@ -422,6 +427,12 @@ def readiness_failures(
                 "coverage "
                 f"{record['dataset']} {record['provider'] or '-'} "
                 f"missing={','.join(record['missing_adaptive_modes'])}"
+            )
+        if record.get("audit_failed_modes"):
+            failures.append(
+                "audit "
+                f"{record['dataset']} {record['provider'] or '-'} "
+                f"failed={','.join(record['audit_failed_modes'])}"
             )
     return failures
 

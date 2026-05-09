@@ -190,6 +190,10 @@ To make monitors fail until every expected adaptive mode has landed:
 python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --dataset legalbench_scalr --provider cluster-vllm --require-ready
 ```
 
+`--require-ready` checks both coverage and adaptive audit status; a present
+adaptive log is not considered ready unless `audit_adaptive_hyre_logs.py`
+passes for that mode.
+
 By default this ignores smoke logs with fewer than 20 rows. For harness-health
 inspection only, include smoke logs with:
 
