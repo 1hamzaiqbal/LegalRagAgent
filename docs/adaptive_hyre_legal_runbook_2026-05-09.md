@@ -157,7 +157,10 @@ python scripts/postprocess_adaptive_hyre_sweep.py --min-n 1
 
 The summary includes coverage and paired tests for `adaptive_snap_hyre` versus
 `adaptive_snap_hyre_anchor`, so the raw-anchor probe should show up as a
-first-class adaptive comparison rather than as an orphaned mode.
+first-class adaptive comparison rather than as an orphaned mode. It also emits
+an adaptive parity frontier: for each dataset/provider, the best adaptive
+policy is compared against the best available control with accuracy and average
+LLM-call cost.
 
 After logs land locally, compare adaptive controls against the nearest baseline:
 

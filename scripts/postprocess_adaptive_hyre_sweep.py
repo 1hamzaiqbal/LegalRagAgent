@@ -19,6 +19,7 @@ import compute_mcnemar  # type: ignore
 
 LEGAL_DATASETS = ("barexam", "housing", "casehold", "legalbench_scalr")
 ADAPTIVE_MODES = {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "snap_hyre_option", "snap_hyre_state"}
+POLICY_MODES = {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor"}
 DEFAULT_MODES = {
     "rag_simple",
     "rag_state_filter",
@@ -101,6 +102,10 @@ def format_pct(value: float) -> str:
     return f"{100 * value:.1f}%"
 
 
+def delta_pp(treatment: float, baseline: float) -> float:
+    return 100 * (treatment - baseline)
+
+
 def audit_status(summary: dict[str, Any]) -> str:
     if summary["mode"] not in ADAPTIVE_MODES:
         return "-"
@@ -175,6 +180,8 @@ def build_report(selected: dict[tuple[str, str, str], dict[str, Any]]) -> str:
                 f"{', '.join(missing) or '-'} | {'READY' if not missing else 'MISSING'} |"
             )
 
+    append_parity_frontier(lines, selected)
+
     lines.extend([
         "",
         "## Paired Comparisons",
@@ -197,6 +204,72 @@ def build_report(selected: dict[tuple[str, str, str], dict[str, Any]]) -> str:
                 lines.append(f"| {dataset} | {provider} | {base_mode} -> {treat_mode} | {result} |")
 
     return "\n".join(lines)
+
+
+def _best_summary(summaries: list[dict[str, Any]]) -> dict[str, Any] | None:
+    if not summaries:
+        return None
+    return max(summaries, key=lambda s: (s["accuracy"], -s["avg_llm_calls"], s["n"]))
+
+
+def _summary_cell(summary: dict[str, Any] | None, field: str) -> str:
+    if not summary:
+        return "-"
+    if field == "accuracy":
+        return format_pct(float(summary[field]))
+    if field == "avg_llm_calls":
+        return f"{float(summary[field]):.2f}"
+    return str(summary[field])
+
+
+def append_parity_frontier(
+    lines: list[str],
+    selected: dict[tuple[str, str, str], dict[str, Any]],
+) -> None:
+    lines.extend([
+        "",
+        "## Adaptive Parity Frontier",
+        "",
+        "| Dataset | Provider | Best control | Acc | Calls | Best adaptive policy | Acc | Calls | Delta pp | Status |",
+        "|---|---|---|---:|---:|---|---:|---:|---:|---|",
+    ])
+    for dataset in LEGAL_DATASETS:
+        providers = sorted({provider for (d, _m, provider) in selected if d == dataset})
+        if not providers:
+            lines.append(f"| {dataset} | - | - | - | - | - | - | - | - | MISSING |")
+            continue
+        for provider in providers:
+            controls = [
+                summary for (d, mode, p), summary in selected.items()
+                if d == dataset and p == provider and mode not in POLICY_MODES
+            ]
+            policies = [
+                summary for (d, mode, p), summary in selected.items()
+                if d == dataset and p == provider and mode in POLICY_MODES
+            ]
+            best_control = _best_summary(controls)
+            best_policy = _best_summary(policies)
+            if not best_control or not best_policy:
+                lines.append(
+                    f"| {dataset} | {provider} | "
+                    f"{_summary_cell(best_control, 'mode')} | "
+                    f"{_summary_cell(best_control, 'accuracy')} | "
+                    f"{_summary_cell(best_control, 'avg_llm_calls')} | "
+                    f"{_summary_cell(best_policy, 'mode')} | "
+                    f"{_summary_cell(best_policy, 'accuracy')} | "
+                    f"{_summary_cell(best_policy, 'avg_llm_calls')} | - | MISSING |"
+                )
+                continue
+            gap = delta_pp(best_policy["accuracy"], best_control["accuracy"])
+            status = "PARITY" if gap >= -1.0 else "GAP"
+            if best_policy["accuracy"] > best_control["accuracy"]:
+                status = "LEADS"
+            lines.append(
+                f"| {dataset} | {provider} | {best_control['mode']} | "
+                f"{format_pct(best_control['accuracy'])} | {best_control['avg_llm_calls']:.2f} | "
+                f"{best_policy['mode']} | {format_pct(best_policy['accuracy'])} | "
+                f"{best_policy['avg_llm_calls']:.2f} | {gap:.1f} | {status} |"
+            )
 
 
 def main() -> None:
