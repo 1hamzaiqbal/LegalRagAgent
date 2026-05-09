@@ -119,6 +119,25 @@ PROVIDER=or-gemma4-26b MIN_N=50 TAG_CONTAINS=adaptive-hyre-or-gemma4-26b \
   next step is to scale the strongest frontier policies to N=200 with the fixed
   detail-log naming.
 
+N=200 targeted follow-up launched at 2026-05-09 18:52 CT with fixed detail-log
+naming:
+
+| Dataset | Mode | Job |
+|---|---|---:|
+| barexam | `rag_simple` | 66866 |
+| barexam | `adaptive_snap_hyre` | 66867 |
+| housing | `rag_state_filter` | 66868 |
+| housing | `snap_hyre_state` | 66869 |
+| housing | `adaptive_snap_hyre_diverse` | 66870 |
+| casehold | `rag_simple` | 66871 |
+| casehold | `adaptive_snap_hyre_diverse` | 66872 |
+| legalbench_scalr | `rag_simple` | 66873 |
+| legalbench_scalr | `rag_snap_hyde_2call` | 66874 |
+| legalbench_scalr | `adaptive_snap_hyre_anchor` | 66875 |
+
+Manifest:
+`/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/adaptive_hyre_n200_targeted_20260509_185235.tsv`.
+
 ## Methods To Run
 
 Option-style datasets (`barexam`, `casehold`, `legalbench_scalr`):
