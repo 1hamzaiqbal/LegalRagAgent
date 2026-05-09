@@ -33,6 +33,12 @@ DEFAULT_COMPARISONS = {
     "legalbench_scalr": [("rag_simple", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre")],
     "housing": [("rag_state_filter", "adaptive_snap_hyre"), ("snap_hyre_state", "adaptive_snap_hyre")],
 }
+EXPECTED_ADAPTIVE_MODES = {
+    "barexam": ("snap_hyre_option", "adaptive_snap_hyre"),
+    "casehold": ("snap_hyre_option", "adaptive_snap_hyre"),
+    "legalbench_scalr": ("snap_hyre_option", "adaptive_snap_hyre"),
+    "housing": ("snap_hyre_state", "adaptive_snap_hyre"),
+}
 
 
 def load_rows(path: Path) -> list[dict[str, Any]]:
@@ -142,6 +148,30 @@ def build_report(selected: dict[tuple[str, str, str], dict[str, Any]]) -> str:
                 f"{format_pct(summary['accuracy'])} | {summary['gold_retrieved']}/{n} | "
                 f"{summary['empty_retrieval']} | {summary['avg_llm_calls']:.2f} | "
                 f"{audit_status(summary)} | `{summary['path']}` |"
+            )
+
+    lines.extend([
+        "",
+        "## Adaptive Coverage",
+        "",
+        "| Dataset | Provider | Present adaptive modes | Missing adaptive modes | Status |",
+        "|---|---|---|---|---|",
+    ])
+    for dataset in LEGAL_DATASETS:
+        providers = sorted({provider for (d, _m, provider) in selected if d == dataset})
+        if not providers:
+            expected = ", ".join(EXPECTED_ADAPTIVE_MODES[dataset])
+            lines.append(f"| {dataset} | - | - | {expected} | MISSING |")
+            continue
+        for provider in providers:
+            present = sorted(
+                mode for (d, mode, p) in selected
+                if d == dataset and p == provider and mode in EXPECTED_ADAPTIVE_MODES[dataset]
+            )
+            missing = [mode for mode in EXPECTED_ADAPTIVE_MODES[dataset] if mode not in present]
+            lines.append(
+                f"| {dataset} | {provider} | {', '.join(present) or '-'} | "
+                f"{', '.join(missing) or '-'} | {'READY' if not missing else 'MISSING'} |"
             )
 
     lines.extend([
