@@ -7,6 +7,7 @@ LOG_DIR=${LOG_DIR:-/engrfs/tmp/jacobsn/hiqbal_legalrag/logs}
 LOCAL_LOG_DIR=${LOCAL_LOG_DIR:-logs}
 USER_NAME=${USER_NAME:-$(whoami)}
 PROVIDER=${PROVIDER:-cluster-vllm}
+TAG_CONTAINS=${TAG_CONTAINS:-}
 EVAL_VENV=${EVAL_VENV:-.venv}
 if [[ -x "$EVAL_VENV/bin/python" ]]; then
   PYTHON_CMD=("$EVAL_VENV/bin/python")
@@ -57,11 +58,15 @@ fi
 
 echo
 echo "== Sweep summary, non-smoke logs only =="
-"${PYTHON_CMD[@]}" scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --provider "$PROVIDER" || true
+postprocess_args=(--min-n 20 --provider "$PROVIDER")
+if [[ -n "$TAG_CONTAINS" ]]; then
+  postprocess_args+=(--tag-contains "$TAG_CONTAINS")
+fi
+"${PYTHON_CMD[@]}" scripts/postprocess_adaptive_hyre_sweep.py "${postprocess_args[@]}" || true
 
 echo
 echo "== Adaptive readiness by dataset =="
-PROVIDER="$PROVIDER" MIN_N=20 EVAL_VENV="$EVAL_VENV" scripts/check_adaptive_hyre_readiness.sh || true
+PROVIDER="$PROVIDER" MIN_N=20 TAG_CONTAINS="$TAG_CONTAINS" EVAL_VENV="$EVAL_VENV" scripts/check_adaptive_hyre_readiness.sh || true
 
 echo
 echo "== Recent persisted adaptive summaries =="

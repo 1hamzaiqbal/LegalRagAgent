@@ -5,6 +5,7 @@ set -euo pipefail
 
 PROVIDER=${PROVIDER:-cluster-vllm}
 MIN_N=${MIN_N:-20}
+TAG_CONTAINS=${TAG_CONTAINS:-}
 EVAL_VENV=${EVAL_VENV:-.venv}
 if [[ -x "$EVAL_VENV/bin/python" ]]; then
   PYTHON_CMD=("$EVAL_VENV/bin/python")
@@ -30,10 +31,15 @@ for dataset in "${DATASETS[@]}"; do
   esac
 
   echo "== $dataset | provider=$PROVIDER | min_n=$MIN_N =="
+  extra_args=()
+  if [[ -n "$TAG_CONTAINS" ]]; then
+    extra_args+=(--tag-contains "$TAG_CONTAINS")
+  fi
   if "${PYTHON_CMD[@]}" scripts/postprocess_adaptive_hyre_sweep.py \
       --min-n "$MIN_N" \
       --dataset "$dataset" \
       --provider "$PROVIDER" \
+      "${extra_args[@]}" \
       --require-ready >/tmp/adaptive_hyre_ready_"$dataset".out 2>/tmp/adaptive_hyre_ready_"$dataset".err; then
     echo "READY"
   else

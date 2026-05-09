@@ -78,6 +78,7 @@ def select_latest(
     min_n: int,
     providers: set[str] | None = None,
     datasets: set[str] | None = None,
+    tag_contains: str | None = None,
 ) -> dict[tuple[str, str, str], dict[str, Any]]:
     selected: dict[tuple[str, str, str], dict[str, Any]] = {}
     for path in paths:
@@ -93,6 +94,8 @@ def select_latest(
         if datasets is not None and summary["dataset"] not in datasets:
             continue
         if providers is not None and summary["provider"] not in providers:
+            continue
+        if tag_contains is not None and tag_contains not in str(summary["tag"]):
             continue
         if summary["n"] < min_n:
             continue
@@ -457,6 +460,10 @@ def main() -> None:
         help="Restrict summary/readiness to one legal dataset. May be repeated.",
     )
     parser.add_argument(
+        "--tag-contains",
+        help="Restrict summary/readiness to detail logs whose run tag contains this substring.",
+    )
+    parser.add_argument(
         "--require-ready",
         action="store_true",
         help="Exit nonzero unless all expected adaptive modes are present for every discovered legal dataset/provider.",
@@ -469,6 +476,7 @@ def main() -> None:
         min_n=args.min_n,
         providers=set(args.provider) if args.provider else None,
         datasets=set(args.dataset) if args.dataset else None,
+        tag_contains=args.tag_contains,
     )
     expected_providers = set(args.provider) if args.provider else None
     expected_datasets = set(args.dataset) if args.dataset else None
