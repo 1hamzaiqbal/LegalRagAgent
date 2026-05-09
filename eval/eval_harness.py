@@ -425,6 +425,125 @@ def _generate_hyde(config: EvalConfig, role: str, user: str, label: str, fallbac
     }
 
 
+def _has_answer_options(row: pd.Series, config: EvalConfig) -> bool:
+    """Whether the row exposes discrete answer candidates worth grounding."""
+    return any(
+        col in row and pd.notna(row[col]) and str(row[col]).strip()
+        for col in (f"choice_{letter.lower()}" for letter in _mc_choice_letters(config.dataset))
+    )
+
+
+def _option_grounding_system(config: EvalConfig) -> str:
+    """Dataset-aware final prompt for converting evidence into a displayed option.
+
+    This is deliberately a final-synthesis change, not a retrieval change. The
+    CaseHOLD/SCALR bottleneck we have seen is that better gold retrieval does
+    not reliably convert into the correct option, so force the model to compare
+    each displayed candidate against the retrieved holdings before emitting the
+    answer.
+    """
+    base = _system_prompt(config, "rag")
+    if config.dataset in ("casehold", "legalbench_scalr"):
+        return (
+            base
+            + "\n\nOPTION-GROUNDING REQUIREMENTS:\n"
+            "- Treat the five displayed holdings as candidates, not as retrieval queries.\n"
+            "- Compare the citing context against each candidate holding using the retrieved holdings.\n"
+            "- Prefer the candidate whose rule or fact pattern is entailed by the retrieved evidence and citation context.\n"
+            "- If retrieved evidence is noisy, still decide from the displayed candidate text and cite-context fit.\n"
+            "- End with exactly one final line in the form: Answer: (X)"
+        )
+    if config.dataset == "barexam":
+        return (
+            base
+            + "\n\nOPTION-GROUNDING REQUIREMENTS:\n"
+            "- Compare the retrieved rule against each displayed answer choice.\n"
+            "- Reject distractors whose rule statement or application conflicts with the retrieved evidence.\n"
+            "- End with exactly one final line in the form: Answer: (X)"
+        )
+    return base
+
+
+def _adaptive_hyre_route(row: pd.Series, config: EvalConfig) -> str:
+    """Task-shape route for the one-policy HyRE runner."""
+    if config.dataset == "housing" and _housing_state_where(row, config):
+        return "state_filter"
+    if config.dataset in ("casehold", "legalbench_scalr") or _has_answer_options(row, config):
+        return "option_grounding"
+    return "aligned_hyre"
+
+
+def _snap_hyre_retrieve_and_answer(
+    row: pd.Series,
+    config: EvalConfig,
+    *,
+    label_prefix: str,
+    where: dict | None = None,
+    rerank_query: str | None = None,
+    final_system: str | None = None,
+    include_raw_anchor: bool = False,
+) -> dict:
+    """Shared 2-call HyRE path: snap+HyDE, retrieve, then synthesize."""
+    question = _fmt(row, config)
+    raw_question = _retrieval_question(row)
+    question_intermediate = _fmt_intermediate(row, config)
+
+    combined_raw = _llm_call(
+        _snap_hyde_2call_system(config),
+        question,
+        label=f"{label_prefix}/snap_and_hyre",
+    )
+    snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(
+        combined_raw,
+        fallback_passage=question_intermediate,
+    )
+    snap_letter = _extract_answer(snap_block, config)
+    hyre_contains_answer = _contains_answer_artifact(hyre_passage)
+    queries = [hyre_passage]
+    if include_raw_anchor:
+        queries.append(question_intermediate)
+
+    retrieval = _retrieve_and_format(
+        row,
+        queries,
+        k=config.retrieval_k,
+        label_prefix=label_prefix,
+        where=where if where is not None else _where_from_config(config),
+        collection=_collection_for_config(config),
+        rerank_query=rerank_query,
+    )
+    passage_block = "\n\n".join(retrieval["passages"])
+
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(final_system or _system_prompt(config, "rag"), user, label=f"{label_prefix}/answer")
+
+    out = {
+        "final_answer": answer,
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
+        "snap_answer": snap_block,
+        "snap_letter": snap_letter,
+        "snap_and_hyre_raw": combined_raw,
+        "snap_hyre_parse_ok": parse_ok,
+        "hyde_passage": hyre_passage,
+        "hyde_passage_raw": combined_raw,
+        "hyde_contains_answer_artifact": hyre_contains_answer,
+        "retrieval_queries": queries,
+        "rerank_query": rerank_query or "",
+        "retrieval_where": where or _where_from_config(config) or {},
+        "final_context_fields": ["retrieved_passages", "question"],
+        "final_prompt_preview": _preview_text(user),
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+    }
+    if not parse_ok:
+        out["routed_to"] = f"{label_prefix}_parse_failed_fallback_to_question"
+    if include_raw_anchor:
+        out["raw_anchor_included"] = True
+    return out
+
+
 def _report_prompt(max_words: int = 100, include_model_knowledge: bool = False) -> str:
     """Shared prompt for report-writing intermediate steps."""
     strict = (
@@ -1643,6 +1762,81 @@ def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
     }
     if not parse_ok:
         out["routed_to"] = "snap_hyde_2call_parse_failed_fallback_to_question"
+    return out
+
+
+def run_snap_hyre_option(row: pd.Series, config: EvalConfig) -> dict:
+    """Snap-conditioned HyRE with option-aware final synthesis.
+
+    This is the targeted conversion-bottleneck control for CaseHOLD/SCALR:
+    retrieval remains the 2-call Snap-HyDE path, while the final prompt is
+    forced to map evidence back to displayed answer candidates.
+    """
+    out = _snap_hyre_retrieve_and_answer(
+        row,
+        config,
+        label_prefix="snap_hyre_option",
+        where=_where_from_config(config),
+        final_system=_option_grounding_system(config),
+    )
+    out["hyre_route"] = "option_grounding"
+    out["final_context_fields"] = ["retrieved_passages", "question", "option_grounding_instruction"]
+    return out
+
+
+def run_snap_hyre_state(row: pd.Series, config: EvalConfig) -> dict:
+    """Snap-conditioned HyRE with state metadata filtering when available."""
+    where = _housing_state_where(row, config) if config.dataset == "housing" else _where_from_config(config)
+    out = _snap_hyre_retrieve_and_answer(
+        row,
+        config,
+        label_prefix="snap_hyre_state",
+        where=where,
+        rerank_query=_retrieval_question(row),
+    )
+    out["hyre_route"] = "state_filter" if config.dataset == "housing" and where else "aligned_hyre"
+    return out
+
+
+def run_adaptive_snap_hyre(row: pd.Series, config: EvalConfig) -> dict:
+    """One adaptive Snap-HyDE/HyRE policy across datasets.
+
+    The route is based on task shape rather than measured gold labels:
+    - Housing rows with state metadata spend the budget on state-constrained retrieval.
+    - MC holding/option tasks spend it on option-grounded final conversion.
+    - Otherwise, HyDE is used for dense retrieval and the raw question anchors reranking.
+    """
+    route = _adaptive_hyre_route(row, config)
+
+    if route == "state_filter":
+        out = _snap_hyre_retrieve_and_answer(
+            row,
+            config,
+            label_prefix="adaptive_snap_hyre",
+            where=_housing_state_where(row, config),
+            rerank_query=_retrieval_question(row),
+        )
+    elif route == "option_grounding":
+        out = _snap_hyre_retrieve_and_answer(
+            row,
+            config,
+            label_prefix="adaptive_snap_hyre",
+            where=_where_from_config(config),
+            final_system=_option_grounding_system(config),
+            rerank_query=_retrieval_question(row),
+        )
+        out["final_context_fields"] = ["retrieved_passages", "question", "option_grounding_instruction"]
+    else:
+        out = _snap_hyre_retrieve_and_answer(
+            row,
+            config,
+            label_prefix="adaptive_snap_hyre",
+            where=_where_from_config(config),
+            rerank_query=_retrieval_question(row),
+        )
+
+    out["hyre_route"] = route
+    out["adaptive_policy"] = "task_shape_bottleneck_v1"
     return out
 
 
@@ -5160,6 +5354,9 @@ MODE_RUNNERS = {
     "rag_snap_hyde_2call": run_rag_snap_hyde_2call,
     "adaptive_snap_route": run_adaptive_snap_route,
     "snap_hyde_aligned": run_snap_hyde_aligned,
+    "snap_hyre_option": run_snap_hyre_option,
+    "snap_hyre_state": run_snap_hyre_state,
+    "adaptive_snap_hyre": run_adaptive_snap_hyre,
     "gap_hyde": run_gap_hyde,
     "gap_hyde_ev": run_gap_hyde_ev,
     "gap_hyde_nosnap": run_gap_hyde_nosnap,
