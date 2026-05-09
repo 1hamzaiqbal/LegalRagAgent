@@ -177,6 +177,7 @@ FAILURES=0
 FAILED_MODES=()
 for mode in "${RUN_SPECS_ARR[@]}"; do
   run_tag="${TAG_SUFFIX}-${mode}"
+  mode_marker=$(mktemp "/tmp/adaptive-hyre-${mode}-${SLURM_JOB_ID:-local}.XXXXXX")
   echo
   echo "[$(date -Is)] === MODE $mode tag=$run_tag ==="
   set +e
@@ -213,7 +214,12 @@ for mode in "${RUN_SPECS_ARR[@]}"; do
   status=$?
   set -e
 
-  latest_log=$(ls -t "$REPO"/logs/eval_"$mode"_"${PROVIDER}"_*_detail.jsonl 2>/dev/null | head -n 1 || true)
+  latest_log=$(find "$REPO/logs" \
+    -maxdepth 1 \
+    -name "eval_${mode}_${PROVIDER}_*_detail.jsonl" \
+    -newer "$mode_marker" \
+    -exec ls -t {} + 2>/dev/null | head -n 1 || true)
+  rm -f "$mode_marker"
   if [[ -n "$latest_log" ]]; then
     python scripts/analyze_detail_flags.py "$latest_log" || true
     case "$mode" in
@@ -221,6 +227,9 @@ for mode in "${RUN_SPECS_ARR[@]}"; do
         python scripts/audit_adaptive_hyre_logs.py "$latest_log" || true
         ;;
     esac
+  else
+    echo "[$(date -Is)] WARNING: no fresh detail log found for mode=$mode provider=$PROVIDER"
+    status=1
   fi
 
   if [[ "$status" -ne 0 ]]; then
