@@ -72,7 +72,7 @@ scripts/hpc/submit_adaptive_hyre_legal_sweep.sh housing casehold
 To rerun only selected modes on a dataset:
 
 ```bash
-RUN_SPECS="snap_hyre_state adaptive_snap_hyre" \
+RUN_SPECS="snap_hyre_state adaptive_snap_hyre adaptive_snap_hyre_anchor" \
   scripts/hpc/submit_adaptive_hyre_legal_sweep.sh housing
 ```
 
@@ -149,6 +149,10 @@ inspection only, include smoke logs with:
 ```bash
 python scripts/postprocess_adaptive_hyre_sweep.py --min-n 1
 ```
+
+The summary includes coverage and paired tests for `adaptive_snap_hyre` versus
+`adaptive_snap_hyre_anchor`, so the raw-anchor probe should show up as a
+first-class adaptive comparison rather than as an orphaned mode.
 
 After logs land locally, compare adaptive controls against the nearest baseline:
 
