@@ -98,8 +98,20 @@ fi
 source "$EVAL_VENV/bin/activate"
 
 python - <<PY
-from eval.eval_harness import DATASET_COLLECTIONS
 import chromadb
+from eval.eval_config import EVAL_MODES
+from eval.eval_harness import DATASET_COLLECTIONS
+
+modes = """${RUN_SPECS_ARR[*]}""".split()
+missing = [mode for mode in modes if mode not in EVAL_MODES]
+if missing:
+    raise SystemExit(
+        "Unknown eval mode(s): "
+        + ", ".join(missing)
+        + ". Pull the latest branch before submitting adaptive HyRE jobs."
+    )
+print(f"[preflight] modes OK: {', '.join(modes)}")
+
 dataset = "$DATASET"
 collection = DATASET_COLLECTIONS.get(dataset)
 if collection and collection != "musique_passages":
