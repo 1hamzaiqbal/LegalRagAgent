@@ -17,7 +17,7 @@ fi
 echo
 echo "== Recent adaptive HyRE SLURM stdout =="
 if [[ -d "$LOG_DIR" ]]; then
-  ls -t "$LOG_DIR"/*.out 2>/dev/null \
+  { ls -t "$LOG_DIR"/*.out 2>/dev/null || true; } \
     | head -20 \
     | while read -r path; do
         if grep -qiE "adaptive|hyre|Traceback|ERROR|rate|timeout|empty" "$path"; then
@@ -32,7 +32,7 @@ fi
 echo
 echo "== Recent local adaptive detail logs =="
 if [[ -d "$LOCAL_LOG_DIR" ]]; then
-  ls -t "$LOCAL_LOG_DIR"/eval_adaptive_snap_hyre_*_detail.jsonl "$LOCAL_LOG_DIR"/eval_snap_hyre_*_detail.jsonl 2>/dev/null \
+  { ls -t "$LOCAL_LOG_DIR"/eval_adaptive_snap_hyre_*_detail.jsonl "$LOCAL_LOG_DIR"/eval_snap_hyre_*_detail.jsonl 2>/dev/null || true; } \
     | head -12 \
     | while read -r detail; do
         if head -n 1 "$detail" | grep -q '"dataset": "musique"'; then
@@ -70,13 +70,31 @@ echo "== Recent persisted adaptive summaries =="
 if [[ -d "$LOG_DIR" ]]; then
   echo
   echo "== Recent submit manifests =="
-  ls -t "$LOG_DIR"/adaptive_hyre_submit_*.tsv 2>/dev/null \
+  { ls -t "$LOG_DIR"/adaptive_hyre_submit_*.tsv 2>/dev/null || true; } \
     | head -5 \
     | while read -r manifest; do
         echo "-- $manifest"
         column -t -s $'\t' "$manifest" 2>/dev/null || cat "$manifest"
       done
-  ls -t "$LOG_DIR"/adaptive_hyre_*.md 2>/dev/null \
+  echo
+  echo "== Submitted adaptive job states =="
+  if command -v squeue >/dev/null 2>&1; then
+    latest_manifest=$({ ls -t "$LOG_DIR"/adaptive_hyre_submit_*.tsv 2>/dev/null || true; } | head -1)
+    if [[ -n "$latest_manifest" ]]; then
+      awk -F '\t' 'NR > 1 && $4 != "" {print $4}' "$latest_manifest" \
+        | paste -sd, - \
+        | while read -r job_ids; do
+            if [[ -n "$job_ids" ]]; then
+              squeue -j "$job_ids" -o "%.18i %.32j %.8T %.10M %.6D %R" || true
+            fi
+          done
+    else
+      echo "no adaptive submit manifest found"
+    fi
+  else
+    echo "squeue not found"
+  fi
+  { ls -t "$LOG_DIR"/adaptive_hyre_*.md 2>/dev/null || true; } \
     | head -5 \
     | while read -r summary; do
         echo "-- $summary"
@@ -84,7 +102,7 @@ if [[ -d "$LOG_DIR" ]]; then
       done
   echo
   echo "== Recent adaptive JSON summary statuses =="
-  ls -t "$LOG_DIR"/adaptive_hyre_*.json 2>/dev/null \
+  { ls -t "$LOG_DIR"/adaptive_hyre_*.json 2>/dev/null || true; } \
     | head -5 \
     | while read -r summary_json; do
         echo "-- $summary_json"
