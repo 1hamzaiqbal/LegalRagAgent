@@ -14,6 +14,7 @@ if [[ "${PROVIDER:-}" == "" && "$USE_VLLM" == "0" ]]; then
 fi
 DRY_RUN=${DRY_RUN:-0}
 LOG_DIR=${LOG_DIR:-/engrfs/tmp/jacobsn/hiqbal_legalrag/logs}
+SBATCH_EXTRA_ARGS=${SBATCH_EXTRA_ARGS:-}
 SUBMIT_STAMP=${SUBMIT_STAMP:-$(date +%Y%m%d_%H%M%S)}
 SUBMIT_MANIFEST=${SUBMIT_MANIFEST:-$LOG_DIR/adaptive_hyre_submit_${SUBMIT_STAMP}.tsv}
 
@@ -28,6 +29,7 @@ echo "  script=$SCRIPT"
 echo "  datasets=${DATASETS[*]}"
 echo "  n=$N_QUESTIONS seed=$SEED k=$RETRIEVAL_K use_vllm=$USE_VLLM model=$MODEL provider=${PROVIDER:-cluster-vllm} dry_run=$DRY_RUN"
 echo "  run_specs=${RUN_SPECS:-default-by-dataset}"
+echo "  sbatch_extra_args=${SBATCH_EXTRA_ARGS:-none}"
 if [[ "$DRY_RUN" != "1" ]]; then
   mkdir -p "$LOG_DIR"
   printf 'timestamp\tdataset\tjob_name\tjob_id\tn_questions\tretrieval_k\tseed\tprovider\tuse_vllm\tmodel\trun_specs\n' > "$SUBMIT_MANIFEST"
@@ -57,8 +59,14 @@ for dataset in "${DATASETS[@]}"; do
   if [[ "${RUN_SPECS:-}" != "" ]]; then
     exports="${exports},RUN_SPECS=${RUN_SPECS}"
   fi
+  extra_args=()
+  if [[ "$SBATCH_EXTRA_ARGS" != "" ]]; then
+    # shellcheck disable=SC2206
+    extra_args=($SBATCH_EXTRA_ARGS)
+  fi
   cmd=(
     sbatch
+    "${extra_args[@]}"
     --job-name="$job_name"
     --export="$exports"
     "$SCRIPT"
