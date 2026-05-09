@@ -5,7 +5,7 @@ This is the current handoff for the legal-only adaptive Snap-HyDE/HyRE sweep.
 ## Current State
 
 - Branch: `codex/final-report-snap-hyde`
-- Latest pushed commit at this handoff: `0a0a0d1`
+- Latest pushed commit at this handoff: `630e889`
 - Repo-local status when checked: clean
 - Direct cluster submission from this local environment is blocked:
   `Permission denied (publickey,gssapi-keyex,gssapi-with-mic,password)`.
