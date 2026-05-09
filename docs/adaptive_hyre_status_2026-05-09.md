@@ -86,6 +86,7 @@ Before treating a result as usable evidence:
 python scripts/analyze_detail_flags.py logs/<detail_log>.jsonl
 python scripts/audit_adaptive_hyre_logs.py logs/<detail_log>.jsonl
 python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 \
+  --dataset legalbench_scalr \
   --provider cluster-vllm \
   --output docs/adaptive_hyre_sweep_latest.md \
   --json-output docs/adaptive_hyre_sweep_latest.json
@@ -94,7 +95,7 @@ python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 \
 Use a strict readiness gate for automation:
 
 ```bash
-python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --provider cluster-vllm --require-ready
+python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --dataset legalbench_scalr --provider cluster-vllm --require-ready
 ```
 
 Do not promote smoke logs or local-only checks as result claims.

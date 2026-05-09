@@ -169,6 +169,7 @@ For a sweep-level summary over landed logs:
 
 ```bash
 python scripts/postprocess_adaptive_hyre_sweep.py \
+  --dataset legalbench_scalr \
   --provider cluster-vllm \
   --output docs/adaptive_hyre_sweep_latest.md
 ```
@@ -177,6 +178,7 @@ For automation, also emit JSON:
 
 ```bash
 python scripts/postprocess_adaptive_hyre_sweep.py \
+  --dataset legalbench_scalr \
   --provider cluster-vllm \
   --output docs/adaptive_hyre_sweep_latest.md \
   --json-output docs/adaptive_hyre_sweep_latest.json
@@ -185,7 +187,7 @@ python scripts/postprocess_adaptive_hyre_sweep.py \
 To make monitors fail until every expected adaptive mode has landed:
 
 ```bash
-python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --provider cluster-vllm --require-ready
+python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --dataset legalbench_scalr --provider cluster-vllm --require-ready
 ```
 
 By default this ignores smoke logs with fewer than 20 rows. For harness-health

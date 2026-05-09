@@ -77,6 +77,7 @@ def select_latest(
     include_all_modes: bool,
     min_n: int,
     providers: set[str] | None = None,
+    datasets: set[str] | None = None,
 ) -> dict[tuple[str, str, str], dict[str, Any]]:
     selected: dict[tuple[str, str, str], dict[str, Any]] = {}
     for path in paths:
@@ -88,6 +89,8 @@ def select_latest(
             continue
         summary = summarize_log(path, rows)
         if summary["dataset"] not in LEGAL_DATASETS:
+            continue
+        if datasets is not None and summary["dataset"] not in datasets:
             continue
         if providers is not None and summary["provider"] not in providers:
             continue
@@ -167,9 +170,16 @@ def _providers_for_dataset(
     return providers
 
 
+def _target_datasets(datasets: set[str] | None = None) -> tuple[str, ...]:
+    if datasets is None:
+        return LEGAL_DATASETS
+    return tuple(dataset for dataset in LEGAL_DATASETS if dataset in datasets)
+
+
 def build_report(
     selected: dict[tuple[str, str, str], dict[str, Any]],
     expected_providers: set[str] | None = None,
+    expected_datasets: set[str] | None = None,
 ) -> str:
     by_dataset: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for (dataset, _mode, _provider), summary in selected.items():
@@ -183,7 +193,7 @@ def build_report(
         "| Dataset | Mode | Provider | N | Acc | Gold hit | Empty | Calls | Audit | Detail log |",
         "|---|---|---|---:|---:|---:|---:|---:|---|---|",
     ]
-    for dataset in LEGAL_DATASETS:
+    for dataset in _target_datasets(expected_datasets):
         for summary in sorted(by_dataset.get(dataset, []), key=lambda s: (s["provider"], s["mode"])):
             n = summary["n"]
             lines.append(
@@ -200,7 +210,7 @@ def build_report(
         "| Dataset | Provider | Present adaptive modes | Missing adaptive modes | Status |",
         "|---|---|---|---|---|",
     ])
-    for dataset in LEGAL_DATASETS:
+    for dataset in _target_datasets(expected_datasets):
         providers = _providers_for_dataset(selected, dataset, expected_providers)
         if not providers:
             expected = ", ".join(EXPECTED_ADAPTIVE_MODES[dataset])
@@ -217,7 +227,7 @@ def build_report(
                 f"{', '.join(missing) or '-'} | {'READY' if not missing else 'MISSING'} |"
             )
 
-    append_parity_frontier(lines, selected, expected_providers=expected_providers)
+    append_parity_frontier(lines, selected, expected_providers=expected_providers, expected_datasets=expected_datasets)
 
     lines.extend([
         "",
@@ -227,6 +237,8 @@ def build_report(
         "|---|---|---|---:|---:|---:|---:|---:|---:|---:|",
     ])
     for dataset, comparisons in DEFAULT_COMPARISONS.items():
+        if expected_datasets is not None and dataset not in expected_datasets:
+            continue
         providers = sorted({provider for (d, _m, provider) in selected if d == dataset})
         for provider in providers:
             for base_mode, treat_mode in comparisons:
@@ -262,9 +274,10 @@ def _summary_cell(summary: dict[str, Any] | None, field: str) -> str:
 def coverage_records(
     selected: dict[tuple[str, str, str], dict[str, Any]],
     expected_providers: set[str] | None = None,
+    expected_datasets: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
-    for dataset in LEGAL_DATASETS:
+    for dataset in _target_datasets(expected_datasets):
         providers = _providers_for_dataset(selected, dataset, expected_providers)
         if not providers:
             records.append({
@@ -294,9 +307,10 @@ def coverage_records(
 def parity_records(
     selected: dict[tuple[str, str, str], dict[str, Any]],
     expected_providers: set[str] | None = None,
+    expected_datasets: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
-    for dataset in LEGAL_DATASETS:
+    for dataset in _target_datasets(expected_datasets):
         providers = _providers_for_dataset(selected, dataset, expected_providers)
         if not providers:
             records.append({
@@ -348,6 +362,7 @@ def append_parity_frontier(
     lines: list[str],
     selected: dict[tuple[str, str, str], dict[str, Any]],
     expected_providers: set[str] | None = None,
+    expected_datasets: set[str] | None = None,
 ) -> None:
     lines.extend([
         "",
@@ -356,7 +371,7 @@ def append_parity_frontier(
         "| Dataset | Provider | Best control | Acc | Calls | Best adaptive policy | Acc | Calls | Delta pp | Status |",
         "|---|---|---|---:|---:|---|---:|---:|---:|---|",
     ])
-    for record in parity_records(selected, expected_providers=expected_providers):
+    for record in parity_records(selected, expected_providers=expected_providers, expected_datasets=expected_datasets):
         best_control = record["best_control"]
         best_policy = record["best_adaptive_policy"]
         gap = record["delta_pp"]
@@ -376,9 +391,10 @@ def append_parity_frontier(
 def build_json_summary(
     selected: dict[tuple[str, str, str], dict[str, Any]],
     expected_providers: set[str] | None = None,
+    expected_datasets: set[str] | None = None,
 ) -> dict[str, Any]:
     return {
-        "legal_datasets": list(LEGAL_DATASETS),
+        "legal_datasets": list(_target_datasets(expected_datasets)),
         "expected_adaptive_modes": {
             dataset: list(modes) for dataset, modes in EXPECTED_ADAPTIVE_MODES.items()
         },
@@ -389,17 +405,18 @@ def build_json_summary(
                 key=lambda s: (s["dataset"], s["provider"], s["mode"]),
             )
         ],
-        "adaptive_coverage": coverage_records(selected, expected_providers=expected_providers),
-        "adaptive_parity_frontier": parity_records(selected, expected_providers=expected_providers),
+        "adaptive_coverage": coverage_records(selected, expected_providers=expected_providers, expected_datasets=expected_datasets),
+        "adaptive_parity_frontier": parity_records(selected, expected_providers=expected_providers, expected_datasets=expected_datasets),
     }
 
 
 def readiness_failures(
     selected: dict[tuple[str, str, str], dict[str, Any]],
     expected_providers: set[str] | None = None,
+    expected_datasets: set[str] | None = None,
 ) -> list[str]:
     failures: list[str] = []
-    for record in coverage_records(selected, expected_providers=expected_providers):
+    for record in coverage_records(selected, expected_providers=expected_providers, expected_datasets=expected_datasets):
         if record["status"] != "READY":
             failures.append(
                 "coverage "
@@ -423,6 +440,12 @@ def main() -> None:
         help="Restrict summary/readiness to one provider. May be repeated.",
     )
     parser.add_argument(
+        "--dataset",
+        action="append",
+        choices=LEGAL_DATASETS,
+        help="Restrict summary/readiness to one legal dataset. May be repeated.",
+    )
+    parser.add_argument(
         "--require-ready",
         action="store_true",
         help="Exit nonzero unless all expected adaptive modes are present for every discovered legal dataset/provider.",
@@ -434,18 +457,20 @@ def main() -> None:
         include_all_modes=args.all_modes,
         min_n=args.min_n,
         providers=set(args.provider) if args.provider else None,
+        datasets=set(args.dataset) if args.dataset else None,
     )
     expected_providers = set(args.provider) if args.provider else None
-    report = build_report(selected, expected_providers=expected_providers)
+    expected_datasets = set(args.dataset) if args.dataset else None
+    report = build_report(selected, expected_providers=expected_providers, expected_datasets=expected_datasets)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(report + "\n")
     if args.json_output:
         args.json_output.parent.mkdir(parents=True, exist_ok=True)
-        args.json_output.write_text(json.dumps(build_json_summary(selected, expected_providers=expected_providers), indent=2) + "\n")
+        args.json_output.write_text(json.dumps(build_json_summary(selected, expected_providers=expected_providers, expected_datasets=expected_datasets), indent=2) + "\n")
     print(report)
     if args.require_ready:
-        failures = readiness_failures(selected, expected_providers=expected_providers)
+        failures = readiness_failures(selected, expected_providers=expected_providers, expected_datasets=expected_datasets)
         if failures:
             print("\nREADINESS FAILURES", file=sys.stderr)
             for failure in failures:
