@@ -50,6 +50,11 @@ cd /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent
 scripts/hpc/prepare_adaptive_hyre_cluster.sh
 ```
 
+This prep check also verifies the four legal Chroma collections:
+`legal_passages`, `housing_statutes`, `casehold_holdings`, and
+`legalbench_scalr_holdings`. If you only need a code-path check without local
+cluster data mounted, set `CHECK_CHROMA=0`.
+
 Submit the full four-dataset sweep:
 
 ```bash

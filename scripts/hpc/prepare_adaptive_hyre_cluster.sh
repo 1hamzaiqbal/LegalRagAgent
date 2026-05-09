@@ -6,6 +6,8 @@ set -euo pipefail
 EXPECTED_BRANCH=${EXPECTED_BRANCH:-codex/final-report-snap-hyde}
 EXPECTED_COMMIT=${EXPECTED_COMMIT:-}
 ALLOW_DIRTY=${ALLOW_DIRTY:-0}
+CHECK_CHROMA=${CHECK_CHROMA:-1}
+CHROMA_DB_DIR=${CHROMA_DB_DIR:-chroma_db}
 
 echo "== Git checkout =="
 branch=$(git rev-parse --abbrev-ref HEAD)
@@ -79,6 +81,33 @@ bash -n scripts/hpc/submit_adaptive_hyre_legal_sweep.sh
 bash -n scripts/hpc/monitor_adaptive_hyre_sweep.sh
 python -m py_compile scripts/audit_adaptive_hyre_logs.py scripts/postprocess_adaptive_hyre_sweep.py
 echo "OK syntax"
+
+if [[ "$CHECK_CHROMA" == "1" ]]; then
+  echo
+  echo "== Chroma collections =="
+  python - <<'PY'
+import os
+
+import chromadb
+
+from eval.eval_harness import DATASET_COLLECTIONS
+
+datasets = ("barexam", "housing", "casehold", "legalbench_scalr")
+db_dir = os.environ.get("CHROMA_DB_DIR", "chroma_db")
+client = chromadb.PersistentClient(path=db_dir)
+for dataset in datasets:
+    collection_name = DATASET_COLLECTIONS[dataset]
+    collection = client.get_collection(collection_name)
+    count = collection.count()
+    print(f"OK {dataset}: {collection_name} has {count:,} docs")
+    if count <= 0:
+        raise SystemExit(f"ERROR {collection_name} collection is empty")
+PY
+else
+  echo
+  echo "== Chroma collections =="
+  echo "SKIP CHECK_CHROMA=$CHECK_CHROMA"
+fi
 
 echo
 echo "== Submit dry run =="
