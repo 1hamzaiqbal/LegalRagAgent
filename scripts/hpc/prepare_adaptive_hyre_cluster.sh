@@ -8,6 +8,15 @@ EXPECTED_COMMIT=${EXPECTED_COMMIT:-}
 ALLOW_DIRTY=${ALLOW_DIRTY:-0}
 CHECK_CHROMA=${CHECK_CHROMA:-1}
 CHROMA_DB_DIR=${CHROMA_DB_DIR:-chroma_db}
+EVAL_VENV=${EVAL_VENV:-.venv}
+
+if [[ -x "$EVAL_VENV/bin/python" ]]; then
+  PYTHON_CMD=("$EVAL_VENV/bin/python")
+elif command -v uv >/dev/null 2>&1; then
+  PYTHON_CMD=(uv run python)
+else
+  PYTHON_CMD=(python)
+fi
 
 echo "== Git checkout =="
 branch=$(git rev-parse --abbrev-ref HEAD)
@@ -49,6 +58,7 @@ required=(
   scripts/hpc/monitor_adaptive_hyre_sweep.sh
   scripts/audit_adaptive_hyre_logs.py
   scripts/postprocess_adaptive_hyre_sweep.py
+  scripts/smoke_adaptive_hyre_modes.py
 )
 for path in "${required[@]}"; do
   if [[ ! -e "$path" ]]; then
@@ -60,7 +70,7 @@ done
 
 echo
 echo "== Mode preflight =="
-python - <<'PY'
+"${PYTHON_CMD[@]}" - <<'PY'
 from eval.eval_config import EVAL_MODES
 
 required = [
@@ -81,13 +91,17 @@ echo "== Script syntax =="
 bash -n scripts/hpc/slurm_adaptive_hyre_legal.sh
 bash -n scripts/hpc/submit_adaptive_hyre_legal_sweep.sh
 bash -n scripts/hpc/monitor_adaptive_hyre_sweep.sh
-python -m py_compile scripts/audit_adaptive_hyre_logs.py scripts/postprocess_adaptive_hyre_sweep.py
+"${PYTHON_CMD[@]}" -m py_compile scripts/audit_adaptive_hyre_logs.py scripts/postprocess_adaptive_hyre_sweep.py
 echo "OK syntax"
+
+echo
+echo "== Adaptive HyRE smoke =="
+"${PYTHON_CMD[@]}" scripts/smoke_adaptive_hyre_modes.py
 
 if [[ "$CHECK_CHROMA" == "1" ]]; then
   echo
   echo "== Chroma collections =="
-  python - <<'PY'
+  "${PYTHON_CMD[@]}" - <<'PY'
 import os
 
 import chromadb

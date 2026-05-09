@@ -60,6 +60,12 @@ This prep check also verifies the four legal Chroma collections:
 `legalbench_scalr_holdings`. If you only need a code-path check without local
 cluster data mounted, set `CHECK_CHROMA=0`.
 
+For a fast API-free mode wiring check only:
+
+```bash
+python scripts/smoke_adaptive_hyre_modes.py
+```
+
 Submit the full four-dataset sweep:
 
 ```bash
