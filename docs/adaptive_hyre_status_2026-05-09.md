@@ -102,4 +102,26 @@ python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --dataset legalbenc
 The readiness gate requires every expected adaptive mode to be present and to
 pass `scripts/audit_adaptive_hyre_logs.py`.
 
+## Completion Checklist
+
+Do not treat the adaptive HyRE iteration goal as complete until all of these are
+true:
+
+1. Cluster launch produced submit manifests under `$LOG_DIR` for the intended
+   legal datasets.
+2. Each dataset has a persisted markdown and JSON postprocess summary scoped to
+   that dataset and `cluster-vllm`.
+3. This readiness command exits zero for every legal dataset:
+
+```bash
+python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --dataset <dataset> --provider cluster-vllm --require-ready
+```
+
+4. The JSON parity frontier has a non-`MISSING` adaptive policy for each
+   dataset.
+5. Any reported `GAP` case has a concrete interpretation: retrieval miss,
+   option conversion, metadata filtering, answer parsing, or model/cost issue.
+6. Smoke logs, local-only checks, and incomplete partial-job summaries remain
+   excluded from result claims.
+
 Do not promote smoke logs or local-only checks as result claims.
