@@ -97,6 +97,19 @@ fi
 
 source "$EVAL_VENV/bin/activate"
 
+python - <<PY
+from eval.eval_harness import DATASET_COLLECTIONS
+import chromadb
+dataset = "$DATASET"
+collection = DATASET_COLLECTIONS.get(dataset)
+if collection and collection != "musique_passages":
+    client = chromadb.PersistentClient(path="$CHROMA_DB_DIR")
+    count = client.get_collection(collection).count()
+    print(f"[preflight] {collection} has {count:,} docs")
+    if count <= 0:
+        raise SystemExit(f"{collection} collection is empty")
+PY
+
 cleanup() {
   if [[ -n "${VLLM_PID:-}" ]]; then
     kill "$VLLM_PID" 2>/dev/null || true
@@ -137,19 +150,6 @@ if [[ "$USE_VLLM" != "0" ]]; then
   PROVIDER=cluster-vllm
   echo "[$(date -Is)] vLLM ready"
 fi
-
-python - <<PY
-from eval.eval_harness import DATASET_COLLECTIONS
-import chromadb
-dataset = "$DATASET"
-collection = DATASET_COLLECTIONS.get(dataset)
-if collection and collection != "musique_passages":
-    client = chromadb.PersistentClient(path="$CHROMA_DB_DIR")
-    count = client.get_collection(collection).count()
-    print(f"[preflight] {collection} has {count:,} docs")
-    if count <= 0:
-        raise SystemExit(f"{collection} collection is empty")
-PY
 
 echo "[$(date -Is)] provider=$PROVIDER dataset=$DATASET N=$N_QUESTIONS seed=$SEED k=$RETRIEVAL_K"
 echo "[$(date -Is)] modes: ${RUN_SPECS_ARR[*]}"
