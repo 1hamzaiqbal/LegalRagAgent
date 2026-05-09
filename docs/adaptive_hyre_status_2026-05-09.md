@@ -89,6 +89,36 @@ Refresh at 2026-05-09 17:56 CT:
   - `legalbench_scalr`: `rag_simple` completed at 72.0%; jobs `66845`-`66849`
     are still running for the remaining modes.
 
+Refresh at 2026-05-09 18:48 CT:
+
+- The N=50 tag-scoped adaptive HyRE matrix is complete and passes the strict
+  readiness gate:
+
+```bash
+PROVIDER=or-gemma4-26b MIN_N=50 TAG_CONTAINS=adaptive-hyre-or-gemma4-26b \
+  EVAL_VENV=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv \
+  scripts/check_adaptive_hyre_readiness.sh
+```
+
+- Generated summaries copied into this repo:
+  `docs/adaptive_hyre_sweep_latest.md` and
+  `docs/adaptive_hyre_sweep_latest.json`.
+- Harness fix landed after this run started: detail logs now include dataset/tag
+  in the filename and store `tag` in each detail row. This was needed because
+  concurrent same-mode jobs can otherwise collide on
+  `eval_<mode>_<provider>_<minute>_detail.jsonl`.
+- Clean N=50 frontier:
+  - `barexam`: parity, `rag_simple` 86.0% vs `adaptive_snap_hyre` 86.0%.
+  - `housing`: parity, `snap_hyre_state` 64.0% vs
+    `adaptive_snap_hyre_diverse` 64.0%.
+  - `casehold`: parity, `rag_simple` 70.0% vs
+    `adaptive_snap_hyre_diverse` 70.0%.
+  - `legalbench_scalr`: lead, `rag_snap_hyde_2call` 76.0% vs
+    `adaptive_snap_hyre_anchor` 78.0%.
+- Treat this as an N=50 iteration signal, not full-corpus evidence. The useful
+  next step is to scale the strongest frontier policies to N=200 with the fixed
+  detail-log naming.
+
 ## Methods To Run
 
 Option-style datasets (`barexam`, `casehold`, `legalbench_scalr`):
