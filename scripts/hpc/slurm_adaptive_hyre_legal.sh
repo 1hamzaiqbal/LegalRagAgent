@@ -49,6 +49,7 @@ SEED=${SEED:-42}
 RETRIEVAL_K=${RETRIEVAL_K:-5}
 TAG_PROVIDER=${TAG_PROVIDER:-$PROVIDER}
 TAG_SUFFIX=${TAG_SUFFIX:-adaptive-hyre-${TAG_PROVIDER}-${DATASET}-n${N_QUESTIONS}-k${RETRIEVAL_K}}
+SUMMARY_STEM=${SUMMARY_STEM:-adaptive_hyre_${TAG_PROVIDER}_${DATASET}_n${N_QUESTIONS}_k${RETRIEVAL_K}_${SLURM_JOB_ID:-local}}
 EVAL_TRACE_CALLS=${EVAL_TRACE_CALLS:-1}
 EVAL_TRACE_EVENTS=${EVAL_TRACE_EVENTS:-$EVAL_TRACE_CALLS}
 EVAL_TRACE_MAX_CHARS=${EVAL_TRACE_MAX_CHARS:-0}
@@ -233,5 +234,13 @@ if [[ "$FAILURES" -gt 0 ]]; then
   echo "[$(date -Is)] completed with failures: ${FAILED_MODES[*]}"
   exit 1
 fi
+
+SUMMARY_LOG="$LOG_DIR/${SUMMARY_STEM}.md"
+echo
+echo "[$(date -Is)] Writing adaptive HyRE postprocess summary"
+python scripts/postprocess_adaptive_hyre_sweep.py \
+  --min-n "$N_QUESTIONS" \
+  --output "$SUMMARY_LOG"
+echo "[$(date -Is)] summary_log=$SUMMARY_LOG"
 
 echo "[$(date -Is)] adaptive HyRE sweep complete"

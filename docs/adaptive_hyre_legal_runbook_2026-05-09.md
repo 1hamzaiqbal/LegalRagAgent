@@ -117,6 +117,11 @@ postprocessed non-smoke summary:
 scripts/hpc/monitor_adaptive_hyre_sweep.sh
 ```
 
+Each completed dataset job also writes a postprocess markdown summary to
+`$LOG_DIR/adaptive_hyre_<provider>_<dataset>_n<N>_k<K>_<job>.md`. Keep generated
+cluster summaries out of the repo checkout until we intentionally promote a
+specific one into `docs/`.
+
 ## Validation Gates
 
 Every landed adaptive/snap-HyRE detail log should pass:

@@ -49,3 +49,16 @@ fi
 echo
 echo "== Sweep summary, non-smoke logs only =="
 python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 || true
+
+echo
+echo "== Recent persisted adaptive summaries =="
+if [[ -d "$LOG_DIR" ]]; then
+  ls -t "$LOG_DIR"/adaptive_hyre_*.md 2>/dev/null \
+    | head -5 \
+    | while read -r summary; do
+        echo "-- $summary"
+        sed -n '1,120p' "$summary"
+      done
+else
+  echo "missing LOG_DIR=$LOG_DIR"
+fi
