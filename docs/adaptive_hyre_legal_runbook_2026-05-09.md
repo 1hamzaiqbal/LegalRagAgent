@@ -101,6 +101,20 @@ claims. Treat them only as harness health checks.
 
 ## Pairwise Tests
 
+For a sweep-level summary over landed logs:
+
+```bash
+python scripts/postprocess_adaptive_hyre_sweep.py \
+  --output docs/adaptive_hyre_sweep_latest.md
+```
+
+By default this ignores smoke logs with fewer than 20 rows. For harness-health
+inspection only, include smoke logs with:
+
+```bash
+python scripts/postprocess_adaptive_hyre_sweep.py --min-n 1
+```
+
 After logs land locally, compare adaptive controls against the nearest baseline:
 
 ```bash
