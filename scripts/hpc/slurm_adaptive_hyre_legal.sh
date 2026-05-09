@@ -105,9 +105,13 @@ fi
 source "$EVAL_VENV/bin/activate"
 
 python - <<PY
+import sys
+
 import chromadb
+
+sys.path.insert(0, "eval")
 from eval.eval_config import EVAL_MODES
-from eval.eval_harness import DATASET_COLLECTIONS
+from eval_harness import DATASET_COLLECTIONS
 
 modes = """${RUN_SPECS_ARR[*]}""".split()
 missing = [mode for mode in modes if mode not in EVAL_MODES]
