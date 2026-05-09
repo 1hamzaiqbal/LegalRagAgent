@@ -72,6 +72,34 @@ def summarize_log(path: Path, rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def load_experiment_tags(log_dir: Path) -> dict[str, str]:
+    """Map detail-log paths to run tags from experiments.jsonl."""
+    tags: dict[str, str] = {}
+    experiments_path = log_dir / "experiments.jsonl"
+    if not experiments_path.exists():
+        return tags
+    try:
+        lines = experiments_path.read_text().splitlines()
+    except OSError:
+        return tags
+    repo_root = log_dir.parent.resolve()
+    for line in lines:
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        detail = str(row.get("detail_log", "")).strip()
+        tag = str(row.get("tag", "")).strip()
+        if not detail or not tag:
+            continue
+        tags[detail] = tag
+        tags[str((repo_root / detail).resolve())] = tag
+        tags[str((log_dir / Path(detail).name).resolve())] = tag
+    return tags
+
+
 def select_latest(
     paths: list[Path],
     include_all_modes: bool,
@@ -81,6 +109,7 @@ def select_latest(
     tag_contains: str | None = None,
 ) -> dict[tuple[str, str, str], dict[str, Any]]:
     selected: dict[tuple[str, str, str], dict[str, Any]] = {}
+    experiment_tags = load_experiment_tags(paths[0].parent) if paths else {}
     for path in paths:
         try:
             rows = load_rows(path)
@@ -89,6 +118,8 @@ def select_latest(
         if not rows:
             continue
         summary = summarize_log(path, rows)
+        if not summary["tag"]:
+            summary["tag"] = experiment_tags.get(str(path.resolve())) or experiment_tags.get(str(path)) or ""
         if summary["dataset"] not in LEGAL_DATASETS:
             continue
         if datasets is not None and summary["dataset"] not in datasets:
