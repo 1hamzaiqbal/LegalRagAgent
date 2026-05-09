@@ -24,6 +24,7 @@ echo "Submitting adaptive HyRE legal sweep"
 echo "  script=$SCRIPT"
 echo "  datasets=${DATASETS[*]}"
 echo "  n=$N_QUESTIONS seed=$SEED k=$RETRIEVAL_K use_vllm=$USE_VLLM model=$MODEL provider=${PROVIDER:-cluster-vllm} dry_run=$DRY_RUN"
+echo "  run_specs=${RUN_SPECS:-default-by-dataset}"
 
 for dataset in "${DATASETS[@]}"; do
   case "$dataset" in
@@ -39,6 +40,9 @@ for dataset in "${DATASETS[@]}"; do
   exports="ALL,DATASET=${dataset},N_QUESTIONS=${N_QUESTIONS},RETRIEVAL_K=${RETRIEVAL_K},SEED=${SEED},USE_VLLM=${USE_VLLM},MODEL=${MODEL}"
   if [[ "${PROVIDER:-}" != "" ]]; then
     exports="${exports},PROVIDER=${PROVIDER}"
+  fi
+  if [[ "${RUN_SPECS:-}" != "" ]]; then
+    exports="${exports},RUN_SPECS=${RUN_SPECS}"
   fi
   cmd=(
     sbatch

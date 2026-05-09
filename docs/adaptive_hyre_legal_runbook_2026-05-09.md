@@ -62,6 +62,13 @@ Or submit selected datasets:
 scripts/hpc/submit_adaptive_hyre_legal_sweep.sh housing casehold
 ```
 
+To rerun only selected modes on a dataset:
+
+```bash
+RUN_SPECS="snap_hyre_state adaptive_snap_hyre" \
+  scripts/hpc/submit_adaptive_hyre_legal_sweep.sh housing
+```
+
 The equivalent explicit commands are:
 
 ```bash
