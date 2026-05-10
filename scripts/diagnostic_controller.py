@@ -33,6 +33,7 @@ def find_method(dataset_rows: list[dict[str, Any]], *names: str) -> dict[str, An
 def route_dataset(dataset: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
     best = best_by(rows, "accuracy")
     plain = find_method(rows, "rag_simple", "rag_state_filter")
+    rewrite = find_method(rows, "rag_rewrite")
     snap = find_method(rows, "rag_snap_hyde_2call", "adaptive_snap_hyre_v2", "adaptive_snap_hyre_diverse", "adaptive_snap_hyre_frontier")
     verifier = find_method(rows, "adaptive_snap_hyre_housing_verifier")
     disagreement = find_method(rows, "adaptive_snap_hyre_disagreement_replay", "adaptive_snap_hyre_disagreement_majority_prior")
@@ -57,10 +58,16 @@ def route_dataset(dataset: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
         bottleneck = "method_disagreement_gap"
         route = str(disagreement["method"])
         rationale.append("Cached disagreement arbitration matches or beats the strongest source route at low marginal call cost.")
+    elif rewrite and plain and rewrite.get("accuracy", 0.0) > plain.get("accuracy", 0.0) and rewrite.get("accuracy", 0.0) >= best.get("accuracy", 0.0) - 0.01:
+        bottleneck = "query_retrieval_gap"
+        route = str(rewrite["method"])
+        rationale.append("Legal query rewriting closes the gap to the strongest route, so use query formulation before generated-reasoning routes.")
     elif plain and snap and (snap.get("gold_retrieved", 0) > plain.get("gold_retrieved", 0)):
         bottleneck = "query_retrieval_gap"
         route = str(best["method"])
         rationale.append("Snap/HyRE route increases gold exposure over plain retrieval.")
+        if rewrite:
+            rationale.append(f"Query rewrite calibration accuracy is {pct(rewrite.get('accuracy'))}; compare before promoting HyRE-specific claims.")
     else:
         rationale.append("No diagnostic route beats the strongest current method; keep cheapest reliable route.")
 
