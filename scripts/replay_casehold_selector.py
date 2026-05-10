@@ -20,9 +20,14 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(REPO_ROOT / "eval"))
 
-from main import _get_metrics, _llm_call, _reset_llm_call_counter  # type: ignore
+from dotenv import load_dotenv
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_openai import ChatOpenAI
+
+from llm_config import PROVIDERS  # type: ignore
+
+load_dotenv(REPO_ROOT / ".env")
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -97,6 +102,43 @@ def selector_system(variant: str) -> str:
     raise ValueError(f"unknown variant: {variant}")
 
 
+def make_llm(provider: str) -> tuple[ChatOpenAI, str]:
+    provider = provider.strip().lower()
+    if provider in PROVIDERS:
+        base_url, key_env, model, _, _ = PROVIDERS[provider]
+        api_key = os.getenv(key_env or "", "") if key_env else "ollama"
+    else:
+        base_url = os.getenv("LLM_BASE_URL", "https://api.cerebras.ai/v1")
+        api_key = os.getenv("LLM_API_KEY", "no-key-set")
+        model = os.getenv("LLM_MODEL", "llama-3.3-70b")
+    if not api_key or api_key == "no-key-set":
+        raise SystemExit(f"missing API key for provider={provider}")
+    return (
+        ChatOpenAI(
+            base_url=base_url,
+            api_key=api_key,
+            model=model,
+            temperature=0.0,
+            timeout=60,
+            max_retries=1,
+        ),
+        model,
+    )
+
+
+def llm_call(llm: ChatOpenAI, model: str, system: str, user: str) -> str:
+    if "gemma" in model.lower():
+        messages = [HumanMessage(content=f"[Instructions]\n{system}\n\n[Query]\n{user}")]
+    else:
+        messages = [SystemMessage(content=system), HumanMessage(content=user)]
+    response = llm.invoke(messages)
+    return str(response.content or "")
+
+
+def token_estimate(text: str) -> int:
+    return max(1, len(text or "") // 4)
+
+
 def replay_user_prompt(row: dict[str, Any], variant: str) -> str:
     original = source_user_prompt(row)
     parts = [
@@ -127,27 +169,32 @@ def main() -> None:
     parser.add_argument("--provider", default=os.getenv("LLM_PROVIDER", "or-gemma4-26b"))
     parser.add_argument("--variant", choices=["strict", "snap_guard", "minimal_rule"], default="minimal_rule")
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--max-user-chars", type=int, default=12000)
     args = parser.parse_args()
 
-    os.environ["LLM_PROVIDER"] = args.provider
     rows = load_jsonl(args.source_log)
     if args.limit:
         rows = rows[: args.limit]
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     system = selector_system(args.variant)
+    llm, model = make_llm(args.provider)
+    print(f"provider={args.provider} model={model} rows={len(rows)} variant={args.variant}", flush=True)
 
     correct = 0
     with args.output.open("w") as out:
         for i, row in enumerate(rows, 1):
-            _reset_llm_call_counter()
             start = time.time()
             error = None
             answer = ""
             predicted = None
+            user = ""
             try:
                 user = replay_user_prompt(row, args.variant)
-                answer = _llm_call(system, user, label=f"casehold_selector_replay/{args.variant}")
+                if args.max_user_chars > 0 and len(user) > args.max_user_chars:
+                    user = user[: args.max_user_chars] + "\n\n[Replay prompt truncated to configured character budget.]"
+                print(f"[{i}/{len(rows)}] calling {row.get('label')} user_chars={len(user)}", flush=True)
+                answer = llm_call(llm, model, system, user)
                 predicted = extract_answer(answer)
             except Exception as exc:
                 error = str(exc)
@@ -155,7 +202,6 @@ def main() -> None:
             is_correct = bool(predicted and predicted == gold)
             if is_correct:
                 correct += 1
-            metrics = _get_metrics()
             record = {
                 **row,
                 "source_mode": row.get("mode"),
@@ -168,9 +214,9 @@ def main() -> None:
                 "predicted_answer": predicted,
                 "is_correct": is_correct,
                 "error": error,
-                "llm_calls": metrics["count"],
-                "input_tokens": metrics["input_tokens"],
-                "output_tokens": metrics["output_tokens"],
+                "llm_calls": 0 if error else 1,
+                "input_tokens": token_estimate(system + user),
+                "output_tokens": token_estimate(answer),
                 "elapsed_sec": round(time.time() - start, 1),
                 "replay_variant": args.variant,
                 "replay_source_log": str(args.source_log),
