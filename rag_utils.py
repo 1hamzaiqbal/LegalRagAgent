@@ -63,7 +63,9 @@ def get_cross_encoder():
 
     with _cross_encoder_lock:
         if _cross_encoder_instance is None:
-            _cross_encoder_instance = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+            device = os.getenv("CROSS_ENCODER_DEVICE", "").strip()
+            kwargs = {"device": device} if device else {}
+            _cross_encoder_instance = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", **kwargs)
     return _cross_encoder_instance
 
 

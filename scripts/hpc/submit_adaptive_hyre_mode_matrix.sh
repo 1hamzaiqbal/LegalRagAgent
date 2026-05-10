@@ -59,7 +59,7 @@ for dataset in "${DATASETS[@]}"; do
   for mode in "${MODES[@]}"; do
     job_name="hyre-${dataset}-${mode}"
     exports="ALL,DATASET=${dataset},RUN_SPECS=${mode},N_QUESTIONS=${N_QUESTIONS},RETRIEVAL_K=${RETRIEVAL_K},SEED=${SEED},USE_VLLM=${USE_VLLM},MODEL=${MODEL},PROVIDER=${PROVIDER}"
-    for name in REPO DATA_REPO EVAL_VENV CHROMA_DB_DIR LOG_DIR HF_CACHE XDG_CACHE_HOME TORCH_HOME HYRE_CACHE_PATH; do
+    for name in REPO DATA_REPO EVAL_VENV CHROMA_DB_DIR LOG_DIR HF_CACHE XDG_CACHE_HOME TORCH_HOME HYRE_CACHE_PATH CROSS_ENCODER_DEVICE; do
       if [[ "${!name:-}" != "" ]]; then
         exports="${exports},${name}=${!name}"
       fi
