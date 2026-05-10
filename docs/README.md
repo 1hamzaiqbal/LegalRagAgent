@@ -99,6 +99,11 @@ signoff log decides whether a claim is ready to cite.
   `legal_rag_diagnostic_table_2026-05-10.json` - generated diagnostic table for
   accuracy, retrieval exposure, conditional accuracy, rank metrics, calls, and
   health across current N=200 legal logs.
+- `rag_rewrite_baseline_n50_2026-05-10.md`,
+  `legal_rag_diagnostic_table_with_rewrite_2026-05-10.md`, and
+  `diagnostic_controller_route_plan_with_rewrite_2026-05-10.md` - N=50 legal
+  query-rewrite control and updated diagnostic route plan. Treat as calibration
+  evidence, not a replacement for N=200 source-gated comparisons.
 - `bottleneck_aware_diagnostic_framework_2026-05-10.md` - current pivot from
   fixed Snap-HyRE prompt iteration to bottleneck-aware diagnostic adaptation.
 - `diagnostic_controller_route_plan_2026-05-10.md` and
