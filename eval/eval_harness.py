@@ -530,6 +530,22 @@ def _housing_verifier_system(config: EvalConfig) -> str:
     )
 
 
+def _candidate_verifier_system(config: EvalConfig) -> str:
+    """Candidate-first final prompt for holding-selection tasks."""
+    base = _system_prompt(config, "rag")
+    if config.dataset not in ("casehold", "legalbench_scalr"):
+        return base
+    return (
+        base
+        + "\n\nCANDIDATE VERIFICATION REQUIREMENTS:\n"
+        "- The displayed holdings are the answer candidates; compare all five directly against the citing context.\n"
+        "- Use retrieved passages as supporting evidence or tie-breakers, not as replacement candidates.\n"
+        "- If retrieved passages are noisy or do not mention the correct candidate, choose the displayed holding whose rule and fact pattern best fit the citing context.\n"
+        "- Prefer semantic fit between the citation signal and candidate holding over superficial word overlap.\n"
+        "- End with exactly one final line in the form: Answer: (X)"
+    )
+
+
 def _adaptive_hyre_route(row: pd.Series, config: EvalConfig) -> str:
     """Task-shape route for the one-policy HyRE runner."""
     if config.dataset == "housing" and _housing_state_where(row, config):
@@ -2150,6 +2166,30 @@ def run_adaptive_snap_hyre_housing_verifier(row: pd.Series, config: EvalConfig) 
     out["hyre_route"] = "housing_yes_no_verifier"
     out["adaptive_policy"] = "housing_yes_no_verifier_v1"
     out["final_context_fields"] = ["retrieved_passages", "question", "housing_yes_no_verifier_instruction"]
+    return out
+
+
+def run_adaptive_snap_hyre_candidate_verifier(row: pd.Series, config: EvalConfig) -> dict:
+    """Candidate-first verifier for CaseHOLD/SCALR holding-selection tasks."""
+    if config.dataset not in ("casehold", "legalbench_scalr"):
+        out = run_adaptive_snap_hyre_frontier(row, config)
+        out["hyre_route"] = f"candidate_verifier_fallback_{config.dataset}"
+        out["adaptive_policy"] = "candidate_first_verifier_v1"
+        return out
+
+    out = _snap_hyre_retrieve_and_answer(
+        row,
+        config,
+        label_prefix="adaptive_snap_hyre_candidate_verifier",
+        where=_where_from_config(config),
+        final_system=_candidate_verifier_system(config),
+        rerank_query=_retrieval_question(row),
+        include_raw_anchor=True,
+        include_snap_anchor=True,
+    )
+    out["hyre_route"] = "candidate_first_verifier"
+    out["adaptive_policy"] = "candidate_first_verifier_v1"
+    out["final_context_fields"] = ["retrieved_passages", "question", "candidate_verifier_instruction"]
     return out
 
 
@@ -5762,6 +5802,7 @@ MODE_RUNNERS = {
     "adaptive_snap_hyre_frontier": run_adaptive_snap_hyre_frontier,
     "adaptive_snap_hyre_stability": run_adaptive_snap_hyre_stability,
     "adaptive_snap_hyre_housing_verifier": run_adaptive_snap_hyre_housing_verifier,
+    "adaptive_snap_hyre_candidate_verifier": run_adaptive_snap_hyre_candidate_verifier,
     "gap_hyde": run_gap_hyde,
     "gap_hyde_ev": run_gap_hyde_ev,
     "gap_hyde_nosnap": run_gap_hyde_nosnap,

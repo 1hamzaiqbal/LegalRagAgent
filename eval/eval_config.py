@@ -54,6 +54,7 @@ EVAL_MODES = {
     "adaptive_snap_hyre_frontier": "Adaptive HyRE frontier selector: audited N=200 frontier policy using BarExam v2, Housing/CaseHOLD diverse anchors, and SCALR plain 2-call Snap-HyDE",
     "adaptive_snap_hyre_stability": "Adaptive HyRE stability arbitration: run the frontier selector plus a dataset control, keep agreement, and arbitrate disagreements",
     "adaptive_snap_hyre_housing_verifier": "Adaptive HyRE Housing verifier: cached/diverse Housing retrieval with a conservative yes/no statutory entailment final prompt; non-Housing datasets fall back to the frontier selector",
+    "adaptive_snap_hyre_candidate_verifier": "Adaptive HyRE candidate verifier: for CaseHOLD/SCALR, compare displayed holdings first and use retrieved evidence as support/tie-breaker; other datasets fall back to the frontier selector",
     "gap_hyde":                 "Gap-informed HyDE: snap + gaps + evidence in final (full context)",
     "gap_hyde_ev":              "Gap-informed HyDE: evidence only in final (no snap, no gap labels)",
     "gap_hyde_nosnap":          "Gap-informed HyDE: gaps + evidence in final (no snap answer)",
