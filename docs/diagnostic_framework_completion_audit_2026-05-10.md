@@ -24,7 +24,7 @@ policies across legal benchmarks.
 | Executable controller exists | `scripts/diagnostic_controller.py` consumes diagnostic JSON and emits route plan JSON/Markdown. | Done |
 | Controller evaluation exists | `scripts/evaluate_diagnostic_controller.py`; `docs/diagnostic_controller_eval_with_rewrite_2026-05-10.md`. | Done as evidence-summary evaluation |
 | Controller-vs-fixed comparison exists | `scripts/compare_diagnostic_controller.py`; `docs/diagnostic_controller_portfolio_comparison_2026-05-10.md`. | Done as calibration evidence |
-| Held-out controller evaluation | Not yet complete. Current evaluation is over existing calibration slices, not a fresh held-out benchmark. | Missing |
+| Held-out controller evaluation | `docs/heldout_controller_matrix_2026-05-10.md` records submitted jobs 67449-67457 over rows 200-249; results pending validation. | In progress |
 | Source-gated result claims | Docs cite detail-log paths; query-rewrite logs were artifact-audited; existing N=200 rows are generated from source detail logs. | Done |
 
 ## Current Controller Evaluation
@@ -58,8 +58,8 @@ The portfolio comparison in
 ## Missing Work Before Calling The Objective Complete
 
 1. Held-out controller evaluation:
-   - current controller evaluation is an evidence-summary comparison over the
-     available N=200 calibration slices, not a fresh held-out benchmark.
+   - jobs 67449-67457 are submitted, but results are not yet validated or
+     integrated into a held-out comparison table.
 2. CaseHOLD answer-conversion intervention:
    - current diagnostics now define a `reject_or_escalate` policy, but they do
      not yet provide a new calibrated option converter that improves answered

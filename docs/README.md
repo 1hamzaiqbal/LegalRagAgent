@@ -117,6 +117,9 @@ signoff log decides whether a claim is ready to cite.
   `diagnostic_controller_portfolio_comparison_2026-05-10.json` - controller vs
   fixed baseline / HyRE / non-adaptive portfolio comparison over current
   source-gated calibration evidence.
+- `heldout_controller_matrix_2026-05-10.md` - submitted compact held-out
+  controller/component matrix on rows 200-249; pending validation before result
+  claims.
 - `bottleneck_aware_diagnostic_framework_2026-05-10.md` - current pivot from
   fixed Snap-HyRE prompt iteration to bottleneck-aware diagnostic adaptation.
 - `diagnostic_controller_route_plan_2026-05-10.md` and
