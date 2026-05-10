@@ -8,6 +8,7 @@
 set -euo pipefail
 
 SCRIPT=${SCRIPT:-scripts/hpc/slurm_adaptive_hyre_legal.sh}
+REPO=${REPO:-$(pwd)}
 N_QUESTIONS=${N_QUESTIONS:-50}
 RETRIEVAL_K=${RETRIEVAL_K:-5}
 SEED=${SEED:-42}
