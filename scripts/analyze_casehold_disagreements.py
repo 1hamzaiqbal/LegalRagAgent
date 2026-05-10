@@ -76,6 +76,40 @@ def bucket_stats(items: list[tuple[str, bool]]) -> list[tuple[str, int, int]]:
     return [(name, total, good) for name, (total, good) in sorted(counts.items())]
 
 
+def selective_policy_metrics(
+    rows_by_label: dict[str, dict[str, dict[str, Any]]],
+    policy_name: str,
+    accept_fn,
+    answer_fn,
+) -> dict[str, Any]:
+    accepted = 0
+    accepted_correct = 0
+    total_correct = 0
+    escalated_oracle_correct = 0
+    labels: list[str] = []
+    for label, rows in rows_by_label.items():
+        g = gold(next(iter(rows.values())))
+        accept = accept_fn(rows)
+        if accept:
+            accepted += 1
+            answer = answer_fn(rows)
+            ok = answer == g
+            accepted_correct += int(ok)
+            total_correct += int(ok)
+            labels.append(label)
+        else:
+            escalated_oracle_correct += int(any(correct(row) for row in rows.values()))
+    return {
+        "policy": policy_name,
+        "accepted": accepted,
+        "accepted_correct": accepted_correct,
+        "total_correct": total_correct,
+        "escalated": len(rows_by_label) - accepted,
+        "escalated_oracle_correct": escalated_oracle_correct,
+        "accepted_labels": labels,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--log", action="append", nargs=2, metavar=("NAME", "PATH"), required=True)
@@ -161,6 +195,50 @@ def main() -> None:
             parts = [f"{name}={pred(rows[name])}{'*' if flags[name] else ''}" for name in names]
             examples.append(f"- `{label}` gold={gold(next(iter(rows.values())))} | " + " ".join(parts))
 
+    def llm_unique(rows: dict[str, dict[str, Any]]) -> int:
+        vals = [pred(rows.get("candidate")), pred(rows.get("reranker")), pred(rows.get("replay"))]
+        return len(set(v for v in vals if v))
+
+    def snap(rows: dict[str, dict[str, Any]]) -> str:
+        return snap_letter(rows.get("reranker")) or snap_letter(rows.get("candidate")) or snap_letter(rows.get("frontier"))
+
+    selective_policies = [
+        selective_policy_metrics(
+            rows_by_label,
+            "accept_candidate_reranker_replay_unanimous",
+            lambda rows: llm_unique(rows) == 1,
+            lambda rows: pred(rows.get("candidate")),
+        ),
+        selective_policy_metrics(
+            rows_by_label,
+            "accept_candidate_reranker_agree",
+            lambda rows: pred(rows.get("candidate")) == pred(rows.get("reranker")),
+            lambda rows: pred(rows.get("candidate")),
+        ),
+        selective_policy_metrics(
+            rows_by_label,
+            "accept_reranker_snap_agree",
+            lambda rows: bool(snap(rows)) and pred(rows.get("reranker")) == snap(rows),
+            lambda rows: pred(rows.get("reranker")),
+        ),
+        selective_policy_metrics(
+            rows_by_label,
+            "accept_candidate_snap_agree",
+            lambda rows: bool(snap(rows)) and pred(rows.get("candidate")) == snap(rows),
+            lambda rows: pred(rows.get("candidate")),
+        ),
+        selective_policy_metrics(
+            rows_by_label,
+            "accept_candidate_reranker_agree_and_snap_agree",
+            lambda rows: (
+                pred(rows.get("candidate")) == pred(rows.get("reranker"))
+                and bool(snap(rows))
+                and pred(rows.get("candidate")) == snap(rows)
+            ),
+            lambda rows: pred(rows.get("candidate")),
+        ),
+    ]
+
     lines = [
         "# CaseHOLD Selector Disagreement Analysis",
         "",
@@ -189,6 +267,26 @@ def main() -> None:
     ])
     for name, count in sorted(rules.items()):
         lines.append(f"| `{name}` | {count}/{len(labels)} | {pct(count, len(labels))} |")
+
+    lines.extend([
+        "",
+        "## Selective Adaptive Policies",
+        "",
+        "These policies answer only on high-confidence rows and mark the rest for escalation.",
+        "`Total if escalated solved` is an upper bound, not achieved accuracy.",
+        "",
+        "| Policy | Answered | Answered Accuracy | Escalated | Total If Escalated Solved |",
+        "|---|---:|---:|---:|---:|",
+    ])
+    for item in selective_policies:
+        total_upper = item["accepted_correct"] + item["escalated_oracle_correct"]
+        lines.append(
+            f"| `{item['policy']}` | "
+            f"{item['accepted']}/{len(labels)} | "
+            f"{pct(item['accepted_correct'], item['accepted'])} | "
+            f"{item['escalated']}/{len(labels)} | "
+            f"{total_upper}/{len(labels)} = {pct(total_upper, len(labels))} |"
+        )
 
     lines.extend([
         "",
