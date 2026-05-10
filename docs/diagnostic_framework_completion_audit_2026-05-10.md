@@ -23,7 +23,8 @@ policies across legal benchmarks.
 | Verifier policy is represented | `docs/adaptive_hyre_housing_verifier_n200_2026-05-10.md`; controller routes HousingQA to verifier. | Done |
 | Executable controller exists | `scripts/diagnostic_controller.py` consumes diagnostic JSON and emits route plan JSON/Markdown. | Done |
 | Controller evaluation exists | `scripts/evaluate_diagnostic_controller.py`; `docs/diagnostic_controller_eval_with_rewrite_2026-05-10.md`. | Done as evidence-summary evaluation |
-| Held-out or same-slice controller evaluation | Not yet complete. Current evaluation mixes N=50 `rag_rewrite` with N=200 routes for BarExam. | Missing |
+| Controller-vs-fixed comparison exists | `scripts/compare_diagnostic_controller.py`; `docs/diagnostic_controller_portfolio_comparison_2026-05-10.md`. | Done as calibration evidence |
+| Held-out controller evaluation | Not yet complete. Current evaluation is over existing calibration slices, not a fresh held-out benchmark. | Missing |
 | Source-gated result claims | Docs cite detail-log paths; query-rewrite logs were artifact-audited; existing N=200 rows are generated from source detail logs. | Done |
 
 ## Current Controller Evaluation
@@ -43,6 +44,17 @@ current evidence summary. The previous BarExam mixed-N caveat is removed:
 `rag_rewrite` now has a same-slice N=200 result and no longer beats
 `adaptive_snap_hyre_v2` on BarExam.
 
+The portfolio comparison in
+`docs/diagnostic_controller_portfolio_comparison_2026-05-10.md` reports:
+
+| Portfolio | Macro accuracy | Macro calls | Caveat |
+|---|---:|---:|---|
+| `diagnostic_controller` | 77.9% | 1.30 | calibration-slice evidence |
+| `baseline_retrieval` | 71.9% | 1.00 | same source table |
+| `fixed_hyre_only` | 74.8% | 2.00 | HyRE-style routes without targeted verifier/disagreement |
+| `best_non_adaptive_same_n` | 72.9% | 1.50 | N=200 only |
+| `query_rewrite_available` | 72.0% | 2.00 | includes N=50 rows outside BarExam |
+
 ## Missing Work Before Calling The Objective Complete
 
 1. Held-out controller evaluation:
@@ -52,14 +64,13 @@ current evidence summary. The previous BarExam mixed-N caveat is removed:
    - current diagnostics identify the bottleneck, but the policy route is still
      weak. The controller should either select a calibrated verifier/selector
      or explicitly route uncertain rows to `reject_or_escalate`.
-3. Controller-vs-fixed comparisons:
-   - report controller macro accuracy and calls against fixed `rag_simple`,
-     fixed Snap-HyRE, fixed query rewrite, and the best single non-adaptive
-     route on the same slice.
+3. Query rewrite same-slice coverage:
+   - BarExam now has N=200 query rewrite, but HousingQA, CaseHOLD, and
+     LegalBench-SCALR rewrite rows remain N=50 calibration controls.
 
 ## Next Concrete Experiment
 
-Prioritize a compact fresh held-out controller-evaluation matrix or a
-controller-vs-fixed comparison table over the current N=200 calibration slices.
-The goal is not to discover a new prompt; it is to make the controller
-comparison fair enough to cite.
+Prioritize a compact fresh held-out controller-evaluation matrix, or a targeted
+CaseHOLD answer-conversion policy that either improves accuracy or formalizes
+`reject_or_escalate`. The goal is not to discover a new prompt; it is to make
+the controller comparison fair enough to cite.

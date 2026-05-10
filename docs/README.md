@@ -110,6 +110,10 @@ signoff log decides whether a claim is ready to cite.
   `diagnostic_framework_completion_audit_2026-05-10.md` - current controller
   evidence-summary evaluation and explicit checklist of what remains before the
   diagnostic framework can be treated as complete.
+- `diagnostic_controller_portfolio_comparison_2026-05-10.md` and
+  `diagnostic_controller_portfolio_comparison_2026-05-10.json` - controller vs
+  fixed baseline / HyRE / non-adaptive portfolio comparison over current
+  source-gated calibration evidence.
 - `bottleneck_aware_diagnostic_framework_2026-05-10.md` - current pivot from
   fixed Snap-HyRE prompt iteration to bottleneck-aware diagnostic adaptation.
 - `diagnostic_controller_route_plan_2026-05-10.md` and
