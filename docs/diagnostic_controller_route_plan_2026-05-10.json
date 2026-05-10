@@ -1,0 +1,61 @@
+[
+  {
+    "dataset": "barexam",
+    "bottleneck": "query_retrieval_gap",
+    "route": "adaptive_snap_hyre_v2",
+    "secondary_flags": [
+      "answer_conversion_gap"
+    ],
+    "best_method": "adaptive_snap_hyre_v2",
+    "best_accuracy": 0.86,
+    "avg_calls": 2.0,
+    "rationale": [
+      "Snap/HyRE route increases gold exposure over plain retrieval.",
+      "Best route still has 1 gold-retrieved-but-wrong rows."
+    ]
+  },
+  {
+    "dataset": "casehold",
+    "bottleneck": "answer_conversion_gap",
+    "route": "adaptive_snap_hyre_diverse",
+    "secondary_flags": [
+      "answer_conversion_gap",
+      "reject_or_escalate"
+    ],
+    "best_method": "adaptive_snap_hyre_diverse",
+    "best_accuracy": 0.735,
+    "avg_calls": 2.0,
+    "rationale": [
+      "Gold retrieval improves without meaningful accuracy lift, indicating answer-option conversion rather than retrieval alone.",
+      "Best route still has 3 gold-retrieved-but-wrong rows."
+    ]
+  },
+  {
+    "dataset": "housing",
+    "bottleneck": "statutory_entailment_gap",
+    "route": "adaptive_snap_hyre_housing_verifier",
+    "secondary_flags": [
+      "answer_conversion_gap"
+    ],
+    "best_method": "adaptive_snap_hyre_housing_verifier",
+    "best_accuracy": 0.745,
+    "avg_calls": 1.0,
+    "rationale": [
+      "Housing-style yes/no statutory QA benefits from conservative entailment verification.",
+      "Verifier accuracy 74.5% vs base 60.5%.",
+      "Best route still has 25 gold-retrieved-but-wrong rows."
+    ]
+  },
+  {
+    "dataset": "legalbench_scalr",
+    "bottleneck": "method_disagreement_gap",
+    "route": "adaptive_snap_hyre_disagreement_replay",
+    "secondary_flags": [],
+    "best_method": "adaptive_snap_hyre_disagreement_replay",
+    "best_accuracy": 0.775,
+    "avg_calls": 0.19,
+    "rationale": [
+      "Cached disagreement arbitration matches or beats the strongest source route at low marginal call cost."
+    ]
+  }
+]
