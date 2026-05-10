@@ -2461,11 +2461,14 @@ def run_adaptive_snap_hyre_option_table(row: pd.Series, config: EvalConfig) -> d
     evidence_store = []
     retrieved_ids = []
     table_rows: list[dict] = []
+    bounded_raw_question = _preview_text(raw_question, limit=1200)
+    bounded_hyre_passage = _preview_text(hyre_passage, limit=1200)
     for letter, text in choices.items():
-        choice_query = f"{raw_question}\n\nCandidate holding {letter}: {text}"
+        bounded_choice = _preview_text(text, limit=900)
+        choice_query = f"{bounded_raw_question}\n\nCandidate holding {letter}: {bounded_choice}"
         choice_result = _retrieve_and_format(
             row,
-            [choice_query, hyre_passage],
+            [choice_query, bounded_hyre_passage],
             k=1,
             label_prefix=f"adaptive_snap_hyre_option_table_{letter}",
             where=_where_from_config(config),
