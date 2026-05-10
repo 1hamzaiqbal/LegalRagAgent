@@ -87,3 +87,9 @@ Before promoting results:
    adaptive audit applies.
 5. Build a held-out diagnostic/controller comparison doc only from logs that
    pass these checks.
+
+## Integrated Result
+
+Corrected retry jobs 67461-67469 completed with `sacct` exit code `0:0`.
+Validated results are integrated in
+`docs/heldout_controller_eval_2026-05-10.md`.

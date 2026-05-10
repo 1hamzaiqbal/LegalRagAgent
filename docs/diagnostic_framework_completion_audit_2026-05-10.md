@@ -24,7 +24,7 @@ policies across legal benchmarks.
 | Executable controller exists | `scripts/diagnostic_controller.py` consumes diagnostic JSON and emits route plan JSON/Markdown. | Done |
 | Controller evaluation exists | `scripts/evaluate_diagnostic_controller.py`; `docs/diagnostic_controller_eval_with_rewrite_2026-05-10.md`. | Done as evidence-summary evaluation |
 | Controller-vs-fixed comparison exists | `scripts/compare_diagnostic_controller.py`; `docs/diagnostic_controller_portfolio_comparison_2026-05-10.md`. | Done as calibration evidence |
-| Held-out controller evaluation | `docs/heldout_controller_matrix_2026-05-10.md` records submitted jobs 67449-67457 over rows 200-249; results pending validation. | In progress |
+| Held-out controller evaluation | `docs/heldout_controller_eval_2026-05-10.md` summarizes corrected jobs 67461-67469 over rows 200-249. | Done with caveats |
 | Source-gated result claims | Docs cite detail-log paths; query-rewrite logs were artifact-audited; existing N=200 rows are generated from source detail logs. | Done |
 
 ## Current Controller Evaluation
@@ -55,22 +55,33 @@ The portfolio comparison in
 | `best_non_adaptive_same_n` | 72.9% | 1.50 | N=200 only |
 | `query_rewrite_available` | 72.0% | 2.00 | includes N=50 rows outside BarExam |
 
+The compact held-out retry in `docs/heldout_controller_eval_2026-05-10.md`
+reports:
+
+| Setting | Macro accuracy | Macro calls | Caveat |
+|---|---:|---:|---|
+| exact selected routes | 77.5% | 1.54 | SCALR disagreement replay ties baseline |
+| matched baselines | 71.5% | 1.00 | same 50-row held-out slice |
+
+Held-out dataset details: BarExam ties baseline at 76.0%; Housing verifier is
+76.0% vs 62.0% baseline with one parse failure counted wrong; CaseHOLD diverse
+is 78.0% vs 68.0% baseline; SCALR majority-prior disagreement replay is 80.0%,
+tying baseline despite the frontier component reaching 84.0%.
+
 ## Missing Work Before Calling The Objective Complete
 
-1. Held-out controller evaluation:
-   - jobs 67449-67457 are submitted, but results are not yet validated or
-     integrated into a held-out comparison table.
-2. CaseHOLD answer-conversion intervention:
+1. CaseHOLD answer-conversion intervention:
    - current diagnostics now define a `reject_or_escalate` policy, but they do
      not yet provide a new calibrated option converter that improves answered
      accuracy beyond the current 73-74% band.
-3. Query rewrite same-slice coverage:
+2. Query rewrite same-slice coverage:
    - BarExam now has N=200 query rewrite, but HousingQA, CaseHOLD, and
      LegalBench-SCALR rewrite rows remain N=50 calibration controls.
 
 ## Next Concrete Experiment
 
-Prioritize a compact fresh held-out controller-evaluation matrix, or a targeted
-CaseHOLD answer-conversion policy that either improves accuracy or formalizes
-`reject_or_escalate`. The goal is not to discover a new prompt; it is to make
-the controller comparison fair enough to cite.
+Prioritize a targeted CaseHOLD answer-conversion policy that improves accuracy
+beyond the current route, or same-slice query-rewrite coverage for the remaining
+legal datasets if the query-rewrite arm must be promoted beyond calibration.
+The goal is not to discover a new prompt; it is to close the remaining caveats
+in the controller comparison.

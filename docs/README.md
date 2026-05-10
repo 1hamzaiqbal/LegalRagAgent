@@ -118,8 +118,12 @@ signoff log decides whether a claim is ready to cite.
   fixed baseline / HyRE / non-adaptive portfolio comparison over current
   source-gated calibration evidence.
 - `heldout_controller_matrix_2026-05-10.md` - submitted compact held-out
-  controller/component matrix on rows 200-249; pending validation before result
-  claims.
+  controller/component matrix on rows 200-249; includes invalid first launch
+  and corrected retry manifest.
+- `heldout_controller_eval_2026-05-10.md` and
+  `heldout_controller_eval_2026-05-10.json` - compact held-out validation:
+  exact selected routes reach 77.5% macro accuracy vs 71.5% baseline, with
+  explicit Housing parse and SCALR disagreement-replay caveats.
 - `bottleneck_aware_diagnostic_framework_2026-05-10.md` - current pivot from
   fixed Snap-HyRE prompt iteration to bottleneck-aware diagnostic adaptation.
 - `diagnostic_controller_route_plan_2026-05-10.md` and
