@@ -130,6 +130,9 @@ signoff log decides whether a claim is ready to cite.
   accuracy, between matched baseline retrieval at 71.5% and selected-route
   controller accuracy at 77.5%, with strong BarExam lift but Housing/SCALR
   failures that support routing rather than a universal rewrite policy.
+- `casehold_option_table_heldout_2026-05-10.md` - submitted targeted CaseHOLD
+  option-conversion probe on held-out rows 200-249; pending validation before
+  result claims.
 - `bottleneck_aware_diagnostic_framework_2026-05-10.md` - current pivot from
   fixed Snap-HyRE prompt iteration to bottleneck-aware diagnostic adaptation.
 - `diagnostic_controller_route_plan_2026-05-10.md` and
