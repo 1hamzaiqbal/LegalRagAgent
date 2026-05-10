@@ -93,6 +93,27 @@ sweep:
 4. Add a non-HyRE query-rewrite RAG baseline to distinguish "generated
    reasoning helps" from "better legal search formulation helps."
 
+## Pending Non-HyRE Baseline
+
+To separate HyRE-specific gains from generic legal query formulation, an N=50
+`rag_rewrite` baseline was submitted on 2026-05-10 for all four legal datasets:
+
+| Dataset | Mode | Job |
+|---|---|---:|
+| BarExam | `rag_rewrite` | 67424 |
+| HousingQA | `rag_rewrite` | 67425 |
+| CaseHOLD | `rag_rewrite` | 67426 |
+| LegalBench-SCALR | `rag_rewrite` | 67427 |
+
+Submission manifest:
+`/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/adaptive_hyre_mode_matrix_20260510_141643.tsv`
+
+Use these as a calibration baseline, not a final paper result, until the logs
+are complete and audited. If `rag_rewrite` closes much of the Snap-HyRE gap,
+the controller should distinguish `query_rewrite_rag` from `snap_hyre`; if it
+does not, the generated-reasoning intervention remains more specific than
+ordinary query reformulation.
+
 ## Paper Claim
 
 Do not claim that Snap-HyRE solves legal RAG. Claim that generated reasoning is
