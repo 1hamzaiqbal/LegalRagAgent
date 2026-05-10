@@ -214,6 +214,7 @@ def build_report(
     selected: dict[tuple[str, str, str], dict[str, Any]],
     expected_providers: set[str] | None = None,
     expected_datasets: set[str] | None = None,
+    expected_runs: dict[str, set[str]] | None = None,
 ) -> str:
     by_dataset: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for (dataset, _mode, _provider), summary in selected.items():
@@ -266,6 +267,8 @@ def build_report(
                 f"{', '.join(missing) or '-'} | {status} |"
             )
 
+    append_targeted_run_coverage(lines, selected, expected_providers=expected_providers, expected_runs=expected_runs)
+
     append_parity_frontier(lines, selected, expected_providers=expected_providers, expected_datasets=expected_datasets)
 
     lines.extend([
@@ -292,6 +295,63 @@ def build_report(
                 lines.append(f"| {dataset} | {provider} | {base_mode} -> {treat_mode} | {result} |")
 
     return "\n".join(lines)
+
+
+def targeted_run_records(
+    selected: dict[tuple[str, str, str], dict[str, Any]],
+    expected_providers: set[str] | None = None,
+    expected_runs: dict[str, set[str]] | None = None,
+) -> list[dict[str, Any]]:
+    if not expected_runs:
+        return []
+    records: list[dict[str, Any]] = []
+    for dataset in _target_datasets(set(expected_runs)):
+        providers = _providers_for_dataset(selected, dataset, expected_providers)
+        if not providers:
+            providers = sorted(expected_providers or {""})
+        for provider in providers:
+            present = sorted(
+                mode for (d, mode, p) in selected
+                if d == dataset and p == provider and mode in expected_runs[dataset]
+            )
+            missing = sorted(expected_runs[dataset] - set(present))
+            audit_failures = sorted(
+                mode for mode in present
+                if mode in ADAPTIVE_MODES and audit_status(selected[(dataset, mode, provider)]) != "PASS"
+            )
+            records.append({
+                "dataset": dataset,
+                "provider": provider,
+                "present_modes": present,
+                "missing_modes": missing,
+                "audit_failed_modes": audit_failures,
+                "status": "READY" if not missing and not audit_failures else "MISSING",
+            })
+    return records
+
+
+def append_targeted_run_coverage(
+    lines: list[str],
+    selected: dict[tuple[str, str, str], dict[str, Any]],
+    expected_providers: set[str] | None = None,
+    expected_runs: dict[str, set[str]] | None = None,
+) -> None:
+    records = targeted_run_records(selected, expected_providers=expected_providers, expected_runs=expected_runs)
+    if not records:
+        return
+    lines.extend([
+        "",
+        "## Targeted Run Coverage",
+        "",
+        "| Dataset | Provider | Present modes | Missing modes | Status |",
+        "|---|---|---|---|---|",
+    ])
+    for record in records:
+        lines.append(
+            f"| {record['dataset']} | {record['provider'] or '-'} | "
+            f"{', '.join(record['present_modes']) or '-'} | "
+            f"{', '.join(record['missing_modes']) or '-'} | {record['status']} |"
+        )
 
 
 def _best_summary(summaries: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -436,6 +496,7 @@ def build_json_summary(
     selected: dict[tuple[str, str, str], dict[str, Any]],
     expected_providers: set[str] | None = None,
     expected_datasets: set[str] | None = None,
+    expected_runs: dict[str, set[str]] | None = None,
 ) -> dict[str, Any]:
     return {
         "legal_datasets": list(_target_datasets(expected_datasets)),
@@ -450,6 +511,7 @@ def build_json_summary(
             )
         ],
         "adaptive_coverage": coverage_records(selected, expected_providers=expected_providers, expected_datasets=expected_datasets),
+        "targeted_run_coverage": targeted_run_records(selected, expected_providers=expected_providers, expected_runs=expected_runs),
         "adaptive_parity_frontier": parity_records(selected, expected_providers=expected_providers, expected_datasets=expected_datasets),
     }
 
@@ -458,8 +520,24 @@ def readiness_failures(
     selected: dict[tuple[str, str, str], dict[str, Any]],
     expected_providers: set[str] | None = None,
     expected_datasets: set[str] | None = None,
+    expected_runs: dict[str, set[str]] | None = None,
 ) -> list[str]:
     failures: list[str] = []
+    if expected_runs:
+        for record in targeted_run_records(selected, expected_providers=expected_providers, expected_runs=expected_runs):
+            if record["status"] != "READY":
+                failures.append(
+                    "targeted "
+                    f"{record['dataset']} {record['provider'] or '-'} "
+                    f"missing={','.join(record['missing_modes'])}"
+                )
+            if record.get("audit_failed_modes"):
+                failures.append(
+                    "audit "
+                    f"{record['dataset']} {record['provider'] or '-'} "
+                    f"failed={','.join(record['audit_failed_modes'])}"
+                )
+        return failures
     for record in coverage_records(selected, expected_providers=expected_providers, expected_datasets=expected_datasets):
         if record["status"] != "READY":
             failures.append(
@@ -474,6 +552,24 @@ def readiness_failures(
                 f"failed={','.join(record['audit_failed_modes'])}"
             )
     return failures
+
+
+def parse_expected_runs(values: list[str] | None) -> dict[str, set[str]] | None:
+    if not values:
+        return None
+    expected: dict[str, set[str]] = defaultdict(set)
+    for value in values:
+        if ":" not in value:
+            raise SystemExit(f"--expected-run must be DATASET:MODE, got {value!r}")
+        dataset, mode = value.split(":", 1)
+        dataset = dataset.strip()
+        mode = mode.strip()
+        if dataset not in LEGAL_DATASETS:
+            raise SystemExit(f"unknown dataset in --expected-run: {dataset!r}")
+        if not mode:
+            raise SystemExit(f"empty mode in --expected-run: {value!r}")
+        expected[dataset].add(mode)
+    return dict(expected)
 
 
 def main() -> None:
@@ -504,6 +600,12 @@ def main() -> None:
         action="store_true",
         help="Exit nonzero unless all expected adaptive modes are present for every discovered legal dataset/provider.",
     )
+    parser.add_argument(
+        "--expected-run",
+        action="append",
+        metavar="DATASET:MODE",
+        help="Require a targeted dataset/mode pair instead of the full adaptive matrix. May be repeated.",
+    )
     args = parser.parse_args()
 
     selected = select_latest(
@@ -516,16 +618,32 @@ def main() -> None:
     )
     expected_providers = set(args.provider) if args.provider else None
     expected_datasets = set(args.dataset) if args.dataset else None
-    report = build_report(selected, expected_providers=expected_providers, expected_datasets=expected_datasets)
+    expected_runs = parse_expected_runs(args.expected_run)
+    report = build_report(
+        selected,
+        expected_providers=expected_providers,
+        expected_datasets=expected_datasets,
+        expected_runs=expected_runs,
+    )
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(report + "\n")
     if args.json_output:
         args.json_output.parent.mkdir(parents=True, exist_ok=True)
-        args.json_output.write_text(json.dumps(build_json_summary(selected, expected_providers=expected_providers, expected_datasets=expected_datasets), indent=2) + "\n")
+        args.json_output.write_text(json.dumps(build_json_summary(
+            selected,
+            expected_providers=expected_providers,
+            expected_datasets=expected_datasets,
+            expected_runs=expected_runs,
+        ), indent=2) + "\n")
     print(report)
     if args.require_ready:
-        failures = readiness_failures(selected, expected_providers=expected_providers, expected_datasets=expected_datasets)
+        failures = readiness_failures(
+            selected,
+            expected_providers=expected_providers,
+            expected_datasets=expected_datasets,
+            expected_runs=expected_runs,
+        )
         if failures:
             print("\nREADINESS FAILURES", file=sys.stderr)
             for failure in failures:

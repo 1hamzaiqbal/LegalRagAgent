@@ -138,6 +138,10 @@ naming:
 Manifest:
 `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/adaptive_hyre_n200_targeted_20260509_185235.tsv`.
 
+Targeted N=200 postprocessing should use `--expected-run` for the ten launched
+dataset/mode pairs. Do not use the full adaptive readiness gate for this wave,
+because it intentionally scales only the N=50 frontier policies and controls.
+
 ## Methods To Run
 
 Option-style datasets (`barexam`, `casehold`, `legalbench_scalr`):
@@ -253,6 +257,25 @@ python scripts/postprocess_adaptive_hyre_sweep.py --min-n 20 --dataset legalbenc
 
 The readiness gate requires every expected adaptive mode to be present and to
 pass `scripts/audit_adaptive_hyre_logs.py`.
+
+For the targeted N=200 wave, use targeted readiness instead:
+
+```bash
+python scripts/postprocess_adaptive_hyre_sweep.py --min-n 200 \
+  --provider or-gemma4-26b \
+  --tag-contains adaptive-hyre-or-gemma4-26b \
+  --expected-run barexam:rag_simple \
+  --expected-run barexam:adaptive_snap_hyre \
+  --expected-run housing:rag_state_filter \
+  --expected-run housing:snap_hyre_state \
+  --expected-run housing:adaptive_snap_hyre_diverse \
+  --expected-run casehold:rag_simple \
+  --expected-run casehold:adaptive_snap_hyre_diverse \
+  --expected-run legalbench_scalr:rag_simple \
+  --expected-run legalbench_scalr:rag_snap_hyde_2call \
+  --expected-run legalbench_scalr:adaptive_snap_hyre_anchor \
+  --require-ready
+```
 
 To run the strict gate over all four legal datasets:
 
