@@ -32,10 +32,10 @@ DEFAULT_MODES = {
     "adaptive_snap_hyre_v2",
 }
 DEFAULT_COMPARISONS = {
-    "barexam": [("rag_simple", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
-    "casehold": [("rag_simple", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
-    "legalbench_scalr": [("rag_simple", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
-    "housing": [("rag_state_filter", "adaptive_snap_hyre"), ("snap_hyre_state", "adaptive_snap_hyre"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
+    "barexam": [("rag_simple", "adaptive_snap_hyre"), ("rag_simple", "adaptive_snap_hyre_v2"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
+    "casehold": [("rag_simple", "adaptive_snap_hyre"), ("rag_simple", "adaptive_snap_hyre_v2"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
+    "legalbench_scalr": [("rag_simple", "adaptive_snap_hyre"), ("rag_simple", "adaptive_snap_hyre_v2"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre_v2"), ("snap_hyre_option", "adaptive_snap_hyre"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
+    "housing": [("rag_state_filter", "adaptive_snap_hyre"), ("rag_state_filter", "adaptive_snap_hyre_v2"), ("snap_hyre_state", "adaptive_snap_hyre"), ("snap_hyre_state", "adaptive_snap_hyre_v2"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
 }
 EXPECTED_ADAPTIVE_MODES = {
     "barexam": ("snap_hyre_option", "adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse"),
