@@ -1798,8 +1798,21 @@ def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
     question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Single LLM call producing snap reasoning + HyDE passage.
-    combined_raw = _llm_call(_snap_hyde_2call_system(config), question, label="snap_hyde_2call/snap_and_hyde")
-    snap_block, hyde_passage, parse_ok = _split_snap_and_hyde(combined_raw, fallback_passage=question_intermediate)
+    # Optional replay keeps the generated HyRE fixed while testing downstream changes.
+    cache_entry = _hyre_cache_entry(row, config)
+    if cache_entry:
+        combined_raw = str(cache_entry.get("snap_and_hyre_raw") or cache_entry.get("hyde_passage_raw") or "")
+        snap_block = str(cache_entry.get("snap_answer") or "")
+        hyde_passage = str(cache_entry.get("hyde_passage") or "")
+        parse_ok = bool(cache_entry.get("snap_hyre_parse_ok", True))
+        if not hyde_passage:
+            snap_block, hyde_passage, parse_ok = _split_snap_and_hyde(
+                combined_raw,
+                fallback_passage=question_intermediate,
+            )
+    else:
+        combined_raw = _llm_call(_snap_hyde_2call_system(config), question, label="snap_hyde_2call/snap_and_hyde")
+        snap_block, hyde_passage, parse_ok = _split_snap_and_hyde(combined_raw, fallback_passage=question_intermediate)
     snap_letter = _extract_answer(snap_block, config)
     hyde_contains_answer = _contains_answer_artifact(hyde_passage)
 
@@ -1821,6 +1834,8 @@ def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
         "snap_letter": snap_letter,
         "snap_and_hyde_raw": combined_raw,
         "snap_hyde_2call_parse_ok": parse_ok,
+        "hyre_cache_hit": bool(cache_entry),
+        "hyre_cache_label": _row_label(row, config) if cache_entry else "",
         "hyde_passage": hyde_passage,
         "hyde_passage_raw": combined_raw,
         "hyde_contains_answer_artifact": hyde_contains_answer,
