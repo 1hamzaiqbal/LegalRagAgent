@@ -514,6 +514,22 @@ def _option_grounding_system(config: EvalConfig) -> str:
     return base
 
 
+def _housing_verifier_system(config: EvalConfig) -> str:
+    """Conservative final prompt for HousingQA yes/no statutory entailment."""
+    base = _system_prompt(config, "rag")
+    if config.dataset != "housing":
+        return base
+    return (
+        base
+        + "\n\nHOUSING YES/NO VERIFICATION REQUIREMENTS:\n"
+        "- Treat the retrieved statutes as the controlling evidence.\n"
+        "- Answer Yes only if the retrieved statutes affirmatively authorize or require the proposition in the question.\n"
+        "- Answer No if the retrieved statutes contradict it, omit a required condition, create an exception, or leave authorization uncertain.\n"
+        "- Do not infer a landlord/tenant power from general housing-law background if the retrieved statutes do not support it.\n"
+        "- End with exactly one final line: Answer: Yes or Answer: No"
+    )
+
+
 def _adaptive_hyre_route(row: pd.Series, config: EvalConfig) -> str:
     """Task-shape route for the one-policy HyRE runner."""
     if config.dataset == "housing" and _housing_state_where(row, config):
@@ -2104,6 +2120,36 @@ def run_adaptive_snap_hyre_frontier(row: pd.Series, config: EvalConfig) -> dict:
         out = run_adaptive_snap_hyre_v2(row, config)
         out["hyre_route"] = f"frontier_fallback_{config.dataset}"
     out["adaptive_policy"] = "audited_n200_frontier_v1"
+    return out
+
+
+def run_adaptive_snap_hyre_housing_verifier(row: pd.Series, config: EvalConfig) -> dict:
+    """Housing-specific entailment verifier on top of fixed/diverse HyRE retrieval.
+
+    The cached replay audit shows Housing errors skew toward false-positive Yes
+    answers. This keeps the same retrieval object as the frontier Housing route
+    but changes only the final answer prompt to require explicit statutory
+    support before saying Yes.
+    """
+    if config.dataset != "housing":
+        out = run_adaptive_snap_hyre_frontier(row, config)
+        out["hyre_route"] = f"housing_verifier_fallback_{config.dataset}"
+        out["adaptive_policy"] = "housing_yes_no_verifier_v1"
+        return out
+
+    out = _snap_hyre_retrieve_and_answer(
+        row,
+        config,
+        label_prefix="adaptive_snap_hyre_housing_verifier",
+        where=_housing_state_where(row, config),
+        final_system=_housing_verifier_system(config),
+        rerank_query=_retrieval_question(row),
+        include_raw_anchor=True,
+        include_snap_anchor=True,
+    )
+    out["hyre_route"] = "housing_yes_no_verifier"
+    out["adaptive_policy"] = "housing_yes_no_verifier_v1"
+    out["final_context_fields"] = ["retrieved_passages", "question", "housing_yes_no_verifier_instruction"]
     return out
 
 
@@ -5715,6 +5761,7 @@ MODE_RUNNERS = {
     "adaptive_snap_hyre_v2": run_adaptive_snap_hyre_v2,
     "adaptive_snap_hyre_frontier": run_adaptive_snap_hyre_frontier,
     "adaptive_snap_hyre_stability": run_adaptive_snap_hyre_stability,
+    "adaptive_snap_hyre_housing_verifier": run_adaptive_snap_hyre_housing_verifier,
     "gap_hyde": run_gap_hyde,
     "gap_hyde_ev": run_gap_hyde_ev,
     "gap_hyde_nosnap": run_gap_hyde_nosnap,

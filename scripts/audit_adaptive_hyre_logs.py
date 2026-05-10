@@ -18,6 +18,7 @@ ADAPTIVE_MODES = {
     "adaptive_snap_hyre_v2",
     "adaptive_snap_hyre_frontier",
     "adaptive_snap_hyre_stability",
+    "adaptive_snap_hyre_housing_verifier",
     "snap_hyre_option",
     "snap_hyre_state",
 }
@@ -27,6 +28,7 @@ EXPECTED_LLM_CALLS = {
     "adaptive_snap_hyre_diverse": 2.0,
     "adaptive_snap_hyre_v2": 2.0,
     "adaptive_snap_hyre_frontier": 2.0,
+    "adaptive_snap_hyre_housing_verifier": 2.0,
     "snap_hyre_option": 2.0,
     "snap_hyre_state": 2.0,
 }
@@ -54,6 +56,9 @@ EXPECTED_ROUTES_BY_MODE = {
         "casehold": {"stability_casehold"},
         "legalbench_scalr": {"stability_legalbench_scalr"},
         "housing": {"stability_housing"},
+    },
+    "adaptive_snap_hyre_housing_verifier": {
+        "housing": {"housing_yes_no_verifier"},
     },
 }
 SUSPICIOUS_ANSWER_SNIPPETS = (
