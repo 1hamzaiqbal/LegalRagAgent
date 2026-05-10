@@ -86,6 +86,7 @@ required = [
     "adaptive_snap_hyre_candidate_verifier",
     "adaptive_snap_hyre_option_reranker",
     "adaptive_snap_hyre_option_score",
+    "adaptive_snap_hyre_option_table",
 ]
 missing = [mode for mode in required if mode not in EVAL_MODES]
 if missing:

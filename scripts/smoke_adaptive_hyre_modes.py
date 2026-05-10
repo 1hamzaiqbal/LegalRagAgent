@@ -82,6 +82,46 @@ def _run_mode(mode: str, dataset: str, row: pd.Series, expected_queries: int, ex
     assert all("Answer:" not in query for query in queries[1:]), (mode, queries)
 
 
+def _run_option_table_mode() -> None:
+    retrieval_calls: list[dict] = []
+
+    def fake_retrieve(_row, queries, **kwargs):
+        retrieval_calls.append({
+            "queries": list(queries),
+            "where": kwargs.get("where"),
+            "rerank_query": kwargs.get("rerank_query"),
+            "label_prefix": kwargs.get("label_prefix"),
+        })
+        label = str(kwargs.get("label_prefix") or "")
+        candidate = label.rsplit("_", 1)[-1]
+        return {
+            "passages": [f"dummy passage for {candidate}"],
+            "evidence_store": [{
+                "idx": f"dummy_{candidate}",
+                "text": f"retrieved holding evidence for candidate {candidate}",
+                "cross_encoder_score": 1.0,
+            }],
+            "retrieved_ids": [f"dummy_{candidate}"],
+            "gold_retrieved": False,
+        }
+
+    harness._llm_call = _fake_llm
+    harness._retrieve_and_format = fake_retrieve
+
+    config = EvalConfig(mode="adaptive_snap_hyre_option_table", dataset="casehold", retrieval_k=5)
+    out = harness.MODE_RUNNERS["adaptive_snap_hyre_option_table"](_casehold_row(), config)
+    assert out["hyre_route"] == "casehold_option_table", out
+    assert out["adaptive_policy"] == "casehold_option_table_v1", out
+    assert len(retrieval_calls) == 5, retrieval_calls
+    assert len(out["candidate_score_table"]) == 5, out
+    assert out["final_context_fields"] == [
+        "question",
+        "snap_reasoning",
+        "hyde_passage",
+        "candidate_score_table",
+    ], out
+
+
 def main() -> None:
     required_modes = {
         "adaptive_snap_hyre": 1,
@@ -97,6 +137,7 @@ def main() -> None:
 
     # Housing should route through the state-filter branch when metadata exists.
     _run_mode("adaptive_snap_hyre_diverse", "housing", _housing_row(), 3, "state_filter")
+    _run_option_table_mode()
     print("adaptive HyRE smoke checks passed")
 
 

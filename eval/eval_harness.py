@@ -571,6 +571,22 @@ def _option_reranker_system(config: EvalConfig) -> str:
     )
 
 
+def _option_table_selector_system(config: EvalConfig) -> str:
+    """Bounded final prompt for compact CaseHOLD option evidence tables."""
+    base = _system_prompt(config, "rag")
+    if config.dataset != "casehold":
+        return base
+    return (
+        base
+        + "\n\nOPTION TABLE SELECTION REQUIREMENTS:\n"
+        "- The table lists every displayed holding, its best candidate-conditioned retrieval score, and a short evidence snippet.\n"
+        "- Cross-encoder scores are only retrieval features; do not pick the maximum score unless the holding also fits the cited context.\n"
+        "- Compare the rule, legal relationship, procedural posture, and fact pattern of all five holdings.\n"
+        "- Use the score and snippet to break ties, but reject a high-scoring option if it is only lexical overlap.\n"
+        "- End with exactly one final line in the form: Answer: (X)"
+    )
+
+
 def _adaptive_hyre_route(row: pd.Series, config: EvalConfig) -> str:
     """Task-shape route for the one-policy HyRE runner."""
     if config.dataset == "housing" and _housing_state_where(row, config):
@@ -2405,6 +2421,119 @@ def run_adaptive_snap_hyre_option_score(row: pd.Series, config: EvalConfig) -> d
         "adaptive_policy": "casehold_option_score_v1",
         "candidate_scores": candidate_scores,
         "selected_candidate": selected,
+    }
+
+
+def run_adaptive_snap_hyre_option_table(row: pd.Series, config: EvalConfig) -> dict:
+    """CaseHOLD compact LLM selector over candidate-conditioned score snippets."""
+    if config.dataset != "casehold":
+        out = run_adaptive_snap_hyre_frontier(row, config)
+        out["hyre_route"] = f"option_table_fallback_{config.dataset}"
+        out["adaptive_policy"] = "casehold_option_table_v1"
+        return out
+
+    question = _fmt(row, config)
+    raw_question = _retrieval_question(row)
+    question_intermediate = _fmt_intermediate(row, config)
+    choices = _choice_texts(row, config)
+    cache_entry = _hyre_cache_entry(row, config)
+    if cache_entry:
+        combined_raw = str(cache_entry.get("snap_and_hyre_raw") or cache_entry.get("hyde_passage_raw") or "")
+        snap_block = str(cache_entry.get("snap_answer") or "")
+        hyre_passage = str(cache_entry.get("hyde_passage") or "")
+        parse_ok = bool(cache_entry.get("snap_hyre_parse_ok", True))
+        if not hyre_passage:
+            snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(
+                combined_raw,
+                fallback_passage=question_intermediate,
+            )
+    else:
+        combined_raw = _llm_call(
+            _snap_hyde_2call_system(config),
+            question,
+            label="adaptive_snap_hyre_option_table/snap_and_hyre",
+        )
+        snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(
+            combined_raw,
+            fallback_passage=question_intermediate,
+        )
+
+    evidence_store = []
+    retrieved_ids = []
+    table_rows: list[dict] = []
+    for letter, text in choices.items():
+        choice_query = f"{raw_question}\n\nCandidate holding {letter}: {text}"
+        choice_result = _retrieve_and_format(
+            row,
+            [choice_query, hyre_passage],
+            k=1,
+            label_prefix=f"adaptive_snap_hyre_option_table_{letter}",
+            where=_where_from_config(config),
+            collection=_collection_for_config(config),
+            rerank_query=choice_query,
+        )
+        top_ev = choice_result["evidence_store"][0] if choice_result["evidence_store"] else {}
+        score = float(top_ev.get("cross_encoder_score", 0.0) or 0.0) if top_ev else float("-inf")
+        snippet = _preview_text(str(top_ev.get("text", "")), limit=360) if top_ev else "(no retrieved evidence)"
+        table_rows.append({
+            "candidate": letter,
+            "holding": text,
+            "score": score,
+            "snippet": snippet,
+        })
+        for ev in choice_result["evidence_store"]:
+            ev = dict(ev)
+            ev["candidate"] = letter
+            evidence_store.append(ev)
+            retrieved_ids.append(ev["idx"])
+
+    score_lines = []
+    for item in table_rows:
+        score = item["score"]
+        score_text = "n/a" if score == float("-inf") else f"{score:.4f}"
+        score_lines.append(
+            f"Candidate {item['candidate']} | score={score_text}\n"
+            f"Holding: {item['holding']}\n"
+            f"Evidence: {item['snippet']}"
+        )
+    score_table = "\n\n".join(score_lines)
+    user = (
+        "## CaseHOLD Citing Context And Answer Options\n"
+        f"{question}\n\n"
+        "## Snap Reasoning Signal\n"
+        f"{snap_block}\n\n"
+        "## HyRE Retrieval Passage\n"
+        f"{hyre_passage}\n\n"
+        "## Per-Candidate Retrieval Score Table\n"
+        f"{score_table}"
+    )
+    answer = _llm_call(_option_table_selector_system(config), user, label="adaptive_snap_hyre_option_table/answer")
+
+    retrieved_ids = list(dict.fromkeys(str(idx) for idx in retrieved_ids))
+    return {
+        "final_answer": answer,
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
+        "snap_answer": snap_block,
+        "snap_letter": _extract_answer(snap_block, config),
+        "snap_and_hyre_raw": combined_raw,
+        "snap_hyre_parse_ok": parse_ok,
+        "hyre_cache_hit": bool(cache_entry),
+        "hyre_cache_label": _row_label(row, config) if cache_entry else "",
+        "hyde_passage": hyre_passage,
+        "hyde_passage_raw": combined_raw,
+        "hyde_contains_answer_artifact": _contains_answer_artifact(hyre_passage),
+        "retrieval_queries": [choices[l] for l in choices],
+        "rerank_query": "candidate_score_table",
+        "retrieval_where": _where_from_config(config) or {},
+        "final_context_fields": ["question", "snap_reasoning", "hyde_passage", "candidate_score_table"],
+        "final_prompt_preview": _preview_text(user),
+        "evidence_store": evidence_store,
+        "retrieved_ids": retrieved_ids,
+        "gold_retrieved": _is_gold_retrieved(row, retrieved_ids),
+        "hyre_route": "casehold_option_table",
+        "adaptive_policy": "casehold_option_table_v1",
+        "candidate_score_table": table_rows,
     }
 
 
@@ -6020,6 +6149,7 @@ MODE_RUNNERS = {
     "adaptive_snap_hyre_candidate_verifier": run_adaptive_snap_hyre_candidate_verifier,
     "adaptive_snap_hyre_option_reranker": run_adaptive_snap_hyre_option_reranker,
     "adaptive_snap_hyre_option_score": run_adaptive_snap_hyre_option_score,
+    "adaptive_snap_hyre_option_table": run_adaptive_snap_hyre_option_table,
     "gap_hyde": run_gap_hyde,
     "gap_hyde_ev": run_gap_hyde_ev,
     "gap_hyde_nosnap": run_gap_hyde_nosnap,
