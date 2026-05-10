@@ -19,15 +19,19 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
 
 from dotenv import load_dotenv
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
-
-from llm_config import PROVIDERS  # type: ignore
+import requests
 
 load_dotenv(REPO_ROOT / ".env")
+
+
+PROVIDERS = {
+    "or-gemma4-26b": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-4-26b-a4b-it"),
+    "or-gemma4-26b-free": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-4-26b-a4b-it:free"),
+    "or-llama70b": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "meta-llama/llama-3.3-70b-instruct:free"),
+    "cerebras": ("https://api.cerebras.ai/v1", "CEREBRAS_API_KEY", "llama-3.3-70b"),
+}
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -102,10 +106,10 @@ def selector_system(variant: str) -> str:
     raise ValueError(f"unknown variant: {variant}")
 
 
-def make_llm(provider: str) -> tuple[ChatOpenAI, str]:
+def resolve_provider(provider: str) -> tuple[str, str, str]:
     provider = provider.strip().lower()
     if provider in PROVIDERS:
-        base_url, key_env, model, _, _ = PROVIDERS[provider]
+        base_url, key_env, model = PROVIDERS[provider]
         api_key = os.getenv(key_env or "", "") if key_env else "ollama"
     else:
         base_url = os.getenv("LLM_BASE_URL", "https://api.cerebras.ai/v1")
@@ -113,26 +117,26 @@ def make_llm(provider: str) -> tuple[ChatOpenAI, str]:
         model = os.getenv("LLM_MODEL", "llama-3.3-70b")
     if not api_key or api_key == "no-key-set":
         raise SystemExit(f"missing API key for provider={provider}")
-    return (
-        ChatOpenAI(
-            base_url=base_url,
-            api_key=api_key,
-            model=model,
-            temperature=0.0,
-            timeout=60,
-            max_retries=1,
-        ),
-        model,
-    )
+    return base_url.rstrip("/"), api_key, model
 
 
-def llm_call(llm: ChatOpenAI, model: str, system: str, user: str) -> str:
+def llm_call(base_url: str, api_key: str, model: str, system: str, user: str) -> str:
     if "gemma" in model.lower():
-        messages = [HumanMessage(content=f"[Instructions]\n{system}\n\n[Query]\n{user}")]
+        messages = [{"role": "user", "content": f"[Instructions]\n{system}\n\n[Query]\n{user}"}]
     else:
-        messages = [SystemMessage(content=system), HumanMessage(content=user)]
-    response = llm.invoke(messages)
-    return str(response.content or "")
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ]
+    response = requests.post(
+        f"{base_url}/chat/completions",
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json={"model": model, "messages": messages, "temperature": 0.0},
+        timeout=75,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    return str(payload["choices"][0]["message"]["content"] or "")
 
 
 def token_estimate(text: str) -> int:
@@ -178,7 +182,7 @@ def main() -> None:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     system = selector_system(args.variant)
-    llm, model = make_llm(args.provider)
+    base_url, api_key, model = resolve_provider(args.provider)
     print(f"provider={args.provider} model={model} rows={len(rows)} variant={args.variant}", flush=True)
 
     correct = 0
@@ -194,7 +198,7 @@ def main() -> None:
                 if args.max_user_chars > 0 and len(user) > args.max_user_chars:
                     user = user[: args.max_user_chars] + "\n\n[Replay prompt truncated to configured character budget.]"
                 print(f"[{i}/{len(rows)}] calling {row.get('label')} user_chars={len(user)}", flush=True)
-                answer = llm_call(llm, model, system, user)
+                answer = llm_call(base_url, api_key, model, system, user)
                 predicted = extract_answer(answer)
             except Exception as exc:
                 error = str(exc)
