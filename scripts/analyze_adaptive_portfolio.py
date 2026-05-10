@@ -95,6 +95,15 @@ def policy_answer(policy: str, rows: dict[str, dict[str, Any]], methods: list[st
     raise ValueError(f"unknown policy: {policy}")
 
 
+def policy_applies(policy: str, methods: list[str]) -> bool:
+    if policy in {"first", "majority"}:
+        return True
+    if policy.startswith("prefer:"):
+        order = [item.strip() for item in policy.split(":", 1)[1].split(",") if item.strip()]
+        return any(method in methods for method in order)
+    return True
+
+
 def analyze_dataset(dataset: str, logs: dict[str, dict[str, Any]], policies: list[str]) -> str:
     methods = list(logs)
     labels = sorted(set.intersection(*(set(rows) for rows in logs.values())))
@@ -143,6 +152,8 @@ def analyze_dataset(dataset: str, logs: dict[str, dict[str, Any]], policies: lis
         ]
     )
     for policy in policies:
+        if not policy_applies(policy, methods):
+            continue
         good = 0
         total_calls = 0.0
         for rows in joined.values():
