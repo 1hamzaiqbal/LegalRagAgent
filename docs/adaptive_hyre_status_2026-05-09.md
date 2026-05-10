@@ -169,6 +169,21 @@ Refresh at 2026-05-09 23:35 CT:
   - Main design signal: SCALR v2 routes to plain two-call Snap-HyDE and avoids
     the anchor-loop parse failures seen in `adaptive_snap_hyre_anchor`.
 
+Refresh at 2026-05-10 00:30 CT:
+
+- Tightened the shared two-call Snap/HyRE prompt to cap the first response and
+  stop after the `## Passage` block. This targets the repeated provider/model
+  loop pattern that produced parse failures without changing the two-call
+  budget.
+- Housing v2-tight retry job `66997` landed cleanly at 62.0% with audit PASS.
+  This confirms the prompt tightening fixes the parse issue, but the controller
+  should still prefer the stronger N=200 Housing `adaptive_snap_hyre_diverse`
+  frontier.
+- Barexam clean retry job `66950` landed at 83.0% but still has one Snap/HyRE
+  parse failure because it started before the tightened prompt was pulled onto
+  the cluster worktree. Hardened Barexam v2 N=200 job `67005` is running as the
+  current clean replacement candidate.
+
 ## Methods To Run
 
 Option-style datasets (`barexam`, `casehold`, `legalbench_scalr`):
