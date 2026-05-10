@@ -362,6 +362,56 @@ def _preview_text(text: str, limit: int = 1200) -> str:
     return text[:limit] + ("..." if len(text) > limit else "")
 
 
+_HYRE_CACHE: dict[str, dict] | None = None
+_HYRE_CACHE_PATH: str | None = None
+
+
+def _row_label(row: pd.Series, config: EvalConfig, fallback_i: int | None = None) -> str:
+    """Stable per-row label shared by logs and optional HyRE replay caches."""
+    i = row.get("idx", fallback_i if fallback_i is not None else "")
+    if config.dataset == "housing":
+        return f"hqa_{row.get('state', 'unknown')}_{i}"
+    if config.dataset == "casehold":
+        return f"ch_{i}"
+    if config.dataset == "legal_rag":
+        return f"lrq_{i}"
+    if config.dataset == "australian":
+        return f"aus_{row.get('jurisdiction', 'unknown')}_{i}"
+    if config.dataset == "musique":
+        return f"mq_{i}"
+    return f"qa_{row.get('subject', 'unknown')}_{i}"
+
+
+def _load_hyre_cache(path: str) -> dict[str, dict]:
+    """Load a JSONL cache keyed by row label for deterministic HyRE replay."""
+    global _HYRE_CACHE, _HYRE_CACHE_PATH
+    if not path:
+        return {}
+    if _HYRE_CACHE is not None and _HYRE_CACHE_PATH == path:
+        return _HYRE_CACHE
+
+    cache: dict[str, dict] = {}
+    with open(path) as f:
+        for line_no, line in enumerate(f, 1):
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            label = row.get("label")
+            if not label:
+                raise ValueError(f"{path}:{line_no}: missing label")
+            cache[str(label)] = row
+    _HYRE_CACHE = cache
+    _HYRE_CACHE_PATH = path
+    return cache
+
+
+def _hyre_cache_entry(row: pd.Series, config: EvalConfig) -> dict | None:
+    path = (config.hyre_cache_path or os.getenv("HYRE_CACHE_PATH", "")).strip()
+    if not path:
+        return None
+    return _load_hyre_cache(path).get(_row_label(row, config))
+
+
 def _question_only_hyde_user(question_text: str) -> str:
     """Structured user payload for question-only HyDE generation."""
     return (
@@ -489,15 +539,27 @@ def _snap_hyre_retrieve_and_answer(
     raw_question = _retrieval_question(row)
     question_intermediate = _fmt_intermediate(row, config)
 
-    combined_raw = _llm_call(
-        _snap_hyde_2call_system(config),
-        question,
-        label=f"{label_prefix}/snap_and_hyre",
-    )
-    snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(
-        combined_raw,
-        fallback_passage=question_intermediate,
-    )
+    cache_entry = _hyre_cache_entry(row, config)
+    if cache_entry:
+        combined_raw = str(cache_entry.get("snap_and_hyre_raw") or cache_entry.get("hyde_passage_raw") or "")
+        snap_block = str(cache_entry.get("snap_answer") or "")
+        hyre_passage = str(cache_entry.get("hyde_passage") or "")
+        parse_ok = bool(cache_entry.get("snap_hyre_parse_ok", True))
+        if not hyre_passage:
+            snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(
+                combined_raw,
+                fallback_passage=question_intermediate,
+            )
+    else:
+        combined_raw = _llm_call(
+            _snap_hyde_2call_system(config),
+            question,
+            label=f"{label_prefix}/snap_and_hyre",
+        )
+        snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(
+            combined_raw,
+            fallback_passage=question_intermediate,
+        )
     snap_letter = _extract_answer(snap_block, config)
     hyre_contains_answer = _contains_answer_artifact(hyre_passage)
     queries = [hyre_passage]
@@ -530,6 +592,8 @@ def _snap_hyre_retrieve_and_answer(
         "snap_letter": snap_letter,
         "snap_and_hyre_raw": combined_raw,
         "snap_hyre_parse_ok": parse_ok,
+        "hyre_cache_hit": bool(cache_entry),
+        "hyre_cache_label": _row_label(row, config) if cache_entry else "",
         "hyde_passage": hyre_passage,
         "hyde_passage_raw": combined_raw,
         "hyde_contains_answer_artifact": hyre_contains_answer,
@@ -5819,22 +5883,17 @@ def run_eval(config: EvalConfig):
         # Dataset-specific labeling
         if config.dataset == "housing":
             subject = str(row.get("state", "unknown"))
-            label = f"hqa_{subject}_{row.get('idx', i)}"
         elif config.dataset == "casehold":
             subject = "casehold"
-            label = f"ch_{row.get('idx', i)}"
         elif config.dataset == "legal_rag":
             subject = "crim_law"
-            label = f"lrq_{row.get('idx', i)}"
         elif config.dataset == "australian":
             subject = str(row.get("jurisdiction", "unknown"))
-            label = f"aus_{subject}_{row.get('idx', i)}"
         elif config.dataset == "musique":
             subject = f"{int(row.get('n_hops', 0))}-hop"
-            label = f"mq_{row.get('idx', i)}"
         else:
             subject = str(row.get("subject", "unknown"))
-            label = f"qa_{subject}_{row.get('idx', i)}"
+        label = _row_label(row, config, i)
         idx = str(row.get("idx", i))
 
         # Gold answer formatting
@@ -6131,6 +6190,8 @@ def main():
                         help="Optional start offset after deterministic question sampling")
     parser.add_argument("--sample-end", type=int, default=None,
                         help="Optional end offset after deterministic question sampling")
+    parser.add_argument("--hyre-cache-path", default="",
+                        help="Optional JSONL cache of snap/HyRE generations keyed by detail-log label")
 
     args = parser.parse_args()
 
@@ -6150,6 +6211,7 @@ def main():
         retrieval_k=args.retrieval_k,
         sample_start=args.sample_start,
         sample_end=args.sample_end,
+        hyre_cache_path=args.hyre_cache_path,
     )
 
     run_eval(config)

@@ -24,6 +24,7 @@ class EvalConfig:
     retrieval_k: int = 5              # final top-k after rerank for retrieval modes
     sample_start: int = 0             # optional slice start after deterministic sampling
     sample_end: int | None = None     # optional slice end after deterministic sampling
+    hyre_cache_path: str = ""         # optional JSONL cache for replaying snap/HyRE generations
 
 
 EVAL_MODES = {
