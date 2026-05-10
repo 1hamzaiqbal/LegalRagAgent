@@ -13,7 +13,7 @@ convert retrieved evidence into the right displayed holding.
 
 ## Submission
 
-- Active job: `67530`
+- Active job: `67531`
 - Superseded job: `67519` failed in preflight before method execution because
   the cluster launch did not see `adaptive_snap_hyre_option_table` in
   `EVAL_MODES`; the mode was confirmed present in the checkout and importable
@@ -40,25 +40,27 @@ convert retrieved evidence into the right displayed holding.
   but forces local retrieval/reranking models to CPU with
   `EMBEDDING_DEVICE=cpu` and `CROSS_ENCODER_DEVICE=cpu`; it still failed after
   five rows with a cross-encoder index error.
-- Next fallback should set `DISABLE_CROSS_ENCODER=1` so the option-table prompt
-  can be tested over dense candidate tables without the brittle cross-encoder
-  reranking path.
+- Job `67531` sets `DISABLE_CROSS_ENCODER=1` so the option-table prompt can be
+  tested over dense candidate tables without the brittle cross-encoder reranking
+  path.
 - Dataset: `casehold`
 - Mode: `adaptive_snap_hyre_option_table`
-- Provider path: OpenRouter Gemma 4 26B API with CPU local retrieval/reranking
+- Provider path: OpenRouter Gemma 4 26B API with CPU dense retrieval and no
+  cross-encoder reranking
 - Slice: `--questions 250 --sample-start 200 --sample-end 250`
 - Effective evaluated rows: 50
 - Retrieval: `k=5`
-- Tag: `casehold-option-table-heldout-or-gemma4-26b-api-cpu-casehold-q250-start200-end250-k5`
+- Tag: `casehold-option-table-heldout-or-gemma4-26b-api-dense-casehold-q250-start200-end250-k5`
 
 ## Integration Gate
 
 Before promoting results:
 
-1. Confirm `sacct` completion and exit code for job `67530`.
-2. Inspect `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/67530.out` for
+1. Confirm `sacct` completion and exit code for job `67531`.
+2. Inspect `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/67531.out` for
    Tracebacks, API/rate-limit errors, parsing failures, empty retrieval, or
-   timeout; also confirm the CUDA assert from `67528` does not recur.
+   timeout; also confirm the CUDA assert from `67528` and cross-encoder index
+   error from `67530` do not recur.
 3. Run `scripts/analyze_detail_flags.py` on the landed detail JSONL.
 4. Run `scripts/audit_adaptive_hyre_logs.py` on the landed detail JSONL.
 5. Compare against the held-out CaseHOLD rows already validated:
