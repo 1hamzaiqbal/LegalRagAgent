@@ -43,6 +43,10 @@ convert retrieved evidence into the right displayed holding.
 - Job `67531` sets `DISABLE_CROSS_ENCODER=1` so the option-table prompt can be
   tested over dense candidate tables without the brittle cross-encoder reranking
   path.
+- Superseded job: `67531` still failed after five rows with the same index
+  error, which points to the candidate-conditioned embedding query rather than
+  the cross-encoder. The next retry should bound option-table retrieval query
+  fields with `OPTION_TABLE_QUERY_CHARS`.
 - Dataset: `casehold`
 - Mode: `adaptive_snap_hyre_option_table`
 - Provider path: OpenRouter Gemma 4 26B API with CPU dense retrieval and no
