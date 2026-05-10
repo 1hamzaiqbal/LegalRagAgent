@@ -4,7 +4,9 @@
 This is for testing answer-option conversion without doing any fresh Chroma
 retrieval or embedding. It consumes a detail JSONL that already contains the
 question, choices, snap/HyRE text, and candidate evidence prompt, then asks one
-new final-selector LLM call per row.
+new final-selector LLM call per row. It can also consume escalation rows
+exported by analyze_casehold_disagreements.py, which lets us test targeted
+answer-conversion prompts without re-running retrieval.
 """
 
 from __future__ import annotations
@@ -76,6 +78,50 @@ def source_user_prompt(row: dict[str, Any]) -> str:
     raise ValueError(f"{row.get('label', '?')}: no replayable selector prompt")
 
 
+def is_escalation_row(row: dict[str, Any]) -> bool:
+    return "evidence_snippets" in row and "method_predictions" in row and "choices" in row
+
+
+def format_choices(choices: Any) -> str:
+    if isinstance(choices, dict):
+        items = sorted((str(k).upper(), str(v)) for k, v in choices.items())
+    elif isinstance(choices, list):
+        letters = ["A", "B", "C", "D", "E"]
+        items = [(letters[i], str(value)) for i, value in enumerate(choices[:5])]
+    else:
+        return str(choices or "")
+    return "\n".join(f"({letter}) {text}" for letter, text in items)
+
+
+def format_method_predictions(row: dict[str, Any]) -> str:
+    predictions = row.get("method_predictions") or {}
+    correctness = row.get("method_correct") or {}
+    if not isinstance(predictions, dict):
+        return str(predictions)
+    lines = []
+    for name in sorted(predictions):
+        marker = ""
+        if isinstance(correctness, dict) and name in correctness:
+            marker = " [correct]" if correctness[name] else " [wrong]"
+        lines.append(f"- {name}: {predictions[name]}{marker}")
+    return "\n".join(lines) if lines else "(none)"
+
+
+def format_evidence(row: dict[str, Any], limit: int = 6) -> str:
+    snippets = row.get("evidence_snippets") or []
+    if not isinstance(snippets, list):
+        return str(snippets)
+    lines = []
+    for i, snippet in enumerate(snippets[:limit], 1):
+        if isinstance(snippet, dict):
+            letter = str(snippet.get("choice", snippet.get("letter", "?"))).upper()
+            text = snippet.get("text") or snippet.get("snippet") or snippet.get("content") or snippet
+            lines.append(f"[{i}] Candidate {letter}: {text}")
+        else:
+            lines.append(f"[{i}] {snippet}")
+    return "\n\n".join(lines) if lines else "(no evidence snippets)"
+
+
 def selector_system(variant: str) -> str:
     base = (
         "You are a careful legal holding selector for CaseHOLD. You must choose "
@@ -102,6 +148,15 @@ def selector_system(variant: str) -> str:
             "- CaseHOLD distractors often differ by unnecessary specificity.\n"
             "- Prefer the candidate that states the cited holding at the right level of generality.\n"
             "- Penalize candidates that add parties, agencies, facts, or procedural details not required by the citing context."
+        )
+    if variant == "rule_frame":
+        return (
+            base
+            + "\n\nRULE-FRAME RULES:\n"
+            "- First normalize every answer option into a compact rule frame: legal rule, parties/object, procedural posture, required facts, and extra specificity.\n"
+            "- Match the citing context to the normalized rule frames before relying on retrieved snippets.\n"
+            "- Treat previous method predictions as weak signals only; disagreement means you should explain the discriminating feature.\n"
+            "- Prefer the least over-specified candidate whose rule frame fully covers the citing context."
         )
     raise ValueError(f"unknown variant: {variant}")
 
@@ -144,6 +199,29 @@ def token_estimate(text: str) -> int:
 
 
 def replay_user_prompt(row: dict[str, Any], variant: str) -> str:
+    if variant == "rule_frame" and is_escalation_row(row):
+        question = row.get("question") or row.get("query") or row.get("citing_context") or ""
+        parts = [
+            "## Citing Context / Question",
+            str(question),
+            "## Candidate Holdings",
+            format_choices(row.get("choices")),
+            "## Previous Method Predictions",
+            format_method_predictions(row),
+            "## Snap Answer Hypothesis",
+            f"letter={row.get('snap_letter')} text={row.get('snap_answer', '')}",
+            "## HyRE Passage",
+            str(row.get("hyde_passage", "")),
+            "## Retrieved Evidence Snippets",
+            format_evidence(row),
+            "## Task",
+            (
+                "Write one short rule frame for each candidate A-E, then choose the candidate whose "
+                "rule frame best matches the citing context. End with exactly one final line: Answer: (X)."
+            ),
+        ]
+        return "\n\n".join(parts)
+
     original = source_user_prompt(row)
     parts = [
         "## Original Candidate Evidence Prompt",
@@ -171,7 +249,11 @@ def main() -> None:
     parser.add_argument("--source-log", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--provider", default=os.getenv("LLM_PROVIDER", "or-gemma4-26b"))
-    parser.add_argument("--variant", choices=["strict", "snap_guard", "minimal_rule"], default="minimal_rule")
+    parser.add_argument(
+        "--variant",
+        choices=["strict", "snap_guard", "minimal_rule", "rule_frame"],
+        default="minimal_rule",
+    )
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--max-user-chars", type=int, default=12000)
     args = parser.parse_args()
@@ -202,7 +284,7 @@ def main() -> None:
                 predicted = extract_answer(answer)
             except Exception as exc:
                 error = str(exc)
-            gold = str(row.get("correct_answer", "")).upper()
+            gold = str(row.get("correct_answer") or row.get("gold") or "").upper()
             is_correct = bool(predicted and predicted == gold)
             if is_correct:
                 correct += 1
