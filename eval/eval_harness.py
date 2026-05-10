@@ -1622,6 +1622,7 @@ def _snap_hyde_2call_system(config: EvalConfig) -> str:
     base_answer = _system_prompt(config, "answer")
     passage_instruction = (
         "\n\nADDITIONAL OUTPUT REQUIREMENT (REQUIRED, do not skip):\n"
+        "Keep the entire response under 180 words. Do not repeat sentences.\n"
         "After your final 'Answer:' line, append a blank line, then a header line that reads exactly:\n"
         "## Passage\n"
         "Followed by a 2-3 sentence reference passage that states the controlling rule, doctrine, "
@@ -1631,7 +1632,7 @@ def _snap_hyde_2call_system(config: EvalConfig) -> str:
         "- Do NOT use 'Answer:', 'Passage:' headers inside the block, no bold, no bullets.\n"
         "- Write in plain reference / encyclopedia / treatise style — state the relevant fact "
         "or rule directly so it could appear verbatim in a knowledge source.\n"
-        "Both the answer block AND the '## Passage' block are required."
+        "Both the answer block AND the '## Passage' block are required. Stop immediately after the passage."
     )
     return base_answer + passage_instruction
 
