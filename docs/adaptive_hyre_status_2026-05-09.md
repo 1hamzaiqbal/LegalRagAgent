@@ -162,8 +162,12 @@ The three adaptive policy probes are:
 - `adaptive_snap_hyre_anchor`: same route, HyRE plus raw task anchor.
 - `adaptive_snap_hyre_diverse`: same route, HyRE plus raw task anchor plus
   sanitized snap-reasoning anchor.
+- `adaptive_snap_hyre_v2`: controller distilled from the N=50/N=200 evidence:
+  Housing uses state-filtered diverse anchors, CaseHOLD uses option-grounded
+  diverse anchors, SCALR uses plain two-call Snap-HyDE because option anchoring
+  was unstable, and BarExam uses option-grounded HyRE.
 
-All three are intended to stay at two LLM calls per question.
+All four are intended to stay at two LLM calls per question.
 
 ## Cluster Launch
 

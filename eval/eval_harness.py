@@ -1939,6 +1939,67 @@ def run_adaptive_snap_hyre_diverse(row: pd.Series, config: EvalConfig) -> dict:
     return out
 
 
+def run_adaptive_snap_hyre_v2(row: pd.Series, config: EvalConfig) -> dict:
+    """Adaptive HyRE v2 controller from the N=50/N=200 bottleneck evidence.
+
+    The v1 route treated all option-style legal tasks as option-grounding
+    problems. The N=200 SCALR run shows that raw/option anchors can destabilize
+    that task, while plain 2-call Snap-HyDE remains the stronger SCALR control.
+    This controller keeps the same two-call budget but routes interventions by
+    the observed bottleneck class instead of applying one option recipe to every
+    multiple-choice benchmark.
+    """
+    if config.dataset == "legalbench_scalr":
+        out = run_rag_snap_hyde_2call(row, config)
+        out["hyre_route"] = "scalr_plain_snap_hyde"
+        out["adaptive_policy"] = "task_shape_bottleneck_v2"
+        return out
+
+    if config.dataset == "housing":
+        out = _snap_hyre_retrieve_and_answer(
+            row,
+            config,
+            label_prefix="adaptive_snap_hyre_v2",
+            where=_housing_state_where(row, config),
+            rerank_query=_retrieval_question(row),
+            include_raw_anchor=True,
+            include_snap_anchor=True,
+        )
+        out["hyre_route"] = "state_filter_diverse"
+        out["adaptive_policy"] = "task_shape_bottleneck_v2"
+        return out
+
+    if config.dataset == "casehold":
+        out = _snap_hyre_retrieve_and_answer(
+            row,
+            config,
+            label_prefix="adaptive_snap_hyre_v2",
+            where=_where_from_config(config),
+            final_system=_option_grounding_system(config),
+            rerank_query=_retrieval_question(row),
+            include_raw_anchor=True,
+            include_snap_anchor=True,
+        )
+        out["hyre_route"] = "casehold_option_diverse"
+        out["adaptive_policy"] = "task_shape_bottleneck_v2"
+        out["final_context_fields"] = ["retrieved_passages", "question", "option_grounding_instruction"]
+        return out
+
+    out = _snap_hyre_retrieve_and_answer(
+        row,
+        config,
+        label_prefix="adaptive_snap_hyre_v2",
+        where=_where_from_config(config),
+        final_system=_option_grounding_system(config) if _has_answer_options(row, config) else None,
+        rerank_query=_retrieval_question(row),
+    )
+    out["hyre_route"] = "barexam_option_grounding" if config.dataset == "barexam" else _adaptive_hyre_route(row, config)
+    out["adaptive_policy"] = "task_shape_bottleneck_v2"
+    if config.dataset == "barexam":
+        out["final_context_fields"] = ["retrieved_passages", "question", "option_grounding_instruction"]
+    return out
+
+
 def run_snap_hyde_aligned(row: pd.Series, config: EvalConfig) -> dict:
     """Snap-HyDE with question-aligned reranking.
 
@@ -5458,6 +5519,7 @@ MODE_RUNNERS = {
     "adaptive_snap_hyre": run_adaptive_snap_hyre,
     "adaptive_snap_hyre_anchor": run_adaptive_snap_hyre_anchor,
     "adaptive_snap_hyre_diverse": run_adaptive_snap_hyre_diverse,
+    "adaptive_snap_hyre_v2": run_adaptive_snap_hyre_v2,
     "gap_hyde": run_gap_hyde,
     "gap_hyde_ev": run_gap_hyde_ev,
     "gap_hyde_nosnap": run_gap_hyde_nosnap,

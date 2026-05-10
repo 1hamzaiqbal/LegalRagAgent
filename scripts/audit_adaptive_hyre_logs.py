@@ -15,6 +15,7 @@ ADAPTIVE_MODES = {
     "adaptive_snap_hyre",
     "adaptive_snap_hyre_anchor",
     "adaptive_snap_hyre_diverse",
+    "adaptive_snap_hyre_v2",
     "snap_hyre_option",
     "snap_hyre_state",
 }
@@ -22,6 +23,7 @@ EXPECTED_LLM_CALLS = {
     "adaptive_snap_hyre": 2.0,
     "adaptive_snap_hyre_anchor": 2.0,
     "adaptive_snap_hyre_diverse": 2.0,
+    "adaptive_snap_hyre_v2": 2.0,
     "snap_hyre_option": 2.0,
     "snap_hyre_state": 2.0,
 }
@@ -30,6 +32,14 @@ EXPECTED_ROUTES = {
     "casehold": {"option_grounding"},
     "legalbench_scalr": {"option_grounding"},
     "housing": {"state_filter"},
+}
+EXPECTED_ROUTES_BY_MODE = {
+    "adaptive_snap_hyre_v2": {
+        "barexam": {"barexam_option_grounding"},
+        "casehold": {"casehold_option_diverse"},
+        "legalbench_scalr": {"scalr_plain_snap_hyde"},
+        "housing": {"state_filter_diverse"},
+    },
 }
 SUSPICIOUS_ANSWER_SNIPPETS = (
     "not mentioned",
@@ -93,8 +103,8 @@ def audit(path: Path, legal_only: bool) -> tuple[str, bool]:
         failures.append(f"non_legal_dataset={dataset}")
     if mode in ADAPTIVE_MODES and not routes:
         failures.append("missing_hyre_route")
-    expected_routes = EXPECTED_ROUTES.get(dataset)
-    if mode in {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse"} and expected_routes and not set(routes).issubset(expected_routes):
+    expected_routes = EXPECTED_ROUTES_BY_MODE.get(mode, {}).get(dataset) or EXPECTED_ROUTES.get(dataset)
+    if mode in {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse", "adaptive_snap_hyre_v2"} and expected_routes and not set(routes).issubset(expected_routes):
         failures.append(f"unexpected_routes={dict(routes)} expected_subset={sorted(expected_routes)}")
     if errors:
         failures.append(f"errors={len(errors)}")
