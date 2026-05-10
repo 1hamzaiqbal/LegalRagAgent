@@ -50,6 +50,20 @@ signal is not exposed by a trivial voting rule.
 | `score_agree_else_candidate` | 37/50 | 74.0% |
 | `score_agree_else_reranker` | 37/50 | 74.0% |
 
+## Selective Adaptive Policies
+
+These policies answer only on high-confidence rows and mark the rest for
+escalation. `Total if escalated solved` is an upper bound, not achieved
+accuracy.
+
+| Policy | Answered | Answered Accuracy | Escalated | Total If Escalated Solved |
+|---|---:|---:|---:|---:|
+| `accept_candidate_reranker_replay_unanimous` | 35/50 | 85.7% | 15/50 | 41/50 = 82.0% |
+| `accept_candidate_reranker_agree` | 43/50 | 81.4% | 7/50 | 39/50 = 78.0% |
+| `accept_reranker_snap_agree` | 34/50 | 85.3% | 16/50 | 41/50 = 82.0% |
+| `accept_candidate_snap_agree` | 35/50 | 82.9% | 15/50 | 40/50 = 80.0% |
+| `accept_candidate_reranker_agree_and_snap_agree` | 33/50 | 87.9% | 17/50 | 41/50 = 82.0% |
+
 ## Correctness Patterns
 
 | Correct methods | Rows |
@@ -83,6 +97,9 @@ The row-level picture is sharper than the aggregate result:
   only 2/7 = 28.6% correct on those rows.
 - Snap agreement is also useful: reranker accuracy is 29/34 = 85.3% when it
   agrees with the snap answer, but only 8/16 = 50.0% when it disagrees.
+- Selective policies can identify high-precision accepted subsets, topping out
+  at 33/50 answered with 87.9% accepted accuracy, but the upper bound with
+  oracle escalation is still 82.0%.
 - The 8 rows missed by every method likely need better evidence, better
   candidate normalization, or a different representation of the cited holding.
 - The rows where only `reranker`, only `candidate`, only `frontier`, or only
@@ -101,6 +118,7 @@ should be feature analysis over disagreements:
 - whether retrieved candidate evidence contains the gold option text;
 - whether score-only is correct only on high-margin cases.
 
-These features do separate high-confidence and low-confidence regions, but not
-yet into a deployment rule that beats 74.0%. A calibrated router is justified as
-the next CaseHOLD-specific experiment; another broad final-prompt sweep is not.
+These features separate high-confidence and low-confidence regions, but not into
+a finished deployment rule that beats 74.0% without a stronger escalation path.
+A calibrated router is justified only if the escalated rows receive a different
+intervention than the existing candidate/reranker/replay prompts.
