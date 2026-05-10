@@ -17,7 +17,7 @@ policies across legal benchmarks.
 | Calibration traces include cost | Diagnostic tables include average LLM calls; controller evaluation reports macro average calls. | Done |
 | Snap-HyRE / HyRE is represented as an intervention | N=200 rows for `adaptive_snap_hyre_v2`, `adaptive_snap_hyre_diverse`, `adaptive_snap_hyre_frontier`, and `rag_snap_hyde_2call`. | Done |
 | Metadata filtering / statutory routing is represented | Housing baseline route uses `rag_state_filter`; controller routes HousingQA to `adaptive_snap_hyre_housing_verifier`. | Done |
-| Option grounding / answer conversion is represented | CaseHOLD documents and controller route identify answer-option conversion; current route remains unresolved with `reject_or_escalate`. | Partially done |
+| Option grounding / answer conversion is represented | CaseHOLD documents and controller route identify answer-option conversion; `docs/casehold_reject_escalate_policy_2026-05-10.md` defines an auditable abstention/escalation policy. | Done as diagnostic policy |
 | Query rewriting is represented as a non-HyRE control | `docs/rag_rewrite_baseline_n50_2026-05-10.md`; `docs/rag_rewrite_barexam_n200_2026-05-10.md`; with-rewrite diagnostic table and route plan. | Done |
 | Same-slice BarExam query rewrite control | `docs/rag_rewrite_barexam_n200_2026-05-10.md`; `docs/legal_rag_diagnostic_table_with_rewrite_2026-05-10.md`; job `67432`. | Done |
 | Verifier policy is represented | `docs/adaptive_hyre_housing_verifier_n200_2026-05-10.md`; controller routes HousingQA to verifier. | Done |
@@ -61,9 +61,9 @@ The portfolio comparison in
    - current controller evaluation is an evidence-summary comparison over the
      available N=200 calibration slices, not a fresh held-out benchmark.
 2. CaseHOLD answer-conversion intervention:
-   - current diagnostics identify the bottleneck, but the policy route is still
-     weak. The controller should either select a calibrated verifier/selector
-     or explicitly route uncertain rows to `reject_or_escalate`.
+   - current diagnostics now define a `reject_or_escalate` policy, but they do
+     not yet provide a new calibrated option converter that improves answered
+     accuracy beyond the current 73-74% band.
 3. Query rewrite same-slice coverage:
    - BarExam now has N=200 query rewrite, but HousingQA, CaseHOLD, and
      LegalBench-SCALR rewrite rows remain N=50 calibration controls.

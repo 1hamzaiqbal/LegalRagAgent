@@ -89,6 +89,9 @@ signoff log decides whether a claim is ready to cite.
 - `adaptive_hyre_casehold_rule_frame_replay_2026-05-10.md` - CaseHOLD
   escalation-only rule-frame replay: clean execution, but selective policy
   remains at 74.0%.
+- `casehold_reject_escalate_policy_2026-05-10.md` - CaseHOLD controller policy:
+  accept high-agreement rows and route high-entropy/disagreement rows to
+  `reject_or_escalate` rather than treating retrieval lift as answer accuracy.
 - `adaptive_hyre_portfolio_analysis_2026-05-10.md` - cross-dataset N=200
   detail-log portfolio analysis: best single method, oracle headroom, majority
   probe, and disagreement buckets.
