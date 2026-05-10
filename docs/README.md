@@ -92,6 +92,11 @@ signoff log decides whether a claim is ready to cite.
 - `casehold_reject_escalate_policy_2026-05-10.md` - CaseHOLD controller policy:
   accept high-agreement rows and route high-entropy/disagreement rows to
   `reject_or_escalate` rather than treating retrieval lift as answer accuracy.
+- `casehold_calibrated_selector_offline_2026-05-10.md` and
+  `casehold_calibrated_selector_offline_2026-05-10.json` - offline CaseHOLD
+  selector calibration over existing N=50 traces; high score-margin override
+  reaches 76.0%, a small calibration signal that still needs held-out
+  validation.
 - `adaptive_hyre_portfolio_analysis_2026-05-10.md` - cross-dataset N=200
   detail-log portfolio analysis: best single method, oracle headroom, majority
   probe, and disagreement buckets.

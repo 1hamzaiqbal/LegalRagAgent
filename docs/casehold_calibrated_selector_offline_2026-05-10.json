@@ -1,0 +1,3637 @@
+{
+  "n": 50,
+  "score_margin": 2.0,
+  "source_logs": {
+    "frontier": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_frontier_or-gemma4-26b_20260510_0838_casehold_adaptive-hyre-or-gemma4-26b-casehold-n50-k5-adaptive_snap_hyre_frontier_detail.jsonl",
+    "candidate": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_candidate_verifier_or-gemma4-26b_20260510_1058_casehold_adaptive-hyre-or-gemma4-26b-casehold-n50-k5-adaptive_snap_hyre_candidate_verifier_detail.jsonl",
+    "reranker": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_option_reranker_or-gemma4-26b_20260510_1201_casehold_casehold-option-reranker-cached-or-gemma4-26b-casehold-n50-k5-adaptive_snap_hyre_option_reranker_detail.jsonl",
+    "score": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_option_score_or-gemma4-26b_20260510_1211_casehold_casehold-option-score-cached-or-gemma4-26b-casehold-n50-k5-adaptive_snap_hyre_option_score_detail.jsonl",
+    "replay": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_option_replay_minimal_rule_or-gemma4-26b_20260510_casehold_n50_detail.jsonl"
+  },
+  "results": [
+    {
+      "policy": "always_frontier",
+      "correct": 35,
+      "total": 50,
+      "accuracy": 0.7,
+      "accuracy_pct": "70.0%",
+      "route_counts": {
+        "frontier": 50
+      },
+      "rows": [
+        {
+          "label": "ch_ch_test_1057",
+          "gold": "C",
+          "prediction": "C",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_120",
+          "gold": "A",
+          "prediction": "A",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1226",
+          "gold": "E",
+          "prediction": "E",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1231",
+          "gold": "D",
+          "prediction": "D",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_134",
+          "gold": "C",
+          "prediction": "C",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1340",
+          "gold": "D",
+          "prediction": "B",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1403",
+          "gold": "A",
+          "prediction": "A",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1465",
+          "gold": "E",
+          "prediction": "C",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1509",
+          "gold": "A",
+          "prediction": "B",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1510",
+          "gold": "D",
+          "prediction": "D",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1601",
+          "gold": "C",
+          "prediction": "C",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1742",
+          "gold": "E",
+          "prediction": "C",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1786",
+          "gold": "D",
+          "prediction": "D",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_179",
+          "gold": "E",
+          "prediction": "E",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1924",
+          "gold": "C",
+          "prediction": "C",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1965",
+          "gold": "E",
+          "prediction": "E",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2104",
+          "gold": "E",
+          "prediction": "E",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_211",
+          "gold": "C",
+          "prediction": "C",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2316",
+          "gold": "D",
+          "prediction": "D",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2357",
+          "gold": "C",
+          "prediction": "B",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2377",
+          "gold": "B",
+          "prediction": "D",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2456",
+          "gold": "B",
+          "prediction": "B",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_26",
+          "gold": "A",
+          "prediction": "E",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2677",
+          "gold": "A",
+          "prediction": "C",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2696",
+          "gold": "A",
+          "prediction": "A",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_270",
+          "gold": "E",
+          "prediction": "D",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2707",
+          "gold": "D",
+          "prediction": "C",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2762",
+          "gold": "B",
+          "prediction": "A",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2843",
+          "gold": "D",
+          "prediction": "D",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2887",
+          "gold": "C",
+          "prediction": "C",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2955",
+          "gold": "D",
+          "prediction": "D",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2962",
+          "gold": "B",
+          "prediction": "B",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2988",
+          "gold": "E",
+          "prediction": "E",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3019",
+          "gold": "D",
+          "prediction": "D",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3033",
+          "gold": "D",
+          "prediction": "A",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_315",
+          "gold": "C",
+          "prediction": "C",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_32",
+          "gold": "E",
+          "prediction": "E",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3515",
+          "gold": "E",
+          "prediction": "E",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3549",
+          "gold": "B",
+          "prediction": "A",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_3575",
+          "gold": "C",
+          "prediction": "C",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_387",
+          "gold": "C",
+          "prediction": "A",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_415",
+          "gold": "B",
+          "prediction": "B",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_439",
+          "gold": "E",
+          "prediction": "A",
+          "route": "frontier",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_670",
+          "gold": "C",
+          "prediction": "C",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_811",
+          "gold": "E",
+          "prediction": "E",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_817",
+          "gold": "E",
+          "prediction": "E",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_879",
+          "gold": "A",
+          "prediction": "A",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_927",
+          "gold": "E",
+          "prediction": "E",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_929",
+          "gold": "E",
+          "prediction": "E",
+          "route": "frontier",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_999",
+          "gold": "C",
+          "prediction": "C",
+          "route": "frontier",
+          "is_correct": true
+        }
+      ]
+    },
+    {
+      "policy": "always_candidate",
+      "correct": 37,
+      "total": 50,
+      "accuracy": 0.74,
+      "accuracy_pct": "74.0%",
+      "route_counts": {
+        "candidate": 50
+      },
+      "rows": [
+        {
+          "label": "ch_ch_test_1057",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_120",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1226",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1231",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_134",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1340",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1403",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1465",
+          "gold": "E",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1509",
+          "gold": "A",
+          "prediction": "B",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1510",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1601",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1742",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1786",
+          "gold": "D",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_179",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1924",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1965",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2104",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_211",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2316",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2357",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2377",
+          "gold": "B",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2456",
+          "gold": "B",
+          "prediction": "B",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_26",
+          "gold": "A",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2677",
+          "gold": "A",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2696",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_270",
+          "gold": "E",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2707",
+          "gold": "D",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2762",
+          "gold": "B",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2843",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2887",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2955",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2962",
+          "gold": "B",
+          "prediction": "B",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2988",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3019",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3033",
+          "gold": "D",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_315",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_32",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3515",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3549",
+          "gold": "B",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_3575",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_387",
+          "gold": "C",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_415",
+          "gold": "B",
+          "prediction": "B",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_439",
+          "gold": "E",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_670",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_811",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_817",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_879",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_927",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_929",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_999",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        }
+      ]
+    },
+    {
+      "policy": "always_reranker",
+      "correct": 37,
+      "total": 50,
+      "accuracy": 0.74,
+      "accuracy_pct": "74.0%",
+      "route_counts": {
+        "reranker": 50
+      },
+      "rows": [
+        {
+          "label": "ch_ch_test_1057",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_120",
+          "gold": "A",
+          "prediction": "A",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1226",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1231",
+          "gold": "D",
+          "prediction": "D",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_134",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1340",
+          "gold": "D",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1403",
+          "gold": "A",
+          "prediction": "A",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1465",
+          "gold": "E",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1509",
+          "gold": "A",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1510",
+          "gold": "D",
+          "prediction": "D",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1601",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1742",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1786",
+          "gold": "D",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_179",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1924",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1965",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2104",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_211",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2316",
+          "gold": "D",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2357",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2377",
+          "gold": "B",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2456",
+          "gold": "B",
+          "prediction": "B",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_26",
+          "gold": "A",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2677",
+          "gold": "A",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2696",
+          "gold": "A",
+          "prediction": "A",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_270",
+          "gold": "E",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2707",
+          "gold": "D",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2762",
+          "gold": "B",
+          "prediction": "B",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2843",
+          "gold": "D",
+          "prediction": "D",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2887",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2955",
+          "gold": "D",
+          "prediction": "D",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2962",
+          "gold": "B",
+          "prediction": "B",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2988",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3019",
+          "gold": "D",
+          "prediction": "D",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3033",
+          "gold": "D",
+          "prediction": "A",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_315",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_32",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3515",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3549",
+          "gold": "B",
+          "prediction": "B",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3575",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_387",
+          "gold": "C",
+          "prediction": "A",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_415",
+          "gold": "B",
+          "prediction": "B",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_439",
+          "gold": "E",
+          "prediction": "A",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_670",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_811",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_817",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_879",
+          "gold": "A",
+          "prediction": "A",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_927",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_929",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_999",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        }
+      ]
+    },
+    {
+      "policy": "always_score",
+      "correct": 11,
+      "total": 50,
+      "accuracy": 0.22,
+      "accuracy_pct": "22.0%",
+      "route_counts": {
+        "score": 50
+      },
+      "rows": [
+        {
+          "label": "ch_ch_test_1057",
+          "gold": "C",
+          "prediction": "A",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_120",
+          "gold": "A",
+          "prediction": "A",
+          "route": "score",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1226",
+          "gold": "E",
+          "prediction": "D",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1231",
+          "gold": "D",
+          "prediction": "C",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_134",
+          "gold": "C",
+          "prediction": "A",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1340",
+          "gold": "D",
+          "prediction": "A",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1403",
+          "gold": "A",
+          "prediction": "A",
+          "route": "score",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1465",
+          "gold": "E",
+          "prediction": "B",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1509",
+          "gold": "A",
+          "prediction": "C",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1510",
+          "gold": "D",
+          "prediction": "D",
+          "route": "score",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1601",
+          "gold": "C",
+          "prediction": "D",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1742",
+          "gold": "E",
+          "prediction": "D",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1786",
+          "gold": "D",
+          "prediction": "A",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_179",
+          "gold": "E",
+          "prediction": "A",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1924",
+          "gold": "C",
+          "prediction": "C",
+          "route": "score",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1965",
+          "gold": "E",
+          "prediction": "E",
+          "route": "score",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2104",
+          "gold": "E",
+          "prediction": "C",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_211",
+          "gold": "C",
+          "prediction": "D",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2316",
+          "gold": "D",
+          "prediction": "C",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2357",
+          "gold": "C",
+          "prediction": "D",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2377",
+          "gold": "B",
+          "prediction": "C",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2456",
+          "gold": "B",
+          "prediction": "C",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_26",
+          "gold": "A",
+          "prediction": "C",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2677",
+          "gold": "A",
+          "prediction": "A",
+          "route": "score",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2696",
+          "gold": "A",
+          "prediction": "E",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_270",
+          "gold": "E",
+          "prediction": "D",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2707",
+          "gold": "D",
+          "prediction": "B",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2762",
+          "gold": "B",
+          "prediction": "C",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2843",
+          "gold": "D",
+          "prediction": "E",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2887",
+          "gold": "C",
+          "prediction": "E",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2955",
+          "gold": "D",
+          "prediction": "D",
+          "route": "score",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2962",
+          "gold": "B",
+          "prediction": "C",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2988",
+          "gold": "E",
+          "prediction": "D",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_3019",
+          "gold": "D",
+          "prediction": "B",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_3033",
+          "gold": "D",
+          "prediction": "B",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_315",
+          "gold": "C",
+          "prediction": "D",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_32",
+          "gold": "E",
+          "prediction": "A",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_3515",
+          "gold": "E",
+          "prediction": "A",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_3549",
+          "gold": "B",
+          "prediction": "C",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_3575",
+          "gold": "C",
+          "prediction": "A",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_387",
+          "gold": "C",
+          "prediction": "A",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_415",
+          "gold": "B",
+          "prediction": "B",
+          "route": "score",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_439",
+          "gold": "E",
+          "prediction": "E",
+          "route": "score",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_670",
+          "gold": "C",
+          "prediction": "E",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_811",
+          "gold": "E",
+          "prediction": "B",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_817",
+          "gold": "E",
+          "prediction": "E",
+          "route": "score",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_879",
+          "gold": "A",
+          "prediction": "E",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_927",
+          "gold": "E",
+          "prediction": "C",
+          "route": "score",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_929",
+          "gold": "E",
+          "prediction": "E",
+          "route": "score",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_999",
+          "gold": "C",
+          "prediction": "E",
+          "route": "score",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "policy": "always_replay",
+      "correct": 31,
+      "total": 50,
+      "accuracy": 0.62,
+      "accuracy_pct": "62.0%",
+      "route_counts": {
+        "replay": 50
+      },
+      "rows": [
+        {
+          "label": "ch_ch_test_1057",
+          "gold": "C",
+          "prediction": "C",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_120",
+          "gold": "A",
+          "prediction": "C",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1226",
+          "gold": "E",
+          "prediction": "E",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1231",
+          "gold": "D",
+          "prediction": "D",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_134",
+          "gold": "C",
+          "prediction": "C",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1340",
+          "gold": "D",
+          "prediction": "B",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1403",
+          "gold": "A",
+          "prediction": "A",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1465",
+          "gold": "E",
+          "prediction": "D",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1509",
+          "gold": "A",
+          "prediction": "E",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1510",
+          "gold": "D",
+          "prediction": "D",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1601",
+          "gold": "C",
+          "prediction": "C",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1742",
+          "gold": "E",
+          "prediction": "E",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1786",
+          "gold": "D",
+          "prediction": "A",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_179",
+          "gold": "E",
+          "prediction": "D",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1924",
+          "gold": "C",
+          "prediction": "C",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1965",
+          "gold": "E",
+          "prediction": "E",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2104",
+          "gold": "E",
+          "prediction": "E",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_211",
+          "gold": "C",
+          "prediction": "C",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2316",
+          "gold": "D",
+          "prediction": "B",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2357",
+          "gold": "C",
+          "prediction": "B",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2377",
+          "gold": "B",
+          "prediction": "A",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2456",
+          "gold": "B",
+          "prediction": "B",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_26",
+          "gold": "A",
+          "prediction": "E",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2677",
+          "gold": "A",
+          "prediction": "A",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2696",
+          "gold": "A",
+          "prediction": "A",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_270",
+          "gold": "E",
+          "prediction": "D",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2707",
+          "gold": "D",
+          "prediction": "C",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2762",
+          "gold": "B",
+          "prediction": "A",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2843",
+          "gold": "D",
+          "prediction": "D",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2887",
+          "gold": "C",
+          "prediction": "C",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2955",
+          "gold": "D",
+          "prediction": "D",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2962",
+          "gold": "B",
+          "prediction": "B",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2988",
+          "gold": "E",
+          "prediction": "E",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3019",
+          "gold": "D",
+          "prediction": "B",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_3033",
+          "gold": "D",
+          "prediction": "A",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_315",
+          "gold": "C",
+          "prediction": "C",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_32",
+          "gold": "E",
+          "prediction": "E",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3515",
+          "gold": "E",
+          "prediction": "E",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3549",
+          "gold": "B",
+          "prediction": "C",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_3575",
+          "gold": "C",
+          "prediction": "C",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_387",
+          "gold": "C",
+          "prediction": "A",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_415",
+          "gold": "B",
+          "prediction": "B",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_439",
+          "gold": "E",
+          "prediction": "A",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_670",
+          "gold": "C",
+          "prediction": "C",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_811",
+          "gold": "E",
+          "prediction": "E",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_817",
+          "gold": "E",
+          "prediction": "E",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_879",
+          "gold": "A",
+          "prediction": "A",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_927",
+          "gold": "E",
+          "prediction": "E",
+          "route": "replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_929",
+          "gold": "E",
+          "prediction": "D",
+          "route": "replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_999",
+          "gold": "C",
+          "prediction": "C",
+          "route": "replay",
+          "is_correct": true
+        }
+      ]
+    },
+    {
+      "policy": "candidate_reranker_agree_else_candidate",
+      "correct": 37,
+      "total": 50,
+      "accuracy": 0.74,
+      "accuracy_pct": "74.0%",
+      "route_counts": {
+        "candidate": 7,
+        "candidate_reranker_agree": 43
+      },
+      "rows": [
+        {
+          "label": "ch_ch_test_1057",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_120",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1226",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1231",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_134",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1340",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1403",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1465",
+          "gold": "E",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1509",
+          "gold": "A",
+          "prediction": "B",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1510",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1601",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1742",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1786",
+          "gold": "D",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_179",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1924",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1965",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2104",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_211",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2316",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2357",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2377",
+          "gold": "B",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2456",
+          "gold": "B",
+          "prediction": "B",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_26",
+          "gold": "A",
+          "prediction": "E",
+          "route": "candidate_reranker_agree",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2677",
+          "gold": "A",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2696",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_270",
+          "gold": "E",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2707",
+          "gold": "D",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2762",
+          "gold": "B",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2843",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2887",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2955",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2962",
+          "gold": "B",
+          "prediction": "B",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2988",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3019",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3033",
+          "gold": "D",
+          "prediction": "A",
+          "route": "candidate_reranker_agree",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_315",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_32",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3515",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3549",
+          "gold": "B",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_3575",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_387",
+          "gold": "C",
+          "prediction": "A",
+          "route": "candidate_reranker_agree",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_415",
+          "gold": "B",
+          "prediction": "B",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_439",
+          "gold": "E",
+          "prediction": "A",
+          "route": "candidate_reranker_agree",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_670",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_811",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_817",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_879",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_927",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_929",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_999",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_agree",
+          "is_correct": true
+        }
+      ]
+    },
+    {
+      "policy": "candidate_reranker_snap_agree_else_candidate",
+      "correct": 37,
+      "total": 50,
+      "accuracy": 0.74,
+      "accuracy_pct": "74.0%",
+      "route_counts": {
+        "candidate": 17,
+        "candidate_reranker_snap_agree": 33
+      },
+      "rows": [
+        {
+          "label": "ch_ch_test_1057",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_120",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1226",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1231",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_134",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1340",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1403",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1465",
+          "gold": "E",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1509",
+          "gold": "A",
+          "prediction": "B",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1510",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1601",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1742",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1786",
+          "gold": "D",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_179",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1924",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1965",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2104",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_211",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2316",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2357",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2377",
+          "gold": "B",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2456",
+          "gold": "B",
+          "prediction": "B",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_26",
+          "gold": "A",
+          "prediction": "E",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2677",
+          "gold": "A",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2696",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_270",
+          "gold": "E",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2707",
+          "gold": "D",
+          "prediction": "C",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2762",
+          "gold": "B",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2843",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2887",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2955",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2962",
+          "gold": "B",
+          "prediction": "B",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2988",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3019",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3033",
+          "gold": "D",
+          "prediction": "A",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_315",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_32",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3515",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3549",
+          "gold": "B",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_3575",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_387",
+          "gold": "C",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_415",
+          "gold": "B",
+          "prediction": "B",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_439",
+          "gold": "E",
+          "prediction": "A",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_670",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_811",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_817",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_879",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_927",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_929",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_999",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate_reranker_snap_agree",
+          "is_correct": true
+        }
+      ]
+    },
+    {
+      "policy": "majority_candidate_reranker_replay_else_candidate",
+      "correct": 37,
+      "total": 50,
+      "accuracy": 0.74,
+      "accuracy_pct": "74.0%",
+      "route_counts": {
+        "majority_candidate_reranker_replay": 50
+      },
+      "rows": [
+        {
+          "label": "ch_ch_test_1057",
+          "gold": "C",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_120",
+          "gold": "A",
+          "prediction": "A",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1226",
+          "gold": "E",
+          "prediction": "E",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1231",
+          "gold": "D",
+          "prediction": "D",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_134",
+          "gold": "C",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1340",
+          "gold": "D",
+          "prediction": "D",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1403",
+          "gold": "A",
+          "prediction": "A",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1465",
+          "gold": "E",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1509",
+          "gold": "A",
+          "prediction": "E",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1510",
+          "gold": "D",
+          "prediction": "D",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1601",
+          "gold": "C",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1742",
+          "gold": "E",
+          "prediction": "E",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1786",
+          "gold": "D",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_179",
+          "gold": "E",
+          "prediction": "E",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1924",
+          "gold": "C",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1965",
+          "gold": "E",
+          "prediction": "E",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2104",
+          "gold": "E",
+          "prediction": "E",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_211",
+          "gold": "C",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2316",
+          "gold": "D",
+          "prediction": "D",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2357",
+          "gold": "C",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2377",
+          "gold": "B",
+          "prediction": "D",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2456",
+          "gold": "B",
+          "prediction": "B",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_26",
+          "gold": "A",
+          "prediction": "E",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2677",
+          "gold": "A",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2696",
+          "gold": "A",
+          "prediction": "A",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_270",
+          "gold": "E",
+          "prediction": "D",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2707",
+          "gold": "D",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2762",
+          "gold": "B",
+          "prediction": "A",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2843",
+          "gold": "D",
+          "prediction": "D",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2887",
+          "gold": "C",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2955",
+          "gold": "D",
+          "prediction": "D",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2962",
+          "gold": "B",
+          "prediction": "B",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2988",
+          "gold": "E",
+          "prediction": "E",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3019",
+          "gold": "D",
+          "prediction": "D",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3033",
+          "gold": "D",
+          "prediction": "A",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_315",
+          "gold": "C",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_32",
+          "gold": "E",
+          "prediction": "E",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3515",
+          "gold": "E",
+          "prediction": "E",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3549",
+          "gold": "B",
+          "prediction": "A",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_3575",
+          "gold": "C",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_387",
+          "gold": "C",
+          "prediction": "A",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_415",
+          "gold": "B",
+          "prediction": "B",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_439",
+          "gold": "E",
+          "prediction": "A",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_670",
+          "gold": "C",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_811",
+          "gold": "E",
+          "prediction": "E",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_817",
+          "gold": "E",
+          "prediction": "E",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_879",
+          "gold": "A",
+          "prediction": "A",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_927",
+          "gold": "E",
+          "prediction": "E",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_929",
+          "gold": "E",
+          "prediction": "E",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_999",
+          "gold": "C",
+          "prediction": "C",
+          "route": "majority_candidate_reranker_replay",
+          "is_correct": true
+        }
+      ]
+    },
+    {
+      "policy": "score_margin_2_else_candidate",
+      "correct": 38,
+      "total": 50,
+      "accuracy": 0.76,
+      "accuracy_pct": "76.0%",
+      "route_counts": {
+        "candidate": 46,
+        "score_high_margin": 4
+      },
+      "rows": [
+        {
+          "label": "ch_ch_test_1057",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_120",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1226",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1231",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_134",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1340",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1403",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1465",
+          "gold": "E",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1509",
+          "gold": "A",
+          "prediction": "B",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1510",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1601",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1742",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1786",
+          "gold": "D",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_179",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1924",
+          "gold": "C",
+          "prediction": "C",
+          "route": "score_high_margin",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1965",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2104",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_211",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2316",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2357",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2377",
+          "gold": "B",
+          "prediction": "C",
+          "route": "score_high_margin",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2456",
+          "gold": "B",
+          "prediction": "B",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_26",
+          "gold": "A",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2677",
+          "gold": "A",
+          "prediction": "A",
+          "route": "score_high_margin",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2696",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_270",
+          "gold": "E",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2707",
+          "gold": "D",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2762",
+          "gold": "B",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2843",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2887",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2955",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2962",
+          "gold": "B",
+          "prediction": "B",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2988",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3019",
+          "gold": "D",
+          "prediction": "D",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3033",
+          "gold": "D",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_315",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_32",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3515",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3549",
+          "gold": "B",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_3575",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_387",
+          "gold": "C",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_415",
+          "gold": "B",
+          "prediction": "B",
+          "route": "score_high_margin",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_439",
+          "gold": "E",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_670",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_811",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_817",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_879",
+          "gold": "A",
+          "prediction": "A",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_927",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_929",
+          "gold": "E",
+          "prediction": "E",
+          "route": "candidate",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_999",
+          "gold": "C",
+          "prediction": "C",
+          "route": "candidate",
+          "is_correct": true
+        }
+      ]
+    },
+    {
+      "policy": "score_margin_2_else_reranker",
+      "correct": 38,
+      "total": 50,
+      "accuracy": 0.76,
+      "accuracy_pct": "76.0%",
+      "route_counts": {
+        "reranker": 46,
+        "score_high_margin": 4
+      },
+      "rows": [
+        {
+          "label": "ch_ch_test_1057",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_120",
+          "gold": "A",
+          "prediction": "A",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1226",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1231",
+          "gold": "D",
+          "prediction": "D",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_134",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1340",
+          "gold": "D",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1403",
+          "gold": "A",
+          "prediction": "A",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1465",
+          "gold": "E",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1509",
+          "gold": "A",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_1510",
+          "gold": "D",
+          "prediction": "D",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1601",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1742",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1786",
+          "gold": "D",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_179",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1924",
+          "gold": "C",
+          "prediction": "C",
+          "route": "score_high_margin",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_1965",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2104",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_211",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2316",
+          "gold": "D",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2357",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2377",
+          "gold": "B",
+          "prediction": "C",
+          "route": "score_high_margin",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2456",
+          "gold": "B",
+          "prediction": "B",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_26",
+          "gold": "A",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2677",
+          "gold": "A",
+          "prediction": "A",
+          "route": "score_high_margin",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2696",
+          "gold": "A",
+          "prediction": "A",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_270",
+          "gold": "E",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2707",
+          "gold": "D",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_2762",
+          "gold": "B",
+          "prediction": "B",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2843",
+          "gold": "D",
+          "prediction": "D",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2887",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2955",
+          "gold": "D",
+          "prediction": "D",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2962",
+          "gold": "B",
+          "prediction": "B",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_2988",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3019",
+          "gold": "D",
+          "prediction": "D",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3033",
+          "gold": "D",
+          "prediction": "A",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_315",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_32",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3515",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3549",
+          "gold": "B",
+          "prediction": "B",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_3575",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_387",
+          "gold": "C",
+          "prediction": "A",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_415",
+          "gold": "B",
+          "prediction": "B",
+          "route": "score_high_margin",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_439",
+          "gold": "E",
+          "prediction": "A",
+          "route": "reranker",
+          "is_correct": false
+        },
+        {
+          "label": "ch_ch_test_670",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_811",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_817",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_879",
+          "gold": "A",
+          "prediction": "A",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_927",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_929",
+          "gold": "E",
+          "prediction": "E",
+          "route": "reranker",
+          "is_correct": true
+        },
+        {
+          "label": "ch_ch_test_999",
+          "gold": "C",
+          "prediction": "C",
+          "route": "reranker",
+          "is_correct": true
+        }
+      ]
+    }
+  ]
+}
