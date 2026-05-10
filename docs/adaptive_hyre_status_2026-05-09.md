@@ -215,6 +215,15 @@ Refresh at 2026-05-10 03:45 CT:
 - Results: BarExam 96.0%, Housing 56.0%, CaseHOLD 72.0%, SCALR 74.0%, all
   audit PASS. Treat this as mode-wiring validation. The stronger report-facing
   evidence remains the clean N=200 frontier table, especially Housing 63.5%.
+- Housing frontier N=50 was lower than the earlier Housing diverse N=50
+  run (56.0% vs 64.0%), but the paired comparison is small-N and not
+  significant: b/c=2/6, p=0.289. The paired labels, retrieval health, and route
+  labels all match; this looks like provider/model variance on a brittle yes/no
+  task rather than a selector wiring bug. Do not replace the N=200 Housing
+  frontier (`adaptive_snap_hyre_diverse`, 63.5%, audit PASS) with this N=50
+  validation number.
+- No adaptive HyRE SLURM jobs are currently active after the frontier validation
+  and repair wave.
 
 ## Methods To Run
 
