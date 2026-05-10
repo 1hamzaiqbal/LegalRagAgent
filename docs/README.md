@@ -124,9 +124,12 @@ signoff log decides whether a claim is ready to cite.
   `heldout_controller_eval_2026-05-10.json` - compact held-out validation:
   exact selected routes reach 77.5% macro accuracy vs 71.5% baseline, with
   explicit Housing parse and SCALR disagreement-replay caveats.
-- `heldout_query_rewrite_2026-05-10.md` - submitted same held-out rows 200-249
-  for `rag_rewrite` across the four legal datasets; pending validation before
-  result claims.
+- `heldout_query_rewrite_2026-05-10.md` and
+  `heldout_query_rewrite_2026-05-10.json` - validated same held-out rows
+  200-249 for `rag_rewrite` across the four legal datasets: 75.5% macro
+  accuracy, between matched baseline retrieval at 71.5% and selected-route
+  controller accuracy at 77.5%, with strong BarExam lift but Housing/SCALR
+  failures that support routing rather than a universal rewrite policy.
 - `bottleneck_aware_diagnostic_framework_2026-05-10.md` - current pivot from
   fixed Snap-HyRE prompt iteration to bottleneck-aware diagnostic adaptation.
 - `diagnostic_controller_route_plan_2026-05-10.md` and

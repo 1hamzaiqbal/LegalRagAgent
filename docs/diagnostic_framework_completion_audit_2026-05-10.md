@@ -25,6 +25,7 @@ policies across legal benchmarks.
 | Controller evaluation exists | `scripts/evaluate_diagnostic_controller.py`; `docs/diagnostic_controller_eval_with_rewrite_2026-05-10.md`. | Done as evidence-summary evaluation |
 | Controller-vs-fixed comparison exists | `scripts/compare_diagnostic_controller.py`; `docs/diagnostic_controller_portfolio_comparison_2026-05-10.md`. | Done as calibration evidence |
 | Held-out controller evaluation | `docs/heldout_controller_eval_2026-05-10.md` summarizes corrected jobs 67461-67469 over rows 200-249. | Done with caveats |
+| Held-out query rewrite control | `docs/heldout_query_rewrite_2026-05-10.md` summarizes completed jobs 67511-67514 over rows 200-249. | Done |
 | Source-gated result claims | Docs cite detail-log paths; query-rewrite logs were artifact-audited; existing N=200 rows are generated from source detail logs. | Done |
 
 ## Current Controller Evaluation
@@ -68,20 +69,24 @@ Held-out dataset details: BarExam ties baseline at 76.0%; Housing verifier is
 is 78.0% vs 68.0% baseline; SCALR majority-prior disagreement replay is 80.0%,
 tying baseline despite the frontier component reaching 84.0%.
 
-## Missing Work Before Calling The Objective Complete
+The held-out query rewrite control in
+`docs/heldout_query_rewrite_2026-05-10.md` reports 75.5% macro accuracy with
+2.00 average calls on the same rows. It beats matched baseline retrieval
+overall, but remains below the selected-route controller: BarExam benefits
+strongly, CaseHOLD improves but does not pass the selected route, and HousingQA
+and LegalBench-SCALR fall below their routed policies. This closes the
+same-slice query-rewrite gap and strengthens the diagnostic routing argument.
+
+## Remaining Research Caveat
 
 1. CaseHOLD answer-conversion intervention:
    - current diagnostics now define a `reject_or_escalate` policy, but they do
      not yet provide a new calibrated option converter that improves answered
      accuracy beyond the current 73-74% band.
-2. Query rewrite same-slice coverage:
-   - held-out query rewrite jobs 67511-67514 are submitted on rows 200-249 but
-     not yet validated or integrated.
 
 ## Next Concrete Experiment
 
 Prioritize a targeted CaseHOLD answer-conversion policy that improves accuracy
-beyond the current route, or same-slice query-rewrite coverage for the remaining
-legal datasets if the query-rewrite arm must be promoted beyond calibration.
-The goal is not to discover a new prompt; it is to close the remaining caveats
-in the controller comparison.
+beyond the current route. The goal is not to discover a new prompt; it is to
+test whether the remaining unresolved bottleneck can be handled by a calibrated
+option converter rather than by more retrieval exposure alone.
