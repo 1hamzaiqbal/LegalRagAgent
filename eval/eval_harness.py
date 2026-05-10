@@ -225,6 +225,15 @@ def _record_choices(row: pd.Series, dataset: str) -> dict[str, str]:
     }
 
 
+def _choice_texts(row: pd.Series, config: EvalConfig) -> dict[str, str]:
+    choices: dict[str, str] = {}
+    for letter in _mc_choice_letters(config.dataset):
+        col = f"choice_{letter.lower()}"
+        if col in row and pd.notna(row[col]) and str(row[col]).strip():
+            choices[letter] = str(row[col]).strip()
+    return choices
+
+
 def _gold_choice_text(row: pd.Series, gold: str) -> str:
     if not gold:
         return ""
@@ -542,6 +551,22 @@ def _candidate_verifier_system(config: EvalConfig) -> str:
         "- Use retrieved passages as supporting evidence or tie-breakers, not as replacement candidates.\n"
         "- If retrieved passages are noisy or do not mention the correct candidate, choose the displayed holding whose rule and fact pattern best fit the citing context.\n"
         "- Prefer semantic fit between the citation signal and candidate holding over superficial word overlap.\n"
+        "- End with exactly one final line in the form: Answer: (X)"
+    )
+
+
+def _option_reranker_system(config: EvalConfig) -> str:
+    """Final prompt for per-candidate evidence bundles."""
+    base = _system_prompt(config, "rag")
+    if config.dataset != "casehold":
+        return base
+    return (
+        base
+        + "\n\nOPTION RERANKING REQUIREMENTS:\n"
+        "- Each candidate holding has its own retrieved evidence bundle.\n"
+        "- Compare the citing context to each displayed holding first, then use that candidate's evidence bundle to verify fit.\n"
+        "- Do not choose a candidate merely because its bundle is longer or has more word overlap.\n"
+        "- Prefer the candidate whose rule, legal relationship, and facts best explain the citing context.\n"
         "- End with exactly one final line in the form: Answer: (X)"
     )
 
@@ -2191,6 +2216,109 @@ def run_adaptive_snap_hyre_candidate_verifier(row: pd.Series, config: EvalConfig
     out["adaptive_policy"] = "candidate_first_verifier_v1"
     out["final_context_fields"] = ["retrieved_passages", "question", "candidate_verifier_instruction"]
     return out
+
+
+def run_adaptive_snap_hyre_option_reranker(row: pd.Series, config: EvalConfig) -> dict:
+    """CaseHOLD per-option retrieval bundles before final candidate selection."""
+    if config.dataset != "casehold":
+        out = run_adaptive_snap_hyre_frontier(row, config)
+        out["hyre_route"] = f"option_reranker_fallback_{config.dataset}"
+        out["adaptive_policy"] = "casehold_option_reranker_v1"
+        return out
+
+    question = _fmt(row, config)
+    raw_question = _retrieval_question(row)
+    question_intermediate = _fmt_intermediate(row, config)
+    choices = _choice_texts(row, config)
+
+    cache_entry = _hyre_cache_entry(row, config)
+    if cache_entry:
+        combined_raw = str(cache_entry.get("snap_and_hyre_raw") or cache_entry.get("hyde_passage_raw") or "")
+        snap_block = str(cache_entry.get("snap_answer") or "")
+        hyre_passage = str(cache_entry.get("hyde_passage") or "")
+        parse_ok = bool(cache_entry.get("snap_hyre_parse_ok", True))
+        if not hyre_passage:
+            snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(
+                combined_raw,
+                fallback_passage=question_intermediate,
+            )
+    else:
+        combined_raw = _llm_call(
+            _snap_hyde_2call_system(config),
+            question,
+            label="adaptive_snap_hyre_option_reranker/snap_and_hyre",
+        )
+        snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(
+            combined_raw,
+            fallback_passage=question_intermediate,
+        )
+
+    general = _retrieve_and_format(
+        row,
+        [hyre_passage, question_intermediate],
+        k=2,
+        label_prefix="adaptive_snap_hyre_option_reranker_general",
+        where=_where_from_config(config),
+        collection=_collection_for_config(config),
+        rerank_query=raw_question,
+    )
+
+    bundle_parts = ["## General Retrieved Evidence\n" + "\n\n".join(general["passages"])]
+    evidence_store = list(general["evidence_store"])
+    retrieved_ids = list(general["retrieved_ids"])
+    choice_query_labels: list[str] = []
+    for letter, text in choices.items():
+        choice_query = f"{raw_question}\n\nCandidate holding {letter}: {text}"
+        choice_result = _retrieve_and_format(
+            row,
+            [choice_query],
+            k=1,
+            label_prefix=f"adaptive_snap_hyre_option_reranker_{letter}",
+            where=_where_from_config(config),
+            collection=_collection_for_config(config),
+            rerank_query=choice_query,
+        )
+        choice_query_labels.append(letter)
+        for ev in choice_result["evidence_store"]:
+            ev = dict(ev)
+            ev["candidate"] = letter
+            evidence_store.append(ev)
+            retrieved_ids.append(ev["idx"])
+        evidence_text = "\n\n".join(choice_result["passages"]) or "(no retrieved evidence)"
+        bundle_parts.append(f"## Candidate {letter}\n{text}\n\n{evidence_text}")
+
+    # Preserve order while deduplicating ids.
+    retrieved_ids = list(dict.fromkeys(str(idx) for idx in retrieved_ids))
+    passage_block = "\n\n".join(bundle_parts)
+    user = f"## Candidate Evidence Bundles\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_option_reranker_system(config), user, label="adaptive_snap_hyre_option_reranker/answer")
+
+    return {
+        "final_answer": answer,
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
+        "snap_answer": snap_block,
+        "snap_letter": _extract_answer(snap_block, config),
+        "snap_and_hyre_raw": combined_raw,
+        "snap_hyre_parse_ok": parse_ok,
+        "hyre_cache_hit": bool(cache_entry),
+        "hyre_cache_label": _row_label(row, config) if cache_entry else "",
+        "hyde_passage": hyre_passage,
+        "hyde_passage_raw": combined_raw,
+        "hyde_contains_answer_artifact": _contains_answer_artifact(hyre_passage),
+        "retrieval_queries": [hyre_passage, question_intermediate] + [choices[l] for l in choice_query_labels],
+        "rerank_query": "candidate_conditioned",
+        "retrieval_where": _where_from_config(config) or {},
+        "final_context_fields": ["candidate_evidence_bundles", "question", "option_reranker_instruction"],
+        "final_prompt_preview": _preview_text(user),
+        "evidence_store": evidence_store,
+        "retrieved_ids": retrieved_ids,
+        "gold_retrieved": _is_gold_retrieved(row, retrieved_ids),
+        "hyre_route": "casehold_option_reranker",
+        "adaptive_policy": "casehold_option_reranker_v1",
+        "candidate_retrieval_k": 1,
+        "general_retrieval_k": 2,
+    }
 
 
 def _stability_control(row: pd.Series, config: EvalConfig) -> tuple[str, dict]:
@@ -5803,6 +5931,7 @@ MODE_RUNNERS = {
     "adaptive_snap_hyre_stability": run_adaptive_snap_hyre_stability,
     "adaptive_snap_hyre_housing_verifier": run_adaptive_snap_hyre_housing_verifier,
     "adaptive_snap_hyre_candidate_verifier": run_adaptive_snap_hyre_candidate_verifier,
+    "adaptive_snap_hyre_option_reranker": run_adaptive_snap_hyre_option_reranker,
     "gap_hyde": run_gap_hyde,
     "gap_hyde_ev": run_gap_hyde_ev,
     "gap_hyde_nosnap": run_gap_hyde_nosnap,
