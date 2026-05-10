@@ -2001,6 +2001,33 @@ def run_adaptive_snap_hyre_v2(row: pd.Series, config: EvalConfig) -> dict:
     return out
 
 
+def run_adaptive_snap_hyre_frontier(row: pd.Series, config: EvalConfig) -> dict:
+    """Audited N=200 frontier selector for legal Snap-HyDE/HyRE.
+
+    This is the concrete controller distilled from the current clean frontier:
+    BarExam uses the hardened v2 option-grounding route, Housing and CaseHOLD
+    use diverse anchors, and SCALR avoids unstable option anchoring by using the
+    plain two-call Snap-HyDE route.
+    """
+    if config.dataset == "legalbench_scalr":
+        out = run_rag_snap_hyde_2call(row, config)
+        out["hyre_route"] = "frontier_scalr_plain_snap_hyde"
+    elif config.dataset == "housing":
+        out = run_adaptive_snap_hyre_diverse(row, config)
+        out["hyre_route"] = "frontier_housing_diverse"
+    elif config.dataset == "casehold":
+        out = run_adaptive_snap_hyre_diverse(row, config)
+        out["hyre_route"] = "frontier_casehold_diverse"
+    elif config.dataset == "barexam":
+        out = run_adaptive_snap_hyre_v2(row, config)
+        out["hyre_route"] = "frontier_barexam_v2"
+    else:
+        out = run_adaptive_snap_hyre_v2(row, config)
+        out["hyre_route"] = f"frontier_fallback_{config.dataset}"
+    out["adaptive_policy"] = "audited_n200_frontier_v1"
+    return out
+
+
 def run_snap_hyde_aligned(row: pd.Series, config: EvalConfig) -> dict:
     """Snap-HyDE with question-aligned reranking.
 
@@ -5521,6 +5548,7 @@ MODE_RUNNERS = {
     "adaptive_snap_hyre_anchor": run_adaptive_snap_hyre_anchor,
     "adaptive_snap_hyre_diverse": run_adaptive_snap_hyre_diverse,
     "adaptive_snap_hyre_v2": run_adaptive_snap_hyre_v2,
+    "adaptive_snap_hyre_frontier": run_adaptive_snap_hyre_frontier,
     "gap_hyde": run_gap_hyde,
     "gap_hyde_ev": run_gap_hyde_ev,
     "gap_hyde_nosnap": run_gap_hyde_nosnap,

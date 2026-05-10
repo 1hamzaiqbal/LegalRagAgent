@@ -225,6 +225,9 @@ The three adaptive policy probes are:
   Housing uses state-filtered diverse anchors, CaseHOLD uses option-grounded
   diverse anchors, SCALR uses plain two-call Snap-HyDE because option anchoring
   was unstable, and BarExam uses option-grounded HyRE.
+- `adaptive_snap_hyre_frontier`: explicit audited-frontier selector distilled
+  from the clean N=200 table: BarExam v2, Housing diverse, CaseHOLD diverse,
+  and SCALR plain two-call Snap-HyDE.
 
 All four are intended to stay at two LLM calls per question.
 

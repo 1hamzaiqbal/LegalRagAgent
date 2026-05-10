@@ -50,6 +50,7 @@ EVAL_MODES = {
     "adaptive_snap_hyre_anchor": "Adaptive HyRE + raw-question anchor: same legal bottleneck routing as adaptive_snap_hyre, but retrieves with both the HyRE passage and the original question text",
     "adaptive_snap_hyre_diverse": "Adaptive HyRE + diverse anchors: same legal bottleneck routing as adaptive_snap_hyre, but retrieves with HyRE passage, raw question, and sanitized snap reasoning",
     "adaptive_snap_hyre_v2":    "Adaptive HyRE v2: dataset/task-shaped legal controller using state+diverse anchors for Housing, option+diverse for CaseHOLD, plain 2-call Snap-HyDE for SCALR, and option grounding for BarExam",
+    "adaptive_snap_hyre_frontier": "Adaptive HyRE frontier selector: audited N=200 frontier policy using BarExam v2, Housing/CaseHOLD diverse anchors, and SCALR plain 2-call Snap-HyDE",
     "gap_hyde":                 "Gap-informed HyDE: snap + gaps + evidence in final (full context)",
     "gap_hyde_ev":              "Gap-informed HyDE: evidence only in final (no snap, no gap labels)",
     "gap_hyde_nosnap":          "Gap-informed HyDE: gaps + evidence in final (no snap answer)",
