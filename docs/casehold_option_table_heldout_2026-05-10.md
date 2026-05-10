@@ -35,9 +35,14 @@ convert retrieved evidence into the right displayed holding.
 - Superseded job: `67528` entered the eval loop with OpenRouter but failed
   after four rows with `CUDA error: device-side assert triggered`, likely from
   the local embedding/reranking path on the allocated GPU.
-- Job `67530` keeps the same OpenRouter LLM path and cluster Chroma collection,
+- Superseded job: `67530` kept the same OpenRouter LLM path and cluster Chroma
+  collection,
   but forces local retrieval/reranking models to CPU with
-  `EMBEDDING_DEVICE=cpu` and `CROSS_ENCODER_DEVICE=cpu`.
+  `EMBEDDING_DEVICE=cpu` and `CROSS_ENCODER_DEVICE=cpu`; it still failed after
+  five rows with a cross-encoder index error.
+- Next fallback should set `DISABLE_CROSS_ENCODER=1` so the option-table prompt
+  can be tested over dense candidate tables without the brittle cross-encoder
+  reranking path.
 - Dataset: `casehold`
 - Mode: `adaptive_snap_hyre_option_table`
 - Provider path: OpenRouter Gemma 4 26B API with CPU local retrieval/reranking

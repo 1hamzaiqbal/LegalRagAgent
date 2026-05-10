@@ -81,6 +81,12 @@ def rerank_with_cross_encoder(
     """Rerank documents using cross-encoder. Stores score in metadata."""
     if not docs:
         return []
+    if os.getenv("DISABLE_CROSS_ENCODER", "").strip() in {"1", "true", "TRUE", "yes"}:
+        result = []
+        for doc in docs[:top_k]:
+            doc.metadata["cross_encoder_score"] = 0.0
+            result.append(doc)
+        return result
 
     cross_encoder = get_cross_encoder()
     pairs = [(query, doc.page_content) for doc in docs]
