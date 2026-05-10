@@ -134,10 +134,18 @@ def audit(path: Path, legal_only: bool) -> tuple[str, bool]:
         failures.append(f"parse_fail={len(parse_fail)}")
     expected_calls = EXPECTED_LLM_CALLS.get(mode)
     if expected_calls is not None:
-        bad_call_rows = [r for r in rows if float(r.get("llm_calls", 0) or 0) != expected_calls]
+        def expected_call_count(row: dict) -> float:
+            if row.get("hyre_cache_hit"):
+                return max(expected_calls - 1.0, 0.0)
+            return expected_calls
+
+        bad_call_rows = [
+            r for r in rows
+            if float(r.get("llm_calls", 0) or 0) != expected_call_count(r)
+        ]
         if bad_call_rows:
             counts = Counter(float(r.get("llm_calls", 0) or 0) for r in bad_call_rows)
-            failures.append(f"unexpected_llm_calls={dict(counts)} expected={expected_calls:.0f}")
+            failures.append(f"unexpected_llm_calls={dict(counts)} expected={expected_calls:.0f}/cached={max(expected_calls - 1.0, 0.0):.0f}")
     if suspicious:
         warnings.append(f"suspicious_answers={len(suspicious)}")
     if n < 20:
