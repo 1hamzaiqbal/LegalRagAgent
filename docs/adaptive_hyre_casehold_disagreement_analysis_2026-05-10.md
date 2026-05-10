@@ -20,6 +20,9 @@ Script:
 Cluster report:
 `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/casehold_selector_disagreement_20260510.md`
 
+Escalation-row export:
+`/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/casehold_escalation_rows_20260510.jsonl`
+
 ## Method Accuracy
 
 | Method | Correct | Accuracy |
@@ -122,3 +125,24 @@ These features separate high-confidence and low-confidence regions, but not into
 a finished deployment rule that beats 74.0% without a stronger escalation path.
 A calibrated router is justified only if the escalated rows receive a different
 intervention than the existing candidate/reranker/replay prompts.
+
+## Escalation Export Notes
+
+Using `accept_candidate_reranker_agree_and_snap_agree` as the high-confidence
+acceptance rule exports 17 escalation rows. The first-pass inspection separates
+two cases:
+
+- rejected-but-solved rows, where the confidence gate is too strict. Example:
+  `ch_ch_test_120` has frontier/candidate/reranker/score all correct, but replay
+  and snap choose `C`, so the strict gate rejects a row that the base selector
+  handles.
+- genuinely hard rows, where the existing methods converge on a distractor or
+  split without a reliable signal. Example: `ch_ch_test_1465` has no method
+  correct, and retrieved evidence supports candidate `C` while the gold is `E`.
+
+This suggests the next escalation should not be another final prompt over the
+same retrieved snippets. The most plausible intervention is candidate
+normalization: rewrite each candidate into a compact rule frame, compare the
+frames to the citing context, and only then use retrieved evidence as a
+secondary signal. That targets the observed failure where the model is pulled
+toward a retrieved distractor or toward a more verbose-but-wrong candidate.
