@@ -86,6 +86,9 @@ signoff log decides whether a claim is ready to cite.
 - `adaptive_hyre_casehold_disagreement_analysis_2026-05-10.md` - CaseHOLD
   row-level selector headroom: oracle reaches 84.0%, but simple ensembles stay
   at 74.0%.
+- `adaptive_hyre_casehold_rule_frame_replay_2026-05-10.md` - CaseHOLD
+  escalation-only rule-frame replay: clean execution, but selective policy
+  remains at 74.0%.
 - `dataset_metric_consolidation_2026-04-30.md` - Speculative-RAG metric mapping,
   LegalBench/Legal RAG Bench dataset notes, and wiring gaps.
 - `specrag_lite_diagnostic_controller_2026-04-30.md` - selective escalation
