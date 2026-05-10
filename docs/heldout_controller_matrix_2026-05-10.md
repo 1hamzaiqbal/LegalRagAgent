@@ -40,6 +40,41 @@ requires post-processing the component detail logs after they finish.
 At the first poll, jobs 67449-67454 were running and 67455-67457 were pending.
 No preflight failures had appeared in stdout.
 
+## Invalid First Launch
+
+Jobs 67449-67457 failed before producing detail logs. This was a launch
+configuration error, not a method result: the harness applies
+`sample_start/sample_end` after deterministic question sampling. Running
+`--questions 50 --sample-start 200 --sample-end 250` therefore selected zero
+rows and hit a `ZeroDivisionError` while printing `0/0` results.
+
+Discard jobs 67449-67457 as invalid launch failures.
+
+## Retry
+
+Retry manifest:
+`/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/heldout_controller_matrix_retry_20260510_165517.tsv`
+
+Retry jobs use `--questions 250 --sample-start 200 --sample-end 250`, yielding
+the intended 50-row held-out slice after deterministic sampling.
+
+| Dataset | Mode | Retry job |
+|---|---|---:|
+| BarExam | `rag_simple` | 67461 |
+| BarExam | `adaptive_snap_hyre_v2` | 67462 |
+| HousingQA | `rag_state_filter` | 67463 |
+| HousingQA | `adaptive_snap_hyre_housing_verifier` | 67464 |
+| CaseHOLD | `rag_simple` | 67465 |
+| CaseHOLD | `adaptive_snap_hyre_diverse` | 67466 |
+| LegalBench-SCALR | `rag_simple` | 67467 |
+| LegalBench-SCALR | `rag_snap_hyde_2call` | 67468 |
+| LegalBench-SCALR | `adaptive_snap_hyre_frontier` | 67469 |
+
+The wrapper postprocess may fail because it uses `--min-n "$N_QUESTIONS"` and
+`N_QUESTIONS=250`, while the sample slice produces 50 evaluated rows. If the
+detail logs exist and pass `analyze_detail_flags.py` / adaptive audit, they can
+still be integrated as valid held-out rows.
+
 ## Integration Gate
 
 Before promoting results:
