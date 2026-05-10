@@ -7,11 +7,11 @@ This report evaluates the route plan against existing diagnostic summaries. It i
 
 - Macro accuracy across selected routes: 77.9%
 - Macro average LLM calls: 1.30
-- Mixed-N caveat datasets: barexam
+- Mixed-N caveat datasets: none
 
 | Dataset | Bottleneck | Selected route | N | Acc | Calls | Baseline | Delta vs baseline pp | Best available | Delta vs best pp | Best same-N | Status |
 |---|---|---|---:|---:|---:|---|---:|---|---:|---|---|
-| barexam | `query_retrieval_gap` | `rag_rewrite` | 50 | 86.0% | 2.00 | `rag_simple` (200) | +6.0 | `adaptive_snap_hyre_v2` (200) | +0.0 | `rag_rewrite` (86.0%) | PASS_WITH_MIXED_N_CAVEAT |
+| barexam | `query_retrieval_gap` | `adaptive_snap_hyre_v2` | 200 | 86.0% | 2.00 | `rag_simple` (200) | +6.0 | `adaptive_snap_hyre_v2` (200) | +0.0 | `adaptive_snap_hyre_v2` (86.0%) | PASS |
 | casehold | `answer_conversion_gap` | `adaptive_snap_hyre_diverse` | 200 | 73.5% | 2.00 | `rag_simple` (200) | +0.5 | `adaptive_snap_hyre_diverse` (200) | +0.0 | `adaptive_snap_hyre_diverse` (73.5%) | PASS |
 | housing | `statutory_entailment_gap` | `adaptive_snap_hyre_housing_verifier` | 200 | 74.5% | 1.00 | `rag_state_filter` (200) | +14.0 | `adaptive_snap_hyre_housing_verifier` (200) | +0.0 | `adaptive_snap_hyre_housing_verifier` (74.5%) | PASS |
 | legalbench_scalr | `method_disagreement_gap` | `adaptive_snap_hyre_disagreement_majority_prior` | 200 | 77.5% | 0.19 | `rag_simple` (200) | +3.5 | `adaptive_snap_hyre_disagreement_majority_prior` (200) | +0.0 | `adaptive_snap_hyre_disagreement_majority_prior` (77.5%) | PASS |

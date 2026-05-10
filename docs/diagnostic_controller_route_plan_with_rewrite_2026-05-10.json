@@ -2,7 +2,7 @@
   {
     "dataset": "barexam",
     "bottleneck": "query_retrieval_gap",
-    "route": "rag_rewrite",
+    "route": "adaptive_snap_hyre_v2",
     "secondary_flags": [
       "answer_conversion_gap"
     ],
@@ -10,7 +10,8 @@
     "best_accuracy": 0.86,
     "avg_calls": 2.0,
     "rationale": [
-      "Legal query rewriting closes the gap to the strongest route, so use query formulation before generated-reasoning routes.",
+      "Snap/HyRE route increases gold exposure over plain retrieval.",
+      "Query rewrite calibration accuracy is 82.0%; compare before promoting HyRE-specific claims.",
       "Best route still has 1 gold-retrieved-but-wrong rows."
     ]
   },

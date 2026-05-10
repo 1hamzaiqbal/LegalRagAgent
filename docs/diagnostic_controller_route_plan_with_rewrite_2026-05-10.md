@@ -2,13 +2,13 @@
 
 Source diagnostics: `docs/legal_rag_diagnostic_table_with_rewrite_2026-05-10.json`
 
-The `rag_rewrite` rows are N=50 calibration controls. They can change route
-hypotheses, but they should not replace N=200 claims until rerun on the same
-slice as the competing methods.
+BarExam `rag_rewrite` is now N=200. The remaining `rag_rewrite` rows are N=50
+calibration controls, so use them to motivate route options rather than as
+paper-grade replacements for N=200 comparisons.
 
 | Dataset | Bottleneck | Route | Best acc | Calls | Secondary flags |
 |---|---|---|---:|---:|---|
-| barexam | `query_retrieval_gap` | `rag_rewrite` | 86.0% | 2.00 | answer_conversion_gap |
+| barexam | `query_retrieval_gap` | `adaptive_snap_hyre_v2` | 86.0% | 2.00 | answer_conversion_gap |
 | casehold | `answer_conversion_gap` | `adaptive_snap_hyre_diverse` | 73.5% | 2.00 | answer_conversion_gap, reject_or_escalate |
 | housing | `statutory_entailment_gap` | `adaptive_snap_hyre_housing_verifier` | 74.5% | 1.00 | answer_conversion_gap |
 | legalbench_scalr | `method_disagreement_gap` | `adaptive_snap_hyre_disagreement_majority_prior` | 77.5% | 0.19 | - |
@@ -16,7 +16,8 @@ slice as the competing methods.
 ## Rationale
 
 ### barexam
-- Legal query rewriting closes the gap to the strongest route, so use query formulation before generated-reasoning routes.
+- Snap/HyRE route increases gold exposure over plain retrieval.
+- Query rewrite calibration accuracy is 82.0%; compare before promoting HyRE-specific claims.
 - Best route still has 1 gold-retrieved-but-wrong rows.
 
 ### casehold

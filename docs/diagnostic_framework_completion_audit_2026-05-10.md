@@ -18,7 +18,8 @@ policies across legal benchmarks.
 | Snap-HyRE / HyRE is represented as an intervention | N=200 rows for `adaptive_snap_hyre_v2`, `adaptive_snap_hyre_diverse`, `adaptive_snap_hyre_frontier`, and `rag_snap_hyde_2call`. | Done |
 | Metadata filtering / statutory routing is represented | Housing baseline route uses `rag_state_filter`; controller routes HousingQA to `adaptive_snap_hyre_housing_verifier`. | Done |
 | Option grounding / answer conversion is represented | CaseHOLD documents and controller route identify answer-option conversion; current route remains unresolved with `reject_or_escalate`. | Partially done |
-| Query rewriting is represented as a non-HyRE control | `docs/rag_rewrite_baseline_n50_2026-05-10.md`; with-rewrite diagnostic table and route plan. | Done as N=50 calibration |
+| Query rewriting is represented as a non-HyRE control | `docs/rag_rewrite_baseline_n50_2026-05-10.md`; `docs/rag_rewrite_barexam_n200_2026-05-10.md`; with-rewrite diagnostic table and route plan. | Done |
+| Same-slice BarExam query rewrite control | `docs/rag_rewrite_barexam_n200_2026-05-10.md`; `docs/legal_rag_diagnostic_table_with_rewrite_2026-05-10.md`; job `67432`. | Done |
 | Verifier policy is represented | `docs/adaptive_hyre_housing_verifier_n200_2026-05-10.md`; controller routes HousingQA to verifier. | Done |
 | Executable controller exists | `scripts/diagnostic_controller.py` consumes diagnostic JSON and emits route plan JSON/Markdown. | Done |
 | Controller evaluation exists | `scripts/evaluate_diagnostic_controller.py`; `docs/diagnostic_controller_eval_with_rewrite_2026-05-10.md`. | Done as evidence-summary evaluation |
@@ -32,21 +33,21 @@ Current selected-route evidence from
 
 | Dataset | Route | Evidence N | Accuracy | Calls | Caveat |
 |---|---|---:|---:|---:|---|
-| BarExam | `rag_rewrite` | 50 | 86.0% | 2.00 | mixed-N route hypothesis only |
+| BarExam | `adaptive_snap_hyre_v2` | 200 | 86.0% | 2.00 | selected after N=200 query rewrite landed at 82.0% |
 | CaseHOLD | `adaptive_snap_hyre_diverse` | 200 | 73.5% | 2.00 | answer-conversion unresolved |
 | HousingQA | `adaptive_snap_hyre_housing_verifier` | 200 | 74.5% | 1.00 | strongest current targeted route |
 | LegalBench-SCALR | `adaptive_snap_hyre_disagreement_majority_prior` | 200 | 77.5% | 0.19 | cached disagreement replay |
 
 Macro selected-route accuracy is 77.9% with 1.30 average LLM calls in the
-current evidence summary. This is not a paper-grade held-out result because
-BarExam uses an N=50 rewrite calibration row while the competing HyRE row is
-N=200.
+current evidence summary. The previous BarExam mixed-N caveat is removed:
+`rag_rewrite` now has a same-slice N=200 result and no longer beats
+`adaptive_snap_hyre_v2` on BarExam.
 
 ## Missing Work Before Calling The Objective Complete
 
-1. Same-slice controller evaluation:
-   - either run `rag_rewrite` at N=200 for BarExam, or
-   - evaluate all selected routes on a shared fresh N=200 held-out slice.
+1. Held-out controller evaluation:
+   - current controller evaluation is an evidence-summary comparison over the
+     available N=200 calibration slices, not a fresh held-out benchmark.
 2. CaseHOLD answer-conversion intervention:
    - current diagnostics identify the bottleneck, but the policy route is still
      weak. The controller should either select a calibrated verifier/selector
@@ -58,6 +59,7 @@ N=200.
 
 ## Next Concrete Experiment
 
-Prioritize a same-slice BarExam `rag_rewrite` N=200 run or a compact fresh N=200
-controller-evaluation matrix. The goal is not to discover a new prompt; it is to
-make the controller comparison fair enough to cite.
+Prioritize a compact fresh held-out controller-evaluation matrix or a
+controller-vs-fixed comparison table over the current N=200 calibration slices.
+The goal is not to discover a new prompt; it is to make the controller
+comparison fair enough to cite.

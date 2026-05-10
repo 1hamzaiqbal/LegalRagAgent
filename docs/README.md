@@ -100,10 +100,12 @@ signoff log decides whether a claim is ready to cite.
   accuracy, retrieval exposure, conditional accuracy, rank metrics, calls, and
   health across current N=200 legal logs.
 - `rag_rewrite_baseline_n50_2026-05-10.md`,
+  `rag_rewrite_barexam_n200_2026-05-10.md`,
   `legal_rag_diagnostic_table_with_rewrite_2026-05-10.md`, and
   `diagnostic_controller_route_plan_with_rewrite_2026-05-10.md` - N=50 legal
-  query-rewrite control and updated diagnostic route plan. Treat as calibration
-  evidence, not a replacement for N=200 source-gated comparisons.
+  query-rewrite controls plus the BarExam N=200 follow-up and updated
+  diagnostic route plan. Treat the remaining N=50 rewrite rows as calibration
+  evidence, not replacements for N=200 source-gated comparisons.
 - `diagnostic_controller_eval_with_rewrite_2026-05-10.md` and
   `diagnostic_framework_completion_audit_2026-05-10.md` - current controller
   evidence-summary evaluation and explicit checklist of what remains before the

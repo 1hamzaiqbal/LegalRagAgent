@@ -1,15 +1,11 @@
 # Legal RAG Diagnostic Table
 
-This table is generated from detail logs. It separates retrieval exposure,
-answer conversion, and call budget for bottleneck-aware routing. Rows with
-`rag_rewrite` are N=50 calibration controls, while the main method rows are
-N=200 unless otherwise shown; do not compare them as full paired claims without
-same-slice tests.
+This table is generated from detail logs. It separates retrieval exposure, answer conversion, and call budget for bottleneck-aware routing.
 
 | Dataset | Method | N | Acc | Gold retrieved | Gold retrieved but wrong | Gold missing but correct | Acc if gold retrieved | Acc if gold missing | R@1 | R@5 | R@10 | MRR | Calls | Health |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
 | barexam | `adaptive_snap_hyre_v2` | 200 | 86.0% | 18/200 | 1 | 155 | 94.4% | 85.2% | 38.9% | 100.0% | 100.0% | 0.594 | 2.00 | PASS |
-| barexam | `rag_rewrite` | 50 | 86.0% | 4/50 | 0 | 39 | 100.0% | 84.8% | 25.0% | 100.0% | 100.0% | 0.550 | 2.00 | PASS |
+| barexam | `rag_rewrite` | 200 | 82.0% | 29/200 | 4 | 139 | 86.2% | 81.3% | 27.6% | 100.0% | 100.0% | 0.510 | 2.00 | PASS |
 | barexam | `rag_simple` | 200 | 80.0% | 5/200 | 2 | 157 | 60.0% | 80.5% | 20.0% | 100.0% | 100.0% | 0.533 | 1.00 | PASS |
 | housing | `adaptive_snap_hyre_diverse` | 200 | 63.5% | 92/200 | 34 | 69 | 63.0% | 63.9% | 44.4% | 100.0% | 100.0% | 0.650 | 2.00 | PASS |
 | housing | `adaptive_snap_hyre_housing_verifier` | 200 | 74.5% | 89/200 | 25 | 85 | 71.9% | 76.6% | 45.7% | 100.0% | 100.0% | 0.630 | 1.00 | PASS |
@@ -29,7 +25,7 @@ same-slice tests.
 ## Source Logs
 
 - barexam / `adaptive_snap_hyre_v2`: `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_v2_or-gemma4-26b_20260510_0237_barexam_adaptive-hyre-v2-tight-or-gemma4-26b-barexam-n200-k5-repaired_detail.jsonl`
-- barexam / `rag_rewrite`: `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/logs/eval_rag_rewrite_or-gemma4-26b_20260510_1440_detail.jsonl`
+- barexam / `rag_rewrite`: `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_rewrite_or-gemma4-26b_20260510_1626_barexam_adaptive-hyre-or-gemma4-26b-barexam-n200-k5-rag_rewrite_detail.jsonl`
 - barexam / `rag_simple`: `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_simple_or-gemma4-26b_20260509_2006_barexam_adaptive-hyre-or-gemma4-26b-barexam-n200-k5-rag_simple_detail.jsonl`
 - housing / `adaptive_snap_hyre_diverse`: `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_diverse_or-gemma4-26b_20260509_2059_housing_adaptive-hyre-or-gemma4-26b-housing-n200-k5-adaptive_snap_hyre_diverse_detail.jsonl`
 - housing / `adaptive_snap_hyre_housing_verifier`: `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_housing_verifier_or-gemma4-26b_20260510_1037_housing_housing-verifier-cached-or-gemma4-26b-housing-n200-k5-adaptive_snap_hyre_housing_verifier_detail.jsonl`

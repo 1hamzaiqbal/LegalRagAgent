@@ -60,6 +60,13 @@ not a replacement for Snap-HyRE; it is a diagnostic arm that helps decide whethe
 the active bottleneck is ordinary query formulation, generated reasoning,
 metadata filtering, option grounding, or answer verification.
 
+## BarExam N=200 Follow-Up
+
+The same-slice BarExam `rag_rewrite` N=200 follow-up landed after this N=50
+calibration sweep. It reached 164/200 = 82.0%, below the current N=200
+`adaptive_snap_hyre_v2` BarExam route at 86.0%. See
+`docs/rag_rewrite_barexam_n200_2026-05-10.md`.
+
 The updated generated artifacts are:
 
 - `docs/legal_rag_diagnostic_table_with_rewrite_2026-05-10.md`

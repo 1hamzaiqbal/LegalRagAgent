@@ -3,8 +3,8 @@
     {
       "dataset": "barexam",
       "bottleneck": "query_retrieval_gap",
-      "route": "rag_rewrite",
-      "n": 50,
+      "route": "adaptive_snap_hyre_v2",
+      "n": 200,
       "accuracy": 0.86,
       "avg_calls": 2.0,
       "baseline_method": "rag_simple",
@@ -15,13 +15,13 @@
       "best_available_n": 200,
       "best_available_accuracy": 0.86,
       "delta_vs_best_available_pp": 0.0,
-      "best_same_n_method": "rag_rewrite",
+      "best_same_n_method": "adaptive_snap_hyre_v2",
       "best_same_n_accuracy": 0.86,
-      "mixed_n_warning": true,
+      "mixed_n_warning": false,
       "secondary_flags": [
         "answer_conversion_gap"
       ],
-      "status": "PASS_WITH_MIXED_N_CAVEAT"
+      "status": "PASS"
     },
     {
       "dataset": "casehold",
@@ -94,7 +94,5 @@
   ],
   "macro_accuracy": 0.77875,
   "macro_avg_calls": 1.2975,
-  "mixed_n_datasets": [
-    "barexam"
-  ]
+  "mixed_n_datasets": []
 }
