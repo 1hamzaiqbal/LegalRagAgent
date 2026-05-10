@@ -75,8 +75,8 @@ tying baseline despite the frontier component reaching 84.0%.
      not yet provide a new calibrated option converter that improves answered
      accuracy beyond the current 73-74% band.
 2. Query rewrite same-slice coverage:
-   - BarExam now has N=200 query rewrite, but HousingQA, CaseHOLD, and
-     LegalBench-SCALR rewrite rows remain N=50 calibration controls.
+   - held-out query rewrite jobs 67511-67514 are submitted on rows 200-249 but
+     not yet validated or integrated.
 
 ## Next Concrete Experiment
 
