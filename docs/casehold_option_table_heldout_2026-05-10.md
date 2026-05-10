@@ -13,7 +13,7 @@ convert retrieved evidence into the right displayed holding.
 
 ## Submission
 
-- Active job: `67531`
+- Active job: `67533`
 - Superseded job: `67519` failed in preflight before method execution because
   the cluster launch did not see `adaptive_snap_hyre_option_table` in
   `EVAL_MODES`; the mode was confirmed present in the checkout and importable
@@ -47,6 +47,9 @@ convert retrieved evidence into the right displayed holding.
   error, which points to the candidate-conditioned embedding query rather than
   the cross-encoder. The next retry should bound option-table retrieval query
   fields with `OPTION_TABLE_QUERY_CHARS`.
+- Job `67533` bounds the candidate-conditioned retrieval query fields with
+  `OPTION_TABLE_QUERY_CHARS=240` while keeping CPU dense retrieval and
+  `DISABLE_CROSS_ENCODER=1`.
 - Dataset: `casehold`
 - Mode: `adaptive_snap_hyre_option_table`
 - Provider path: OpenRouter Gemma 4 26B API with CPU dense retrieval and no
@@ -54,17 +57,17 @@ convert retrieved evidence into the right displayed holding.
 - Slice: `--questions 250 --sample-start 200 --sample-end 250`
 - Effective evaluated rows: 50
 - Retrieval: `k=5`
-- Tag: `casehold-option-table-heldout-or-gemma4-26b-api-dense-casehold-q250-start200-end250-k5`
+- Tag: `casehold-option-table-heldout-or-gemma4-26b-api-bounded-casehold-q250-start200-end250-k5`
 
 ## Integration Gate
 
 Before promoting results:
 
-1. Confirm `sacct` completion and exit code for job `67531`.
-2. Inspect `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/67531.out` for
+1. Confirm `sacct` completion and exit code for job `67533`.
+2. Inspect `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/67533.out` for
    Tracebacks, API/rate-limit errors, parsing failures, empty retrieval, or
    timeout; also confirm the CUDA assert from `67528` and cross-encoder index
-   error from `67530` do not recur.
+   error from `67530` / `67531` do not recur.
 3. Run `scripts/analyze_detail_flags.py` on the landed detail JSONL.
 4. Run `scripts/audit_adaptive_hyre_logs.py` on the landed detail JSONL.
 5. Compare against the held-out CaseHOLD rows already validated:
