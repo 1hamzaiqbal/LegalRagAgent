@@ -129,18 +129,34 @@ def short(text: Any, limit: int) -> str:
     return value if len(value) <= limit else value[:limit] + "\n[truncated]"
 
 
-def build_prompt(dataset: str, methods: list[str], rows: dict[str, dict[str, Any]], answer_chars: int) -> tuple[str, str]:
+def build_prompt(
+    dataset: str,
+    methods: list[str],
+    rows: dict[str, dict[str, Any]],
+    answer_chars: int,
+    variant: str,
+) -> tuple[str, str]:
     first = next(iter(rows.values()))
     if dataset == "housing":
         answer_format = "End with exactly one final line: Answer: Yes or Answer: No"
     else:
         answer_format = "End with exactly one final line in the form: Answer: (X)"
-    system = (
-        "You are a careful legal answer arbitrator. Several completed legal RAG "
-        "methods answered the same item but disagree. Choose the answer best "
-        "supported by the question, answer options, and the methods' cited "
-        f"reasoning. Do not average votes. {answer_format}."
-    )
+    if variant == "majority_prior":
+        system = (
+            "You are a careful legal answer arbitrator. Several completed legal RAG "
+            "methods answered the same item but disagree. Start from the answer "
+            "chosen by the majority of methods as a prior, but override it when "
+            "the dissenting answer more specifically matches the cited legal "
+            "holding, procedural posture, and answer option text. Do not count "
+            f"votes mechanically. {answer_format}."
+        )
+    else:
+        system = (
+            "You are a careful legal answer arbitrator. Several completed legal RAG "
+            "methods answered the same item but disagree. Choose the answer best "
+            "supported by the question, answer options, and the methods' cited "
+            f"reasoning. Do not average votes. {answer_format}."
+        )
     parts = [
         "## Question",
         str(first.get("formatted_question") or first.get("question") or ""),
@@ -168,6 +184,7 @@ def main() -> None:
     parser.add_argument("--method", action="append", nargs=2, metavar=("NAME", "PATH"), required=True)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--provider", default=os.getenv("LLM_PROVIDER", "or-gemma4-26b"))
+    parser.add_argument("--variant", choices=["neutral", "majority_prior"], default="neutral")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--answer-chars", type=int, default=1800)
     args = parser.parse_args()
@@ -201,7 +218,7 @@ def main() -> None:
                 selected_source = "arbitrated"
                 arbitrated += 1
                 try:
-                    system, user = build_prompt(args.dataset, methods, rows, args.answer_chars)
+                    system, user = build_prompt(args.dataset, methods, rows, args.answer_chars, args.variant)
                     print(f"[{i}/{len(labels)}] arbitrate {label} preds={preds}", flush=True)
                     answer = llm_call(base_url, api_key, model, system, user)
                     final_prediction = extract_answer(answer, args.dataset) or ""
@@ -216,6 +233,7 @@ def main() -> None:
                 "label": label,
                 "dataset": args.dataset,
                 "mode": "adaptive_snap_hyre_disagreement_replay",
+                "replay_variant": args.variant,
                 "provider": args.provider,
                 "methods": methods,
                 "method_predictions": preds,
