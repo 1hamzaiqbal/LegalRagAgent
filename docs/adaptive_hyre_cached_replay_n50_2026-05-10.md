@@ -87,9 +87,12 @@ targeted probes:
 1. CaseHOLD option reranking: rerank retrieved holdings against each candidate
    option before final answer selection.
 2. HousingQA yes/no verifier: force a final entailment check over the statute
-   snippets and the proposition being asked.
+   snippets and the proposition being asked. Initial N=50 result landed after
+   this cached replay: `adaptive_snap_hyre_housing_verifier` reached 37/50 =
+   74.0% at 1.00 call/row, reducing false-positive Yes errors from 14 to 6
+   while increasing false-negative No errors from 5 to 7. N=200 job `67373` is
+   running to check whether this effect holds beyond the small slice.
 3. SCALR low-cost replay: use the cached one-call path for fast prompt
    comparisons because retrieval is already strong.
 4. Router analysis: use cached replay logs to identify when the frontier route
    should escalate from a one-call replay to an option verifier.
-
