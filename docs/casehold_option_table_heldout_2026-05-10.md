@@ -13,7 +13,7 @@ convert retrieved evidence into the right displayed holding.
 
 ## Submission
 
-- Active job: `67521`
+- Active job: `67527`
 - Superseded job: `67519` failed in preflight before method execution because
   the cluster launch did not see `adaptive_snap_hyre_option_table` in
   `EVAL_MODES`; the mode was confirmed present in the checkout and importable
@@ -22,6 +22,10 @@ convert retrieved evidence into the right displayed holding.
   Slurm script defaulted `REPO` to the non-adaptive cluster checkout. Job
   `67521` explicitly exports `REPO=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre`
   and `DATA_REPO=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent`.
+- Superseded job: `67521` passed mode and Chroma preflight but failed during
+  vLLM startup on an A40 with CUDA OOM: Gemma 4 26B used 44.39 GiB of a
+  44.42 GiB device and failed on a final 22 MiB allocation. Job `67527` pins
+  the run to `h100-2405`.
 - Dataset: `casehold`
 - Mode: `adaptive_snap_hyre_option_table`
 - Provider path: cluster vLLM, Gemma 4 26B
@@ -34,8 +38,8 @@ convert retrieved evidence into the right displayed holding.
 
 Before promoting results:
 
-1. Confirm `sacct` completion and exit code for job `67521`.
-2. Inspect `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/67521.out` and the vLLM
+1. Confirm `sacct` completion and exit code for job `67527`.
+2. Inspect `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/67527.out` and the vLLM
    log for Tracebacks, parsing failures, empty retrieval, or timeout.
 3. Run `scripts/analyze_detail_flags.py` on the landed detail JSONL.
 4. Run `scripts/audit_adaptive_hyre_logs.py` on the landed detail JSONL.
