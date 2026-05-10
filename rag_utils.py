@@ -44,9 +44,13 @@ def get_embeddings(model_name: str = None) -> HuggingFaceEmbeddings:
     with _embeddings_lock:
         if model_name not in _embeddings_instances:
             print(f"[rag_utils] Loading embedding model: {model_name}")
+            device = os.getenv("EMBEDDING_DEVICE", "").strip()
+            model_kwargs = {"trust_remote_code": True}
+            if device:
+                model_kwargs["device"] = device
             _embeddings_instances[model_name] = HuggingFaceEmbeddings(
                 model_name=model_name,
-                model_kwargs={"trust_remote_code": True},
+                model_kwargs=model_kwargs,
             )
     return _embeddings_instances[model_name]
 
