@@ -68,6 +68,11 @@ def pct(num: int, den: int) -> str:
     return "n/a" if den == 0 else f"{100 * num / den:.1f}%"
 
 
+def short(text: Any, limit: int = 500) -> str:
+    value = str(text or "")
+    return value[:limit] + ("..." if len(value) > limit else "")
+
+
 def bucket_stats(items: list[tuple[str, bool]]) -> list[tuple[str, int, int]]:
     counts: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     for name, ok in items:
@@ -114,6 +119,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--log", action="append", nargs=2, metavar=("NAME", "PATH"), required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--escalation-jsonl", type=Path, default=None)
+    parser.add_argument("--escalation-policy", default="accept_candidate_reranker_agree_and_snap_agree")
     args = parser.parse_args()
 
     logs = {name: load_jsonl(Path(path)) for name, path in args.log}
@@ -238,6 +245,50 @@ def main() -> None:
             lambda rows: pred(rows.get("candidate")),
         ),
     ]
+    policy_by_name = {item["policy"]: item for item in selective_policies}
+    if args.escalation_jsonl:
+        selected_policy = policy_by_name.get(args.escalation_policy)
+        if not selected_policy:
+            raise SystemExit(f"unknown escalation policy: {args.escalation_policy}")
+        accepted = set(selected_policy["accepted_labels"])
+        args.escalation_jsonl.parent.mkdir(parents=True, exist_ok=True)
+        with args.escalation_jsonl.open("w") as f:
+            for label, rows in rows_by_label.items():
+                if label in accepted:
+                    continue
+                base = rows.get("reranker") or next(iter(rows.values()))
+                method_preds = {name: pred(rows[name]) for name in names}
+                method_correct_flags = {name: correct(rows[name]) for name in names}
+                evidence = []
+                for ev in (base.get("evidence_store") or [])[:10]:
+                    evidence.append({
+                        "idx": ev.get("idx"),
+                        "candidate": ev.get("candidate", ""),
+                        "cross_encoder_score": ev.get("cross_encoder_score"),
+                        "text": short(ev.get("text"), 450),
+                    })
+                record = {
+                    "label": label,
+                    "idx": base.get("idx"),
+                    "gold": gold(base),
+                    "gold_passage": short(base.get("gold_passage"), 500),
+                    "question": short(base.get("formatted_question") or base.get("question"), 1200),
+                    "choices": base.get("choices") or {},
+                    "snap_letter": snap(rows),
+                    "snap_answer": short(base.get("snap_answer"), 900),
+                    "hyde_passage": short(base.get("hyde_passage"), 700),
+                    "method_predictions": method_preds,
+                    "method_correct": method_correct_flags,
+                    "llm_unique_answers": llm_unique(rows),
+                    "candidate_reranker_agree": method_preds.get("candidate") == method_preds.get("reranker"),
+                    "candidate_snap_agree": bool(snap(rows)) and method_preds.get("candidate") == snap(rows),
+                    "reranker_snap_agree": bool(snap(rows)) and method_preds.get("reranker") == snap(rows),
+                    "score_selected": score_selected(rows.get("score")),
+                    "gold_retrieved_reranker": bool(rows.get("reranker", {}).get("gold_retrieved")),
+                    "evidence_snippets": evidence,
+                    "escalation_policy": args.escalation_policy,
+                }
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     lines = [
         "# CaseHOLD Selector Disagreement Analysis",
