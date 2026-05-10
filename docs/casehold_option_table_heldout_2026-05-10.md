@@ -13,7 +13,7 @@ convert retrieved evidence into the right displayed holding.
 
 ## Submission
 
-- Active job: `67528`
+- Active job: `67530`
 - Superseded job: `67519` failed in preflight before method execution because
   the cluster launch did not see `adaptive_snap_hyre_option_table` in
   `EVAL_MODES`; the mode was confirmed present in the checkout and importable
@@ -32,22 +32,28 @@ convert retrieved evidence into the right displayed holding.
 - Job `67528` is the active OpenRouter fallback: it uses the same cluster
   checkout and Chroma collection, but sets `USE_VLLM=0` and
   `PROVIDER=or-gemma4-26b` to avoid the H100 queue and A40 vLLM OOM.
+- Superseded job: `67528` entered the eval loop with OpenRouter but failed
+  after four rows with `CUDA error: device-side assert triggered`, likely from
+  the local embedding/reranking path on the allocated GPU.
+- Job `67530` keeps the same OpenRouter LLM path and cluster Chroma collection,
+  but forces local retrieval/reranking models to CPU with
+  `EMBEDDING_DEVICE=cpu` and `CROSS_ENCODER_DEVICE=cpu`.
 - Dataset: `casehold`
 - Mode: `adaptive_snap_hyre_option_table`
-- Provider path: OpenRouter Gemma 4 26B API with cluster retrieval
+- Provider path: OpenRouter Gemma 4 26B API with CPU local retrieval/reranking
 - Slice: `--questions 250 --sample-start 200 --sample-end 250`
 - Effective evaluated rows: 50
 - Retrieval: `k=5`
-- Tag: `casehold-option-table-heldout-or-gemma4-26b-api-casehold-q250-start200-end250-k5`
+- Tag: `casehold-option-table-heldout-or-gemma4-26b-api-cpu-casehold-q250-start200-end250-k5`
 
 ## Integration Gate
 
 Before promoting results:
 
-1. Confirm `sacct` completion and exit code for job `67528`.
-2. Inspect `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/67528.out` for
+1. Confirm `sacct` completion and exit code for job `67530`.
+2. Inspect `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/67530.out` for
    Tracebacks, API/rate-limit errors, parsing failures, empty retrieval, or
-   timeout.
+   timeout; also confirm the CUDA assert from `67528` does not recur.
 3. Run `scripts/analyze_detail_flags.py` on the landed detail JSONL.
 4. Run `scripts/audit_adaptive_hyre_logs.py` on the landed detail JSONL.
 5. Compare against the held-out CaseHOLD rows already validated:
