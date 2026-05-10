@@ -80,6 +80,9 @@ signoff log decides whether a claim is ready to cite.
 - `adaptive_hyre_casehold_option_score_n50_2026-05-10.md` - CaseHOLD
   score-only selector rejection: gold retrieval is not enough without calibrated
   answer-option conversion.
+- `adaptive_hyre_casehold_selector_replay_n50_2026-05-10.md` - CaseHOLD
+  replay-selector rejection: re-prompting existing option-reranker evidence
+  underperforms the original verifier/reranker.
 - `dataset_metric_consolidation_2026-04-30.md` - Speculative-RAG metric mapping,
   LegalBench/Legal RAG Bench dataset notes, and wiring gaps.
 - `specrag_lite_diagnostic_controller_2026-04-30.md` - selective escalation
