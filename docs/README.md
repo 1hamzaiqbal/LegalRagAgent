@@ -71,6 +71,8 @@ signoff log decides whether a claim is ready to cite.
   stability-arbitration probe showing clean execution but poor cost/lift.
 - `adaptive_hyre_cached_replay_n50_2026-05-10.md` - cached frontier replay
   showing one-call fixed-HyRE evaluation across the four legal datasets.
+- `adaptive_hyre_housing_verifier_n200_2026-05-10.md` - targeted HousingQA
+  verifier result: fixed HyRE retrieval plus conservative yes/no entailment.
 - `dataset_metric_consolidation_2026-04-30.md` - Speculative-RAG metric mapping,
   LegalBench/Legal RAG Bench dataset notes, and wiring gaps.
 - `specrag_lite_diagnostic_controller_2026-04-30.md` - selective escalation
