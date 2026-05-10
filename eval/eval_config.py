@@ -56,6 +56,7 @@ EVAL_MODES = {
     "adaptive_snap_hyre_housing_verifier": "Adaptive HyRE Housing verifier: cached/diverse Housing retrieval with a conservative yes/no statutory entailment final prompt; non-Housing datasets fall back to the frontier selector",
     "adaptive_snap_hyre_candidate_verifier": "Adaptive HyRE candidate verifier: for CaseHOLD/SCALR, compare displayed holdings first and use retrieved evidence as support/tie-breaker; other datasets fall back to the frontier selector",
     "adaptive_snap_hyre_option_reranker": "Adaptive HyRE option reranker: CaseHOLD-focused per-candidate retrieval bundles before final holding selection; other datasets fall back to the frontier selector",
+    "adaptive_snap_hyre_option_score": "Adaptive HyRE option score: CaseHOLD non-generative selector that chooses the candidate with the strongest candidate-conditioned retrieval score",
     "gap_hyde":                 "Gap-informed HyDE: snap + gaps + evidence in final (full context)",
     "gap_hyde_ev":              "Gap-informed HyDE: evidence only in final (no snap, no gap labels)",
     "gap_hyde_nosnap":          "Gap-informed HyDE: gaps + evidence in final (no snap answer)",

@@ -246,7 +246,7 @@ for mode in "${RUN_SPECS_ARR[@]}"; do
   if [[ -n "$latest_log" ]]; then
     python scripts/analyze_detail_flags.py "$latest_log" || true
     case "$mode" in
-      adaptive_snap_hyre|adaptive_snap_hyre_anchor|adaptive_snap_hyre_diverse|adaptive_snap_hyre_v2|adaptive_snap_hyre_frontier|adaptive_snap_hyre_stability|adaptive_snap_hyre_housing_verifier|adaptive_snap_hyre_candidate_verifier|adaptive_snap_hyre_option_reranker|snap_hyre_option|snap_hyre_state)
+      adaptive_snap_hyre|adaptive_snap_hyre_anchor|adaptive_snap_hyre_diverse|adaptive_snap_hyre_v2|adaptive_snap_hyre_frontier|adaptive_snap_hyre_stability|adaptive_snap_hyre_housing_verifier|adaptive_snap_hyre_candidate_verifier|adaptive_snap_hyre_option_reranker|adaptive_snap_hyre_option_score|snap_hyre_option|snap_hyre_state)
         python scripts/audit_adaptive_hyre_logs.py "$latest_log" || true
         ;;
     esac
