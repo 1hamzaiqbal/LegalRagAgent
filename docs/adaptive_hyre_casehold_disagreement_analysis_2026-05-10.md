@@ -76,6 +76,13 @@ The row-level picture is sharper than the aggregate result:
   84.0%.
 - The headroom is not captured by simple majority vote or by trusting score-only
   agreement.
+- Agreement among LLM selectors is a strong confidence signal: when candidate,
+  reranker, and replay all emit one unique answer, candidate/reranker accuracy
+  is 30/35 = 85.7%.
+- Candidate/reranker disagreement is a strong danger signal: both methods are
+  only 2/7 = 28.6% correct on those rows.
+- Snap agreement is also useful: reranker accuracy is 29/34 = 85.3% when it
+  agrees with the snap answer, but only 8/16 = 50.0% when it disagrees.
 - The 8 rows missed by every method likely need better evidence, better
   candidate normalization, or a different representation of the cited holding.
 - The rows where only `reranker`, only `candidate`, only `frontier`, or only
@@ -87,12 +94,13 @@ The row-level picture is sharper than the aggregate result:
 Do not launch another broad CaseHOLD prompt sweep yet. The next adaptive step
 should be feature analysis over disagreements:
 
-- answer entropy among candidate/reranker/replay outputs;
-- whether the snap answer agrees with candidate/reranker;
+- use answer entropy among candidate/reranker/replay outputs as a confidence
+  gate;
+- use snap agreement with candidate/reranker as a confidence gate;
 - candidate text length and specificity gaps;
 - whether retrieved candidate evidence contains the gold option text;
 - whether score-only is correct only on high-margin cases.
 
-If these features separate the singleton-win rows, then a calibrated router or
-selector is justified. If they do not, CaseHOLD should stay framed as a
-remaining answer-conversion bottleneck rather than forced into the parity story.
+These features do separate high-confidence and low-confidence regions, but not
+yet into a deployment rule that beats 74.0%. A calibrated router is justified as
+the next CaseHOLD-specific experiment; another broad final-prompt sweep is not.
