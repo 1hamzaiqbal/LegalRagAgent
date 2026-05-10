@@ -87,6 +87,7 @@ def audit(path: Path, legal_only: bool) -> tuple[str, bool]:
     errors = [r for r in rows if r.get("error")]
     empty_retrieval = [r for r in rows if not r.get("retrieved_ids")]
     missing_gold_field = [r for r in rows if "gold_retrieved" not in r]
+    missing_prediction = [r for r in rows if not r.get("predicted_answer")]
     gold_hits = sum(1 for r in rows if r.get("gold_retrieved"))
     parse_fail = [r for r in rows if r.get("snap_hyre_parse_ok") is False]
     correct = sum(1 for r in rows if r.get("is_correct"))
@@ -112,6 +113,8 @@ def audit(path: Path, legal_only: bool) -> tuple[str, bool]:
         failures.append(f"empty_retrieval={len(empty_retrieval)}")
     if missing_gold_field:
         failures.append(f"missing_gold_retrieved_field={len(missing_gold_field)}")
+    if missing_prediction:
+        failures.append(f"missing_prediction={len(missing_prediction)}")
     if parse_fail:
         failures.append(f"parse_fail={len(parse_fail)}")
     expected_calls = EXPECTED_LLM_CALLS.get(mode)
@@ -132,7 +135,7 @@ def audit(path: Path, legal_only: bool) -> tuple[str, bool]:
         f"rows={n} correct={correct}/{n} accuracy={_pct(correct, n)}",
         f"gold_retrieved={gold_hits}/{n} ({_pct(gold_hits, n)}) empty_retrieval={len(empty_retrieval)}",
         f"routes={dict(routes)} avg_llm_calls={avg_calls:.2f}",
-        f"errors={len(errors)} parse_fail={len(parse_fail)} missing_gold_field={len(missing_gold_field)}",
+        f"errors={len(errors)} parse_fail={len(parse_fail)} missing_prediction={len(missing_prediction)} missing_gold_field={len(missing_gold_field)}",
     ]
     if warnings:
         lines.append("WARN " + "; ".join(warnings))

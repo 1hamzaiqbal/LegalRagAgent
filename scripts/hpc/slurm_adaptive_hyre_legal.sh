@@ -47,6 +47,8 @@ DATASET=${DATASET:-legalbench_scalr}
 N_QUESTIONS=${N_QUESTIONS:-200}
 SEED=${SEED:-42}
 RETRIEVAL_K=${RETRIEVAL_K:-5}
+SAMPLE_START=${SAMPLE_START:-}
+SAMPLE_END=${SAMPLE_END:-}
 TAG_PROVIDER=${TAG_PROVIDER:-$PROVIDER}
 TAG_SUFFIX=${TAG_SUFFIX:-adaptive-hyre-${TAG_PROVIDER}-${DATASET}-n${N_QUESTIONS}-k${RETRIEVAL_K}}
 SUMMARY_STEM=${SUMMARY_STEM:-adaptive_hyre_${TAG_PROVIDER}_${DATASET}_n${N_QUESTIONS}_k${RETRIEVAL_K}_${SLURM_JOB_ID:-local}}
@@ -175,7 +177,18 @@ if [[ "$USE_VLLM" != "0" ]]; then
 fi
 
 echo "[$(date -Is)] provider=$PROVIDER dataset=$DATASET N=$N_QUESTIONS seed=$SEED k=$RETRIEVAL_K"
+if [[ -n "$SAMPLE_START" || -n "$SAMPLE_END" ]]; then
+  echo "[$(date -Is)] sample slice: start=${SAMPLE_START:-0} end=${SAMPLE_END:-}"
+fi
 echo "[$(date -Is)] modes: ${RUN_SPECS_ARR[*]}"
+
+SAMPLE_ARGS=()
+if [[ -n "$SAMPLE_START" ]]; then
+  SAMPLE_ARGS+=(--sample-start "$SAMPLE_START")
+fi
+if [[ -n "$SAMPLE_END" ]]; then
+  SAMPLE_ARGS+=(--sample-end "$SAMPLE_END")
+fi
 
 FAILURES=0
 FAILED_MODES=()
@@ -200,6 +213,7 @@ for mode in "${RUN_SPECS_ARR[@]}"; do
       --seed "$SEED" \
       --dataset "$DATASET" \
       --retrieval-k "$RETRIEVAL_K" \
+      "${SAMPLE_ARGS[@]}" \
       --tag "$run_tag"
   else
     LLM_PROVIDER="$PROVIDER" \
@@ -213,6 +227,7 @@ for mode in "${RUN_SPECS_ARR[@]}"; do
       --seed "$SEED" \
       --dataset "$DATASET" \
       --retrieval-k "$RETRIEVAL_K" \
+      "${SAMPLE_ARGS[@]}" \
       --tag "$run_tag"
   fi
   status=$?
