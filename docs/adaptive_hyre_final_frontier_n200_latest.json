@@ -416,22 +416,9 @@
         "audit": "-",
         "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260509_2118_legalbench_scalr_adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-rag_snap_hyde_2call_detail.jsonl"
       },
-      "best_adaptive_policy": {
-        "dataset": "legalbench_scalr",
-        "mode": "adaptive_snap_hyre_anchor",
-        "provider": "or-gemma4-26b",
-        "tag": "adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-adaptive_snap_hyre_anchor",
-        "n": 200,
-        "correct": 145,
-        "accuracy": 0.725,
-        "gold_retrieved": 121,
-        "empty_retrieval": 0,
-        "avg_llm_calls": 2.0,
-        "audit": "FAIL parse_fail=6",
-        "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_anchor_or-gemma4-26b_20260509_2239_legalbench_scalr_adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-adaptive_snap_hyre_anchor_detail.jsonl"
-      },
-      "delta_pp": -3.500000000000003,
-      "status": "GAP"
+      "best_adaptive_policy": null,
+      "delta_pp": null,
+      "status": "MISSING"
     }
   ]
 }

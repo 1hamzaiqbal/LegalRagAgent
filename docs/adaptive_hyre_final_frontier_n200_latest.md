@@ -41,7 +41,7 @@
 | barexam | or-gemma4-26b | rag_simple | 80.0% | 1.00 | adaptive_snap_hyre_v2 | 86.0% | 2.00 | 6.0 | LEADS |
 | housing | or-gemma4-26b | snap_hyre_state | 63.0% | 2.00 | adaptive_snap_hyre_diverse | 63.5% | 2.00 | 0.5 | LEADS |
 | casehold | or-gemma4-26b | rag_simple | 73.0% | 1.00 | adaptive_snap_hyre_diverse | 73.5% | 2.00 | 0.5 | LEADS |
-| legalbench_scalr | or-gemma4-26b | rag_snap_hyde_2call | 76.0% | 2.00 | adaptive_snap_hyre_anchor | 72.5% | 2.00 | -3.5 | GAP |
+| legalbench_scalr | or-gemma4-26b | rag_snap_hyde_2call | 76.0% | 2.00 | - | - | - | - | MISSING |
 
 ## Paired Comparisons
 
