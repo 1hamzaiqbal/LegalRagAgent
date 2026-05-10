@@ -38,18 +38,23 @@ if [[ "$DRY_RUN" != "1" ]]; then
 fi
 
 for dataset in "${DATASETS[@]}"; do
-  case "$dataset" in
-    housing)
-      MODES=(rag_state_filter snap_hyre_state adaptive_snap_hyre adaptive_snap_hyre_anchor adaptive_snap_hyre_diverse)
-      ;;
-    barexam|casehold|legalbench_scalr)
-      MODES=(rag_simple rag_snap_hyde_2call snap_hyre_option adaptive_snap_hyre adaptive_snap_hyre_anchor adaptive_snap_hyre_diverse)
-      ;;
-    *)
-      echo "ERROR: unsupported dataset '$dataset'" >&2
-      exit 2
-      ;;
-  esac
+  if [[ "${RUN_SPECS:-}" != "" ]]; then
+    # shellcheck disable=SC2206
+    MODES=(${RUN_SPECS})
+  else
+    case "$dataset" in
+      housing)
+        MODES=(rag_state_filter snap_hyre_state adaptive_snap_hyre adaptive_snap_hyre_anchor adaptive_snap_hyre_diverse)
+        ;;
+      barexam|casehold|legalbench_scalr)
+        MODES=(rag_simple rag_snap_hyde_2call snap_hyre_option adaptive_snap_hyre adaptive_snap_hyre_anchor adaptive_snap_hyre_diverse)
+        ;;
+      *)
+        echo "ERROR: unsupported dataset '$dataset'" >&2
+        exit 2
+        ;;
+    esac
+  fi
 
   for mode in "${MODES[@]}"; do
     job_name="hyre-${dataset}-${mode}"

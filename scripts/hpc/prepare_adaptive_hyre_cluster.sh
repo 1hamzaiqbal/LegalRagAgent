@@ -79,6 +79,8 @@ required = [
     "adaptive_snap_hyre",
     "adaptive_snap_hyre_anchor",
     "adaptive_snap_hyre_diverse",
+    "adaptive_snap_hyre_v2",
+    "adaptive_snap_hyre_frontier",
 ]
 missing = [mode for mode in required if mode not in EVAL_MODES]
 if missing:
