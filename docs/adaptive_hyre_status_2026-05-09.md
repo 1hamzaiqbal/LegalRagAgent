@@ -302,6 +302,35 @@ legal set with two calls and no audit failures after repair, but CaseHOLD and
 Housing still need a sharper route decision or confidence/consistency layer
 before the literal selector should be claimed as the best per-dataset policy.
 
+Refresh at 2026-05-10 07:05 CT:
+
+- Added `adaptive_snap_hyre_stability`, a targeted stability-arbitration probe.
+  It runs the clean frontier selector plus a dataset control, keeps the frontier
+  answer when both agree, and spends one additional arbitration call only when
+  the two answers disagree or one side is unparsable.
+- Intended controls:
+  - Barexam: `adaptive_snap_hyre_v2`
+  - Housing: `snap_hyre_state`
+  - CaseHOLD: `adaptive_snap_hyre_diverse`
+  - LegalBench-SCALR: `rag_snap_hyde_2call`
+- Launched N=50 stability jobs on HPC to test whether this reduces the
+  generation-variance problem before spending on N=200:
+
+| Dataset | Mode | Job | Early state |
+|---|---|---:|---|
+| barexam | `adaptive_snap_hyre_stability` | 67282 | running, rows producing |
+| housing | `adaptive_snap_hyre_stability` | 67283 | running, rows producing |
+| casehold | `adaptive_snap_hyre_stability` | 67284 | running, rows producing |
+| legalbench_scalr | `adaptive_snap_hyre_stability` | 67285 | running, rows producing |
+
+Manifest:
+`/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/adaptive_hyre_mode_matrix_20260510_stability_n50.tsv`.
+
+- Early stdout confirms the expected budget shape: agreement rows use 4 LLM
+  calls, and disagreement rows use 5 calls with
+  `adaptive_snap_hyre_stability/arbitrate`. This probe should be judged on
+  accuracy-versus-call cost, not only raw accuracy.
+
 ## Methods To Run
 
 Option-style datasets (`barexam`, `casehold`, `legalbench_scalr`):
