@@ -58,8 +58,22 @@ def vote(candidates: list[str]) -> str:
     return winners[0]
 
 
+def snap_letter(row: dict[str, Any] | None) -> str:
+    if not row:
+        return ""
+    return str(row.get("snap_letter") or "")
+
+
 def pct(num: int, den: int) -> str:
     return "n/a" if den == 0 else f"{100 * num / den:.1f}%"
+
+
+def bucket_stats(items: list[tuple[str, bool]]) -> list[tuple[str, int, int]]:
+    counts: dict[str, list[int]] = defaultdict(lambda: [0, 0])
+    for name, ok in items:
+        counts[name][0] += 1
+        counts[name][1] += int(ok)
+    return [(name, total, good) for name, (total, good) in sorted(counts.items())]
 
 
 def main() -> None:
@@ -109,11 +123,40 @@ def main() -> None:
         rules["score_agree_else_candidate"] += int(candidate == g)
 
     pair_patterns: Counter[str] = Counter()
+    feature_items: dict[str, list[tuple[str, bool]]] = defaultdict(list)
     examples: list[str] = []
     for label, rows in rows_by_label.items():
         flags = {name: correct(rows[name]) for name in names}
         pattern = ",".join(name for name in names if flags[name]) or "none"
         pair_patterns[pattern] += 1
+        g = gold(next(iter(rows.values())))
+        method_preds = {name: pred(rows[name]) for name in names}
+        llm_preds = [method_preds.get("candidate", ""), method_preds.get("reranker", ""), method_preds.get("replay", "")]
+        unique_llm = len(set(p for p in llm_preds if p))
+        score_pred = score_selected(rows.get("score"))
+        snap = snap_letter(rows.get("reranker")) or snap_letter(rows.get("candidate")) or snap_letter(rows.get("frontier"))
+
+        feature_items["candidate_accuracy_by_reranker_agreement"].append(
+            ("agree" if method_preds.get("candidate") == method_preds.get("reranker") else "disagree", flags.get("candidate", False))
+        )
+        feature_items["reranker_accuracy_by_candidate_agreement"].append(
+            ("agree" if method_preds.get("candidate") == method_preds.get("reranker") else "disagree", flags.get("reranker", False))
+        )
+        feature_items["candidate_accuracy_by_snap_agreement"].append(
+            ("agree" if snap and snap == method_preds.get("candidate") else "disagree", flags.get("candidate", False))
+        )
+        feature_items["reranker_accuracy_by_snap_agreement"].append(
+            ("agree" if snap and snap == method_preds.get("reranker") else "disagree", flags.get("reranker", False))
+        )
+        feature_items["reranker_accuracy_by_score_agreement"].append(
+            ("agree" if score_pred and score_pred == method_preds.get("reranker") else "disagree", flags.get("reranker", False))
+        )
+        feature_items["candidate_accuracy_by_score_agreement"].append(
+            ("agree" if score_pred and score_pred == method_preds.get("candidate") else "disagree", flags.get("candidate", False))
+        )
+        feature_items["oracle_by_llm_entropy"].append((f"{unique_llm}_unique_llm_answers", any(flags.values())))
+        feature_items["reranker_accuracy_by_llm_entropy"].append((f"{unique_llm}_unique_llm_answers", flags.get("reranker", False)))
+        feature_items["candidate_accuracy_by_llm_entropy"].append((f"{unique_llm}_unique_llm_answers", flags.get("candidate", False)))
         if len(examples) < 12 and len(set(pred(rows[name]) for name in names if pred(rows[name]))) > 1:
             parts = [f"{name}={pred(rows[name])}{'*' if flags[name] else ''}" for name in names]
             examples.append(f"- `{label}` gold={gold(next(iter(rows.values())))} | " + " ".join(parts))
@@ -156,6 +199,22 @@ def main() -> None:
     ])
     for pattern, count in pair_patterns.most_common():
         lines.append(f"| `{pattern}` | {count} |")
+
+    lines.extend([
+        "",
+        "## Feature Buckets",
+        "",
+    ])
+    for feature_name, items in sorted(feature_items.items()):
+        lines.extend([
+            f"### `{feature_name}`",
+            "",
+            "| Bucket | Rows | Correct | Accuracy |",
+            "|---|---:|---:|---:|",
+        ])
+        for bucket, total, good in bucket_stats(items):
+            lines.append(f"| `{bucket}` | {total} | {good} | {pct(good, total)} |")
+        lines.append("")
 
     lines.extend([
         "",
