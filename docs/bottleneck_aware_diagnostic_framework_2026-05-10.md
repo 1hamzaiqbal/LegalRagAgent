@@ -4,13 +4,23 @@ Date: 2026-05-10
 
 ## Goal
 
-Develop and evaluate a diagnostic adaptation framework for legal RAG. The
-framework uses calibration traces to decide when to apply plain RAG,
-Snap-HyRE/HyRE, diverse HyRE, metadata filtering, option grounding,
-candidate/verifier prompts, or escalation.
+Develop and evaluate a bottleneck-aware diagnostic adaptation framework for
+legal RAG, where calibration traces determine when and how to apply Snap-HyRE /
+HyRE, metadata filtering, option grounding, query rewriting, or verifier
+policies across legal benchmarks.
 
-This reframes Snap-HyRE as one important intervention family rather than the
-whole claim.
+This preserves Snap-HyRE as a central intervention family, but makes the paper
+about diagnosing when generated reasoning helps instead of adding one fixed
+Snap-HyRE prompt everywhere.
+
+## Direction
+
+The main direction is bottleneck-aware adaptation. A narrower "Snap-HyRE as an
+add-on" story remains useful for class-report and workshop framing, but it
+risks collapsing into prompt engineering unless the lifts are consistently
+strong. The more research-shaped claim is that legal RAG benchmarks expose
+different failure modes, and calibration traces can route each task to the
+intervention it actually needs.
 
 ## Evidence Behind The Pivot
 
@@ -90,8 +100,10 @@ sweep:
 3. Evaluate the routed portfolio on a fresh held-out slice if available. If not,
    run a clean N=200 replay/control comparison and mark it as calibration-slice
    evidence.
-4. Add a non-HyRE query-rewrite RAG baseline to distinguish "generated
-   reasoning helps" from "better legal search formulation helps."
+4. Treat non-HyRE legal query rewrite as both a control and a possible route.
+   This separates "generated reasoning helps" from "better legal search
+   formulation helps," and gives the controller a cheaper policy when
+   hypothetical reasoning is unnecessary.
 
 ## Pending Non-HyRE Baseline
 
@@ -108,11 +120,12 @@ To separate HyRE-specific gains from generic legal query formulation, an N=50
 Submission manifest:
 `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/adaptive_hyre_mode_matrix_20260510_141643.tsv`
 
-Use these as a calibration baseline, not a final paper result, until the logs
-are complete and audited. If `rag_rewrite` closes much of the Snap-HyRE gap,
-the controller should distinguish `query_rewrite_rag` from `snap_hyre`; if it
-does not, the generated-reasoning intervention remains more specific than
-ordinary query reformulation.
+Use these as calibration evidence, not final paper results, until the logs are
+complete and audited at the same slice size as the competing routes. If
+`rag_rewrite` closes much of the Snap-HyRE gap, the controller should
+distinguish `query_rewrite_rag` from `snap_hyre`; if it does not, the
+generated-reasoning intervention remains more specific than ordinary query
+reformulation.
 
 ## Paper Claim
 
