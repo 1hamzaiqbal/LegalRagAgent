@@ -142,6 +142,33 @@ Targeted N=200 postprocessing should use `--expected-run` for the ten launched
 dataset/mode pairs. Do not use the full adaptive readiness gate for this wave,
 because it intentionally scales only the N=50 frontier policies and controls.
 
+Refresh at 2026-05-09 23:35 CT:
+
+- N=200 targeted summaries are copied to
+  `docs/adaptive_hyre_sweep_n200_latest.md` and
+  `docs/adaptive_hyre_sweep_n200_latest.json`.
+- Clean N=200 results currently support:
+  - Housing: `adaptive_snap_hyre_diverse` 63.5% vs `rag_state_filter` 60.5%
+    and `snap_hyre_state` 63.0%; audit PASS.
+  - CaseHOLD: `adaptive_snap_hyre_diverse` 73.5% vs `rag_simple` 73.0%;
+    audit PASS.
+  - SCALR: `rag_snap_hyde_2call` 76.0% vs `rag_simple` 74.0%; detail log has
+    no retained parse/error rows.
+- Two targeted N=200 adaptive logs are not clean enough to promote:
+  - Barexam `adaptive_snap_hyre` landed at 87.0% vs `rag_simple` 80.0%, but
+    has one Snap/HyRE parse failure. Clean retry job `66950` is running.
+  - SCALR `adaptive_snap_hyre_anchor` landed at 72.5% with six Snap/HyRE parse
+    failures and underperforms `rag_snap_hyde_2call`; treat it as evidence
+    against raw/option anchoring for SCALR.
+- The v2 controller was added after observing the SCALR anchor failure. N=50
+  validation jobs `66969`-`66972` landed and are copied to
+  `docs/adaptive_hyre_v2_n50_latest.md` and
+  `docs/adaptive_hyre_v2_n50_latest.json`.
+  - Clean: Barexam 84.0%, CaseHOLD 72.0%, SCALR 80.0%.
+  - Not clean: Housing 62.0% with one Snap/HyRE parse failure.
+  - Main design signal: SCALR v2 routes to plain two-call Snap-HyDE and avoids
+    the anchor-loop parse failures seen in `adaptive_snap_hyre_anchor`.
+
 ## Methods To Run
 
 Option-style datasets (`barexam`, `casehold`, `legalbench_scalr`):
