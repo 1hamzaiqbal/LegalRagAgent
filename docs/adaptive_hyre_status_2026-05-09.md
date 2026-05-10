@@ -201,6 +201,21 @@ Refresh at 2026-05-10 02:45 CT:
   `docs/adaptive_hyre_final_frontier_n200_latest.md` and
   `docs/adaptive_hyre_final_frontier_n200_latest.json`.
 
+Refresh at 2026-05-10 03:45 CT:
+
+- Added `adaptive_snap_hyre_frontier`, an explicit callable selector for the
+  audited N=200 frontier: BarExam v2, Housing diverse, CaseHOLD diverse, and
+  SCALR plain two-call Snap-HyDE.
+- N=50 validation jobs `67233`-`67236` landed for the selector. CaseHOLD needed
+  a one-row repair job `67246` for a truncated final answer; the repaired log
+  now passes audit.
+- Clean frontier-selector N=50 validation is copied to
+  `docs/adaptive_hyre_frontier_n50_latest.md` and
+  `docs/adaptive_hyre_frontier_n50_latest.json`.
+- Results: BarExam 96.0%, Housing 56.0%, CaseHOLD 72.0%, SCALR 74.0%, all
+  audit PASS. Treat this as mode-wiring validation. The stronger report-facing
+  evidence remains the clean N=200 frontier table, especially Housing 63.5%.
+
 ## Methods To Run
 
 Option-style datasets (`barexam`, `casehold`, `legalbench_scalr`):
