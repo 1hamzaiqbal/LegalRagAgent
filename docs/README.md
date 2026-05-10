@@ -104,6 +104,10 @@ signoff log decides whether a claim is ready to cite.
   `diagnostic_controller_route_plan_with_rewrite_2026-05-10.md` - N=50 legal
   query-rewrite control and updated diagnostic route plan. Treat as calibration
   evidence, not a replacement for N=200 source-gated comparisons.
+- `diagnostic_controller_eval_with_rewrite_2026-05-10.md` and
+  `diagnostic_framework_completion_audit_2026-05-10.md` - current controller
+  evidence-summary evaluation and explicit checklist of what remains before the
+  diagnostic framework can be treated as complete.
 - `bottleneck_aware_diagnostic_framework_2026-05-10.md` - current pivot from
   fixed Snap-HyRE prompt iteration to bottleneck-aware diagnostic adaptation.
 - `diagnostic_controller_route_plan_2026-05-10.md` and
