@@ -269,6 +269,39 @@ candidate-discrimination limited. SCALR benefits from plain two-call HyRE but
 the earlier anchor route was unstable, so SCALR should stay on the plain
 two-call route until a safer option reranker is implemented.
 
+Refresh at 2026-05-10 06:35 CT:
+
+- Explicit N=200 `adaptive_snap_hyre_frontier` selector jobs finished for all
+  four legal datasets. Housing, CaseHOLD, and SCALR passed audit directly.
+  Barexam had one Snap/HyRE parse failure on `qa_nan_mbe_535`; one-row repair
+  job `67279` reran sampled row `[187:188]`, predicted the same correct answer,
+  and passed audit. The repaired 200-row Barexam selector log now passes strict
+  audit.
+- Consolidated selector summary copied to
+  `docs/adaptive_hyre_frontier_n200_latest.md` and
+  `docs/adaptive_hyre_frontier_n200_latest.json`.
+- Targeted readiness for the four selector runs is READY:
+  Barexam, Housing, CaseHOLD, and LegalBench-SCALR all have clean
+  `adaptive_snap_hyre_frontier` N=200 logs.
+
+Selector-level N=200 results:
+
+| Dataset | Best baseline/control | Selector acc | Delta | Paired p | Audit |
+|---|---:|---:|---:|---:|---|
+| barexam | `rag_simple` 80.0% | 84.0% | +4.0pp | 0.2005 | PASS |
+| housing | `rag_state_filter` 60.5% / `snap_hyre_state` 63.0% | 62.0% | +1.5pp vs state, -1.0pp vs snap-state | 0.6900 / 0.8506 | PASS |
+| casehold | `rag_simple` 73.0% | 70.5% | -2.5pp | 0.4244 | PASS |
+| legalbench_scalr | `rag_snap_hyde_2call` 76.0% | 76.5% | +0.5pp | 1.0000 | PASS |
+
+Interpretation: the callable one-size selector is now cleanly validated at N=200
+as an execution path, but it is not the strongest evidence table by itself.
+The strongest current method story remains the component frontier: Barexam v2
+86.0%, Housing diverse 63.5%, CaseHOLD diverse 73.5%, and SCALR selector/plain
+two-call 76.5%. The selector shows the adaptive controller can run across the
+legal set with two calls and no audit failures after repair, but CaseHOLD and
+Housing still need a sharper route decision or confidence/consistency layer
+before the literal selector should be claimed as the best per-dataset policy.
+
 ## Methods To Run
 
 Option-style datasets (`barexam`, `casehold`, `legalbench_scalr`):

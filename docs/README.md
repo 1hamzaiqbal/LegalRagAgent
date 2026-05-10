@@ -61,6 +61,11 @@ signoff log decides whether a claim is ready to cite.
   HyRE sweep plan, cluster launch commands, and log-audit gates.
 - `adaptive_hyre_status_2026-05-09.md` - current handoff: pushed commit,
   cluster auth blocker, exact launch command, and missing adaptive coverage.
+- `adaptive_hyre_frontier_n200_latest.md` and
+  `adaptive_hyre_frontier_n200_latest.json` - clean explicit-selector N=200
+  summary for `adaptive_snap_hyre_frontier`.
+- `adaptive_hyre_frontier_n200_analysis_2026-05-10.md` - interpretation of the
+  selector N=200 run versus the stronger component frontier.
 - `dataset_metric_consolidation_2026-04-30.md` - Speculative-RAG metric mapping,
   LegalBench/Legal RAG Bench dataset notes, and wiring gaps.
 - `specrag_lite_diagnostic_controller_2026-04-30.md` - selective escalation
