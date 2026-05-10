@@ -1,0 +1,709 @@
+{
+  "legal_datasets": [
+    "barexam",
+    "housing",
+    "casehold",
+    "legalbench_scalr"
+  ],
+  "expected_adaptive_modes": {
+    "barexam": [
+      "snap_hyre_option",
+      "adaptive_snap_hyre",
+      "adaptive_snap_hyre_anchor",
+      "adaptive_snap_hyre_diverse"
+    ],
+    "casehold": [
+      "snap_hyre_option",
+      "adaptive_snap_hyre",
+      "adaptive_snap_hyre_anchor",
+      "adaptive_snap_hyre_diverse"
+    ],
+    "legalbench_scalr": [
+      "snap_hyre_option",
+      "adaptive_snap_hyre",
+      "adaptive_snap_hyre_anchor",
+      "adaptive_snap_hyre_diverse"
+    ],
+    "housing": [
+      "snap_hyre_state",
+      "adaptive_snap_hyre",
+      "adaptive_snap_hyre_anchor",
+      "adaptive_snap_hyre_diverse"
+    ]
+  },
+  "latest_logs": [
+    {
+      "dataset": "barexam",
+      "mode": "adaptive_snap_hyre",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-barexam-n200-k5-cleanretry-adaptive_snap_hyre",
+      "n": 200,
+      "correct": 166,
+      "accuracy": 0.83,
+      "gold_retrieved": 18,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "FAIL missing_prediction=1; parse_fail=1",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_or-gemma4-26b_20260510_0027_barexam_adaptive-hyre-or-gemma4-26b-barexam-n200-k5-cleanretry-adaptive_snap_hyre_detail.jsonl"
+    },
+    {
+      "dataset": "barexam",
+      "mode": "adaptive_snap_hyre_anchor",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-barexam-n50-k5-adaptive_snap_hyre_anchor",
+      "n": 50,
+      "correct": 39,
+      "accuracy": 0.78,
+      "gold_retrieved": 2,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_anchor_or-gemma4-26b_20260509_1750_detail.jsonl"
+    },
+    {
+      "dataset": "barexam",
+      "mode": "adaptive_snap_hyre_diverse",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-barexam-n50-k5-adaptive_snap_hyre_diverse",
+      "n": 50,
+      "correct": 41,
+      "accuracy": 0.82,
+      "gold_retrieved": 2,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_diverse_or-gemma4-26b_20260509_1755_detail.jsonl"
+    },
+    {
+      "dataset": "barexam",
+      "mode": "adaptive_snap_hyre_frontier",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-barexam-n200-k5-adaptive_snap_hyre_frontier",
+      "n": 200,
+      "correct": 168,
+      "accuracy": 0.84,
+      "gold_retrieved": 17,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_frontier_or-gemma4-26b_20260510_0617_barexam_adaptive-hyre-or-gemma4-26b-barexam-n200-k5-repaired_detail.jsonl"
+    },
+    {
+      "dataset": "barexam",
+      "mode": "adaptive_snap_hyre_stability",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-barexam-n50-k5-adaptive_snap_hyre_stability",
+      "n": 50,
+      "correct": 41,
+      "accuracy": 0.82,
+      "gold_retrieved": 5,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 4.14,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_stability_or-gemma4-26b_20260510_0749_barexam_adaptive-hyre-or-gemma4-26b-barexam-n50-k5-adaptive_snap_hyre_stability_detail.jsonl"
+    },
+    {
+      "dataset": "barexam",
+      "mode": "rag_simple",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-barexam-n200-k5-rag_simple",
+      "n": 200,
+      "correct": 160,
+      "accuracy": 0.8,
+      "gold_retrieved": 5,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 1.0,
+      "audit": "-",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_simple_or-gemma4-26b_20260509_2006_barexam_adaptive-hyre-or-gemma4-26b-barexam-n200-k5-rag_simple_detail.jsonl"
+    },
+    {
+      "dataset": "barexam",
+      "mode": "rag_snap_hyde_2call",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-barexam-n50-k5-rag_snap_hyde_2call",
+      "n": 50,
+      "correct": 39,
+      "accuracy": 0.78,
+      "gold_retrieved": 3,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "-",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260509_1749_detail.jsonl"
+    },
+    {
+      "dataset": "barexam",
+      "mode": "snap_hyre_option",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-barexam-n50-k5-snap_hyre_option",
+      "n": 50,
+      "correct": 40,
+      "accuracy": 0.8,
+      "gold_retrieved": 5,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_snap_hyre_option_or-gemma4-26b_20260509_1835_barexam_adaptive-hyre-or-gemma4-26b-barexam-n50-k5-snap_hyre_option_detail.jsonl"
+    },
+    {
+      "dataset": "casehold",
+      "mode": "adaptive_snap_hyre",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-casehold-n50-k5-adaptive_snap_hyre",
+      "n": 50,
+      "correct": 32,
+      "accuracy": 0.64,
+      "gold_retrieved": 16,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_or-gemma4-26b_20260509_1741_detail.jsonl"
+    },
+    {
+      "dataset": "casehold",
+      "mode": "adaptive_snap_hyre_anchor",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-casehold-n50-k5-adaptive_snap_hyre_anchor",
+      "n": 50,
+      "correct": 35,
+      "accuracy": 0.7,
+      "gold_retrieved": 15,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_anchor_or-gemma4-26b_20260509_1742_detail.jsonl"
+    },
+    {
+      "dataset": "casehold",
+      "mode": "adaptive_snap_hyre_diverse",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-casehold-n200-k5-adaptive_snap_hyre_diverse",
+      "n": 200,
+      "correct": 147,
+      "accuracy": 0.735,
+      "gold_retrieved": 38,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_diverse_or-gemma4-26b_20260509_2043_casehold_adaptive-hyre-or-gemma4-26b-casehold-n200-k5-adaptive_snap_hyre_diverse_detail.jsonl"
+    },
+    {
+      "dataset": "casehold",
+      "mode": "adaptive_snap_hyre_frontier",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-casehold-n200-k5-adaptive_snap_hyre_frontier",
+      "n": 200,
+      "correct": 141,
+      "accuracy": 0.705,
+      "gold_retrieved": 42,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_frontier_or-gemma4-26b_20260510_0546_casehold_adaptive-hyre-or-gemma4-26b-casehold-n200-k5-adaptive_snap_hyre_frontier_detail.jsonl"
+    },
+    {
+      "dataset": "casehold",
+      "mode": "adaptive_snap_hyre_stability",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-casehold-n50-k5-adaptive_snap_hyre_stability",
+      "n": 50,
+      "correct": 36,
+      "accuracy": 0.72,
+      "gold_retrieved": 16,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 4.12,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_stability_or-gemma4-26b_20260510_0758_casehold_adaptive-hyre-or-gemma4-26b-casehold-n50-k5-adaptive_snap_hyre_stability_detail.jsonl"
+    },
+    {
+      "dataset": "casehold",
+      "mode": "rag_simple",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-casehold-n200-k5-rag_simple",
+      "n": 200,
+      "correct": 146,
+      "accuracy": 0.73,
+      "gold_retrieved": 32,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 1.0,
+      "audit": "-",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_simple_or-gemma4-26b_20260509_2007_casehold_adaptive-hyre-or-gemma4-26b-casehold-n200-k5-rag_simple_detail.jsonl"
+    },
+    {
+      "dataset": "casehold",
+      "mode": "rag_snap_hyde_2call",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-casehold-n50-k5-rag_snap_hyde_2call",
+      "n": 50,
+      "correct": 33,
+      "accuracy": 0.66,
+      "gold_retrieved": 32,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "-",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260509_1746_detail.jsonl"
+    },
+    {
+      "dataset": "casehold",
+      "mode": "snap_hyre_option",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-casehold-n50-k5-snap_hyre_option",
+      "n": 50,
+      "correct": 33,
+      "accuracy": 0.66,
+      "gold_retrieved": 27,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_snap_hyre_option_or-gemma4-26b_20260509_1740_detail.jsonl"
+    },
+    {
+      "dataset": "housing",
+      "mode": "adaptive_snap_hyre",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-housing-n50-k5-adaptive_snap_hyre",
+      "n": 50,
+      "correct": 31,
+      "accuracy": 0.62,
+      "gold_retrieved": 20,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_or-gemma4-26b_20260509_1753_detail.jsonl"
+    },
+    {
+      "dataset": "housing",
+      "mode": "adaptive_snap_hyre_anchor",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-housing-n50-k5-adaptive_snap_hyre_anchor",
+      "n": 50,
+      "correct": 30,
+      "accuracy": 0.6,
+      "gold_retrieved": 25,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_anchor_or-gemma4-26b_20260509_1754_detail.jsonl"
+    },
+    {
+      "dataset": "housing",
+      "mode": "adaptive_snap_hyre_diverse",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-housing-n200-k5-adaptive_snap_hyre_diverse",
+      "n": 200,
+      "correct": 127,
+      "accuracy": 0.635,
+      "gold_retrieved": 92,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_diverse_or-gemma4-26b_20260509_2059_housing_adaptive-hyre-or-gemma4-26b-housing-n200-k5-adaptive_snap_hyre_diverse_detail.jsonl"
+    },
+    {
+      "dataset": "housing",
+      "mode": "adaptive_snap_hyre_frontier",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-housing-n200-k5-adaptive_snap_hyre_frontier",
+      "n": 200,
+      "correct": 124,
+      "accuracy": 0.62,
+      "gold_retrieved": 89,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_frontier_or-gemma4-26b_20260510_0623_housing_adaptive-hyre-or-gemma4-26b-housing-n200-k5-adaptive_snap_hyre_frontier_detail.jsonl"
+    },
+    {
+      "dataset": "housing",
+      "mode": "adaptive_snap_hyre_stability",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-housing-n50-k5-adaptive_snap_hyre_stability",
+      "n": 50,
+      "correct": 31,
+      "accuracy": 0.62,
+      "gold_retrieved": 24,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 4.26,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_stability_or-gemma4-26b_20260510_0755_housing_adaptive-hyre-or-gemma4-26b-housing-n50-k5-adaptive_snap_hyre_stability_detail.jsonl"
+    },
+    {
+      "dataset": "housing",
+      "mode": "rag_state_filter",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-housing-n200-k5-rag_state_filter",
+      "n": 200,
+      "correct": 121,
+      "accuracy": 0.605,
+      "gold_retrieved": 81,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 1.0,
+      "audit": "-",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_state_filter_or-gemma4-26b_20260509_2006_housing_adaptive-hyre-or-gemma4-26b-housing-n200-k5-rag_state_filter_detail.jsonl"
+    },
+    {
+      "dataset": "housing",
+      "mode": "snap_hyre_state",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-housing-n200-k5-snap_hyre_state",
+      "n": 200,
+      "correct": 126,
+      "accuracy": 0.63,
+      "gold_retrieved": 81,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_snap_hyre_state_or-gemma4-26b_20260509_2031_housing_adaptive-hyre-or-gemma4-26b-housing-n200-k5-snap_hyre_state_detail.jsonl"
+    },
+    {
+      "dataset": "legalbench_scalr",
+      "mode": "adaptive_snap_hyre",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-legalbench_scalr-n50-k5-adaptive_snap_hyre",
+      "n": 50,
+      "correct": 36,
+      "accuracy": 0.72,
+      "gold_retrieved": 29,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_or-gemma4-26b_20260509_1758_detail.jsonl"
+    },
+    {
+      "dataset": "legalbench_scalr",
+      "mode": "adaptive_snap_hyre_anchor",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-adaptive_snap_hyre_anchor",
+      "n": 200,
+      "correct": 145,
+      "accuracy": 0.725,
+      "gold_retrieved": 121,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "FAIL parse_fail=6",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_anchor_or-gemma4-26b_20260509_2239_legalbench_scalr_adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-adaptive_snap_hyre_anchor_detail.jsonl"
+    },
+    {
+      "dataset": "legalbench_scalr",
+      "mode": "adaptive_snap_hyre_diverse",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-legalbench_scalr-n50-k5-adaptive_snap_hyre_diverse",
+      "n": 50,
+      "correct": 36,
+      "accuracy": 0.72,
+      "gold_retrieved": 30,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_diverse_or-gemma4-26b_20260509_1806_detail.jsonl"
+    },
+    {
+      "dataset": "legalbench_scalr",
+      "mode": "adaptive_snap_hyre_frontier",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-adaptive_snap_hyre_frontier",
+      "n": 200,
+      "correct": 153,
+      "accuracy": 0.765,
+      "gold_retrieved": 153,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_frontier_or-gemma4-26b_20260510_0542_legalbench_scalr_adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-adaptive_snap_hyre_frontier_detail.jsonl"
+    },
+    {
+      "dataset": "legalbench_scalr",
+      "mode": "adaptive_snap_hyre_stability",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-legalbench_scalr-n50-k5-adaptive_snap_hyre_stability",
+      "n": 50,
+      "correct": 38,
+      "accuracy": 0.76,
+      "gold_retrieved": 40,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 4.1,
+      "audit": "PASS",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_stability_or-gemma4-26b_20260510_0744_legalbench_scalr_adaptive-hyre-or-gemma4-26b-legalbench_scalr-n50-k5-adaptive_snap_hyre_stability_detail.jsonl"
+    },
+    {
+      "dataset": "legalbench_scalr",
+      "mode": "rag_simple",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-rag_simple",
+      "n": 200,
+      "correct": 148,
+      "accuracy": 0.74,
+      "gold_retrieved": 108,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 1.0,
+      "audit": "-",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_simple_or-gemma4-26b_20260509_2010_legalbench_scalr_adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-rag_simple_detail.jsonl"
+    },
+    {
+      "dataset": "legalbench_scalr",
+      "mode": "rag_snap_hyde_2call",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-rag_snap_hyde_2call",
+      "n": 200,
+      "correct": 152,
+      "accuracy": 0.76,
+      "gold_retrieved": 146,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "-",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260509_2118_legalbench_scalr_adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-rag_snap_hyde_2call_detail.jsonl"
+    },
+    {
+      "dataset": "legalbench_scalr",
+      "mode": "snap_hyre_option",
+      "provider": "or-gemma4-26b",
+      "tag": "adaptive-hyre-or-gemma4-26b-legalbench_scalr-n50-k5-snap_hyre_option",
+      "n": 50,
+      "correct": 36,
+      "accuracy": 0.72,
+      "gold_retrieved": 38,
+      "empty_retrieval": 0,
+      "avg_llm_calls": 2.0,
+      "audit": "FAIL missing_prediction=1",
+      "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_snap_hyre_option_or-gemma4-26b_20260509_1842_legalbench_scalr_adaptive-hyre-or-gemma4-26b-legalbench_scalr-n50-k5-snap_hyre_option_detail.jsonl"
+    }
+  ],
+  "adaptive_coverage": [
+    {
+      "dataset": "barexam",
+      "provider": "or-gemma4-26b",
+      "present_adaptive_modes": [
+        "adaptive_snap_hyre",
+        "adaptive_snap_hyre_anchor",
+        "adaptive_snap_hyre_diverse",
+        "snap_hyre_option"
+      ],
+      "missing_adaptive_modes": [],
+      "audit_failed_modes": [
+        "adaptive_snap_hyre"
+      ],
+      "status": "MISSING"
+    },
+    {
+      "dataset": "housing",
+      "provider": "or-gemma4-26b",
+      "present_adaptive_modes": [
+        "adaptive_snap_hyre",
+        "adaptive_snap_hyre_anchor",
+        "adaptive_snap_hyre_diverse",
+        "snap_hyre_state"
+      ],
+      "missing_adaptive_modes": [],
+      "audit_failed_modes": [],
+      "status": "READY"
+    },
+    {
+      "dataset": "casehold",
+      "provider": "or-gemma4-26b",
+      "present_adaptive_modes": [
+        "adaptive_snap_hyre",
+        "adaptive_snap_hyre_anchor",
+        "adaptive_snap_hyre_diverse",
+        "snap_hyre_option"
+      ],
+      "missing_adaptive_modes": [],
+      "audit_failed_modes": [],
+      "status": "READY"
+    },
+    {
+      "dataset": "legalbench_scalr",
+      "provider": "or-gemma4-26b",
+      "present_adaptive_modes": [
+        "adaptive_snap_hyre",
+        "adaptive_snap_hyre_anchor",
+        "adaptive_snap_hyre_diverse",
+        "snap_hyre_option"
+      ],
+      "missing_adaptive_modes": [],
+      "audit_failed_modes": [
+        "adaptive_snap_hyre_anchor",
+        "snap_hyre_option"
+      ],
+      "status": "MISSING"
+    }
+  ],
+  "targeted_run_coverage": [
+    {
+      "dataset": "barexam",
+      "provider": "or-gemma4-26b",
+      "present_modes": [
+        "adaptive_snap_hyre_stability"
+      ],
+      "missing_modes": [],
+      "audit_failed_modes": [],
+      "status": "READY"
+    },
+    {
+      "dataset": "housing",
+      "provider": "or-gemma4-26b",
+      "present_modes": [
+        "adaptive_snap_hyre_stability"
+      ],
+      "missing_modes": [],
+      "audit_failed_modes": [],
+      "status": "READY"
+    },
+    {
+      "dataset": "casehold",
+      "provider": "or-gemma4-26b",
+      "present_modes": [
+        "adaptive_snap_hyre_stability"
+      ],
+      "missing_modes": [],
+      "audit_failed_modes": [],
+      "status": "READY"
+    },
+    {
+      "dataset": "legalbench_scalr",
+      "provider": "or-gemma4-26b",
+      "present_modes": [
+        "adaptive_snap_hyre_stability"
+      ],
+      "missing_modes": [],
+      "audit_failed_modes": [],
+      "status": "READY"
+    }
+  ],
+  "adaptive_parity_frontier": [
+    {
+      "dataset": "barexam",
+      "provider": "or-gemma4-26b",
+      "best_control": {
+        "dataset": "barexam",
+        "mode": "rag_simple",
+        "provider": "or-gemma4-26b",
+        "tag": "adaptive-hyre-or-gemma4-26b-barexam-n200-k5-rag_simple",
+        "n": 200,
+        "correct": 160,
+        "accuracy": 0.8,
+        "gold_retrieved": 5,
+        "empty_retrieval": 0,
+        "avg_llm_calls": 1.0,
+        "audit": "-",
+        "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_simple_or-gemma4-26b_20260509_2006_barexam_adaptive-hyre-or-gemma4-26b-barexam-n200-k5-rag_simple_detail.jsonl"
+      },
+      "best_adaptive_policy": {
+        "dataset": "barexam",
+        "mode": "adaptive_snap_hyre_frontier",
+        "provider": "or-gemma4-26b",
+        "tag": "adaptive-hyre-or-gemma4-26b-barexam-n200-k5-adaptive_snap_hyre_frontier",
+        "n": 200,
+        "correct": 168,
+        "accuracy": 0.84,
+        "gold_retrieved": 17,
+        "empty_retrieval": 0,
+        "avg_llm_calls": 2.0,
+        "audit": "PASS",
+        "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_frontier_or-gemma4-26b_20260510_0617_barexam_adaptive-hyre-or-gemma4-26b-barexam-n200-k5-repaired_detail.jsonl"
+      },
+      "delta_pp": 3.9999999999999925,
+      "status": "LEADS"
+    },
+    {
+      "dataset": "housing",
+      "provider": "or-gemma4-26b",
+      "best_control": {
+        "dataset": "housing",
+        "mode": "snap_hyre_state",
+        "provider": "or-gemma4-26b",
+        "tag": "adaptive-hyre-or-gemma4-26b-housing-n200-k5-snap_hyre_state",
+        "n": 200,
+        "correct": 126,
+        "accuracy": 0.63,
+        "gold_retrieved": 81,
+        "empty_retrieval": 0,
+        "avg_llm_calls": 2.0,
+        "audit": "PASS",
+        "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_snap_hyre_state_or-gemma4-26b_20260509_2031_housing_adaptive-hyre-or-gemma4-26b-housing-n200-k5-snap_hyre_state_detail.jsonl"
+      },
+      "best_adaptive_policy": {
+        "dataset": "housing",
+        "mode": "adaptive_snap_hyre_diverse",
+        "provider": "or-gemma4-26b",
+        "tag": "adaptive-hyre-or-gemma4-26b-housing-n200-k5-adaptive_snap_hyre_diverse",
+        "n": 200,
+        "correct": 127,
+        "accuracy": 0.635,
+        "gold_retrieved": 92,
+        "empty_retrieval": 0,
+        "avg_llm_calls": 2.0,
+        "audit": "PASS",
+        "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_diverse_or-gemma4-26b_20260509_2059_housing_adaptive-hyre-or-gemma4-26b-housing-n200-k5-adaptive_snap_hyre_diverse_detail.jsonl"
+      },
+      "delta_pp": 0.5000000000000004,
+      "status": "LEADS"
+    },
+    {
+      "dataset": "casehold",
+      "provider": "or-gemma4-26b",
+      "best_control": {
+        "dataset": "casehold",
+        "mode": "rag_simple",
+        "provider": "or-gemma4-26b",
+        "tag": "adaptive-hyre-or-gemma4-26b-casehold-n200-k5-rag_simple",
+        "n": 200,
+        "correct": 146,
+        "accuracy": 0.73,
+        "gold_retrieved": 32,
+        "empty_retrieval": 0,
+        "avg_llm_calls": 1.0,
+        "audit": "-",
+        "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_simple_or-gemma4-26b_20260509_2007_casehold_adaptive-hyre-or-gemma4-26b-casehold-n200-k5-rag_simple_detail.jsonl"
+      },
+      "best_adaptive_policy": {
+        "dataset": "casehold",
+        "mode": "adaptive_snap_hyre_diverse",
+        "provider": "or-gemma4-26b",
+        "tag": "adaptive-hyre-or-gemma4-26b-casehold-n200-k5-adaptive_snap_hyre_diverse",
+        "n": 200,
+        "correct": 147,
+        "accuracy": 0.735,
+        "gold_retrieved": 38,
+        "empty_retrieval": 0,
+        "avg_llm_calls": 2.0,
+        "audit": "PASS",
+        "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_diverse_or-gemma4-26b_20260509_2043_casehold_adaptive-hyre-or-gemma4-26b-casehold-n200-k5-adaptive_snap_hyre_diverse_detail.jsonl"
+      },
+      "delta_pp": 0.5000000000000004,
+      "status": "LEADS"
+    },
+    {
+      "dataset": "legalbench_scalr",
+      "provider": "or-gemma4-26b",
+      "best_control": {
+        "dataset": "legalbench_scalr",
+        "mode": "rag_snap_hyde_2call",
+        "provider": "or-gemma4-26b",
+        "tag": "adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-rag_snap_hyde_2call",
+        "n": 200,
+        "correct": 152,
+        "accuracy": 0.76,
+        "gold_retrieved": 146,
+        "empty_retrieval": 0,
+        "avg_llm_calls": 2.0,
+        "audit": "-",
+        "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260509_2118_legalbench_scalr_adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-rag_snap_hyde_2call_detail.jsonl"
+      },
+      "best_adaptive_policy": {
+        "dataset": "legalbench_scalr",
+        "mode": "adaptive_snap_hyre_frontier",
+        "provider": "or-gemma4-26b",
+        "tag": "adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-adaptive_snap_hyre_frontier",
+        "n": 200,
+        "correct": 153,
+        "accuracy": 0.765,
+        "gold_retrieved": 153,
+        "empty_retrieval": 0,
+        "avg_llm_calls": 2.0,
+        "audit": "PASS",
+        "path": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_adaptive_snap_hyre_frontier_or-gemma4-26b_20260510_0542_legalbench_scalr_adaptive-hyre-or-gemma4-26b-legalbench_scalr-n200-k5-adaptive_snap_hyre_frontier_detail.jsonl"
+      },
+      "delta_pp": 0.5000000000000004,
+      "status": "LEADS"
+    }
+  ]
+}

@@ -331,6 +331,28 @@ Manifest:
   `adaptive_snap_hyre_stability/arbitrate`. This probe should be judged on
   accuracy-versus-call cost, not only raw accuracy.
 
+Refresh at 2026-05-10 08:10 CT:
+
+- N=50 `adaptive_snap_hyre_stability` jobs `67282`-`67285` completed and pass
+  strict detail-log health checks. Consolidated summary copied to
+  `docs/adaptive_hyre_stability_n50_latest.md` and
+  `docs/adaptive_hyre_stability_n50_latest.json`; interpretation note copied to
+  `docs/adaptive_hyre_stability_n50_analysis_2026-05-10.md`.
+- Result: stability arbitration is clean but not worth scaling as-is. It roughly
+  doubles call cost and does not reliably improve accuracy at N=50.
+
+| Dataset | Stability acc | Avg calls | Frontier -> stability | Interpretation |
+|---|---:|---:|---:|---|
+| barexam | 82.0% | 4.14 | +2.0pp at N=50 | not enough lift for doubled calls |
+| housing | 62.0% | 4.26 | +0.0pp at N=50 | broad arbitrator does not fix yes/no polarity |
+| casehold | 72.0% | 4.12 | +2.0pp at N=50 | possible but weaker than component N=200 diverse |
+| legalbench_scalr | 76.0% | 4.10 | -2.0pp at N=50 | plain two-call route remains preferable |
+
+- Next method direction should not be this exact arbitration scaled to N=200.
+  Better next probes: fixed HyRE caching to isolate generation variance, a
+  confidence-gated verifier rather than arbitrate-all-disagreements, Housing
+  yes/no calibration, and CaseHOLD option reranking.
+
 ## Methods To Run
 
 Option-style datasets (`barexam`, `casehold`, `legalbench_scalr`):
