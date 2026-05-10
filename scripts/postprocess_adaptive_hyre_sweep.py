@@ -435,6 +435,7 @@ def parity_records(
             policies = [
                 summary for (d, mode, p), summary in selected.items()
                 if d == dataset and p == provider and mode in POLICY_MODES
+                and audit_status(summary) == "PASS"
             ]
             best_control = _best_summary(controls)
             best_policy = _best_summary(policies)

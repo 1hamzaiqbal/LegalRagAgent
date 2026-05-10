@@ -184,6 +184,23 @@ Refresh at 2026-05-10 00:30 CT:
   the cluster worktree. Hardened Barexam v2 N=200 job `67005` is running as the
   current clean replacement candidate.
 
+Refresh at 2026-05-10 02:45 CT:
+
+- Hardened Barexam v2 N=200 job `67005` landed at 85.5% but had one truncated
+  final answer with missing prediction. The stricter audit now fails missing
+  predictions, so that raw log is not promoted directly.
+- One-row sliced repair job `67208` reran the same sampled row
+  (`sample_start=197`, `sample_end=198`) and passed. The repaired full detail
+  log is
+  `logs/eval_adaptive_snap_hyre_v2_or-gemma4-26b_20260510_0237_barexam_adaptive-hyre-v2-tight-or-gemma4-26b-barexam-n200-k5-repaired_detail.jsonl`.
+- The repaired Barexam v2 log passes audit at 86.0% with zero errors, zero
+  Snap/HyRE parse failures, zero missing predictions, and zero empty retrieval.
+  Paired against `rag_simple`, it is +6.0pp, b/c=22/10, p=0.0501, 95% CI
+  [0.5, 11.5].
+- The consolidated clean N=200 frontier is copied to
+  `docs/adaptive_hyre_final_frontier_n200_latest.md` and
+  `docs/adaptive_hyre_final_frontier_n200_latest.json`.
+
 ## Methods To Run
 
 Option-style datasets (`barexam`, `casehold`, `legalbench_scalr`):
