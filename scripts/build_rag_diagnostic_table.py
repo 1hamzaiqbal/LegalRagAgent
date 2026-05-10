@@ -96,7 +96,8 @@ def summarize(dataset: str, method: str, path: Path, rows: list[dict[str, Any]])
             pass
     parse_fail = sum(1 for row in rows if row.get("predicted_answer") in {None, ""})
     errors = sum(1 for row in rows if row.get("error"))
-    empty_retrieval = sum(1 for row in rows if not row.get("retrieved_ids"))
+    retrieval_rows = [row for row in rows if "retrieved_ids" in row]
+    empty_retrieval = sum(1 for row in retrieval_rows if not row.get("retrieved_ids"))
     return {
         "dataset": dataset,
         "method": method,
@@ -120,6 +121,7 @@ def summarize(dataset: str, method: str, path: Path, rows: list[dict[str, Any]])
         "parse_fail": parse_fail,
         "errors": errors,
         "empty_retrieval": empty_retrieval,
+        "retrieval_rows": len(retrieval_rows),
     }
 
 
