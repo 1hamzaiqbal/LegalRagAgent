@@ -225,6 +225,50 @@ Refresh at 2026-05-10 03:45 CT:
 - No adaptive HyRE SLURM jobs are currently active after the frontier validation
   and repair wave.
 
+Refresh at 2026-05-10 04:30 CT:
+
+- Local runs remain smoke/debug only for this wave. The HPC worktree has the
+  legal Chroma collections needed for report-grade runs, so new evidence should
+  launch there.
+- Added `RUN_SPECS` override support to the mode-matrix submitter and added
+  `adaptive_snap_hyre_v2` / `adaptive_snap_hyre_frontier` to cluster preflight
+  and post-run adaptive audits.
+- Submitted explicit N=200 `adaptive_snap_hyre_frontier` selector jobs on HPC:
+
+| Dataset | Mode | Job | Initial state |
+|---|---|---:|---|
+| barexam | `adaptive_snap_hyre_frontier` | 67249 | pending |
+| housing | `adaptive_snap_hyre_frontier` | 67250 | pending |
+| casehold | `adaptive_snap_hyre_frontier` | 67251 | pending |
+| legalbench_scalr | `adaptive_snap_hyre_frontier` | 67252 | pending |
+
+Manifest:
+`/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/adaptive_hyre_mode_matrix_20260510_frontier_n200.tsv`.
+
+- Purpose: close the evidence gap where the clean N=200 component frontier is
+  strong, but the callable one-size selector itself only has N=50 validation.
+  If these land cleanly, they should replace the N=50 selector validation as the
+  main selector-level evidence. If Housing varies again, keep the component
+  N=200 Housing diverse result as the stronger method evidence and interpret
+  the selector run as model/provider variance on a brittle yes/no task.
+
+Residual N=200 component-frontier audit:
+
+| Dataset | Base -> treatment | Wins | Losses | Both wrong | Treatment wrong with gold retrieved |
+|---|---|---:|---:|---:|---:|
+| barexam | `rag_simple` -> `adaptive_snap_hyre_v2` | 22 | 10 | 18 | 1/18 |
+| housing | `rag_state_filter` -> `adaptive_snap_hyre_diverse` | 16 | 10 | 63 | 33/63 |
+| casehold | `rag_simple` -> `adaptive_snap_hyre_diverse` | 15 | 14 | 39 | 1/39 |
+| legalbench_scalr | `rag_simple` -> `rag_snap_hyde_2call` | 15 | 11 | 37 | 10/37 |
+
+Interpretation: Barexam is the clearest answer/option-conversion gain; Housing
+still has many residual failures even when gold is retrieved, so the next
+Housing work should target consistency and final yes/no decision behavior
+rather than broad retrieval. CaseHOLD remains mostly option conversion and
+candidate-discrimination limited. SCALR benefits from plain two-call HyRE but
+the earlier anchor route was unstable, so SCALR should stay on the plain
+two-call route until a safer option reranker is implemented.
+
 ## Methods To Run
 
 Option-style datasets (`barexam`, `casehold`, `legalbench_scalr`):
