@@ -21,6 +21,10 @@ log-only analysis; it performs no fresh retrieval, embedding, or LLM calls.
   majority voting does not improve it. The disagreement rows are still highly
   recoverable by oracle, so a better arbitrator could help, but broad reruns are
   unlikely to be efficient.
+- Follow-up replay confirmed this direction on SCALR: a cached disagreement-only
+  arbitrator reached 155/200 = 77.5% with 38 arbitration calls, a small
+  directional lift over the 153/200 = 76.5% frontier. See
+  `adaptive_hyre_scalr_disagreement_replay_2026-05-10.md`.
 
 # Adaptive Portfolio Analysis: barexam
 

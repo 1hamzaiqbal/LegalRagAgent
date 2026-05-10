@@ -92,6 +92,9 @@ signoff log decides whether a claim is ready to cite.
 - `adaptive_hyre_portfolio_analysis_2026-05-10.md` - cross-dataset N=200
   detail-log portfolio analysis: best single method, oracle headroom, majority
   probe, and disagreement buckets.
+- `adaptive_hyre_scalr_disagreement_replay_2026-05-10.md` - SCALR cached
+  disagreement-only arbitrator: 77.5% at N=200, a small directional lift over
+  the 76.5% frontier.
 - `dataset_metric_consolidation_2026-04-30.md` - Speculative-RAG metric mapping,
   LegalBench/Legal RAG Bench dataset notes, and wiring gaps.
 - `specrag_lite_diagnostic_controller_2026-04-30.md` - selective escalation
