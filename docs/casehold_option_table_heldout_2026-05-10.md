@@ -13,7 +13,7 @@ convert retrieved evidence into the right displayed holding.
 
 ## Submission
 
-- Active job: `67533`
+- Status: blocked; no valid option-table held-out result.
 - Superseded job: `67519` failed in preflight before method execution because
   the cluster launch did not see `adaptive_snap_hyre_option_table` in
   `EVAL_MODES`; the mode was confirmed present in the checkout and importable
@@ -50,6 +50,11 @@ convert retrieved evidence into the right displayed holding.
 - Job `67533` bounds the candidate-conditioned retrieval query fields with
   `OPTION_TABLE_QUERY_CHARS=240` while keeping CPU dense retrieval and
   `DISABLE_CROSS_ENCODER=1`.
+- Superseded job: `67533` still failed after five rows with the same
+  embedding/query index error (`index ... out of bounds for dimension 0 with
+  size 114`). Because this persisted after CPU retrieval, cross-encoder
+  disabling, and aggressive query bounding, none of the option-table held-out
+  jobs should be treated as method results.
 - Dataset: `casehold`
 - Mode: `adaptive_snap_hyre_option_table`
 - Provider path: OpenRouter Gemma 4 26B API with CPU dense retrieval and no
@@ -61,16 +66,28 @@ convert retrieved evidence into the right displayed holding.
 
 ## Integration Gate
 
-Before promoting results:
+Before promoting any future result:
 
-1. Confirm `sacct` completion and exit code for job `67533`.
-2. Inspect `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/67533.out` for
+1. Fix the option-table embedding/query path that causes the row-five index
+   error.
+2. Confirm `sacct` completion and exit code for the new job.
+3. Inspect the new stdout for
    Tracebacks, API/rate-limit errors, parsing failures, empty retrieval, or
-   timeout; also confirm the CUDA assert from `67528` and cross-encoder index
-   error from `67530` / `67531` do not recur.
-3. Run `scripts/analyze_detail_flags.py` on the landed detail JSONL.
-4. Run `scripts/audit_adaptive_hyre_logs.py` on the landed detail JSONL.
-5. Compare against the held-out CaseHOLD rows already validated:
+   timeout; also confirm the CUDA assert from `67528` and index errors from
+   `67530` / `67531` / `67533` do not recur.
+4. Run `scripts/analyze_detail_flags.py` on the landed detail JSONL.
+5. Run `scripts/audit_adaptive_hyre_logs.py` on the landed detail JSONL.
+6. Compare against the held-out CaseHOLD rows already validated:
    - `rag_simple`: 34/50 = 68.0%
    - `rag_rewrite`: 38/50 = 76.0%
    - `adaptive_snap_hyre_diverse`: 39/50 = 78.0%
+
+## Current Interpretation
+
+This probe did not produce a usable accuracy number. The useful evidence is
+infrastructure/implementation evidence: CaseHOLD still has an unresolved
+answer-option conversion bottleneck, but the current live option-table route is
+blocked before evaluation by the candidate-conditioned retrieval implementation.
+For the diagnostic framework, keep the current CaseHOLD route as
+`adaptive_snap_hyre_diverse` plus the documented `reject_or_escalate` policy;
+do not promote option-table beyond a blocked future-work item.

@@ -83,10 +83,15 @@ same-slice query-rewrite gap and strengthens the diagnostic routing argument.
    - current diagnostics now define a `reject_or_escalate` policy, but they do
      not yet provide a new calibrated option converter that improves answered
      accuracy beyond the current 73-74% band.
+   - `docs/casehold_option_table_heldout_2026-05-10.md` records the targeted
+     option-table held-out attempt. It is blocked before evaluation by a
+     candidate-conditioned embedding/query index error, so it is not a valid
+     positive or negative method result.
 
 ## Next Concrete Experiment
 
-Prioritize a targeted CaseHOLD answer-conversion policy that improves accuracy
-beyond the current route. The goal is not to discover a new prompt; it is to
-test whether the remaining unresolved bottleneck can be handled by a calibrated
-option converter rather than by more retrieval exposure alone.
+Prioritize fixing the CaseHOLD option-table retrieval/query path or replacing
+it with a simpler option-conversion policy that can run cleanly on held-out
+rows. The goal is not to discover a new prompt; it is to test whether the
+remaining unresolved bottleneck can be handled by a calibrated option converter
+rather than by more retrieval exposure alone.
