@@ -18,8 +18,8 @@ import compute_mcnemar  # type: ignore
 
 
 LEGAL_DATASETS = ("barexam", "housing", "casehold", "legalbench_scalr")
-ADAPTIVE_MODES = {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse", "adaptive_snap_hyre_v2", "adaptive_snap_hyre_frontier", "snap_hyre_option", "snap_hyre_state"}
-POLICY_MODES = {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse", "adaptive_snap_hyre_v2", "adaptive_snap_hyre_frontier"}
+ADAPTIVE_MODES = {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse", "adaptive_snap_hyre_v2", "adaptive_snap_hyre_frontier", "adaptive_snap_hyre_stability", "snap_hyre_option", "snap_hyre_state"}
+POLICY_MODES = {"adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse", "adaptive_snap_hyre_v2", "adaptive_snap_hyre_frontier", "adaptive_snap_hyre_stability"}
 DEFAULT_MODES = {
     "rag_simple",
     "rag_state_filter",
@@ -31,12 +31,13 @@ DEFAULT_MODES = {
     "adaptive_snap_hyre_diverse",
     "adaptive_snap_hyre_v2",
     "adaptive_snap_hyre_frontier",
+    "adaptive_snap_hyre_stability",
 }
 DEFAULT_COMPARISONS = {
-    "barexam": [("rag_simple", "adaptive_snap_hyre"), ("rag_simple", "adaptive_snap_hyre_v2"), ("rag_simple", "adaptive_snap_hyre_frontier"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre_frontier"), ("snap_hyre_option", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre_frontier"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
-    "casehold": [("rag_simple", "adaptive_snap_hyre"), ("rag_simple", "adaptive_snap_hyre_v2"), ("rag_simple", "adaptive_snap_hyre_frontier"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre_frontier"), ("snap_hyre_option", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre_frontier"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
-    "legalbench_scalr": [("rag_simple", "adaptive_snap_hyre"), ("rag_simple", "adaptive_snap_hyre_v2"), ("rag_simple", "adaptive_snap_hyre_frontier"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre_v2"), ("rag_snap_hyde_2call", "adaptive_snap_hyre_frontier"), ("snap_hyre_option", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre_frontier"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
-    "housing": [("rag_state_filter", "adaptive_snap_hyre"), ("rag_state_filter", "adaptive_snap_hyre_v2"), ("rag_state_filter", "adaptive_snap_hyre_frontier"), ("snap_hyre_state", "adaptive_snap_hyre"), ("snap_hyre_state", "adaptive_snap_hyre_v2"), ("snap_hyre_state", "adaptive_snap_hyre_frontier"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
+    "barexam": [("rag_simple", "adaptive_snap_hyre"), ("rag_simple", "adaptive_snap_hyre_v2"), ("rag_simple", "adaptive_snap_hyre_frontier"), ("rag_simple", "adaptive_snap_hyre_stability"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre_frontier"), ("snap_hyre_option", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre_frontier"), ("adaptive_snap_hyre_frontier", "adaptive_snap_hyre_stability"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
+    "casehold": [("rag_simple", "adaptive_snap_hyre"), ("rag_simple", "adaptive_snap_hyre_v2"), ("rag_simple", "adaptive_snap_hyre_frontier"), ("rag_simple", "adaptive_snap_hyre_stability"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre_frontier"), ("snap_hyre_option", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre_frontier"), ("adaptive_snap_hyre_frontier", "adaptive_snap_hyre_stability"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
+    "legalbench_scalr": [("rag_simple", "adaptive_snap_hyre"), ("rag_simple", "adaptive_snap_hyre_v2"), ("rag_simple", "adaptive_snap_hyre_frontier"), ("rag_simple", "adaptive_snap_hyre_stability"), ("rag_snap_hyde_2call", "adaptive_snap_hyre"), ("rag_snap_hyde_2call", "adaptive_snap_hyre_v2"), ("rag_snap_hyde_2call", "adaptive_snap_hyre_frontier"), ("rag_snap_hyde_2call", "adaptive_snap_hyre_stability"), ("snap_hyre_option", "adaptive_snap_hyre"), ("snap_hyre_option", "adaptive_snap_hyre_frontier"), ("adaptive_snap_hyre_frontier", "adaptive_snap_hyre_stability"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
+    "housing": [("rag_state_filter", "adaptive_snap_hyre"), ("rag_state_filter", "adaptive_snap_hyre_v2"), ("rag_state_filter", "adaptive_snap_hyre_frontier"), ("rag_state_filter", "adaptive_snap_hyre_stability"), ("snap_hyre_state", "adaptive_snap_hyre"), ("snap_hyre_state", "adaptive_snap_hyre_v2"), ("snap_hyre_state", "adaptive_snap_hyre_frontier"), ("snap_hyre_state", "adaptive_snap_hyre_stability"), ("adaptive_snap_hyre_frontier", "adaptive_snap_hyre_stability"), ("adaptive_snap_hyre", "adaptive_snap_hyre_anchor"), ("adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse")],
 }
 EXPECTED_ADAPTIVE_MODES = {
     "barexam": ("snap_hyre_option", "adaptive_snap_hyre", "adaptive_snap_hyre_anchor", "adaptive_snap_hyre_diverse"),

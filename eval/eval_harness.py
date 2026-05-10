@@ -2028,6 +2028,92 @@ def run_adaptive_snap_hyre_frontier(row: pd.Series, config: EvalConfig) -> dict:
     return out
 
 
+def _stability_control(row: pd.Series, config: EvalConfig) -> tuple[str, dict]:
+    """Return the current strongest cheap comparison path for stability checks."""
+    if config.dataset == "barexam":
+        return "adaptive_snap_hyre_v2", run_adaptive_snap_hyre_v2(row, config)
+    if config.dataset == "housing":
+        return "snap_hyre_state", run_snap_hyre_state(row, config)
+    if config.dataset == "casehold":
+        return "adaptive_snap_hyre_diverse", run_adaptive_snap_hyre_diverse(row, config)
+    if config.dataset == "legalbench_scalr":
+        return "rag_snap_hyde_2call", run_rag_snap_hyde_2call(row, config)
+    return "adaptive_snap_hyre_v2", run_adaptive_snap_hyre_v2(row, config)
+
+
+def run_adaptive_snap_hyre_stability(row: pd.Series, config: EvalConfig) -> dict:
+    """Adaptive HyRE with disagreement-triggered answer arbitration.
+
+    The N=200 selector run showed that the controller is wired correctly but
+    online HyRE generations vary enough to flip answers. This mode tests a
+    targeted stability layer: run the frontier selector and a dataset-appropriate
+    control, keep the shared answer when they agree, and spend one extra call
+    only when they disagree or one side fails to emit a parseable answer.
+    """
+    question = _fmt(row, config)
+    frontier = run_adaptive_snap_hyre_frontier(row, config)
+    control_name, control = _stability_control(row, config)
+    frontier_answer = _extract_answer(frontier.get("final_answer", ""), config)
+    control_answer = _extract_answer(control.get("final_answer", ""), config)
+
+    arbitration_used = frontier_answer != control_answer or not frontier_answer or not control_answer
+    if arbitration_used:
+        if config.dataset == "housing":
+            answer_format = "End with exactly one final line: Answer: Yes or Answer: No"
+        else:
+            answer_format = "End with exactly one final line in the form: Answer: (X)"
+        arb_system = (
+            "You are a careful legal answer arbitrator. Two legal RAG strategies answered the "
+            "same question. Compare their reasoning and choose the answer best supported by the "
+            "question, displayed options, and cited legal evidence. Do not average the answers. "
+            f"{answer_format}."
+        )
+        arb_user = (
+            f"## Question\n{question}\n\n"
+            f"## Frontier Selector Answer\n{frontier.get('final_answer', '')}\n\n"
+            f"## Control Strategy ({control_name}) Answer\n{control.get('final_answer', '')}"
+        )
+        final_answer = _llm_call(arb_system, arb_user, label="adaptive_snap_hyre_stability/arbitrate")
+        selected_source = "arbitrated"
+    else:
+        final_answer = frontier.get("final_answer", "")
+        selected_source = "agreement"
+
+    frontier_ids = list(frontier.get("retrieved_ids", []) or [])
+    control_ids = list(control.get("retrieved_ids", []) or [])
+    merged_ids = list(dict.fromkeys(frontier_ids + control_ids))
+    merged_evidence = list(frontier.get("evidence_store", []) or []) + list(control.get("evidence_store", []) or [])
+
+    out = {
+        "final_answer": final_answer,
+        "frontier_answer": frontier.get("final_answer", ""),
+        "frontier_predicted_answer": frontier_answer,
+        "control_mode": control_name,
+        "control_answer": control.get("final_answer", ""),
+        "control_predicted_answer": control_answer,
+        "arbitration_used": arbitration_used,
+        "selected_source": selected_source,
+        "hyre_route": f"stability_{config.dataset}",
+        "adaptive_policy": "frontier_stability_arbitration_v1",
+        "retrieved_ids": merged_ids,
+        "evidence_store": merged_evidence,
+        "gold_retrieved": bool(frontier.get("gold_retrieved")) or bool(control.get("gold_retrieved")),
+        "frontier_gold_retrieved": frontier.get("gold_retrieved"),
+        "control_gold_retrieved": control.get("gold_retrieved"),
+        "frontier_detail": {
+            "hyre_route": frontier.get("hyre_route"),
+            "snap_hyre_parse_ok": frontier.get("snap_hyre_parse_ok"),
+            "retrieval_queries": frontier.get("retrieval_queries", []),
+        },
+        "control_detail": {
+            "hyre_route": control.get("hyre_route"),
+            "snap_hyre_parse_ok": control.get("snap_hyre_parse_ok"),
+            "retrieval_queries": control.get("retrieval_queries", []),
+        },
+    }
+    return out
+
+
 def run_snap_hyde_aligned(row: pd.Series, config: EvalConfig) -> dict:
     """Snap-HyDE with question-aligned reranking.
 
@@ -5549,6 +5635,7 @@ MODE_RUNNERS = {
     "adaptive_snap_hyre_diverse": run_adaptive_snap_hyre_diverse,
     "adaptive_snap_hyre_v2": run_adaptive_snap_hyre_v2,
     "adaptive_snap_hyre_frontier": run_adaptive_snap_hyre_frontier,
+    "adaptive_snap_hyre_stability": run_adaptive_snap_hyre_stability,
     "gap_hyde": run_gap_hyde,
     "gap_hyde_ev": run_gap_hyde_ev,
     "gap_hyde_nosnap": run_gap_hyde_nosnap,
