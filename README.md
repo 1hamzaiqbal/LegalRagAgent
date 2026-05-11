@@ -5,23 +5,32 @@ flat, and when it hurts.
 
 ## Start Here
 
-Do not start from older narrative docs. The current navigation path is:
+The current navigation path, in priority order:
 
-1. [`docs/README.md`](docs/README.md) - concise map of current docs, evidence
-   ledgers, historical notes, and validation rules.
-2. [`docs/meeting_state_2026-05-01.md`](docs/meeting_state_2026-05-01.md) -
-   meeting-ready synthesis of current findings and blockers.
-3. [`docs/signoff_log.md`](docs/signoff_log.md) - cite-or-not gate for result
+1. [`paper/main.pdf`](paper/main.pdf) and
+   [`paper/main.tex`](paper/main.tex) - **ICML 2026 submission draft**.
+   Headline: a bottleneck-aware diagnostic controller routes among baseline
+   RAG, query rewrite, Snap-HyRE/HyRE, state-filter, verifier, option
+   grounding, disagreement arbitration, and reject/escalate. See also
+   [`paper/README.md`](paper/README.md) and
+   [`paper/TODO_for_writers.md`](paper/TODO_for_writers.md) for build
+   instructions and outstanding decisions.
+2. [`docs/README.md`](docs/README.md) - documentation map; evidence
+   ledgers, validation rules, current meeting state.
+3. [`docs/meeting_prep_2026-05-11_diagnostic_adaptation.md`](docs/meeting_prep_2026-05-11_diagnostic_adaptation.md)
+   - May 11 meeting brief: bottleneck taxonomy, calibration/held-out tables,
+   north-star goal.
+4. [`docs/signoff_log.md`](docs/signoff_log.md) - cite-or-not gate for result
    claims.
-4. [`docs/compiled_results.md`](docs/compiled_results.md) and
+5. [`docs/compiled_results.md`](docs/compiled_results.md) and
    [`logs/experiments.jsonl`](logs/experiments.jsonl) - audited result ledger
    and raw run summaries.
-5. [`docs/final_class_report_2026-04-30.pdf`](docs/final_class_report_2026-04-30.pdf)
-   - current class-report draft.
 
-`RESEARCH.md` and `EXPERIMENTS.md` are historical running logs. They are useful
-for process and provenance, but current result claims should be checked through
-the docs above.
+`RESEARCH.md`, `EXPERIMENTS.md`, and `reports/final_class_report/main.pdf`
+are historical: useful for process and provenance, superseded for current
+claims by the docs above. The pre-pivot class report's Tier-3 BarExam result
+($N{=}1{,}195$, cross-size) is preserved in the paper's appendix as a
+robustness check for the BarExam route.
 
 ## Current Research Frame
 
@@ -154,13 +163,24 @@ scripts/
   compute_mcnemar.py       # Paired McNemar tests
   log_viewer.py            # Local JSONL detail-log viewer
   hpc/                     # SLURM scripts
+paper/
+  main.tex, main.pdf       # ICML 2026 submission draft
+  references.bib           # 33-entry bibliography
+  sections/                # 8-file split: 0Abstract..6Conclusion + Appendix
+  figures/                 # Paper figures (10 PNG)
+  README.md                # Build/Overleaf instructions
+  TODO_for_writers.md      # Process notes, pending HPC jobs, open decisions
+  diagnosing_legal_rag_overleaf.zip   # Pre-built Overleaf bundle
 docs/
-  README.md                # Documentation map, start here
+  README.md                # Documentation map
   signoff_log.md           # Cite-or-not gate
+  meeting_prep_2026-05-11_diagnostic_adaptation.md
   meeting_state_2026-05-01.md
   compiled_results.md      # Audited result ledger
-  presentation/            # Presentation docs and figures
+  presentation/            # Presentation figures (paper sources)
   archive*/                # Historical docs retained for traceability
+reports/final_class_report/
+  main.tex, main.pdf       # Pre-pivot class report (historical)
 RESEARCH.md                # Historical research log
 EXPERIMENTS.md             # Historical experiment chronology
 CLAUDE.md                  # Agent operational context

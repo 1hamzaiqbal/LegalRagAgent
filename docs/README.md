@@ -1,40 +1,50 @@
 # Documentation Index - LegalRagAgent
 
-Updated 2026-05-11. This is the repo map. It keeps the current path short and
-separates citeable state from historical working notes.
+Updated 2026-05-11. Repo map separating the live paper draft, current
+citeable state, and historical working notes.
 
 ## Start Here
 
-1. `../CLAUDE.md` - operational context for agents: active snapshot, commands,
-   environment notes, methodology gates, and known cluster caveats.
-2. `meeting_eval_expansion_status_2026-05-11.md` - May 11 expanded status for
-   the inherited ablation ladder, active cluster jobs, invalid run exclusions,
-   full-corpus feasibility, and validation gates.
-3. `meeting_compact_packet_2026-05-11.md` - compact meeting handoff: main
-   tables, bottleneck readout, figure list, and N>=500 canonical scale-up jobs.
-4. `meeting_prep_2026-05-11_diagnostic_adaptation.md` - current May 11 meeting
-   brief for the legal-only diagnostic adaptation framework, including the
-   north-star goal, calibration/held-out ablation tables, live CaseHOLD
-   option-table status, and the pre-meeting work budget.
-5. `meeting_package_audit_2026-05-11.md` - completion checklist for the May 11
-   package, mapping the goal to source JSONs, validation commands, generated
-   figures, and remaining paper risks.
-6. `meeting_state_2026-05-01.md` - meeting-ready synthesis of current findings,
-   open blockers, live jobs, and defensible interpretation.
-7. `signoff_log.md` - cite-or-not gate. If a result is absent, `PENDING`, or
-   explicitly caveated here, do not promote it to a paper-grade claim.
-8. `compiled_results.md` plus `../logs/experiments.jsonl` - audited result
+1. `../paper/main.pdf` and `../paper/main.tex` - **ICML 2026 submission
+   draft**. 8-file section split lives in `../paper/sections/`. See
+   `../paper/README.md` for build instructions and
+   `../paper/TODO_for_writers.md` for process notes and pending decisions
+   deliberately kept out of the paper body.
+2. `../CLAUDE.md` - operational context for agents: active snapshot,
+   commands, environment notes, methodology gates, and known cluster
+   caveats.
+3. `meeting_eval_expansion_status_2026-05-11.md` - May 11 expanded status
+   for the inherited ablation ladder, active cluster jobs, invalid run
+   exclusions, full-corpus feasibility, and validation gates.
+4. `meeting_compact_packet_2026-05-11.md` - compact meeting handoff: main
+   tables, bottleneck readout, figure list, and N>=500 canonical scale-up
+   jobs.
+5. `meeting_prep_2026-05-11_diagnostic_adaptation.md` - May 11 meeting
+   brief for the legal-only diagnostic adaptation framework: north-star
+   goal, calibration/held-out ablation tables, live CaseHOLD option-table
+   status, and pre-meeting work budget. This is the closest doc-side
+   mirror of the paper's main result.
+6. `meeting_package_audit_2026-05-11.md` - completion checklist for the
+   May 11 package: source JSONs, validation commands, generated figures,
+   and remaining paper risks.
+7. `meeting_state_2026-05-01.md` - meeting-ready synthesis of current
+   findings, open blockers, live jobs, and defensible interpretation.
+8. `signoff_log.md` - cite-or-not gate. If a result is absent, `PENDING`,
+   or explicitly caveated here, do not promote it to a paper-grade claim.
+9. `compiled_results.md` plus `../logs/experiments.jsonl` - audited result
    ledger and machine-readable run summaries.
-9. `benchmark_method_birdseye_2026-04-30.md` - compact map of benchmarks,
+10. `benchmark_method_birdseye_2026-04-30.md` - compact map of benchmarks,
    methods, what each dataset tests, and harness gaps.
-10. `../reports/final_class_report/main.pdf` or
-   `../reports/final_class_report/main.tex`
-   - current class-report draft with figures/tables.
+11. `../reports/final_class_report/main.pdf` and `main.tex` - pre-pivot
+   class report. Superseded by the paper draft for current claims but
+   preserved for traceability; its BarExam Tier-3 N=1,195 result lives
+   on as an appendix robustness check in the new paper.
 
-Five-minute path: read `meeting_compact_packet_2026-05-11.md`, then
-`meeting_prep_2026-05-11_diagnostic_adaptation.md`. Use `signoff_log.md`, the
-cited JSON files, and the cited detail logs to verify any number before citing
-it.
+Five-minute path: skim `../paper/main.pdf` for the science.
+Five-minute working path: read `meeting_compact_packet_2026-05-11.md`,
+then `meeting_prep_2026-05-11_diagnostic_adaptation.md`. Use
+`signoff_log.md`, the cited JSON files, and the cited detail logs to
+verify any number before citing it.
 
 ## Current Claim Gates
 
