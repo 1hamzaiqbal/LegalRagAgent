@@ -45,8 +45,8 @@ Branch: `codex/final-report-snap-hyde`
    0, and no missing predictions. All four detail logs were copied from the
    cluster and summarized with `scripts/analyze_detail_flags.py`; empty
    retrieval payloads are expected for `snap_only_in_final`. Treat CaseHOLD
-   snap-only as accuracy-usable but health-caveated until capped rerun `67866`
-   lands cleanly.
+   snap-only as accuracy-usable but health-caveated until capped replacement
+   `67867` lands cleanly.
 6. ✅ **Retrieval-bearing blocker is repaired enough for evaluated jobs**:
    `rag_utils.py` reinitializes the GTE remote-code `position_ids` buffer.
    Direct embedding smoke `67820` produced finite unit-norm query embeddings,
@@ -112,6 +112,10 @@ Branch: `codex/final-report-snap-hyde`
    clean full-corpus baseline unless those rows are resolved or explicitly
    accepted as a caveated sanity check. The paired frontier half is still
    running.
+17. ❌ **CaseHOLD capped snap-only `67866` is not a clean replacement**:
+   the run was cancelled at 71/200 after row 12 produced a 157,678-character
+   answer and `pred=None`. Do not cite it. `llm_config.py` now sends OpenRouter
+   caps as `extra_body.max_tokens`; replacement `67867` is pending validation.
 
 ### New source paths
 

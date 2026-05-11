@@ -50,13 +50,19 @@ reject/escalate.
   held-out slice; cite it as an option-conversion bottleneck signal, not as a
   positive route.
 
-**Do not promote pending rows**: CaseHOLD capped snap-only and the targeted
-full-SCALR sanity job must remain pending until their stdout, detail logs, and
-local validation all pass. Use
+**Do not promote pending rows**: CaseHOLD capped snap-only replacement `67867`
+and the targeted full-SCALR sanity job must remain pending until their stdout,
+detail logs, and local validation all pass. Use
 `docs/meeting_eval_expansion_status_2026-05-11.md` for the current queue state
 before citing anything. The full-SCALR `rag_simple` half of `67863` is copied
 locally and structurally complete at 424/571, but it has three long-answer rows
 and is health-gated rather than reportable.
+
+**Run-control note**: CaseHOLD capped snap-only `67866` was cancelled after row
+12 produced a 157,678-character answer, so it cannot replace the original
+health-caveated snap-only row. `llm_config.py` now sends OpenRouter caps through
+`extra_body={"max_tokens": ...}` because LangChain rewrites `max_tokens` to
+`max_completion_tokens`; replacement `67867` uses that patched cap path.
 
 ## Update 2026-05-01 (meeting prep)
 

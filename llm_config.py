@@ -102,6 +102,10 @@ def _max_completion_tokens() -> int | None:
     return value
 
 
+def _uses_openrouter(base_url: str) -> bool:
+    return "openrouter.ai" in base_url.lower()
+
+
 def get_provider_info() -> dict:
     """Return current provider name, model, and rate limits (for eval logging)."""
     provider = os.getenv("LLM_PROVIDER", "").strip().lower()
@@ -126,15 +130,22 @@ def get_llm(temperature: float = 0.0, _provider: str = "") -> ChatOpenAI:
     """
     base_url, api_key, model = _resolve_provider()
     max_completion_tokens = _max_completion_tokens()
-    return ChatOpenAI(
-        base_url=base_url,
-        api_key=api_key,
-        model=model,
-        temperature=temperature,
-        timeout=90,
-        max_retries=1,
-        max_completion_tokens=max_completion_tokens,
-    )
+    kwargs = {
+        "base_url": base_url,
+        "api_key": api_key,
+        "model": model,
+        "temperature": temperature,
+        "timeout": 90,
+        "max_retries": 1,
+    }
+    if max_completion_tokens is not None:
+        if _uses_openrouter(base_url):
+            # ChatOpenAI rewrites max_tokens to max_completion_tokens, but
+            # OpenRouter enforces the legacy max_tokens field for these models.
+            kwargs["extra_body"] = {"max_tokens": max_completion_tokens}
+        else:
+            kwargs["max_completion_tokens"] = max_completion_tokens
+    return ChatOpenAI(**kwargs)
 
 
 # Re-wrap so callers don't need to pass _provider manually

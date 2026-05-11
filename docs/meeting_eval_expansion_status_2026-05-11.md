@@ -84,7 +84,7 @@ These are source-gated additions after the initial package:
 | HousingQA fixed Snap-HyRE control | SLURM `67830`; `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl` | Completed, 103/200 = 51.5%, avg calls 2.00, errors 0 |
 | CaseHOLD fixed Snap-HyRE control | SLURM `67831`; `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl` | Completed, 144/200 = 72.0%, avg calls 2.00, errors 0 |
 | SCALR capped HyRE-only rerun | SLURM `67864`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0734_detail.jsonl` | Eval completed at 148/200 = 74.0%, avg calls 2.00, errors 0, one missing prediction, no long-answer rows; wrapper failed after results due missing postprocess helper |
-| CaseHOLD capped snap-only rerun | SLURM `67866`; `LLM_MAX_COMPLETION_TOKENS=4096` | Launched to replace the health-caveated CaseHOLD snap-only row if it lands cleanly |
+| CaseHOLD capped snap-only rerun | SLURM `67866`, replacement `67867`; `LLM_MAX_COMPLETION_TOKENS=4096` | `67866` was cancelled after row 12 produced a 157,678-character answer. `67867` was launched after patching OpenRouter caps to send `max_tokens` through `extra_body`. |
 | GTE query-embedding repair | `rag_utils.py`; direct smoke SLURM `67820` | Completed; repaired `position_ids`, finite 1024-d unit-norm query embeddings |
 | Retrieval smoke after repair | SLURM `67821`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0341_barexam_embedding-fix-smoke2-or-gemma4-26b-n5-k5-rag_hyde_detail.jsonl` | Completed, 5/5; confirms retrieval-bearing jobs can run again |
 
@@ -141,7 +141,9 @@ query embedder: reinitialized RoPE `position_ids`, `max_seq_length=512`, fp16
 disabled by default, and finite embedding smoke verified by SLURM `67820`.
 If a rerun is needed because a row produces runaway final-answer text, set
 `LLM_MAX_COMPLETION_TOKENS` on the launch to cap generations without changing
-the default historical rows.
+the default historical rows. For OpenRouter providers, the patched
+`llm_config.py` sends the cap as `extra_body.max_tokens`; LangChain's default
+`max_completion_tokens` payload was not sufficient for `67866`.
 
 ### Gemma 4 26B Ladder Controls
 
@@ -158,7 +160,8 @@ Provider: `or-gemma4-26b`. Sample: N=200, seed 42, k=5.
 | 67779 | LegalBench-SCALR | `snap_only_in_final` | Completed and copied locally: 72.5%, 2.00 calls. |
 | 67828 | LegalBench-SCALR | `rag_hyde` | Completed and copied locally: 71.0%, but rejected as a clean row due one runaway final answer. |
 | 67864 | LegalBench-SCALR | `rag_hyde` | Eval completed and copied locally: 74.0%, 2.00 calls, no long-answer rows; wrapper failed after result write due missing postprocess helper. |
-| 67866 | CaseHOLD | `snap_only_in_final` | Capped rerun launched with `LLM_MAX_COMPLETION_TOKENS=4096` because the first row is accuracy-usable but has one long-answer health outlier. |
+| 67866 | CaseHOLD | `snap_only_in_final` | Cancelled at 71/200 after row 12 produced a 157,678-character answer and `pred=None`; not a clean replacement. |
+| 67867 | CaseHOLD | `snap_only_in_final` | Replacement launched with patched OpenRouter `max_tokens` cap path and `LLM_MAX_COMPLETION_TOKENS=4096`; pending validation. |
 | 67829 | BarExam | `rag_snap_hyde_2call` | Completed and copied locally: 84.5%, 2.00 calls, one missing prediction. |
 | 67830 | HousingQA | `rag_snap_hyde_2call` | Completed and copied locally: 51.5%, 2.00 calls. |
 | 67831 | CaseHOLD | `rag_snap_hyde_2call` | Completed and copied locally: 72.0%, 2.00 calls. |
@@ -213,6 +216,7 @@ Do not cite any of these:
 | 67792, 67793, 67808 | Default GTE query embedding crashed before valid retrieval due to a corrupted remote-code `position_ids` buffer. | Invalid; root-caused and repaired in `rag_utils.py`, then smoke-tested by `67820` and `67821`. |
 | 67794-67806 | Pending retrieval jobs from the pre-repair launch. | Cancelled / invalid to avoid wasting API calls on the broken embedder. |
 | 67810-67818 | Embedding debug/smoke attempts, including a failed ONNX backend check because `optimum` is not installed. | Debug only; do not cite as eval results. |
+| 67866 | CaseHOLD capped snap-only replacement still produced a 157,678-character answer at row 12 despite the launch cap. | Cancelled; replacement `67867` launched after patching OpenRouter cap serialization. |
 
 ## Full-Corpus Feasibility
 
@@ -268,7 +272,7 @@ usable. Present the verified controller story, then say:
 
 > We launched source-gated fill-ins for the inherited ladder and a Groq Llama 70B
 > held-out sanity layer. Most are now validated or explicitly rejected; the rows
-> still pending are the capped CaseHOLD snap-only replacement and the targeted
+> still pending are the capped CaseHOLD snap-only replacement `67867` and the targeted
 > full-SCALR probe.
 
 That is stronger than rushing invalid numbers into the deck.

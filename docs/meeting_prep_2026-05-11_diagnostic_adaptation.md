@@ -130,7 +130,9 @@ Expanded Gemma ladder:
 
 `*` CaseHOLD snap-only is accuracy-usable but health-caveated: one correct row
 entered a repetition loop with 41,898 final-answer characters. A capped
-replacement was launched as SLURM `67866`.
+replacement was launched as SLURM `67866`, then cancelled after row 12 produced
+a 157,678-character answer. Replacement `67867` is pending with a patched
+OpenRouter `max_tokens` cap path.
 
 `*` SCALR HyRE-only is the capped rerun from SLURM `67864`: the eval completed
 at 148/200 with a detail-log-clean health check, but the SLURM wrapper failed
@@ -250,7 +252,7 @@ Use this as the live checklist for final meeting prep:
 |---|---|
 | Main legal-only diagnostic package | Done: four benchmarks, calibration table, held-out table, bottleneck summary, and figure pack are source-gated. |
 | CaseHOLD option-table blocker | Done: implementation is repaired; result is a clean negative against stronger CaseHOLD routes. |
-| Expanded inherited ladder | Mostly done: snap-only, HyRE-only, literal fixed Snap-HyRE, and Groq held-out sanity rows are documented; only the CaseHOLD capped snap-only replacement (`67866`) and full-SCALR probe (`67863`) remain pending. |
+| Expanded inherited ladder | Mostly done: snap-only, HyRE-only, literal fixed Snap-HyRE, and Groq held-out sanity rows are documented; only the CaseHOLD capped snap-only replacement (`67867`) and full-SCALR probe (`67863`) remain pending. |
 | Final handoff hygiene | Keep new runs out of the main table until validated; keep branch state clean after documentation updates are committed. |
 
 ## What To Say In The Meeting
