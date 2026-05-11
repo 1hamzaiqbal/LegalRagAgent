@@ -1,5 +1,51 @@
 # Sign-off Log — verified results approved for paper/meeting citation
 
+## Update 2026-05-11 ~meeting package
+
+Change reason: consolidated the May 12 diagnostic-adaptation meeting package,
+validated the repaired CaseHOLD direct option-table held-out run, and generated
+source-gated figures for the inherited ablation/controller story.
+
+Last updated: 2026-05-11
+Branch: `codex/final-report-snap-hyde`
+
+### Delta since 2026-05-10 diagnostic controller package
+
+1. ✅ **Meeting package ready for the diagnostic-adaptation frame**:
+   `docs/meeting_prep_2026-05-12_diagnostic_adaptation.md` consolidates the
+   four legal benchmarks, inherited calibration/held-out ablation tables,
+   bottleneck summary, controller narrative, and generated figure pack. Use it
+   as the first meeting entrypoint for the May 12 discussion.
+2. ✅ **CaseHOLD direct option-table route is no longer implementation-blocked**:
+   SLURM job `67744` completed with exit `0:0`. The repaired
+   `adaptive_snap_hyre_option_table` route runs on the held-out CaseHOLD rows
+   200-249 and passes `analyze_detail_flags.py` plus
+   `audit_adaptive_hyre_logs.py`.
+3. ⚠️ **CaseHOLD direct option-table is a clean negative design point**:
+   `adaptive_snap_hyre_option_table` is 35/50 = 70.0% with 2.00 calls. It is a
+   small lift over `rag_simple` on the same rows (34/50 = 68.0%; +2pp,
+   b/c=2/1, p=1.0000), but below `rag_rewrite` (38/50 = 76.0%; -6pp,
+   b/c=1/4, p=0.3750) and `adaptive_snap_hyre_diverse` (39/50 = 78.0%; -8pp,
+   b/c=2/6, p=0.2891). Cite this as evidence that answer-option conversion
+   remains a distinct bottleneck, not as a positive route.
+4. ✅ **Figure pack generated from source-gated summaries**:
+   `scripts/build_meeting_package_figures.py` emits figures 12-15 under
+   `docs/presentation/figures/`, using the diagnostic controller portfolio and
+   held-out query/controller JSON files.
+
+### New source paths
+
+- Meeting package: `docs/meeting_prep_2026-05-12_diagnostic_adaptation.md`.
+- Package audit: `docs/meeting_package_audit_2026-05-11.md`.
+- CaseHOLD direct option-table result:
+  `docs/casehold_option_table_direct_heldout_2026-05-11.md`.
+- Figure generator: `scripts/build_meeting_package_figures.py`.
+- Figure outputs:
+  `docs/presentation/figures/12_diagnostic_adaptation_calibration_ablation.png`,
+  `docs/presentation/figures/13_diagnostic_adaptation_heldout_ablation.png`,
+  `docs/presentation/figures/14_diagnostic_controller_macro_lift.png`,
+  `docs/presentation/figures/15_bottleneck_diagnostic_route_map.png`.
+
 ## Update 2026-05-01 ~meeting prep
 
 Change reason: pulled completed cluster jobs `58282` and `58283`, fixed the

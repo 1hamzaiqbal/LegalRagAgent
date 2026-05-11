@@ -59,6 +59,17 @@ flowchart LR
     D --> R
 ```
 
+## Figure Pack
+
+Generated with `uv run python scripts/build_meeting_package_figures.py`.
+
+| Figure | Purpose |
+|---|---|
+| `docs/presentation/figures/12_diagnostic_adaptation_calibration_ablation.png` | Slide-ready inherited calibration table: baseline retrieval, query rewrite, fixed HyRE, diagnostic controller. |
+| `docs/presentation/figures/13_diagnostic_adaptation_heldout_ablation.png` | Slide-ready inherited held-out table on rows 200-249. |
+| `docs/presentation/figures/14_diagnostic_controller_macro_lift.png` | Compact macro-accuracy/call-cost comparison for baseline versus controller. |
+| `docs/presentation/figures/15_bottleneck_diagnostic_route_map.png` | Visual map from evidence signal to bottleneck label to routed policy. |
+
 ## Legal Benchmarks
 
 | Benchmark | What it tests here | Current diagnostic read |
@@ -178,9 +189,9 @@ High priority before May 12 at 4pm:
 
 | Window | Task | Output |
 |---|---|---|
-| T+0-1h | Monitor job `67744`; validate stdout and detail log if complete. | Decide whether option-table becomes a result row or stays a negative/blocked note. |
-| T+1-3h | Re-run lightweight source checks on the four result JSONs and docs. | Freeze the two ablation tables above. |
-| T+3-6h | Update final report/talk figures around the controller and bottleneck table. | One clean method diagram plus one compact ablation table. |
+| T+0-1h | Monitor job `67744`; validate stdout and detail log if complete. | Done: clean negative option-table result documented. |
+| T+1-3h | Re-run lightweight source checks on the four result JSONs and docs. | Done for current package; audit manifest added. |
+| T+3-6h | Update final report/talk figures around the controller and bottleneck table. | Done for meeting package figure pack; report integration remains optional. |
 | T+6-10h | Only run targeted follow-ups if they answer a known routing gap. | BarExam rewrite-vs-HyRE selector or SCALR disagreement refinement; no broad sweeps. |
 | T+10-13h | Integrate the final language into report/presentation. | Meeting-ready narrative with caveats in footnotes, not everywhere. |
 | T+13-15h | Final verification: git clean, source links, PDF/table render, pushed branch. | Stable handoff state before the meeting. |
