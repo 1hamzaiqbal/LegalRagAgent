@@ -7,15 +7,19 @@ separates citeable state from historical working notes.
 
 1. `../CLAUDE.md` - operational context for agents: active snapshot, commands,
    environment notes, methodology gates, and known cluster caveats.
-2. `meeting_state_2026-05-01.md` - meeting-ready synthesis of current findings,
+2. `meeting_prep_2026-05-12_diagnostic_adaptation.md` - current May 12 meeting
+   brief for the legal-only diagnostic adaptation framework, including the
+   north-star goal, calibration/held-out ablation tables, live CaseHOLD
+   option-table status, and the 15-hour work budget.
+3. `meeting_state_2026-05-01.md` - meeting-ready synthesis of current findings,
    open blockers, live jobs, and defensible interpretation.
-3. `signoff_log.md` - cite-or-not gate. If a result is absent, `PENDING`, or
+4. `signoff_log.md` - cite-or-not gate. If a result is absent, `PENDING`, or
    explicitly caveated here, do not promote it to a paper-grade claim.
-4. `compiled_results.md` plus `../logs/experiments.jsonl` - audited result
+5. `compiled_results.md` plus `../logs/experiments.jsonl` - audited result
    ledger and machine-readable run summaries.
-5. `benchmark_method_birdseye_2026-04-30.md` - compact map of benchmarks,
+6. `benchmark_method_birdseye_2026-04-30.md` - compact map of benchmarks,
    methods, what each dataset tests, and harness gaps.
-6. `../reports/final_class_report/main.pdf` or
+7. `../reports/final_class_report/main.pdf` or
    `../reports/final_class_report/main.tex`
    - current class-report draft with figures/tables.
 
@@ -141,6 +145,9 @@ signoff log decides whether a claim is ready to cite.
 - `casehold_replay_selector_heldout_2026-05-10.md` - validated CaseHOLD
   held-out replay selector over the already validated diverse-route evidence:
   33/50 = 66.0%, a clean negative result below the 78.0% selected route.
+- `casehold_option_table_direct_heldout_2026-05-11.md` - repaired CaseHOLD
+  direct option-table held-out result: clean execution at 35/50 = 70.0%, a
+  small baseline lift but negative versus query rewrite and diverse HyRE.
 - `bottleneck_aware_diagnostic_framework_2026-05-10.md` - current pivot from
   fixed Snap-HyRE prompt iteration to bottleneck-aware diagnostic adaptation.
 - `diagnostic_controller_route_plan_2026-05-10.md` and

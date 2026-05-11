@@ -71,31 +71,21 @@ score the five displayed CaseHOLD holdings directly instead of issuing a
 candidate-conditioned Chroma query for each option. This is the cleaner test of
 answer-option conversion because CaseHOLD's answer options are already the
 candidate holdings. The mode is now marked as no-Chroma for preflight and
-empty-retrieval guards. The old jobs below remain invalid; a new held-out run
-is still required before promoting an accuracy number.
+empty-retrieval guards.
 
-Before promoting any future result:
-
-1. Sync the direct option-table implementation to the cluster checkout and
-   launch a fresh held-out run.
-2. Confirm `sacct` completion and exit code for the new job.
-3. Inspect the new stdout for
-   Tracebacks, API/rate-limit errors, parsing failures, empty retrieval, or
-   timeout; also confirm the CUDA assert from `67528` and index errors from
-   `67530` / `67531` / `67533` do not recur.
-4. Run `scripts/analyze_detail_flags.py` on the landed detail JSONL.
-5. Run `scripts/audit_adaptive_hyre_logs.py` on the landed detail JSONL.
-6. Compare against the held-out CaseHOLD rows already validated:
-   - `rag_simple`: 34/50 = 68.0%
-   - `rag_rewrite`: 38/50 = 76.0%
-   - `adaptive_snap_hyre_diverse`: 39/50 = 78.0%
+Follow-up result: job `67744` completed the direct option-table held-out run.
+It landed at 35/50 = 70.0% with clean health checks. This fixes the
+implementation blocker, but it does not improve over the stronger same-slice
+CaseHOLD routes: `rag_rewrite` is 38/50 = 76.0% and
+`adaptive_snap_hyre_diverse` is 39/50 = 78.0%. See
+`docs/casehold_option_table_direct_heldout_2026-05-11.md`.
 
 ## Current Interpretation
 
-This probe did not produce a usable accuracy number. The useful evidence is
-infrastructure/implementation evidence: CaseHOLD still has an unresolved
-answer-option conversion bottleneck, but the current live option-table route is
-blocked before evaluation by the candidate-conditioned retrieval implementation.
-For the diagnostic framework, keep the current CaseHOLD route as
-`adaptive_snap_hyre_diverse` plus the documented `reject_or_escalate` policy;
-do not promote option-table beyond a blocked future-work item.
+The original candidate-conditioned option-table probe did not produce a usable
+accuracy number. The repaired direct option-table route now produces a clean
+negative result: it slightly beats the simple baseline but underperforms query
+rewrite and diverse HyRE. For the diagnostic framework, keep the current
+CaseHOLD route as `adaptive_snap_hyre_diverse` plus the documented
+`reject_or_escalate` policy; treat direct option-table prompting as a negative
+design point, not a remaining infrastructure blocker.

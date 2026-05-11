@@ -85,9 +85,11 @@ as a diagnosed bottleneck rather than an uncovered framework requirement:
 - current diagnostics define a `reject_or_escalate` policy for low-confidence
   CaseHOLD rows;
 - `docs/casehold_option_table_heldout_2026-05-10.md` records the targeted
-  option-table held-out attempt. It is blocked before evaluation by a
-  candidate-conditioned embedding/query index error, so it is not a valid
-  positive or negative method result;
+  option-table held-out attempts. The original candidate-conditioned path was
+  blocked by embedding/query index errors, but the repaired direct option-table
+  route in `docs/casehold_option_table_direct_heldout_2026-05-11.md` completed
+  cleanly at 35/50 = 70.0%. That is a small lift over `rag_simple` but below
+  `rag_rewrite` and `adaptive_snap_hyre_diverse`;
 - `docs/casehold_replay_selector_heldout_2026-05-10.md` records a clean
   no-retrieval replay-selector negative result: 33/50 = 66.0%, below
   `rag_simple`, `rag_rewrite`, and the selected diverse route.
@@ -113,8 +115,9 @@ diagnostic adaptation framework has been developed and evaluated.
 
 ## Future Work
 
-Prioritize fixing the CaseHOLD option-table retrieval/query path or designing a
-non-replay option-conversion policy. The held-out replay selector has now run
-cleanly and underperformed, so the next useful CaseHOLD move should change the
-evidence representation or option-conversion mechanism rather than re-asking a
-generic final selector over the same evidence.
+The CaseHOLD option-table implementation blocker is fixed, but the direct
+option-table route underperformed the stronger same-slice routes. The next
+useful CaseHOLD move should change the option-conversion mechanism itself:
+example directions include contrastive pairwise holding comparison,
+rule-frame extraction before option selection, calibrated abstention, or a
+selector trained/validated on disagreement traces.
