@@ -6177,6 +6177,7 @@ _NO_CHROMA_MODES = {
     "vectorless_direct", "vectorless_role", "vectorless_elements",
     "vectorless_choice_map", "vectorless_nosnap", "golden_passage",
     "golden_arbitration", "golden_arb_conservative",
+    "adaptive_snap_hyre_option_table",
 }
 
 

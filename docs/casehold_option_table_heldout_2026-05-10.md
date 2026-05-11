@@ -70,8 +70,9 @@ Implementation update, 2026-05-11: the live option-table route was changed to
 score the five displayed CaseHOLD holdings directly instead of issuing a
 candidate-conditioned Chroma query for each option. This is the cleaner test of
 answer-option conversion because CaseHOLD's answer options are already the
-candidate holdings. The old jobs below remain invalid; a new held-out run is
-still required before promoting an accuracy number.
+candidate holdings. The mode is now marked as no-Chroma for preflight and
+empty-retrieval guards. The old jobs below remain invalid; a new held-out run
+is still required before promoting an accuracy number.
 
 Before promoting any future result:
 
