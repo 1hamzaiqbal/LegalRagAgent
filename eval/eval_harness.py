@@ -11,6 +11,7 @@ Usage:
     uv run python eval/eval_harness.py --mode full_pipeline --skill-dir skills_v2 --questions curated
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -238,6 +239,69 @@ def _gold_choice_text(row: pd.Series, gold: str) -> str:
     if not gold:
         return ""
     return str(row.get(f"choice_{gold.lower()}", ""))[:500]
+
+
+def _stable_holding_id(text: str, prefix: str = "casehold") -> str:
+    normalized = " ".join(str(text or "").split())
+    digest = hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:16]
+    return f"{prefix}_{digest}"
+
+
+def _env_truthy(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _lexical_overlap_score(query: str, text: str) -> float:
+    query_tokens = set(re.findall(r"[a-z0-9]+", str(query).lower()))
+    text_tokens = set(re.findall(r"[a-z0-9]+", str(text).lower()))
+    if not query_tokens or not text_tokens:
+        return 0.0
+    return len(query_tokens & text_tokens) / max(1, len(query_tokens | text_tokens))
+
+
+def _score_option_table_choices(
+    query: str,
+    choices: dict[str, str],
+    *,
+    source: str = "casehold_option",
+) -> list[dict]:
+    """Score displayed CaseHOLD options directly, without querying Chroma.
+
+    CaseHOLD's displayed answer options are themselves the candidate holdings.
+    Using them directly isolates answer-option conversion and avoids a brittle
+    extra candidate-conditioned embedding query for every option.
+    """
+    letters = list(choices)
+    texts = [choices[letter] for letter in letters]
+    score_source = "lexical_overlap"
+    scores = [_lexical_overlap_score(query, text) for text in texts]
+
+    if texts and not _env_truthy("DISABLE_CROSS_ENCODER"):
+        try:
+            from rag_utils import get_cross_encoder
+
+            predicted_scores = get_cross_encoder().predict([(query, text) for text in texts])
+            scores = [float(score) for score in predicted_scores]
+            score_source = "cross_encoder"
+        except Exception as exc:
+            _record_trace_event(
+                "option_table_score_fallback",
+                reason=str(exc),
+                fallback=score_source,
+            )
+
+    rows: list[dict] = []
+    for letter, text, score in zip(letters, texts, scores):
+        rows.append({
+            "candidate": letter,
+            "holding": text,
+            "score": float(score),
+            "score_source": score_source,
+            "idx": _stable_holding_id(text),
+            "snippet": _preview_text(text, limit=360),
+            "source": source,
+        })
+    return rows
 
 
 def _retrieval_question(row: pd.Series) -> str:
@@ -2463,33 +2527,26 @@ def run_adaptive_snap_hyre_option_table(row: pd.Series, config: EvalConfig) -> d
     table_rows: list[dict] = []
     option_query_chars = int(os.getenv("OPTION_TABLE_QUERY_CHARS", "420"))
     bounded_raw_question = _preview_text(raw_question, limit=option_query_chars)
-    bounded_hyre_passage = _preview_text(hyre_passage, limit=option_query_chars)
-    for letter, text in choices.items():
-        bounded_choice = _preview_text(text, limit=option_query_chars)
-        choice_query = f"{bounded_raw_question}\n\nCandidate holding {letter}: {bounded_choice}"
-        choice_result = _retrieve_and_format(
-            row,
-            [choice_query, bounded_hyre_passage],
-            k=1,
-            label_prefix=f"adaptive_snap_hyre_option_table_{letter}",
-            where=_where_from_config(config),
-            collection=_collection_for_config(config),
-            rerank_query=choice_query,
-        )
-        top_ev = choice_result["evidence_store"][0] if choice_result["evidence_store"] else {}
-        score = float(top_ev.get("cross_encoder_score", 0.0) or 0.0) if top_ev else float("-inf")
-        snippet = _preview_text(str(top_ev.get("text", "")), limit=360) if top_ev else "(no retrieved evidence)"
-        table_rows.append({
-            "candidate": letter,
-            "holding": text,
-            "score": score,
-            "snippet": snippet,
-        })
-        for ev in choice_result["evidence_store"]:
-            ev = dict(ev)
-            ev["candidate"] = letter
-            evidence_store.append(ev)
-            retrieved_ids.append(ev["idx"])
+    option_score_query = f"{bounded_raw_question}\n\nHyRE retrieval passage:\n{_preview_text(hyre_passage, limit=option_query_chars)}"
+    table_rows = _score_option_table_choices(option_score_query, choices)
+    for item in table_rows:
+        ev = {
+            "idx": item["idx"],
+            "text": item["holding"],
+            "source": item["source"],
+            "cross_encoder_score": item["score"],
+            "candidate": item["candidate"],
+            "score_source": item["score_source"],
+        }
+        evidence_store.append(ev)
+        retrieved_ids.append(ev["idx"])
+    _record_trace_event(
+        "option_table",
+        label="adaptive_snap_hyre_option_table",
+        score_query=option_score_query,
+        score_source=table_rows[0]["score_source"] if table_rows else "",
+        candidates=table_rows,
+    )
 
     score_lines = []
     for item in table_rows:
@@ -2528,7 +2585,7 @@ def run_adaptive_snap_hyre_option_table(row: pd.Series, config: EvalConfig) -> d
         "hyde_passage_raw": combined_raw,
         "hyde_contains_answer_artifact": _contains_answer_artifact(hyre_passage),
         "retrieval_queries": [choices[l] for l in choices],
-        "rerank_query": "candidate_score_table",
+        "rerank_query": "direct_option_score_table",
         "retrieval_where": _where_from_config(config) or {},
         "final_context_fields": ["question", "snap_reasoning", "hyde_passage", "candidate_score_table"],
         "final_prompt_preview": _preview_text(user),

@@ -66,10 +66,17 @@ convert retrieved evidence into the right displayed holding.
 
 ## Integration Gate
 
+Implementation update, 2026-05-11: the live option-table route was changed to
+score the five displayed CaseHOLD holdings directly instead of issuing a
+candidate-conditioned Chroma query for each option. This is the cleaner test of
+answer-option conversion because CaseHOLD's answer options are already the
+candidate holdings. The old jobs below remain invalid; a new held-out run is
+still required before promoting an accuracy number.
+
 Before promoting any future result:
 
-1. Fix the option-table embedding/query path that causes the row-five index
-   error.
+1. Sync the direct option-table implementation to the cluster checkout and
+   launch a fresh held-out run.
 2. Confirm `sacct` completion and exit code for the new job.
 3. Inspect the new stdout for
    Tracebacks, API/rate-limit errors, parsing failures, empty retrieval, or

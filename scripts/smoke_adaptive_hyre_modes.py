@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+import os
 
 import pandas as pd
 
@@ -108,18 +109,28 @@ def _run_option_table_mode() -> None:
     harness._llm_call = _fake_llm
     harness._retrieve_and_format = fake_retrieve
 
-    config = EvalConfig(mode="adaptive_snap_hyre_option_table", dataset="casehold", retrieval_k=5)
-    out = harness.MODE_RUNNERS["adaptive_snap_hyre_option_table"](_casehold_row(), config)
-    assert out["hyre_route"] == "casehold_option_table", out
-    assert out["adaptive_policy"] == "casehold_option_table_v1", out
-    assert len(retrieval_calls) == 5, retrieval_calls
-    assert len(out["candidate_score_table"]) == 5, out
-    assert out["final_context_fields"] == [
-        "question",
-        "snap_reasoning",
-        "hyde_passage",
-        "candidate_score_table",
-    ], out
+    old_disable_ce = os.environ.get("DISABLE_CROSS_ENCODER")
+    os.environ["DISABLE_CROSS_ENCODER"] = "1"
+    try:
+        config = EvalConfig(mode="adaptive_snap_hyre_option_table", dataset="casehold", retrieval_k=5)
+        out = harness.MODE_RUNNERS["adaptive_snap_hyre_option_table"](_casehold_row(), config)
+        assert out["hyre_route"] == "casehold_option_table", out
+        assert out["adaptive_policy"] == "casehold_option_table_v1", out
+        assert len(retrieval_calls) == 0, retrieval_calls
+        assert len(out["candidate_score_table"]) == 5, out
+        assert all(item["score_source"] == "lexical_overlap" for item in out["candidate_score_table"]), out
+        assert out["gold_retrieved"] is False, out
+        assert out["final_context_fields"] == [
+            "question",
+            "snap_reasoning",
+            "hyde_passage",
+            "candidate_score_table",
+        ], out
+    finally:
+        if old_disable_ce is None:
+            os.environ.pop("DISABLE_CROSS_ENCODER", None)
+        else:
+            os.environ["DISABLE_CROSS_ENCODER"] = old_disable_ce
 
 
 def main() -> None:
