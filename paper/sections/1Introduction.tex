@@ -1,0 +1,85 @@
+\section{Introduction}\label{sec:intro}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{15_bottleneck_diagnostic_route_map.png}
+  \caption{Evidence signal $\rightarrow$ bottleneck label $\rightarrow$ routed
+  policy. Each benchmark exposes a different active bottleneck; the controller
+  routes accordingly. BarExam = query/legal-reasoning formulation (route
+  between rewrite and \hyre{}); HousingQA = jurisdiction scope + statutory
+  entailment (state filter + verifier); CaseHOLD = answer-option conversion
+  (diverse HyRE); LegalBench-SCALR = method disagreement / candidate exposure
+  (frontier replay).}
+  \label{fig:route_map}
+\end{figure*}
+
+Legal question answering looks like a natural target for retrieval-augmented
+generation \citep{lewis2020rag}: statutes, holdings, and jurisdictional
+authority are explicit textual artifacts, and rule exceptions are usually
+written down somewhere a retriever can fetch. Yet the empirical picture across
+legal benchmarks contradicts the implicit assumption that better retrieval
+plus a stronger reader yields uniform gains. Multiple-choice bar questions,
+yes/no statutory entailment over fifty jurisdictions, holding identification,
+and reasoning-focused legal retrieval each fail in qualitatively different
+ways (missing facts, missing jurisdiction, missing option grounding,
+saturated candidate sets), and a method tuned to one of those failure modes
+systematically loses on the others. Hallucination audits of deployed legal
+assistants \citep{magesh2024hallucinations} reinforce that the dominant
+failure is not a single retrieval gap but a portfolio of distinct, task-shaped
+breakdowns.
+
+The intellectual move of this paper is to stop asking \emph{which retrieval
+method wins legal RAG} and start asking \emph{which bottleneck is active on
+this slice}. We instantiate this as a \framework{}: on each benchmark slice
+we run a small calibration trace, measure a fixed set of signals (accuracy,
+gold exposure, conditional accuracy, method-pair disagreement, parse and
+error counts, average LLM calls), label the active bottleneck, and route each
+row to the cheapest plausible intervention. The portfolio includes baseline
+retrieval, legal query rewrite, \hyre{} (a HyDE-style
+\citep{gao2023hyde} hypothetical passage conditioned on a snap answer),
+jurisdiction-scoped metadata filtering, option grounding, a conservative
+yes/no verifier, disagreement arbitration, and reject/escalate. Unlike prior
+adaptive-RAG controllers that switch on question complexity or reflection
+tokens \citep{asai2024selfrag,jeong2024adaptive}, our \controller{} routes on
+\emph{evidence-summary signals} drawn from a diagnostic decomposition in the
+spirit of RAGChecker \citep{ru2024ragchecker}. \hyre{} is one route inside the
+portfolio, not the controller.
+
+The headline numbers tell a routed story rather than a universal one. On
+Gemma~4~26B across BarExam, HousingQA, CaseHOLD, and LegalBench-SCALR
+\citep{zheng2025legalretrieval,guha2023legalbench}, the controller lifts
+macro accuracy from $71.9\%$ at the matched baseline to $77.9\%$ in
+calibration at $1.30$ average LLM calls per question, and from $71.5\%$ to
+$77.5\%$ on a held-out slice at $1.54$ calls per question. The macro lift is
+bottleneck-explained: a state-filter plus conservative verifier route adds
+$+14\pp$ on HousingQA; a diverse-HyRE route adds $+10\pp$ on CaseHOLD;
+BarExam is route-unstable between legal query rewrite and adaptive \hyre{};
+SCALR's exact replay route ties baseline while its frontier component
+reaches the oracle ceiling, exposing a selector-policy gap. The negative
+controls are part of the evidence: fixed \hyre{} \emph{under}performs
+baseline on HousingQA ($51.5\%$ vs.\ $60.5\%$) and on CaseHOLD ($72.0\%$
+vs.\ $73.0\%$). A universally-applied \hyre{} would lose, and the controller
+captures the gain precisely by withholding it where the active bottleneck is
+jurisdiction or option conversion rather than query formulation.
+
+We make four contributions. (1) A \emph{bottleneck taxonomy} for legal RAG
+with eight named failure modes (retrieval depth, candidate-set saturation,
+query and legal-reasoning formulation, metadata scope, statutory entailment,
+answer-option conversion, method disagreement, and parametric floor), each
+identifiable from cheap calibration signals. (2) A \framework{} that types
+each slice from those signals and routes each row to the cheapest matching
+intervention, evaluated on four legal benchmarks. (3) A repositioning of
+\hyre{} as one route, supported by clean negative controls on HousingQA and
+CaseHOLD and route-instability on BarExam. (4) A held-out cross-model sanity
+check on Llama~3.3~70B that shows partial transfer: the HousingQA verifier
+and SCALR frontier lifts hold directionally while BarExam adaptive \hyre{}
+does not.
+
+Section~\ref{sec:preliminary} situates the work against RAG, HyDE,
+adaptive-RAG, and legal-NLP lines. Section~\ref{sec:method} formalizes the
+bottleneck taxonomy and the controller. Section~\ref{sec:experiment}
+describes datasets, models, and the evaluation protocol.
+Section~\ref{sec:analysis} reports the calibration and held-out tables, the
+per-benchmark bottleneck readings, the negative controls, and the
+cross-model sanity transfer. Section~\ref{sec:conclusion} discusses
+limitations and concludes.

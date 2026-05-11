@@ -1,0 +1,28 @@
+\begin{abstract}
+Legal retrieval-augmented generation (RAG) is usually evaluated as a single
+accuracy number per benchmark, which obscures how it fails. We argue that
+legal RAG failures are bottleneck-typed: across four legal benchmarks
+(BarExam, HousingQA, CaseHOLD, LegalBench-SCALR) the useful intervention
+changes with the dataset, the model, and the slice. We introduce a
+\framework{} that labels each benchmark from cheap calibration traces (accuracy,
+gold exposure, conditional accuracy, route disagreement, parse and error
+counts, and average calls) and routes each row to the cheapest matching
+intervention among baseline retrieval, legal query rewrite, \hyre{} (a
+two-call HyDE variant in which the model commits to a tentative answer and
+generates the controlling-rule passage that should support it before
+retrieval), jurisdiction-scoped metadata filtering, option grounding,
+conservative verifier policies, disagreement arbitration, and reject/escalate.
+On Gemma~4~26B over four legal benchmarks, the controller lifts macro accuracy
+from 71.9\% (matched baseline) to 77.9\% in calibration at 1.30 average LLM
+calls per question, and from 71.5\% to 77.5\% on a held-out slice at 1.54
+calls/Q. The lift is uneven and bottleneck-explained: a state-filter plus
+conservative verifier route adds $+14\pp$ on HousingQA and a diverse-HyRE
+route adds $+10\pp$ on CaseHOLD; BarExam exposes route-instability between
+rewrite and \hyre{}, and SCALR's exact-match controller route ties baseline.
+Fixed \hyre{} underperforms baseline on HousingQA (51.5\% vs.\ 60.5\%) and
+CaseHOLD (72.0\% vs.\ 73.0\%); we therefore present it as one route inside a
+portfolio whose value depends on diagnosis, not as a universal recipe. Our
+contribution is the bottleneck taxonomy, the diagnostic protocol that types
+each benchmark from its calibration trace, and the routing controller that
+places generated reasoning on top of the active bottleneck.
+\end{abstract}

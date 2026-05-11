@@ -1,0 +1,292 @@
+\section{Analysis}\label{sec:analysis}
+
+This section reads the calibration and held-out results through the
+bottleneck lens. We first state the macro headline and the calibration,
+held-out, and macro-vs-cost views
+(Figures~\ref{fig:calib_ablation}--\ref{fig:macro_lift} and
+Tables~\ref{tab:calibration}--\ref{tab:heldout}). We then walk each benchmark
+in turn, isolate the negative controls where fixed \hyre{} and HyRE-only
+routes \emph{lose} to the matched baseline, and close with a cross-model
+sanity check on Llama~3.3~70B.
+
+\subsection{Main result: controller vs.\ baselines}
+
+The \controller{} lifts macro accuracy from $71.9\%$ to $77.9\%$
+($+6.0\pp$) on the four-benchmark calibration slice at an average
+of $1.30$ LLM calls per question, and from $71.5\%$ to $77.5\%$
+($+6.0\pp$) on the held-out slice at $1.54$ calls per question. The
+held-out lift is concentrated in HousingQA verifier routing ($+14\pp$)
+and CaseHOLD diverse \hyre{} ($+10\pp$); BarExam and SCALR contribute
+no lift on this slice and instead expose routing-policy headroom that we
+discuss in the per-benchmark readings below.
+
+\paragraph{How to read these tables.} Calibration is $N{=}200$ per
+benchmark, so a one-row swing is $0.5\pp$. Held-out is $N{=}50$, so a
+one-row swing is $2\pp$, and a $+10\pp$ lift corresponds to five rows.
+We therefore treat held-out absolute deltas as directional rather than
+distributional: the $+14\pp$ HousingQA and $+10\pp$ CaseHOLD lifts are
+larger than reasonable McNemar bands at $N{=}50$ but a single seed cannot
+rule out a $\pm 2\pp$ shift on the BarExam and SCALR ties. The macro lift
+is robust to per-benchmark perturbations of up to one row because two of
+the four benchmarks lift cleanly.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{12_diagnostic_adaptation_calibration_ablation.png}
+\caption{Calibration ablation (Gemma~4~26B, N=200 per benchmark). The diagnostic controller leads the matched-baseline, snap-only, query-rewrite, and preselected-HyRE rows at 1.30 average LLM calls per question.}
+\label{fig:calib_ablation}
+\end{figure}
+
+\begin{table}[t]
+\small
+\centering
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
+\toprule
+Method & BarExam & HousingQA & CaseHOLD & SCALR & Macro & Calls \\
+\midrule
+Matched baseline & 80.0 & 60.5 & 73.0 & 74.0 & 71.9 & 1.00 \\
+{}+ snap-only reasoning & 85.5 & 55.0 & 72.5\textsuperscript{\textdagger} & 72.5 & 71.4 & 2.00 \\
+{}+ legal query rewrite\textsuperscript{*} & 82.0 & 58.0 & 72.0 & 76.0 & 72.0 & 2.00 \\
+{}+ preselected \hyre{} route & 86.0 & 63.5 & 73.5 & 76.0 & 74.8 & 2.00 \\
+\textbf{+ diagnostic controller} & \textbf{86.0} & \textbf{74.5} & \textbf{73.5} & \textbf{77.5} & \textbf{77.9} & \textbf{1.30} \\
+\bottomrule
+\end{tabular}
+\caption{Calibration ablation on Gemma~4~26B over BarExam, HousingQA,
+CaseHOLD, and LegalBench-SCALR; rows 0--199 per benchmark ($N=200$). Matched
+baseline is \method{rag_simple} on BarExam/CaseHOLD/SCALR and
+\method{rag_state_filter} on HousingQA. The controller dominates every fixed
+policy at $1.30$ average calls per question, below the $2.00$ calls spent by
+the snap-only, rewrite, and preselected-HyRE rows.
+\textsuperscript{*}Query rewrite is $N=50$ on HousingQA/CaseHOLD/SCALR and
+$N=200$ on BarExam (treated as a control, not a controller route).
+\textsuperscript{\textdagger}CaseHOLD snap-only is reported from a
+length-capped generation pass.}
+\label{tab:calibration}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{13_diagnostic_adaptation_heldout_ablation.png}
+\caption{Held-out check (rows 200--249, $N=50$ per dataset). Matched
+baselines average $71.5\%$, query rewrite $75.5\%$, selected diagnostic
+routes $77.5\%$. The held-out lift is concentrated in HousingQA verifier
+routing ($+14\pp$) and CaseHOLD diverse HyRE ($+10\pp$);
+BarExam and SCALR tie baseline on the selected route.}
+\label{fig:heldout_ablation}
+\end{figure}
+
+\begin{table}[t]
+\small
+\centering
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
+\toprule
+Method & BarExam & HousingQA & CaseHOLD & SCALR & Macro & Calls \\
+\midrule
+Held-out baseline & 76.0 & 62.0 & 68.0 & 80.0 & 71.5 & 1.00 \\
+{}+ legal query rewrite & 90.0 & 58.0 & 76.0 & 78.0 & 75.5 & 2.00 \\
+\textbf{+ selected diagnostic routes} & \textbf{76.0} & \textbf{76.0} & \textbf{78.0} & \textbf{80.0} & \textbf{77.5} & \textbf{1.54} \\
+\bottomrule
+\end{tabular}
+\caption{Held-out evaluation on rows 200--249 ($N=50$ per benchmark). The
+controller route selected from calibration ties the matched baseline on
+BarExam and SCALR, lifts HousingQA by $+14\pp$ via the verifier
+route, and lifts CaseHOLD by $+10\pp$ via diverse \hyre{}. Pure
+query rewrite is a strong but uneven control: it dominates BarExam ($90.0$)
+while losing $4\pp$ on HousingQA.}
+\label{tab:heldout}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{14_diagnostic_controller_macro_lift.png}
+\caption{Macro accuracy vs.\ average LLM calls per question. The controller dominates the matched-baseline and preselected-HyRE points while spending fewer average calls than fixed 2-call methods, because it routes some questions through cheaper replay/verifier policies.}
+\label{fig:macro_lift}
+\end{figure}
+
+The cost dimension is load-bearing for the headline. Snap-only, legal query
+rewrite, and the preselected-HyRE family each spend $2.00$ average LLM calls
+per question across the four-benchmark calibration slice and achieve $71.4$,
+$72.0$, and $74.8$ macro accuracy respectively. The controller's $77.9$
+macro accuracy comes at $1.30$ average calls, below all three fixed
+policies, because it routes the cheapest plausible intervention per row,
+including single-call replay and state-filter retrieval where the calibration
+signature does not warrant a HyRE expansion. The controller is therefore a
+Pareto-improvement over the inherited method ladder rather than a budget
+trade. Figure~\ref{fig:macro_lift} makes this concrete: every preselected
+fixed-policy row sits below the controller on accuracy and to its right on
+average calls.
+
+\subsection{Per-benchmark bottleneck diagnostics}
+
+Table~\ref{tab:per_benchmark} summarizes one row per benchmark (active
+bottleneck, diagnostic signal, chosen route), and the four paragraphs below
+walk the calibration evidence for each.
+
+\begin{table*}[t]
+\centering
+\footnotesize
+\begin{tabularx}{\textwidth}{p{0.13\textwidth}p{0.22\textwidth}Yp{0.22\textwidth}}
+\toprule
+Benchmark & Active bottleneck & Diagnostic signal & Chosen route \\
+\midrule
+BarExam & Query / legal-reasoning formulation & Rewrite vs.\ \hyre{} asymmetry; snap reasoning lifts above HyDE retrieval alone & Adaptive \hyre{}-v2 (rewrite vs.\ \hyre{} selector) \\
+HousingQA & Jurisdiction scope $+$ false-positive yes & Empty/near-zero state-match on baseline; verifier lifts over state-filter; fixed HyRE underperforms baseline & State filter $+$ conservative yes/no verifier \\
+CaseHOLD & Answer-option conversion & Gold-hit $16.0 \rightarrow 47.0$ but EM only $+2.5\pp$ (NS) & Diverse \hyre{} \\
+SCALR & Method disagreement / candidate exposure & Top-1 collapse; top-5/top-10 tie; high HyRE-family disagreement & Disagreement arbitration / frontier replay \\
+\bottomrule
+\end{tabularx}
+\caption{Per-benchmark bottleneck reading, calibration evidence, and the
+controller's chosen route.}
+\label{tab:per_benchmark}
+\end{table*}
+
+\paragraph{BarExam (query / legal-reasoning formulation, route-unstable).}
+The calibration ladder reads
+\method{rag_simple}\,$80.0$,
+\method{snap_only}\,$85.5$,
+\method{rag_rewrite}\,$82.0$,
+\method{rag_hyde}\,$82.0$,
+\method{rag_snap_hyde_2call}\,$84.5$, and the controller route $86.0$. The
+gap between snap reasoning ($85.5$) and HyDE retrieval alone ($82.0$) is the
+diagnostic signature of query/legal-reasoning formulation: the lift comes from
+\emph{the snap answer's framing of the legal rule}, not from the HyDE-style
+passage expansion in isolation. The controller therefore picks adaptive
+\hyre{}-v2, which dominates the calibration slice. The held-out slice flips:
+\method{rag_rewrite} reaches $90.0$ while the controller route ties baseline at
+$76.0$. We read this as evidence that BarExam needs a \emph{rewrite-vs-\hyre{}
+selector}, not a single fixed route; the calibration controller picks the
+right family on its own slice but the policy that selects \emph{within} the
+family is the open piece.
+
+\paragraph{HousingQA (statutory entailment on top of jurisdiction scope).}
+This is the cleanest controller exhibit. Baseline
+\method{rag_state_filter} sits at $60.5$; HyRE-only is a negative control at
+$50.0$ and fixed \hyre{} at $51.5$; the verifier route reaches $74.5$ on
+calibration and $76.0$ held-out, a $+14\pp$ lift over the matched
+baseline. The state-filter casing fix (question-side
+\texttt{California}~$\rightarrow$~corpus-side \texttt{california}) converted the
+filter from a parametric fallback to real retrieval: 0/200 empty-retrieval
+rows became $81/200$ gold-retrieved at $k=5$, a $+8.0\pp$ lift over
+generic top-$5$ (paired $p=0.0440$). With jurisdiction scope handled by the
+metadata filter, the residual bottleneck is \emph{false-positive yes}: HyRE
+biases the generator toward affirmative answers in cases where the controlling
+statute does not support entailment. The conservative yes/no verifier on top
+of state-filter retrieval clears that bottleneck without invoking a HyRE
+expansion, which is also why HousingQA's average call cost stays low.
+
+\paragraph{CaseHOLD (answer-option conversion).}
+The repaired \method{rag_simple}-vs-\method{rag_snap_hyde_2call} pair shows
+$69.5 \rightarrow 72.0$ on EM ($+2.5\pp$, $b/c=16/11$, $p=0.4421$)
+while gold-passage retrieval rises from $16.0$ to $47.0$, a $+31\pp$
+exposure gain. The signal is unmistakable: retrieval-side gains do not convert
+into answer-side gains, which we type as \emph{answer-option conversion}. The
+controller responds with diverse \hyre{}, which produces multiple
+holding-shaped pseudo-passages so that the option-anchoring step has heterogeneous
+evidence to disambiguate against; held-out diverse \hyre{} reaches $78.0$ vs.\ a
+$68.0$ baseline ($+10\pp$). The negative design point on the same
+slice is direct option-table prompting at $70.0$, below both
+\method{rag_rewrite} ($76.0$) and diverse \hyre{} ($78.0$). The bottleneck is
+\emph{which option to anchor to}, not whether to retrieve more.
+
+\paragraph{LegalBench-SCALR (method disagreement / candidate exposure).}
+The top-$k$ ablation on Llama~70B collapses top-1 to $59.5\%$ while top-5 and
+top-10 tie at $77.0\%$; gold-passage hit rate rises top-5~$\rightarrow$~top-10
+from $54.0$ to $63.0$ but answer accuracy is flat. The retrieval candidate set
+is therefore saturated past $k{=}5$ and the residual problem is method
+disagreement over a small reranked set of holding candidates. Calibration:
+the disagreement-arbitration controller reaches $77.5$ vs.\ \method{rag_simple}
+$74.0$. Held-out: the exact selected route ties the matched baseline at
+$80.0$, but the frontier replay component on the same slice reaches $84.0$.
+The headroom is real and the policy that should pick \emph{which} candidate-set
+arbiter to invoke per row is the open routing-policy question on SCALR.
+
+\subsection{Negative controls: when fixed \hyre{} and HyRE-only hurt}
+
+A central piece of the headline is what the controller \emph{does not} do.
+Both pure-HyRE and fixed \hyre{} underperform the matched baseline on the
+two benchmarks where the active bottleneck is not query formulation
+(Table~\ref{tab:negative_controls}).
+
+\begin{table}[t]
+\small
+\centering
+\begin{tabular}{lcccc}
+\toprule
+Dataset & Baseline & HyRE-only & Fixed \hyre{} & Best route \\
+\midrule
+BarExam & 80.0 & 82.0 & 84.5 & 86.0 \\
+HousingQA & 60.5 & 50.0 & 51.5 & 74.5 \\
+CaseHOLD & 73.0 & 71.5 & 72.0 & 73.5 \\
+SCALR & 74.0 & 74.0\textsuperscript{\textdagger} & 76.0 & 77.5 \\
+\bottomrule
+\end{tabular}
+\caption{Expanded method ladder on the calibration slice. Both pure HyRE and
+fixed \hyre{} fall below the matched baseline on HousingQA and CaseHOLD; the
+controller's best route dominates every fixed policy on every benchmark.
+\textsuperscript{\textdagger}SCALR HyRE-only is reported from a length-capped
+generation pass (148/200 rows complete with no parse failures).}
+\label{tab:negative_controls}
+\end{table}
+
+HousingQA HyRE-only is $10.5\pp$ below the matched baseline and
+fixed \hyre{} is $9.0\pp$ below; on CaseHOLD HyRE-only is
+$1.5\pp$ below baseline and fixed \hyre{} is $1.0\pp$
+below. These are not retrieval failures in the usual sense: the HyRE family
+delivers higher gold-passage exposure on CaseHOLD ($16.0 \rightarrow 47.0$)
+and parametrically-coherent passages on HousingQA, but they are
+\emph{intervention-mismatch} failures. Adding a HyDE-style expansion does not
+help when the active bottleneck is jurisdiction scope or answer-option
+conversion, and on HousingQA it actively biases the verifier toward
+affirmative answers. The controller avoids these losses precisely by reading
+the calibration signature before committing to a HyRE-family route.
+
+\subsection{Cross-model sanity (Llama~3.3~70B held-out)}
+
+We re-ran the held-out slice on Groq Llama~3.3~70B to check whether the
+controller's bottleneck readings carry across model families
+(Table~\ref{tab:cross_model}). The transfer is \emph{partial}: two of four
+routes carry the expected direction (HousingQA verifier, SCALR frontier),
+one route flips sign (BarExam adaptive \hyre{}-v2), and one route did not
+produce a usable detail log on the available run (CaseHOLD diverse-\hyre{}).
+The honest read is that the bottleneck \emph{labels} appear to be
+model-stable on HousingQA and SCALR, while the BarExam route choice itself
+is model-conditional.
+
+\begin{table}[t]
+\small
+\centering
+\begin{tabularx}{\columnwidth}{lccY}
+\toprule
+Dataset & Baseline & Selected route & Read \\
+\midrule
+BarExam & 76.0 & 72.0 & Slice-unstable \\
+HousingQA & 44.0 & 60.0 & Verifier transfers ($+16\pp$) \\
+CaseHOLD & 66.0 & --- & No usable detail log on this run \\
+SCALR & 82.0 & 88.0 & Frontier transfers ($+6\pp$) \\
+\bottomrule
+\end{tabularx}
+\caption{Cross-model sanity on Groq Llama~3.3~70B, rows 200--249 ($N{=}50$ per
+benchmark). Two of four routes transfer directionally (HousingQA verifier,
+SCALR frontier); BarExam adaptive \hyre{}-v2 underperforms the matched
+baseline on this slice; the CaseHOLD diverse-\hyre{} cell did not produce a
+usable detail log on the available run.}
+\label{tab:cross_model}
+\end{table}
+
+We treat Table~\ref{tab:cross_model} as cross-model coverage, not as a main
+result: the slice is $N{=}50$ per benchmark, BarExam exhibits the same
+route-instability we already document at Gemma scale, and the CaseHOLD
+diverse-\hyre{} cell on Llama did not produce a usable detail log on our
+run. The defensible read is that the controller's HousingQA-verifier and
+SCALR-frontier diagnoses are model-stable while BarExam's
+rewrite-vs-\hyre{} selector remains the open piece.
+
+\subsection{Scope of evaluation}
+
+The four-benchmark calibration uses $N{=}200$ rows per benchmark; the
+held-out slice uses $N{=}50$. Larger-$N$ evaluations on each benchmark are
+in progress and will be reported in a future revision. The bottleneck
+readings reported here should therefore be taken as diagnostic-grade
+evidence at fixed slice size rather than as final benchmark rankings.

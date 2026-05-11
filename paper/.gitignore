@@ -1,0 +1,14 @@
+# Generated render previews (regenerable from main.pdf)
+_drafting/pdfpreview/
+
+# Bundle redundant with extracted style files at the root
+icml2026_styles/
+
+# TeX intermediates
+*.aux
+*.log
+*.bbl
+*.blg
+*.out
+*.toc
+*.synctex.gz

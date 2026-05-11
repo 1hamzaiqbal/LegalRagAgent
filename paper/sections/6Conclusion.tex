@@ -1,0 +1,92 @@
+\section{Discussion, Limitations, and Conclusion}\label{sec:conclusion}
+
+\subsection{Discussion: routing as the unit of analysis}
+
+The dominant framing in retrieval-augmented question answering, ``one method
+wins,'' collapses several distinct failure modes into a single accuracy delta
+and produces recipes that do not transfer across benchmarks. Our
+bottleneck-aware view inverts that framing: \emph{routing} is the unit of
+analysis, and each benchmark is characterized by which intervention helps,
+which is neutral, and which actively hurts. Under this view, negative
+controls are not embarrassments to be hidden but signal. Fixed
+\hyre{} underperforming baseline on HousingQA and CaseHOLD is not
+a failure of \hyre{}. It is positive evidence about which bottleneck each
+benchmark exposes (metadata scope and statutory entailment on HousingQA,
+answer-option conversion on CaseHOLD), and therefore a guide to the
+intervention each benchmark actually needs.
+
+Reading the calibration ladder this way also relocates the methodological
+novelty of the \hyre{}/HyRE family. The two-call
+architecture is a small efficiency variant of HyDE \citep{gao2023hyde}; what
+is new is the \emph{snap-conditioned} passage prompt, which yields a
+controlling-rule embedding rather than a question paraphrase, and the
+placement of that embedding inside a routing portfolio rather than as a
+universal default. The same HyDE-family intervention is positive on BarExam
+(calibration \hyre{} $86.0$), neutral on LegalBench-SCALR ($76.0$
+vs.\ baseline $74.0$), and negative on HousingQA ($51.5$ vs.\ $60.5$) and
+CaseHOLD ($72.0$ vs.\ $73.0$). The accuracy signature is a property of the
+\emph{bottleneck}, not the method.
+
+The diagnostic protocol behind the \controller{} is dataset- and
+model-agnostic by construction: any benchmark slice combined with any
+language model and any retrieval stack produces a calibration trace whose
+signals can be read off without retraining or annotated complexity
+labels. This stands in contrast to learned routers
+\citep{asai2024selfrag,jeong2024adaptive}, which require either
+dataset-specific fine-tuning of reflection or critique tokens or a
+supervised notion of question complexity. The protocol is therefore a
+candidate \emph{measurement} layer rather than a competing recipe; we expect
+it to compose with learned components in future systems rather than replace
+them.
+
+\subsection{Limitations}
+
+Several limitations qualify the scope of these claims.
+\begin{enumerate}
+\item \textbf{Slice sizes.} The calibration tables use $N{=}200$ per
+benchmark and the held-out tables $N{=}50$. The four legal benchmarks have
+full sizes $1{,}195$ / $6{,}853$ / $3{,}600$ / $571$. Larger-$N$
+evaluations are in progress on each benchmark and the numbers in this draft
+should be read as diagnostic-grade evidence at fixed slice size, not final
+benchmark rankings.
+\item \textbf{Cross-model coverage.} The Llama~3.3~70B sanity sweep is
+$N{=}50$ per benchmark and only partially transfers: the HousingQA
+verifier and SCALR frontier routes hold up directionally, BarExam
+\method{Snap-HyRE-v2} underperforms baseline ($72.0$ vs.\ $76.0$), and one
+CaseHOLD diverse-HyRE cell did not produce a usable detail log on our run.
+Multi-architecture generalization is therefore weakly, not strongly,
+supported.
+\item \textbf{Rule-based controller.} The \controller{} is rule and
+evidence-summary based rather than learned. A learned router could plausibly
+exploit calibration-trace features that the current rule set cannot read
+off directly, and the gap between the rule-based controller and a learned
+upper bound is itself an interesting open question.
+\item \textbf{Held-out instability.} The held-out slice is rows $200$--$249$
+($N{=}50$ per dataset). BarExam ($76.0$ selected vs.\ $90.0$ rewrite) and
+SCALR ($80.0$ selected vs.\ $84.0$ frontier) are route-unstable on this
+slice. The routing policy is informative but not finished; a rewrite-vs-HyRE
+selector and a frontier-aware SCALR rule are the obvious next steps.
+\item \textbf{Reference baselines.} We do not yet compare against full
+\citet{asai2024selfrag} Self-RAG, \citet{yan2024crag} CRAG, or
+\citet{wang2025specrag} Speculative RAG on legal benchmarks. Those
+comparisons require either retraining or per-question critique
+infrastructure and are deferred to future work.
+\end{enumerate}
+
+\subsection{Conclusion}
+
+Legal RAG fails through bottleneck-typed mechanisms rather than through a
+single missing capability. A cheap calibration trace, a fixed set of
+signals collected on a $200$-row slice per benchmark, is enough to expose
+which mechanism is active. A rule-based \controller{} that routes among
+baseline retrieval, query rewrite, \hyre{}/HyRE,
+state-filter retrieval, option grounding, a conservative verifier,
+disagreement arbitration, and reject/escalate lifts macro accuracy by
+roughly $6$\pp{} across the four legal benchmarks at a sub-$2$ LLM-call
+budget. \hyre{} is one route among many: useful where the
+bottleneck is query or legal-reasoning formulation, ineffective or harmful
+where the bottleneck is metadata scope or answer-option conversion. The
+contribution of this paper is therefore not a new universal recipe but a
+discipline, \emph{name and measure the bottleneck before paying for the
+intervention}, and the \framework{} controller that operationalizes that
+discipline.
