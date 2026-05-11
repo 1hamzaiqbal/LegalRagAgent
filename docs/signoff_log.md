@@ -102,14 +102,16 @@ Branch: `codex/final-report-snap-hyde`
    66.0%, SCALR `rag_simple` 41/50 = 82.0%, and SCALR frontier 44/50 = 88.0%.
    CaseHOLD diverse HyRE is rejected as clean model-coverage evidence because
    it has errors 2, empty retrieval 2, and missing predictions 2.
-16. ❌ **Full-SCALR `rag_simple` sanity half is not a promoted result**:
+16. ❌ **Full-SCALR probe `67863` is not a promoted result**:
    job `67863` wrote the full-SCALR `rag_simple` detail log at 424/571 =
    74.3%, average calls 1.00, errors 0, missing predictions 0, and empty
    retrieval 0, but `analyze_detail_flags.py` flags three long-answer rows
    with max 233,166 final-answer chars / 73,151 output tokens. Do not cite as a
-   clean full-corpus baseline unless those rows are resolved or explicitly
-   accepted as a caveated sanity check. The paired frontier half is still
-   running.
+   clean full-corpus baseline. The paired frontier half then produced a
+   232,797-character answer at row 296 and was cancelled before writing a clean
+   detail log. Capped replacement `67897` is running with
+   `LLM_MAX_COMPLETION_TOKENS=4096`; do not cite it unless both modes finish and
+   pass validation.
 17. ✅ **CaseHOLD capped snap-only replacement `67867` is clean**:
    `67866` is rejected because it was cancelled at 71/200 after row 12 produced
    a 157,678-character answer and `pred=None`. After patching OpenRouter caps
@@ -149,6 +151,8 @@ Branch: `codex/final-report-snap-hyde`
   `logs/eval_rag_hyde_or-gemma4-26b_20260511_0734_detail.jsonl`.
 - Full-SCALR `rag_simple` health-gated detail log:
   `logs/eval_rag_simple_or-gemma4-26b_20260511_0731_legalbench_scalr_meeting-full-scalr-sanity-or-gemma4-26b-n571-k5-rag_simple_detail.jsonl`.
+- Full-SCALR cancelled stdout:
+  `logs/slurm_67863_full_scalr_cancelled.out`.
 - HousingQA fixed Snap-HyRE detail log:
   `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl`.
 - CaseHOLD fixed Snap-HyRE detail log:

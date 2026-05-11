@@ -196,12 +196,13 @@ all-dataset full-corpus sweep.
 
 | Job | Dataset | N | Modes | Why it matters |
 |---:|---|---:|---|---|
-| 67863 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Tests whether the smaller legal benchmark's controller signal survives beyond the N=200 slice. The `rag_simple` half has been copied locally but is health-gated: 424/571 with three long-answer rows, max 233,166 final-answer chars. The frontier half is still running. |
+| 67863 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Rejected / cancelled. The `rag_simple` half has been copied locally but is health-gated: 424/571 with three long-answer rows, max 233,166 final-answer chars. The frontier half produced a 232,797-character answer at row 296 and was cancelled before writing a clean detail log. |
+| 67897 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Capped replacement launched with `LLM_MAX_COMPLETION_TOKENS=4096` after `67863` exposed unbounded output. Pending; do not cite unless both modes complete and pass validation. |
 
-This is not a report number until both modes complete and pass the validation
-gates. Do not promote the completed `rag_simple` half as a full-corpus baseline
-unless the long-answer rows are explicitly resolved or accepted as a caveated
-non-paper sanity check.
+There is no clean full-corpus report number yet. Do not promote the completed
+`67863` `rag_simple` half as a full-corpus baseline unless the long-answer rows
+are explicitly resolved or accepted as a caveated non-paper sanity check. Do
+not promote `67897` until both modes complete and pass the validation gates.
 
 ## Invalid / Rejected Runs
 
@@ -218,6 +219,7 @@ Do not cite any of these:
 | 67794-67806 | Pending retrieval jobs from the pre-repair launch. | Cancelled / invalid to avoid wasting API calls on the broken embedder. |
 | 67810-67818 | Embedding debug/smoke attempts, including a failed ONNX backend check because `optimum` is not installed. | Debug only; do not cite as eval results. |
 | 67866 | CaseHOLD capped snap-only replacement still produced a 157,678-character answer at row 12 despite the launch cap. | Cancelled; clean replacement `67867` landed after patching OpenRouter cap serialization. |
+| 67863 | Full-SCALR sanity probe produced unbounded output in both the completed `rag_simple` half and the partial frontier half. | Cancelled; capped replacement `67897` launched. Do not cite as a clean full-corpus result. |
 
 ## Full-Corpus Feasibility
 
@@ -232,17 +234,19 @@ Harness-level full sizes are:
 
 Full-corpus all-method, all-model coverage is not a realistic May 11 4pm gate.
 It would be thousands to tens of thousands of LLM calls, with HousingQA and
-CaseHOLD dominating cost and runtime. A targeted full-SCALR probe has been
-launched as SLURM `67863` because SCALR is the smallest legal benchmark in the
-current four-task set. The `rag_simple` half wrote
+CaseHOLD dominating cost and runtime. A targeted full-SCALR probe was launched
+as SLURM `67863` because SCALR is the smallest legal benchmark in the current
+four-task set. The `rag_simple` half wrote
 `logs/eval_rag_simple_or-gemma4-26b_20260511_0731_legalbench_scalr_meeting-full-scalr-sanity-or-gemma4-26b-n571-k5-rag_simple_detail.jsonl`
 and validates structurally, but it remains health-gated by three runaway
-final-answer rows. The meeting-safe standard is therefore:
+final-answer rows. The paired frontier half then produced a 232,797-character
+answer before cancellation. A capped replacement, SLURM `67897`, is now running
+with `LLM_MAX_COMPLETION_TOKENS=4096`. The meeting-safe standard is therefore:
 
 - report existing verified N=200/N=50 source-gated results;
 - integrate new N=200 ladder controls only if they land cleanly;
-- treat full-corpus expansion beyond the SCALR probe as post-meeting paper
-  work unless additional full runs land cleanly under the same gates.
+- treat full-corpus expansion as post-meeting paper work unless capped `67897`
+  lands cleanly under the same gates.
 
 ## Validation Gates
 
@@ -273,6 +277,6 @@ usable. Present the verified controller story, then say:
 
 > We launched source-gated fill-ins for the inherited ladder and a Groq Llama 70B
 > held-out sanity layer. The rows are now validated or explicitly rejected; the
-> only pending row is the targeted full-SCALR probe.
+> only pending row is the capped full-SCALR replacement `67897`.
 
 That is stronger than rushing invalid numbers into the deck.

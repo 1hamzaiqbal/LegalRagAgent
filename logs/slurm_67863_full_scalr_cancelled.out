@@ -1,0 +1,2115 @@
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+[preflight] modes OK: rag_simple, adaptive_snap_hyre_frontier
+[preflight] Chroma collection count skipped by SKIP_CHROMA_PREFLIGHT=1
+[2026-05-11T04:44:27-05:00] provider=or-gemma4-26b dataset=legalbench_scalr N=571 seed=42 k=5
+[2026-05-11T04:44:27-05:00] modes: rag_simple adaptive_snap_hyre_frontier
+
+[2026-05-11T04:44:27-05:00] === MODE rag_simple tag=meeting-full-scalr-sanity-or-gemma4-26b-n571-k5-rag_simple ===
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+
+======================================================================
+EVAL: rag_simple | or-gemma4-26b (google/gemma-4-26b-a4b-it) | 571 questions | dataset=legalbench_scalr
+Tag: meeting-full-scalr-sanity-or-gemma4-26b-n571-k5-rag_simple
+======================================================================
+
+    [preflight_smoke] 2 chars
+[preflight] provider=or-gemma4-26b OK
+[preflight] collection count skipped by SKIP_EVAL_COLLECTION_PREFLIGHT=1
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Loading weights:   0%|          | 0/268 [00:00<?, ?it/s]Loading weights: 100%|██████████| 268/268 [00:00<00:00, 8838.86it/s]
+[rag_utils] Reinitialized embedding position_ids=8192
+[rag_utils] Embedding max_seq_length=512
+    [rag_simple/answer] 2849 chars
+[1/571] qa_unknown_scalr_509                PASS   gold=C pred=C (64.0s, 1 calls)
+    [rag_simple/answer] 2632 chars
+[2/571] qa_unknown_scalr_70                 PASS   gold=A pred=A (16.7s, 1 calls)
+    [rag_simple/answer] 2201 chars
+[3/571] qa_unknown_scalr_131                PASS   gold=B pred=B (44.6s, 1 calls)
+    [rag_simple/answer] 2618 chars
+[4/571] qa_unknown_scalr_512                PASS   gold=A pred=A (10.6s, 1 calls)
+    [rag_simple/answer] 2669 chars
+[5/571] qa_unknown_scalr_542                PASS   gold=D pred=D (16.8s, 1 calls)
+    [rag_simple/answer] 1831 chars
+[6/571] qa_unknown_scalr_318                PASS   gold=A pred=A (6.3s, 1 calls)
+    [rag_simple/answer] 2834 chars
+[7/571] qa_unknown_scalr_188                FAIL   gold=B pred=A (10.8s, 1 calls)
+    [rag_simple/answer] 2648 chars
+[8/571] qa_unknown_scalr_29                 PASS   gold=A pred=A (15.7s, 1 calls)
+    [rag_simple/answer] 3029 chars
+[9/571] qa_unknown_scalr_81                 FAIL   gold=A pred=C (19.7s, 1 calls)
+    [rag_simple/answer] 2120 chars
+[10/571] qa_unknown_scalr_316                PASS   gold=B pred=B (18.9s, 1 calls)
+    [rag_simple/answer] 2172 chars
+[11/571] qa_unknown_scalr_500                PASS   gold=D pred=D (8.2s, 1 calls)
+    [rag_simple/answer] 2222 chars
+[12/571] qa_unknown_scalr_549                PASS   gold=E pred=E (14.2s, 1 calls)
+    [rag_simple/answer] 3326 chars
+[13/571] qa_unknown_scalr_533                FAIL   gold=A pred=D (10.1s, 1 calls)
+    [rag_simple/answer] 2449 chars
+[14/571] qa_unknown_scalr_386                PASS   gold=A pred=A (7.3s, 1 calls)
+    [rag_simple/answer] 2890 chars
+[15/571] qa_unknown_scalr_529                PASS   gold=A pred=A (10.6s, 1 calls)
+    [rag_simple/answer] 2688 chars
+[16/571] qa_unknown_scalr_83                 FAIL   gold=E pred=C (12.6s, 1 calls)
+    [rag_simple/answer] 3013 chars
+[17/571] qa_unknown_scalr_555                FAIL   gold=E pred=B (15.7s, 1 calls)
+    [rag_simple/answer] 2658 chars
+[18/571] qa_unknown_scalr_165                PASS   gold=E pred=E (8.6s, 1 calls)
+    [rag_simple/answer] 2630 chars
+[19/571] qa_unknown_scalr_101                FAIL   gold=A pred=E (10.3s, 1 calls)
+    [rag_simple/answer] 3449 chars
+[20/571] qa_unknown_scalr_278                PASS   gold=B pred=B (12.4s, 1 calls)
+    [rag_simple/answer] 3329 chars
+[21/571] qa_unknown_scalr_73                 PASS   gold=B pred=B (27.6s, 1 calls)
+    [rag_simple/answer] 2888 chars
+[22/571] qa_unknown_scalr_286                PASS   gold=D pred=D (9.0s, 1 calls)
+    [rag_simple/answer] 2651 chars
+[23/571] qa_unknown_scalr_569                PASS   gold=C pred=C (5.1s, 1 calls)
+    [rag_simple/answer] 2303 chars
+[24/571] qa_unknown_scalr_261                PASS   gold=E pred=E (4.2s, 1 calls)
+    [rag_simple/answer] 2186 chars
+[25/571] qa_unknown_scalr_265                PASS   gold=D pred=D (4.8s, 1 calls)
+    [rag_simple/answer] 2352 chars
+[26/571] qa_unknown_scalr_76                 PASS   gold=A pred=A (4.6s, 1 calls)
+    [rag_simple/answer] 3374 chars
+[27/571] qa_unknown_scalr_244                PASS   gold=B pred=B (11.9s, 1 calls)
+    [rag_simple/answer] 2660 chars
+[28/571] qa_unknown_scalr_557                PASS   gold=C pred=C (10.4s, 1 calls)
+    [rag_simple/answer] 2607 chars
+[29/571] qa_unknown_scalr_238                FAIL   gold=D pred=C (9.2s, 1 calls)
+    [rag_simple/answer] 3068 chars
+[30/571] qa_unknown_scalr_72                 FAIL   gold=A pred=C (9.3s, 1 calls)
+    [rag_simple/answer] 3206 chars
+[31/571] qa_unknown_scalr_298                PASS   gold=A pred=A (157.0s, 1 calls)
+    [rag_simple/answer] 2540 chars
+[32/571] qa_unknown_scalr_515                PASS   gold=B pred=B (13.5s, 1 calls)
+    [rag_simple/answer] 2951 chars
+[33/571] qa_unknown_scalr_428                PASS   gold=C pred=C (19.7s, 1 calls)
+    [rag_simple/answer] 2393 chars
+[34/571] qa_unknown_scalr_534                PASS   gold=C pred=C (4.5s, 1 calls)
+    [rag_simple/answer] 2801 chars
+[35/571] qa_unknown_scalr_234                FAIL   gold=E pred=A (9.6s, 1 calls)
+    [rag_simple/answer] 2954 chars
+[36/571] qa_unknown_scalr_55                 PASS   gold=A pred=A (6.0s, 1 calls)
+    [rag_simple/answer] 2662 chars
+[37/571] qa_unknown_scalr_10                 PASS   gold=E pred=E (5.8s, 1 calls)
+    [rag_simple/answer] 3252 chars
+[38/571] qa_unknown_scalr_192                FAIL   gold=C pred=D (8.0s, 1 calls)
+    [rag_simple/answer] 2355 chars
+[39/571] qa_unknown_scalr_6                  PASS   gold=E pred=E (9.3s, 1 calls)
+    [rag_simple/answer] 4397 chars
+[40/571] qa_unknown_scalr_90                 FAIL   gold=E pred=D (9.8s, 1 calls)
+    [rag_simple/answer] 2359 chars
+[41/571] qa_unknown_scalr_104                PASS   gold=C pred=C (5.7s, 1 calls)
+    [rag_simple/answer] 2173 chars
+[42/571] qa_unknown_scalr_356                FAIL   gold=A pred=B (5.6s, 1 calls)
+    [rag_simple/answer] 2390 chars
+[43/571] qa_unknown_scalr_365                PASS   gold=E pred=E (8.7s, 1 calls)
+    [rag_simple/answer] 2246 chars
+[44/571] qa_unknown_scalr_195                PASS   gold=C pred=C (4.2s, 1 calls)
+    [rag_simple/answer] 2908 chars
+[45/571] qa_unknown_scalr_163                PASS   gold=C pred=C (7.1s, 1 calls)
+    [rag_simple/answer] 2962 chars
+[46/571] qa_unknown_scalr_109                PASS   gold=A pred=A (11.3s, 1 calls)
+    [rag_simple/answer] 3103 chars
+[47/571] qa_unknown_scalr_277                PASS   gold=E pred=E (9.2s, 1 calls)
+    [rag_simple/answer] 2851 chars
+[48/571] qa_unknown_scalr_559                PASS   gold=E pred=E (8.1s, 1 calls)
+    [rag_simple/answer] 2170 chars
+[49/571] qa_unknown_scalr_167                PASS   gold=B pred=B (6.9s, 1 calls)
+    [rag_simple/answer] 2377 chars
+[50/571] qa_unknown_scalr_287                PASS   gold=B pred=B (8.2s, 1 calls)
+    [rag_simple/answer] 2651 chars
+[51/571] qa_unknown_scalr_328                FAIL   gold=A pred=C (56.9s, 1 calls)
+    [rag_simple/answer] 2342 chars
+[52/571] qa_unknown_scalr_30                 PASS   gold=D pred=D (11.3s, 1 calls)
+    [rag_simple/answer] 3296 chars
+[53/571] qa_unknown_scalr_155                PASS   gold=A pred=A (3.8s, 1 calls)
+    [rag_simple/answer] 2541 chars
+[54/571] qa_unknown_scalr_148                PASS   gold=B pred=B (10.5s, 1 calls)
+    [rag_simple/answer] 2317 chars
+[55/571] qa_unknown_scalr_259                PASS   gold=C pred=C (6.8s, 1 calls)
+    [rag_simple/answer] 3563 chars
+[56/571] qa_unknown_scalr_395                FAIL   gold=C pred=E (14.4s, 1 calls)
+    [rag_simple/answer] 2367 chars
+[57/571] qa_unknown_scalr_235                PASS   gold=E pred=E (49.2s, 1 calls)
+    [rag_simple/answer] 2401 chars
+[58/571] qa_unknown_scalr_82                 PASS   gold=E pred=E (7.3s, 1 calls)
+    [rag_simple/answer] 2387 chars
+[59/571] qa_unknown_scalr_39                 PASS   gold=B pred=B (7.5s, 1 calls)
+    [rag_simple/answer] 2609 chars
+[60/571] qa_unknown_scalr_274                PASS   gold=E pred=E (35.0s, 1 calls)
+    [rag_simple/answer] 3046 chars
+[61/571] qa_unknown_scalr_79                 FAIL   gold=E pred=D (34.4s, 1 calls)
+    [rag_simple/answer] 2712 chars
+[62/571] qa_unknown_scalr_2                  PASS   gold=E pred=E (21.0s, 1 calls)
+    [rag_simple/answer] 2750 chars
+[63/571] qa_unknown_scalr_566                FAIL   gold=B pred=C (18.1s, 1 calls)
+    [rag_simple/answer] 3174 chars
+[64/571] qa_unknown_scalr_538                PASS   gold=D pred=D (31.3s, 1 calls)
+    [rag_simple/answer] 2326 chars
+[65/571] qa_unknown_scalr_203                PASS   gold=E pred=E (11.8s, 1 calls)
+    [rag_simple/answer] 3177 chars
+[66/571] qa_unknown_scalr_519                FAIL   gold=D pred=B (11.8s, 1 calls)
+    [rag_simple/answer] 2472 chars
+[67/571] qa_unknown_scalr_118                PASS   gold=E pred=E (18.4s, 1 calls)
+    [rag_simple/answer] 2789 chars
+[68/571] qa_unknown_scalr_78                 PASS   gold=D pred=D (38.9s, 1 calls)
+    [rag_simple/answer] 2341 chars
+[69/571] qa_unknown_scalr_218                PASS   gold=A pred=A (7.8s, 1 calls)
+    [rag_simple/answer] 2765 chars
+[70/571] qa_unknown_scalr_257                PASS   gold=A pred=A (46.3s, 1 calls)
+    [rag_simple/answer] 3031 chars
+[71/571] qa_unknown_scalr_329                FAIL   gold=D pred=C (41.8s, 1 calls)
+    [rag_simple/answer] 2392 chars
+[72/571] qa_unknown_scalr_11                 PASS   gold=E pred=E (54.7s, 1 calls)
+    [rag_simple/answer] 2108 chars
+[73/571] qa_unknown_scalr_399                PASS   gold=C pred=C (35.0s, 1 calls)
+    [rag_simple/answer] 2863 chars
+[74/571] qa_unknown_scalr_426                PASS   gold=A pred=A (37.6s, 1 calls)
+    [rag_simple/answer] 2132 chars
+[75/571] qa_unknown_scalr_503                PASS   gold=D pred=D (13.2s, 1 calls)
+    [rag_simple/answer] 2679 chars
+[76/571] qa_unknown_scalr_349                FAIL   gold=A pred=B (36.4s, 1 calls)
+    [rag_simple/answer] 4465 chars
+[77/571] qa_unknown_scalr_361                FAIL   gold=B pred=A (59.8s, 1 calls)
+    [rag_simple/answer] 2698 chars
+[78/571] qa_unknown_scalr_322                PASS   gold=E pred=E (14.0s, 1 calls)
+    [rag_simple/answer] 2638 chars
+[79/571] qa_unknown_scalr_145                FAIL   gold=C pred=D (26.2s, 1 calls)
+    [rag_simple/answer] 2830 chars
+[80/571] qa_unknown_scalr_383                PASS   gold=A pred=A (34.9s, 1 calls)
+    [rag_simple/answer] 2444 chars
+[81/571] qa_unknown_scalr_132                FAIL   gold=C pred=B (13.0s, 1 calls)
+    [rag_simple/answer] 3972 chars
+[82/571] qa_unknown_scalr_184                PASS   gold=C pred=C (24.7s, 1 calls)
+    [rag_simple/answer] 2687 chars
+[83/571] qa_unknown_scalr_86                 PASS   gold=A pred=A (23.4s, 1 calls)
+    [rag_simple/answer] 2620 chars
+[84/571] qa_unknown_scalr_231                PASS   gold=E pred=E (80.7s, 1 calls)
+    [rag_simple/answer] 2419 chars
+[85/571] qa_unknown_scalr_208                PASS   gold=B pred=B (9.1s, 1 calls)
+    [rag_simple/answer] 2571 chars
+[86/571] qa_unknown_scalr_463                PASS   gold=D pred=D (21.3s, 1 calls)
+    [rag_simple/answer] 2540 chars
+[87/571] qa_unknown_scalr_9                  PASS   gold=A pred=A (7.8s, 1 calls)
+    [rag_simple/answer] 2240 chars
+[88/571] qa_unknown_scalr_473                PASS   gold=B pred=B (4.0s, 1 calls)
+    [rag_simple/answer] 2807 chars
+[89/571] qa_unknown_scalr_502                FAIL   gold=C pred=D (8.5s, 1 calls)
+    [rag_simple/answer] 2529 chars
+[90/571] qa_unknown_scalr_521                PASS   gold=A pred=A (5.5s, 1 calls)
+    [rag_simple/answer] 5312 chars
+[91/571] qa_unknown_scalr_84                 FAIL   gold=B pred=D (126.0s, 1 calls)
+    [rag_simple/answer] 2281 chars
+[92/571] qa_unknown_scalr_398                PASS   gold=B pred=B (23.5s, 1 calls)
+    [rag_simple/answer] 3572 chars
+[93/571] qa_unknown_scalr_492                FAIL   gold=D pred=E (26.5s, 1 calls)
+    [rag_simple/answer] 2707 chars
+[94/571] qa_unknown_scalr_470                PASS   gold=D pred=D (12.2s, 1 calls)
+    [rag_simple/answer] 2305 chars
+[95/571] qa_unknown_scalr_335                PASS   gold=E pred=E (31.2s, 1 calls)
+    [rag_simple/answer] 2455 chars
+[96/571] qa_unknown_scalr_110                FAIL   gold=E pred=B (9.1s, 1 calls)
+    [rag_simple/answer] 2652 chars
+[97/571] qa_unknown_scalr_567                PASS   gold=D pred=D (10.7s, 1 calls)
+    [rag_simple/answer] 2387 chars
+[98/571] qa_unknown_scalr_204                PASS   gold=B pred=B (13.1s, 1 calls)
+    [rag_simple/answer] 2289 chars
+[99/571] qa_unknown_scalr_209                PASS   gold=C pred=C (9.8s, 1 calls)
+    [rag_simple/answer] 2712 chars
+[100/571] qa_unknown_scalr_153                FAIL   gold=C pred=E (9.5s, 1 calls)
+    [rag_simple/answer] 2564 chars
+[101/571] qa_unknown_scalr_336                FAIL   gold=C pred=D (7.3s, 1 calls)
+    [rag_simple/answer] 2244 chars
+[102/571] qa_unknown_scalr_140                PASS   gold=D pred=D (21.6s, 1 calls)
+    [rag_simple/answer] 4313 chars
+[103/571] qa_unknown_scalr_77                 PASS   gold=A pred=A (18.0s, 1 calls)
+    [rag_simple/answer] 2789 chars
+[104/571] qa_unknown_scalr_412                FAIL   gold=C pred=D (12.5s, 1 calls)
+    [rag_simple/answer] 2411 chars
+[105/571] qa_unknown_scalr_439                PASS   gold=A pred=A (9.4s, 1 calls)
+    [rag_simple/answer] 2818 chars
+[106/571] qa_unknown_scalr_325                PASS   gold=C pred=C (12.9s, 1 calls)
+    [rag_simple/answer] 2955 chars
+[107/571] qa_unknown_scalr_375                PASS   gold=B pred=B (399.5s, 1 calls)
+    [rag_simple/answer] 3619 chars
+[108/571] qa_unknown_scalr_176                PASS   gold=B pred=B (6.1s, 1 calls)
+    [rag_simple/answer] 2373 chars
+[109/571] qa_unknown_scalr_388                PASS   gold=D pred=D (7.7s, 1 calls)
+    [rag_simple/answer] 2180 chars
+[110/571] qa_unknown_scalr_199                PASS   gold=E pred=E (29.6s, 1 calls)
+    [rag_simple/answer] 6953 chars
+[111/571] qa_unknown_scalr_75                 FAIL   gold=D pred=B (105.8s, 1 calls)
+    [rag_simple/answer] 3125 chars
+[112/571] qa_unknown_scalr_250                FAIL   gold=D pred=A (14.6s, 1 calls)
+    [rag_simple/answer] 2698 chars
+[113/571] qa_unknown_scalr_528                PASS   gold=D pred=D (8.8s, 1 calls)
+    [rag_simple/answer] 2169 chars
+[114/571] qa_unknown_scalr_268                FAIL   gold=C pred=E (5.5s, 1 calls)
+    [rag_simple/answer] 2396 chars
+[115/571] qa_unknown_scalr_68                 FAIL   gold=E pred=B (14.8s, 1 calls)
+    [rag_simple/answer] 1874 chars
+[116/571] qa_unknown_scalr_182                PASS   gold=D pred=D (7.5s, 1 calls)
+    [rag_simple/answer] 2558 chars
+[117/571] qa_unknown_scalr_63                 FAIL   gold=A pred=B (7.3s, 1 calls)
+    [rag_simple/answer] 2829 chars
+[118/571] qa_unknown_scalr_158                PASS   gold=A pred=A (9.5s, 1 calls)
+    [rag_simple/answer] 5198 chars
+[119/571] qa_unknown_scalr_60                 FAIL   gold=D pred=B (21.3s, 1 calls)
+    [rag_simple/answer] 2323 chars
+[120/571] qa_unknown_scalr_15                 PASS   gold=C pred=C (14.3s, 1 calls)
+    [rag_simple/answer] 3165 chars
+[121/571] qa_unknown_scalr_333                PASS   gold=C pred=C (60.8s, 1 calls)
+    [rag_simple/answer] 3081 chars
+[122/571] qa_unknown_scalr_137                PASS   gold=A pred=A (63.2s, 1 calls)
+    [rag_simple/answer] 2480 chars
+[123/571] qa_unknown_scalr_482                FAIL   gold=A pred=E (7.4s, 1 calls)
+    [rag_simple/answer] 1768 chars
+[124/571] qa_unknown_scalr_431                PASS   gold=B pred=B (33.9s, 1 calls)
+    [rag_simple/answer] 2853 chars
+[125/571] qa_unknown_scalr_88                 FAIL   gold=E pred=B (5.7s, 1 calls)
+    [rag_simple/answer] 2994 chars
+[126/571] qa_unknown_scalr_453                PASS   gold=A pred=A (6.4s, 1 calls)
+    [rag_simple/answer] 2746 chars
+[127/571] qa_unknown_scalr_117                PASS   gold=D pred=D (3.8s, 1 calls)
+    [rag_simple/answer] 2771 chars
+[128/571] qa_unknown_scalr_346                PASS   gold=A pred=A (12.4s, 1 calls)
+    [rag_simple/answer] 2168 chars
+[129/571] qa_unknown_scalr_367                PASS   gold=D pred=D (5.4s, 1 calls)
+    [rag_simple/answer] 2714 chars
+[130/571] qa_unknown_scalr_33                 PASS   gold=B pred=B (12.2s, 1 calls)
+    [rag_simple/answer] 2382 chars
+[131/571] qa_unknown_scalr_0                  PASS   gold=D pred=D (39.3s, 1 calls)
+    [rag_simple/answer] 2815 chars
+[132/571] qa_unknown_scalr_564                PASS   gold=D pred=D (23.3s, 1 calls)
+    [rag_simple/answer] 2468 chars
+[133/571] qa_unknown_scalr_301                PASS   gold=D pred=D (25.0s, 1 calls)
+    [rag_simple/answer] 2700 chars
+[134/571] qa_unknown_scalr_546                PASS   gold=D pred=D (9.2s, 1 calls)
+    [rag_simple/answer] 2483 chars
+[135/571] qa_unknown_scalr_210                PASS   gold=D pred=D (16.3s, 1 calls)
+    [rag_simple/answer] 2462 chars
+[136/571] qa_unknown_scalr_22                 PASS   gold=B pred=B (67.3s, 1 calls)
+    [rag_simple/answer] 2338 chars
+[137/571] qa_unknown_scalr_400                FAIL   gold=A pred=C (6.2s, 1 calls)
+    [rag_simple/answer] 2317 chars
+[138/571] qa_unknown_scalr_248                PASS   gold=B pred=B (3.4s, 1 calls)
+    [rag_simple/answer] 3290 chars
+[139/571] qa_unknown_scalr_89                 PASS   gold=D pred=D (5.2s, 1 calls)
+    [rag_simple/answer] 2729 chars
+[140/571] qa_unknown_scalr_552                FAIL   gold=B pred=A (87.4s, 1 calls)
+    [rag_simple/answer] 2550 chars
+[141/571] qa_unknown_scalr_181                PASS   gold=D pred=D (21.5s, 1 calls)
+    [rag_simple/answer] 2423 chars
+[142/571] qa_unknown_scalr_18                 PASS   gold=B pred=B (5.1s, 1 calls)
+    [rag_simple/answer] 2543 chars
+[143/571] qa_unknown_scalr_264                PASS   gold=C pred=C (4.5s, 1 calls)
+    [rag_simple/answer] 2703 chars
+[144/571] qa_unknown_scalr_290                PASS   gold=A pred=A (4.6s, 1 calls)
+    [rag_simple/answer] 2818 chars
+[145/571] qa_unknown_scalr_144                PASS   gold=A pred=A (5.8s, 1 calls)
+    [rag_simple/answer] 2473 chars
+[146/571] qa_unknown_scalr_514                FAIL   gold=C pred=E (3.9s, 1 calls)
+    [rag_simple/answer] 2930 chars
+[147/571] qa_unknown_scalr_245                PASS   gold=E pred=E (4.6s, 1 calls)
+    [rag_simple/answer] 2306 chars
+[148/571] qa_unknown_scalr_487                PASS   gold=E pred=E (10.6s, 1 calls)
+    [rag_simple/answer] 2765 chars
+[149/571] qa_unknown_scalr_272                FAIL   gold=A pred=D (54.6s, 1 calls)
+    [rag_simple/answer] 2203 chars
+[150/571] qa_unknown_scalr_185                PASS   gold=A pred=A (4.8s, 1 calls)
+    [rag_simple/answer] 2611 chars
+[151/571] qa_unknown_scalr_362                FAIL   gold=C pred=D (4.8s, 1 calls)
+    [rag_simple/answer] 2681 chars
+[152/571] qa_unknown_scalr_54                 PASS   gold=B pred=B (3.2s, 1 calls)
+    [rag_simple/answer] 2111 chars
+[153/571] qa_unknown_scalr_363                PASS   gold=E pred=E (5.2s, 1 calls)
+    [rag_simple/answer] 2734 chars
+[154/571] qa_unknown_scalr_46                 PASS   gold=C pred=C (3.4s, 1 calls)
+    [rag_simple/answer] 2487 chars
+[155/571] qa_unknown_scalr_93                 PASS   gold=C pred=C (3.6s, 1 calls)
+    [rag_simple/answer] 2900 chars
+[156/571] qa_unknown_scalr_558                PASS   gold=D pred=D (54.9s, 1 calls)
+    [rag_simple/answer] 2459 chars
+[157/571] qa_unknown_scalr_108                PASS   gold=B pred=B (3.5s, 1 calls)
+    [rag_simple/answer] 2016 chars
+[158/571] qa_unknown_scalr_247                PASS   gold=B pred=B (6.2s, 1 calls)
+    [rag_simple/answer] 2417 chars
+[159/571] qa_unknown_scalr_570                PASS   gold=D pred=D (6.2s, 1 calls)
+    [rag_simple/answer] 2489 chars
+[160/571] qa_unknown_scalr_438                PASS   gold=C pred=C (5.0s, 1 calls)
+    [rag_simple/answer] 2634 chars
+[161/571] qa_unknown_scalr_396                PASS   gold=C pred=C (4.6s, 1 calls)
+    [rag_simple/answer] 2661 chars
+[162/571] qa_unknown_scalr_211                PASS   gold=A pred=A (5.8s, 1 calls)
+    [rag_simple/answer] 2304 chars
+[163/571] qa_unknown_scalr_478                FAIL   gold=C pred=B (3.2s, 1 calls)
+    [rag_simple/answer] 3110 chars
+[164/571] qa_unknown_scalr_338                PASS   gold=D pred=D (6.2s, 1 calls)
+    [rag_simple/answer] 2824 chars
+[165/571] qa_unknown_scalr_522                PASS   gold=C pred=C (22.7s, 1 calls)
+    [rag_simple/answer] 2714 chars
+[166/571] qa_unknown_scalr_348                PASS   gold=E pred=E (4.4s, 1 calls)
+    [rag_simple/answer] 6094 chars
+[167/571] qa_unknown_scalr_441                FAIL   gold=D pred=B (14.8s, 1 calls)
+    [rag_simple/answer] 2777 chars
+[168/571] qa_unknown_scalr_69                 PASS   gold=A pred=A (4.0s, 1 calls)
+    [rag_simple/answer] 2837 chars
+[169/571] qa_unknown_scalr_255                PASS   gold=A pred=A (3.8s, 1 calls)
+    [rag_simple/answer] 3494 chars
+[170/571] qa_unknown_scalr_177                PASS   gold=B pred=B (6.9s, 1 calls)
+    [rag_simple/answer] 3146 chars
+[171/571] qa_unknown_scalr_284                FAIL   gold=D pred=B (10.4s, 1 calls)
+    [rag_simple/answer] 2902 chars
+[172/571] qa_unknown_scalr_563                PASS   gold=E pred=E (3.5s, 1 calls)
+    [rag_simple/answer] 2728 chars
+[173/571] qa_unknown_scalr_149                FAIL   gold=A pred=B (4.9s, 1 calls)
+    [rag_simple/answer] 2767 chars
+[174/571] qa_unknown_scalr_124                FAIL   gold=D pred=B (5.8s, 1 calls)
+    [rag_simple/answer] 2587 chars
+[175/571] qa_unknown_scalr_425                PASS   gold=E pred=E (12.9s, 1 calls)
+    [rag_simple/answer] 2436 chars
+[176/571] qa_unknown_scalr_196                FAIL   gold=D pred=E (36.6s, 1 calls)
+    [rag_simple/answer] 3263 chars
+[177/571] qa_unknown_scalr_263                PASS   gold=E pred=E (9.0s, 1 calls)
+    [rag_simple/answer] 3788 chars
+[178/571] qa_unknown_scalr_507                FAIL   gold=B pred=E (85.2s, 1 calls)
+    [rag_simple/answer] 2135 chars
+[179/571] qa_unknown_scalr_450                PASS   gold=A pred=A (4.8s, 1 calls)
+    [rag_simple/answer] 2498 chars
+[180/571] qa_unknown_scalr_403                PASS   gold=E pred=E (6.0s, 1 calls)
+    [rag_simple/answer] 13388 chars
+[181/571] qa_unknown_scalr_432                FAIL   gold=E pred=D (26.4s, 1 calls)
+    [rag_simple/answer] 8653 chars
+[182/571] qa_unknown_scalr_525                FAIL   gold=C pred=D (16.9s, 1 calls)
+    [rag_simple/answer] 4054 chars
+[183/571] qa_unknown_scalr_414                FAIL   gold=D pred=E (8.4s, 1 calls)
+    [rag_simple/answer] 6086 chars
+[184/571] qa_unknown_scalr_114                PASS   gold=B pred=B (20.6s, 1 calls)
+    [rag_simple/answer] 3027 chars
+[185/571] qa_unknown_scalr_141                FAIL   gold=E pred=D (13.6s, 1 calls)
+    [rag_simple/answer] 2536 chars
+[186/571] qa_unknown_scalr_373                PASS   gold=A pred=A (10.1s, 1 calls)
+    [rag_simple/answer] 2766 chars
+[187/571] qa_unknown_scalr_7                  FAIL   gold=A pred=D (4.5s, 1 calls)
+    [rag_simple/answer] 2412 chars
+[188/571] qa_unknown_scalr_479                PASS   gold=E pred=E (4.5s, 1 calls)
+    [rag_simple/answer] 2488 chars
+[189/571] qa_unknown_scalr_19                 FAIL   gold=C pred=B (12.7s, 1 calls)
+    [rag_simple/answer] 2784 chars
+[190/571] qa_unknown_scalr_172                PASS   gold=E pred=E (6.3s, 1 calls)
+    [rag_simple/answer] 2408 chars
+[191/571] qa_unknown_scalr_411                PASS   gold=B pred=B (6.6s, 1 calls)
+    [rag_simple/answer] 2027 chars
+[192/571] qa_unknown_scalr_56                 PASS   gold=C pred=C (6.0s, 1 calls)
+    [rag_simple/answer] 2739 chars
+[193/571] qa_unknown_scalr_532                PASS   gold=A pred=A (6.4s, 1 calls)
+    [rag_simple/answer] 2992 chars
+[194/571] qa_unknown_scalr_304                PASS   gold=A pred=A (4.9s, 1 calls)
+    [rag_simple/answer] 3461 chars
+[195/571] qa_unknown_scalr_410                FAIL   gold=C pred=A (10.2s, 1 calls)
+    [rag_simple/answer] 2707 chars
+[196/571] qa_unknown_scalr_449                FAIL   gold=A pred=D (7.6s, 1 calls)
+    [rag_simple/answer] 3058 chars
+[197/571] qa_unknown_scalr_280                FAIL   gold=A pred=E (11.5s, 1 calls)
+    [rag_simple/answer] 2802 chars
+[198/571] qa_unknown_scalr_49                 PASS   gold=C pred=C (73.0s, 1 calls)
+    [rag_simple/answer] 2731 chars
+[199/571] qa_unknown_scalr_415                FAIL   gold=C pred=E (11.1s, 1 calls)
+    [rag_simple/answer] 2401 chars
+[200/571] qa_unknown_scalr_25                 PASS   gold=D pred=D (9.6s, 1 calls)
+    [rag_simple/answer] 2207 chars
+[201/571] qa_unknown_scalr_402                PASS   gold=D pred=D (11.0s, 1 calls)
+    [rag_simple/answer] 2398 chars
+[202/571] qa_unknown_scalr_369                PASS   gold=A pred=A (17.2s, 1 calls)
+    [rag_simple/answer] 3117 chars
+[203/571] qa_unknown_scalr_505                FAIL   gold=D pred=B (17.2s, 1 calls)
+    [rag_simple/answer] 2879 chars
+[204/571] qa_unknown_scalr_42                 PASS   gold=E pred=E (5.5s, 1 calls)
+    [rag_simple/answer] 3011 chars
+[205/571] qa_unknown_scalr_377                PASS   gold=A pred=A (4.0s, 1 calls)
+    [rag_simple/answer] 2084 chars
+[206/571] qa_unknown_scalr_228                PASS   gold=C pred=C (4.8s, 1 calls)
+    [rag_simple/answer] 2677 chars
+[207/571] qa_unknown_scalr_544                FAIL   gold=E pred=D (5.3s, 1 calls)
+    [rag_simple/answer] 3946 chars
+[208/571] qa_unknown_scalr_334                PASS   gold=A pred=A (8.0s, 1 calls)
+    [rag_simple/answer] 2933 chars
+[209/571] qa_unknown_scalr_429                PASS   gold=A pred=A (6.9s, 1 calls)
+    [rag_simple/answer] 2242 chars
+[210/571] qa_unknown_scalr_154                PASS   gold=B pred=B (4.7s, 1 calls)
+    [rag_simple/answer] 3560 chars
+[211/571] qa_unknown_scalr_126                PASS   gold=D pred=D (11.0s, 1 calls)
+    [rag_simple/answer] 3049 chars
+[212/571] qa_unknown_scalr_332                FAIL   gold=D pred=B (4.5s, 1 calls)
+    [rag_simple/answer] 2280 chars
+[213/571] qa_unknown_scalr_311                PASS   gold=B pred=B (2.5s, 1 calls)
+    [rag_simple/answer] 3597 chars
+[214/571] qa_unknown_scalr_405                PASS   gold=C pred=C (27.9s, 1 calls)
+    [rag_simple/answer] 2523 chars
+[215/571] qa_unknown_scalr_174                PASS   gold=D pred=D (12.2s, 1 calls)
+    [rag_simple/answer] 2713 chars
+[216/571] qa_unknown_scalr_31                 PASS   gold=E pred=E (11.4s, 1 calls)
+    [rag_simple/answer] 2521 chars
+[217/571] qa_unknown_scalr_113                PASS   gold=E pred=E (13.8s, 1 calls)
+    [rag_simple/answer] 2219 chars
+[218/571] qa_unknown_scalr_501                FAIL   gold=C pred=D (12.5s, 1 calls)
+    [rag_simple/answer] 3122 chars
+[219/571] qa_unknown_scalr_173                FAIL   gold=D pred=A (9.3s, 1 calls)
+    [rag_simple/answer] 2601 chars
+[220/571] qa_unknown_scalr_393                PASS   gold=A pred=A (19.1s, 1 calls)
+    [rag_simple/answer] 2302 chars
+[221/571] qa_unknown_scalr_227                PASS   gold=C pred=C (7.6s, 1 calls)
+    [rag_simple/answer] 2528 chars
+[222/571] qa_unknown_scalr_57                 PASS   gold=E pred=E (7.5s, 1 calls)
+    [rag_simple/answer] 2175 chars
+[223/571] qa_unknown_scalr_291                PASS   gold=B pred=B (11.0s, 1 calls)
+    [rag_simple/answer] 2879 chars
+[224/571] qa_unknown_scalr_222                PASS   gold=C pred=C (35.2s, 1 calls)
+    [rag_simple/answer] 3710 chars
+[225/571] qa_unknown_scalr_24                 FAIL   gold=D pred=B (14.1s, 1 calls)
+    [rag_simple/answer] 2851 chars
+[226/571] qa_unknown_scalr_17                 PASS   gold=C pred=C (5.5s, 1 calls)
+    [rag_simple/answer] 2103 chars
+[227/571] qa_unknown_scalr_271                PASS   gold=C pred=C (42.2s, 1 calls)
+    [rag_simple/answer] 2209 chars
+[228/571] qa_unknown_scalr_66                 PASS   gold=D pred=D (4.9s, 1 calls)
+    [rag_simple/answer] 2701 chars
+[229/571] qa_unknown_scalr_275                FAIL   gold=B pred=A (6.6s, 1 calls)
+    [rag_simple/answer] 1947 chars
+[230/571] qa_unknown_scalr_499                PASS   gold=C pred=C (2.9s, 1 calls)
+    [rag_simple/answer] 2794 chars
+[231/571] qa_unknown_scalr_299                FAIL   gold=A pred=D (16.0s, 1 calls)
+    [rag_simple/answer] 3613 chars
+[232/571] qa_unknown_scalr_495                FAIL   gold=E pred=C (5.5s, 1 calls)
+    [rag_simple/answer] 2716 chars
+[233/571] qa_unknown_scalr_190                PASS   gold=D pred=D (6.8s, 1 calls)
+    [rag_simple/answer] 2777 chars
+[234/571] qa_unknown_scalr_465                PASS   gold=C pred=C (5.7s, 1 calls)
+    [rag_simple/answer] 2177 chars
+[235/571] qa_unknown_scalr_390                PASS   gold=E pred=E (5.8s, 1 calls)
+    [rag_simple/answer] 2807 chars
+[236/571] qa_unknown_scalr_485                FAIL   gold=A pred=E (9.0s, 1 calls)
+    [rag_simple/answer] 3698 chars
+[237/571] qa_unknown_scalr_394                FAIL   gold=A pred=B (7.0s, 1 calls)
+    [rag_simple/answer] 3343 chars
+[238/571] qa_unknown_scalr_94                 FAIL   gold=E pred=C (52.8s, 1 calls)
+    [rag_simple/answer] 2606 chars
+[239/571] qa_unknown_scalr_180                FAIL   gold=C pred=E (10.9s, 1 calls)
+    [rag_simple/answer] 2966 chars
+[240/571] qa_unknown_scalr_249                PASS   gold=D pred=D (4.1s, 1 calls)
+    [rag_simple/answer] 2183 chars
+[241/571] qa_unknown_scalr_422                PASS   gold=B pred=B (3.3s, 1 calls)
+    [rag_simple/answer] 2097 chars
+[242/571] qa_unknown_scalr_92                 PASS   gold=A pred=A (3.9s, 1 calls)
+    [rag_simple/answer] 2553 chars
+[243/571] qa_unknown_scalr_23                 PASS   gold=E pred=E (5.8s, 1 calls)
+    [rag_simple/answer] 3242 chars
+[244/571] qa_unknown_scalr_480                PASS   gold=E pred=E (7.7s, 1 calls)
+    [rag_simple/answer] 2330 chars
+[245/571] qa_unknown_scalr_310                PASS   gold=D pred=D (8.7s, 1 calls)
+    [rag_simple/answer] 2736 chars
+[246/571] qa_unknown_scalr_331                PASS   gold=A pred=A (4.8s, 1 calls)
+    [rag_simple/answer] 2748 chars
+[247/571] qa_unknown_scalr_281                PASS   gold=C pred=C (5.4s, 1 calls)
+    [rag_simple/answer] 2330 chars
+[248/571] qa_unknown_scalr_5                  PASS   gold=E pred=E (3.0s, 1 calls)
+    [rag_simple/answer] 2110 chars
+[249/571] qa_unknown_scalr_116                PASS   gold=B pred=B (2.5s, 1 calls)
+    [rag_simple/answer] 1776 chars
+[250/571] qa_unknown_scalr_45                 PASS   gold=C pred=C (6.7s, 1 calls)
+    [rag_simple/answer] 1772 chars
+[251/571] qa_unknown_scalr_220                PASS   gold=E pred=E (23.3s, 1 calls)
+    [rag_simple/answer] 2975 chars
+[252/571] qa_unknown_scalr_312                PASS   gold=A pred=A (5.1s, 1 calls)
+    [rag_simple/answer] 2277 chars
+[253/571] qa_unknown_scalr_424                PASS   gold=B pred=B (4.1s, 1 calls)
+    [rag_simple/answer] 3140 chars
+[254/571] qa_unknown_scalr_540                PASS   gold=B pred=B (4.5s, 1 calls)
+    [rag_simple/answer] 2792 chars
+[255/571] qa_unknown_scalr_16                 PASS   gold=A pred=A (5.2s, 1 calls)
+    [rag_simple/answer] 4002 chars
+[256/571] qa_unknown_scalr_48                 FAIL   gold=C pred=B (5.8s, 1 calls)
+    [rag_simple/answer] 3475 chars
+[257/571] qa_unknown_scalr_550                PASS   gold=C pred=C (5.0s, 1 calls)
+    [rag_simple/answer] 2195 chars
+[258/571] qa_unknown_scalr_444                PASS   gold=B pred=B (3.6s, 1 calls)
+    [rag_simple/answer] 137925 chars
+[259/571] qa_unknown_scalr_3                  PASS   gold=D pred=D (464.3s, 1 calls)
+    [rag_simple/answer] 2800 chars
+[260/571] qa_unknown_scalr_496                PASS   gold=A pred=A (27.5s, 1 calls)
+    [rag_simple/answer] 2411 chars
+[261/571] qa_unknown_scalr_408                PASS   gold=D pred=D (5.5s, 1 calls)
+    [rag_simple/answer] 5329 chars
+[262/571] qa_unknown_scalr_225                PASS   gold=A pred=A (13.4s, 1 calls)
+    [rag_simple/answer] 2613 chars
+[263/571] qa_unknown_scalr_26                 FAIL   gold=E pred=C (9.0s, 1 calls)
+    [rag_simple/answer] 2584 chars
+[264/571] qa_unknown_scalr_50                 PASS   gold=B pred=B (11.3s, 1 calls)
+    [rag_simple/answer] 2559 chars
+[265/571] qa_unknown_scalr_229                PASS   gold=D pred=D (11.9s, 1 calls)
+    [rag_simple/answer] 2391 chars
+[266/571] qa_unknown_scalr_37                 PASS   gold=B pred=B (4.4s, 1 calls)
+    [rag_simple/answer] 2675 chars
+[267/571] qa_unknown_scalr_157                FAIL   gold=D pred=E (14.3s, 1 calls)
+    [rag_simple/answer] 3023 chars
+[268/571] qa_unknown_scalr_237                PASS   gold=B pred=B (16.3s, 1 calls)
+    [rag_simple/answer] 2447 chars
+[269/571] qa_unknown_scalr_545                PASS   gold=E pred=E (18.0s, 1 calls)
+    [rag_simple/answer] 2655 chars
+[270/571] qa_unknown_scalr_175                FAIL   gold=C pred=D (9.2s, 1 calls)
+    [rag_simple/answer] 4904 chars
+[271/571] qa_unknown_scalr_523                PASS   gold=B pred=B (31.7s, 1 calls)
+    [rag_simple/answer] 2229 chars
+[272/571] qa_unknown_scalr_530                PASS   gold=B pred=B (7.7s, 1 calls)
+    [rag_simple/answer] 3289 chars
+[273/571] qa_unknown_scalr_194                FAIL   gold=D pred=A (11.7s, 1 calls)
+    [rag_simple/answer] 2870 chars
+[274/571] qa_unknown_scalr_547                PASS   gold=E pred=E (6.3s, 1 calls)
+    [rag_simple/answer] 220303 chars
+[275/571] qa_unknown_scalr_67                 FAIL   gold=D pred=E (536.4s, 1 calls)
+    [rag_simple/answer] 2247 chars
+[276/571] qa_unknown_scalr_289                PASS   gold=E pred=E (5.5s, 1 calls)
+    [rag_simple/answer] 2480 chars
+[277/571] qa_unknown_scalr_168                PASS   gold=D pred=D (4.9s, 1 calls)
+    [rag_simple/answer] 2456 chars
+[278/571] qa_unknown_scalr_360                PASS   gold=B pred=B (3.4s, 1 calls)
+    [rag_simple/answer] 2271 chars
+[279/571] qa_unknown_scalr_467                PASS   gold=B pred=B (10.4s, 1 calls)
+    [rag_simple/answer] 3744 chars
+[280/571] qa_unknown_scalr_193                PASS   gold=E pred=E (19.8s, 1 calls)
+    [rag_simple/answer] 2665 chars
+[281/571] qa_unknown_scalr_152                PASS   gold=D pred=D (3.8s, 1 calls)
+    [rag_simple/answer] 3288 chars
+[282/571] qa_unknown_scalr_296                PASS   gold=A pred=A (5.4s, 1 calls)
+    [rag_simple/answer] 2916 chars
+[283/571] qa_unknown_scalr_305                PASS   gold=A pred=A (7.0s, 1 calls)
+    [rag_simple/answer] 3282 chars
+[284/571] qa_unknown_scalr_443                FAIL   gold=A pred=D (5.0s, 1 calls)
+    [rag_simple/answer] 2461 chars
+[285/571] qa_unknown_scalr_302                PASS   gold=A pred=A (15.8s, 1 calls)
+    [rag_simple/answer] 2793 chars
+[286/571] qa_unknown_scalr_103                PASS   gold=E pred=E (4.7s, 1 calls)
+    [rag_simple/answer] 2274 chars
+[287/571] qa_unknown_scalr_354                PASS   gold=A pred=A (3.4s, 1 calls)
+    [rag_simple/answer] 2113 chars
+[288/571] qa_unknown_scalr_74                 PASS   gold=C pred=C (2.3s, 1 calls)
+    [rag_simple/answer] 2173 chars
+[289/571] qa_unknown_scalr_382                PASS   gold=D pred=D (3.3s, 1 calls)
+    [rag_simple/answer] 2380 chars
+[290/571] qa_unknown_scalr_548                PASS   gold=E pred=E (3.5s, 1 calls)
+    [rag_simple/answer] 2994 chars
+[291/571] qa_unknown_scalr_119                PASS   gold=A pred=A (13.7s, 1 calls)
+    [rag_simple/answer] 7637 chars
+[292/571] qa_unknown_scalr_537                FAIL   gold=D pred=B (10.6s, 1 calls)
+    [rag_simple/answer] 2626 chars
+[293/571] qa_unknown_scalr_370                PASS   gold=E pred=E (4.8s, 1 calls)
+    [rag_simple/answer] 2605 chars
+[294/571] qa_unknown_scalr_440                PASS   gold=D pred=D (3.0s, 1 calls)
+    [rag_simple/answer] 10527 chars
+[295/571] qa_unknown_scalr_494                FAIL   gold=E pred=D (16.4s, 1 calls)
+    [rag_simple/answer] 2141 chars
+[296/571] qa_unknown_scalr_319                FAIL   gold=C pred=D (3.5s, 1 calls)
+    [rag_simple/answer] 2450 chars
+[297/571] qa_unknown_scalr_309                PASS   gold=D pred=D (4.9s, 1 calls)
+    [rag_simple/answer] 2639 chars
+[298/571] qa_unknown_scalr_553                FAIL   gold=B pred=E (11.5s, 1 calls)
+    [rag_simple/answer] 6978 chars
+[299/571] qa_unknown_scalr_513                FAIL   gold=B pred=A (8.2s, 1 calls)
+    [rag_simple/answer] 2957 chars
+[300/571] qa_unknown_scalr_341                PASS   gold=B pred=B (9.2s, 1 calls)
+    [rag_simple/answer] 3236 chars
+[301/571] qa_unknown_scalr_36                 PASS   gold=A pred=A (14.4s, 1 calls)
+    [rag_simple/answer] 2622 chars
+[302/571] qa_unknown_scalr_139                PASS   gold=E pred=E (3.5s, 1 calls)
+    [rag_simple/answer] 2550 chars
+[303/571] qa_unknown_scalr_253                FAIL   gold=B pred=E (9.4s, 1 calls)
+    [rag_simple/answer] 3511 chars
+[304/571] qa_unknown_scalr_353                PASS   gold=D pred=D (5.5s, 1 calls)
+    [rag_simple/answer] 3590 chars
+[305/571] qa_unknown_scalr_59                 FAIL   gold=B pred=A (13.6s, 1 calls)
+    [rag_simple/answer] 2413 chars
+[306/571] qa_unknown_scalr_111                PASS   gold=D pred=D (4.3s, 1 calls)
+    [rag_simple/answer] 3098 chars
+[307/571] qa_unknown_scalr_457                PASS   gold=A pred=A (5.5s, 1 calls)
+    [rag_simple/answer] 2298 chars
+[308/571] qa_unknown_scalr_320                PASS   gold=A pred=A (4.4s, 1 calls)
+    [rag_simple/answer] 2676 chars
+[309/571] qa_unknown_scalr_262                PASS   gold=B pred=B (4.8s, 1 calls)
+    [rag_simple/answer] 2075 chars
+[310/571] qa_unknown_scalr_448                PASS   gold=C pred=C (5.6s, 1 calls)
+    [rag_simple/answer] 2365 chars
+[311/571] qa_unknown_scalr_297                PASS   gold=C pred=C (3.5s, 1 calls)
+    [rag_simple/answer] 2293 chars
+[312/571] qa_unknown_scalr_150                PASS   gold=B pred=B (3.2s, 1 calls)
+    [rag_simple/answer] 2818 chars
+[313/571] qa_unknown_scalr_266                FAIL   gold=A pred=C (22.9s, 1 calls)
+    [rag_simple/answer] 2098 chars
+[314/571] qa_unknown_scalr_543                PASS   gold=B pred=B (3.3s, 1 calls)
+    [rag_simple/answer] 2892 chars
+[315/571] qa_unknown_scalr_38                 FAIL   gold=C pred=A (3.9s, 1 calls)
+    [rag_simple/answer] 2307 chars
+[316/571] qa_unknown_scalr_468                PASS   gold=C pred=C (35.0s, 1 calls)
+    [rag_simple/answer] 2675 chars
+[317/571] qa_unknown_scalr_307                PASS   gold=A pred=A (4.8s, 1 calls)
+    [rag_simple/answer] 2679 chars
+[318/571] qa_unknown_scalr_198                PASS   gold=C pred=C (7.8s, 1 calls)
+    [rag_simple/answer] 2714 chars
+[319/571] qa_unknown_scalr_321                FAIL   gold=D pred=E (3.8s, 1 calls)
+    [rag_simple/answer] 2214 chars
+[320/571] qa_unknown_scalr_146                PASS   gold=A pred=A (9.5s, 1 calls)
+    [rag_simple/answer] 2920 chars
+[321/571] qa_unknown_scalr_486                PASS   gold=A pred=A (4.0s, 1 calls)
+    [rag_simple/answer] 5220 chars
+[322/571] qa_unknown_scalr_147                PASS   gold=A pred=A (8.7s, 1 calls)
+    [rag_simple/answer] 2628 chars
+[323/571] qa_unknown_scalr_380                PASS   gold=E pred=E (5.2s, 1 calls)
+    [rag_simple/answer] 2509 chars
+[324/571] qa_unknown_scalr_355                PASS   gold=D pred=D (3.9s, 1 calls)
+    [rag_simple/answer] 3078 chars
+[325/571] qa_unknown_scalr_123                PASS   gold=D pred=D (5.0s, 1 calls)
+    [rag_simple/answer] 3203 chars
+[326/571] qa_unknown_scalr_560                PASS   gold=A pred=A (5.9s, 1 calls)
+    [rag_simple/answer] 2290 chars
+[327/571] qa_unknown_scalr_96                 PASS   gold=C pred=C (4.2s, 1 calls)
+    [rag_simple/answer] 2430 chars
+[328/571] qa_unknown_scalr_143                PASS   gold=C pred=C (4.5s, 1 calls)
+    [rag_simple/answer] 4075 chars
+[329/571] qa_unknown_scalr_239                PASS   gold=C pred=C (5.1s, 1 calls)
+    [rag_simple/answer] 2512 chars
+[330/571] qa_unknown_scalr_340                PASS   gold=B pred=B (8.1s, 1 calls)
+    [rag_simple/answer] 2621 chars
+[331/571] qa_unknown_scalr_97                 PASS   gold=C pred=C (12.6s, 1 calls)
+    [rag_simple/answer] 2860 chars
+[332/571] qa_unknown_scalr_324                PASS   gold=D pred=D (3.7s, 1 calls)
+    [rag_simple/answer] 2307 chars
+[333/571] qa_unknown_scalr_489                PASS   gold=D pred=D (3.4s, 1 calls)
+    [rag_simple/answer] 2639 chars
+[334/571] qa_unknown_scalr_293                FAIL   gold=E pred=B (4.9s, 1 calls)
+    [rag_simple/answer] 4888 chars
+[335/571] qa_unknown_scalr_436                PASS   gold=D pred=D (6.6s, 1 calls)
+    [rag_simple/answer] 2317 chars
+[336/571] qa_unknown_scalr_122                FAIL   gold=B pred=D (5.0s, 1 calls)
+    [rag_simple/answer] 2805 chars
+[337/571] qa_unknown_scalr_183                FAIL   gold=A pred=D (7.8s, 1 calls)
+    [rag_simple/answer] 3008 chars
+[338/571] qa_unknown_scalr_202                PASS   gold=A pred=A (4.7s, 1 calls)
+    [rag_simple/answer] 4980 chars
+[339/571] qa_unknown_scalr_323                PASS   gold=E pred=E (25.7s, 1 calls)
+    [rag_simple/answer] 2398 chars
+[340/571] qa_unknown_scalr_246                PASS   gold=A pred=A (14.3s, 1 calls)
+    [rag_simple/answer] 2835 chars
+[341/571] qa_unknown_scalr_464                FAIL   gold=A pred=E (4.3s, 1 calls)
+    [rag_simple/answer] 1803 chars
+[342/571] qa_unknown_scalr_368                PASS   gold=C pred=C (3.2s, 1 calls)
+    [rag_simple/answer] 1972 chars
+[343/571] qa_unknown_scalr_437                PASS   gold=E pred=E (9.7s, 1 calls)
+    [rag_simple/answer] 2970 chars
+[344/571] qa_unknown_scalr_371                PASS   gold=E pred=E (3.5s, 1 calls)
+    [rag_simple/answer] 2220 chars
+[345/571] qa_unknown_scalr_490                FAIL   gold=E pred=D (4.4s, 1 calls)
+    [rag_simple/answer] 2295 chars
+[346/571] qa_unknown_scalr_352                PASS   gold=B pred=B (6.5s, 1 calls)
+    [rag_simple/answer] 2497 chars
+[347/571] qa_unknown_scalr_125                PASS   gold=B pred=B (10.9s, 1 calls)
+    [rag_simple/answer] 3273 chars
+[348/571] qa_unknown_scalr_374                PASS   gold=C pred=C (4.0s, 1 calls)
+    [rag_simple/answer] 2721 chars
+[349/571] qa_unknown_scalr_223                PASS   gold=E pred=E (5.8s, 1 calls)
+    [rag_simple/answer] 2547 chars
+[350/571] qa_unknown_scalr_342                PASS   gold=B pred=B (3.4s, 1 calls)
+    [rag_simple/answer] 3044 chars
+[351/571] qa_unknown_scalr_53                 PASS   gold=B pred=B (15.6s, 1 calls)
+    [rag_simple/answer] 2713 chars
+[352/571] qa_unknown_scalr_219                PASS   gold=A pred=A (3.5s, 1 calls)
+    [rag_simple/answer] 3526 chars
+[353/571] qa_unknown_scalr_129                FAIL   gold=D pred=A (4.8s, 1 calls)
+    [rag_simple/answer] 2597 chars
+[354/571] qa_unknown_scalr_516                PASS   gold=E pred=E (4.2s, 1 calls)
+    [rag_simple/answer] 2317 chars
+[355/571] qa_unknown_scalr_357                PASS   gold=D pred=D (4.9s, 1 calls)
+    [rag_simple/answer] 2337 chars
+[356/571] qa_unknown_scalr_407                FAIL   gold=B pred=D (10.5s, 1 calls)
+    [rag_simple/answer] 4015 chars
+[357/571] qa_unknown_scalr_469                PASS   gold=C pred=C (8.8s, 1 calls)
+    [rag_simple/answer] 2156 chars
+[358/571] qa_unknown_scalr_446                PASS   gold=B pred=B (3.5s, 1 calls)
+    [rag_simple/answer] 2730 chars
+[359/571] qa_unknown_scalr_442                PASS   gold=B pred=B (3.0s, 1 calls)
+    [rag_simple/answer] 4259 chars
+[360/571] qa_unknown_scalr_364                FAIL   gold=B pred=E (10.6s, 1 calls)
+    [rag_simple/answer] 2465 chars
+[361/571] qa_unknown_scalr_294                PASS   gold=E pred=E (63.7s, 1 calls)
+    [rag_simple/answer] 2463 chars
+[362/571] qa_unknown_scalr_456                PASS   gold=E pred=E (3.1s, 1 calls)
+    [rag_simple/answer] 6466 chars
+[363/571] qa_unknown_scalr_421                PASS   gold=D pred=D (8.8s, 1 calls)
+    [rag_simple/answer] 2500 chars
+[364/571] qa_unknown_scalr_551                PASS   gold=A pred=A (3.1s, 1 calls)
+    [rag_simple/answer] 2617 chars
+[365/571] qa_unknown_scalr_112                PASS   gold=C pred=C (26.1s, 1 calls)
+    [rag_simple/answer] 2249 chars
+[366/571] qa_unknown_scalr_179                PASS   gold=B pred=B (3.0s, 1 calls)
+    [rag_simple/answer] 2521 chars
+[367/571] qa_unknown_scalr_381                PASS   gold=E pred=E (8.4s, 1 calls)
+    [rag_simple/answer] 2257 chars
+[368/571] qa_unknown_scalr_420                FAIL   gold=B pred=D (3.7s, 1 calls)
+    [rag_simple/answer] 2769 chars
+[369/571] qa_unknown_scalr_488                PASS   gold=C pred=C (20.3s, 1 calls)
+    [rag_simple/answer] 2495 chars
+[370/571] qa_unknown_scalr_314                PASS   gold=D pred=D (5.9s, 1 calls)
+    [rag_simple/answer] 2266 chars
+[371/571] qa_unknown_scalr_151                FAIL   gold=C pred=B (4.9s, 1 calls)
+    [rag_simple/answer] 2902 chars
+[372/571] qa_unknown_scalr_447                PASS   gold=A pred=A (23.4s, 1 calls)
+    [rag_simple/answer] 3940 chars
+[373/571] qa_unknown_scalr_233                PASS   gold=E pred=E (20.5s, 1 calls)
+    [rag_simple/answer] 2200 chars
+[374/571] qa_unknown_scalr_306                PASS   gold=D pred=D (7.5s, 1 calls)
+    [rag_simple/answer] 2393 chars
+[375/571] qa_unknown_scalr_419                PASS   gold=D pred=D (7.3s, 1 calls)
+    [rag_simple/answer] 3612 chars
+[376/571] qa_unknown_scalr_164                PASS   gold=B pred=B (6.1s, 1 calls)
+    [rag_simple/answer] 3262 chars
+[377/571] qa_unknown_scalr_317                FAIL   gold=A pred=E (5.4s, 1 calls)
+    [rag_simple/answer] 2368 chars
+[378/571] qa_unknown_scalr_136                PASS   gold=C pred=C (6.0s, 1 calls)
+    [rag_simple/answer] 2999 chars
+[379/571] qa_unknown_scalr_197                PASS   gold=D pred=D (6.2s, 1 calls)
+    [rag_simple/answer] 2318 chars
+[380/571] qa_unknown_scalr_434                PASS   gold=C pred=C (6.9s, 1 calls)
+    [rag_simple/answer] 3471 chars
+[381/571] qa_unknown_scalr_258                PASS   gold=B pred=B (5.8s, 1 calls)
+    [rag_simple/answer] 3665 chars
+[382/571] qa_unknown_scalr_232                PASS   gold=A pred=A (4.9s, 1 calls)
+    [rag_simple/answer] 3703 chars
+[383/571] qa_unknown_scalr_115                PASS   gold=A pred=A (9.3s, 1 calls)
+    [rag_simple/answer] 2675 chars
+[384/571] qa_unknown_scalr_120                PASS   gold=A pred=A (3.2s, 1 calls)
+    [rag_simple/answer] 2166 chars
+[385/571] qa_unknown_scalr_433                FAIL   gold=A pred=E (4.2s, 1 calls)
+    [rag_simple/answer] 3981 chars
+[386/571] qa_unknown_scalr_376                PASS   gold=E pred=E (12.2s, 1 calls)
+    [rag_simple/answer] 2015 chars
+[387/571] qa_unknown_scalr_384                PASS   gold=B pred=B (3.2s, 1 calls)
+    [rag_simple/answer] 2120 chars
+[388/571] qa_unknown_scalr_224                PASS   gold=C pred=C (3.4s, 1 calls)
+    [rag_simple/answer] 3045 chars
+[389/571] qa_unknown_scalr_497                PASS   gold=A pred=A (5.7s, 1 calls)
+    [rag_simple/answer] 2611 chars
+[390/571] qa_unknown_scalr_416                PASS   gold=C pred=C (6.4s, 1 calls)
+    [rag_simple/answer] 2507 chars
+[391/571] qa_unknown_scalr_347                PASS   gold=B pred=B (4.1s, 1 calls)
+    [rag_simple/answer] 2310 chars
+[392/571] qa_unknown_scalr_127                PASS   gold=C pred=C (38.5s, 1 calls)
+    [rag_simple/answer] 2655 chars
+[393/571] qa_unknown_scalr_561                PASS   gold=E pred=E (4.6s, 1 calls)
+    [rag_simple/answer] 2117 chars
+[394/571] qa_unknown_scalr_285                FAIL   gold=E pred=B (36.4s, 1 calls)
+    [rag_simple/answer] 3002 chars
+[395/571] qa_unknown_scalr_526                PASS   gold=A pred=A (4.7s, 1 calls)
+    [rag_simple/answer] 3634 chars
+[396/571] qa_unknown_scalr_541                FAIL   gold=B pred=E (5.4s, 1 calls)
+    [rag_simple/answer] 2474 chars
+[397/571] qa_unknown_scalr_107                PASS   gold=C pred=C (3.4s, 1 calls)
+    [rag_simple/answer] 2866 chars
+[398/571] qa_unknown_scalr_460                FAIL   gold=A pred=B (8.7s, 1 calls)
+    [rag_simple/answer] 2474 chars
+[399/571] qa_unknown_scalr_404                PASS   gold=B pred=B (3.1s, 1 calls)
+    [rag_simple/answer] 2742 chars
+[400/571] qa_unknown_scalr_133                PASS   gold=B pred=B (3.4s, 1 calls)
+    [rag_simple/answer] 2532 chars
+[401/571] qa_unknown_scalr_451                FAIL   gold=A pred=C (3.4s, 1 calls)
+    [rag_simple/answer] 2733 chars
+[402/571] qa_unknown_scalr_44                 FAIL   gold=B pred=A (3.0s, 1 calls)
+    [rag_simple/answer] 3240 chars
+[403/571] qa_unknown_scalr_169                FAIL   gold=A pred=D (80.7s, 1 calls)
+    [rag_simple/answer] 2455 chars
+[404/571] qa_unknown_scalr_65                 PASS   gold=D pred=D (3.9s, 1 calls)
+    [rag_simple/answer] 2679 chars
+[405/571] qa_unknown_scalr_283                FAIL   gold=B pred=D (4.1s, 1 calls)
+    [rag_simple/answer] 4277 chars
+[406/571] qa_unknown_scalr_85                 FAIL   gold=A pred=B (5.4s, 1 calls)
+    [rag_simple/answer] 2766 chars
+[407/571] qa_unknown_scalr_242                PASS   gold=A pred=A (5.8s, 1 calls)
+    [rag_simple/answer] 2532 chars
+[408/571] qa_unknown_scalr_186                FAIL   gold=A pred=E (59.1s, 1 calls)
+    [rag_simple/answer] 2504 chars
+[409/571] qa_unknown_scalr_477                PASS   gold=D pred=D (3.6s, 1 calls)
+    [rag_simple/answer] 1700 chars
+[410/571] qa_unknown_scalr_159                PASS   gold=B pred=B (2.9s, 1 calls)
+    [rag_simple/answer] 3267 chars
+[411/571] qa_unknown_scalr_12                 PASS   gold=E pred=E (5.8s, 1 calls)
+    [rag_simple/answer] 2485 chars
+[412/571] qa_unknown_scalr_35                 PASS   gold=E pred=E (14.8s, 1 calls)
+    [rag_simple/answer] 2295 chars
+[413/571] qa_unknown_scalr_28                 PASS   gold=D pred=D (3.8s, 1 calls)
+    [rag_simple/answer] 2283 chars
+[414/571] qa_unknown_scalr_170                PASS   gold=C pred=C (8.3s, 1 calls)
+    [rag_simple/answer] 2852 chars
+[415/571] qa_unknown_scalr_142                PASS   gold=A pred=A (11.7s, 1 calls)
+    [rag_simple/answer] 2250 chars
+[416/571] qa_unknown_scalr_493                PASS   gold=D pred=D (5.5s, 1 calls)
+    [rag_simple/answer] 2567 chars
+[417/571] qa_unknown_scalr_423                FAIL   gold=D pred=C (4.1s, 1 calls)
+    [rag_simple/answer] 2023 chars
+[418/571] qa_unknown_scalr_452                PASS   gold=E pred=E (10.2s, 1 calls)
+    [rag_simple/answer] 2887 chars
+[419/571] qa_unknown_scalr_221                PASS   gold=B pred=B (8.8s, 1 calls)
+    [rag_simple/answer] 2240 chars
+[420/571] qa_unknown_scalr_517                FAIL   gold=E pred=C (17.6s, 1 calls)
+    [rag_simple/answer] 2665 chars
+[421/571] qa_unknown_scalr_95                 PASS   gold=A pred=A (5.9s, 1 calls)
+    [rag_simple/answer] 2742 chars
+[422/571] qa_unknown_scalr_51                 PASS   gold=E pred=E (6.1s, 1 calls)
+    [rag_simple/answer] 2643 chars
+[423/571] qa_unknown_scalr_240                PASS   gold=C pred=C (13.6s, 1 calls)
+    [rag_simple/answer] 2857 chars
+[424/571] qa_unknown_scalr_462                FAIL   gold=A pred=C (60.0s, 1 calls)
+    [rag_simple/answer] 2226 chars
+[425/571] qa_unknown_scalr_351                PASS   gold=D pred=D (7.1s, 1 calls)
+    [rag_simple/answer] 2248 chars
+[426/571] qa_unknown_scalr_472                PASS   gold=A pred=A (24.5s, 1 calls)
+    [rag_simple/answer] 1850 chars
+[427/571] qa_unknown_scalr_178                PASS   gold=B pred=B (33.3s, 1 calls)
+    [rag_simple/answer] 2859 chars
+[428/571] qa_unknown_scalr_535                PASS   gold=A pred=A (33.1s, 1 calls)
+    [rag_simple/answer] 4352 chars
+[429/571] qa_unknown_scalr_41                 PASS   gold=C pred=C (15.2s, 1 calls)
+    [rag_simple/answer] 3299 chars
+[430/571] qa_unknown_scalr_527                PASS   gold=B pred=B (21.8s, 1 calls)
+    [rag_simple/answer] 2467 chars
+[431/571] qa_unknown_scalr_481                FAIL   gold=C pred=D (8.5s, 1 calls)
+    [rag_simple/answer] 2523 chars
+[432/571] qa_unknown_scalr_206                PASS   gold=A pred=A (12.6s, 1 calls)
+    [rag_simple/answer] 2454 chars
+[433/571] qa_unknown_scalr_392                PASS   gold=C pred=C (5.7s, 1 calls)
+    [rag_simple/answer] 3019 chars
+[434/571] qa_unknown_scalr_282                FAIL   gold=B pred=A (14.4s, 1 calls)
+    [rag_simple/answer] 2140 chars
+[435/571] qa_unknown_scalr_358                PASS   gold=A pred=A (7.2s, 1 calls)
+    [rag_simple/answer] 2552 chars
+[436/571] qa_unknown_scalr_397                PASS   gold=D pred=D (3.5s, 1 calls)
+    [rag_simple/answer] 2126 chars
+[437/571] qa_unknown_scalr_254                PASS   gold=B pred=B (4.6s, 1 calls)
+    [rag_simple/answer] 2486 chars
+[438/571] qa_unknown_scalr_511                PASS   gold=C pred=C (5.9s, 1 calls)
+    [rag_simple/answer] 3085 chars
+[439/571] qa_unknown_scalr_4                  PASS   gold=A pred=A (10.0s, 1 calls)
+    [rag_simple/answer] 2543 chars
+[440/571] qa_unknown_scalr_256                PASS   gold=C pred=C (7.7s, 1 calls)
+    [rag_simple/answer] 2147 chars
+[441/571] qa_unknown_scalr_536                PASS   gold=C pred=C (9.7s, 1 calls)
+    [rag_simple/answer] 2371 chars
+[442/571] qa_unknown_scalr_430                FAIL   gold=A pred=D (5.0s, 1 calls)
+    [rag_simple/answer] 2489 chars
+[443/571] qa_unknown_scalr_100                PASS   gold=D pred=D (5.0s, 1 calls)
+    [rag_simple/answer] 2959 chars
+[444/571] qa_unknown_scalr_226                PASS   gold=E pred=E (8.6s, 1 calls)
+    [rag_simple/answer] 2772 chars
+[445/571] qa_unknown_scalr_520                FAIL   gold=B pred=A (4.0s, 1 calls)
+    [rag_simple/answer] 2233 chars
+[446/571] qa_unknown_scalr_213                PASS   gold=E pred=E (3.8s, 1 calls)
+    [rag_simple/answer] 2804 chars
+[447/571] qa_unknown_scalr_359                PASS   gold=A pred=A (6.6s, 1 calls)
+    [rag_simple/answer] 2157 chars
+[448/571] qa_unknown_scalr_171                PASS   gold=D pred=D (4.0s, 1 calls)
+    [rag_simple/answer] 2719 chars
+[449/571] qa_unknown_scalr_98                 PASS   gold=B pred=B (4.2s, 1 calls)
+    [rag_simple/answer] 2616 chars
+[450/571] qa_unknown_scalr_292                FAIL   gold=C pred=E (5.9s, 1 calls)
+    [rag_simple/answer] 2741 chars
+[451/571] qa_unknown_scalr_215                FAIL   gold=D pred=C (7.1s, 1 calls)
+    [rag_simple/answer] 4087 chars
+[452/571] qa_unknown_scalr_61                 FAIL   gold=C pred=A (6.9s, 1 calls)
+    [rag_simple/answer] 2027 chars
+[453/571] qa_unknown_scalr_406                PASS   gold=E pred=E (8.3s, 1 calls)
+    [rag_simple/answer] 2579 chars
+[454/571] qa_unknown_scalr_47                 FAIL   gold=E pred=C (8.7s, 1 calls)
+    [rag_simple/answer] 3104 chars
+[455/571] qa_unknown_scalr_32                 PASS   gold=A pred=A (8.7s, 1 calls)
+    [rag_simple/answer] 2536 chars
+[456/571] qa_unknown_scalr_417                PASS   gold=E pred=E (5.5s, 1 calls)
+    [rag_simple/answer] 2731 chars
+[457/571] qa_unknown_scalr_267                PASS   gold=A pred=A (5.9s, 1 calls)
+    [rag_simple/answer] 3050 chars
+[458/571] qa_unknown_scalr_327                PASS   gold=A pred=A (6.3s, 1 calls)
+    [rag_simple/answer] 2906 chars
+[459/571] qa_unknown_scalr_200                PASS   gold=B pred=B (6.7s, 1 calls)
+    [rag_simple/answer] 2582 chars
+[460/571] qa_unknown_scalr_134                FAIL   gold=B pred=D (7.7s, 1 calls)
+    [rag_simple/answer] 2827 chars
+[461/571] qa_unknown_scalr_27                 PASS   gold=A pred=A (5.5s, 1 calls)
+    [rag_simple/answer] 2007 chars
+[462/571] qa_unknown_scalr_506                PASS   gold=C pred=C (3.0s, 1 calls)
+    [rag_simple/answer] 2742 chars
+[463/571] qa_unknown_scalr_230                FAIL   gold=C pred=B (6.5s, 1 calls)
+    [rag_simple/answer] 2772 chars
+[464/571] qa_unknown_scalr_260                PASS   gold=B pred=B (6.2s, 1 calls)
+    [rag_simple/answer] 2897 chars
+[465/571] qa_unknown_scalr_378                PASS   gold=A pred=A (79.7s, 1 calls)
+    [rag_simple/answer] 2486 chars
+[466/571] qa_unknown_scalr_288                PASS   gold=B pred=B (9.4s, 1 calls)
+    [rag_simple/answer] 2297 chars
+[467/571] qa_unknown_scalr_418                FAIL   gold=C pred=A (4.9s, 1 calls)
+    [rag_simple/answer] 2018 chars
+[468/571] qa_unknown_scalr_162                PASS   gold=B pred=B (3.7s, 1 calls)
+    [rag_simple/answer] 1900 chars
+[469/571] qa_unknown_scalr_391                PASS   gold=C pred=C (4.7s, 1 calls)
+    [rag_simple/answer] 3858 chars
+[470/571] qa_unknown_scalr_518                FAIL   gold=E pred=A (4.5s, 1 calls)
+    [rag_simple/answer] 3476 chars
+[471/571] qa_unknown_scalr_138                FAIL   gold=C pred=B (5.4s, 1 calls)
+    [rag_simple/answer] 2709 chars
+[472/571] qa_unknown_scalr_62                 FAIL   gold=A pred=C (3.8s, 1 calls)
+    [rag_simple/answer] 2316 chars
+[473/571] qa_unknown_scalr_471                PASS   gold=C pred=C (5.4s, 1 calls)
+    [rag_simple/answer] 3147 chars
+[474/571] qa_unknown_scalr_135                PASS   gold=A pred=A (6.5s, 1 calls)
+    [rag_simple/answer] 3251 chars
+[475/571] qa_unknown_scalr_128                FAIL   gold=B pred=E (10.5s, 1 calls)
+    [rag_simple/answer] 2283 chars
+[476/571] qa_unknown_scalr_554                PASS   gold=B pred=B (4.2s, 1 calls)
+    [rag_simple/answer] 2277 chars
+[477/571] qa_unknown_scalr_8                  PASS   gold=A pred=A (4.8s, 1 calls)
+    [rag_simple/answer] 1960 chars
+[478/571] qa_unknown_scalr_326                PASS   gold=B pred=B (3.7s, 1 calls)
+    [rag_simple/answer] 2573 chars
+[479/571] qa_unknown_scalr_344                PASS   gold=A pred=A (4.7s, 1 calls)
+    [rag_simple/answer] 2338 chars
+[480/571] qa_unknown_scalr_64                 PASS   gold=B pred=B (5.5s, 1 calls)
+    [rag_simple/answer] 2604 chars
+[481/571] qa_unknown_scalr_300                PASS   gold=E pred=E (4.3s, 1 calls)
+    [rag_simple/answer] 2228 chars
+[482/571] qa_unknown_scalr_14                 PASS   gold=B pred=B (3.3s, 1 calls)
+    [rag_simple/answer] 2506 chars
+[483/571] qa_unknown_scalr_156                PASS   gold=E pred=E (4.1s, 1 calls)
+    [rag_simple/answer] 233166 chars
+[484/571] qa_unknown_scalr_40                 FAIL   gold=E pred=D (659.1s, 1 calls)
+    [rag_simple/answer] 2306 chars
+[485/571] qa_unknown_scalr_379                PASS   gold=C pred=C (5.9s, 1 calls)
+    [rag_simple/answer] 2906 chars
+[486/571] qa_unknown_scalr_187                PASS   gold=E pred=E (79.4s, 1 calls)
+    [rag_simple/answer] 3004 chars
+[487/571] qa_unknown_scalr_498                PASS   gold=B pred=B (9.9s, 1 calls)
+    [rag_simple/answer] 2577 chars
+[488/571] qa_unknown_scalr_216                PASS   gold=C pred=C (8.5s, 1 calls)
+    [rag_simple/answer] 3302 chars
+[489/571] qa_unknown_scalr_409                PASS   gold=A pred=A (35.1s, 1 calls)
+    [rag_simple/answer] 2709 chars
+[490/571] qa_unknown_scalr_279                PASS   gold=E pred=E (4.4s, 1 calls)
+    [rag_simple/answer] 2979 chars
+[491/571] qa_unknown_scalr_52                 PASS   gold=A pred=A (10.6s, 1 calls)
+    [rag_simple/answer] 1906 chars
+[492/571] qa_unknown_scalr_524                PASS   gold=E pred=E (5.0s, 1 calls)
+    [rag_simple/answer] 3827 chars
+[493/571] qa_unknown_scalr_337                PASS   gold=A pred=A (7.2s, 1 calls)
+    [rag_simple/answer] 2266 chars
+[494/571] qa_unknown_scalr_236                PASS   gold=D pred=D (9.8s, 1 calls)
+    [rag_simple/answer] 2247 chars
+[495/571] qa_unknown_scalr_207                PASS   gold=C pred=C (4.7s, 1 calls)
+    [rag_simple/answer] 3286 chars
+[496/571] qa_unknown_scalr_212                FAIL   gold=E pred=A (6.4s, 1 calls)
+    [rag_simple/answer] 2471 chars
+[497/571] qa_unknown_scalr_295                FAIL   gold=C pred=D (4.0s, 1 calls)
+    [rag_simple/answer] 2207 chars
+[498/571] qa_unknown_scalr_539                PASS   gold=D pred=D (6.2s, 1 calls)
+    [rag_simple/answer] 2969 chars
+[499/571] qa_unknown_scalr_251                FAIL   gold=D pred=B (10.6s, 1 calls)
+    [rag_simple/answer] 2199 chars
+[500/571] qa_unknown_scalr_562                PASS   gold=D pred=D (4.7s, 1 calls)
+    [rag_simple/answer] 2722 chars
+[501/571] qa_unknown_scalr_461                PASS   gold=E pred=E (8.3s, 1 calls)
+    [rag_simple/answer] 2325 chars
+[502/571] qa_unknown_scalr_455                PASS   gold=D pred=D (13.2s, 1 calls)
+    [rag_simple/answer] 2643 chars
+[503/571] qa_unknown_scalr_568                PASS   gold=E pred=E (4.4s, 1 calls)
+    [rag_simple/answer] 2506 chars
+[504/571] qa_unknown_scalr_303                PASS   gold=E pred=E (12.3s, 1 calls)
+    [rag_simple/answer] 3957 chars
+[505/571] qa_unknown_scalr_350                PASS   gold=D pred=D (7.2s, 1 calls)
+    [rag_simple/answer] 3159 chars
+[506/571] qa_unknown_scalr_269                FAIL   gold=A pred=D (5.1s, 1 calls)
+    [rag_simple/answer] 2746 chars
+[507/571] qa_unknown_scalr_483                PASS   gold=B pred=B (5.3s, 1 calls)
+    [rag_simple/answer] 3483 chars
+[508/571] qa_unknown_scalr_445                PASS   gold=A pred=A (6.1s, 1 calls)
+    [rag_simple/answer] 2138 chars
+[509/571] qa_unknown_scalr_201                PASS   gold=B pred=B (7.5s, 1 calls)
+    [rag_simple/answer] 2487 chars
+[510/571] qa_unknown_scalr_161                PASS   gold=C pred=C (3.5s, 1 calls)
+    [rag_simple/answer] 2310 chars
+[511/571] qa_unknown_scalr_43                 PASS   gold=D pred=D (6.2s, 1 calls)
+    [rag_simple/answer] 2433 chars
+[512/571] qa_unknown_scalr_217                FAIL   gold=C pred=B (3.1s, 1 calls)
+    [rag_simple/answer] 2231 chars
+[513/571] qa_unknown_scalr_401                FAIL   gold=C pred=E (49.9s, 1 calls)
+    [rag_simple/answer] 2993 chars
+[514/571] qa_unknown_scalr_476                PASS   gold=D pred=D (4.9s, 1 calls)
+    [rag_simple/answer] 2571 chars
+[515/571] qa_unknown_scalr_105                PASS   gold=D pred=D (130.1s, 1 calls)
+    [rag_simple/answer] 6421 chars
+[516/571] qa_unknown_scalr_389                PASS   gold=C pred=C (15.9s, 1 calls)
+    [rag_simple/answer] 2606 chars
+[517/571] qa_unknown_scalr_1                  PASS   gold=D pred=D (4.9s, 1 calls)
+    [rag_simple/answer] 3363 chars
+[518/571] qa_unknown_scalr_531                FAIL   gold=B pred=D (42.7s, 1 calls)
+    [rag_simple/answer] 2307 chars
+[519/571] qa_unknown_scalr_80                 PASS   gold=E pred=E (7.7s, 1 calls)
+    [rag_simple/answer] 3194 chars
+[520/571] qa_unknown_scalr_205                PASS   gold=B pred=B (17.2s, 1 calls)
+    [rag_simple/answer] 2893 chars
+[521/571] qa_unknown_scalr_34                 PASS   gold=A pred=A (28.6s, 1 calls)
+    [rag_simple/answer] 2289 chars
+[522/571] qa_unknown_scalr_508                PASS   gold=D pred=D (18.5s, 1 calls)
+    [rag_simple/answer] 2727 chars
+[523/571] qa_unknown_scalr_427                PASS   gold=C pred=C (5.2s, 1 calls)
+    [rag_simple/answer] 2031 chars
+[524/571] qa_unknown_scalr_454                PASS   gold=D pred=D (8.6s, 1 calls)
+    [rag_simple/answer] 2697 chars
+[525/571] qa_unknown_scalr_366                PASS   gold=D pred=D (4.8s, 1 calls)
+    [rag_simple/answer] 2487 chars
+[526/571] qa_unknown_scalr_91                 PASS   gold=B pred=B (29.2s, 1 calls)
+    [rag_simple/answer] 3319 chars
+[527/571] qa_unknown_scalr_339                FAIL   gold=D pred=B (14.9s, 1 calls)
+    [rag_simple/answer] 2148 chars
+[528/571] qa_unknown_scalr_345                PASS   gold=C pred=C (12.3s, 1 calls)
+    [rag_simple/answer] 2649 chars
+[529/571] qa_unknown_scalr_241                PASS   gold=B pred=B (24.8s, 1 calls)
+    [rag_simple/answer] 3891 chars
+[530/571] qa_unknown_scalr_13                 FAIL   gold=E pred=B (25.5s, 1 calls)
+    [rag_simple/answer] 2966 chars
+[531/571] qa_unknown_scalr_315                PASS   gold=A pred=A (5.0s, 1 calls)
+    [rag_simple/answer] 2624 chars
+[532/571] qa_unknown_scalr_387                PASS   gold=E pred=E (4.8s, 1 calls)
+    [rag_simple/answer] 6274 chars
+[533/571] qa_unknown_scalr_273                PASS   gold=D pred=D (31.8s, 1 calls)
+    [rag_simple/answer] 2586 chars
+[534/571] qa_unknown_scalr_166                PASS   gold=E pred=E (27.6s, 1 calls)
+    [rag_simple/answer] 2879 chars
+[535/571] qa_unknown_scalr_565                FAIL   gold=A pred=D (35.2s, 1 calls)
+    [rag_simple/answer] 9267 chars
+[536/571] qa_unknown_scalr_484                FAIL   gold=A pred=B (15.0s, 1 calls)
+    [rag_simple/answer] 2569 chars
+[537/571] qa_unknown_scalr_556                PASS   gold=B pred=B (81.8s, 1 calls)
+    [rag_simple/answer] 2593 chars
+[538/571] qa_unknown_scalr_504                PASS   gold=D pred=D (16.5s, 1 calls)
+    [rag_simple/answer] 2790 chars
+[539/571] qa_unknown_scalr_243                FAIL   gold=E pred=B (27.8s, 1 calls)
+    [rag_simple/answer] 2596 chars
+[540/571] qa_unknown_scalr_189                PASS   gold=B pred=B (3.6s, 1 calls)
+    [rag_simple/answer] 2759 chars
+[541/571] qa_unknown_scalr_475                FAIL   gold=E pred=C (125.9s, 1 calls)
+    [rag_simple/answer] 2475 chars
+[542/571] qa_unknown_scalr_510                PASS   gold=B pred=B (16.0s, 1 calls)
+    [rag_simple/answer] 3333 chars
+[543/571] qa_unknown_scalr_58                 FAIL   gold=C pred=D (14.0s, 1 calls)
+    [rag_simple/answer] 2545 chars
+[544/571] qa_unknown_scalr_474                PASS   gold=D pred=D (8.2s, 1 calls)
+    [rag_simple/answer] 4076 chars
+[545/571] qa_unknown_scalr_252                FAIL   gold=E pred=A (16.9s, 1 calls)
+    [rag_simple/answer] 2098 chars
+[546/571] qa_unknown_scalr_21                 PASS   gold=C pred=C (27.6s, 1 calls)
+    [rag_simple/answer] 2451 chars
+[547/571] qa_unknown_scalr_313                PASS   gold=D pred=D (25.9s, 1 calls)
+    [rag_simple/answer] 2915 chars
+[548/571] qa_unknown_scalr_459                PASS   gold=C pred=C (29.0s, 1 calls)
+    [rag_simple/answer] 2441 chars
+[549/571] qa_unknown_scalr_160                PASS   gold=E pred=E (12.1s, 1 calls)
+    [rag_simple/answer] 2305 chars
+[550/571] qa_unknown_scalr_276                PASS   gold=C pred=C (9.6s, 1 calls)
+    [rag_simple/answer] 3208 chars
+[551/571] qa_unknown_scalr_191                FAIL   gold=D pred=A (11.8s, 1 calls)
+    [rag_simple/answer] 2855 chars
+[552/571] qa_unknown_scalr_385                PASS   gold=A pred=A (5.0s, 1 calls)
+    [rag_simple/answer] 2306 chars
+[553/571] qa_unknown_scalr_413                PASS   gold=B pred=B (34.3s, 1 calls)
+    [rag_simple/answer] 2268 chars
+[554/571] qa_unknown_scalr_491                PASS   gold=D pred=D (4.5s, 1 calls)
+    [rag_simple/answer] 2600 chars
+[555/571] qa_unknown_scalr_343                PASS   gold=C pred=C (48.6s, 1 calls)
+    [rag_simple/answer] 2255 chars
+[556/571] qa_unknown_scalr_308                PASS   gold=B pred=B (7.4s, 1 calls)
+    [rag_simple/answer] 2934 chars
+[557/571] qa_unknown_scalr_130                FAIL   gold=C pred=A (41.0s, 1 calls)
+    [rag_simple/answer] 2067 chars
+[558/571] qa_unknown_scalr_99                 PASS   gold=C pred=C (15.4s, 1 calls)
+    [rag_simple/answer] 2569 chars
+[559/571] qa_unknown_scalr_372                PASS   gold=E pred=E (18.2s, 1 calls)
+    [rag_simple/answer] 2553 chars
+[560/571] qa_unknown_scalr_87                 PASS   gold=B pred=B (8.0s, 1 calls)
+    [rag_simple/answer] 2719 chars
+[561/571] qa_unknown_scalr_458                FAIL   gold=B pred=A (5.0s, 1 calls)
+    [rag_simple/answer] 2155 chars
+[562/571] qa_unknown_scalr_330                PASS   gold=C pred=C (8.9s, 1 calls)
+    [rag_simple/answer] 2938 chars
+[563/571] qa_unknown_scalr_214                PASS   gold=A pred=A (12.2s, 1 calls)
+    [rag_simple/answer] 2363 chars
+[564/571] qa_unknown_scalr_466                PASS   gold=B pred=B (16.5s, 1 calls)
+    [rag_simple/answer] 2530 chars
+[565/571] qa_unknown_scalr_121                PASS   gold=D pred=D (6.5s, 1 calls)
+    [rag_simple/answer] 2645 chars
+[566/571] qa_unknown_scalr_20                 PASS   gold=E pred=E (15.7s, 1 calls)
+    [rag_simple/answer] 2268 chars
+[567/571] qa_unknown_scalr_71                 PASS   gold=E pred=E (12.4s, 1 calls)
+    [rag_simple/answer] 2325 chars
+[568/571] qa_unknown_scalr_106                PASS   gold=D pred=D (30.1s, 1 calls)
+    [rag_simple/answer] 2301 chars
+[569/571] qa_unknown_scalr_270                PASS   gold=E pred=E (13.7s, 1 calls)
+    [rag_simple/answer] 2693 chars
+[570/571] qa_unknown_scalr_435                PASS   gold=E pred=E (14.1s, 1 calls)
+    [rag_simple/answer] 2625 chars
+[571/571] qa_unknown_scalr_102                PASS   gold=D pred=D (31.3s, 1 calls)
+
+======================================================================
+RESULTS: 424/571 (74.3%)
+Total time: 9974s (17.5s/query)
+======================================================================
+
+Detail log: logs/eval_rag_simple_or-gemma4-26b_20260511_0731_legalbench_scalr_meeting-full-scalr-sanity-or-gemma4-26b-n571-k5-rag_simple_detail.jsonl
+Run summary appended to: logs/experiments.jsonl
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_simple_or-gemma4-26b_20260511_0731_legalbench_scalr_meeting-full-scalr-sanity-or-gemma4-26b-n571-k5-rag_simple_detail.jsonl
+mode=rag_simple rows=571 accuracy=424/571
+errors=0
+missing_predicted_answer=0
+parse_failures=0
+retrieval_key_rows=571
+empty_retrieval_rows=0
+avg_llm_calls=1.00
+max_output_tokens=73151
+max_final_answer_chars=233166 idx=scalr_40
+long_final_answer_rows=3
+top_level_hyde_artifacts=0
+top_level_report_artifacts=0
+top_level_knowledge_artifacts=0
+nested_gap_hyde_artifacts=0
+nested_gap_report_artifacts=0
+rows_with_formatted_question=0
+rows_with_intermediate_question=0
+rows_with_retrieval_queries=0
+rows_with_final_prompt_preview=0
+rows_with_call_trace=0
+rows_with_trace_events=0
+
+
+[2026-05-11T07:31:51-05:00] === MODE adaptive_snap_hyre_frontier tag=meeting-full-scalr-sanity-or-gemma4-26b-n571-k5-adaptive_snap_hyre_frontier ===
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+
+======================================================================
+EVAL: adaptive_snap_hyre_frontier | or-gemma4-26b (google/gemma-4-26b-a4b-it) | 571 questions | dataset=legalbench_scalr
+Tag: meeting-full-scalr-sanity-or-gemma4-26b-n571-k5-adaptive_snap_hyre_frontier
+======================================================================
+
+    [preflight_smoke] 2 chars
+[preflight] provider=or-gemma4-26b OK
+[preflight] collection count skipped by SKIP_EVAL_COLLECTION_PREFLIGHT=1
+    [snap_hyde_2call/snap_and_hyde] 1002 chars
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Loading weights:   0%|          | 0/268 [00:00<?, ?it/s]Loading weights: 100%|██████████| 268/268 [00:00<00:00, 8692.93it/s]
+[rag_utils] Reinitialized embedding position_ids=8192
+[rag_utils] Embedding max_seq_length=512
+    [snap_hyde_2call/answer] 2917 chars
+[1/571] qa_unknown_scalr_509                PASS   gold=C pred=C (11.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1069 chars
+    [snap_hyde_2call/answer] 2769 chars
+[2/571] qa_unknown_scalr_70                 PASS   gold=A pred=A (19.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1003 chars
+    [snap_hyde_2call/answer] 2619 chars
+[3/571] qa_unknown_scalr_131                PASS   gold=B pred=B (17.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 980 chars
+    [snap_hyde_2call/answer] 2422 chars
+[4/571] qa_unknown_scalr_512                PASS   gold=A pred=A (15.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1049 chars
+    [snap_hyde_2call/answer] 2591 chars
+[5/571] qa_unknown_scalr_542                PASS   gold=D pred=D (14.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1010 chars
+    [snap_hyde_2call/answer] 2260 chars
+[6/571] qa_unknown_scalr_318                PASS   gold=A pred=A (13.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1059 chars
+    [snap_hyde_2call/answer] 2986 chars
+[7/571] qa_unknown_scalr_188                FAIL   gold=B pred=A (25.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1013 chars
+    [snap_hyde_2call/answer] 2122 chars
+[8/571] qa_unknown_scalr_29                 PASS   gold=A pred=A (7.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1142 chars
+    [snap_hyde_2call/answer] 2933 chars
+[9/571] qa_unknown_scalr_81                 PASS   gold=A pred=A (27.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1074 chars
+    [snap_hyde_2call/answer] 2219 chars
+[10/571] qa_unknown_scalr_316                PASS   gold=B pred=B (6.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 900 chars
+    [snap_hyde_2call/answer] 2219 chars
+[11/571] qa_unknown_scalr_500                PASS   gold=D pred=D (13.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1070 chars
+    [snap_hyde_2call/answer] 2116 chars
+[12/571] qa_unknown_scalr_549                PASS   gold=E pred=E (21.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1082 chars
+    [snap_hyde_2call/answer] 5121 chars
+[13/571] qa_unknown_scalr_533                FAIL   gold=A pred=D (11.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1036 chars
+    [snap_hyde_2call/answer] 2475 chars
+[14/571] qa_unknown_scalr_386                PASS   gold=A pred=A (30.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1162 chars
+    [snap_hyde_2call/answer] 2979 chars
+[15/571] qa_unknown_scalr_529                PASS   gold=A pred=A (11.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1135 chars
+    [snap_hyde_2call/answer] 2662 chars
+[16/571] qa_unknown_scalr_83                 FAIL   gold=E pred=C (9.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1169 chars
+    [snap_hyde_2call/answer] 2839 chars
+[17/571] qa_unknown_scalr_555                FAIL   gold=E pred=B (7.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1039 chars
+    [snap_hyde_2call/answer] 1927 chars
+[18/571] qa_unknown_scalr_165                PASS   gold=E pred=E (45.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1089 chars
+    [snap_hyde_2call/answer] 2802 chars
+[19/571] qa_unknown_scalr_101                FAIL   gold=A pred=E (8.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1130 chars
+    [snap_hyde_2call/answer] 3155 chars
+[20/571] qa_unknown_scalr_278                PASS   gold=B pred=B (93.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1120 chars
+    [snap_hyde_2call/answer] 3190 chars
+[21/571] qa_unknown_scalr_73                 PASS   gold=B pred=B (18.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1184 chars
+    [snap_hyde_2call/answer] 2632 chars
+[22/571] qa_unknown_scalr_286                PASS   gold=D pred=D (33.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 984 chars
+    [snap_hyde_2call/answer] 2586 chars
+[23/571] qa_unknown_scalr_569                PASS   gold=C pred=C (35.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1289 chars
+    [snap_hyde_2call/answer] 2449 chars
+[24/571] qa_unknown_scalr_261                PASS   gold=E pred=E (37.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 861 chars
+    [snap_hyde_2call/answer] 2535 chars
+[25/571] qa_unknown_scalr_265                FAIL   gold=D pred=B (12.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1153 chars
+    [snap_hyde_2call/answer] 2347 chars
+[26/571] qa_unknown_scalr_76                 PASS   gold=A pred=A (18.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 981 chars
+    [snap_hyde_2call/answer] 3269 chars
+[27/571] qa_unknown_scalr_244                PASS   gold=B pred=B (18.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 796 chars
+    [snap_hyde_2call/answer] 2414 chars
+[28/571] qa_unknown_scalr_557                FAIL   gold=C pred=B (12.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1120 chars
+    [snap_hyde_2call/answer] 2415 chars
+[29/571] qa_unknown_scalr_238                FAIL   gold=D pred=C (29.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1039 chars
+    [snap_hyde_2call/answer] 3103 chars
+[30/571] qa_unknown_scalr_72                 FAIL   gold=A pred=C (19.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1133 chars
+    [snap_hyde_2call/answer] 2728 chars
+[31/571] qa_unknown_scalr_298                PASS   gold=A pred=A (28.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1178 chars
+    [snap_hyde_2call/answer] 2776 chars
+[32/571] qa_unknown_scalr_515                PASS   gold=B pred=B (27.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 936 chars
+    [snap_hyde_2call/answer] 3270 chars
+[33/571] qa_unknown_scalr_428                PASS   gold=C pred=C (12.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1001 chars
+    [snap_hyde_2call/answer] 2369 chars
+[34/571] qa_unknown_scalr_534                PASS   gold=C pred=C (42.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1066 chars
+    [snap_hyde_2call/answer] 2820 chars
+[35/571] qa_unknown_scalr_234                FAIL   gold=E pred=A (102.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1038 chars
+    [snap_hyde_2call/answer] 2945 chars
+[36/571] qa_unknown_scalr_55                 PASS   gold=A pred=A (69.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1070 chars
+    [snap_hyde_2call/answer] 2603 chars
+[37/571] qa_unknown_scalr_10                 PASS   gold=E pred=E (13.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1686 chars
+    [snap_hyde_2call/answer] 4316 chars
+[38/571] qa_unknown_scalr_192                FAIL   gold=C pred=D (72.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 976 chars
+    [snap_hyde_2call/answer] 2302 chars
+[39/571] qa_unknown_scalr_6                  PASS   gold=E pred=E (13.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1967 chars
+    [snap_hyde_2call/answer] 5853 chars
+[40/571] qa_unknown_scalr_90                 PASS   gold=E pred=E (17.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1159 chars
+    [snap_hyde_2call/answer] 457 chars
+[41/571] qa_unknown_scalr_104                FAIL   gold=C pred=A (576.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1073 chars
+    [snap_hyde_2call/answer] 2184 chars
+[42/571] qa_unknown_scalr_356                FAIL   gold=A pred=B (26.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1065 chars
+    [snap_hyde_2call/answer] 2374 chars
+[43/571] qa_unknown_scalr_365                PASS   gold=E pred=E (21.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1010 chars
+    [snap_hyde_2call/answer] 2316 chars
+[44/571] qa_unknown_scalr_195                PASS   gold=C pred=C (17.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1146 chars
+    [snap_hyde_2call/answer] 2845 chars
+[45/571] qa_unknown_scalr_163                PASS   gold=C pred=C (66.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1192 chars
+    [snap_hyde_2call/answer] 2714 chars
+[46/571] qa_unknown_scalr_109                PASS   gold=A pred=A (37.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1117 chars
+    [snap_hyde_2call/answer] 2850 chars
+[47/571] qa_unknown_scalr_277                PASS   gold=E pred=E (48.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1010 chars
+    [snap_hyde_2call/answer] 2821 chars
+[48/571] qa_unknown_scalr_559                PASS   gold=E pred=E (21.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1090 chars
+    [snap_hyde_2call/answer] 2253 chars
+[49/571] qa_unknown_scalr_167                PASS   gold=B pred=B (40.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1174 chars
+    [snap_hyde_2call/answer] 2640 chars
+[50/571] qa_unknown_scalr_287                PASS   gold=B pred=B (38.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1055 chars
+    [snap_hyde_2call/answer] 3123 chars
+[51/571] qa_unknown_scalr_328                FAIL   gold=A pred=C (45.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1046 chars
+    [snap_hyde_2call/answer] 2454 chars
+[52/571] qa_unknown_scalr_30                 PASS   gold=D pred=D (8.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1180 chars
+    [snap_hyde_2call/answer] 2554 chars
+[53/571] qa_unknown_scalr_155                PASS   gold=A pred=A (25.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 995 chars
+    [snap_hyde_2call/answer] 2269 chars
+[54/571] qa_unknown_scalr_148                PASS   gold=B pred=B (10.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 855 chars
+    [snap_hyde_2call/answer] 2327 chars
+[55/571] qa_unknown_scalr_259                PASS   gold=C pred=C (9.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1161 chars
+    [snap_hyde_2call/answer] 3829 chars
+[56/571] qa_unknown_scalr_395                FAIL   gold=C pred=E (21.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1052 chars
+    [snap_hyde_2call/answer] 2228 chars
+[57/571] qa_unknown_scalr_235                PASS   gold=E pred=E (22.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 921 chars
+    [snap_hyde_2call/answer] 2192 chars
+[58/571] qa_unknown_scalr_82                 PASS   gold=E pred=E (10.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1135 chars
+    [snap_hyde_2call/answer] 2407 chars
+[59/571] qa_unknown_scalr_39                 PASS   gold=B pred=B (18.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1167 chars
+    [snap_hyde_2call/answer] 2769 chars
+[60/571] qa_unknown_scalr_274                PASS   gold=E pred=E (21.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 997 chars
+    [snap_hyde_2call/answer] 2636 chars
+[61/571] qa_unknown_scalr_79                 FAIL   gold=E pred=D (24.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1019 chars
+    [snap_hyde_2call/answer] 2612 chars
+[62/571] qa_unknown_scalr_2                  PASS   gold=E pred=E (15.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1004 chars
+    [snap_hyde_2call/answer] 2768 chars
+[63/571] qa_unknown_scalr_566                FAIL   gold=B pred=C (35.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 971 chars
+    [snap_hyde_2call/answer] 2884 chars
+[64/571] qa_unknown_scalr_538                PASS   gold=D pred=D (29.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 998 chars
+    [snap_hyde_2call/answer] 2251 chars
+[65/571] qa_unknown_scalr_203                PASS   gold=E pred=E (44.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 983 chars
+    [snap_hyde_2call/answer] 3157 chars
+[66/571] qa_unknown_scalr_519                FAIL   gold=D pred=B (10.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1018 chars
+    [snap_hyde_2call/answer] 2253 chars
+[67/571] qa_unknown_scalr_118                PASS   gold=E pred=E (10.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 953 chars
+    [snap_hyde_2call/answer] 2677 chars
+[68/571] qa_unknown_scalr_78                 PASS   gold=D pred=D (23.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1220 chars
+    [snap_hyde_2call/answer] 2775 chars
+[69/571] qa_unknown_scalr_218                PASS   gold=A pred=A (8.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1016 chars
+    [snap_hyde_2call/answer] 2524 chars
+[70/571] qa_unknown_scalr_257                PASS   gold=A pred=A (19.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1043 chars
+    [snap_hyde_2call/answer] 4199 chars
+[71/571] qa_unknown_scalr_329                FAIL   gold=D pred=C (14.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1081 chars
+    [snap_hyde_2call/answer] 2505 chars
+[72/571] qa_unknown_scalr_11                 PASS   gold=E pred=E (27.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1073 chars
+    [snap_hyde_2call/answer] 2651 chars
+[73/571] qa_unknown_scalr_399                PASS   gold=C pred=C (32.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1079 chars
+    [snap_hyde_2call/answer] 2909 chars
+[74/571] qa_unknown_scalr_426                PASS   gold=A pred=A (29.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 782 chars
+    [snap_hyde_2call/answer] 2113 chars
+[75/571] qa_unknown_scalr_503                PASS   gold=D pred=D (16.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1044 chars
+    [snap_hyde_2call/answer] 2662 chars
+[76/571] qa_unknown_scalr_349                FAIL   gold=A pred=B (33.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1478 chars
+    [snap_hyde_2call/answer] 5407 chars
+[77/571] qa_unknown_scalr_361                PASS   gold=B pred=B (19.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1104 chars
+    [snap_hyde_2call/answer] 2690 chars
+[78/571] qa_unknown_scalr_322                PASS   gold=E pred=E (14.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1029 chars
+    [snap_hyde_2call/answer] 2736 chars
+[79/571] qa_unknown_scalr_145                FAIL   gold=C pred=D (12.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1160 chars
+    [snap_hyde_2call/answer] 2929 chars
+[80/571] qa_unknown_scalr_383                PASS   gold=A pred=A (22.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1159 chars
+    [snap_hyde_2call/answer] 2230 chars
+[81/571] qa_unknown_scalr_132                FAIL   gold=C pred=B (20.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1199 chars
+    [snap_hyde_2call/answer] 3006 chars
+[82/571] qa_unknown_scalr_184                PASS   gold=C pred=C (27.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1109 chars
+    [snap_hyde_2call/answer] 2688 chars
+[83/571] qa_unknown_scalr_86                 PASS   gold=A pred=A (33.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 974 chars
+    [snap_hyde_2call/answer] 2660 chars
+[84/571] qa_unknown_scalr_231                PASS   gold=E pred=E (23.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1063 chars
+    [snap_hyde_2call/answer] 1984 chars
+[85/571] qa_unknown_scalr_208                PASS   gold=B pred=B (87.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1205 chars
+    [snap_hyde_2call/answer] 2344 chars
+[86/571] qa_unknown_scalr_463                PASS   gold=D pred=D (74.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1233 chars
+    [snap_hyde_2call/answer] 2709 chars
+[87/571] qa_unknown_scalr_9                  PASS   gold=A pred=A (67.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1152 chars
+    [snap_hyde_2call/answer] 2235 chars
+[88/571] qa_unknown_scalr_473                PASS   gold=B pred=B (18.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1302 chars
+    [snap_hyde_2call/answer] 2700 chars
+[89/571] qa_unknown_scalr_502                FAIL   gold=C pred=D (79.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1084 chars
+    [snap_hyde_2call/answer] 2557 chars
+[90/571] qa_unknown_scalr_521                PASS   gold=A pred=A (15.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1274 chars
+    [snap_hyde_2call/answer] 9228 chars
+[91/571] qa_unknown_scalr_84                 FAIL   gold=B pred=A (53.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1090 chars
+    [snap_hyde_2call/answer] 2480 chars
+[92/571] qa_unknown_scalr_398                PASS   gold=B pred=B (15.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1393 chars
+    [snap_hyde_2call/answer] 3720 chars
+[93/571] qa_unknown_scalr_492                FAIL   gold=D pred=E (26.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1260 chars
+    [snap_hyde_2call/answer] 2733 chars
+[94/571] qa_unknown_scalr_470                PASS   gold=D pred=D (17.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 930 chars
+    [snap_hyde_2call/answer] 2822 chars
+[95/571] qa_unknown_scalr_335                PASS   gold=E pred=E (15.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 943 chars
+    [snap_hyde_2call/answer] 2412 chars
+[96/571] qa_unknown_scalr_110                FAIL   gold=E pred=B (25.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1028 chars
+    [snap_hyde_2call/answer] 2675 chars
+[97/571] qa_unknown_scalr_567                PASS   gold=D pred=D (16.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1102 chars
+    [snap_hyde_2call/answer] 2204 chars
+[98/571] qa_unknown_scalr_204                PASS   gold=B pred=B (50.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1004 chars
+    [snap_hyde_2call/answer] 2143 chars
+[99/571] qa_unknown_scalr_209                PASS   gold=C pred=C (29.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1039 chars
+    [snap_hyde_2call/answer] 2256 chars
+[100/571] qa_unknown_scalr_153                FAIL   gold=C pred=E (33.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1093 chars
+    [snap_hyde_2call/answer] 2579 chars
+[101/571] qa_unknown_scalr_336                FAIL   gold=C pred=D (22.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1024 chars
+    [snap_hyde_2call/answer] 2097 chars
+[102/571] qa_unknown_scalr_140                PASS   gold=D pred=D (24.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1227 chars
+    [snap_hyde_2call/answer] 2783 chars
+[103/571] qa_unknown_scalr_77                 PASS   gold=A pred=A (26.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 890 chars
+    [snap_hyde_2call/answer] 2588 chars
+[104/571] qa_unknown_scalr_412                PASS   gold=C pred=C (17.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1000 chars
+    [snap_hyde_2call/answer] 2559 chars
+[105/571] qa_unknown_scalr_439                PASS   gold=A pred=A (13.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1172 chars
+    [snap_hyde_2call/answer] 2859 chars
+[106/571] qa_unknown_scalr_325                PASS   gold=C pred=C (10.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1006 chars
+    [snap_hyde_2call/answer] 2336 chars
+[107/571] qa_unknown_scalr_375                PASS   gold=B pred=B (8.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1121 chars
+    [snap_hyde_2call/answer] 5159 chars
+[108/571] qa_unknown_scalr_176                PASS   gold=B pred=B (21.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1191 chars
+    [snap_hyde_2call/answer] 2068 chars
+[109/571] qa_unknown_scalr_388                PASS   gold=D pred=D (34.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 976 chars
+    [snap_hyde_2call/answer] 2431 chars
+[110/571] qa_unknown_scalr_199                PASS   gold=E pred=E (8.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1501 chars
+    [snap_hyde_2call/answer] 6459 chars
+[111/571] qa_unknown_scalr_75                 PASS   gold=D pred=D (31.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1004 chars
+    [snap_hyde_2call/answer] 2968 chars
+[112/571] qa_unknown_scalr_250                FAIL   gold=D pred=A (14.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1124 chars
+    [snap_hyde_2call/answer] 2657 chars
+[113/571] qa_unknown_scalr_528                PASS   gold=D pred=D (72.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 933 chars
+    [snap_hyde_2call/answer] 2410 chars
+[114/571] qa_unknown_scalr_268                FAIL   gold=C pred=E (26.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1156 chars
+    [snap_hyde_2call/answer] 2510 chars
+[115/571] qa_unknown_scalr_68                 FAIL   gold=E pred=B (12.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 849 chars
+    [snap_hyde_2call/answer] 1986 chars
+[116/571] qa_unknown_scalr_182                PASS   gold=D pred=D (32.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1167 chars
+    [snap_hyde_2call/answer] 2555 chars
+[117/571] qa_unknown_scalr_63                 FAIL   gold=A pred=B (13.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 885 chars
+    [snap_hyde_2call/answer] 2611 chars
+[118/571] qa_unknown_scalr_158                PASS   gold=A pred=A (14.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 2003 chars
+    [snap_hyde_2call/answer] 3167 chars
+[119/571] qa_unknown_scalr_60                 FAIL   gold=D pred=B (28.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 838 chars
+    [snap_hyde_2call/answer] 2402 chars
+[120/571] qa_unknown_scalr_15                 PASS   gold=C pred=C (22.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1135 chars
+    [snap_hyde_2call/answer] 3719 chars
+[121/571] qa_unknown_scalr_333                PASS   gold=C pred=C (15.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1036 chars
+    [snap_hyde_2call/answer] 2948 chars
+[122/571] qa_unknown_scalr_137                PASS   gold=A pred=A (11.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1003 chars
+    [snap_hyde_2call/answer] 2367 chars
+[123/571] qa_unknown_scalr_482                FAIL   gold=A pred=E (12.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 977 chars
+    [snap_hyde_2call/answer] 2312 chars
+[124/571] qa_unknown_scalr_431                PASS   gold=B pred=B (29.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1141 chars
+    [snap_hyde_2call/answer] 2722 chars
+[125/571] qa_unknown_scalr_88                 FAIL   gold=E pred=B (25.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1279 chars
+    [snap_hyde_2call/answer] 2871 chars
+[126/571] qa_unknown_scalr_453                PASS   gold=A pred=A (11.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1053 chars
+    [snap_hyde_2call/answer] 2573 chars
+[127/571] qa_unknown_scalr_117                PASS   gold=D pred=D (14.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 936 chars
+    [snap_hyde_2call/answer] 2585 chars
+[128/571] qa_unknown_scalr_346                PASS   gold=A pred=A (13.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1050 chars
+    [snap_hyde_2call/answer] 2162 chars
+[129/571] qa_unknown_scalr_367                PASS   gold=D pred=D (92.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1014 chars
+    [snap_hyde_2call/answer] 2510 chars
+[130/571] qa_unknown_scalr_33                 PASS   gold=B pred=B (43.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1133 chars
+    [snap_hyde_2call/answer] 2424 chars
+[131/571] qa_unknown_scalr_0                  PASS   gold=D pred=D (28.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1066 chars
+    [snap_hyde_2call/answer] 3138 chars
+[132/571] qa_unknown_scalr_564                PASS   gold=D pred=D (35.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 887 chars
+    [snap_hyde_2call/answer] 2662 chars
+[133/571] qa_unknown_scalr_301                FAIL   gold=D pred=B (40.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1007 chars
+    [snap_hyde_2call/answer] 2850 chars
+[134/571] qa_unknown_scalr_546                PASS   gold=D pred=D (14.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 969 chars
+    [snap_hyde_2call/answer] 2501 chars
+[135/571] qa_unknown_scalr_210                PASS   gold=D pred=D (13.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1062 chars
+    [snap_hyde_2call/answer] 2216 chars
+[136/571] qa_unknown_scalr_22                 PASS   gold=B pred=B (21.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 930 chars
+    [snap_hyde_2call/answer] 2211 chars
+[137/571] qa_unknown_scalr_400                FAIL   gold=A pred=C (10.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1104 chars
+    [snap_hyde_2call/answer] 2794 chars
+[138/571] qa_unknown_scalr_248                PASS   gold=B pred=B (7.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 885 chars
+    [snap_hyde_2call/answer] 3069 chars
+[139/571] qa_unknown_scalr_89                 PASS   gold=D pred=D (8.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1155 chars
+    [snap_hyde_2call/answer] 3248 chars
+[140/571] qa_unknown_scalr_552                FAIL   gold=B pred=A (21.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 889 chars
+    [snap_hyde_2call/answer] 2631 chars
+[141/571] qa_unknown_scalr_181                PASS   gold=D pred=D (11.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1093 chars
+    [snap_hyde_2call/answer] 2486 chars
+[142/571] qa_unknown_scalr_18                 PASS   gold=B pred=B (5.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1031 chars
+    [snap_hyde_2call/answer] 2413 chars
+[143/571] qa_unknown_scalr_264                PASS   gold=C pred=C (9.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1091 chars
+    [snap_hyde_2call/answer] 2513 chars
+[144/571] qa_unknown_scalr_290                PASS   gold=A pred=A (16.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 969 chars
+    [snap_hyde_2call/answer] 2820 chars
+[145/571] qa_unknown_scalr_144                PASS   gold=A pred=A (50.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1088 chars
+    [snap_hyde_2call/answer] 2698 chars
+[146/571] qa_unknown_scalr_514                FAIL   gold=C pred=E (24.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1065 chars
+    [snap_hyde_2call/answer] 2620 chars
+[147/571] qa_unknown_scalr_245                PASS   gold=E pred=E (25.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1017 chars
+    [snap_hyde_2call/answer] 2164 chars
+[148/571] qa_unknown_scalr_487                PASS   gold=E pred=E (13.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1054 chars
+    [snap_hyde_2call/answer] 2756 chars
+[149/571] qa_unknown_scalr_272                FAIL   gold=A pred=B (30.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1060 chars
+    [snap_hyde_2call/answer] 2393 chars
+[150/571] qa_unknown_scalr_185                PASS   gold=A pred=A (21.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 960 chars
+    [snap_hyde_2call/answer] 3647 chars
+[151/571] qa_unknown_scalr_362                FAIL   gold=C pred=D (24.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1079 chars
+    [snap_hyde_2call/answer] 2568 chars
+[152/571] qa_unknown_scalr_54                 PASS   gold=B pred=B (13.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1018 chars
+    [snap_hyde_2call/answer] 2534 chars
+[153/571] qa_unknown_scalr_363                PASS   gold=E pred=E (9.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1022 chars
+    [snap_hyde_2call/answer] 2455 chars
+[154/571] qa_unknown_scalr_46                 PASS   gold=C pred=C (14.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1009 chars
+    [snap_hyde_2call/answer] 2550 chars
+[155/571] qa_unknown_scalr_93                 PASS   gold=C pred=C (19.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1016 chars
+    [snap_hyde_2call/answer] 2822 chars
+[156/571] qa_unknown_scalr_558                PASS   gold=D pred=D (38.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1039 chars
+    [snap_hyde_2call/answer] 2564 chars
+[157/571] qa_unknown_scalr_108                PASS   gold=B pred=B (23.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 972 chars
+    [snap_hyde_2call/answer] 2274 chars
+[158/571] qa_unknown_scalr_247                PASS   gold=B pred=B (12.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1090 chars
+    [snap_hyde_2call/answer] 2623 chars
+[159/571] qa_unknown_scalr_570                PASS   gold=D pred=D (15.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1062 chars
+    [snap_hyde_2call/answer] 2301 chars
+[160/571] qa_unknown_scalr_438                PASS   gold=C pred=C (9.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1165 chars
+    [snap_hyde_2call/answer] 1940 chars
+[161/571] qa_unknown_scalr_396                PASS   gold=C pred=C (24.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1209 chars
+    [snap_hyde_2call/answer] 2579 chars
+[162/571] qa_unknown_scalr_211                PASS   gold=A pred=A (20.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1041 chars
+    [snap_hyde_2call/answer] 3052 chars
+[163/571] qa_unknown_scalr_478                FAIL   gold=C pred=D (21.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 796 chars
+    [snap_hyde_2call/answer] 2651 chars
+[164/571] qa_unknown_scalr_338                FAIL   gold=D pred=B (11.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1028 chars
+    [snap_hyde_2call/answer] 4448 chars
+[165/571] qa_unknown_scalr_522                FAIL   gold=C pred=D (24.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1257 chars
+    [snap_hyde_2call/answer] 3740 chars
+[166/571] qa_unknown_scalr_348                FAIL   gold=E pred=D (56.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1281 chars
+    [snap_hyde_2call/answer] 6364 chars
+[167/571] qa_unknown_scalr_441                FAIL   gold=D pred=B (77.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1083 chars
+    [snap_hyde_2call/answer] 2814 chars
+[168/571] qa_unknown_scalr_69                 PASS   gold=A pred=A (42.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1181 chars
+    [snap_hyde_2call/answer] 2648 chars
+[169/571] qa_unknown_scalr_255                PASS   gold=A pred=A (17.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1057 chars
+    [snap_hyde_2call/answer] 2976 chars
+[170/571] qa_unknown_scalr_177                FAIL   gold=B pred=A (34.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1077 chars
+    [snap_hyde_2call/answer] 2783 chars
+[171/571] qa_unknown_scalr_284                FAIL   gold=D pred=B (35.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1050 chars
+    [snap_hyde_2call/answer] 2850 chars
+[172/571] qa_unknown_scalr_563                PASS   gold=E pred=E (26.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1018 chars
+    [snap_hyde_2call/answer] 2541 chars
+[173/571] qa_unknown_scalr_149                FAIL   gold=A pred=B (33.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1200 chars
+    [snap_hyde_2call/answer] 2768 chars
+[174/571] qa_unknown_scalr_124                FAIL   gold=D pred=B (28.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1067 chars
+    [snap_hyde_2call/answer] 2255 chars
+[175/571] qa_unknown_scalr_425                PASS   gold=E pred=E (17.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1109 chars
+    [snap_hyde_2call/answer] 2675 chars
+[176/571] qa_unknown_scalr_196                FAIL   gold=D pred=E (65.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1039 chars
+    [snap_hyde_2call/answer] 2895 chars
+[177/571] qa_unknown_scalr_263                PASS   gold=E pred=E (30.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1653 chars
+    [snap_hyde_2call/answer] 2530 chars
+[178/571] qa_unknown_scalr_507                FAIL   gold=B pred=E (32.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1162 chars
+    [snap_hyde_2call/answer] 2640 chars
+[179/571] qa_unknown_scalr_450                PASS   gold=A pred=A (39.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1237 chars
+    [snap_hyde_2call/answer] 2470 chars
+[180/571] qa_unknown_scalr_403                PASS   gold=E pred=E (49.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1380 chars
+    [snap_hyde_2call/answer] 2661 chars
+[181/571] qa_unknown_scalr_432                PASS   gold=E pred=E (31.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1913 chars
+    [snap_hyde_2call/answer] 7630 chars
+[182/571] qa_unknown_scalr_525                FAIL   gold=C pred=D (26.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1365 chars
+    [snap_hyde_2call/answer] 4390 chars
+[183/571] qa_unknown_scalr_414                FAIL   gold=D pred=E (54.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1026 chars
+    [snap_hyde_2call/answer] 3002 chars
+[184/571] qa_unknown_scalr_114                PASS   gold=B pred=B (50.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1178 chars
+    [snap_hyde_2call/answer] 3135 chars
+[185/571] qa_unknown_scalr_141                FAIL   gold=E pred=D (31.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 997 chars
+    [snap_hyde_2call/answer] 2524 chars
+[186/571] qa_unknown_scalr_373                PASS   gold=A pred=A (29.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1174 chars
+    [snap_hyde_2call/answer] 3036 chars
+[187/571] qa_unknown_scalr_7                  PASS   gold=A pred=A (30.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1063 chars
+    [snap_hyde_2call/answer] 2686 chars
+[188/571] qa_unknown_scalr_479                PASS   gold=E pred=E (17.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1173 chars
+    [snap_hyde_2call/answer] 2762 chars
+[189/571] qa_unknown_scalr_19                 FAIL   gold=C pred=B (92.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1235 chars
+    [snap_hyde_2call/answer] 2819 chars
+[190/571] qa_unknown_scalr_172                PASS   gold=E pred=E (14.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1069 chars
+    [snap_hyde_2call/answer] 2587 chars
+[191/571] qa_unknown_scalr_411                PASS   gold=B pred=B (10.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1075 chars
+    [snap_hyde_2call/answer] 2559 chars
+[192/571] qa_unknown_scalr_56                 PASS   gold=C pred=C (15.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1793 chars
+    [snap_hyde_2call/answer] 2644 chars
+[193/571] qa_unknown_scalr_532                PASS   gold=A pred=A (20.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1128 chars
+    [snap_hyde_2call/answer] 3141 chars
+[194/571] qa_unknown_scalr_304                PASS   gold=A pred=A (11.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1051 chars
+    [snap_hyde_2call/answer] 3088 chars
+[195/571] qa_unknown_scalr_410                FAIL   gold=C pred=A (21.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1171 chars
+    [snap_hyde_2call/answer] 2694 chars
+[196/571] qa_unknown_scalr_449                FAIL   gold=A pred=D (17.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1148 chars
+    [snap_hyde_2call/answer] 2961 chars
+[197/571] qa_unknown_scalr_280                FAIL   gold=A pred=D (20.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1270 chars
+    [snap_hyde_2call/answer] 83667 chars
+[198/571] qa_unknown_scalr_49                 FAIL   gold=C pred=E (307.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1064 chars
+    [snap_hyde_2call/answer] 2944 chars
+[199/571] qa_unknown_scalr_415                FAIL   gold=C pred=E (13.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1008 chars
+    [snap_hyde_2call/answer] 2397 chars
+[200/571] qa_unknown_scalr_25                 PASS   gold=D pred=D (9.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 906 chars
+    [snap_hyde_2call/answer] 2099 chars
+[201/571] qa_unknown_scalr_402                PASS   gold=D pred=D (11.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1012 chars
+    [snap_hyde_2call/answer] 2418 chars
+[202/571] qa_unknown_scalr_369                PASS   gold=A pred=A (9.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1474 chars
+    [snap_hyde_2call/answer] 2825 chars
+[203/571] qa_unknown_scalr_505                FAIL   gold=D pred=B (14.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1101 chars
+    [snap_hyde_2call/answer] 2702 chars
+[204/571] qa_unknown_scalr_42                 PASS   gold=E pred=E (7.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1070 chars
+    [snap_hyde_2call/answer] 3012 chars
+[205/571] qa_unknown_scalr_377                PASS   gold=A pred=A (15.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1060 chars
+    [snap_hyde_2call/answer] 2519 chars
+[206/571] qa_unknown_scalr_228                PASS   gold=C pred=C (13.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 964 chars
+    [snap_hyde_2call/answer] 2886 chars
+[207/571] qa_unknown_scalr_544                FAIL   gold=E pred=D (12.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 945 chars
+    [snap_hyde_2call/answer] 2816 chars
+[208/571] qa_unknown_scalr_334                PASS   gold=A pred=A (29.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1172 chars
+    [snap_hyde_2call/answer] 2909 chars
+[209/571] qa_unknown_scalr_429                PASS   gold=A pred=A (26.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1091 chars
+    [snap_hyde_2call/answer] 2158 chars
+[210/571] qa_unknown_scalr_154                PASS   gold=B pred=B (12.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1209 chars
+    [snap_hyde_2call/answer] 3813 chars
+[211/571] qa_unknown_scalr_126                PASS   gold=D pred=D (21.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1110 chars
+    [snap_hyde_2call/answer] 3073 chars
+[212/571] qa_unknown_scalr_332                FAIL   gold=D pred=B (15.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1061 chars
+    [snap_hyde_2call/answer] 2325 chars
+[213/571] qa_unknown_scalr_311                PASS   gold=B pred=B (23.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 987 chars
+    [snap_hyde_2call/answer] 3193 chars
+[214/571] qa_unknown_scalr_405                PASS   gold=C pred=C (10.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 941 chars
+    [snap_hyde_2call/answer] 2749 chars
+[215/571] qa_unknown_scalr_174                PASS   gold=D pred=D (11.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1171 chars
+    [snap_hyde_2call/answer] 2741 chars
+[216/571] qa_unknown_scalr_31                 PASS   gold=E pred=E (8.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 941 chars
+    [snap_hyde_2call/answer] 2571 chars
+[217/571] qa_unknown_scalr_113                PASS   gold=E pred=E (21.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1196 chars
+    [snap_hyde_2call/answer] 2273 chars
+[218/571] qa_unknown_scalr_501                FAIL   gold=C pred=D (28.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1290 chars
+    [snap_hyde_2call/answer] 3262 chars
+[219/571] qa_unknown_scalr_173                FAIL   gold=D pred=A (25.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1037 chars
+    [snap_hyde_2call/answer] 2648 chars
+[220/571] qa_unknown_scalr_393                PASS   gold=A pred=A (12.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 893 chars
+    [snap_hyde_2call/answer] 2267 chars
+[221/571] qa_unknown_scalr_227                PASS   gold=C pred=C (12.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1068 chars
+    [snap_hyde_2call/answer] 2420 chars
+[222/571] qa_unknown_scalr_57                 PASS   gold=E pred=E (14.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 960 chars
+    [snap_hyde_2call/answer] 2197 chars
+[223/571] qa_unknown_scalr_291                PASS   gold=B pred=B (12.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 998 chars
+    [snap_hyde_2call/answer] 2649 chars
+[224/571] qa_unknown_scalr_222                PASS   gold=C pred=C (10.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1115 chars
+    [snap_hyde_2call/answer] 3028 chars
+[225/571] qa_unknown_scalr_24                 FAIL   gold=D pred=B (11.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1118 chars
+    [snap_hyde_2call/answer] 2562 chars
+[226/571] qa_unknown_scalr_17                 FAIL   gold=C pred=D (10.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1059 chars
+    [snap_hyde_2call/answer] 2083 chars
+[227/571] qa_unknown_scalr_271                PASS   gold=C pred=C (12.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 886 chars
+    [snap_hyde_2call/answer] 2323 chars
+[228/571] qa_unknown_scalr_66                 PASS   gold=D pred=D (6.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1094 chars
+    [snap_hyde_2call/answer] 2537 chars
+[229/571] qa_unknown_scalr_275                FAIL   gold=B pred=A (12.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 971 chars
+    [snap_hyde_2call/answer] 2254 chars
+[230/571] qa_unknown_scalr_499                PASS   gold=C pred=C (6.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 984 chars
+    [snap_hyde_2call/answer] 3060 chars
+[231/571] qa_unknown_scalr_299                PASS   gold=A pred=A (54.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1105 chars
+    [snap_hyde_2call/answer] 2789 chars
+[232/571] qa_unknown_scalr_495                FAIL   gold=E pred=D (22.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 967 chars
+    [snap_hyde_2call/answer] 2609 chars
+[233/571] qa_unknown_scalr_190                PASS   gold=D pred=D (15.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1141 chars
+    [snap_hyde_2call/answer] 2424 chars
+[234/571] qa_unknown_scalr_465                PASS   gold=C pred=C (5.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 919 chars
+    [snap_hyde_2call/answer] 2507 chars
+[235/571] qa_unknown_scalr_390                PASS   gold=E pred=E (13.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1088 chars
+    [snap_hyde_2call/answer] 2821 chars
+[236/571] qa_unknown_scalr_485                FAIL   gold=A pred=E (17.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1238 chars
+    [snap_hyde_2call/answer] 3039 chars
+[237/571] qa_unknown_scalr_394                FAIL   gold=A pred=D (10.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 965 chars
+    [snap_hyde_2call/answer] 3722 chars
+[238/571] qa_unknown_scalr_94                 PASS   gold=E pred=E (14.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1594 chars
+    [snap_hyde_2call/answer] 2664 chars
+[239/571] qa_unknown_scalr_180                FAIL   gold=C pred=E (9.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 978 chars
+    [snap_hyde_2call/answer] 3204 chars
+[240/571] qa_unknown_scalr_249                PASS   gold=D pred=D (15.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1085 chars
+    [snap_hyde_2call/answer] 2264 chars
+[241/571] qa_unknown_scalr_422                PASS   gold=B pred=B (4.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 974 chars
+    [snap_hyde_2call/answer] 2274 chars
+[242/571] qa_unknown_scalr_92                 PASS   gold=A pred=A (16.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1067 chars
+    [snap_hyde_2call/answer] 2560 chars
+[243/571] qa_unknown_scalr_23                 PASS   gold=E pred=E (28.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1050 chars
+    [snap_hyde_2call/answer] 3108 chars
+[244/571] qa_unknown_scalr_480                PASS   gold=E pred=E (12.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1088 chars
+    [snap_hyde_2call/answer] 2371 chars
+[245/571] qa_unknown_scalr_310                PASS   gold=D pred=D (13.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 928 chars
+    [snap_hyde_2call/answer] 2335 chars
+[246/571] qa_unknown_scalr_331                PASS   gold=A pred=A (12.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1150 chars
+    [snap_hyde_2call/answer] 2736 chars
+[247/571] qa_unknown_scalr_281                PASS   gold=C pred=C (12.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1117 chars
+    [snap_hyde_2call/answer] 2276 chars
+[248/571] qa_unknown_scalr_5                  PASS   gold=E pred=E (15.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1094 chars
+    [snap_hyde_2call/answer] 2356 chars
+[249/571] qa_unknown_scalr_116                PASS   gold=B pred=B (10.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 914 chars
+    [snap_hyde_2call/answer] 1858 chars
+[250/571] qa_unknown_scalr_45                 PASS   gold=C pred=C (17.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1031 chars
+    [snap_hyde_2call/answer] 1862 chars
+[251/571] qa_unknown_scalr_220                PASS   gold=E pred=E (6.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1167 chars
+    [snap_hyde_2call/answer] 2620 chars
+[252/571] qa_unknown_scalr_312                PASS   gold=A pred=A (12.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1138 chars
+    [snap_hyde_2call/answer] 2322 chars
+[253/571] qa_unknown_scalr_424                PASS   gold=B pred=B (5.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1315 chars
+    [snap_hyde_2call/answer] 3268 chars
+[254/571] qa_unknown_scalr_540                PASS   gold=B pred=B (11.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1131 chars
+    [snap_hyde_2call/answer] 3307 chars
+[255/571] qa_unknown_scalr_16                 PASS   gold=A pred=A (21.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1446 chars
+    [snap_hyde_2call/answer] 5688 chars
+[256/571] qa_unknown_scalr_48                 FAIL   gold=C pred=B (31.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1040 chars
+    [snap_hyde_2call/answer] 2971 chars
+[257/571] qa_unknown_scalr_550                PASS   gold=C pred=C (22.9s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1107 chars
+    [snap_hyde_2call/answer] 2370 chars
+[258/571] qa_unknown_scalr_444                PASS   gold=B pred=B (15.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1093 chars
+    [snap_hyde_2call/answer] 2665 chars
+[259/571] qa_unknown_scalr_3                  PASS   gold=D pred=D (14.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1086 chars
+    [snap_hyde_2call/answer] 3010 chars
+[260/571] qa_unknown_scalr_496                PASS   gold=A pred=A (42.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1167 chars
+    [snap_hyde_2call/answer] 2395 chars
+[261/571] qa_unknown_scalr_408                PASS   gold=D pred=D (21.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1158 chars
+    [snap_hyde_2call/answer] 17794 chars
+[262/571] qa_unknown_scalr_225                FAIL   gold=A pred=E (55.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 970 chars
+    [snap_hyde_2call/answer] 3180 chars
+[263/571] qa_unknown_scalr_26                 PASS   gold=E pred=E (31.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1167 chars
+    [snap_hyde_2call/answer] 2432 chars
+[264/571] qa_unknown_scalr_50                 PASS   gold=B pred=B (8.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 938 chars
+    [snap_hyde_2call/answer] 2369 chars
+[265/571] qa_unknown_scalr_229                PASS   gold=D pred=D (9.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1070 chars
+    [snap_hyde_2call/answer] 1907 chars
+[266/571] qa_unknown_scalr_37                 PASS   gold=B pred=B (4.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1193 chars
+    [snap_hyde_2call/answer] 2672 chars
+[267/571] qa_unknown_scalr_157                FAIL   gold=D pred=E (9.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1088 chars
+    [snap_hyde_2call/answer] 3812 chars
+[268/571] qa_unknown_scalr_237                PASS   gold=B pred=B (39.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1152 chars
+    [snap_hyde_2call/answer] 2433 chars
+[269/571] qa_unknown_scalr_545                PASS   gold=E pred=E (22.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1212 chars
+    [snap_hyde_2call/answer] 2439 chars
+[270/571] qa_unknown_scalr_175                FAIL   gold=C pred=D (21.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1624 chars
+    [snap_hyde_2call/answer] 5814 chars
+[271/571] qa_unknown_scalr_523                FAIL   gold=B pred=D (52.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1040 chars
+    [snap_hyde_2call/answer] 2337 chars
+[272/571] qa_unknown_scalr_530                PASS   gold=B pred=B (21.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1256 chars
+    [snap_hyde_2call/answer] 3050 chars
+[273/571] qa_unknown_scalr_194                FAIL   gold=D pred=A (23.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 946 chars
+    [snap_hyde_2call/answer] 2980 chars
+[274/571] qa_unknown_scalr_547                PASS   gold=E pred=E (14.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1021 chars
+    [snap_hyde_2call/answer] 2493 chars
+[275/571] qa_unknown_scalr_67                 PASS   gold=D pred=D (6.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1020 chars
+    [snap_hyde_2call/answer] 2810 chars
+[276/571] qa_unknown_scalr_289                PASS   gold=E pred=E (18.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1109 chars
+    [snap_hyde_2call/answer] 2712 chars
+[277/571] qa_unknown_scalr_168                PASS   gold=D pred=D (11.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1231 chars
+    [snap_hyde_2call/answer] 2490 chars
+[278/571] qa_unknown_scalr_360                PASS   gold=B pred=B (14.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1055 chars
+    [snap_hyde_2call/answer] 2516 chars
+[279/571] qa_unknown_scalr_467                PASS   gold=B pred=B (22.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1032 chars
+    [snap_hyde_2call/answer] 3681 chars
+[280/571] qa_unknown_scalr_193                FAIL   gold=E pred=A (11.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1088 chars
+    [snap_hyde_2call/answer] 2484 chars
+[281/571] qa_unknown_scalr_152                PASS   gold=D pred=D (9.7s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 854 chars
+    [snap_hyde_2call/answer] 2961 chars
+[282/571] qa_unknown_scalr_296                PASS   gold=A pred=A (14.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 957 chars
+    [snap_hyde_2call/answer] 2894 chars
+[283/571] qa_unknown_scalr_305                PASS   gold=A pred=A (24.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 994 chars
+    [snap_hyde_2call/answer] 2731 chars
+[284/571] qa_unknown_scalr_443                FAIL   gold=A pred=D (15.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 994 chars
+    [snap_hyde_2call/answer] 2837 chars
+[285/571] qa_unknown_scalr_302                PASS   gold=A pred=A (11.2s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1199 chars
+    [snap_hyde_2call/answer] 2759 chars
+[286/571] qa_unknown_scalr_103                PASS   gold=E pred=E (27.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 897 chars
+    [snap_hyde_2call/answer] 2298 chars
+[287/571] qa_unknown_scalr_354                PASS   gold=A pred=A (24.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1098 chars
+    [snap_hyde_2call/answer] 2217 chars
+[288/571] qa_unknown_scalr_74                 PASS   gold=C pred=C (10.1s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1008 chars
+    [snap_hyde_2call/answer] 2351 chars
+[289/571] qa_unknown_scalr_382                PASS   gold=D pred=D (9.0s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1002 chars
+    [snap_hyde_2call/answer] 2619 chars
+[290/571] qa_unknown_scalr_548                PASS   gold=E pred=E (26.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1036 chars
+    [snap_hyde_2call/answer] 3247 chars
+[291/571] qa_unknown_scalr_119                PASS   gold=A pred=A (11.8s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1040 chars
+    [snap_hyde_2call/answer] 3245 chars
+[292/571] qa_unknown_scalr_537                FAIL   gold=D pred=B (11.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1090 chars
+    [snap_hyde_2call/answer] 2522 chars
+[293/571] qa_unknown_scalr_370                PASS   gold=E pred=E (8.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 927 chars
+    [snap_hyde_2call/answer] 2436 chars
+[294/571] qa_unknown_scalr_440                PASS   gold=D pred=D (7.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1525 chars
+    [snap_hyde_2call/answer] 3219 chars
+[295/571] qa_unknown_scalr_494                FAIL   gold=E pred=D (19.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 883 chars
+    [snap_hyde_2call/answer] 2543 chars
+[296/571] qa_unknown_scalr_319                FAIL   gold=C pred=D (13.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1134 chars
+    [snap_hyde_2call/answer] 232797 chars
+[297/571] qa_unknown_scalr_309                FAIL   gold=D pred=E (676.5s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 841 chars
+    [snap_hyde_2call/answer] 2761 chars
+[298/571] qa_unknown_scalr_553                FAIL   gold=B pred=E (8.6s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1342 chars
+    [snap_hyde_2call/answer] 3441 chars
+[299/571] qa_unknown_scalr_513                FAIL   gold=B pred=A (13.4s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 996 chars
+    [snap_hyde_2call/answer] 2545 chars
+[300/571] qa_unknown_scalr_341                PASS   gold=B pred=B (14.3s, 2 calls)
+    [snap_hyde_2call/snap_and_hyde] 1173 chars
+[2026-05-11T09:54:48.463] error: *** JOB 67863 ON a40-2205 CANCELLED AT 2026-05-11T09:54:48 DUE to SIGNAL Terminated ***

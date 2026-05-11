@@ -36,7 +36,7 @@ Objective audited:
 | Repair retrieval-bearing launch blocker | `rag_utils.py` now reinitializes the GTE remote-code `position_ids` buffer; direct embedding smoke `67820` and `rag_hyde` smoke `67821` completed cleanly. | Done |
 | Harden detail-log validation | `scripts/analyze_detail_flags.py` now reports errors, missing predictions, parse failures, empty retrieval rows, average calls, max output tokens, max final-answer length, and long-answer outliers in addition to artifact leakage. | Done |
 | Add optional runaway-output cap | `llm_config.py` supports `LLM_MAX_COMPLETION_TOKENS` for targeted reruns that need bounded final-answer generations. For OpenRouter, the cap is sent as `extra_body.max_tokens`; default behavior remains unchanged when the env var is unset. | Done |
-| Reconcile missing ladder/model-coverage jobs | Gemma N=200 retrieval controls `67825-67831`, SCALR capped HyRE-only `67864`, capped CaseHOLD snap-only replacement `67867`, and Groq held-out sanity jobs `67832-67839` have landed, with invalid rows explicitly rejected; only full-SCALR probe `67863` remains live. | Mostly done |
+| Reconcile missing ladder/model-coverage jobs | Gemma N=200 retrieval controls `67825-67831`, SCALR capped HyRE-only `67864`, capped CaseHOLD snap-only replacement `67867`, and Groq held-out sanity jobs `67832-67839` have landed, with invalid rows explicitly rejected. Full-SCALR probe `67863` is rejected/cancelled; capped replacement `67897` remains live. | Mostly done |
 | Build inherited ablation tables | Markdown tables in `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md`; slide-ready PNGs `12_diagnostic_adaptation_calibration_ablation.png` and `13_diagnostic_adaptation_heldout_ablation.png`. | Done |
 | Build diagrams | Mermaid controller diagram in the meeting prep; PNG route-map and macro-lift figures in `docs/presentation/figures/`. | Done |
 | Add figure captions | `docs/presentation/figures/captions.md` now includes captions and source notes for figures 12-16. | Done |
@@ -64,7 +64,7 @@ itself mean every long-horizon experiment has completed.
 | Fixed Snap-HyRE fill-in rows | Existing SCALR row is already source-gated; BarExam job `67829`, HousingQA job `67830`, and CaseHOLD job `67831` are complete. | Covered for the Gemma N=200 ladder. |
 | Adaptive/controller rows | `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json` and `docs/heldout_controller_eval_2026-05-10.json`. | Covered for current controller story. |
 | Cross-model coverage | Groq Llama 70B held-out sanity jobs `67832-67839` are complete; seven rows are clean and one CaseHOLD selected route row is rejected by health gates. | Covered as held-out sanity, not a main result table. |
-| Full-corpus evaluations where feasible | Harness full sizes are documented in `docs/meeting_eval_expansion_status_2026-05-11.md`; all-method/all-model full corpus is not feasible before the meeting; targeted full-SCALR sanity job `67863` is launched for `rag_simple` and `adaptive_snap_hyre_frontier`. The `rag_simple` half completed and was copied locally, but has three long-answer rows, so no full-corpus result is promoted yet. | Launched / pending; no full-corpus result is promoted. |
+| Full-corpus evaluations where feasible | Harness full sizes are documented in `docs/meeting_eval_expansion_status_2026-05-11.md`; all-method/all-model full corpus is not feasible before the meeting. Targeted full-SCALR job `67863` is rejected/cancelled because both the completed baseline half and partial frontier half hit runaway-output gates. Capped replacement `67897` is running. | Launched / pending; no full-corpus result is promoted. |
 | Diagrams and flowcharts | Figures 12-16 under `docs/presentation/figures/`, plus Mermaid framework diagram in the meeting prep. | Covered. |
 | Bottleneck summaries | Meeting prep bottleneck table maps each dataset to evidence signal and route. | Covered. |
 | Targeted runs only | Run list is scoped to snap-only fill-in, HyRE/Snap-HyRE ladder controls, CaseHOLD option-table repair, and cross-model sanity. | Covered. |
@@ -114,6 +114,7 @@ uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_2
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0559_legalbench_scalr_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0734_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_simple_or-gemma4-26b_20260511_0731_legalbench_scalr_meeting-full-scalr-sanity-or-gemma4-26b-n571-k5-rag_simple_detail.jsonl
+rg -n "232797|CANCELLED|RESULTS" logs/slurm_67863_full_scalr_cancelled.out
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
 uv run python scripts/audit_adaptive_hyre_logs.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0559_legalbench_scalr_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
@@ -243,6 +244,15 @@ Health-check result for full-SCALR `rag_simple` half of job `67863`:
   full-corpus report number unless the long-answer rows are resolved or
   explicitly accepted as a caveated sanity baseline
 
+Full-SCALR frontier half of job `67863`:
+
+- stdout source: `logs/slurm_67863_full_scalr_cancelled.out`
+- progressed to row 300/571 before cancellation
+- row 296 produced a 232,797-character final answer
+- no clean frontier detail log was written before cancellation
+- verdict: rejected; capped replacement `67897` launched with
+  `LLM_MAX_COMPLETION_TOKENS=4096`
+
 Health-check result for HousingQA fixed Snap-HyRE:
 
 - rows: 200
@@ -271,6 +281,6 @@ This package is meeting-ready, not a finished paper submission. The current
 controller is still partly evidence-summary/rule-based rather than a fully
 automatic learned router. BarExam and SCALR have route-policy nuance on the
 held-out slice, and CaseHOLD still needs a better option-conversion mechanism.
-The remaining live row is the targeted full-SCALR probe. Do not promote it
-unless both halves finish and pass the health gates. That is a paper direction,
-not a blocker for the May 11 meeting package.
+The remaining live row is capped full-SCALR replacement `67897`. Do not promote
+it unless both halves finish and pass the health gates. That is a paper
+direction, not a blocker for the May 11 meeting package.

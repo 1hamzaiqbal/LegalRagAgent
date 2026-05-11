@@ -253,7 +253,7 @@ Use this as the live checklist for final meeting prep:
 |---|---|
 | Main legal-only diagnostic package | Done: four benchmarks, calibration table, held-out table, bottleneck summary, and figure pack are source-gated. |
 | CaseHOLD option-table blocker | Done: implementation is repaired; result is a clean negative against stronger CaseHOLD routes. |
-| Expanded inherited ladder | Mostly done: snap-only, HyRE-only, literal fixed Snap-HyRE, and Groq held-out sanity rows are documented; only the full-SCALR probe (`67863`) remains pending. |
+| Expanded inherited ladder | Mostly done: snap-only, HyRE-only, literal fixed Snap-HyRE, and Groq held-out sanity rows are documented; full-SCALR probe `67863` is rejected/cancelled, and capped replacement `67897` remains pending. |
 | Final handoff hygiene | Keep new runs out of the main table until validated; keep branch state clean after documentation updates are committed. |
 
 ## What To Say In The Meeting

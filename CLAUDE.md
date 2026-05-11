@@ -51,12 +51,14 @@ reject/escalate.
   held-out slice; cite it as an option-conversion bottleneck signal, not as a
   positive route.
 
-**Do not promote pending rows**: the targeted full-SCALR sanity job must remain
-pending until its stdout, detail logs, and local validation all pass. Use
+**Do not promote pending rows**: the capped full-SCALR replacement job `67897`
+must remain pending until its stdout, detail logs, and local validation all pass. Use
 `docs/meeting_eval_expansion_status_2026-05-11.md` for the current queue state
 before citing anything. The full-SCALR `rag_simple` half of `67863` is copied
 locally and structurally complete at 424/571, but it has three long-answer rows
-and is health-gated rather than reportable.
+and is health-gated rather than reportable. The paired frontier half of `67863`
+also hit a 232,797-character answer and was cancelled, so `67863` is not a
+promoted full-corpus result.
 
 **Run-control note**: CaseHOLD capped snap-only `67866` was cancelled after row
 12 produced a 157,678-character answer, so it cannot replace the original
