@@ -115,6 +115,9 @@ skip Chroma count preflight, and exclude the bad A40 nodes that produced
 CUDA/ECC failures. Retrieval-bearing jobs also run with the repaired online GTE
 query embedder: reinitialized RoPE `position_ids`, `max_seq_length=512`, fp16
 disabled by default, and finite embedding smoke verified by SLURM `67820`.
+If a rerun is needed because a row produces runaway final-answer text, set
+`LLM_MAX_COMPLETION_TOKENS` on the launch to cap generations without changing
+the default historical rows.
 
 ### Gemma 4 26B Ladder Controls
 

@@ -89,6 +89,19 @@ def _resolve_provider():
     )
 
 
+def _max_completion_tokens() -> int | None:
+    raw = os.getenv("LLM_MAX_COMPLETION_TOKENS", "").strip()
+    if not raw:
+        return None
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise ValueError(f"LLM_MAX_COMPLETION_TOKENS must be an integer, got {raw!r}") from exc
+    if value <= 0:
+        raise ValueError("LLM_MAX_COMPLETION_TOKENS must be positive")
+    return value
+
+
 def get_provider_info() -> dict:
     """Return current provider name, model, and rate limits (for eval logging)."""
     provider = os.getenv("LLM_PROVIDER", "").strip().lower()
@@ -112,6 +125,7 @@ def get_llm(temperature: float = 0.0, _provider: str = "") -> ChatOpenAI:
     Callers should not pass _provider directly — use the wrapper below.
     """
     base_url, api_key, model = _resolve_provider()
+    max_completion_tokens = _max_completion_tokens()
     return ChatOpenAI(
         base_url=base_url,
         api_key=api_key,
@@ -119,6 +133,7 @@ def get_llm(temperature: float = 0.0, _provider: str = "") -> ChatOpenAI:
         temperature=temperature,
         timeout=90,
         max_retries=1,
+        max_completion_tokens=max_completion_tokens,
     )
 
 
