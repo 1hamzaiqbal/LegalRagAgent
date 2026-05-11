@@ -152,18 +152,24 @@ These jobs were launched to satisfy the larger-slice sanity request for the
 canonical methods. They are not report numbers until the validation gates below
 pass.
 
-Latest monitor refresh, 2026-05-11 12:55 CDT: `squeue`/`sacct` report all five
+Latest monitor refresh, 2026-05-11 13:16 CDT: `squeue`/`sacct` report all five
 active scale-up jobs still running. Stdout/error scans found no Tracebacks,
 API/rate-limit/auth failures, empty-retrieval warnings, CUDA/ECC errors,
 timeouts, or runaway-output signatures. The only grep hits were normal
-validation-summary strings from already known rows. Current observed progress:
-`67897` SCALR frontier `122/571`; `67911` BarExam `rag_simple` `98/500`;
-`67912` HousingQA `rag_state_filter` `62/500`; `67913` CaseHOLD `rag_simple`
-`219/500`; `67915` SCALR `rag_rewrite` `93/571`. No new row is promoted.
+validation-summary strings from already known rows. The completed `67897`
+SCALR `rag_simple` mode was copied locally from the adaptive checkout and
+passes `scripts/analyze_detail_flags.py`: 571 rows, 419/571 = 73.4%, errors 0,
+missing predictions 0, parse failures 0, empty retrieval 0, average calls 1.00,
+max output tokens 4,405, max final-answer chars 14,633, and no long-answer
+rows. Keep it as a verified baseline-half log until the paired frontier mode
+finishes; no full job result is promoted. Current observed live progress:
+`67897` SCALR frontier `189/571`; `67911` BarExam `rag_simple` `150/500`;
+`67912` HousingQA `rag_state_filter` `115/500`; `67913` CaseHOLD `rag_simple`
+`374/500`; `67915` SCALR `rag_rewrite` `165/571`.
 
 | Job | Dataset | N | Modes | Status |
 |---:|---|---:|---|---|
-| 67897 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Running capped replacement for rejected full-SCALR probe `67863`. |
+| 67897 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Running capped replacement for rejected full-SCALR probe `67863`; `rag_simple` mode copied and validated clean at 419/571 = 73.4%, frontier still running. |
 | 67914 | LegalBench-SCALR | 571 | `rag_rewrite` | Rejected: CUDA/ECC failure on `a40-2206` before a detail log. |
 | 67915 | LegalBench-SCALR | 571 | `rag_rewrite` | Running retry for the N>=500 query-rewrite control, excluding `a40-2206`. |
 | 67911 | BarExam | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_v2` | Running baseline vs rewrite vs selected route. |
