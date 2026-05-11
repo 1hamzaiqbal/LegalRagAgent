@@ -1,13 +1,11 @@
 \section{Analysis}\label{sec:analysis}
 
 This section reads the calibration and held-out results through the
-bottleneck lens. We first state the macro headline and the calibration,
-held-out, and macro-vs-cost views
-(Figures~\ref{fig:calib_ablation}--\ref{fig:macro_lift} and
-Tables~\ref{tab:calibration}--\ref{tab:heldout}). We then walk each benchmark
-in turn, isolate the negative controls where fixed \hyre{} and HyRE-only
-routes \emph{lose} to the matched baseline, and close with a cross-model
-sanity check on Llama~3.3~70B.
+bottleneck lens. We first state the macro headline alongside
+Tables~\ref{tab:calibration} and \ref{tab:heldout}. We then walk each
+benchmark in turn, isolate the negative controls where fixed \hyre{} and
+HyRE-only routes \emph{lose} to the matched baseline, and close with a
+cross-model sanity check on Llama~3.3~70B.
 
 \subsection{Main result: controller vs.\ baselines}
 
@@ -30,20 +28,13 @@ rule out a $\pm 2\pp$ shift on the BarExam and SCALR ties. The macro lift
 is robust to per-benchmark perturbations of up to one row because two of
 the four benchmarks lift cleanly.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{12_diagnostic_adaptation_calibration_ablation.png}
-\caption{Calibration ablation (Gemma~4~26B, N=200 per benchmark). The diagnostic controller leads the matched-baseline, snap-only, query-rewrite, and preselected-HyRE rows at 1.30 average LLM calls per question.}
-\label{fig:calib_ablation}
-\end{figure}
-
-\begin{table}[t]
+\begin{table*}[t]
 \small
 \centering
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{lcccccc}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{lccccccc}
 \toprule
-Method & BarExam & HousingQA & CaseHOLD & SCALR & Macro & Calls \\
+Method & BarExam & HousingQA & CaseHOLD & SCALR & Macro & Calls/Q \\
 \midrule
 Matched baseline & 80.0 & 60.5 & 73.0 & 74.0 & 71.9 & 1.00 \\
 {}+ snap-only reasoning & 85.5 & 55.0 & 72.5\textsuperscript{\textdagger} & 72.5 & 71.4 & 2.00 \\
@@ -63,26 +54,15 @@ $N=200$ on BarExam (treated as a control, not a controller route).
 \textsuperscript{\textdagger}CaseHOLD snap-only is reported from a
 length-capped generation pass.}
 \label{tab:calibration}
-\end{table}
+\end{table*}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{13_diagnostic_adaptation_heldout_ablation.png}
-\caption{Held-out check (rows 200--249, $N=50$ per dataset). Matched
-baselines average $71.5\%$, query rewrite $75.5\%$, selected diagnostic
-routes $77.5\%$. The held-out lift is concentrated in HousingQA verifier
-routing ($+14\pp$) and CaseHOLD diverse HyRE ($+10\pp$);
-BarExam and SCALR tie baseline on the selected route.}
-\label{fig:heldout_ablation}
-\end{figure}
-
-\begin{table}[t]
+\begin{table*}[t]
 \small
 \centering
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{lcccccc}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{lccccccc}
 \toprule
-Method & BarExam & HousingQA & CaseHOLD & SCALR & Macro & Calls \\
+Method & BarExam & HousingQA & CaseHOLD & SCALR & Macro & Calls/Q \\
 \midrule
 Held-out baseline & 76.0 & 62.0 & 68.0 & 80.0 & 71.5 & 1.00 \\
 {}+ legal query rewrite & 90.0 & 58.0 & 76.0 & 78.0 & 75.5 & 2.00 \\
@@ -96,14 +76,7 @@ route, and lifts CaseHOLD by $+10\pp$ via diverse \hyre{}. Pure
 query rewrite is a strong but uneven control: it dominates BarExam ($90.0$)
 while losing $4\pp$ on HousingQA.}
 \label{tab:heldout}
-\end{table}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{14_diagnostic_controller_macro_lift.png}
-\caption{Macro accuracy vs.\ average LLM calls per question. The controller dominates the matched-baseline and preselected-HyRE points while spending fewer average calls than fixed 2-call methods, because it routes some questions through cheaper replay/verifier policies.}
-\label{fig:macro_lift}
-\end{figure}
+\end{table*}
 
 The cost dimension is load-bearing for the headline. Snap-only, legal query
 rewrite, and the preselected-HyRE family each spend $2.00$ average LLM calls
@@ -114,9 +87,9 @@ policies, because it routes the cheapest plausible intervention per row,
 including single-call replay and state-filter retrieval where the calibration
 signature does not warrant a HyRE expansion. The controller is therefore a
 Pareto-improvement over the inherited method ladder rather than a budget
-trade. Figure~\ref{fig:macro_lift} makes this concrete: every preselected
-fixed-policy row sits below the controller on accuracy and to its right on
-average calls.
+trade: every preselected fixed-policy row in Table~\ref{tab:calibration}
+sits below the controller on accuracy while spending more average calls per
+question.
 
 \subsection{Per-benchmark bottleneck diagnostics}
 

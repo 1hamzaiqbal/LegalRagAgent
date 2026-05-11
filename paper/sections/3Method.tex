@@ -51,17 +51,17 @@ are not counted.}
 \toprule
 Route & Calls & Capability added \\
 \midrule
-\method{rag\_simple} & 1 & baseline dense+rerank retrieval \\
-\method{rag\_state\_filter} & 1 & jurisdiction-scoped metadata filter \\
-\method{snap\_only\_in\_final} & 2 & snap reasoning anchors final synthesis \\
-\method{rag\_rewrite} & 2 & legal query rewrite before retrieval \\
-\method{rag\_hyde} & 2 & HyDE hypothetical passage as retrieval handle \\
-\method{rag\_snap\_hyde\_2call} & 2 & fixed \hyre{} (snap-conditioned passage) \\
-\method{adaptive\_snap\_hyre\_v2} & 2 & BarExam route: rewrite/HyRE selector \\
-\method{adaptive\_snap\_hyre\_housing\_verifier} & 2 & state filter + yes/no verifier \\
-\method{adaptive\_snap\_hyre\_diverse} & 2 & diverse \hyre{} passages for option spread \\
-\method{adaptive\_snap\_hyre\_disagreement\_majority\_prior} & 2 & disagreement arbitration with majority prior \\
-\method{adaptive\_snap\_hyre\_frontier} & 2 & frontier replay across HyRE-family rows \\
+\method{rag_simple} & 1 & baseline dense+rerank retrieval \\
+\method{rag_state_filter} & 1 & jurisdiction-scoped metadata filter \\
+\method{snap_only_in_final} & 2 & snap reasoning anchors final synthesis \\
+\method{rag_rewrite} & 2 & legal query rewrite before retrieval \\
+\method{rag_hyde} & 2 & HyDE hypothetical passage as retrieval handle \\
+\method{rag_snap_hyde_2call} & 2 & fixed \hyre{} (snap-conditioned passage) \\
+\method{adaptive_snap_hyre_v2} & 2 & BarExam route: rewrite/HyRE selector \\
+\method{adaptive_snap_hyre_housing_verifier} & 2 & state filter + yes/no verifier \\
+\method{adaptive_snap_hyre_diverse} & 2 & diverse \hyre{} passages for option spread \\
+\method{adaptive_snap_hyre_disagreement_majority_prior} & 2 & disagreement arbitration with majority prior \\
+\method{adaptive_snap_hyre_frontier} & 2 & frontier replay across HyRE-family rows \\
 \bottomrule
 \end{tabularx}
 \end{table*}
@@ -149,12 +149,12 @@ Bottleneck & Diagnostic signal & Intervention & Dominates on \\
 \midrule
 Retrieval depth & Catastrophic top-1 vs.\ top-5 drop on baseline & Larger $k$; smarter passage selection & Depth-sensitive datasets \\
 Candidate-set saturation & Top-1 collapses; top-5/top-10 tie; gold-hit rises but answer flat & Restrict to small reranked candidate set & LegalBench-SCALR \\
-Query / legal-reasoning formulation & Rewrite vs.\ HyRE asymmetry; snap reasoning lifts more than HyDE retrieval alone & \method{rag\_rewrite} or \method{adaptive\_snap\_hyre\_v2}; \emph{route} between them & BarExam \\
-Metadata / jurisdiction scope & Empty-retrieval or near-zero state-match rate; explicit state filter beats generic top-$k$ & \method{rag\_state\_filter} & HousingQA \\
+Query / legal-reasoning formulation & Rewrite vs.\ HyRE asymmetry; snap reasoning lifts more than HyDE retrieval alone & \method{rag_rewrite} or \method{adaptive_snap_hyre_v2}; \emph{route} between them & BarExam \\
+Metadata / jurisdiction scope & Empty-retrieval or near-zero state-match rate; explicit state filter beats generic top-$k$ & \method{rag_state_filter} & HousingQA \\
 Statutory entailment / false-positive yes & Verifier route lifts over plain state filter; fixed \hyre{} underperforms baseline & Conservative yes/no verifier on top of state filter & HousingQA \\
 Answer-option conversion & Gold-retrieval gains do not convert to answer gains (CaseHOLD gold-hit $16.0\%\!\rightarrow\!47.0\%$, EM $69.5\%\!\rightarrow\!72.0\%$, $p\!=\!0.44$) & Diverse \hyre{}; direct option-table is a clean negative & CaseHOLD \\
 Method disagreement / candidate exposure & High disagreement across HyRE-family rows; row-level oracle headroom unrealized by simple ensembles & Disagreement arbitration or frontier replay selector & LegalBench-SCALR \\
-Parametric floor / depth-flat & Top-1 $\approx$ top-5 $\approx$ \method{llm\_only}; snap-only matches RAG & Trust priors; use snap reasoning to anchor, not to retrieve & BarExam \\
+Parametric floor / depth-flat & Top-1 $\approx$ top-5 $\approx$ \method{llm_only}; snap-only matches RAG & Trust priors; use snap reasoning to anchor, not to retrieve & BarExam \\
 \bottomrule
 \end{tabularx}
 \end{table*}
@@ -165,34 +165,18 @@ The \controller{} is a hand-specified rule policy parameterized by the
 calibration trace. Algorithm~\ref{alg:controller} gives the procedure end
 to end.
 
-\begin{algorithm}[H]
+\begin{algorithm*}[t]
 \caption{Bottleneck-aware diagnostic adaptation.}
 \label{alg:controller}
 \begin{algorithmic}[1]
-\REQUIRE benchmark slice $S$ (rows $0$--$199$); intervention portfolio
-$\mathcal{R}$ from Table~\ref{tab:method_costs}; bottleneck taxonomy
-$\mathcal{B}$ from Table~\ref{tab:bottleneck_taxonomy} (label $\rightarrow$
-matching-route subset).
-\STATE \textbf{Calibration.} For each route $r \in \mathcal{R}$, run $r$
-on $S$ and record the signal vector $s_S = (\text{acc}_r,
-\text{gold-hit}_r, \text{cond-acc}_r, \text{pair-disagree}_{r,r'},
-\text{parse-err}_r, \text{empty-retr}_r, \text{calls}_r)$.
-\STATE \textbf{Label.} For each bottleneck $b \in \mathcal{B}$, compute the
-signal magnitude $\sigma_b(s_S)$ defined in Appendix~\ref{app:taxonomy_examples}
-(e.g., $\sigma_{\text{retrieval-depth}} = \text{acc}_{\text{top-5}} -
-\text{acc}_{\text{top-1}}$, $\sigma_{\text{option-conv}} = \text{gold-hit}
-- \text{cond-acc}$). Assign $\ell^\star = \arg\max_b \sigma_b(s_S)$.
-\STATE \textbf{Route selection.} Among routes whose preconditions match
-$\ell^\star$, pick the cheapest by average LLM calls:
-$r^\star = \arg\min_{r \in \mathcal{R}_{\ell^\star}} \text{calls}_r$.
-\STATE \textbf{Per-row downgrade.} For each held-out row $i$, if the snap
-fails to parse, the state filter returns zero candidates, or two cheap
-routes disagree on the answer, swap $r^\star$ for a slice-specific
-fallback (typically \method{rag\_simple} or \method{rag\_state\_filter}).
-\STATE \textbf{Inference.} Apply $r^\star$ (or the fallback) to each row
-in the held-out slice; report accuracy and average calls.
+\REQUIRE benchmark slice $S$ (rows $0$--$199$); intervention portfolio $\mathcal{R}$ (Table~\ref{tab:method_costs}); bottleneck taxonomy $\mathcal{B}$ (Table~\ref{tab:bottleneck_taxonomy}: label $\to$ matching routes).
+\STATE \textbf{Calibration.} For each $r \in \mathcal{R}$, run $r$ on $S$ and record $s_S = (\text{acc}_r, \text{gold-hit}_r, \text{cond-acc}_r, \text{pair-disagree}_{r,r'}, \text{parse-err}_r, \text{empty-retr}_r, \text{calls}_r)$.
+\STATE \textbf{Label.} For each $b \in \mathcal{B}$, compute $\sigma_b(s_S)$ (e.g., $\sigma_{\text{depth}} = \text{acc}_{\text{top-5}} - \text{acc}_{\text{top-1}}$; $\sigma_{\text{option-conv}} = \text{gold-hit} - \text{cond-acc}$); assign $\ell^\star = \arg\max_b \sigma_b(s_S)$.
+\STATE \textbf{Route selection.} Pick the cheapest route matching $\ell^\star$: $r^\star = \arg\min_{r \in \mathcal{R}_{\ell^\star}} \text{calls}_r$.
+\STATE \textbf{Per-row downgrade.} On each held-out row, if the snap fails to parse, the state filter returns zero candidates, or two cheap routes disagree, swap $r^\star$ for a fallback (typically \method{rag_simple} or \method{rag_state_filter}).
+\STATE \textbf{Inference.} Apply $r^\star$ (or the fallback) to each held-out row; report accuracy and average calls.
 \end{algorithmic}
-\end{algorithm}
+\end{algorithm*}
 
 Three properties matter. (i)~The routing rule is a table lookup composed
 with two $\arg$-ops; there is no policy network, no reflection-token

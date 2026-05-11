@@ -31,9 +31,9 @@ retrieval pools candidates across all query variants and reranks them against
 the primary query.
 
 \paragraph{Calibration and held-out protocol.} On rows 0--199 of each
-benchmark we run the inherited method ladder: \method{rag\_simple} (or
-\method{rag\_state\_filter} on HousingQA), \method{snap\_only\_in\_final},
-\method{rag\_rewrite}, \method{rag\_hyde}, \method{rag\_snap\_hyde\_2call},
+benchmark we run the inherited method ladder: \method{rag_simple} (or
+\method{rag_state_filter} on HousingQA), \method{snap_only_in_final},
+\method{rag_rewrite}, \method{rag_hyde}, \method{rag_snap_hyde_2call},
 and the bottleneck-specific \controller{} routes. Per-row signals (accuracy,
 gold-passage retrieval, conditional accuracy, route disagreement, parse and
 error counts, and average LLM calls) are computed from the detail logs of
