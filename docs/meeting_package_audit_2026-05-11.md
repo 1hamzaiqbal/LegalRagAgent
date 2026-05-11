@@ -64,7 +64,7 @@ itself mean every long-horizon experiment has completed.
 | Fixed Snap-HyRE fill-in rows | Existing SCALR row is already source-gated; BarExam job `67829`, HousingQA job `67830`, and CaseHOLD job `67831` are complete. | Covered for the Gemma N=200 ladder. |
 | Adaptive/controller rows | `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json` and `docs/heldout_controller_eval_2026-05-10.json`. | Covered for current controller story. |
 | Cross-model coverage | Groq Llama 70B held-out sanity jobs `67832-67839` are complete; seven rows are clean and one CaseHOLD selected route row is rejected by health gates. | Covered as held-out sanity, not a main result table. |
-| Full-corpus evaluations where feasible | Harness full sizes are documented in `docs/meeting_eval_expansion_status_2026-05-11.md`; all-method/all-model full corpus is not feasible before the meeting; targeted full-SCALR sanity job `67863` is launched for `rag_simple` and `adaptive_snap_hyre_frontier`. The `rag_simple` half completed but has long-answer rows, so no full-corpus result is promoted yet. | Launched / pending; no full-corpus result is promoted. |
+| Full-corpus evaluations where feasible | Harness full sizes are documented in `docs/meeting_eval_expansion_status_2026-05-11.md`; all-method/all-model full corpus is not feasible before the meeting; targeted full-SCALR sanity job `67863` is launched for `rag_simple` and `adaptive_snap_hyre_frontier`. The `rag_simple` half completed and was copied locally, but has three long-answer rows, so no full-corpus result is promoted yet. | Launched / pending; no full-corpus result is promoted. |
 | Diagrams and flowcharts | Figures 12-16 under `docs/presentation/figures/`, plus Mermaid framework diagram in the meeting prep. | Covered. |
 | Bottleneck summaries | Meeting prep bottleneck table maps each dataset to evidence signal and route. | Covered. |
 | Targeted runs only | Run list is scoped to snap-only fill-in, HyRE/Snap-HyRE ladder controls, CaseHOLD option-table repair, and cross-model sanity. | Covered. |
@@ -113,6 +113,7 @@ uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_2
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0511_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0559_legalbench_scalr_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0734_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_rag_simple_or-gemma4-26b_20260511_0731_legalbench_scalr_meeting-full-scalr-sanity-or-gemma4-26b-n571-k5-rag_simple_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
 uv run python scripts/audit_adaptive_hyre_logs.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0559_legalbench_scalr_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
@@ -226,6 +227,21 @@ Health-check result for SCALR HyRE-only capped:
 - max output tokens: 2,395
 - verdict: detail-log clean but wrapper-caveated; SLURM failed after results
   because `scripts/postprocess_adaptive_hyre_sweep.py` was missing
+
+Health-check result for full-SCALR `rag_simple` half of job `67863`:
+
+- rows: 571
+- correct: 424/571 = 74.3%
+- average calls: 1.00
+- errors: 0
+- missing predictions: 0
+- empty retrieval: 0
+- long final-answer rows: 3
+- max final-answer chars: 233,166
+- max output tokens: 73,151
+- verdict: structurally complete but health-gated; do not promote as a
+  full-corpus report number unless the long-answer rows are resolved or
+  explicitly accepted as a caveated sanity baseline
 
 Health-check result for HousingQA fixed Snap-HyRE:
 

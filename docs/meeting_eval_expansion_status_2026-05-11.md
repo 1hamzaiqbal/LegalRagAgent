@@ -192,9 +192,12 @@ all-dataset full-corpus sweep.
 
 | Job | Dataset | N | Modes | Why it matters |
 |---:|---|---:|---|---|
-| 67863 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Tests whether the smaller legal benchmark's controller signal survives beyond the N=200 slice. |
+| 67863 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Tests whether the smaller legal benchmark's controller signal survives beyond the N=200 slice. The `rag_simple` half has been copied locally but is health-gated: 424/571 with three long-answer rows, max 233,166 final-answer chars. The frontier half is still running. |
 
-This is not a report number until it completes and passes the validation gates.
+This is not a report number until both modes complete and pass the validation
+gates. Do not promote the completed `rag_simple` half as a full-corpus baseline
+unless the long-answer rows are explicitly resolved or accepted as a caveated
+non-paper sanity check.
 
 ## Invalid / Rejected Runs
 
@@ -226,7 +229,10 @@ Full-corpus all-method, all-model coverage is not a realistic May 11 4pm gate.
 It would be thousands to tens of thousands of LLM calls, with HousingQA and
 CaseHOLD dominating cost and runtime. A targeted full-SCALR probe has been
 launched as SLURM `67863` because SCALR is the smallest legal benchmark in the
-current four-task set. The meeting-safe standard is therefore:
+current four-task set. The `rag_simple` half wrote
+`logs/eval_rag_simple_or-gemma4-26b_20260511_0731_legalbench_scalr_meeting-full-scalr-sanity-or-gemma4-26b-n571-k5-rag_simple_detail.jsonl`
+and validates structurally, but it remains health-gated by three runaway
+final-answer rows. The meeting-safe standard is therefore:
 
 - report existing verified N=200/N=50 source-gated results;
 - integrate new N=200 ladder controls only if they land cleanly;

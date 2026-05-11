@@ -54,7 +54,9 @@ reject/escalate.
 full-SCALR sanity job must remain pending until their stdout, detail logs, and
 local validation all pass. Use
 `docs/meeting_eval_expansion_status_2026-05-11.md` for the current queue state
-before citing anything.
+before citing anything. The full-SCALR `rag_simple` half of `67863` is copied
+locally and structurally complete at 424/571, but it has three long-answer rows
+and is health-gated rather than reportable.
 
 ## Update 2026-05-01 (meeting prep)
 
