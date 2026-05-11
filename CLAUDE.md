@@ -67,6 +67,12 @@ health-caveated snap-only row. `llm_config.py` now sends OpenRouter caps through
 `max_completion_tokens`; replacement `67867` landed cleanly at 145/200 with no
 long-answer rows and is the current snap-only CaseHOLD source.
 
+**N>=500 scale-up note**: canonical larger-slice jobs are now running under the
+same gates: `67897` full-SCALR capped baseline/frontier, `67914` SCALR
+rewrite, `67911` BarExam baseline/rewrite/adaptive-v2, `67912` Housing
+state-filter/rewrite/verifier, and `67913` CaseHOLD baseline/rewrite/diverse.
+Do not promote them until copied detail logs pass local validation.
+
 ## Update 2026-05-01 (meeting prep)
 
 **Current meeting frame**: lead with bottleneck-typed retrieval, not a finished

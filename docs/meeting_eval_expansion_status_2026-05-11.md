@@ -146,6 +146,24 @@ the default historical rows. For OpenRouter providers, the patched
 `llm_config.py` sends the cap as `extra_body.max_tokens`; LangChain's default
 `max_completion_tokens` payload was not sufficient for `67866`.
 
+### N>=500 Canonical Scale-Up
+
+These jobs were launched to satisfy the larger-slice sanity request for the
+canonical methods. They are not report numbers until the validation gates below
+pass.
+
+| Job | Dataset | N | Modes | Status |
+|---:|---|---:|---|---|
+| 67897 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Running capped replacement for rejected full-SCALR probe `67863`. |
+| 67914 | LegalBench-SCALR | 571 | `rag_rewrite` | Running N>=500 query-rewrite control. |
+| 67911 | BarExam | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_v2` | Running baseline vs rewrite vs selected route. |
+| 67912 | HousingQA | 500 | `rag_state_filter`, `rag_rewrite`, `adaptive_snap_hyre_housing_verifier` | Running metadata-filter baseline vs rewrite vs verifier. |
+| 67913 | CaseHOLD | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_diverse` | Running baseline vs rewrite vs diverse HyRE. |
+
+Meeting standard: if these finish cleanly, integrate them as a scale-up sanity
+table. If they do not, keep the verified N=200/N=50 package as the main
+evidence and report these as launched/pending.
+
 ### Gemma 4 26B Ladder Controls
 
 Provider: `or-gemma4-26b`. Sample: N=200, seed 42, k=5.

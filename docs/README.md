@@ -10,29 +10,31 @@ separates citeable state from historical working notes.
 2. `meeting_eval_expansion_status_2026-05-11.md` - May 11 expanded status for
    the inherited ablation ladder, active cluster jobs, invalid run exclusions,
    full-corpus feasibility, and validation gates.
-3. `meeting_prep_2026-05-11_diagnostic_adaptation.md` - current May 11 meeting
+3. `meeting_compact_packet_2026-05-11.md` - compact meeting handoff: main
+   tables, bottleneck readout, figure list, and N>=500 canonical scale-up jobs.
+4. `meeting_prep_2026-05-11_diagnostic_adaptation.md` - current May 11 meeting
    brief for the legal-only diagnostic adaptation framework, including the
    north-star goal, calibration/held-out ablation tables, live CaseHOLD
    option-table status, and the pre-meeting work budget.
-4. `meeting_package_audit_2026-05-11.md` - completion checklist for the May 11
+5. `meeting_package_audit_2026-05-11.md` - completion checklist for the May 11
    package, mapping the goal to source JSONs, validation commands, generated
    figures, and remaining paper risks.
-5. `meeting_state_2026-05-01.md` - meeting-ready synthesis of current findings,
+6. `meeting_state_2026-05-01.md` - meeting-ready synthesis of current findings,
    open blockers, live jobs, and defensible interpretation.
-6. `signoff_log.md` - cite-or-not gate. If a result is absent, `PENDING`, or
+7. `signoff_log.md` - cite-or-not gate. If a result is absent, `PENDING`, or
    explicitly caveated here, do not promote it to a paper-grade claim.
-7. `compiled_results.md` plus `../logs/experiments.jsonl` - audited result
+8. `compiled_results.md` plus `../logs/experiments.jsonl` - audited result
    ledger and machine-readable run summaries.
-8. `benchmark_method_birdseye_2026-04-30.md` - compact map of benchmarks,
+9. `benchmark_method_birdseye_2026-04-30.md` - compact map of benchmarks,
    methods, what each dataset tests, and harness gaps.
-9. `../reports/final_class_report/main.pdf` or
+10. `../reports/final_class_report/main.pdf` or
    `../reports/final_class_report/main.tex`
    - current class-report draft with figures/tables.
 
-Five-minute path: read `meeting_prep_2026-05-11_diagnostic_adaptation.md`,
-then `meeting_eval_expansion_status_2026-05-11.md`. Use `signoff_log.md`,
-the cited JSON files, and the cited detail logs to verify any number before
-citing it.
+Five-minute path: read `meeting_compact_packet_2026-05-11.md`, then
+`meeting_prep_2026-05-11_diagnostic_adaptation.md`. Use `signoff_log.md`, the
+cited JSON files, and the cited detail logs to verify any number before citing
+it.
 
 ## Current Claim Gates
 
