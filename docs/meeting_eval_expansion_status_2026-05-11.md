@@ -155,7 +155,8 @@ pass.
 | Job | Dataset | N | Modes | Status |
 |---:|---|---:|---|---|
 | 67897 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Running capped replacement for rejected full-SCALR probe `67863`. |
-| 67914 | LegalBench-SCALR | 571 | `rag_rewrite` | Running N>=500 query-rewrite control. |
+| 67914 | LegalBench-SCALR | 571 | `rag_rewrite` | Rejected: CUDA/ECC failure on `a40-2206` before a detail log. |
+| 67915 | LegalBench-SCALR | 571 | `rag_rewrite` | Running retry for the N>=500 query-rewrite control, excluding `a40-2206`. |
 | 67911 | BarExam | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_v2` | Running baseline vs rewrite vs selected route. |
 | 67912 | HousingQA | 500 | `rag_state_filter`, `rag_rewrite`, `adaptive_snap_hyre_housing_verifier` | Running metadata-filter baseline vs rewrite vs verifier. |
 | 67913 | CaseHOLD | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_diverse` | Running baseline vs rewrite vs diverse HyRE. |
@@ -238,6 +239,7 @@ Do not cite any of these:
 | 67810-67818 | Embedding debug/smoke attempts, including a failed ONNX backend check because `optimum` is not installed. | Debug only; do not cite as eval results. |
 | 67866 | CaseHOLD capped snap-only replacement still produced a 157,678-character answer at row 12 despite the launch cap. | Cancelled; clean replacement `67867` landed after patching OpenRouter cap serialization. |
 | 67863 | Full-SCALR sanity probe produced unbounded output in both the completed `rag_simple` half and the partial frontier half. | Cancelled; capped replacement `67897` launched. Do not cite as a clean full-corpus result. |
+| 67914 | SCALR N>=500 rewrite attempt hit a CUDA/ECC failure on `a40-2206` and tripped the circuit breaker before a detail log. | Invalid; retry `67915` launched with `a40-2206` excluded. |
 
 ## Full-Corpus Feasibility
 

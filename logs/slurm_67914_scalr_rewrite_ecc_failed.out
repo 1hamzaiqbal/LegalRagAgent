@@ -1,0 +1,46 @@
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+[preflight] modes OK: rag_rewrite
+[preflight] Chroma collection count skipped by SKIP_CHROMA_PREFLIGHT=1
+[2026-05-11T12:22:14-05:00] provider=or-gemma4-26b dataset=legalbench_scalr N=571 seed=42 k=5
+[2026-05-11T12:22:14-05:00] modes: rag_rewrite
+
+[2026-05-11T12:22:14-05:00] === MODE rag_rewrite tag=meeting-n500-canonical-or-gemma4-26b-legalbench_scalr-n571-k5-rag_rewrite ===
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+
+======================================================================
+EVAL: rag_rewrite | or-gemma4-26b (google/gemma-4-26b-a4b-it) | 571 questions | dataset=legalbench_scalr
+Tag: meeting-n500-canonical-or-gemma4-26b-legalbench_scalr-n571-k5-rag_rewrite
+======================================================================
+
+    [preflight_smoke] 2 chars
+[preflight] provider=or-gemma4-26b OK
+[preflight] collection count skipped by SKIP_EVAL_COLLECTION_PREFLIGHT=1
+    [rag_rewrite/rewrite] 436 chars
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Loading weights:   0%|          | 0/268 [00:00<?, ?it/s]Loading weights: 100%|██████████| 268/268 [00:00<00:00, 8970.41it/s]
+[1/571] qa_unknown_scalr_509                FAIL   gold=C pred=None (12.6s, 1 calls)
+    [rag_rewrite/rewrite] 336 chars
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Loading weights:   0%|          | 0/268 [00:00<?, ?it/s]Loading weights: 100%|██████████| 268/268 [00:00<00:00, 8893.34it/s]
+[2/571] qa_unknown_scalr_70                 FAIL   gold=A pred=None (2.4s, 1 calls)
+    [rag_rewrite/rewrite] 378 chars
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Loading weights:   0%|          | 0/268 [00:00<?, ?it/s]Loading weights: 100%|██████████| 268/268 [00:00<00:00, 8839.70it/s]
+[3/571] qa_unknown_scalr_131                FAIL   gold=B pred=None (2.6s, 1 calls)
+    [rag_rewrite/rewrite] 454 chars
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Loading weights:   0%|          | 0/268 [00:00<?, ?it/s]Loading weights: 100%|██████████| 268/268 [00:00<00:00, 9062.40it/s]
+[4/571] qa_unknown_scalr_512                FAIL   gold=A pred=None (8.8s, 1 calls)
+    [rag_rewrite/rewrite] 366 chars
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Loading weights:   0%|          | 0/268 [00:00<?, ?it/s]Loading weights: 100%|██████████| 268/268 [00:00<00:00, 8876.76it/s]
+
+[circuit-breaker] 5 consecutive errors. Last error: CUDA error: uncorrectable ECC error encountered
+Search for `cudaErrorECCUncorrectable' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+CUDA kernel erro
+[circuit-breaker] Aborting at question 5 to avoid garbage results.
+[2026-05-11T12:23:44-05:00] WARNING: no fresh detail log found for mode=rag_rewrite provider=or-gemma4-26b
+[2026-05-11T12:23:44-05:00] MODE FAILED: rag_rewrite (exit 1)
+[2026-05-11T12:23:44-05:00] completed with failures: rag_rewrite
