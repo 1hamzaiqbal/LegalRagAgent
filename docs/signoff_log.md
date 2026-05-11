@@ -119,13 +119,13 @@ Branch: `codex/final-report-snap-hyde`
    `0:0` at 145/200 = 72.5%, average calls 2.00, errors 0, missing predictions
    0, and no long-answer rows. Use `67867`, not health-caveated `67777`, for
    the snap-only ladder.
-18. ✅ **Capped SCALR baseline half of `67897` is clean, paired frontier pending**:
+18. ✅ **Capped SCALR baseline half of `67897` is clean, paired frontier health-gated**:
    the completed `rag_simple` mode was copied locally from
    `logs/eval_rag_simple_or-gemma4-26b_20260511_1218_legalbench_scalr_meeting-full-scalr-capped-or-gemma4-26b-n571-k5-rag_simple_detail.jsonl`
    and passes `scripts/analyze_detail_flags.py` at 419/571 = 73.4%, average
    calls 1.00, errors 0, missing predictions 0, empty retrieval 0, max output
-   tokens 4,405, and no long-answer rows. Cite only as a verified
-   baseline-half log until `adaptive_snap_hyre_frontier` finishes and validates.
+   tokens 4,405, and no long-answer rows. Cite as a verified baseline-half log
+   only; the paired frontier half is health-gated below.
 19. ✅ **CaseHOLD N=500 baseline mode of `67913` is clean, paired modes pending**:
    the completed `rag_simple` mode was copied locally from
    `logs/eval_rag_simple_or-gemma4-26b_20260511_1334_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_simple_detail.jsonl`
@@ -143,6 +143,21 @@ Branch: `codex/final-report-snap-hyde`
    `missing_prediction=1`, and `scripts/analyze_detail_flags.py` flags one
    long-answer row with max final-answer chars 20,480 / max output tokens
    8,454. Do not promote `67897` as a clean paired full-SCALR result.
+21. ✅ **SCALR N=571 query-rewrite retry `67915` completed cleanly**:
+   `rag_rewrite` was copied locally from
+   `logs/eval_rag_rewrite_or-gemma4-26b_20260511_1542_legalbench_scalr_meeting-n500-canonical-r2-or-gemma4-26b-legalbench_scalr-n571-k5-rag_rewrite_detail.jsonl`
+   and passes `scripts/analyze_detail_flags.py` at 423/571 = 74.1%, average
+   calls 2.00, errors 0, missing predictions 0, empty retrieval 0, max output
+   tokens 4,005, and no long-answer rows. This is the clean N>=500 SCALR
+   rewrite control after invalid CUDA/ECC attempt `67914`.
+22. ⚠️ **BarExam N=500 baseline mode of `67911` completed with one missing prediction**:
+   `rag_simple` was copied locally from
+   `logs/eval_rag_simple_or-gemma4-26b_20260511_1538_barexam_meeting-n500-canonical-or-gemma4-26b-barexam-n500-k5-rag_simple_detail.jsonl`
+   and passes `scripts/analyze_detail_flags.py` at 400/500 = 80.0%, average
+   calls 1.00, errors 0, empty retrieval 0, max output tokens 2,260, and no
+   long-answer rows, but has one missing prediction. Cite as a verified
+   baseline-mode log with that caveat until `rag_rewrite` and
+   `adaptive_snap_hyre_v2` finish and validate.
 
 ### New source paths
 
@@ -194,7 +209,10 @@ Branch: `codex/final-report-snap-hyde`
   `logs/eval_adaptive_snap_hyre_frontier_groq-llama70b_20260511_0626_legalbench_scalr_meeting-groq-heldout-fixed-groq-llama70b-q250-start200-end250-k5-adaptive_snap_hyre_frontier_detail.jsonl`.
 - N>=500 scale-up baseline-mode detail logs:
   `logs/eval_rag_simple_or-gemma4-26b_20260511_1218_legalbench_scalr_meeting-full-scalr-capped-or-gemma4-26b-n571-k5-rag_simple_detail.jsonl`,
+  `logs/eval_rag_simple_or-gemma4-26b_20260511_1538_barexam_meeting-n500-canonical-or-gemma4-26b-barexam-n500-k5-rag_simple_detail.jsonl`,
   `logs/eval_rag_simple_or-gemma4-26b_20260511_1334_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_simple_detail.jsonl`.
+- N>=500 clean rewrite detail logs:
+  `logs/eval_rag_rewrite_or-gemma4-26b_20260511_1542_legalbench_scalr_meeting-n500-canonical-r2-or-gemma4-26b-legalbench_scalr-n571-k5-rag_rewrite_detail.jsonl`.
 - N>=500 rejected/health-gated adaptive detail logs:
   `logs/eval_adaptive_snap_hyre_frontier_or-gemma4-26b_20260511_1513_legalbench_scalr_meeting-full-scalr-capped-or-gemma4-26b-n571-k5-adaptive_snap_hyre_frontier_detail.jsonl`.
 

@@ -126,6 +126,15 @@ average calls 2.00, max output tokens 8,454, max final-answer chars 20,480,
 one missing prediction, and one long-answer row. `scripts/audit_adaptive_hyre_logs.py`
 exits nonzero with `FAIL missing_prediction=1`.
 
+Refresh note, 2026-05-11 15:50 CDT: `67915` completed and the SCALR
+`rag_rewrite` retry was copied and checked: 571 rows, 423/571 = 74.1%, errors
+0, missing predictions 0, empty retrieval 0, average calls 2.00, max output
+tokens 4,005, and no long-answer rows. `67911` BarExam `rag_simple` mode also
+completed and was copied and checked: 500 rows, 400/500 = 80.0%, errors 0, one
+missing prediction, empty retrieval 0, average calls 1.00, max output tokens
+2,260, and no long-answer rows. BarExam rewrite/adaptive modes remain running
+or pending, so the BarExam row is tracked as a verified baseline-mode log.
+
 ```bash
 uv run python scripts/build_meeting_package_figures.py
 uv run python scripts/audit_adaptive_hyre_logs.py logs/eval_adaptive_snap_hyre_option_table_or-gemma4-26b_20260511_0028_casehold_casehold-option-table-direct-or-gemma4-26b-api-q250-start200-end250-k5-adaptive_snap_hyre_option_table_detail.jsonl
@@ -144,6 +153,8 @@ uv run python scripts/analyze_detail_flags.py logs/eval_rag_simple_or-gemma4-26b
 uv run python scripts/analyze_detail_flags.py logs/eval_adaptive_snap_hyre_frontier_or-gemma4-26b_20260511_1513_legalbench_scalr_meeting-full-scalr-capped-or-gemma4-26b-n571-k5-adaptive_snap_hyre_frontier_detail.jsonl
 uv run python scripts/audit_adaptive_hyre_logs.py logs/eval_adaptive_snap_hyre_frontier_or-gemma4-26b_20260511_1513_legalbench_scalr_meeting-full-scalr-capped-or-gemma4-26b-n571-k5-adaptive_snap_hyre_frontier_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_simple_or-gemma4-26b_20260511_1334_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_simple_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_rag_rewrite_or-gemma4-26b_20260511_1542_legalbench_scalr_meeting-n500-canonical-r2-or-gemma4-26b-legalbench_scalr-n571-k5-rag_rewrite_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_rag_simple_or-gemma4-26b_20260511_1538_barexam_meeting-n500-canonical-or-gemma4-26b-barexam-n500-k5-rag_simple_detail.jsonl
 rg -n "232797|CANCELLED|RESULTS" logs/slurm_67863_full_scalr_cancelled.out
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
