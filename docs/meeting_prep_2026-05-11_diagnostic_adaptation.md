@@ -101,7 +101,7 @@ BarExam; use it as a control, not the main portfolio result.
 | Model & Method | BarExam | HousingQA | CaseHOLD | SCALR | Avg. | Calls |
 |---|---:|---:|---:|---:|---:|---:|
 | Gemma 4 26B + matched baseline route | 80.0 | 60.5 | 73.0 | 74.0 | 71.9 | 1.00 |
-| + snap-only reasoning | 85.5 | 55.0 | 74.0 | 72.5 | 71.8 | 2.00 |
+| + snap-only reasoning | 85.5 | 55.0 | 72.5 | 72.5 | 71.4 | 2.00 |
 | + legal query rewrite control | 82.0 | 58.0* | 72.0* | 76.0* | 72.0 | 2.00 |
 | + preselected HyRE-family route | 86.0 | 63.5 | 73.5 | 76.0 | 74.8 | 2.00 |
 | + diagnostic controller routes | 86.0 | 74.5 | 73.5 | 77.5 | 77.9 | 1.30 |
@@ -115,9 +115,10 @@ dataset. The expanded ladder below separates HyRE-only and literal fixed
 Snap-HyRE controls.
 
 Snap-only is a useful diagnostic row, not the proposed final method: it nearly
-matches the best BarExam route, slightly beats the CaseHOLD baseline, and falls
-below the stronger HousingQA and SCALR routes. That pattern supports routing
-rather than a universal "add reasoning before answering" policy.
+matches the best BarExam route, trails the CaseHOLD baseline by 0.5pp after the
+clean capped replacement, and falls below the stronger HousingQA and SCALR
+routes. That pattern supports routing rather than a universal "add reasoning
+before answering" policy.
 
 Expanded Gemma ladder:
 
@@ -125,14 +126,14 @@ Expanded Gemma ladder:
 |---|---:|---:|---:|---:|---:|
 | BarExam | 80.0 | 85.5 | 82.0 | 84.5 | 86.0 |
 | HousingQA | 60.5 | 55.0 | 50.0 | 51.5 | 74.5 |
-| CaseHOLD | 73.0 | 74.0* | 71.5 | 72.0 | 73.5 |
+| CaseHOLD | 73.0 | 72.5 | 71.5 | 72.0 | 73.5 |
 | LegalBench-SCALR | 74.0 | 72.5 | 74.0* | 76.0 | 77.5 |
 
-`*` CaseHOLD snap-only is accuracy-usable but health-caveated: one correct row
-entered a repetition loop with 41,898 final-answer characters. A capped
-replacement was launched as SLURM `67866`, then cancelled after row 12 produced
-a 157,678-character answer. Replacement `67867` is pending with a patched
-OpenRouter `max_tokens` cap path.
+CaseHOLD snap-only now uses capped replacement `67867`: 145/200 = 72.5%,
+2.00 calls, errors 0, missing predictions 0, and no long-answer rows. It
+supersedes the earlier 74.0% row, which was health-caveated by one
+41,898-character answer. The failed intermediate replacement `67866` remains
+rejected because it produced a 157,678-character answer at row 12.
 
 `*` SCALR HyRE-only is the capped rerun from SLURM `67864`: the eval completed
 at 148/200 with a detail-log-clean health check, but the SLURM wrapper failed
@@ -252,7 +253,7 @@ Use this as the live checklist for final meeting prep:
 |---|---|
 | Main legal-only diagnostic package | Done: four benchmarks, calibration table, held-out table, bottleneck summary, and figure pack are source-gated. |
 | CaseHOLD option-table blocker | Done: implementation is repaired; result is a clean negative against stronger CaseHOLD routes. |
-| Expanded inherited ladder | Mostly done: snap-only, HyRE-only, literal fixed Snap-HyRE, and Groq held-out sanity rows are documented; only the CaseHOLD capped snap-only replacement (`67867`) and full-SCALR probe (`67863`) remain pending. |
+| Expanded inherited ladder | Mostly done: snap-only, HyRE-only, literal fixed Snap-HyRE, and Groq held-out sanity rows are documented; only the full-SCALR probe (`67863`) remains pending. |
 | Final handoff hygiene | Keep new runs out of the main table until validated; keep branch state clean after documentation updates are committed. |
 
 ## What To Say In The Meeting

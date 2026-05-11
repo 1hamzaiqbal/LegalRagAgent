@@ -22,7 +22,7 @@ Objective audited:
 | Verify BarExam snap-only control | SLURM job `67773` completed with exit `0:0`; copied detail log has 200 rows, 171/200 = 85.5%, average calls 2.00, errors 0, and one missing prediction. | Done |
 | Verify BarExam HyRE-only control | SLURM job `67825` completed with exit `0:0`; copied detail log has 200 rows, 164/200 = 82.0%, average calls 2.00, errors 0, and no missing predictions. | Done, modest positive control |
 | Verify HousingQA snap-only control | SLURM job `67775` completed with exit `0:0`; copied detail log has 200 rows, 110/200 = 55.0%, average calls 2.00, errors 0, and one missing prediction. | Done, negative control |
-| Verify CaseHOLD snap-only control | SLURM job `67777` completed with exit `0:0`; copied detail log has 200 rows, 148/200 = 74.0%, average calls 2.00, errors 0, and no missing predictions, but one correct row has a 41,898-character repetition loop. | Done, accuracy-usable but health-caveated |
+| Verify CaseHOLD snap-only control | SLURM job `67867` completed with exit `0:0`; copied detail log has 200 rows, 145/200 = 72.5%, average calls 2.00, errors 0, no missing predictions, and no long-answer rows. This supersedes health-caveated job `67777`. | Done |
 | Verify SCALR snap-only control | SLURM job `67779` completed with exit `0:0`; copied detail log has 200 rows, 145/200 = 72.5%, average calls 2.00, errors 0, and no missing predictions. | Done |
 | Verify HousingQA HyRE-only control | SLURM job `67826` completed with exit `0:0`; copied detail log has 200 rows, 100/200 = 50.0%, average calls 2.00, errors 0, and no missing predictions. | Done, negative control |
 | Verify CaseHOLD HyRE-only control | SLURM job `67827` completed with exit `0:0`; copied detail log has 200 rows, 143/200 = 71.5%, average calls 2.00, errors 0, and one missing prediction. | Done, weak/negative control |
@@ -32,11 +32,11 @@ Objective audited:
 | Verify BarExam fixed Snap-HyRE control | SLURM job `67829` completed with exit `0:0`; copied detail log has 200 rows, 169/200 = 84.5%, average calls 2.00, errors 0, one missing prediction, and no long-answer rows. | Done |
 | Verify Groq held-out sanity rows | Jobs `67832`, `67833`, `67834`, `67835`, `67836`, `67838`, and `67839` completed cleanly and were copied locally; job `67837` completed but is rejected due errors 2, empty retrieval 2, and missing predictions 2. | Done, partial model-coverage sanity |
 | Verify capped SCALR HyRE-only rerun | SLURM job `67864` completed the eval loop at 148/200 = 74.0%; copied detail log has 200 rows, average calls 2.00, errors 0, one missing prediction, empty retrieval 0, and no long-answer rows. The SLURM wrapper failed after results because `scripts/postprocess_adaptive_hyre_sweep.py` was missing. | Done, wrapper-caveated |
-| Relaunch capped CaseHOLD snap-only rerun | SLURM job `67866` was cancelled after row 12 produced a 157,678-character answer; `llm_config.py` now sends OpenRouter caps through `extra_body.max_tokens`, and replacement `67867` was launched with `LLM_MAX_COMPLETION_TOKENS=4096`. | In progress |
+| Relaunch capped CaseHOLD snap-only rerun | SLURM job `67866` was cancelled after row 12 produced a 157,678-character answer; `llm_config.py` now sends OpenRouter caps through `extra_body.max_tokens`, and replacement `67867` completed cleanly with `LLM_MAX_COMPLETION_TOKENS=4096`. | Done |
 | Repair retrieval-bearing launch blocker | `rag_utils.py` now reinitializes the GTE remote-code `position_ids` buffer; direct embedding smoke `67820` and `rag_hyde` smoke `67821` completed cleanly. | Done |
 | Harden detail-log validation | `scripts/analyze_detail_flags.py` now reports errors, missing predictions, parse failures, empty retrieval rows, average calls, max output tokens, max final-answer length, and long-answer outliers in addition to artifact leakage. | Done |
 | Add optional runaway-output cap | `llm_config.py` supports `LLM_MAX_COMPLETION_TOKENS` for targeted reruns that need bounded final-answer generations. For OpenRouter, the cap is sent as `extra_body.max_tokens`; default behavior remains unchanged when the env var is unset. | Done |
-| Reconcile missing ladder/model-coverage jobs | Gemma N=200 retrieval controls `67825-67831`, SCALR capped HyRE-only `67864`, and Groq held-out sanity jobs `67832-67839` have landed, with invalid rows explicitly rejected; only capped CaseHOLD snap-only replacement `67867` and full-SCALR probe `67863` remain live. | Mostly done |
+| Reconcile missing ladder/model-coverage jobs | Gemma N=200 retrieval controls `67825-67831`, SCALR capped HyRE-only `67864`, capped CaseHOLD snap-only replacement `67867`, and Groq held-out sanity jobs `67832-67839` have landed, with invalid rows explicitly rejected; only full-SCALR probe `67863` remains live. | Mostly done |
 | Build inherited ablation tables | Markdown tables in `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md`; slide-ready PNGs `12_diagnostic_adaptation_calibration_ablation.png` and `13_diagnostic_adaptation_heldout_ablation.png`. | Done |
 | Build diagrams | Mermaid controller diagram in the meeting prep; PNG route-map and macro-lift figures in `docs/presentation/figures/`. | Done |
 | Add figure captions | `docs/presentation/figures/captions.md` now includes captions and source notes for figures 12-16. | Done |
@@ -59,7 +59,7 @@ itself mean every long-horizon experiment has completed.
 | Four legal benchmarks only | BarExam, HousingQA, CaseHOLD, and LegalBench-SCALR are the only main-table datasets in the meeting prep. | Covered. |
 | Source-gated result reporting | Source JSONs, copied detail logs, `signoff_log.md`, and validation commands are listed in this audit. | Covered for reported numbers. |
 | Inherited ablation table | Calibration table now includes matched baseline route, snap-only reasoning, query rewrite, preselected HyRE-family route, and diagnostic controller. | Covered at the portfolio level. |
-| Snap-only across all four legal benchmarks | `docs/snap_only_controls_2026-05-11.json` and four copied detail logs; snap-only intentionally has empty retrieval payloads, and CaseHOLD has one long-answer outlier. Capped replacement `67866` was cancelled after another runaway answer; `67867` is pending with the patched OpenRouter cap path. | Covered for accuracy; CaseHOLD health replacement pending. |
+| Snap-only across all four legal benchmarks | `docs/snap_only_controls_2026-05-11.json` and four copied detail logs; snap-only intentionally has empty retrieval payloads. CaseHOLD now uses clean capped replacement `67867`, which supersedes the health-caveated `67777` row. | Covered. |
 | HyRE-only across all four legal benchmarks | BarExam job `67825` is complete and modestly positive; HousingQA job `67826` is complete and negative; CaseHOLD job `67827` is complete and weak/negative; SCALR uncapped job `67828` is rejected for runaway output, while capped rerun `67864` is detail-log clean at 74.0% with a postprocess wrapper caveat. | Covered with SCALR wrapper caveat. |
 | Fixed Snap-HyRE fill-in rows | Existing SCALR row is already source-gated; BarExam job `67829`, HousingQA job `67830`, and CaseHOLD job `67831` are complete. | Covered for the Gemma N=200 ladder. |
 | Adaptive/controller rows | `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json` and `docs/heldout_controller_eval_2026-05-10.json`. | Covered for current controller story. |
@@ -107,7 +107,7 @@ uv run python scripts/analyze_detail_flags.py logs/eval_adaptive_snap_hyre_optio
 uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0346_barexam_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0526_barexam_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
-uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0943_casehold_meeting-capped-snap-casehold-v2-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0443_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0511_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl
@@ -152,15 +152,14 @@ Health-check result for BarExam HyRE-only:
 Health-check result for CaseHOLD snap-only:
 
 - rows: 200
-- correct: 148/200 = 74.0%
+- correct: 145/200 = 72.5%
 - average calls: 2.00
 - errors: 0
 - missing predictions: 0
-- long final-answer rows: 1
-- max final-answer chars: 41,898
-- max output tokens: 41,842
-- verdict: accuracy-usable but health-caveated; capped replacement `67867` is
-  pending after `67866` was cancelled for another runaway answer
+- long final-answer rows: 0
+- max final-answer chars: 6,081
+- max output tokens: 4,646
+- verdict: clean capped replacement; supersedes health-caveated job `67777`
 - artifact flags: 0
 
 Health-check result for SCALR snap-only:
@@ -272,7 +271,6 @@ This package is meeting-ready, not a finished paper submission. The current
 controller is still partly evidence-summary/rule-based rather than a fully
 automatic learned router. BarExam and SCALR have route-policy nuance on the
 held-out slice, and CaseHOLD still needs a better option-conversion mechanism.
-The remaining live rows are source-gated fill-ins: capped CaseHOLD snap-only
-replacement `67867` and the targeted full-SCALR probe. Do not promote them
-unless they finish cleanly. Those are paper directions, not blockers for the
-May 11 meeting package.
+The remaining live row is the targeted full-SCALR probe. Do not promote it
+unless both halves finish and pass the health gates. That is a paper direction,
+not a blocker for the May 11 meeting package.

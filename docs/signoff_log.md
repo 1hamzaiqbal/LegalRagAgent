@@ -38,15 +38,13 @@ Branch: `codex/final-report-snap-hyde`
    BarExam `snap_only_in_final` job `67773` is 171/200 = 85.5% with 2.00 calls,
    errors 0, and one missing prediction. HousingQA `snap_only_in_final` job
    `67775` is 110/200 = 55.0% with 2.00 calls, errors 0, and one missing
-   prediction. CaseHOLD `snap_only_in_final` job `67777` is 148/200 = 74.0%
-   with 2.00 calls, errors 0, and no missing predictions, but one correct row
-   entered a 41,898-character repetition loop. LegalBench-SCALR
+   prediction. CaseHOLD `snap_only_in_final` job `67867` is 145/200 = 72.5%
+   with 2.00 calls, errors 0, no missing predictions, and no long-answer rows;
+   it supersedes health-caveated job `67777`. LegalBench-SCALR
    `snap_only_in_final` job `67779` is 145/200 = 72.5% with 2.00 calls, errors
    0, and no missing predictions. All four detail logs were copied from the
    cluster and summarized with `scripts/analyze_detail_flags.py`; empty
-   retrieval payloads are expected for `snap_only_in_final`. Treat CaseHOLD
-   snap-only as accuracy-usable but health-caveated until capped replacement
-   `67867` lands cleanly.
+   retrieval payloads are expected for `snap_only_in_final`.
 6. ✅ **Retrieval-bearing blocker is repaired enough for evaluated jobs**:
    `rag_utils.py` reinitializes the GTE remote-code `position_ids` buffer.
    Direct embedding smoke `67820` produced finite unit-norm query embeddings,
@@ -68,7 +66,7 @@ Branch: `codex/final-report-snap-hyde`
    `rag_hyde` job `67827` completed with exit `0:0` at 143/200 = 71.5%,
    average calls 2.00, errors 0, one missing prediction, and empty retrieval 0.
    It trails the current N=200 `rag_simple` baseline (73.0%), snap-only
-   control (74.0%), and diverse HyRE-family row (73.5%), so generic HyRE-only
+   control (72.5%), and diverse HyRE-family row (73.5%), so generic HyRE-only
    does not resolve the CaseHOLD answer-option conversion bottleneck.
 10. ❌ **SCALR HyRE-only uncapped completed but is not a clean report row**:
    `rag_hyde` job `67828` completed with exit `0:0` at 142/200 = 71.0%, but
@@ -89,8 +87,8 @@ Branch: `codex/final-report-snap-hyde`
 13. ⚠️ **CaseHOLD fixed Snap-HyRE landed as weak/negative**:
    `rag_snap_hyde_2call` job `67831` completed with exit `0:0` at 144/200 =
    72.0%, average calls 2.00, errors 0, missing predictions 0, empty retrieval
-   0, and no long-answer rows. It trails baseline retrieval, snap-only, and
-   diverse HyRE-family rows.
+   0, and no long-answer rows. It trails baseline retrieval, clean snap-only,
+   and diverse HyRE-family rows.
 14. ✅ **BarExam fixed Snap-HyRE landed**:
    `rag_snap_hyde_2call` job `67829` completed with exit `0:0` at 169/200 =
    84.5%, average calls 2.00, errors 0, one missing prediction, empty retrieval
@@ -112,10 +110,13 @@ Branch: `codex/final-report-snap-hyde`
    clean full-corpus baseline unless those rows are resolved or explicitly
    accepted as a caveated sanity check. The paired frontier half is still
    running.
-17. ❌ **CaseHOLD capped snap-only `67866` is not a clean replacement**:
-   the run was cancelled at 71/200 after row 12 produced a 157,678-character
-   answer and `pred=None`. Do not cite it. `llm_config.py` now sends OpenRouter
-   caps as `extra_body.max_tokens`; replacement `67867` is pending validation.
+17. ✅ **CaseHOLD capped snap-only replacement `67867` is clean**:
+   `67866` is rejected because it was cancelled at 71/200 after row 12 produced
+   a 157,678-character answer and `pred=None`. After patching OpenRouter caps
+   through `extra_body.max_tokens`, replacement `67867` completed with exit
+   `0:0` at 145/200 = 72.5%, average calls 2.00, errors 0, missing predictions
+   0, and no long-answer rows. Use `67867`, not health-caveated `67777`, for
+   the snap-only ladder.
 
 ### New source paths
 
@@ -134,7 +135,7 @@ Branch: `codex/final-report-snap-hyde`
 - Snap-only detail logs:
   `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0346_barexam_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`,
   `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`,
-  `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`,
+  `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0943_casehold_meeting-capped-snap-casehold-v2-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`,
   `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`.
 - BarExam HyRE-only detail log:
   `logs/eval_rag_hyde_or-gemma4-26b_20260511_0526_barexam_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl`.

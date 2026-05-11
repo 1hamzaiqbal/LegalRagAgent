@@ -32,14 +32,15 @@
     },
     {
       "dataset": "casehold",
-      "job_id": "67777",
-      "correct": 148,
+      "job_id": "67867",
+      "correct": 145,
       "total": 200,
-      "accuracy": 0.74,
+      "accuracy": 0.725,
       "avg_calls": 2.0,
       "errors": 0,
       "missing_predictions": 0,
-      "detail_log": "logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl"
+      "detail_log": "logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0943_casehold_meeting-capped-snap-casehold-v2-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl",
+      "supersedes_health_caveated_job": "67777"
     },
     {
       "dataset": "legalbench_scalr",
@@ -53,11 +54,12 @@
       "detail_log": "logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl"
     }
   ],
-  "macro_accuracy": 0.7175,
+  "macro_accuracy": 0.71375,
   "macro_avg_calls": 2.0,
   "validation": [
-    "sacct completed exit 0:0 for jobs 67773, 67775, 67777, 67779",
+    "sacct completed exit 0:0 for jobs 67773, 67775, 67867, 67779",
     "scripts/analyze_detail_flags.py loaded 200 rows for each copied detail log",
-    "artifact counters were zero for each copied detail log"
+    "artifact counters were zero for each copied detail log",
+    "CaseHOLD job 67867 supersedes health-caveated job 67777, which had one 41,898-character answer"
   ]
 }

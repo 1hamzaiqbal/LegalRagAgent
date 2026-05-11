@@ -40,7 +40,7 @@ Existing headline table:
 | Model & Method | BarExam | HousingQA | CaseHOLD | SCALR | Avg. | Calls |
 |---|---:|---:|---:|---:|---:|---:|
 | Gemma 4 26B + matched baseline route | 80.0 | 60.5 | 73.0 | 74.0 | 71.9 | 1.00 |
-| + snap-only reasoning | 85.5 | 55.0 | 74.0 | 72.5 | 71.8 | 2.00 |
+| + snap-only reasoning | 85.5 | 55.0 | 72.5 | 72.5 | 71.4 | 2.00 |
 | + legal query rewrite control | 82.0 | 58.0* | 72.0* | 76.0* | 72.0 | 2.00 |
 | + preselected HyRE-family route | 86.0 | 63.5 | 73.5 | 76.0 | 74.8 | 2.00 |
 | + diagnostic controller routes | 86.0 | 74.5 | 73.5 | 77.5 | 77.9 | 1.30 |
@@ -64,8 +64,8 @@ The professor-facing ablation should look inherited:
 Existing N=200 logs cover the key baseline/controller rows and most inherited
 controls. Snap-only, HyRE-only, and literal fixed Snap-HyRE rows have landed
 across the four legal benchmarks. SCALR HyRE-only is wrapper-caveated but
-detail-log clean after a capped rerun; CaseHOLD snap-only is accuracy-usable
-but has one long-answer outlier pending a capped replacement.
+detail-log clean after a capped rerun; CaseHOLD snap-only now uses the clean
+capped replacement `67867`.
 
 ## Landed Since This Expansion
 
@@ -76,7 +76,7 @@ These are source-gated additions after the initial package:
 | BarExam snap-only control | SLURM `67773`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0346_barexam_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 171/200 = 85.5%, avg calls 2.00, errors 0, missing prediction 1 |
 | BarExam HyRE-only retrieval control | SLURM `67825`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0526_barexam_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl` | Completed, 164/200 = 82.0%, avg calls 2.00, errors 0 |
 | HousingQA snap-only control | SLURM `67775`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 110/200 = 55.0%, avg calls 2.00, errors 0, missing prediction 1 |
-| CaseHOLD snap-only control | SLURM `67777`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 148/200 = 74.0%, avg calls 2.00, errors 0; health-caveated because one correct row has a 41,898-character repetition loop |
+| CaseHOLD snap-only control | SLURM `67867`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0943_casehold_meeting-capped-snap-casehold-v2-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 145/200 = 72.5%, avg calls 2.00, errors 0, missing predictions 0, no long-answer rows; supersedes health-caveated job `67777` |
 | LegalBench-SCALR snap-only control | SLURM `67779`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 145/200 = 72.5%, avg calls 2.00, errors 0 |
 | HousingQA HyRE-only retrieval control | SLURM `67826`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0443_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl` | Completed, 100/200 = 50.0%, avg calls 2.00, errors 0 |
 | CaseHOLD HyRE-only retrieval control | SLURM `67827`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0511_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl` | Completed, 143/200 = 71.5%, avg calls 2.00, errors 0, missing prediction 1 |
@@ -84,7 +84,7 @@ These are source-gated additions after the initial package:
 | HousingQA fixed Snap-HyRE control | SLURM `67830`; `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl` | Completed, 103/200 = 51.5%, avg calls 2.00, errors 0 |
 | CaseHOLD fixed Snap-HyRE control | SLURM `67831`; `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl` | Completed, 144/200 = 72.0%, avg calls 2.00, errors 0 |
 | SCALR capped HyRE-only rerun | SLURM `67864`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0734_detail.jsonl` | Eval completed at 148/200 = 74.0%, avg calls 2.00, errors 0, one missing prediction, no long-answer rows; wrapper failed after results due missing postprocess helper |
-| CaseHOLD capped snap-only rerun | SLURM `67866`, replacement `67867`; `LLM_MAX_COMPLETION_TOKENS=4096` | `67866` was cancelled after row 12 produced a 157,678-character answer. `67867` was launched after patching OpenRouter caps to send `max_tokens` through `extra_body`. |
+| CaseHOLD capped snap-only rerun | SLURM `67866`, replacement `67867`; `LLM_MAX_COMPLETION_TOKENS=4096` | `67866` was cancelled after row 12 produced a 157,678-character answer. `67867` completed cleanly at 145/200 = 72.5% after patching OpenRouter caps to send `max_tokens` through `extra_body`. |
 | GTE query-embedding repair | `rag_utils.py`; direct smoke SLURM `67820` | Completed; repaired `position_ids`, finite 1024-d unit-norm query embeddings |
 | Retrieval smoke after repair | SLURM `67821`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0341_barexam_embedding-fix-smoke2-or-gemma4-26b-n5-k5-rag_hyde_detail.jsonl` | Completed, 5/5; confirms retrieval-bearing jobs can run again |
 
@@ -93,8 +93,9 @@ matches the best verified BarExam controller row (86.0%), so its route decision
 should ask whether retrieval is worth the extra latency. HousingQA is the
 opposite pattern: visible snap reasoning alone is below the verified state-filter
 baseline (60.5%) and far below the Housing verifier route (74.5%). CaseHOLD
-slightly beats its baseline but does not resolve the option-conversion story;
-SCALR falls below the existing retrieval/Snap-HyRE rows. The macro result is
+now narrowly trails its baseline after the clean capped replacement, which
+keeps the option-conversion story unresolved; SCALR falls below the existing
+retrieval/Snap-HyRE rows. The macro result is
 therefore not a positive method claim; it is evidence that the controller needs
 to decide where reasoning is spent.
 
@@ -109,7 +110,7 @@ below snap-only reasoning (55.0%), state-filter retrieval (60.5%), and the
 Housing verifier route (74.5%). This further supports routing HousingQA toward
 state scoping and verification rather than generic hypothetical retrieval.
 CaseHOLD HyRE-only is also not enough: `rag_hyde` reaches 71.5%, below the
-baseline retrieval row (73.0%), snap-only reasoning (74.0%), and diverse HyRE
+baseline retrieval row (73.0%), snap-only reasoning (72.5%), and diverse HyRE
 (73.5%). That keeps the CaseHOLD diagnosis focused on answer-option conversion,
 not generic hypothetical retrieval.
 
@@ -117,7 +118,7 @@ The fixed `rag_snap_hyde_2call` fill-ins reinforce the same routing pattern.
 HousingQA fixed Snap-HyRE reaches only 51.5%, below snap-only (55.0%),
 state-filter retrieval (60.5%), snap-HyRE state retrieval (63.0%), and the
 verifier route (74.5%). CaseHOLD fixed Snap-HyRE reaches 72.0%, below the
-current baseline (73.0%), snap-only (74.0%), and diverse HyRE-family row
+current baseline (73.0%), clean snap-only (72.5%), and diverse HyRE-family row
 (73.5%). These are useful negative controls: fixed Snap-HyRE is not the
 adaptive policy for those bottlenecks.
 
@@ -155,13 +156,13 @@ Provider: `or-gemma4-26b`. Sample: N=200, seed 42, k=5.
 | 67825 | BarExam | `rag_hyde` | Completed and copied locally: 82.0%, 2.00 calls. |
 | 67775 | HousingQA | `snap_only_in_final` | Completed and copied locally: 55.0%, 2.00 calls. |
 | 67826 | HousingQA | `rag_hyde` | Completed and copied locally: 50.0%, 2.00 calls. |
-| 67777 | CaseHOLD | `snap_only_in_final` | Completed and copied locally: 74.0%, 2.00 calls; health-caveated due one long-answer outlier. |
+| 67777 | CaseHOLD | `snap_only_in_final` | Superseded health-caveated row: 74.0%, 2.00 calls, but one long-answer outlier. Use clean replacement `67867` instead. |
 | 67827 | CaseHOLD | `rag_hyde` | Completed and copied locally: 71.5%, 2.00 calls. |
 | 67779 | LegalBench-SCALR | `snap_only_in_final` | Completed and copied locally: 72.5%, 2.00 calls. |
 | 67828 | LegalBench-SCALR | `rag_hyde` | Completed and copied locally: 71.0%, but rejected as a clean row due one runaway final answer. |
 | 67864 | LegalBench-SCALR | `rag_hyde` | Eval completed and copied locally: 74.0%, 2.00 calls, no long-answer rows; wrapper failed after result write due missing postprocess helper. |
 | 67866 | CaseHOLD | `snap_only_in_final` | Cancelled at 71/200 after row 12 produced a 157,678-character answer and `pred=None`; not a clean replacement. |
-| 67867 | CaseHOLD | `snap_only_in_final` | Replacement launched with patched OpenRouter `max_tokens` cap path and `LLM_MAX_COMPLETION_TOKENS=4096`; pending validation. |
+| 67867 | CaseHOLD | `snap_only_in_final` | Clean replacement completed and copied locally: 72.5%, 2.00 calls, no missing predictions, no long-answer rows. |
 | 67829 | BarExam | `rag_snap_hyde_2call` | Completed and copied locally: 84.5%, 2.00 calls, one missing prediction. |
 | 67830 | HousingQA | `rag_snap_hyde_2call` | Completed and copied locally: 51.5%, 2.00 calls. |
 | 67831 | CaseHOLD | `rag_snap_hyde_2call` | Completed and copied locally: 72.0%, 2.00 calls. |
@@ -216,7 +217,7 @@ Do not cite any of these:
 | 67792, 67793, 67808 | Default GTE query embedding crashed before valid retrieval due to a corrupted remote-code `position_ids` buffer. | Invalid; root-caused and repaired in `rag_utils.py`, then smoke-tested by `67820` and `67821`. |
 | 67794-67806 | Pending retrieval jobs from the pre-repair launch. | Cancelled / invalid to avoid wasting API calls on the broken embedder. |
 | 67810-67818 | Embedding debug/smoke attempts, including a failed ONNX backend check because `optimum` is not installed. | Debug only; do not cite as eval results. |
-| 67866 | CaseHOLD capped snap-only replacement still produced a 157,678-character answer at row 12 despite the launch cap. | Cancelled; replacement `67867` launched after patching OpenRouter cap serialization. |
+| 67866 | CaseHOLD capped snap-only replacement still produced a 157,678-character answer at row 12 despite the launch cap. | Cancelled; clean replacement `67867` landed after patching OpenRouter cap serialization. |
 
 ## Full-Corpus Feasibility
 
@@ -271,8 +272,7 @@ If the active jobs do not finish before the meeting, the package is still
 usable. Present the verified controller story, then say:
 
 > We launched source-gated fill-ins for the inherited ladder and a Groq Llama 70B
-> held-out sanity layer. Most are now validated or explicitly rejected; the rows
-> still pending are the capped CaseHOLD snap-only replacement `67867` and the targeted
-> full-SCALR probe.
+> held-out sanity layer. The rows are now validated or explicitly rejected; the
+> only pending row is the targeted full-SCALR probe.
 
 That is stronger than rushing invalid numbers into the deck.

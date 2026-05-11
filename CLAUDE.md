@@ -22,8 +22,9 @@ reject/escalate.
 **Latest source-gated deltas**:
 - Snap-only controls are complete across the four legal benchmarks with copied
   detail logs and `analyze_detail_flags.py` validation: BarExam 85.5%,
-  HousingQA 55.0%, CaseHOLD 74.0%, and LegalBench-SCALR 72.5%, all at 2.00
-  calls.
+  HousingQA 55.0%, CaseHOLD 72.5%, and LegalBench-SCALR 72.5%, all at 2.00
+  calls. CaseHOLD uses clean capped replacement `67867`; the earlier 74.0%
+  row is superseded because it had a long-answer outlier.
 - BarExam HyRE-only (`rag_hyde`) is a modest positive retrieval control at
   82.0%, above baseline retrieval but below snap-only reasoning and the
   stronger fixed Snap-HyRE v2 route.
@@ -50,9 +51,8 @@ reject/escalate.
   held-out slice; cite it as an option-conversion bottleneck signal, not as a
   positive route.
 
-**Do not promote pending rows**: CaseHOLD capped snap-only replacement `67867`
-and the targeted full-SCALR sanity job must remain pending until their stdout,
-detail logs, and local validation all pass. Use
+**Do not promote pending rows**: the targeted full-SCALR sanity job must remain
+pending until its stdout, detail logs, and local validation all pass. Use
 `docs/meeting_eval_expansion_status_2026-05-11.md` for the current queue state
 before citing anything. The full-SCALR `rag_simple` half of `67863` is copied
 locally and structurally complete at 424/571, but it has three long-answer rows
@@ -62,7 +62,8 @@ and is health-gated rather than reportable.
 12 produced a 157,678-character answer, so it cannot replace the original
 health-caveated snap-only row. `llm_config.py` now sends OpenRouter caps through
 `extra_body={"max_tokens": ...}` because LangChain rewrites `max_tokens` to
-`max_completion_tokens`; replacement `67867` uses that patched cap path.
+`max_completion_tokens`; replacement `67867` landed cleanly at 145/200 with no
+long-answer rows and is the current snap-only CaseHOLD source.
 
 ## Update 2026-05-01 (meeting prep)
 
