@@ -59,6 +59,30 @@ def _collect_flagged_examples(rows: list[dict], key: str, text_keys: tuple[str, 
     return examples
 
 
+def _has_retrieval_payload(row: dict) -> bool:
+    """Return whether a row carries any retrieved evidence payload."""
+    for key in ("retrieved_ids", "evidence_store", "retrieved_passages", "retrieved_contexts", "contexts", "retrieval_results"):
+        value = row.get(key)
+        if value:
+            return True
+    return False
+
+
+def _has_retrieval_key(row: dict) -> bool:
+    return any(
+        key in row
+        for key in ("retrieved_ids", "evidence_store", "retrieved_passages", "retrieved_contexts", "contexts", "retrieval_results")
+    )
+
+
+def _numeric(row: dict, *keys: str) -> float | None:
+    for key in keys:
+        value = row.get(key)
+        if isinstance(value, (int, float)):
+            return float(value)
+    return None
+
+
 def summarize(path: Path) -> str:
     rows = _load_rows(path)
     if not rows:
@@ -85,10 +109,31 @@ def summarize(path: Path) -> str:
     rows_with_final_prompt_preview = sum(1 for r in rows if "final_prompt_preview" in r)
     rows_with_call_trace = sum(1 for r in rows if "call_trace" in r)
     rows_with_trace_events = sum(1 for r in rows if "trace_events" in r)
+    errors = sum(1 for r in rows if r.get("error"))
+    missing_predictions = sum(1 for r in rows if not r.get("predicted_answer"))
+    parse_failures = sum(1 for r in rows if r.get("parse_failed") or r.get("parse_failure"))
+    retrieval_rows = [r for r in rows if _has_retrieval_key(r)]
+    empty_retrieval = sum(1 for r in retrieval_rows if not _has_retrieval_payload(r))
+    call_values = [_numeric(r, "llm_calls", "num_llm_calls", "n_llm_calls", "call_count") for r in rows]
+    call_values = [v for v in call_values if v is not None]
+    output_tokens = [_numeric(r, "output_tokens", "total_output_tokens") for r in rows]
+    output_tokens = [v for v in output_tokens if v is not None]
+    answer_lengths = [(r.get("idx", "?"), len(str(r.get("final_answer") or ""))) for r in rows]
+    max_answer_idx, max_answer_chars = max(answer_lengths, key=lambda item: item[1])
+    long_answer_examples = [(idx, chars) for idx, chars in answer_lengths if chars > 20000]
 
     lines = [
         f"{path}",
         f"mode={mode} rows={n} accuracy={correct}/{n}",
+        f"errors={errors}",
+        f"missing_predicted_answer={missing_predictions}",
+        f"parse_failures={parse_failures}",
+        f"retrieval_key_rows={len(retrieval_rows)}",
+        f"empty_retrieval_rows={empty_retrieval}",
+        f"avg_llm_calls={(sum(call_values) / len(call_values)):.2f}" if call_values else "avg_llm_calls=n/a",
+        f"max_output_tokens={int(max(output_tokens))}" if output_tokens else "max_output_tokens=n/a",
+        f"max_final_answer_chars={max_answer_chars} idx={max_answer_idx}",
+        f"long_final_answer_rows={len(long_answer_examples)}",
         f"top_level_hyde_artifacts={top_hyde}",
         f"top_level_report_artifacts={top_report}",
         f"top_level_knowledge_artifacts={top_knowledge}",

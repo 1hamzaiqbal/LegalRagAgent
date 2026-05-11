@@ -27,6 +27,7 @@ Objective audited:
 | Verify HousingQA HyRE-only control | SLURM job `67826` completed with exit `0:0`; copied detail log has 200 rows, 100/200 = 50.0%, average calls 2.00, errors 0, and no missing predictions. | Done, negative control |
 | Verify CaseHOLD HyRE-only control | SLURM job `67827` completed with exit `0:0`; copied detail log has 200 rows, 143/200 = 71.5%, average calls 2.00, errors 0, and one missing prediction. | Done, weak/negative control |
 | Repair retrieval-bearing launch blocker | `rag_utils.py` now reinitializes the GTE remote-code `position_ids` buffer; direct embedding smoke `67820` and `rag_hyde` smoke `67821` completed cleanly. | Done |
+| Harden detail-log validation | `scripts/analyze_detail_flags.py` now reports errors, missing predictions, parse failures, empty retrieval rows, average calls, max output tokens, max final-answer length, and long-answer outliers in addition to artifact leakage. | Done |
 | Relaunch missing ladder/model-coverage jobs | Gemma N=200 retrieval controls `67825-67831` and Groq held-out sanity jobs `67832-67839` are queued/running with the repaired embedder. | In progress; not report numbers yet |
 | Build inherited ablation tables | Markdown tables in `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md`; slide-ready PNGs `12_diagnostic_adaptation_calibration_ablation.png` and `13_diagnostic_adaptation_heldout_ablation.png`. | Done |
 | Build diagrams | Mermaid controller diagram in the meeting prep; PNG route-map and macro-lift figures in `docs/presentation/figures/`. | Done |

@@ -211,7 +211,8 @@ A result can be promoted only if all gates pass:
 3. The expected detail JSONL exists in
    `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/`.
 4. `scripts/analyze_detail_flags.py <detail.jsonl>` reports sane health:
-   rows match target, no missing predictions spike, no empty-retrieval failure.
+   rows match target, no missing predictions spike, no empty-retrieval failure,
+   and no runaway final-answer length spike.
 5. Adaptive/HyRE-family rows also pass
    `scripts/audit_adaptive_hyre_logs.py <detail.jsonl>`.
 6. Paired comparisons use overlapping labels only; McNemar tests are optional
