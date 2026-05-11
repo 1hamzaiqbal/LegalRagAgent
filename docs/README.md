@@ -1,28 +1,31 @@
 # Documentation Index - LegalRagAgent
 
-Updated 2026-05-01. This is the repo map. It keeps the current path short and
+Updated 2026-05-11. This is the repo map. It keeps the current path short and
 separates citeable state from historical working notes.
 
 ## Start Here
 
 1. `../CLAUDE.md` - operational context for agents: active snapshot, commands,
    environment notes, methodology gates, and known cluster caveats.
-2. `meeting_prep_2026-05-12_diagnostic_adaptation.md` - current May 12 meeting
+2. `meeting_eval_expansion_status_2026-05-11.md` - May 11 expanded status for
+   the inherited ablation ladder, active cluster jobs, invalid run exclusions,
+   full-corpus feasibility, and validation gates.
+3. `meeting_prep_2026-05-12_diagnostic_adaptation.md` - current May 12 meeting
    brief for the legal-only diagnostic adaptation framework, including the
    north-star goal, calibration/held-out ablation tables, live CaseHOLD
    option-table status, and the 15-hour work budget.
-3. `meeting_package_audit_2026-05-11.md` - completion checklist for the May 12
+4. `meeting_package_audit_2026-05-11.md` - completion checklist for the May 12
    package, mapping the goal to source JSONs, validation commands, generated
    figures, and remaining paper risks.
-4. `meeting_state_2026-05-01.md` - meeting-ready synthesis of current findings,
+5. `meeting_state_2026-05-01.md` - meeting-ready synthesis of current findings,
    open blockers, live jobs, and defensible interpretation.
-5. `signoff_log.md` - cite-or-not gate. If a result is absent, `PENDING`, or
+6. `signoff_log.md` - cite-or-not gate. If a result is absent, `PENDING`, or
    explicitly caveated here, do not promote it to a paper-grade claim.
-6. `compiled_results.md` plus `../logs/experiments.jsonl` - audited result
+7. `compiled_results.md` plus `../logs/experiments.jsonl` - audited result
    ledger and machine-readable run summaries.
-7. `benchmark_method_birdseye_2026-04-30.md` - compact map of benchmarks,
+8. `benchmark_method_birdseye_2026-04-30.md` - compact map of benchmarks,
    methods, what each dataset tests, and harness gaps.
-8. `../reports/final_class_report/main.pdf` or
+9. `../reports/final_class_report/main.pdf` or
    `../reports/final_class_report/main.tex`
    - current class-report draft with figures/tables.
 
@@ -153,8 +156,11 @@ signoff log decides whether a claim is ready to cite.
   small baseline lift but negative versus query rewrite and diverse HyRE.
 - `meeting_package_audit_2026-05-11.md` and
   `../scripts/build_meeting_package_figures.py` - May 12 diagnostic-adaptation
-  package audit plus reproducible generation for figures 12-15 under
+  package audit plus reproducible generation for figures 12-16 under
   `presentation/figures/`.
+- `meeting_eval_expansion_status_2026-05-11.md` - active May 11 expansion
+  status: inherited ladder jobs, Groq cross-model sanity layer, invalid run
+  exclusions, and validation gates before any new number can be cited.
 - `bottleneck_aware_diagnostic_framework_2026-05-10.md` - current pivot from
   fixed Snap-HyRE prompt iteration to bottleneck-aware diagnostic adaptation.
 - `diagnostic_controller_route_plan_2026-05-10.md` and

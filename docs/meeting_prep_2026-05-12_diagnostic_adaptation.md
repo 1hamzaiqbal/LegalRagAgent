@@ -69,6 +69,10 @@ Generated with `uv run python scripts/build_meeting_package_figures.py`.
 | `docs/presentation/figures/13_diagnostic_adaptation_heldout_ablation.png` | Slide-ready inherited held-out table on rows 200-249. |
 | `docs/presentation/figures/14_diagnostic_controller_macro_lift.png` | Compact macro-accuracy/call-cost comparison for baseline versus controller. |
 | `docs/presentation/figures/15_bottleneck_diagnostic_route_map.png` | Visual map from evidence signal to bottleneck label to routed policy. |
+| `docs/presentation/figures/16_method_ladder_flowchart.png` | Method-family flowchart for baseline, snap-only, HyRE-only, Snap-HyRE, and diagnostic routing. |
+
+May 11 expansion status, active job IDs, and invalid-run exclusions are tracked
+in `docs/meeting_eval_expansion_status_2026-05-11.md`.
 
 ## Legal Benchmarks
 

@@ -42,6 +42,7 @@ Outputs:
 - `docs/presentation/figures/13_diagnostic_adaptation_heldout_ablation.png`
 - `docs/presentation/figures/14_diagnostic_controller_macro_lift.png`
 - `docs/presentation/figures/15_bottleneck_diagnostic_route_map.png`
+- `docs/presentation/figures/16_method_ladder_flowchart.png`
 
 The figure builder reads only source-gated JSON summaries:
 
@@ -75,4 +76,3 @@ controller is still partly evidence-summary/rule-based rather than a fully
 automatic learned router. BarExam and SCALR have route-policy nuance on the
 held-out slice, and CaseHOLD still needs a better option-conversion mechanism.
 Those are paper directions, not blockers for the May 12 meeting package.
-
