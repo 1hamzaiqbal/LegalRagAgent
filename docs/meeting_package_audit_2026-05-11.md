@@ -26,6 +26,10 @@ Objective audited:
 | Verify SCALR snap-only control | SLURM job `67779` completed with exit `0:0`; copied detail log has 200 rows, 145/200 = 72.5%, average calls 2.00, errors 0, and no missing predictions. | Done |
 | Verify HousingQA HyRE-only control | SLURM job `67826` completed with exit `0:0`; copied detail log has 200 rows, 100/200 = 50.0%, average calls 2.00, errors 0, and no missing predictions. | Done, negative control |
 | Verify CaseHOLD HyRE-only control | SLURM job `67827` completed with exit `0:0`; copied detail log has 200 rows, 143/200 = 71.5%, average calls 2.00, errors 0, and one missing prediction. | Done, weak/negative control |
+| Reject SCALR HyRE-only uncapped control | SLURM job `67828` completed with exit `0:0`, but copied detail log has one runaway final answer: 267,458 chars / 70,593 output tokens. | Done; not a clean report number |
+| Verify HousingQA fixed Snap-HyRE control | SLURM job `67830` completed with exit `0:0`; copied detail log has 200 rows, 103/200 = 51.5%, average calls 2.00, errors 0, no missing predictions, and no long-answer rows. | Done, negative control |
+| Verify CaseHOLD fixed Snap-HyRE control | SLURM job `67831` completed with exit `0:0`; copied detail log has 200 rows, 144/200 = 72.0%, average calls 2.00, errors 0, no missing predictions, and no long-answer rows. | Done, weak/negative control |
+| Launch capped SCALR HyRE-only rerun | SLURM job `67864` launched with `LLM_MAX_COMPLETION_TOKENS=4096` after the uncapped SCALR HyRE-only row failed the long-output gate. | In progress |
 | Repair retrieval-bearing launch blocker | `rag_utils.py` now reinitializes the GTE remote-code `position_ids` buffer; direct embedding smoke `67820` and `rag_hyde` smoke `67821` completed cleanly. | Done |
 | Harden detail-log validation | `scripts/analyze_detail_flags.py` now reports errors, missing predictions, parse failures, empty retrieval rows, average calls, max output tokens, max final-answer length, and long-answer outliers in addition to artifact leakage. | Done |
 | Add optional runaway-output cap | `llm_config.py` supports `LLM_MAX_COMPLETION_TOKENS` for targeted reruns that need bounded final-answer generations. Default behavior remains unchanged when the env var is unset. | Done |
@@ -52,8 +56,8 @@ itself mean every long-horizon experiment has completed.
 | Source-gated result reporting | Source JSONs, copied detail logs, `signoff_log.md`, and validation commands are listed in this audit. | Covered for reported numbers. |
 | Inherited ablation table | Calibration table now includes baseline retrieval, snap-only reasoning, query rewrite, fixed HyRE family, and diagnostic controller. | Covered at the portfolio level. |
 | Snap-only across all four legal benchmarks | `docs/snap_only_controls_2026-05-11.json` and four copied detail logs; all pass `analyze_detail_flags.py`. | Covered. |
-| HyRE-only across all four legal benchmarks | BarExam job `67825` is complete and modestly positive; HousingQA job `67826` is complete and negative; CaseHOLD job `67827` is complete and weak/negative; SCALR job `67828` is still running under the repaired embedder. | Partial; BarExam, HousingQA, and CaseHOLD are citeable. |
-| Fixed Snap-HyRE fill-in rows | Existing portfolio has fixed HyRE-family rows; missing provider-matched N=200 fill-ins are SLURM `67829-67831`. | In progress / pending; do not cite yet. |
+| HyRE-only across all four legal benchmarks | BarExam job `67825` is complete and modestly positive; HousingQA job `67826` is complete and negative; CaseHOLD job `67827` is complete and weak/negative; SCALR job `67828` completed but failed the long-output health gate, so capped rerun `67864` is live. | Partial; BarExam, HousingQA, and CaseHOLD are citeable, SCALR is source-gated but rejected pending rerun. |
+| Fixed Snap-HyRE fill-in rows | Existing SCALR row is already source-gated; HousingQA job `67830` and CaseHOLD job `67831` are complete; BarExam job `67829` remains running. | Partial; HousingQA and CaseHOLD fill-ins are citeable, BarExam pending. |
 | Adaptive/controller rows | `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json` and `docs/heldout_controller_eval_2026-05-10.json`. | Covered for current controller story. |
 | Cross-model coverage | Groq Llama 70B held-out sanity jobs `67832-67839` are queued. | Pending; not a report result yet. |
 | Full-corpus evaluations where feasible | Harness full sizes are documented in `docs/meeting_eval_expansion_status_2026-05-11.md`; all-method/all-model full corpus is not feasible before the meeting; targeted full-SCALR sanity job `67863` is launched for `rag_simple` and `adaptive_snap_hyre_frontier`. | Launched / pending; no full-corpus result is promoted. |
@@ -103,6 +107,10 @@ uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-ge
 uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0443_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0511_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0559_legalbench_scalr_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
+uv run python scripts/audit_adaptive_hyre_logs.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0559_legalbench_scalr_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
 ```
 
 Health-check result for the direct option-table log:
@@ -180,6 +188,41 @@ Health-check result for CaseHOLD HyRE-only:
 - errors: 0
 - missing predictions: 1
 - empty retrieval: 0
+- artifact flags: 0
+
+Health-check result for SCALR HyRE-only uncapped:
+
+- rows: 200
+- correct: 142/200 = 71.0%
+- average calls: 2.00
+- errors: 0
+- missing predictions: 0
+- empty retrieval: 0
+- long final-answer rows: 1
+- max final-answer chars: 267,458
+- max output tokens: 70,593
+- verdict: rejected as a clean report number; capped rerun `67864` launched
+
+Health-check result for HousingQA fixed Snap-HyRE:
+
+- rows: 200
+- correct: 103/200 = 51.5%
+- average calls: 2.00
+- errors: 0
+- missing predictions: 0
+- empty retrieval: 0
+- long final-answer rows: 0
+- artifact flags: 0
+
+Health-check result for CaseHOLD fixed Snap-HyRE:
+
+- rows: 200
+- correct: 144/200 = 72.0%
+- average calls: 2.00
+- errors: 0
+- missing predictions: 0
+- empty retrieval: 0
+- long final-answer rows: 0
 - artifact flags: 0
 
 ## Remaining Risk

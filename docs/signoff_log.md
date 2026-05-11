@@ -65,6 +65,21 @@ Branch: `codex/final-report-snap-hyde`
    It trails the current N=200 `rag_simple` baseline (73.0%), snap-only
    control (74.0%), and diverse HyRE-family row (73.5%), so generic HyRE-only
    does not resolve the CaseHOLD answer-option conversion bottleneck.
+10. ❌ **SCALR HyRE-only uncapped completed but is not a clean report row**:
+   `rag_hyde` job `67828` completed with exit `0:0` at 142/200 = 71.0%, but
+   `analyze_detail_flags.py` flags one runaway final answer with 267,458 chars
+   and 70,593 output tokens. Do not cite this as a clean method result.
+   Capped rerun `67864` was launched with `LLM_MAX_COMPLETION_TOKENS=4096`.
+11. ⚠️ **HousingQA fixed Snap-HyRE landed as a negative control**:
+   `rag_snap_hyde_2call` job `67830` completed with exit `0:0` at 103/200 =
+   51.5%, average calls 2.00, errors 0, missing predictions 0, empty retrieval
+   0, and no long-answer rows. It is below snap-only, state-filter retrieval,
+   snap-HyRE state retrieval, and the verifier route.
+12. ⚠️ **CaseHOLD fixed Snap-HyRE landed as weak/negative**:
+   `rag_snap_hyde_2call` job `67831` completed with exit `0:0` at 144/200 =
+   72.0%, average calls 2.00, errors 0, missing predictions 0, empty retrieval
+   0, and no long-answer rows. It trails baseline retrieval, snap-only, and
+   diverse HyRE-family rows.
 
 ### New source paths
 
@@ -91,6 +106,12 @@ Branch: `codex/final-report-snap-hyde`
   `logs/eval_rag_hyde_or-gemma4-26b_20260511_0443_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl`.
 - CaseHOLD HyRE-only detail log:
   `logs/eval_rag_hyde_or-gemma4-26b_20260511_0511_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl`.
+- SCALR HyRE-only rejected detail log:
+  `logs/eval_rag_hyde_or-gemma4-26b_20260511_0559_legalbench_scalr_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl`.
+- HousingQA fixed Snap-HyRE detail log:
+  `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl`.
+- CaseHOLD fixed Snap-HyRE detail log:
+  `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl`.
 
 ## Update 2026-05-01 ~meeting prep
 

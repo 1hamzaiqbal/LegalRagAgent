@@ -31,12 +31,17 @@ reject/escalate.
   below snap-only, state-filter retrieval, and the verifier route.
 - CaseHOLD HyRE-only (`rag_hyde`) is a weak/negative control at 71.5%, below
   current baseline retrieval, snap-only, and diverse HyRE-family rows.
+- HousingQA fixed Snap-HyRE (`rag_snap_hyde_2call`) is a clean negative
+  control at 51.5%; CaseHOLD fixed Snap-HyRE is weak/negative at 72.0%.
+- SCALR HyRE-only completed at 71.0% but is rejected as a clean report row
+  because one final answer ran away to 267,458 chars / 70,593 output tokens.
+  Capped rerun `67864` is live with `LLM_MAX_COMPLETION_TOKENS=4096`.
 - CaseHOLD direct option-table is repaired and clean but weak at 70.0% on the
   held-out slice; cite it as an option-conversion bottleneck signal, not as a
   positive route.
 
-**Do not promote pending rows**: SCALR HyRE-only fill-in, fixed Snap-HyRE
-fill-ins, Groq cross-model sanity, and the targeted full-SCALR sanity job must
+**Do not promote pending rows**: BarExam fixed Snap-HyRE, SCALR capped HyRE-only
+rerun, Groq cross-model sanity, and the targeted full-SCALR sanity job must
 remain pending until their stdout, detail logs, and local validation all pass.
 Use `docs/meeting_eval_expansion_status_2026-05-11.md` for the current queue
 state before citing anything.

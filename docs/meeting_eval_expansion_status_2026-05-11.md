@@ -76,6 +76,10 @@ These are source-gated additions after the initial package:
 | LegalBench-SCALR snap-only control | SLURM `67779`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 145/200 = 72.5%, avg calls 2.00, errors 0 |
 | HousingQA HyRE-only retrieval control | SLURM `67826`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0443_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl` | Completed, 100/200 = 50.0%, avg calls 2.00, errors 0 |
 | CaseHOLD HyRE-only retrieval control | SLURM `67827`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0511_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl` | Completed, 143/200 = 71.5%, avg calls 2.00, errors 0, missing prediction 1 |
+| LegalBench-SCALR HyRE-only retrieval control | SLURM `67828`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0559_legalbench_scalr_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl` | Completed, 142/200 = 71.0%, but rejected as clean result: one runaway final answer has 267,458 chars / 70,593 output tokens |
+| HousingQA fixed Snap-HyRE control | SLURM `67830`; `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl` | Completed, 103/200 = 51.5%, avg calls 2.00, errors 0 |
+| CaseHOLD fixed Snap-HyRE control | SLURM `67831`; `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl` | Completed, 144/200 = 72.0%, avg calls 2.00, errors 0 |
+| SCALR capped HyRE-only rerun | SLURM `67864`; `LLM_MAX_COMPLETION_TOKENS=4096` | Launched to replace rejected uncapped SCALR HyRE-only row |
 | GTE query-embedding repair | `rag_utils.py`; direct smoke SLURM `67820` | Completed; repaired `position_ids`, finite 1024-d unit-norm query embeddings |
 | Retrieval smoke after repair | SLURM `67821`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0341_barexam_embedding-fix-smoke2-or-gemma4-26b-n5-k5-rag_hyde_detail.jsonl` | Completed, 5/5; confirms retrieval-bearing jobs can run again |
 
@@ -103,6 +107,19 @@ CaseHOLD HyRE-only is also not enough: `rag_hyde` reaches 71.5%, below the
 baseline retrieval row (73.0%), snap-only reasoning (74.0%), and diverse HyRE
 (73.5%). That keeps the CaseHOLD diagnosis focused on answer-option conversion,
 not generic hypothetical retrieval.
+
+The fixed `rag_snap_hyde_2call` fill-ins reinforce the same routing pattern.
+HousingQA fixed Snap-HyRE reaches only 51.5%, below snap-only (55.0%),
+state-filter retrieval (60.5%), snap-HyRE state retrieval (63.0%), and the
+verifier route (74.5%). CaseHOLD fixed Snap-HyRE reaches 72.0%, below the
+current baseline (73.0%), snap-only (74.0%), and diverse HyRE-family row
+(73.5%). These are useful negative controls: fixed Snap-HyRE is not the
+adaptive policy for those bottlenecks.
+
+SCALR HyRE-only technically completed at 71.0%, but it fails the May 11 health
+gate because one row produced a 267,458-character final answer. Do not promote
+that row as clean evidence; capped rerun `67864` was launched with
+`LLM_MAX_COMPLETION_TOKENS=4096`.
 
 ## Active And Pending Jobs
 
@@ -132,10 +149,11 @@ Provider: `or-gemma4-26b`. Sample: N=200, seed 42, k=5.
 | 67777 | CaseHOLD | `snap_only_in_final` | Completed and copied locally: 74.0%, 2.00 calls. |
 | 67827 | CaseHOLD | `rag_hyde` | Completed and copied locally: 71.5%, 2.00 calls. |
 | 67779 | LegalBench-SCALR | `snap_only_in_final` | Completed and copied locally: 72.5%, 2.00 calls. |
-| 67828 | LegalBench-SCALR | `rag_hyde` | HyRE-only control. |
+| 67828 | LegalBench-SCALR | `rag_hyde` | Completed and copied locally: 71.0%, but rejected as a clean row due one runaway final answer. |
+| 67864 | LegalBench-SCALR | `rag_hyde` | Capped rerun launched with `LLM_MAX_COMPLETION_TOKENS=4096`. |
 | 67829 | BarExam | `rag_snap_hyde_2call` | Fixed Snap-HyRE N=200 row missing for this provider. |
-| 67830 | HousingQA | `rag_snap_hyde_2call` | Fixed Snap-HyRE N=200 row missing for this provider. |
-| 67831 | CaseHOLD | `rag_snap_hyde_2call` | Fixed Snap-HyRE N=200 row missing for this provider. |
+| 67830 | HousingQA | `rag_snap_hyde_2call` | Completed and copied locally: 51.5%, 2.00 calls. |
+| 67831 | CaseHOLD | `rag_snap_hyde_2call` | Completed and copied locally: 72.0%, 2.00 calls. |
 
 ### Cross-Model Sanity Layer
 
