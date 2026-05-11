@@ -138,9 +138,9 @@ signoff log decides whether a claim is ready to cite.
 - `casehold_option_table_heldout_2026-05-10.md` - submitted targeted CaseHOLD
   option-conversion probe on held-out rows 200-249; pending validation before
   result claims.
-- `casehold_replay_selector_heldout_2026-05-10.md` - submitted CaseHOLD
-  held-out replay selector over the already validated diverse-route evidence;
-  pending validation before result claims.
+- `casehold_replay_selector_heldout_2026-05-10.md` - validated CaseHOLD
+  held-out replay selector over the already validated diverse-route evidence:
+  33/50 = 66.0%, a clean negative result below the 78.0% selected route.
 - `bottleneck_aware_diagnostic_framework_2026-05-10.md` - current pivot from
   fixed Snap-HyRE prompt iteration to bottleneck-aware diagnostic adaptation.
 - `diagnostic_controller_route_plan_2026-05-10.md` and

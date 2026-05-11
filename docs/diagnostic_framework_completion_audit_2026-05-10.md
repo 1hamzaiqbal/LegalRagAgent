@@ -87,11 +87,14 @@ same-slice query-rewrite gap and strengthens the diagnostic routing argument.
      option-table held-out attempt. It is blocked before evaluation by a
      candidate-conditioned embedding/query index error, so it is not a valid
      positive or negative method result.
+   - `docs/casehold_replay_selector_heldout_2026-05-10.md` records a clean
+     no-retrieval replay-selector negative result: 33/50 = 66.0%, below
+     `rag_simple`, `rag_rewrite`, and the selected diverse route.
 
 ## Next Concrete Experiment
 
-Prioritize fixing the CaseHOLD option-table retrieval/query path or replacing
-it with a simpler option-conversion policy that can run cleanly on held-out
-rows. The goal is not to discover a new prompt; it is to test whether the
-remaining unresolved bottleneck can be handled by a calibrated option converter
-rather than by more retrieval exposure alone.
+Prioritize fixing the CaseHOLD option-table retrieval/query path or designing a
+non-replay option-conversion policy. The held-out replay selector has now run
+cleanly and underperformed, so the next useful CaseHOLD move should change the
+evidence representation or option-conversion mechanism rather than re-asking a
+generic final selector over the same evidence.
