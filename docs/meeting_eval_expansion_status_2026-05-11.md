@@ -70,6 +70,7 @@ These are source-gated additions after the initial package:
 | Item | Source | Status |
 |---|---|---|
 | BarExam snap-only control | SLURM `67773`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0346_barexam_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 171/200 = 85.5%, avg calls 2.00, errors 0, missing prediction 1 |
+| BarExam HyRE-only retrieval control | SLURM `67825`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0526_barexam_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl` | Completed, 164/200 = 82.0%, avg calls 2.00, errors 0 |
 | HousingQA snap-only control | SLURM `67775`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 110/200 = 55.0%, avg calls 2.00, errors 0, missing prediction 1 |
 | CaseHOLD snap-only control | SLURM `67777`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 148/200 = 74.0%, avg calls 2.00, errors 0 |
 | LegalBench-SCALR snap-only control | SLURM `67779`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 145/200 = 72.5%, avg calls 2.00, errors 0 |
@@ -87,6 +88,12 @@ slightly beats its baseline but does not resolve the option-conversion story;
 SCALR falls below the existing retrieval/Snap-HyRE rows. The macro result is
 therefore not a positive method claim; it is evidence that the controller needs
 to decide where reasoning is spent.
+
+BarExam HyRE-only is a modest retrieval-only lift: `rag_hyde` reaches 82.0%,
+above the baseline retrieval row (80.0%) but below snap-only reasoning (85.5%)
+and the stronger fixed Snap-HyRE v2 route (86.0%). This keeps BarExam routed
+toward a rewrite-vs-Snap-HyRE selector rather than generic hypothetical
+retrieval alone.
 
 The repaired HousingQA HyRE-only row is also negative: `rag_hyde` reaches 50.0%,
 below snap-only reasoning (55.0%), state-filter retrieval (60.5%), and the
@@ -116,7 +123,7 @@ Provider: `or-gemma4-26b`. Sample: N=200, seed 42, k=5.
 | Job | Dataset | Mode | Why it matters |
 |---:|---|---|---|
 | 67773 | BarExam | `snap_only_in_final` | Completed and copied locally: 85.5%, 2.00 calls. |
-| 67825 | BarExam | `rag_hyde` | HyRE/HyDE-only control; relaunched after embedding repair. |
+| 67825 | BarExam | `rag_hyde` | Completed and copied locally: 82.0%, 2.00 calls. |
 | 67775 | HousingQA | `snap_only_in_final` | Completed and copied locally: 55.0%, 2.00 calls. |
 | 67826 | HousingQA | `rag_hyde` | Completed and copied locally: 50.0%, 2.00 calls. |
 | 67777 | CaseHOLD | `snap_only_in_final` | Completed and copied locally: 74.0%, 2.00 calls. |

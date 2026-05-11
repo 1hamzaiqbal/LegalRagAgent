@@ -20,6 +20,7 @@ Objective audited:
 | Verify held-out results | `docs/heldout_controller_eval_2026-05-10.json` and `docs/heldout_query_rewrite_2026-05-10.json` back the held-out table: baseline 71.5%, rewrite 75.5%, controller 77.5%. | Done |
 | Verify the live CaseHOLD targeted run | SLURM job `67744` completed with exit `0:0`; `analyze_detail_flags.py` and `audit_adaptive_hyre_logs.py` passed on the copied detail log. | Done |
 | Verify BarExam snap-only control | SLURM job `67773` completed with exit `0:0`; copied detail log has 200 rows, 171/200 = 85.5%, average calls 2.00, errors 0, and one missing prediction. | Done |
+| Verify BarExam HyRE-only control | SLURM job `67825` completed with exit `0:0`; copied detail log has 200 rows, 164/200 = 82.0%, average calls 2.00, errors 0, and no missing predictions. | Done, modest positive control |
 | Verify HousingQA snap-only control | SLURM job `67775` completed with exit `0:0`; copied detail log has 200 rows, 110/200 = 55.0%, average calls 2.00, errors 0, and one missing prediction. | Done, negative control |
 | Verify CaseHOLD snap-only control | SLURM job `67777` completed with exit `0:0`; copied detail log has 200 rows, 148/200 = 74.0%, average calls 2.00, errors 0, and no missing predictions. | Done |
 | Verify SCALR snap-only control | SLURM job `67779` completed with exit `0:0`; copied detail log has 200 rows, 145/200 = 72.5%, average calls 2.00, errors 0, and no missing predictions. | Done |
@@ -49,7 +50,7 @@ itself mean every long-horizon experiment has completed.
 | Source-gated result reporting | Source JSONs, copied detail logs, `signoff_log.md`, and validation commands are listed in this audit. | Covered for reported numbers. |
 | Inherited ablation table | Calibration table now includes baseline retrieval, snap-only reasoning, query rewrite, fixed HyRE family, and diagnostic controller. | Covered at the portfolio level. |
 | Snap-only across all four legal benchmarks | `docs/snap_only_controls_2026-05-11.json` and four copied detail logs; all pass `analyze_detail_flags.py`. | Covered. |
-| HyRE-only across all four legal benchmarks | HousingQA job `67826` is complete and negative; CaseHOLD job `67827` is complete and weak/negative; BarExam and SCALR jobs `67825` and `67828` are still running under the repaired embedder. | Partial; HousingQA and CaseHOLD are citeable. |
+| HyRE-only across all four legal benchmarks | BarExam job `67825` is complete and modestly positive; HousingQA job `67826` is complete and negative; CaseHOLD job `67827` is complete and weak/negative; SCALR job `67828` is still running under the repaired embedder. | Partial; BarExam, HousingQA, and CaseHOLD are citeable. |
 | Fixed Snap-HyRE fill-in rows | Existing portfolio has fixed HyRE-family rows; missing provider-matched N=200 fill-ins are SLURM `67829-67831`. | In progress / pending; do not cite yet. |
 | Adaptive/controller rows | `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json` and `docs/heldout_controller_eval_2026-05-10.json`. | Covered for current controller story. |
 | Cross-model coverage | Groq Llama 70B held-out sanity jobs `67832-67839` are queued. | Pending; not a report result yet. |
@@ -94,6 +95,7 @@ uv run python scripts/build_meeting_package_figures.py
 uv run python scripts/audit_adaptive_hyre_logs.py logs/eval_adaptive_snap_hyre_option_table_or-gemma4-26b_20260511_0028_casehold_casehold-option-table-direct-or-gemma4-26b-api-q250-start200-end250-k5-adaptive_snap_hyre_option_table_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_adaptive_snap_hyre_option_table_or-gemma4-26b_20260511_0028_casehold_casehold-option-table-direct-or-gemma4-26b-api-q250-start200-end250-k5-adaptive_snap_hyre_option_table_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0346_barexam_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0526_barexam_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
@@ -119,6 +121,16 @@ Health-check result for BarExam snap-only:
 - average calls: 2.00
 - errors: 0
 - missing predictions: 1
+- artifact flags: 0
+
+Health-check result for BarExam HyRE-only:
+
+- rows: 200
+- correct: 164/200 = 82.0%
+- average calls: 2.00
+- errors: 0
+- missing predictions: 0
+- empty retrieval: 0
 - artifact flags: 0
 
 Health-check result for CaseHOLD snap-only:

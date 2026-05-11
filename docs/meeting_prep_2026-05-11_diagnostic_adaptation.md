@@ -147,7 +147,7 @@ Interpretation:
 
 | Dataset | Bottleneck label | Evidence signal | Best current action |
 |---|---|---|---|
-| BarExam | Query/legal-reasoning formulation | Calibration Snap-HyRE 86.0 vs baseline 80.0; held-out rewrite 90.0 vs selected 76.0 | Add a rewrite-vs-HyRE selector; do not hard-code one route. |
+| BarExam | Query/legal-reasoning formulation | Calibration Snap-HyRE 86.0 vs baseline 80.0; N=200 HyRE-only 82.0; held-out rewrite 90.0 vs selected 76.0 | Add a rewrite-vs-HyRE selector; do not hard-code one route. |
 | HousingQA | Statutory entailment / false-positive yes | Verifier 74.5 vs state-filter baseline 60.5; HyRE-only 50.0; held-out 76.0 vs 62.0 | Keep state-filter retrieval plus conservative verifier. |
 | CaseHOLD | Answer-option conversion | Diverse HyRE held-out 78.0 vs baseline 68.0; query rewrite 76.0; N=200 HyRE-only 71.5; direct option table 70.0; replay selector 66.0 negative | Keep diverse HyRE now; direct option-table prompting and generic HyRE-only are clean negative design points. |
 | LegalBench-SCALR | Method disagreement / candidate exposure | Calibration controller 77.5 vs baseline 74.0; held-out frontier 84.0 but exact replay route 80.0 | Refine disagreement arbitration; present as open routing nuance. |

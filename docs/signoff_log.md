@@ -48,12 +48,18 @@ Branch: `codex/final-report-snap-hyde`
    Direct embedding smoke `67820` produced finite unit-norm query embeddings,
    and `rag_hyde` smoke `67821` completed 5/5. Treat longer retrieval-bearing
    rows as pending until their N=200 logs finish and pass the normal gates.
-7. ⚠️ **HousingQA HyRE-only landed as a negative control**:
+7. ✅ **BarExam HyRE-only landed as a modest positive retrieval control**:
+   `rag_hyde` job `67825` completed with exit `0:0` at 164/200 = 82.0%,
+   average calls 2.00, errors 0, missing predictions 0, and empty retrieval 0.
+   It improves over baseline retrieval (80.0%) but trails snap-only reasoning
+   (85.5%) and the stronger fixed Snap-HyRE v2 route (86.0%), so cite it as
+   evidence for routing between rewrite/Snap-HyRE rather than generic HyRE-only.
+8. ⚠️ **HousingQA HyRE-only landed as a negative control**:
    `rag_hyde` job `67826` completed with exit `0:0` at 100/200 = 50.0%,
    average calls 2.00, errors 0, missing predictions 0, and empty retrieval 0.
    Cite as evidence against generic HyRE retrieval for HousingQA; the stronger
    route remains state-filter retrieval plus verifier.
-8. ⚠️ **CaseHOLD HyRE-only landed as a weak/negative retrieval control**:
+9. ⚠️ **CaseHOLD HyRE-only landed as a weak/negative retrieval control**:
    `rag_hyde` job `67827` completed with exit `0:0` at 143/200 = 71.5%,
    average calls 2.00, errors 0, one missing prediction, and empty retrieval 0.
    It trails the current N=200 `rag_simple` baseline (73.0%), snap-only
@@ -79,6 +85,8 @@ Branch: `codex/final-report-snap-hyde`
   `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`,
   `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`,
   `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`.
+- BarExam HyRE-only detail log:
+  `logs/eval_rag_hyde_or-gemma4-26b_20260511_0526_barexam_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl`.
 - HousingQA HyRE-only detail log:
   `logs/eval_rag_hyde_or-gemma4-26b_20260511_0443_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl`.
 - CaseHOLD HyRE-only detail log:

@@ -255,7 +255,7 @@ def route_map() -> None:
         {
             "dataset": "BarExam",
             "bottleneck": "Query / legal-reasoning formulation",
-            "signal": "Calibration: HyRE 86.0 vs baseline 80.0\nHeld-out: rewrite wins this slice",
+            "signal": "Snap-HyRE v2 86.0 vs baseline 80.0\nHyRE-only 82.0; held-out rewrite wins",
             "route": "rewrite-vs-HyRE selector",
             "color": COLORS["blue"],
         },

@@ -1,5 +1,46 @@
 # CLAUDE.md
 
+## Update 2026-05-11 (diagnostic-adaptation meeting package)
+
+**Current north star**: source-gated diagnostic adaptation for legal RAG. The
+meeting package frames Snap-HyRE/HyRE as one intervention family inside a
+bottleneck-aware controller: calibration traces route each benchmark toward
+baseline RAG, legal query rewrite, Snap-HyRE/HyRE, state metadata filtering,
+option grounding, verifier policies, disagreement arbitration, or
+reject/escalate.
+
+**Start with these current docs**:
+- `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md` - meeting brief,
+  ablation tables, bottleneck summary, diagrams, and defensible narrative.
+- `docs/meeting_eval_expansion_status_2026-05-11.md` - live expansion status,
+  active SLURM jobs, invalid-run exclusions, full-corpus feasibility, and
+  validation gates.
+- `docs/meeting_package_audit_2026-05-11.md` - requirement-by-requirement
+  completion audit with exact validation commands.
+- `docs/signoff_log.md` - cite-or-not gate for any reported number.
+
+**Latest source-gated deltas**:
+- Snap-only controls are complete across the four legal benchmarks with copied
+  detail logs and `analyze_detail_flags.py` validation: BarExam 85.5%,
+  HousingQA 55.0%, CaseHOLD 74.0%, and LegalBench-SCALR 72.5%, all at 2.00
+  calls.
+- BarExam HyRE-only (`rag_hyde`) is a modest positive retrieval control at
+  82.0%, above baseline retrieval but below snap-only reasoning and the
+  stronger fixed Snap-HyRE v2 route.
+- HousingQA HyRE-only (`rag_hyde`) is a clean negative control at 50.0%,
+  below snap-only, state-filter retrieval, and the verifier route.
+- CaseHOLD HyRE-only (`rag_hyde`) is a weak/negative control at 71.5%, below
+  current baseline retrieval, snap-only, and diverse HyRE-family rows.
+- CaseHOLD direct option-table is repaired and clean but weak at 70.0% on the
+  held-out slice; cite it as an option-conversion bottleneck signal, not as a
+  positive route.
+
+**Do not promote pending rows**: SCALR HyRE-only fill-in, fixed Snap-HyRE
+fill-ins, Groq cross-model sanity, and the targeted full-SCALR sanity job must
+remain pending until their stdout, detail logs, and local validation all pass.
+Use `docs/meeting_eval_expansion_status_2026-05-11.md` for the current queue
+state before citing anything.
+
 ## Update 2026-05-01 (meeting prep)
 
 **Current meeting frame**: lead with bottleneck-typed retrieval, not a finished
