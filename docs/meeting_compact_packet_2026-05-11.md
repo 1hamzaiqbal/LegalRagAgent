@@ -44,17 +44,19 @@ These jobs were launched after the N=200 ladder to test the canonical routes at
 larger scale. They are pending source gates and must not be promoted until
 their stdout and detail logs validate.
 
-Latest monitor refresh, 2026-05-11 13:16 CDT: all five active scale-up jobs
+Latest monitor refresh, 2026-05-11 13:36 CDT: all five active scale-up jobs
 remain `RUNNING`, stdout tails are clean for the checked failure strings, and
-no full job result has been promoted. The completed `67897` SCALR `rag_simple`
-mode was copied locally and passes `analyze_detail_flags.py` at 419/571 =
-73.4%, with errors 0, missing predictions 0, empty retrieval 0, max output
-tokens 4,405, and no long-answer rows. Treat it as a verified baseline-half
-log while the paired frontier mode is still running, not as the final
-full-SCALR replacement. Current observed live progress: `67897` SCALR frontier
-`189/571`; `67911` BarExam `rag_simple` `150/500`; `67912` HousingQA
-`rag_state_filter` `115/500`; `67913` CaseHOLD `rag_simple` `374/500`;
-`67915` SCALR `rag_rewrite` `165/571`.
+no complete multi-mode job result has been promoted. Two completed baseline
+mode logs have been copied locally and pass `analyze_detail_flags.py`: `67897`
+SCALR `rag_simple` is 419/571 = 73.4% with errors 0, missing predictions 0,
+empty retrieval 0, max output tokens 4,405, and no long-answer rows; `67913`
+CaseHOLD `rag_simple` is 359/500 = 71.8% with errors 0, missing predictions 0,
+empty retrieval 0, max output tokens 2,725, and no long-answer rows. Treat
+both as verified baseline-mode logs while their paired modes are still running,
+not as completed scale-up ablations. Current observed live progress: `67897`
+SCALR frontier `265/571`; `67911` BarExam `rag_simple` `201/500`; `67912`
+HousingQA `rag_state_filter` `168/500`; `67913` CaseHOLD `rag_rewrite`
+starting after baseline completion; `67915` SCALR `rag_rewrite` `230/571`.
 
 | Job | Dataset | N | Modes | Status / purpose |
 |---:|---|---:|---|---|
@@ -63,7 +65,7 @@ full-SCALR replacement. Current observed live progress: `67897` SCALR frontier
 | 67915 | LegalBench-SCALR | 571 | `rag_rewrite` | Retry for the N>=500 query-rewrite control, excluding `a40-2206`. |
 | 67911 | BarExam | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_v2` | Baseline vs rewrite vs selected route. |
 | 67912 | HousingQA | 500 | `rag_state_filter`, `rag_rewrite`, `adaptive_snap_hyre_housing_verifier` | Metadata-filter baseline vs rewrite vs verifier. |
-| 67913 | CaseHOLD | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_diverse` | Baseline vs rewrite vs diverse HyRE. |
+| 67913 | CaseHOLD | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_diverse` | `rag_simple` mode copied and validated clean at 359/500 = 71.8%; rewrite/diverse still running or pending. |
 
 The N=200 ladder remains the complete ablation table. The N>=500 runs are a
 scale-up sanity layer for the most important routes, not a replacement for the

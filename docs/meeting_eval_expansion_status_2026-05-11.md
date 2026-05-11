@@ -152,20 +152,24 @@ These jobs were launched to satisfy the larger-slice sanity request for the
 canonical methods. They are not report numbers until the validation gates below
 pass.
 
-Latest monitor refresh, 2026-05-11 13:16 CDT: `squeue`/`sacct` report all five
+Latest monitor refresh, 2026-05-11 13:36 CDT: `squeue`/`sacct` report all five
 active scale-up jobs still running. Stdout/error scans found no Tracebacks,
 API/rate-limit/auth failures, empty-retrieval warnings, CUDA/ECC errors,
 timeouts, or runaway-output signatures. The only grep hits were normal
-validation-summary strings from already known rows. The completed `67897`
-SCALR `rag_simple` mode was copied locally from the adaptive checkout and
-passes `scripts/analyze_detail_flags.py`: 571 rows, 419/571 = 73.4%, errors 0,
-missing predictions 0, parse failures 0, empty retrieval 0, average calls 1.00,
-max output tokens 4,405, max final-answer chars 14,633, and no long-answer
-rows. Keep it as a verified baseline-half log until the paired frontier mode
-finishes; no full job result is promoted. Current observed live progress:
-`67897` SCALR frontier `189/571`; `67911` BarExam `rag_simple` `150/500`;
-`67912` HousingQA `rag_state_filter` `115/500`; `67913` CaseHOLD `rag_simple`
-`374/500`; `67915` SCALR `rag_rewrite` `165/571`.
+validation-summary strings from already known rows. Two completed baseline
+mode logs have been copied locally from the adaptive checkout and pass
+`scripts/analyze_detail_flags.py`: `67897` SCALR `rag_simple` has 571 rows,
+419/571 = 73.4%, errors 0, missing predictions 0, parse failures 0, empty
+retrieval 0, average calls 1.00, max output tokens 4,405, max final-answer
+chars 14,633, and no long-answer rows; `67913` CaseHOLD `rag_simple` has 500
+rows, 359/500 = 71.8%, errors 0, missing predictions 0, parse failures 0,
+empty retrieval 0, average calls 1.00, max output tokens 2,725, max
+final-answer chars 11,702, and no long-answer rows. Keep both as verified
+baseline-mode logs until paired modes finish; no complete scale-up ablation is
+promoted. Current observed live progress: `67897` SCALR frontier `265/571`;
+`67911` BarExam `rag_simple` `201/500`; `67912` HousingQA `rag_state_filter`
+`168/500`; `67913` CaseHOLD `rag_rewrite` starting after baseline completion;
+`67915` SCALR `rag_rewrite` `230/571`.
 
 | Job | Dataset | N | Modes | Status |
 |---:|---|---:|---|---|
@@ -174,7 +178,7 @@ finishes; no full job result is promoted. Current observed live progress:
 | 67915 | LegalBench-SCALR | 571 | `rag_rewrite` | Running retry for the N>=500 query-rewrite control, excluding `a40-2206`. |
 | 67911 | BarExam | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_v2` | Running baseline vs rewrite vs selected route. |
 | 67912 | HousingQA | 500 | `rag_state_filter`, `rag_rewrite`, `adaptive_snap_hyre_housing_verifier` | Running metadata-filter baseline vs rewrite vs verifier. |
-| 67913 | CaseHOLD | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_diverse` | Running baseline vs rewrite vs diverse HyRE. |
+| 67913 | CaseHOLD | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_diverse` | Running baseline vs rewrite vs diverse HyRE; `rag_simple` mode copied and validated clean at 359/500 = 71.8%. |
 
 Meeting standard: if these finish cleanly, integrate them as a scale-up sanity
 table. If they do not, keep the verified N=200/N=50 package as the main

@@ -100,7 +100,7 @@ sources.
 
 ## Commands Re-Run During This Audit
 
-Refresh note, 2026-05-11 13:16 CDT: these validation commands were rerun for
+Refresh note, 2026-05-11 13:36 CDT: these validation commands were rerun for
 the promoted May 11 detail logs. The rerun matches the documented promoted and
 rejected rows: snap-only, HyRE-only, fixed Snap-HyRE, CaseHOLD option-table, and
 Groq held-out rows remain source-consistent; the SCALR uncapped HyRE-only row
@@ -111,7 +111,12 @@ unexpected call counts. The completed `67897` capped full-SCALR `rag_simple`
 mode was also copied and checked: 571 rows, 419/571 = 73.4%, errors 0, missing
 predictions 0, empty retrieval 0, max output tokens 4,405, and no long-answer
 rows. Because the paired frontier mode is still running, this is tracked as a
-verified baseline-half log rather than a promoted full replacement result.
+verified baseline-half log rather than a promoted full replacement result. The
+completed `67913` CaseHOLD `rag_simple` mode was copied and checked: 500 rows,
+359/500 = 71.8%, errors 0, missing predictions 0, empty retrieval 0, max output
+tokens 2,725, and no long-answer rows. Because CaseHOLD rewrite/diverse modes
+are still running or pending, this is tracked as a verified baseline-mode log
+rather than a completed scale-up ablation.
 
 ```bash
 uv run python scripts/build_meeting_package_figures.py
@@ -128,6 +133,7 @@ uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_2
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0734_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_simple_or-gemma4-26b_20260511_0731_legalbench_scalr_meeting-full-scalr-sanity-or-gemma4-26b-n571-k5-rag_simple_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_simple_or-gemma4-26b_20260511_1218_legalbench_scalr_meeting-full-scalr-capped-or-gemma4-26b-n571-k5-rag_simple_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_rag_simple_or-gemma4-26b_20260511_1334_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_simple_detail.jsonl
 rg -n "232797|CANCELLED|RESULTS" logs/slurm_67863_full_scalr_cancelled.out
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
