@@ -34,6 +34,30 @@ Objective audited:
 | Show what fails | CaseHOLD direct option table is clean but weak: 70.0%, below query rewrite 76.0% and diverse HyRE 78.0%; replay selector is 66.0%. | Done |
 | Show what needs improvement for a paper | Meeting prep identifies BarExam rewrite-vs-HyRE selection, SCALR disagreement arbitration, and deeper CaseHOLD option-conversion mechanisms. | Done |
 
+## Full Objective Coverage Audit
+
+This section audits the complete active goal, including the stricter asks that
+go beyond the meeting-ready package. Passing the meeting package does not by
+itself mean every long-horizon experiment has completed.
+
+| Goal requirement | Concrete artifact or evidence | Coverage |
+|---|---|---|
+| Meeting-ready diagnostic adaptation package by May 11 at 4pm | `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md`, `docs/meeting_eval_expansion_status_2026-05-11.md`, this audit, and pushed commit `e9aafe8`. | Covered for meeting use. |
+| Four legal benchmarks only | BarExam, HousingQA, CaseHOLD, and LegalBench-SCALR are the only main-table datasets in the meeting prep. | Covered. |
+| Source-gated result reporting | Source JSONs, copied detail logs, `signoff_log.md`, and validation commands are listed in this audit. | Covered for reported numbers. |
+| Inherited ablation table | Calibration table now includes baseline retrieval, snap-only reasoning, query rewrite, fixed HyRE family, and diagnostic controller. | Covered at the portfolio level. |
+| Snap-only across all four legal benchmarks | `docs/snap_only_controls_2026-05-11.json` and four copied detail logs; all pass `analyze_detail_flags.py`. | Covered. |
+| HyRE-only across all four legal benchmarks | SLURM jobs `67825-67828` are running under the repaired embedder. | In progress; do not cite yet. |
+| Fixed Snap-HyRE fill-in rows | Existing portfolio has fixed HyRE-family rows; missing provider-matched N=200 fill-ins are SLURM `67829-67831`. | In progress / pending; do not cite yet. |
+| Adaptive/controller rows | `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json` and `docs/heldout_controller_eval_2026-05-10.json`. | Covered for current controller story. |
+| Cross-model coverage | Groq Llama 70B held-out sanity jobs `67832-67839` are queued. | Pending; not a report result yet. |
+| Full-corpus evaluations where feasible | Harness full sizes are documented in `docs/meeting_eval_expansion_status_2026-05-11.md`; all-method/all-model full corpus is not feasible before the meeting. | Documented feasibility gap; no full-corpus result is promoted. |
+| Diagrams and flowcharts | Figures 12-16 under `docs/presentation/figures/`, plus Mermaid framework diagram in the meeting prep. | Covered. |
+| Bottleneck summaries | Meeting prep bottleneck table maps each dataset to evidence signal and route. | Covered. |
+| Targeted runs only | Run list is scoped to snap-only fill-in, HyRE/Snap-HyRE ladder controls, CaseHOLD option-table repair, and cross-model sanity. | Covered. |
+| Verification of reported logs | Commands in this audit rerun figure generation and detail-log checks. | Covered for reported rows. |
+| No unverified claims promoted | Pending jobs are listed as pending; invalid runs are explicitly excluded in expansion status. | Covered. |
+
 ## Generated Figure Manifest
 
 Generated command:

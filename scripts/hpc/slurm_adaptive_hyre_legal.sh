@@ -273,10 +273,14 @@ fi
 
 SUMMARY_LOG="$LOG_DIR/${SUMMARY_STEM}.md"
 SUMMARY_JSON="$LOG_DIR/${SUMMARY_STEM}.json"
+POSTPROCESS_MIN_N="$N_QUESTIONS"
+if [[ "$POSTPROCESS_MIN_N" == "full" ]]; then
+  POSTPROCESS_MIN_N=20
+fi
 echo
 echo "[$(date -Is)] Writing adaptive HyRE postprocess summary"
 python scripts/postprocess_adaptive_hyre_sweep.py \
-  --min-n "$N_QUESTIONS" \
+  --min-n "$POSTPROCESS_MIN_N" \
   --dataset "$DATASET" \
   --provider "$PROVIDER" \
   --output "$SUMMARY_LOG" \
