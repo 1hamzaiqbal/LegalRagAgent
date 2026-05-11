@@ -44,22 +44,27 @@ These jobs were launched after the N=200 ladder to test the canonical routes at
 larger scale. They are pending source gates and must not be promoted until
 their stdout and detail logs validate.
 
-Latest monitor refresh, 2026-05-11 15:50 CDT: `67915` also completed with exit
-`0:0`; the SCALR `rag_rewrite` retry is clean at 423/571 = 74.1%, with
-errors 0, missing predictions 0, empty retrieval 0, max output tokens 4,005,
-and no long-answer rows. `67911` BarExam `rag_simple` also completed and was
-copied locally at 400/500 = 80.0%, with errors 0, empty retrieval 0, no
-long-answer rows, and one missing prediction; treat it as a verified
-baseline-mode log with that caveat while rewrite/adaptive modes continue.
-Earlier, `67897` completed with exit
+Latest monitor refresh, 2026-05-11 16:10 CDT: `67912` HousingQA
+`rag_state_filter` completed and was copied locally at 270/500 = 54.0%, with
+errors 0, empty retrieval 0, no long-answer rows, and one missing prediction;
+treat it as a verified baseline-mode log with that caveat while rewrite/verifier
+modes continue. `67913` CaseHOLD `rag_rewrite` also completed cleanly at
+354/500 = 70.8%, with errors 0, missing predictions 0, empty retrieval 0, and
+no long-answer rows. Earlier, `67915` completed with exit `0:0`; the SCALR
+`rag_rewrite` retry is clean at 423/571 = 74.1%, with errors 0, missing
+predictions 0, empty retrieval 0, max output tokens 4,005, and no long-answer
+rows. `67911` BarExam `rag_simple` also completed and was copied locally at
+400/500 = 80.0%, with errors 0, empty retrieval 0, no long-answer rows, and one
+missing prediction; treat it as a verified baseline-mode log with that caveat
+while rewrite/adaptive modes continue. Earlier, `67897` completed with exit
 `0:0`, but only the capped SCALR `rag_simple` half is clean. The paired
 `adaptive_snap_hyre_frontier` half was copied locally and reaches 417/571 =
 73.0%, but it fails the adaptive log audit because it has one missing
 prediction and `analyze_detail_flags.py` also reports one long-answer row
 (max final answer 20,480 chars). Do not promote `67897` as a clean paired
 full-SCALR result. Remaining jobs are still running cleanly: `67911` BarExam
-`rag_rewrite` has started; `67912` HousingQA `rag_state_filter` is `490/500`;
-`67913` CaseHOLD `rag_rewrite` is `467/500`.
+`rag_rewrite` is `62/500`; `67912` HousingQA `rag_rewrite` is `65/500`;
+`67913` CaseHOLD `adaptive_snap_hyre_diverse` is `10/500`.
 
 | Job | Dataset | N | Modes | Status / purpose |
 |---:|---|---:|---|---|
@@ -67,8 +72,8 @@ full-SCALR result. Remaining jobs are still running cleanly: `67911` BarExam
 | 67914 | LegalBench-SCALR | 571 | `rag_rewrite` | Rejected: CUDA/ECC failure on `a40-2206` before a detail log. |
 | 67915 | LegalBench-SCALR | 571 | `rag_rewrite` | Completed clean retry at 423/571 = 74.1%, excluding `a40-2206`. |
 | 67911 | BarExam | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_v2` | `rag_simple` mode copied and validated at 400/500 = 80.0% with one missing prediction; rewrite/adaptive still running or pending. |
-| 67912 | HousingQA | 500 | `rag_state_filter`, `rag_rewrite`, `adaptive_snap_hyre_housing_verifier` | Metadata-filter baseline vs rewrite vs verifier. |
-| 67913 | CaseHOLD | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_diverse` | `rag_simple` mode copied and validated clean at 359/500 = 71.8%; rewrite/diverse still running or pending. |
+| 67912 | HousingQA | 500 | `rag_state_filter`, `rag_rewrite`, `adaptive_snap_hyre_housing_verifier` | `rag_state_filter` mode copied and validated at 270/500 = 54.0% with one missing prediction; rewrite/verifier still running or pending. |
+| 67913 | CaseHOLD | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_diverse` | `rag_simple` clean at 359/500 = 71.8%; `rag_rewrite` clean at 354/500 = 70.8%; diverse HyRE still running. |
 
 The N=200 ladder remains the complete ablation table. The N>=500 runs are a
 scale-up sanity layer for the most important routes, not a replacement for the

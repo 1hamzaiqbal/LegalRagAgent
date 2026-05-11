@@ -135,6 +135,15 @@ missing prediction, empty retrieval 0, average calls 1.00, max output tokens
 2,260, and no long-answer rows. BarExam rewrite/adaptive modes remain running
 or pending, so the BarExam row is tracked as a verified baseline-mode log.
 
+Refresh note, 2026-05-11 16:10 CDT: `67912` HousingQA `rag_state_filter`
+completed and was copied and checked: 500 rows, 270/500 = 54.0%, errors 0, one
+missing prediction, empty retrieval 0, average calls 1.00, max output tokens
+967, and no long-answer rows. `67913` CaseHOLD `rag_rewrite` completed and was
+copied and checked: 500 rows, 354/500 = 70.8%, errors 0, missing predictions 0,
+empty retrieval 0, average calls 2.00, max output tokens 2,213, and no
+long-answer rows. HousingQA rewrite/verifier and CaseHOLD diverse remain
+running or pending.
+
 ```bash
 uv run python scripts/build_meeting_package_figures.py
 uv run python scripts/audit_adaptive_hyre_logs.py logs/eval_adaptive_snap_hyre_option_table_or-gemma4-26b_20260511_0028_casehold_casehold-option-table-direct-or-gemma4-26b-api-q250-start200-end250-k5-adaptive_snap_hyre_option_table_detail.jsonl
@@ -155,6 +164,8 @@ uv run python scripts/audit_adaptive_hyre_logs.py logs/eval_adaptive_snap_hyre_f
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_simple_or-gemma4-26b_20260511_1334_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_simple_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_rewrite_or-gemma4-26b_20260511_1542_legalbench_scalr_meeting-n500-canonical-r2-or-gemma4-26b-legalbench_scalr-n571-k5-rag_rewrite_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_simple_or-gemma4-26b_20260511_1538_barexam_meeting-n500-canonical-or-gemma4-26b-barexam-n500-k5-rag_simple_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_rag_state_filter_or-gemma4-26b_20260511_1552_housing_meeting-n500-canonical-or-gemma4-26b-housing-n500-k5-rag_state_filter_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_rag_rewrite_or-gemma4-26b_20260511_1557_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_rewrite_detail.jsonl
 rg -n "232797|CANCELLED|RESULTS" logs/slurm_67863_full_scalr_cancelled.out
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl

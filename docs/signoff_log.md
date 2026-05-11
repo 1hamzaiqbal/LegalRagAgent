@@ -158,6 +158,21 @@ Branch: `codex/final-report-snap-hyde`
    long-answer rows, but has one missing prediction. Cite as a verified
    baseline-mode log with that caveat until `rag_rewrite` and
    `adaptive_snap_hyre_v2` finish and validate.
+23. ⚠️ **HousingQA N=500 state-filter baseline mode of `67912` completed with one missing prediction**:
+   `rag_state_filter` was copied locally from
+   `logs/eval_rag_state_filter_or-gemma4-26b_20260511_1552_housing_meeting-n500-canonical-or-gemma4-26b-housing-n500-k5-rag_state_filter_detail.jsonl`
+   and passes `scripts/analyze_detail_flags.py` at 270/500 = 54.0%, average
+   calls 1.00, errors 0, empty retrieval 0, max output tokens 967, and no
+   long-answer rows, but has one missing prediction. Cite as a verified
+   baseline-mode log with that caveat until `rag_rewrite` and
+   `adaptive_snap_hyre_housing_verifier` finish and validate.
+24. ✅ **CaseHOLD N=500 query-rewrite mode of `67913` completed cleanly**:
+   `rag_rewrite` was copied locally from
+   `logs/eval_rag_rewrite_or-gemma4-26b_20260511_1557_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_rewrite_detail.jsonl`
+   and passes `scripts/analyze_detail_flags.py` at 354/500 = 70.8%, average
+   calls 2.00, errors 0, missing predictions 0, empty retrieval 0, max output
+   tokens 2,213, and no long-answer rows. This is a clean N>=500 CaseHOLD
+   rewrite control; diverse HyRE remains pending.
 
 ### New source paths
 
@@ -210,9 +225,11 @@ Branch: `codex/final-report-snap-hyde`
 - N>=500 scale-up baseline-mode detail logs:
   `logs/eval_rag_simple_or-gemma4-26b_20260511_1218_legalbench_scalr_meeting-full-scalr-capped-or-gemma4-26b-n571-k5-rag_simple_detail.jsonl`,
   `logs/eval_rag_simple_or-gemma4-26b_20260511_1538_barexam_meeting-n500-canonical-or-gemma4-26b-barexam-n500-k5-rag_simple_detail.jsonl`,
+  `logs/eval_rag_state_filter_or-gemma4-26b_20260511_1552_housing_meeting-n500-canonical-or-gemma4-26b-housing-n500-k5-rag_state_filter_detail.jsonl`,
   `logs/eval_rag_simple_or-gemma4-26b_20260511_1334_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_simple_detail.jsonl`.
 - N>=500 clean rewrite detail logs:
-  `logs/eval_rag_rewrite_or-gemma4-26b_20260511_1542_legalbench_scalr_meeting-n500-canonical-r2-or-gemma4-26b-legalbench_scalr-n571-k5-rag_rewrite_detail.jsonl`.
+  `logs/eval_rag_rewrite_or-gemma4-26b_20260511_1542_legalbench_scalr_meeting-n500-canonical-r2-or-gemma4-26b-legalbench_scalr-n571-k5-rag_rewrite_detail.jsonl`,
+  `logs/eval_rag_rewrite_or-gemma4-26b_20260511_1557_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_rewrite_detail.jsonl`.
 - N>=500 rejected/health-gated adaptive detail logs:
   `logs/eval_adaptive_snap_hyre_frontier_or-gemma4-26b_20260511_1513_legalbench_scalr_meeting-full-scalr-capped-or-gemma4-26b-n571-k5-adaptive_snap_hyre_frontier_detail.jsonl`.
 
