@@ -135,9 +135,9 @@ signoff log decides whether a claim is ready to cite.
   accuracy, between matched baseline retrieval at 71.5% and selected-route
   controller accuracy at 77.5%, with strong BarExam lift but Housing/SCALR
   failures that support routing rather than a universal rewrite policy.
-- `casehold_option_table_heldout_2026-05-10.md` - submitted targeted CaseHOLD
-  option-conversion probe on held-out rows 200-249; pending validation before
-  result claims.
+- `casehold_option_table_heldout_2026-05-10.md` - targeted CaseHOLD
+  option-conversion probe on held-out rows 200-249; blocked before evaluation
+  by an embedding/query index error, so no accuracy claim is promoted.
 - `casehold_replay_selector_heldout_2026-05-10.md` - validated CaseHOLD
   held-out replay selector over the already validated diverse-route evidence:
   33/50 = 66.0%, a clean negative result below the 78.0% selected route.

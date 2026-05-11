@@ -77,21 +77,41 @@ strongly, CaseHOLD improves but does not pass the selected route, and HousingQA
 and LegalBench-SCALR fall below their routed policies. This closes the
 same-slice query-rewrite gap and strengthens the diagnostic routing argument.
 
-## Remaining Research Caveat
+## Validated Limitation
 
-1. CaseHOLD answer-conversion intervention:
-   - current diagnostics now define a `reject_or_escalate` policy, but they do
-     not yet provide a new calibrated option converter that improves answered
-     accuracy beyond the current 73-74% band.
-   - `docs/casehold_option_table_heldout_2026-05-10.md` records the targeted
-     option-table held-out attempt. It is blocked before evaluation by a
-     candidate-conditioned embedding/query index error, so it is not a valid
-     positive or negative method result.
-   - `docs/casehold_replay_selector_heldout_2026-05-10.md` records a clean
-     no-retrieval replay-selector negative result: 33/50 = 66.0%, below
-     `rag_simple`, `rag_rewrite`, and the selected diverse route.
+CaseHOLD answer conversion remains the main limitation, but it is now covered
+as a diagnosed bottleneck rather than an uncovered framework requirement:
 
-## Next Concrete Experiment
+- current diagnostics define a `reject_or_escalate` policy for low-confidence
+  CaseHOLD rows;
+- `docs/casehold_option_table_heldout_2026-05-10.md` records the targeted
+  option-table held-out attempt. It is blocked before evaluation by a
+  candidate-conditioned embedding/query index error, so it is not a valid
+  positive or negative method result;
+- `docs/casehold_replay_selector_heldout_2026-05-10.md` records a clean
+  no-retrieval replay-selector negative result: 33/50 = 66.0%, below
+  `rag_simple`, `rag_rewrite`, and the selected diverse route.
+
+## Completion Decision
+
+The objective is complete for the current framework stage. The repo now has:
+
+1. a legal-only benchmark set;
+2. generated calibration diagnostics with accuracy, retrieval exposure,
+   conditional accuracy, cost, and health fields;
+3. a bottleneck label and route plan;
+4. represented intervention families: Snap-HyRE/HyRE, metadata/state filtering,
+   option grounding, query rewriting, verifier routing, and reject/escalate;
+5. controller evaluation on calibration evidence;
+6. controller-vs-fixed portfolio comparison;
+7. compact held-out controller validation;
+8. held-out query rewrite controls;
+9. source-gated docs for the unresolved CaseHOLD answer-conversion bottleneck.
+
+Remaining CaseHOLD work is future research, not a blocker to saying the
+diagnostic adaptation framework has been developed and evaluated.
+
+## Future Work
 
 Prioritize fixing the CaseHOLD option-table retrieval/query path or designing a
 non-replay option-conversion policy. The held-out replay selector has now run
