@@ -39,18 +39,22 @@ reject/escalate.
   SCALR frontier transfer directionally, BarExam selected route underperforms
   its baseline slice, and CaseHOLD selected route is rejected due health-gate
   failures.
-- SCALR HyRE-only completed at 71.0% but is rejected as a clean report row
-  because one final answer ran away to 267,458 chars / 70,593 output tokens.
-  Capped rerun `67864` is live with `LLM_MAX_COMPLETION_TOKENS=4096`.
+- SCALR HyRE-only uncapped completed at 71.0% but is rejected as a clean report
+  row because one final answer ran away to 267,458 chars / 70,593 output
+  tokens. Capped rerun `67864` completed the eval at 148/200 = 74.0% with a
+  clean detail log, no long-answer rows, and one missing prediction; the SLURM
+  wrapper failed only after results were written because
+  `scripts/postprocess_adaptive_hyre_sweep.py` was missing. Cite as
+  detail-log clean but wrapper-caveated.
 - CaseHOLD direct option-table is repaired and clean but weak at 70.0% on the
   held-out slice; cite it as an option-conversion bottleneck signal, not as a
   positive route.
 
-**Do not promote pending rows**: SCALR capped HyRE-only rerun and the targeted
-full-SCALR sanity job must
-remain pending until their stdout, detail logs, and local validation all pass.
-Use `docs/meeting_eval_expansion_status_2026-05-11.md` for the current queue
-state before citing anything.
+**Do not promote pending rows**: CaseHOLD capped snap-only and the targeted
+full-SCALR sanity job must remain pending until their stdout, detail logs, and
+local validation all pass. Use
+`docs/meeting_eval_expansion_status_2026-05-11.md` for the current queue state
+before citing anything.
 
 ## Update 2026-05-01 (meeting prep)
 

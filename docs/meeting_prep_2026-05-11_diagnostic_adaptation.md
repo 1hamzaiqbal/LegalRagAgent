@@ -126,15 +126,19 @@ Expanded Gemma ladder:
 | BarExam | 80.0 | 85.5 | 82.0 | 84.5 | 86.0 |
 | HousingQA | 60.5 | 55.0 | 50.0 | 51.5 | 74.5 |
 | CaseHOLD | 73.0 | 74.0* | 71.5 | 72.0 | 73.5 |
-| LegalBench-SCALR | 74.0 | 72.5 | rejected | 76.0 | 77.5 |
+| LegalBench-SCALR | 74.0 | 72.5 | 74.0* | 76.0 | 77.5 |
 
 `*` CaseHOLD snap-only is accuracy-usable but health-caveated: one correct row
 entered a repetition loop with 41,898 final-answer characters. A capped
 replacement was launched as SLURM `67866`.
 
-For SCALR, the uncapped HyRE-only job completed at 71.0% but is rejected as a
-clean row because one answer ran away to 267,458 characters. A capped rerun is
-live under SLURM `67864`.
+`*` SCALR HyRE-only is the capped rerun from SLURM `67864`: the eval completed
+at 148/200 with a detail-log-clean health check, but the SLURM wrapper failed
+after results were written because a postprocess helper script was missing.
+Use it as wrapper-caveated evidence that generic HyRE-only reaches matched
+baseline but does not beat fixed Snap-HyRE or the controller. The uncapped
+SCALR HyRE-only row remains rejected because one answer ran away to 267,458
+characters.
 
 Route inheritance:
 
@@ -192,7 +196,7 @@ slice and one selected route is rejected by health gates.
 | BarExam | Query/legal-reasoning formulation | Calibration Snap-HyRE 86.0 vs baseline 80.0; N=200 HyRE-only 82.0; held-out rewrite 90.0 vs selected 76.0 | Add a rewrite-vs-HyRE selector; do not hard-code one route. |
 | HousingQA | Statutory entailment / false-positive yes | Verifier 74.5 vs state-filter baseline 60.5; fixed Snap-HyRE 51.5; HyRE-only 50.0; held-out 76.0 vs 62.0 | Keep state-filter retrieval plus conservative verifier. |
 | CaseHOLD | Answer-option conversion | Diverse HyRE held-out 78.0 vs baseline 68.0; query rewrite 76.0; fixed Snap-HyRE 72.0; HyRE-only 71.5; direct option table 70.0; replay selector 66.0 negative | Keep diverse HyRE now; direct option-table prompting and generic HyRE/fixed Snap-HyRE are clean negative design points. |
-| LegalBench-SCALR | Method disagreement / candidate exposure | Calibration controller 77.5 vs baseline 74.0; held-out frontier 84.0 but exact replay route 80.0; uncapped HyRE-only rejected for runaway output | Refine disagreement arbitration; present as open routing nuance. |
+| LegalBench-SCALR | Method disagreement / candidate exposure | Calibration controller 77.5 vs baseline 74.0; held-out frontier 84.0 but exact replay route 80.0; capped HyRE-only 74.0 only matches baseline, while uncapped HyRE-only is rejected for runaway output | Refine disagreement arbitration; present as open routing nuance. |
 
 ## Live Work
 
@@ -246,7 +250,7 @@ Use this as the live checklist for final meeting prep:
 |---|---|
 | Main legal-only diagnostic package | Done: four benchmarks, calibration table, held-out table, bottleneck summary, and figure pack are source-gated. |
 | CaseHOLD option-table blocker | Done: implementation is repaired; result is a clean negative against stronger CaseHOLD routes. |
-| Expanded inherited ladder | Mostly done: snap-only, HyRE-only, literal fixed Snap-HyRE, and Groq held-out sanity rows are documented; only SCALR capped HyRE-only (`67864`), CaseHOLD capped snap-only replacement (`67866`), and the full-SCALR probe (`67863`) remain pending. |
+| Expanded inherited ladder | Mostly done: snap-only, HyRE-only, literal fixed Snap-HyRE, and Groq held-out sanity rows are documented; only the CaseHOLD capped snap-only replacement (`67866`) and full-SCALR probe (`67863`) remain pending. |
 | Final handoff hygiene | Keep new runs out of the main table until validated; keep branch state clean after documentation updates are committed. |
 
 ## What To Say In The Meeting

@@ -276,7 +276,7 @@ def route_map() -> None:
         {
             "dataset": "SCALR",
             "bottleneck": "Method disagreement /\ncandidate exposure",
-            "signal": "Controller 77.5 vs baseline 74.0\nUncapped HyRE-only rejected",
+            "signal": "Controller 77.5 vs baseline 74.0\nCapped HyRE-only 74.0; uncapped rejected",
             "route": "disagreement arbitration",
             "color": COLORS["green"],
         },

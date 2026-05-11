@@ -51,8 +51,8 @@ Branch: `codex/final-report-snap-hyde`
    `rag_utils.py` reinitializes the GTE remote-code `position_ids` buffer.
    Direct embedding smoke `67820` produced finite unit-norm query embeddings,
    and `rag_hyde` smoke `67821` completed 5/5. The N=200 HyRE-only and fixed
-   Snap-HyRE rows below have since landed under the normal gates, except SCALR
-   HyRE-only, which is rejected pending capped rerun `67864`.
+   Snap-HyRE rows below have since landed under the normal gates; SCALR
+   HyRE-only uses capped rerun `67864` with a postprocess-wrapper caveat.
 7. ✅ **BarExam HyRE-only landed as a modest positive retrieval control**:
    `rag_hyde` job `67825` completed with exit `0:0` at 164/200 = 82.0%,
    average calls 2.00, errors 0, missing predictions 0, and empty retrieval 0.
@@ -74,24 +74,30 @@ Branch: `codex/final-report-snap-hyde`
    `rag_hyde` job `67828` completed with exit `0:0` at 142/200 = 71.0%, but
    `analyze_detail_flags.py` flags one runaway final answer with 267,458 chars
    and 70,593 output tokens. Do not cite this as a clean method result.
-   Capped rerun `67864` was launched with `LLM_MAX_COMPLETION_TOKENS=4096`.
-11. ⚠️ **HousingQA fixed Snap-HyRE landed as a negative control**:
+11. ⚠️ **SCALR capped HyRE-only landed as wrapper-caveated evidence**:
+   `rag_hyde` job `67864` completed the eval loop at 148/200 = 74.0%, average
+   calls 2.00, errors 0, missing predictions 1, empty retrieval 0, and no
+   long-answer rows. The SLURM job state is `FAILED` because the wrapper tried
+   to run missing `scripts/postprocess_adaptive_hyre_sweep.py` after writing the
+   detail log. Cite as detail-log clean but wrapper-caveated; it matches the
+   SCALR baseline and trails fixed Snap-HyRE/controller rows.
+12. ⚠️ **HousingQA fixed Snap-HyRE landed as a negative control**:
    `rag_snap_hyde_2call` job `67830` completed with exit `0:0` at 103/200 =
    51.5%, average calls 2.00, errors 0, missing predictions 0, empty retrieval
    0, and no long-answer rows. It is below snap-only, state-filter retrieval,
    snap-HyRE state retrieval, and the verifier route.
-12. ⚠️ **CaseHOLD fixed Snap-HyRE landed as weak/negative**:
+13. ⚠️ **CaseHOLD fixed Snap-HyRE landed as weak/negative**:
    `rag_snap_hyde_2call` job `67831` completed with exit `0:0` at 144/200 =
    72.0%, average calls 2.00, errors 0, missing predictions 0, empty retrieval
    0, and no long-answer rows. It trails baseline retrieval, snap-only, and
    diverse HyRE-family rows.
-13. ✅ **BarExam fixed Snap-HyRE landed**:
+14. ✅ **BarExam fixed Snap-HyRE landed**:
    `rag_snap_hyde_2call` job `67829` completed with exit `0:0` at 169/200 =
    84.5%, average calls 2.00, errors 0, one missing prediction, empty retrieval
    0, and no long-answer rows. It beats baseline retrieval (80.0%) and
    HyRE-only (82.0%), but trails snap-only (85.5%) and adaptive Snap-HyRE v2
    (86.0%).
-14. ✅ **Groq Llama 70B held-out sanity mostly landed**:
+15. ✅ **Groq Llama 70B held-out sanity mostly landed**:
    clean rows: BarExam `rag_simple` 38/50 = 76.0%, BarExam
    `adaptive_snap_hyre_v2` 36/50 = 72.0%, HousingQA `rag_state_filter` 22/50 =
    44.0%, HousingQA verifier 30/50 = 60.0%, CaseHOLD `rag_simple` 33/50 =
@@ -126,6 +132,8 @@ Branch: `codex/final-report-snap-hyde`
   `logs/eval_rag_hyde_or-gemma4-26b_20260511_0511_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl`.
 - SCALR HyRE-only rejected detail log:
   `logs/eval_rag_hyde_or-gemma4-26b_20260511_0559_legalbench_scalr_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl`.
+- SCALR HyRE-only capped detail log:
+  `logs/eval_rag_hyde_or-gemma4-26b_20260511_0734_detail.jsonl`.
 - HousingQA fixed Snap-HyRE detail log:
   `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl`.
 - CaseHOLD fixed Snap-HyRE detail log:

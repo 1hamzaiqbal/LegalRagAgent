@@ -63,9 +63,9 @@ The professor-facing ablation should look inherited:
 
 Existing N=200 logs cover the key baseline/controller rows and most inherited
 controls. Snap-only, HyRE-only, and literal fixed Snap-HyRE rows have landed
-across the four legal benchmarks, with two health caveats: SCALR HyRE-only is
-rejected pending a capped rerun, and CaseHOLD snap-only is accuracy-usable but
-has one long-answer outlier pending a capped replacement.
+across the four legal benchmarks. SCALR HyRE-only is wrapper-caveated but
+detail-log clean after a capped rerun; CaseHOLD snap-only is accuracy-usable
+but has one long-answer outlier pending a capped replacement.
 
 ## Landed Since This Expansion
 
@@ -83,7 +83,7 @@ These are source-gated additions after the initial package:
 | LegalBench-SCALR HyRE-only retrieval control | SLURM `67828`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0559_legalbench_scalr_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl` | Completed, 142/200 = 71.0%, but rejected as clean result: one runaway final answer has 267,458 chars / 70,593 output tokens |
 | HousingQA fixed Snap-HyRE control | SLURM `67830`; `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl` | Completed, 103/200 = 51.5%, avg calls 2.00, errors 0 |
 | CaseHOLD fixed Snap-HyRE control | SLURM `67831`; `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl` | Completed, 144/200 = 72.0%, avg calls 2.00, errors 0 |
-| SCALR capped HyRE-only rerun | SLURM `67864`; `LLM_MAX_COMPLETION_TOKENS=4096` | Launched to replace rejected uncapped SCALR HyRE-only row |
+| SCALR capped HyRE-only rerun | SLURM `67864`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0734_detail.jsonl` | Eval completed at 148/200 = 74.0%, avg calls 2.00, errors 0, one missing prediction, no long-answer rows; wrapper failed after results due missing postprocess helper |
 | CaseHOLD capped snap-only rerun | SLURM `67866`; `LLM_MAX_COMPLETION_TOKENS=4096` | Launched to replace the health-caveated CaseHOLD snap-only row if it lands cleanly |
 | GTE query-embedding repair | `rag_utils.py`; direct smoke SLURM `67820` | Completed; repaired `position_ids`, finite 1024-d unit-norm query embeddings |
 | Retrieval smoke after repair | SLURM `67821`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0341_barexam_embedding-fix-smoke2-or-gemma4-26b-n5-k5-rag_hyde_detail.jsonl` | Completed, 5/5; confirms retrieval-bearing jobs can run again |
@@ -121,10 +121,12 @@ current baseline (73.0%), snap-only (74.0%), and diverse HyRE-family row
 (73.5%). These are useful negative controls: fixed Snap-HyRE is not the
 adaptive policy for those bottlenecks.
 
-SCALR HyRE-only technically completed at 71.0%, but it fails the May 11 health
-gate because one row produced a 267,458-character final answer. Do not promote
-that row as clean evidence; capped rerun `67864` was launched with
-`LLM_MAX_COMPLETION_TOKENS=4096`.
+SCALR HyRE-only now has two rows. The uncapped row technically completed at
+71.0%, but it fails the May 11 health gate because one row produced a
+267,458-character final answer. The capped rerun `67864` completed the eval at
+74.0% with no long-answer rows, so it replaces the rejected uncapped row for the
+ladder, but keep a wrapper caveat: SLURM failed after the detail log was written
+because the optional postprocess helper was missing.
 
 ## Active And Pending Jobs
 
@@ -155,7 +157,7 @@ Provider: `or-gemma4-26b`. Sample: N=200, seed 42, k=5.
 | 67827 | CaseHOLD | `rag_hyde` | Completed and copied locally: 71.5%, 2.00 calls. |
 | 67779 | LegalBench-SCALR | `snap_only_in_final` | Completed and copied locally: 72.5%, 2.00 calls. |
 | 67828 | LegalBench-SCALR | `rag_hyde` | Completed and copied locally: 71.0%, but rejected as a clean row due one runaway final answer. |
-| 67864 | LegalBench-SCALR | `rag_hyde` | Capped rerun launched with `LLM_MAX_COMPLETION_TOKENS=4096`. |
+| 67864 | LegalBench-SCALR | `rag_hyde` | Eval completed and copied locally: 74.0%, 2.00 calls, no long-answer rows; wrapper failed after result write due missing postprocess helper. |
 | 67866 | CaseHOLD | `snap_only_in_final` | Capped rerun launched with `LLM_MAX_COMPLETION_TOKENS=4096` because the first row is accuracy-usable but has one long-answer health outlier. |
 | 67829 | BarExam | `rag_snap_hyde_2call` | Completed and copied locally: 84.5%, 2.00 calls, one missing prediction. |
 | 67830 | HousingQA | `rag_snap_hyde_2call` | Completed and copied locally: 51.5%, 2.00 calls. |
@@ -235,7 +237,10 @@ current four-task set. The meeting-safe standard is therefore:
 
 A result can be promoted only if all gates pass:
 
-1. `sacct` says `COMPLETED` with exit `0:0`.
+1. `sacct` says `COMPLETED` with exit `0:0`, or stdout proves the eval loop
+   printed `RESULTS` and wrote a complete detail log before a downstream
+   postprocess-only wrapper failure. The latter must be reported as
+   wrapper-caveated.
 2. stdout has no `Traceback`, API auth/rate-limit failure, CUDA assertion,
    ECC error, symlink error, parse meltdown, or circuit-breaker abort.
 3. The expected detail JSONL exists in
@@ -257,7 +262,7 @@ usable. Present the verified controller story, then say:
 
 > We launched source-gated fill-ins for the inherited ladder and a Groq Llama 70B
 > held-out sanity layer. Most are now validated or explicitly rejected; the rows
-> still pending are the capped SCALR HyRE-only rerun, the capped CaseHOLD
-> snap-only replacement, and the targeted full-SCALR probe.
+> still pending are the capped CaseHOLD snap-only replacement and the targeted
+> full-SCALR probe.
 
 That is stronger than rushing invalid numbers into the deck.
