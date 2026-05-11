@@ -134,6 +134,15 @@ Branch: `codex/final-report-snap-hyde`
    tokens 2,725, and no long-answer rows. Cite only as a verified
    baseline-mode log until `rag_rewrite` and `adaptive_snap_hyre_diverse`
    finish and validate.
+20. ❌ **Capped SCALR frontier half of `67897` completed but is health-gated**:
+   the paired `adaptive_snap_hyre_frontier` detail log was copied locally from
+   `logs/eval_adaptive_snap_hyre_frontier_or-gemma4-26b_20260511_1513_legalbench_scalr_meeting-full-scalr-capped-or-gemma4-26b-n571-k5-adaptive_snap_hyre_frontier_detail.jsonl`
+   and reaches 417/571 = 73.0%, average calls 2.00, errors 0, parse failures 0,
+   and empty retrieval 0. It is not a clean report row: one row has no
+   predicted answer, `scripts/audit_adaptive_hyre_logs.py` fails with
+   `missing_prediction=1`, and `scripts/analyze_detail_flags.py` flags one
+   long-answer row with max final-answer chars 20,480 / max output tokens
+   8,454. Do not promote `67897` as a clean paired full-SCALR result.
 
 ### New source paths
 
@@ -186,6 +195,8 @@ Branch: `codex/final-report-snap-hyde`
 - N>=500 scale-up baseline-mode detail logs:
   `logs/eval_rag_simple_or-gemma4-26b_20260511_1218_legalbench_scalr_meeting-full-scalr-capped-or-gemma4-26b-n571-k5-rag_simple_detail.jsonl`,
   `logs/eval_rag_simple_or-gemma4-26b_20260511_1334_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_simple_detail.jsonl`.
+- N>=500 rejected/health-gated adaptive detail logs:
+  `logs/eval_adaptive_snap_hyre_frontier_or-gemma4-26b_20260511_1513_legalbench_scalr_meeting-full-scalr-capped-or-gemma4-26b-n571-k5-adaptive_snap_hyre_frontier_detail.jsonl`.
 
 ## Update 2026-05-01 ~meeting prep
 

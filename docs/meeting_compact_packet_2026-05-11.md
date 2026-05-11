@@ -44,23 +44,20 @@ These jobs were launched after the N=200 ladder to test the canonical routes at
 larger scale. They are pending source gates and must not be promoted until
 their stdout and detail logs validate.
 
-Latest monitor refresh, 2026-05-11 13:36 CDT: all five active scale-up jobs
-remain `RUNNING`, stdout tails are clean for the checked failure strings, and
-no complete multi-mode job result has been promoted. Two completed baseline
-mode logs have been copied locally and pass `analyze_detail_flags.py`: `67897`
-SCALR `rag_simple` is 419/571 = 73.4% with errors 0, missing predictions 0,
-empty retrieval 0, max output tokens 4,405, and no long-answer rows; `67913`
-CaseHOLD `rag_simple` is 359/500 = 71.8% with errors 0, missing predictions 0,
-empty retrieval 0, max output tokens 2,725, and no long-answer rows. Treat
-both as verified baseline-mode logs while their paired modes are still running,
-not as completed scale-up ablations. Current observed live progress: `67897`
-SCALR frontier `265/571`; `67911` BarExam `rag_simple` `201/500`; `67912`
-HousingQA `rag_state_filter` `168/500`; `67913` CaseHOLD `rag_rewrite`
-starting after baseline completion; `67915` SCALR `rag_rewrite` `230/571`.
+Latest monitor refresh, 2026-05-11 15:30 CDT: `67897` completed with exit
+`0:0`, but only the capped SCALR `rag_simple` half is clean. The paired
+`adaptive_snap_hyre_frontier` half was copied locally and reaches 417/571 =
+73.0%, but it fails the adaptive log audit because it has one missing
+prediction and `analyze_detail_flags.py` also reports one long-answer row
+(max final answer 20,480 chars). Do not promote `67897` as a clean paired
+full-SCALR result. Remaining jobs are still running cleanly: `67911` BarExam
+`rag_simple` `469/500`; `67912` HousingQA `rag_state_filter` `434/500`;
+`67913` CaseHOLD `rag_rewrite` `411/500`; `67915` SCALR `rag_rewrite`
+`532/571`.
 
 | Job | Dataset | N | Modes | Status / purpose |
 |---:|---|---:|---|---|
-| 67897 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | `rag_simple` mode copied and validated clean at 419/571 = 73.4%; frontier still running, so no paired result promoted. |
+| 67897 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Completed. `rag_simple` is clean at 419/571 = 73.4%; frontier is health-gated/rejected at 417/571 = 73.0% due one missing prediction and one long-answer row. |
 | 67914 | LegalBench-SCALR | 571 | `rag_rewrite` | Rejected: CUDA/ECC failure on `a40-2206` before a detail log. |
 | 67915 | LegalBench-SCALR | 571 | `rag_rewrite` | Retry for the N>=500 query-rewrite control, excluding `a40-2206`. |
 | 67911 | BarExam | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_v2` | Baseline vs rewrite vs selected route. |

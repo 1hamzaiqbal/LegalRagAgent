@@ -152,28 +152,25 @@ These jobs were launched to satisfy the larger-slice sanity request for the
 canonical methods. They are not report numbers until the validation gates below
 pass.
 
-Latest monitor refresh, 2026-05-11 13:36 CDT: `squeue`/`sacct` report all five
-active scale-up jobs still running. Stdout/error scans found no Tracebacks,
-API/rate-limit/auth failures, empty-retrieval warnings, CUDA/ECC errors,
-timeouts, or runaway-output signatures. The only grep hits were normal
-validation-summary strings from already known rows. Two completed baseline
-mode logs have been copied locally from the adaptive checkout and pass
-`scripts/analyze_detail_flags.py`: `67897` SCALR `rag_simple` has 571 rows,
-419/571 = 73.4%, errors 0, missing predictions 0, parse failures 0, empty
-retrieval 0, average calls 1.00, max output tokens 4,405, max final-answer
-chars 14,633, and no long-answer rows; `67913` CaseHOLD `rag_simple` has 500
-rows, 359/500 = 71.8%, errors 0, missing predictions 0, parse failures 0,
-empty retrieval 0, average calls 1.00, max output tokens 2,725, max
-final-answer chars 11,702, and no long-answer rows. Keep both as verified
-baseline-mode logs until paired modes finish; no complete scale-up ablation is
-promoted. Current observed live progress: `67897` SCALR frontier `265/571`;
-`67911` BarExam `rag_simple` `201/500`; `67912` HousingQA `rag_state_filter`
-`168/500`; `67913` CaseHOLD `rag_rewrite` starting after baseline completion;
-`67915` SCALR `rag_rewrite` `230/571`.
+Latest monitor refresh, 2026-05-11 15:30 CDT: `67897` completed with exit
+`0:0`, but it is not a clean paired full-SCALR replacement. The capped SCALR
+`rag_simple` half remains clean: 571 rows, 419/571 = 73.4%, errors 0, missing
+predictions 0, parse failures 0, empty retrieval 0, average calls 1.00, max
+output tokens 4,405, max final-answer chars 14,633, and no long-answer rows.
+The paired `adaptive_snap_hyre_frontier` half was copied locally and reaches
+417/571 = 73.0%, with errors 0, parse failures 0, empty retrieval 0, average
+calls 2.00, max output tokens 8,454, and max final-answer chars 20,480, but it
+fails `scripts/audit_adaptive_hyre_logs.py` because one row has no predicted
+answer; `scripts/analyze_detail_flags.py` also flags one long-answer row. Treat
+the frontier half as health-gated/rejected, not as a clean report row. The
+remaining four active scale-up jobs are still running cleanly: `67911` BarExam
+`rag_simple` `469/500`; `67912` HousingQA `rag_state_filter` `434/500`;
+`67913` CaseHOLD `rag_rewrite` `411/500`; `67915` SCALR `rag_rewrite`
+`532/571`.
 
 | Job | Dataset | N | Modes | Status |
 |---:|---|---:|---|---|
-| 67897 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Running capped replacement for rejected full-SCALR probe `67863`; `rag_simple` mode copied and validated clean at 419/571 = 73.4%, frontier still running. |
+| 67897 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Completed. `rag_simple` is clean at 419/571 = 73.4%; frontier is health-gated/rejected at 417/571 = 73.0% because the adaptive audit finds one missing prediction and the flag audit finds one long-answer row. |
 | 67914 | LegalBench-SCALR | 571 | `rag_rewrite` | Rejected: CUDA/ECC failure on `a40-2206` before a detail log. |
 | 67915 | LegalBench-SCALR | 571 | `rag_rewrite` | Running retry for the N>=500 query-rewrite control, excluding `a40-2206`. |
 | 67911 | BarExam | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_v2` | Running baseline vs rewrite vs selected route. |
