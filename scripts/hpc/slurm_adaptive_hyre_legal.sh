@@ -128,7 +128,9 @@ print(f"[preflight] modes OK: {', '.join(modes)}")
 
 dataset = "$DATASET"
 collection = DATASET_COLLECTIONS.get(dataset)
-if collection and collection != "musique_passages":
+if "${SKIP_CHROMA_PREFLIGHT:-0}".lower() in {"1", "true", "yes", "on"}:
+    print("[preflight] Chroma collection count skipped by SKIP_CHROMA_PREFLIGHT=1")
+elif collection and collection != "musique_passages":
     client = chromadb.PersistentClient(path="$CHROMA_DB_DIR")
     count = client.get_collection(collection).count()
     print(f"[preflight] {collection} has {count:,} docs")

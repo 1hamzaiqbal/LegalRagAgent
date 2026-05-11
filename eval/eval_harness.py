@@ -6360,7 +6360,10 @@ def run_eval(config: EvalConfig):
     # parametric knowledge — a misleading number we almost cited).
     # Skip for modes that don't use ChromaDB (musique uses in-row BM25;
     # llm_only and snap_only_in_final don't retrieve at all).
-    if config.dataset != "musique" and config.mode not in _NO_CHROMA_MODES:
+    skip_collection_preflight = os.getenv("SKIP_EVAL_COLLECTION_PREFLIGHT", "").strip().lower() in {"1", "true", "yes", "on"}
+    if skip_collection_preflight:
+        print("[preflight] collection count skipped by SKIP_EVAL_COLLECTION_PREFLIGHT=1")
+    elif config.dataset != "musique" and config.mode not in _NO_CHROMA_MODES:
         try:
             from rag_utils import get_vectorstore
             _coll_name = _collection_for_config(config) if "_collection_for_config" in globals() else "legal_passages"
