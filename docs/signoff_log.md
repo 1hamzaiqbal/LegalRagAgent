@@ -80,6 +80,19 @@ Branch: `codex/final-report-snap-hyde`
    72.0%, average calls 2.00, errors 0, missing predictions 0, empty retrieval
    0, and no long-answer rows. It trails baseline retrieval, snap-only, and
    diverse HyRE-family rows.
+13. ✅ **BarExam fixed Snap-HyRE landed**:
+   `rag_snap_hyde_2call` job `67829` completed with exit `0:0` at 169/200 =
+   84.5%, average calls 2.00, errors 0, one missing prediction, empty retrieval
+   0, and no long-answer rows. It beats baseline retrieval (80.0%) and
+   HyRE-only (82.0%), but trails snap-only (85.5%) and adaptive Snap-HyRE v2
+   (86.0%).
+14. ✅ **Groq Llama 70B held-out sanity mostly landed**:
+   clean rows: BarExam `rag_simple` 38/50 = 76.0%, BarExam
+   `adaptive_snap_hyre_v2` 36/50 = 72.0%, HousingQA `rag_state_filter` 22/50 =
+   44.0%, HousingQA verifier 30/50 = 60.0%, CaseHOLD `rag_simple` 33/50 =
+   66.0%, SCALR `rag_simple` 41/50 = 82.0%, and SCALR frontier 44/50 = 88.0%.
+   CaseHOLD diverse HyRE is rejected as clean model-coverage evidence because
+   it has errors 2, empty retrieval 2, and missing predictions 2.
 
 ### New source paths
 
@@ -112,6 +125,17 @@ Branch: `codex/final-report-snap-hyde`
   `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl`.
 - CaseHOLD fixed Snap-HyRE detail log:
   `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl`.
+- BarExam fixed Snap-HyRE detail log:
+  `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0626_barexam_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl`.
+- Groq held-out sanity detail logs:
+  `logs/eval_rag_simple_groq-llama70b_20260511_0604_barexam_meeting-groq-heldout-fixed-groq-llama70b-q250-start200-end250-k5-rag_simple_detail.jsonl`,
+  `logs/eval_adaptive_snap_hyre_v2_groq-llama70b_20260511_0605_barexam_meeting-groq-heldout-fixed-groq-llama70b-q250-start200-end250-k5-adaptive_snap_hyre_v2_detail.jsonl`,
+  `logs/eval_rag_state_filter_groq-llama70b_20260511_0622_housing_meeting-groq-heldout-fixed-groq-llama70b-q250-start200-end250-k5-rag_state_filter_detail.jsonl`,
+  `logs/eval_adaptive_snap_hyre_housing_verifier_groq-llama70b_20260511_0624_housing_meeting-groq-heldout-fixed-groq-llama70b-q250-start200-end250-k5-adaptive_snap_hyre_housing_verifier_detail.jsonl`,
+  `logs/eval_rag_simple_groq-llama70b_20260511_0610_casehold_meeting-groq-heldout-fixed-groq-llama70b-q250-start200-end250-k5-rag_simple_detail.jsonl`,
+  `logs/eval_adaptive_snap_hyre_diverse_groq-llama70b_20260511_0617_casehold_meeting-groq-heldout-fixed-groq-llama70b-q250-start200-end250-k5-adaptive_snap_hyre_diverse_detail.jsonl`,
+  `logs/eval_rag_simple_groq-llama70b_20260511_0622_legalbench_scalr_meeting-groq-heldout-fixed-groq-llama70b-q250-start200-end250-k5-rag_simple_detail.jsonl`,
+  `logs/eval_adaptive_snap_hyre_frontier_groq-llama70b_20260511_0626_legalbench_scalr_meeting-groq-heldout-fixed-groq-llama70b-q250-start200-end250-k5-adaptive_snap_hyre_frontier_detail.jsonl`.
 
 ## Update 2026-05-01 ~meeting prep
 

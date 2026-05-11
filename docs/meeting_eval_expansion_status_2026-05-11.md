@@ -151,7 +151,7 @@ Provider: `or-gemma4-26b`. Sample: N=200, seed 42, k=5.
 | 67779 | LegalBench-SCALR | `snap_only_in_final` | Completed and copied locally: 72.5%, 2.00 calls. |
 | 67828 | LegalBench-SCALR | `rag_hyde` | Completed and copied locally: 71.0%, but rejected as a clean row due one runaway final answer. |
 | 67864 | LegalBench-SCALR | `rag_hyde` | Capped rerun launched with `LLM_MAX_COMPLETION_TOKENS=4096`. |
-| 67829 | BarExam | `rag_snap_hyde_2call` | Fixed Snap-HyRE N=200 row missing for this provider. |
+| 67829 | BarExam | `rag_snap_hyde_2call` | Completed and copied locally: 84.5%, 2.00 calls, one missing prediction. |
 | 67830 | HousingQA | `rag_snap_hyde_2call` | Completed and copied locally: 51.5%, 2.00 calls. |
 | 67831 | CaseHOLD | `rag_snap_hyde_2call` | Completed and copied locally: 72.0%, 2.00 calls. |
 
@@ -162,17 +162,20 @@ Provider: `groq-llama70b`. Sample: same held-out slice rows 200-249
 
 | Job | Dataset | Mode | Why it matters |
 |---:|---|---|---|
-| 67832 | BarExam | `rag_simple` | Cross-model baseline. |
-| 67833 | BarExam | `adaptive_snap_hyre_v2` | Cross-model selected route. |
-| 67834 | HousingQA | `rag_state_filter` | Cross-model state-filter baseline. |
-| 67835 | HousingQA | `adaptive_snap_hyre_housing_verifier` | Cross-model verifier route. |
-| 67836 | CaseHOLD | `rag_simple` | Cross-model baseline. |
-| 67837 | CaseHOLD | `adaptive_snap_hyre_diverse` | Cross-model selected route. |
-| 67838 | LegalBench-SCALR | `rag_simple` | Cross-model baseline. |
-| 67839 | LegalBench-SCALR | `adaptive_snap_hyre_frontier` | Cross-model selected route. |
+| 67832 | BarExam | `rag_simple` | Completed and copied locally: 38/50 = 76.0%, 1.00 calls. |
+| 67833 | BarExam | `adaptive_snap_hyre_v2` | Completed and copied locally: 36/50 = 72.0%, 2.00 calls. |
+| 67834 | HousingQA | `rag_state_filter` | Completed and copied locally: 22/50 = 44.0%, 1.00 calls. |
+| 67835 | HousingQA | `adaptive_snap_hyre_housing_verifier` | Completed and copied locally: 30/50 = 60.0%, 2.00 calls. |
+| 67836 | CaseHOLD | `rag_simple` | Completed and copied locally: 33/50 = 66.0%, 1.00 calls. |
+| 67837 | CaseHOLD | `adaptive_snap_hyre_diverse` | Completed but rejected as clean: 31/50 = 62.0%, errors 2, empty retrieval 2, missing predictions 2. |
+| 67838 | LegalBench-SCALR | `rag_simple` | Completed and copied locally: 41/50 = 82.0%, 1.00 calls. |
+| 67839 | LegalBench-SCALR | `adaptive_snap_hyre_frontier` | Completed and copied locally: 44/50 = 88.0%, 2.00 calls. |
 
-These are not report numbers until the stdout and detail logs pass the
-validation gates below.
+Cross-model interpretation: HousingQA verifier routing and SCALR frontier both
+transfer directionally to Llama 70B; BarExam selected Snap-HyRE v2 underperforms
+the Llama held-out baseline on this slice; CaseHOLD selected route is not a
+clean row because two retrieval/answer rows failed. Treat this as sanity
+coverage, not the main result table.
 
 ### Full-Corpus Feasibility Probe
 

@@ -109,6 +109,19 @@ matches the best BarExam route, slightly beats the CaseHOLD baseline, and falls
 below the stronger HousingQA and SCALR routes. That pattern supports routing
 rather than a universal "add reasoning before answering" policy.
 
+Expanded Gemma ladder:
+
+| Dataset | Baseline | Snap-only | HyRE-only | Fixed Snap-HyRE | Best current route |
+|---|---:|---:|---:|---:|---:|
+| BarExam | 80.0 | 85.5 | 82.0 | 84.5 | 86.0 |
+| HousingQA | 60.5 | 55.0 | 50.0 | 51.5 | 74.5 |
+| CaseHOLD | 73.0 | 74.0 | 71.5 | 72.0 | 73.5 |
+| LegalBench-SCALR | 74.0 | 72.5 | rejected | 76.0 | 77.5 |
+
+For SCALR, the uncapped HyRE-only job completed at 71.0% but is rejected as a
+clean row because one answer ran away to 267,458 characters. A capped rerun is
+live under SLURM `67864`.
+
 Route inheritance:
 
 | Dataset | Baseline | Added/compared route | Controller route |
@@ -142,6 +155,21 @@ Interpretation:
 - SCALR exact selected route ties baseline on the held-out slice, although the
   frontier component reaches 84.0%. The route policy needs refinement before
   claiming held-out SCALR lift.
+
+## Cross-Model Sanity
+
+Source: copied Groq Llama 70B held-out detail logs from SLURM jobs
+`67832-67839`. Same rows 200-249, N=50 per dataset.
+
+| Dataset | Baseline route | Selected route | Read |
+|---|---:|---:|---|
+| BarExam | `rag_simple` 76.0 | `adaptive_snap_hyre_v2` 72.0 | Selected route is model/slice-unstable. |
+| HousingQA | `rag_state_filter` 44.0 | verifier 60.0 | Verifier lift transfers directionally. |
+| CaseHOLD | `rag_simple` 66.0 | diverse HyRE rejected | Selected route had 2 errors/empty retrieval rows. |
+| LegalBench-SCALR | `rag_simple` 82.0 | frontier 88.0 | Frontier lift transfers directionally. |
+
+Use this as model-coverage sanity, not as the main table: it is a held-out
+slice and one selected route is rejected by health gates.
 
 ## Bottleneck Summary
 
