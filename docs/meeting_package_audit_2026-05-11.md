@@ -3,7 +3,7 @@
 Objective audited:
 
 > Produce a meeting-ready, source-gated diagnostic adaptation package for legal
-> RAG by May 12 at 4pm: consolidate four legal benchmarks, verify logs/results,
+> RAG by May 11 at 4pm: consolidate four legal benchmarks, verify logs/results,
 > build inherited ablation tables, diagrams, and bottleneck summaries, and use
 > targeted runs only where they clarify the controller story. The narrative
 > should show that calibration traces can route among baseline RAG, query
@@ -19,6 +19,10 @@ Objective audited:
 | Verify calibration results | `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json` backs the calibration table: baseline macro 71.9%, fixed HyRE 74.8%, controller 77.9%. | Done |
 | Verify held-out results | `docs/heldout_controller_eval_2026-05-10.json` and `docs/heldout_query_rewrite_2026-05-10.json` back the held-out table: baseline 71.5%, rewrite 75.5%, controller 77.5%. | Done |
 | Verify the live CaseHOLD targeted run | SLURM job `67744` completed with exit `0:0`; `analyze_detail_flags.py` and `audit_adaptive_hyre_logs.py` passed on the copied detail log. | Done |
+| Verify BarExam snap-only control | SLURM job `67773` completed with exit `0:0`; detail log has 200 rows, 171/200 = 85.5%, average calls 2.00, errors 0, and one missing prediction. | Done |
+| Verify HousingQA snap-only control | SLURM job `67775` completed with exit `0:0`; detail log has 200 rows, 110/200 = 55.0%, average calls 2.00, and errors 0. | Done, negative control |
+| Repair retrieval-bearing launch blocker | `rag_utils.py` now reinitializes the GTE remote-code `position_ids` buffer; direct embedding smoke `67820` and `rag_hyde` smoke `67821` completed cleanly. | Done |
+| Relaunch missing ladder/model-coverage jobs | Gemma N=200 retrieval controls `67825-67831` and Groq held-out sanity jobs `67832-67839` are queued/running with the repaired embedder. | In progress; not report numbers yet |
 | Build inherited ablation tables | Markdown tables in `docs/meeting_prep_2026-05-12_diagnostic_adaptation.md`; slide-ready PNGs `12_diagnostic_adaptation_calibration_ablation.png` and `13_diagnostic_adaptation_heldout_ablation.png`. | Done |
 | Build diagrams | Mermaid controller diagram in the meeting prep; PNG route-map and macro-lift figures in `docs/presentation/figures/`. | Done |
 | Build bottleneck summaries | `docs/meeting_prep_2026-05-12_diagnostic_adaptation.md` has the benchmark table and bottleneck summary table; `15_bottleneck_diagnostic_route_map.png` visualizes it. | Done |
@@ -75,4 +79,6 @@ This package is meeting-ready, not a finished paper submission. The current
 controller is still partly evidence-summary/rule-based rather than a fully
 automatic learned router. BarExam and SCALR have route-policy nuance on the
 held-out slice, and CaseHOLD still needs a better option-conversion mechanism.
-Those are paper directions, not blockers for the May 12 meeting package.
+The expanded ladder/model-coverage jobs are running under source gates and
+should not be promoted unless they finish cleanly. Those are paper directions,
+not blockers for the May 11 meeting package.

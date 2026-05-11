@@ -61,15 +61,35 @@ Existing N=200 logs already cover the key baseline/controller rows, but they
 do not yet cover every inherited control at N=200. The missing rows are being
 run as targeted jobs rather than a broad sweep.
 
+## Landed Since This Expansion
+
+These are source-gated additions after the initial package:
+
+| Item | Source | Status |
+|---|---|---|
+| BarExam snap-only control | SLURM `67773`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0346_barexam_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 171/200 = 85.5%, avg calls 2.00, errors 0, missing prediction 1 |
+| HousingQA snap-only control | SLURM `67775`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 110/200 = 55.0%, avg calls 2.00, errors 0 |
+| GTE query-embedding repair | `rag_utils.py`; direct smoke SLURM `67820` | Completed; repaired `position_ids`, finite 1024-d unit-norm query embeddings |
+| Retrieval smoke after repair | SLURM `67821`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0341_barexam_embedding-fix-smoke2-or-gemma4-26b-n5-k5-rag_hyde_detail.jsonl` | Completed, 5/5; confirms retrieval-bearing jobs can run again |
+
+The HousingQA snap-only row is a usable negative control: visible snap reasoning
+alone is below the verified state-filter baseline (60.5%) and far below the
+Housing verifier route (74.5%), supporting the claim that this task needs
+statutory entailment verification rather than more final-answer reasoning.
+The BarExam snap-only row is the opposite diagnostic pattern: it nearly reaches
+the best verified BarExam controller row (86.0%), so the route decision should
+ask whether retrieval is worth the extra latency on this task.
+
 ## Active Jobs
 
-All active jobs below use the repaired cluster script from commit `dfa4d8a`.
-They set `DATA_REPO=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent`,
+All active jobs below use the repaired cluster script from commit `dfa4d8a`
+plus the current `rag_utils.py` embedding-loader repair. They set
+`DATA_REPO=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent`,
 `CHROMA_DB_DIR=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/chroma_db`,
 skip Chroma count preflight, and exclude the bad A40 nodes that produced
-CUDA/ECC failures. Snap-only jobs do not retrieve. Retrieval-bearing retries
-use the normal GPU embedding path on the remaining healthy nodes; the CPU
-embedding fallback was rejected after an embedding index error.
+CUDA/ECC failures. Retrieval-bearing jobs also run with the repaired online GTE
+query embedder: reinitialized RoPE `position_ids`, `max_seq_length=512`, fp16
+disabled by default, and finite embedding smoke verified by SLURM `67820`.
 
 ### Missing Gemma 4 26B Ladder Controls
 
@@ -77,17 +97,17 @@ Provider: `or-gemma4-26b`. Sample: N=200, seed 42, k=5.
 
 | Job | Dataset | Mode | Why it matters |
 |---:|---|---|---|
-| 67773 | BarExam | `snap_only_in_final` | Snap-only control for inherited ladder. |
-| 67792 | BarExam | `rag_hyde` | HyRE/HyDE-only control. |
-| 67775 | HousingQA | `snap_only_in_final` | Snap-only control for yes/no statutory task. |
-| 67793 | HousingQA | `rag_hyde` | Tests whether plain HyRE helps without state/verifier route. |
+| 67773 | BarExam | `snap_only_in_final` | Completed clean: 85.5%, 2.00 calls. |
+| 67825 | BarExam | `rag_hyde` | HyRE/HyDE-only control; relaunched after embedding repair. |
+| 67775 | HousingQA | `snap_only_in_final` | Completed clean: 55.0%, 2.00 calls. |
+| 67826 | HousingQA | `rag_hyde` | Tests whether plain HyRE helps without state/verifier route. |
 | 67777 | CaseHOLD | `snap_only_in_final` | Snap-only control for option conversion. |
-| 67794 | CaseHOLD | `rag_hyde` | HyRE-only control for holding retrieval. |
+| 67827 | CaseHOLD | `rag_hyde` | HyRE-only control for holding retrieval. |
 | 67779 | LegalBench-SCALR | `snap_only_in_final` | Snap-only control for candidate disambiguation. |
-| 67795 | LegalBench-SCALR | `rag_hyde` | HyRE-only control. |
-| 67796 | BarExam | `rag_snap_hyde_2call` | Fixed Snap-HyRE N=200 row missing for this provider. |
-| 67797 | HousingQA | `rag_snap_hyde_2call` | Fixed Snap-HyRE N=200 row missing for this provider. |
-| 67798 | CaseHOLD | `rag_snap_hyde_2call` | Fixed Snap-HyRE N=200 row missing for this provider. |
+| 67828 | LegalBench-SCALR | `rag_hyde` | HyRE-only control. |
+| 67829 | BarExam | `rag_snap_hyde_2call` | Fixed Snap-HyRE N=200 row missing for this provider. |
+| 67830 | HousingQA | `rag_snap_hyde_2call` | Fixed Snap-HyRE N=200 row missing for this provider. |
+| 67831 | CaseHOLD | `rag_snap_hyde_2call` | Fixed Snap-HyRE N=200 row missing for this provider. |
 
 ### Cross-Model Sanity Layer
 
@@ -96,14 +116,14 @@ Provider: `groq-llama70b`. Sample: same held-out slice rows 200-249
 
 | Job | Dataset | Mode | Why it matters |
 |---:|---|---|---|
-| 67799 | BarExam | `rag_simple` | Cross-model baseline. |
-| 67800 | BarExam | `adaptive_snap_hyre_v2` | Cross-model selected route. |
-| 67801 | HousingQA | `rag_state_filter` | Cross-model state-filter baseline. |
-| 67802 | HousingQA | `adaptive_snap_hyre_housing_verifier` | Cross-model verifier route. |
-| 67803 | CaseHOLD | `rag_simple` | Cross-model baseline. |
-| 67804 | CaseHOLD | `adaptive_snap_hyre_diverse` | Cross-model selected route. |
-| 67805 | LegalBench-SCALR | `rag_simple` | Cross-model baseline. |
-| 67806 | LegalBench-SCALR | `adaptive_snap_hyre_frontier` | Cross-model selected route. |
+| 67832 | BarExam | `rag_simple` | Cross-model baseline. |
+| 67833 | BarExam | `adaptive_snap_hyre_v2` | Cross-model selected route. |
+| 67834 | HousingQA | `rag_state_filter` | Cross-model state-filter baseline. |
+| 67835 | HousingQA | `adaptive_snap_hyre_housing_verifier` | Cross-model verifier route. |
+| 67836 | CaseHOLD | `rag_simple` | Cross-model baseline. |
+| 67837 | CaseHOLD | `adaptive_snap_hyre_diverse` | Cross-model selected route. |
+| 67838 | LegalBench-SCALR | `rag_simple` | Cross-model baseline. |
+| 67839 | LegalBench-SCALR | `adaptive_snap_hyre_frontier` | Cross-model selected route. |
 
 These are not report numbers until the stdout and detail logs pass the
 validation gates below.
@@ -119,6 +139,9 @@ Do not cite any of these:
 | 67750-67753 | Cerebras preflight failed from missing credentials. | Invalid; use Groq for second-provider sanity unless Cerebras key is installed. |
 | 67754-67772 | Bad launch used `DATA_REPO=$REPO`, creating a self-referential `datasets` symlink. | Cancelled / invalid; script now avoids self-linking. |
 | 67774, 67776, 67778, 67780-67791 | CPU embedding fallback launch was rejected after `rag_hyde` failed with an embedding index error. | Cancelled / invalid; retrieval-bearing jobs relaunched with normal GPU embedding on non-A40 nodes. |
+| 67792, 67793, 67808 | Default GTE query embedding crashed before valid retrieval due to a corrupted remote-code `position_ids` buffer. | Invalid; root-caused and repaired in `rag_utils.py`, then smoke-tested by `67820` and `67821`. |
+| 67794-67806 | Pending retrieval jobs from the pre-repair launch. | Cancelled / invalid to avoid wasting API calls on the broken embedder. |
+| 67810-67818 | Embedding debug/smoke attempts, including a failed ONNX backend check because `optimum` is not installed. | Debug only; do not cite as eval results. |
 
 ## Full-Corpus Feasibility
 
@@ -138,7 +161,7 @@ CaseHOLD dominating cost and runtime. The meeting-safe standard is therefore:
 - report existing verified N=200/N=50 source-gated results;
 - integrate new N=200 ladder controls only if they land cleanly;
 - treat full-corpus expansion as post-meeting paper work unless a smaller full
-  dataset such as SCALR lands cleanly under the repaired CPU retrieval path.
+  dataset such as SCALR lands cleanly under the repaired retrieval path.
 
 ## Validation Gates
 

@@ -29,6 +29,36 @@ _embeddings_instances: Dict[str, HuggingFaceEmbeddings] = {}
 _embeddings_lock = threading.Lock()
 
 
+def _repair_position_ids(embeddings: HuggingFaceEmbeddings) -> None:
+    """Repair remote-code embedders whose non-persistent position buffer is stale.
+
+    Alibaba GTE's `new-impl` module reads `embeddings.position_ids` for RoPE.
+    On some cluster loads that buffer can contain uninitialized values, causing
+    immediate index errors even for a four-token query. Rebuild it after load.
+    """
+    try:
+        import torch
+
+        transformer = embeddings._client[0]
+        auto_model = getattr(transformer, "auto_model", None)
+        emb_module = getattr(auto_model, "embeddings", None)
+        if emb_module is None or not hasattr(emb_module, "position_ids"):
+            return
+
+        max_positions = int(getattr(auto_model.config, "max_position_embeddings", 0))
+        if max_positions <= 0:
+            max_positions = int(emb_module.position_ids.numel())
+        device = emb_module.word_embeddings.weight.device
+        emb_module.register_buffer(
+            "position_ids",
+            torch.arange(max_positions, device=device, dtype=torch.long),
+            persistent=False,
+        )
+        print(f"[rag_utils] Reinitialized embedding position_ids={max_positions}")
+    except Exception as exc:
+        logger.warning("Could not repair embedding position_ids: %s", exc)
+
+
 def get_embeddings(model_name: str = None) -> HuggingFaceEmbeddings:
     """Get a cached embedding model instance. Supports multiple models for A/B testing.
 
@@ -45,13 +75,36 @@ def get_embeddings(model_name: str = None) -> HuggingFaceEmbeddings:
         if model_name not in _embeddings_instances:
             print(f"[rag_utils] Loading embedding model: {model_name}")
             device = os.getenv("EMBEDDING_DEVICE", "").strip()
+            backend = os.getenv("EMBEDDING_BACKEND", "").strip()
             model_kwargs = {"trust_remote_code": True}
             if device:
                 model_kwargs["device"] = device
-            _embeddings_instances[model_name] = HuggingFaceEmbeddings(
+            if backend:
+                model_kwargs["backend"] = backend
+            fp16_requested = os.getenv("EMBEDDING_FP16", "").strip().lower() in {"1", "true", "yes", "on"}
+            if fp16_requested and (not backend or backend == "torch") and device.lower() != "cpu":
+                try:
+                    import torch
+                    model_kwargs["model_kwargs"] = {"dtype": torch.float16}
+                except Exception as exc:
+                    logger.warning("Could not enable fp16 embedding load: %s", exc)
+            embeddings = HuggingFaceEmbeddings(
                 model_name=model_name,
                 model_kwargs=model_kwargs,
+                encode_kwargs={"normalize_embeddings": True},
             )
+            _repair_position_ids(embeddings)
+            # Keep online query embeddings aligned with utils/fast_embed.py,
+            # which built the Chroma collections with SentenceTransformer
+            # max_seq_length=512. Let callers override only for experiments.
+            max_seq_raw = os.getenv("EMBEDDING_MAX_SEQ_LENGTH", "512").strip()
+            if max_seq_raw:
+                try:
+                    embeddings._client.max_seq_length = int(max_seq_raw)
+                    print(f"[rag_utils] Embedding max_seq_length={embeddings._client.max_seq_length}")
+                except Exception as exc:
+                    logger.warning("Could not set embedding max_seq_length=%r: %s", max_seq_raw, exc)
+            _embeddings_instances[model_name] = embeddings
     return _embeddings_instances[model_name]
 
 
