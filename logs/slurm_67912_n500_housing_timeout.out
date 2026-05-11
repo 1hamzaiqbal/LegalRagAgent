@@ -1,0 +1,1471 @@
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+[preflight] modes OK: rag_state_filter, rag_rewrite, adaptive_snap_hyre_housing_verifier
+[preflight] Chroma collection count skipped by SKIP_CHROMA_PREFLIGHT=1
+[2026-05-11T12:21:46-05:00] provider=or-gemma4-26b dataset=housing N=500 seed=42 k=5
+[2026-05-11T12:21:46-05:00] modes: rag_state_filter rag_rewrite adaptive_snap_hyre_housing_verifier
+
+[2026-05-11T12:21:46-05:00] === MODE rag_state_filter tag=meeting-n500-canonical-or-gemma4-26b-housing-n500-k5-rag_state_filter ===
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+
+======================================================================
+EVAL: rag_state_filter | or-gemma4-26b (google/gemma-4-26b-a4b-it) | 500 questions | dataset=housing
+Tag: meeting-n500-canonical-or-gemma4-26b-housing-n500-k5-rag_state_filter
+======================================================================
+
+    [preflight_smoke] 2 chars
+[preflight] provider=or-gemma4-26b OK
+[preflight] collection count skipped by SKIP_EVAL_COLLECTION_PREFLIGHT=1
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Loading weights:   0%|          | 0/268 [00:00<?, ?it/s]Loading weights: 100%|██████████| 268/268 [00:00<00:00, 9191.04it/s]
+[rag_utils] Reinitialized embedding position_ids=8192
+[rag_utils] Embedding max_seq_length=512
+    [rag_state_filter/answer] 2274 chars
+[1/500] hqa_California_906                  PASS   gold=Yes pred=Yes (257.9s, 1 calls)
+    [rag_state_filter/answer] 1931 chars
+[2/500] hqa_New Hampshire_6299              PASS   gold=No pred=No (11.7s, 1 calls)
+    [rag_state_filter/answer] 2370 chars
+[3/500] hqa_Oklahoma_5813                   PASS   gold=No pred=No (31.5s, 1 calls)
+    [rag_state_filter/answer] 1750 chars
+[4/500] hqa_Michigan_7987                   PASS   gold=Yes pred=Yes (32.9s, 1 calls)
+    [rag_state_filter/answer] 2081 chars
+[5/500] hqa_Ohio_6342                       PASS   gold=No pred=No (62.7s, 1 calls)
+    [rag_state_filter/answer] 2583 chars
+[6/500] hqa_South Carolina_4489             PASS   gold=No pred=No (17.2s, 1 calls)
+    [rag_state_filter/answer] 1622 chars
+[7/500] hqa_Massachusetts_7965              PASS   gold=No pred=No (17.0s, 1 calls)
+    [rag_state_filter/answer] 2036 chars
+[8/500] hqa_Ohio_128                        FAIL   gold=Yes pred=No (9.2s, 1 calls)
+    [rag_state_filter/answer] 2321 chars
+[9/500] hqa_Florida_6724                    FAIL   gold=No pred=Yes (48.6s, 1 calls)
+    [rag_state_filter/answer] 1316 chars
+[10/500] hqa_Missouri_6256                   PASS   gold=No pred=No (21.3s, 1 calls)
+    [rag_state_filter/answer] 1351 chars
+[11/500] hqa_Maine_8974                      FAIL   gold=Yes pred=No (111.1s, 1 calls)
+    [rag_state_filter/answer] 3805 chars
+[12/500] hqa_New Jersey_5714                 PASS   gold=No pred=No (75.7s, 1 calls)
+    [rag_state_filter/answer] 815 chars
+[13/500] hqa_Oregon_273                      FAIL   gold=Yes pred=No (33.8s, 1 calls)
+    [rag_state_filter/answer] 1644 chars
+[14/500] hqa_Oregon_7400                     PASS   gold=No pred=No (8.4s, 1 calls)
+    [rag_state_filter/answer] 1973 chars
+[15/500] hqa_Tennessee_7214                  FAIL   gold=No pred=Yes (17.9s, 1 calls)
+    [rag_state_filter/answer] 1498 chars
+[16/500] hqa_Rhode Island_1629               FAIL   gold=No pred=Yes (32.0s, 1 calls)
+    [rag_state_filter/answer] 1180 chars
+[17/500] hqa_Virginia_3832                   PASS   gold=No pred=No (26.1s, 1 calls)
+    [rag_state_filter/answer] 1886 chars
+[18/500] hqa_Michigan_4232                   FAIL   gold=Yes pred=No (11.4s, 1 calls)
+    [rag_state_filter/answer] 3853 chars
+[19/500] hqa_Illinois_7793                   FAIL   gold=No pred=Yes (38.3s, 1 calls)
+    [rag_state_filter/answer] 2264 chars
+[20/500] hqa_Georgia_4066                    FAIL   gold=Yes pred=No (27.0s, 1 calls)
+    [rag_state_filter/answer] 2224 chars
+[21/500] hqa_Virginia_1772                   PASS   gold=No pred=No (12.5s, 1 calls)
+    [rag_state_filter/answer] 2652 chars
+[22/500] hqa_New Hampshire_7009              FAIL   gold=No pred=Yes (6.5s, 1 calls)
+    [rag_state_filter/answer] 2724 chars
+[23/500] hqa_Tennessee_5894                  FAIL   gold=No pred=Yes (7.0s, 1 calls)
+    [rag_state_filter/answer] 1296 chars
+[24/500] hqa_Utah_3249                       FAIL   gold=No pred=Yes (17.2s, 1 calls)
+    [rag_state_filter/answer] 1779 chars
+[25/500] hqa_South Carolina_3809             PASS   gold=No pred=No (8.1s, 1 calls)
+    [rag_state_filter/answer] 829 chars
+[26/500] hqa_Hawaii_1051                     PASS   gold=No pred=No (12.4s, 1 calls)
+    [rag_state_filter/answer] 2412 chars
+[27/500] hqa_Washington_5958                 PASS   gold=Yes pred=Yes (23.5s, 1 calls)
+    [rag_state_filter/answer] 1644 chars
+[28/500] hqa_Alaska_840                      PASS   gold=Yes pred=Yes (33.3s, 1 calls)
+    [rag_state_filter/answer] 2613 chars
+[29/500] hqa_Alabama_7499                    FAIL   gold=No pred=Yes (27.0s, 1 calls)
+    [rag_state_filter/answer] 1978 chars
+[30/500] hqa_Connecticut_7341                PASS   gold=No pred=No (21.5s, 1 calls)
+    [rag_state_filter/answer] 1869 chars
+[31/500] hqa_New York_4365                   PASS   gold=No pred=No (25.4s, 1 calls)
+    [rag_state_filter/answer] 1271 chars
+[32/500] hqa_Rhode Island_275                FAIL   gold=Yes pred=No (14.5s, 1 calls)
+    [rag_state_filter/answer] 2417 chars
+[33/500] hqa_West Virginia_9193              PASS   gold=Yes pred=Yes (125.0s, 1 calls)
+    [rag_state_filter/answer] 2238 chars
+[34/500] hqa_West Virginia_8811              PASS   gold=No pred=No (10.9s, 1 calls)
+    [rag_state_filter/answer] 3603 chars
+[35/500] hqa_Washington_3844                 FAIL   gold=Yes pred=No (24.6s, 1 calls)
+    [rag_state_filter/answer] 2304 chars
+[36/500] hqa_Maryland_1229                   FAIL   gold=No pred=Yes (20.4s, 1 calls)
+    [rag_state_filter/answer] 1792 chars
+[37/500] hqa_Hawaii_5445                     FAIL   gold=Yes pred=No (8.7s, 1 calls)
+    [rag_state_filter/answer] 2508 chars
+[38/500] hqa_District of Columbia_8887       FAIL   gold=Yes pred=No (25.3s, 1 calls)
+    [rag_state_filter/answer] 1727 chars
+[39/500] hqa_Mississippi_6241                PASS   gold=No pred=No (28.2s, 1 calls)
+    [rag_state_filter/answer] 1532 chars
+[40/500] hqa_South Carolina_8394             PASS   gold=No pred=No (10.5s, 1 calls)
+    [rag_state_filter/answer] 2730 chars
+[41/500] hqa_North Carolina_3036             FAIL   gold=No pred=Yes (52.2s, 1 calls)
+    [rag_state_filter/answer] 1756 chars
+[42/500] hqa_New Mexico_7050                 FAIL   gold=Yes pred=No (46.5s, 1 calls)
+    [rag_state_filter/answer] 2139 chars
+[43/500] hqa_Washington_8573                 FAIL   gold=No pred=Yes (8.0s, 1 calls)
+    [rag_state_filter/answer] 3086 chars
+[44/500] hqa_Wyoming_55                      PASS   gold=Yes pred=Yes (84.0s, 1 calls)
+    [rag_state_filter/answer] 1903 chars
+[45/500] hqa_Nevada_8111                     FAIL   gold=No pred=Yes (118.4s, 1 calls)
+    [rag_state_filter/answer] 2063 chars
+[46/500] hqa_Vermont_3262                    PASS   gold=Yes pred=Yes (36.9s, 1 calls)
+    [rag_state_filter/answer] 1792 chars
+[47/500] hqa_West Virginia_9192              PASS   gold=No pred=No (7.1s, 1 calls)
+    [rag_state_filter/answer] 1857 chars
+[48/500] hqa_Tennessee_8446                  FAIL   gold=No pred=Yes (6.7s, 1 calls)
+    [rag_state_filter/answer] 2399 chars
+[49/500] hqa_Illinois_1997                   PASS   gold=No pred=No (31.1s, 1 calls)
+    [rag_state_filter/answer] 1146 chars
+[50/500] hqa_Rhode Island_3158               FAIL   gold=Yes pred=No (47.1s, 1 calls)
+    [rag_state_filter/answer] 1990 chars
+[51/500] hqa_Nebraska_2945                   FAIL   gold=No pred=Yes (42.4s, 1 calls)
+    [rag_state_filter/answer] 890 chars
+[52/500] hqa_Oregon_3792                     PASS   gold=No pred=No (5.3s, 1 calls)
+    [rag_state_filter/answer] 1221 chars
+[53/500] hqa_Utah_774                        FAIL   gold=Yes pred=No (9.1s, 1 calls)
+    [rag_state_filter/answer] 2708 chars
+[54/500] hqa_Florida_5402                    PASS   gold=No pred=No (12.5s, 1 calls)
+    [rag_state_filter/answer] 2245 chars
+[55/500] hqa_Alabama_6589                    PASS   gold=Yes pred=Yes (13.1s, 1 calls)
+    [rag_state_filter/answer] 1953 chars
+[56/500] hqa_Nevada_9035                     PASS   gold=No pred=No (7.0s, 1 calls)
+    [rag_state_filter/answer] 1662 chars
+[57/500] hqa_Virginia_1789                   PASS   gold=No pred=No (7.2s, 1 calls)
+    [rag_state_filter/answer] 2987 chars
+[58/500] hqa_Ohio_5803                       PASS   gold=No pred=No (16.7s, 1 calls)
+    [rag_state_filter/answer] 2926 chars
+[59/500] hqa_West Virginia_1815              FAIL   gold=No pred=Yes (9.5s, 1 calls)
+    [rag_state_filter/answer] 1677 chars
+[60/500] hqa_Idaho_7779                      FAIL   gold=No pred=Yes (23.9s, 1 calls)
+    [rag_state_filter/answer] 1731 chars
+[61/500] hqa_Maryland_7347                   PASS   gold=No pred=No (8.3s, 1 calls)
+    [rag_state_filter/answer] 1631 chars
+[62/500] hqa_California_3984                 FAIL   gold=No pred=Yes (11.8s, 1 calls)
+    [rag_state_filter/answer] 2020 chars
+[63/500] hqa_Indiana_7816                    FAIL   gold=No pred=Yes (98.4s, 1 calls)
+    [rag_state_filter/answer] 3713 chars
+[64/500] hqa_Vermont_3268                    PASS   gold=Yes pred=Yes (72.2s, 1 calls)
+    [rag_state_filter/answer] 1592 chars
+[65/500] hqa_Illinois_332                    FAIL   gold=Yes pred=No (18.1s, 1 calls)
+    [rag_state_filter/answer] 3163 chars
+[66/500] hqa_Idaho_1083                      FAIL   gold=No pred=Yes (36.2s, 1 calls)
+    [rag_state_filter/answer] 2684 chars
+[67/500] hqa_Maryland_1228                   FAIL   gold=No pred=Yes (23.1s, 1 calls)
+    [rag_state_filter/answer] 2341 chars
+[68/500] hqa_Utah_6453                       PASS   gold=Yes pred=Yes (35.4s, 1 calls)
+    [rag_state_filter/answer] 2889 chars
+[69/500] hqa_California_3981                 PASS   gold=No pred=No (18.4s, 1 calls)
+    [rag_state_filter/answer] 2698 chars
+[70/500] hqa_Delaware_1945                   PASS   gold=No pred=No (23.8s, 1 calls)
+    [rag_state_filter/answer] 1867 chars
+[71/500] hqa_Indiana_4127                    FAIL   gold=No pred=Yes (16.5s, 1 calls)
+    [rag_state_filter/answer] 1155 chars
+[72/500] hqa_Maine_3675                      PASS   gold=No pred=No (8.5s, 1 calls)
+    [rag_state_filter/answer] 1494 chars
+[73/500] hqa_Nevada_3737                     FAIL   gold=Yes pred=No (13.2s, 1 calls)
+    [rag_state_filter/answer] 1823 chars
+[74/500] hqa_Florida_1003                    PASS   gold=Yes pred=Yes (14.1s, 1 calls)
+    [rag_state_filter/answer] 2552 chars
+[75/500] hqa_New Hampshire_7008              FAIL   gold=No pred=Yes (19.1s, 1 calls)
+    [rag_state_filter/answer] 539 chars
+[76/500] hqa_West Virginia_7296              FAIL   gold=Yes pred=None (78.2s, 1 calls)
+    [rag_state_filter/answer] 1925 chars
+[77/500] hqa_Idaho_1075                      PASS   gold=Yes pred=Yes (8.7s, 1 calls)
+    [rag_state_filter/answer] 597 chars
+[78/500] hqa_Hawaii_4089                     PASS   gold=No pred=No (8.9s, 1 calls)
+    [rag_state_filter/answer] 3554 chars
+[79/500] hqa_Oklahoma_5810                   FAIL   gold=No pred=Yes (22.0s, 1 calls)
+    [rag_state_filter/answer] 1751 chars
+[80/500] hqa_New York_9283                   PASS   gold=No pred=No (12.1s, 1 calls)
+    [rag_state_filter/answer] 2222 chars
+[81/500] hqa_Maine_4196                      PASS   gold=No pred=No (17.9s, 1 calls)
+    [rag_state_filter/answer] 1935 chars
+[82/500] hqa_Utah_3245                       PASS   gold=Yes pred=Yes (5.8s, 1 calls)
+    [rag_state_filter/answer] 2663 chars
+[83/500] hqa_Arizona_3                       PASS   gold=Yes pred=Yes (19.2s, 1 calls)
+    [rag_state_filter/answer] 2787 chars
+[84/500] hqa_West Virginia_7305              FAIL   gold=No pred=Yes (16.4s, 1 calls)
+    [rag_state_filter/answer] 2570 chars
+[85/500] hqa_Texas_3213                      FAIL   gold=No pred=Yes (39.5s, 1 calls)
+    [rag_state_filter/answer] 2989 chars
+[86/500] hqa_Colorado_6675                   PASS   gold=Yes pred=Yes (72.0s, 1 calls)
+    [rag_state_filter/answer] 3159 chars
+[87/500] hqa_Tennessee_2498                  PASS   gold=Yes pred=Yes (20.3s, 1 calls)
+    [rag_state_filter/answer] 1567 chars
+[88/500] hqa_South Dakota_8789               PASS   gold=No pred=No (13.1s, 1 calls)
+    [rag_state_filter/answer] 4024 chars
+[89/500] hqa_Georgia_6746                    FAIL   gold=No pred=Yes (9.1s, 1 calls)
+    [rag_state_filter/answer] 2535 chars
+[90/500] hqa_Nebraska_6980                   FAIL   gold=No pred=Yes (55.4s, 1 calls)
+    [rag_state_filter/answer] 1920 chars
+[91/500] hqa_California_913                  PASS   gold=Yes pred=Yes (17.1s, 1 calls)
+    [rag_state_filter/answer] 1518 chars
+[92/500] hqa_New Jersey_8722                 PASS   gold=No pred=No (9.1s, 1 calls)
+    [rag_state_filter/answer] 1900 chars
+[93/500] hqa_California_6654                 FAIL   gold=No pred=Yes (27.8s, 1 calls)
+    [rag_state_filter/answer] 4629 chars
+[94/500] hqa_Georgia_6752                    PASS   gold=No pred=No (43.3s, 1 calls)
+    [rag_state_filter/answer] 2100 chars
+[95/500] hqa_Alaska_6609                     FAIL   gold=No pred=Yes (8.3s, 1 calls)
+    [rag_state_filter/answer] 2143 chars
+[96/500] hqa_Alaska_830                      PASS   gold=Yes pred=Yes (13.8s, 1 calls)
+    [rag_state_filter/answer] 1839 chars
+[97/500] hqa_Iowa_6824                       PASS   gold=Yes pred=Yes (25.4s, 1 calls)
+    [rag_state_filter/answer] 2511 chars
+[98/500] hqa_Nebraska_8091                   FAIL   gold=No pred=Yes (10.5s, 1 calls)
+    [rag_state_filter/answer] 1064 chars
+[99/500] hqa_Massachusetts_1252              FAIL   gold=No pred=Yes (12.1s, 1 calls)
+    [rag_state_filter/answer] 1796 chars
+[100/500] hqa_Kansas_7854                     PASS   gold=No pred=No (48.4s, 1 calls)
+    [rag_state_filter/answer] 2242 chars
+[101/500] hqa_Michigan_1266                   FAIL   gold=No pred=Yes (20.2s, 1 calls)
+    [rag_state_filter/answer] 2916 chars
+[102/500] hqa_South Carolina_8387             PASS   gold=Yes pred=Yes (32.9s, 1 calls)
+    [rag_state_filter/answer] 1123 chars
+[103/500] hqa_Rhode Island_201                FAIL   gold=Yes pred=No (7.1s, 1 calls)
+    [rag_state_filter/answer] 1501 chars
+[104/500] hqa_Connecticut_952                 FAIL   gold=No pred=Yes (7.9s, 1 calls)
+    [rag_state_filter/answer] 1417 chars
+[105/500] hqa_Oregon_7142                     PASS   gold=No pred=No (8.4s, 1 calls)
+    [rag_state_filter/answer] 1095 chars
+[106/500] hqa_Idaho_1984                      FAIL   gold=Yes pred=No (21.6s, 1 calls)
+    [rag_state_filter/answer] 1311 chars
+[107/500] hqa_California_2604                 FAIL   gold=No pred=Yes (25.2s, 1 calls)
+    [rag_state_filter/answer] 2619 chars
+[108/500] hqa_South Dakota_8413               FAIL   gold=No pred=Yes (7.9s, 1 calls)
+    [rag_state_filter/answer] 1455 chars
+[109/500] hqa_Vermont_3410                    PASS   gold=No pred=No (6.8s, 1 calls)
+    [rag_state_filter/answer] 1012 chars
+[110/500] hqa_Virginia_5954                   PASS   gold=No pred=No (10.8s, 1 calls)
+    [rag_state_filter/answer] 2832 chars
+[111/500] hqa_Indiana_1120                    FAIL   gold=No pred=Yes (21.8s, 1 calls)
+    [rag_state_filter/answer] 1470 chars
+[112/500] hqa_Iowa_179                        FAIL   gold=Yes pred=No (9.0s, 1 calls)
+    [rag_state_filter/answer] 3074 chars
+[113/500] hqa_Colorado_5365                   FAIL   gold=No pred=Yes (17.9s, 1 calls)
+    [rag_state_filter/answer] 2931 chars
+[114/500] hqa_Virginia_5952                   FAIL   gold=No pred=Yes (12.6s, 1 calls)
+    [rag_state_filter/answer] 1841 chars
+[115/500] hqa_Utah_8794                       PASS   gold=No pred=No (13.1s, 1 calls)
+    [rag_state_filter/answer] 2275 chars
+[116/500] hqa_Utah_8506                       FAIL   gold=No pred=Yes (18.3s, 1 calls)
+    [rag_state_filter/answer] 2967 chars
+[117/500] hqa_Nebraska_700                    PASS   gold=No pred=No (11.8s, 1 calls)
+    [rag_state_filter/answer] 2929 chars
+[118/500] hqa_Georgia_7720                    FAIL   gold=No pred=Yes (18.9s, 1 calls)
+    [rag_state_filter/answer] 2047 chars
+[119/500] hqa_Tennessee_8433                  PASS   gold=No pred=No (16.2s, 1 calls)
+    [rag_state_filter/answer] 1537 chars
+[120/500] hqa_Mississippi_7362                FAIL   gold=Yes pred=No (7.2s, 1 calls)
+    [rag_state_filter/answer] 1068 chars
+[121/500] hqa_Maryland_6200                   FAIL   gold=Yes pred=No (34.6s, 1 calls)
+    [rag_state_filter/answer] 2631 chars
+[122/500] hqa_Connecticut_4719                PASS   gold=No pred=No (12.7s, 1 calls)
+    [rag_state_filter/answer] 2011 chars
+[123/500] hqa_Alaska_6612                     PASS   gold=Yes pred=Yes (60.1s, 1 calls)
+    [rag_state_filter/answer] 2010 chars
+[124/500] hqa_Arkansas_6045                   PASS   gold=No pred=No (31.0s, 1 calls)
+    [rag_state_filter/answer] 3950 chars
+[125/500] hqa_Puerto Rico_6383                PASS   gold=No pred=No (34.9s, 1 calls)
+    [rag_state_filter/answer] 2719 chars
+[126/500] hqa_Texas_2219                      PASS   gold=No pred=No (16.7s, 1 calls)
+    [rag_state_filter/answer] 1172 chars
+[127/500] hqa_Mississippi_3706                PASS   gold=No pred=No (8.7s, 1 calls)
+    [rag_state_filter/answer] 2459 chars
+[128/500] hqa_North Carolina_1484             FAIL   gold=No pred=Yes (9.6s, 1 calls)
+    [rag_state_filter/answer] 2061 chars
+[129/500] hqa_Illinois_7806                   FAIL   gold=No pred=Yes (12.9s, 1 calls)
+    [rag_state_filter/answer] 2005 chars
+[130/500] hqa_New Hampshire_4992              PASS   gold=No pred=No (19.2s, 1 calls)
+    [rag_state_filter/answer] 1970 chars
+[131/500] hqa_Wisconsin_1830                  PASS   gold=No pred=No (18.5s, 1 calls)
+    [rag_state_filter/answer] 1374 chars
+[132/500] hqa_Ohio_3778                       PASS   gold=No pred=No (22.6s, 1 calls)
+    [rag_state_filter/answer] 3077 chars
+[133/500] hqa_South Dakota_5866               PASS   gold=No pred=No (64.6s, 1 calls)
+    [rag_state_filter/answer] 1490 chars
+[134/500] hqa_Wisconsin_6509                  PASS   gold=No pred=No (7.9s, 1 calls)
+    [rag_state_filter/answer] 3194 chars
+[135/500] hqa_Kansas_7434                     FAIL   gold=Yes pred=No (47.7s, 1 calls)
+    [rag_state_filter/answer] 2114 chars
+[136/500] hqa_Washington_3909                 PASS   gold=Yes pred=Yes (25.3s, 1 calls)
+    [rag_state_filter/answer] 2271 chars
+[137/500] hqa_Oklahoma_8285                   FAIL   gold=No pred=Yes (14.8s, 1 calls)
+    [rag_state_filter/answer] 1871 chars
+[138/500] hqa_Maryland_8986                   FAIL   gold=Yes pred=No (16.9s, 1 calls)
+    [rag_state_filter/answer] 1620 chars
+[139/500] hqa_Maine_3672                      PASS   gold=No pred=No (9.9s, 1 calls)
+    [rag_state_filter/answer] 1237 chars
+[140/500] hqa_Rhode Island_565                FAIL   gold=Yes pred=No (26.5s, 1 calls)
+    [rag_state_filter/answer] 1251 chars
+[141/500] hqa_Florida_3596                    PASS   gold=No pred=No (12.3s, 1 calls)
+    [rag_state_filter/answer] 2213 chars
+[142/500] hqa_North Carolina_1483             FAIL   gold=No pred=Yes (22.2s, 1 calls)
+    [rag_state_filter/answer] 1439 chars
+[143/500] hqa_Vermont_3826                    PASS   gold=No pred=No (5.7s, 1 calls)
+    [rag_state_filter/answer] 1829 chars
+[144/500] hqa_Washington_9294                 PASS   gold=No pred=No (34.7s, 1 calls)
+    [rag_state_filter/answer] 1860 chars
+[145/500] hqa_Colorado_3557                   PASS   gold=No pred=No (10.0s, 1 calls)
+    [rag_state_filter/answer] 1417 chars
+[146/500] hqa_New York_8202                   PASS   gold=No pred=No (14.1s, 1 calls)
+    [rag_state_filter/answer] 2064 chars
+[147/500] hqa_New Mexico_3006                 PASS   gold=No pred=No (19.5s, 1 calls)
+    [rag_state_filter/answer] 1625 chars
+[148/500] hqa_Florida_2677                    PASS   gold=Yes pred=Yes (10.6s, 1 calls)
+    [rag_state_filter/answer] 3076 chars
+[149/500] hqa_Illinois_3624                   PASS   gold=Yes pred=Yes (37.2s, 1 calls)
+    [rag_state_filter/answer] 2402 chars
+[150/500] hqa_California_3980                 FAIL   gold=No pred=Yes (67.0s, 1 calls)
+    [rag_state_filter/answer] 950 chars
+[151/500] hqa_Rhode Island_9125               PASS   gold=No pred=No (6.7s, 1 calls)
+    [rag_state_filter/answer] 2598 chars
+[152/500] hqa_Alabama_2544                    FAIL   gold=No pred=Yes (35.1s, 1 calls)
+    [rag_state_filter/answer] 2406 chars
+[153/500] hqa_South Carolina_1639             FAIL   gold=No pred=Yes (19.4s, 1 calls)
+    [rag_state_filter/answer] 1085 chars
+[154/500] hqa_Connecticut_7338                FAIL   gold=Yes pred=No (8.8s, 1 calls)
+    [rag_state_filter/answer] 1429 chars
+[155/500] hqa_Texas_9142                      FAIL   gold=Yes pred=No (14.1s, 1 calls)
+    [rag_state_filter/answer] 2262 chars
+[156/500] hqa_District of Columbia_4031       PASS   gold=No pred=No (23.0s, 1 calls)
+    [rag_state_filter/answer] 2085 chars
+[157/500] hqa_Michigan_3704                   PASS   gold=No pred=No (12.7s, 1 calls)
+    [rag_state_filter/answer] 1349 chars
+[158/500] hqa_California_7572                 FAIL   gold=Yes pred=No (28.1s, 1 calls)
+    [rag_state_filter/answer] 1715 chars
+[159/500] hqa_Maryland_3452                   PASS   gold=No pred=No (8.3s, 1 calls)
+    [rag_state_filter/answer] 1772 chars
+[160/500] hqa_California_168                  FAIL   gold=Yes pred=No (37.2s, 1 calls)
+    [rag_state_filter/answer] 2514 chars
+[161/500] hqa_Colorado_6062                   PASS   gold=Yes pred=Yes (6.1s, 1 calls)
+    [rag_state_filter/answer] 1489 chars
+[162/500] hqa_Wisconsin_3849                  FAIL   gold=Yes pred=No (5.8s, 1 calls)
+    [rag_state_filter/answer] 2027 chars
+[163/500] hqa_Washington_2527                 PASS   gold=Yes pred=Yes (7.0s, 1 calls)
+    [rag_state_filter/answer] 3109 chars
+[164/500] hqa_Missouri_5643                   FAIL   gold=Yes pred=No (25.0s, 1 calls)
+    [rag_state_filter/answer] 2780 chars
+[165/500] hqa_Massachusetts_3455              FAIL   gold=Yes pred=No (68.4s, 1 calls)
+    [rag_state_filter/answer] 2309 chars
+[166/500] hqa_Washington_3845                 PASS   gold=Yes pred=Yes (23.9s, 1 calls)
+    [rag_state_filter/answer] 1068 chars
+[167/500] hqa_Montana_2084                    FAIL   gold=Yes pred=No (36.9s, 1 calls)
+    [rag_state_filter/answer] 1541 chars
+[168/500] hqa_New Hampshire_8135              PASS   gold=No pred=No (13.8s, 1 calls)
+    [rag_state_filter/answer] 2860 chars
+[169/500] hqa_Delaware_7655                   PASS   gold=No pred=No (227.0s, 1 calls)
+    [rag_state_filter/answer] 2250 chars
+[170/500] hqa_Idaho_3617                      PASS   gold=No pred=No (13.8s, 1 calls)
+    [rag_state_filter/answer] 1482 chars
+[171/500] hqa_Oregon_8316                     PASS   gold=No pred=No (19.8s, 1 calls)
+    [rag_state_filter/answer] 2515 chars
+[172/500] hqa_Virginia_7266                   PASS   gold=Yes pred=Yes (24.8s, 1 calls)
+    [rag_state_filter/answer] 2269 chars
+[173/500] hqa_Wisconsin_7319                  PASS   gold=Yes pred=Yes (22.4s, 1 calls)
+    [rag_state_filter/answer] 1655 chars
+[174/500] hqa_West Virginia_53                FAIL   gold=Yes pred=No (10.1s, 1 calls)
+    [rag_state_filter/answer] 2971 chars
+[175/500] hqa_Tennessee_5881                  PASS   gold=No pred=No (30.3s, 1 calls)
+    [rag_state_filter/answer] 2737 chars
+[176/500] hqa_Maryland_6202                   PASS   gold=Yes pred=Yes (21.0s, 1 calls)
+    [rag_state_filter/answer] 2653 chars
+[177/500] hqa_Louisiana_2835                  PASS   gold=No pred=No (34.3s, 1 calls)
+    [rag_state_filter/answer] 1962 chars
+[178/500] hqa_Alaska_829                      FAIL   gold=No pred=Yes (16.1s, 1 calls)
+    [rag_state_filter/answer] 1778 chars
+[179/500] hqa_Michigan_6929                   PASS   gold=Yes pred=Yes (7.4s, 1 calls)
+    [rag_state_filter/answer] 647 chars
+[180/500] hqa_Oregon_5086                     PASS   gold=No pred=No (5.2s, 1 calls)
+    [rag_state_filter/answer] 1266 chars
+[181/500] hqa_Montana_377                     FAIL   gold=Yes pred=No (6.6s, 1 calls)
+    [rag_state_filter/answer] 1736 chars
+[182/500] hqa_New Hampshire_3386              FAIL   gold=Yes pred=No (33.2s, 1 calls)
+    [rag_state_filter/answer] 3268 chars
+[183/500] hqa_California_7573                 PASS   gold=No pred=No (12.4s, 1 calls)
+    [rag_state_filter/answer] 2360 chars
+[184/500] hqa_South Carolina_1644             FAIL   gold=No pred=Yes (8.8s, 1 calls)
+    [rag_state_filter/answer] 1469 chars
+[185/500] hqa_South Dakota_5870               PASS   gold=No pred=No (133.7s, 1 calls)
+    [rag_state_filter/answer] 2207 chars
+[186/500] hqa_Alaska_3514                     PASS   gold=No pred=No (16.1s, 1 calls)
+    [rag_state_filter/answer] 2719 chars
+[187/500] hqa_New Hampshire_2976              PASS   gold=No pred=No (14.1s, 1 calls)
+    [rag_state_filter/answer] 4293 chars
+[188/500] hqa_Nebraska_2093                   PASS   gold=No pred=No (35.9s, 1 calls)
+    [rag_state_filter/answer] 3634 chars
+[189/500] hqa_Puerto Rico_5829                PASS   gold=No pred=No (21.0s, 1 calls)
+    [rag_state_filter/answer] 1931 chars
+[190/500] hqa_Mississippi_9007                FAIL   gold=Yes pred=No (24.8s, 1 calls)
+    [rag_state_filter/answer] 2241 chars
+[191/500] hqa_North Carolina_1479             PASS   gold=Yes pred=Yes (8.9s, 1 calls)
+    [rag_state_filter/answer] 1880 chars
+[192/500] hqa_Alabama_3920                    PASS   gold=No pred=No (13.3s, 1 calls)
+    [rag_state_filter/answer] 2081 chars
+[193/500] hqa_Massachusetts_2048              PASS   gold=No pred=No (10.6s, 1 calls)
+    [rag_state_filter/answer] 1409 chars
+[194/500] hqa_Connecticut_2303                PASS   gold=No pred=No (7.7s, 1 calls)
+    [rag_state_filter/answer] 3064 chars
+[195/500] hqa_Texas_2225                      PASS   gold=No pred=No (19.0s, 1 calls)
+    [rag_state_filter/answer] 1743 chars
+[196/500] hqa_Iowa_4135                       PASS   gold=No pred=No (13.2s, 1 calls)
+    [rag_state_filter/answer] 1330 chars
+[197/500] hqa_Delaware_244                    FAIL   gold=Yes pred=No (7.9s, 1 calls)
+    [rag_state_filter/answer] 1337 chars
+[198/500] hqa_Ohio_5072                       FAIL   gold=Yes pred=No (31.9s, 1 calls)
+    [rag_state_filter/answer] 1869 chars
+[199/500] hqa_Idaho_108                       FAIL   gold=Yes pred=No (15.9s, 1 calls)
+    [rag_state_filter/answer] 3155 chars
+[200/500] hqa_Wisconsin_1833                  FAIL   gold=Yes pred=No (24.5s, 1 calls)
+    [rag_state_filter/answer] 1422 chars
+[201/500] hqa_Wisconsin_8614                  PASS   gold=No pred=No (13.0s, 1 calls)
+    [rag_state_filter/answer] 1656 chars
+[202/500] hqa_Connecticut_4713                PASS   gold=No pred=No (11.3s, 1 calls)
+    [rag_state_filter/answer] 1488 chars
+[203/500] hqa_New Hampshire_550               FAIL   gold=Yes pred=No (20.9s, 1 calls)
+    [rag_state_filter/answer] 1336 chars
+[204/500] hqa_Oregon_5095                     FAIL   gold=Yes pred=No (7.7s, 1 calls)
+    [rag_state_filter/answer] 4251 chars
+[205/500] hqa_Massachusetts_1257              FAIL   gold=No pred=Yes (22.6s, 1 calls)
+    [rag_state_filter/answer] 2107 chars
+[206/500] hqa_Nebraska_4300                   PASS   gold=No pred=No (15.8s, 1 calls)
+    [rag_state_filter/answer] 2154 chars
+[207/500] hqa_Delaware_964                    FAIL   gold=No pred=Yes (11.7s, 1 calls)
+    [rag_state_filter/answer] 2682 chars
+[208/500] hqa_New Hampshire_7022              PASS   gold=Yes pred=Yes (10.3s, 1 calls)
+    [rag_state_filter/answer] 2192 chars
+[209/500] hqa_Montana_4287                    PASS   gold=No pred=No (7.5s, 1 calls)
+    [rag_state_filter/answer] 1986 chars
+[210/500] hqa_New Mexico_3007                 PASS   gold=Yes pred=Yes (9.6s, 1 calls)
+    [rag_state_filter/answer] 3066 chars
+[211/500] hqa_Washington_8808                 FAIL   gold=Yes pred=No (24.5s, 1 calls)
+    [rag_state_filter/answer] 2672 chars
+[212/500] hqa_South Dakota_7198               FAIL   gold=No pred=Yes (7.8s, 1 calls)
+    [rag_state_filter/answer] 2996 chars
+[213/500] hqa_Colorado_2618                   PASS   gold=Yes pred=Yes (28.6s, 1 calls)
+    [rag_state_filter/answer] 2207 chars
+[214/500] hqa_Colorado_9263                   FAIL   gold=Yes pred=No (8.8s, 1 calls)
+    [rag_state_filter/answer] 898 chars
+[215/500] hqa_California_9258                 PASS   gold=No pred=No (8.5s, 1 calls)
+    [rag_state_filter/answer] 2696 chars
+[216/500] hqa_Kansas_2025                     PASS   gold=No pred=No (29.5s, 1 calls)
+    [rag_state_filter/answer] 2184 chars
+[217/500] hqa_Colorado_60                     FAIL   gold=Yes pred=No (13.3s, 1 calls)
+    [rag_state_filter/answer] 1791 chars
+[218/500] hqa_Texas_8469                      PASS   gold=No pred=No (75.8s, 1 calls)
+    [rag_state_filter/answer] 2960 chars
+[219/500] hqa_South Carolina_5851             PASS   gold=No pred=No (14.0s, 1 calls)
+    [rag_state_filter/answer] 2726 chars
+[220/500] hqa_South Dakota_5146               PASS   gold=No pred=No (9.1s, 1 calls)
+    [rag_state_filter/answer] 3552 chars
+[221/500] hqa_Colorado_5362                   PASS   gold=No pred=No (100.9s, 1 calls)
+    [rag_state_filter/answer] 2871 chars
+[222/500] hqa_Nebraska_6279                   PASS   gold=No pred=No (13.9s, 1 calls)
+    [rag_state_filter/answer] 1847 chars
+[223/500] hqa_Massachusetts_2871              PASS   gold=No pred=No (84.5s, 1 calls)
+    [rag_state_filter/answer] 1884 chars
+[224/500] hqa_Nebraska_379                    FAIL   gold=Yes pred=No (7.9s, 1 calls)
+    [rag_state_filter/answer] 2256 chars
+[225/500] hqa_Arkansas_7566                   FAIL   gold=No pred=Yes (16.8s, 1 calls)
+    [rag_state_filter/answer] 1355 chars
+[226/500] hqa_Georgia_485                     FAIL   gold=Yes pred=No (16.6s, 1 calls)
+    [rag_state_filter/answer] 1551 chars
+[227/500] hqa_New York_8738                   FAIL   gold=Yes pred=No (47.9s, 1 calls)
+    [rag_state_filter/answer] 2586 chars
+[228/500] hqa_Montana_6976                    PASS   gold=Yes pred=Yes (92.0s, 1 calls)
+    [rag_state_filter/answer] 2869 chars
+[229/500] hqa_Tennessee_5884                  PASS   gold=No pred=No (11.3s, 1 calls)
+    [rag_state_filter/answer] 1632 chars
+[230/500] hqa_Ohio_5076                       PASS   gold=No pred=No (13.0s, 1 calls)
+    [rag_state_filter/answer] 1138 chars
+[231/500] hqa_Massachusetts_6906              PASS   gold=Yes pred=Yes (6.1s, 1 calls)
+    [rag_state_filter/answer] 1567 chars
+[232/500] hqa_South Carolina_9133             PASS   gold=No pred=No (8.1s, 1 calls)
+    [rag_state_filter/answer] 1160 chars
+[233/500] hqa_Virginia_393                    FAIL   gold=Yes pred=No (9.5s, 1 calls)
+    [rag_state_filter/answer] 916 chars
+[234/500] hqa_Oregon_3408                     FAIL   gold=Yes pred=No (6.8s, 1 calls)
+    [rag_state_filter/answer] 2179 chars
+[235/500] hqa_Colorado_6664                   FAIL   gold=No pred=Yes (7.8s, 1 calls)
+    [rag_state_filter/answer] 2649 chars
+[236/500] hqa_Alabama_5275                    FAIL   gold=No pred=Yes (15.8s, 1 calls)
+    [rag_state_filter/answer] 2863 chars
+[237/500] hqa_California_8858                 FAIL   gold=No pred=Yes (15.3s, 1 calls)
+    [rag_state_filter/answer] 2753 chars
+[238/500] hqa_Nebraska_2419                   PASS   gold=Yes pred=Yes (12.9s, 1 calls)
+    [rag_state_filter/answer] 2035 chars
+[239/500] hqa_Mississippi_8029                PASS   gold=Yes pred=Yes (13.5s, 1 calls)
+    [rag_state_filter/answer] 2913 chars
+[240/500] hqa_Rhode Island_3489               FAIL   gold=No pred=Yes (26.9s, 1 calls)
+    [rag_state_filter/answer] 2256 chars
+[241/500] hqa_Ohio_3084                       FAIL   gold=No pred=Yes (13.5s, 1 calls)
+    [rag_state_filter/answer] 2512 chars
+[242/500] hqa_Oklahoma_7120                   FAIL   gold=No pred=Yes (27.3s, 1 calls)
+    [rag_state_filter/answer] 1358 chars
+[243/500] hqa_Oklahoma_6350                   FAIL   gold=Yes pred=No (25.3s, 1 calls)
+    [rag_state_filter/answer] 1090 chars
+[244/500] hqa_Rhode Island_4476               PASS   gold=No pred=No (6.1s, 1 calls)
+    [rag_state_filter/answer] 3458 chars
+[245/500] hqa_District of Columbia_984        FAIL   gold=No pred=Yes (17.8s, 1 calls)
+    [rag_state_filter/answer] 3584 chars
+[246/500] hqa_Utah_1736                       FAIL   gold=No pred=Yes (20.5s, 1 calls)
+    [rag_state_filter/answer] 1969 chars
+[247/500] hqa_Virginia_9177                   FAIL   gold=Yes pred=No (16.0s, 1 calls)
+    [rag_state_filter/answer] 1452 chars
+[248/500] hqa_Wisconsin_6507                  FAIL   gold=Yes pred=No (11.3s, 1 calls)
+    [rag_state_filter/answer] 1644 chars
+[249/500] hqa_California_905                  FAIL   gold=No pred=Yes (11.1s, 1 calls)
+    [rag_state_filter/answer] 1514 chars
+[250/500] hqa_Texas_8453                      PASS   gold=No pred=No (11.1s, 1 calls)
+    [rag_state_filter/answer] 1773 chars
+[251/500] hqa_Missouri_2074                   FAIL   gold=Yes pred=No (15.5s, 1 calls)
+    [rag_state_filter/answer] 1476 chars
+[252/500] hqa_California_599                  FAIL   gold=Yes pred=No (24.0s, 1 calls)
+    [rag_state_filter/answer] 1494 chars
+[253/500] hqa_Massachusetts_2397              FAIL   gold=Yes pred=No (6.0s, 1 calls)
+    [rag_state_filter/answer] 2103 chars
+[254/500] hqa_New York_6314                   PASS   gold=No pred=No (14.7s, 1 calls)
+    [rag_state_filter/answer] 3306 chars
+[255/500] hqa_Oklahoma_7121                   FAIL   gold=No pred=Yes (17.2s, 1 calls)
+    [rag_state_filter/answer] 3216 chars
+[256/500] hqa_Ohio_317                        FAIL   gold=Yes pred=No (35.2s, 1 calls)
+    [rag_state_filter/answer] 1849 chars
+[257/500] hqa_New York_8194                   PASS   gold=No pred=No (16.4s, 1 calls)
+    [rag_state_filter/answer] 1298 chars
+[258/500] hqa_Wisconsin_8606                  FAIL   gold=Yes pred=No (6.3s, 1 calls)
+    [rag_state_filter/answer] 1960 chars
+[259/500] hqa_West Virginia_8813              PASS   gold=No pred=No (6.3s, 1 calls)
+    [rag_state_filter/answer] 1970 chars
+[260/500] hqa_New Hampshire_8133              FAIL   gold=No pred=Yes (9.1s, 1 calls)
+    [rag_state_filter/answer] 2431 chars
+[261/500] hqa_Nebraska_3731                   PASS   gold=No pred=No (17.3s, 1 calls)
+    [rag_state_filter/answer] 927 chars
+[262/500] hqa_Montana_308                     FAIL   gold=Yes pred=No (5.8s, 1 calls)
+    [rag_state_filter/answer] 2958 chars
+[263/500] hqa_South Dakota_5875               PASS   gold=Yes pred=Yes (74.0s, 1 calls)
+    [rag_state_filter/answer] 1623 chars
+[264/500] hqa_Oregon_9100                     PASS   gold=No pred=No (8.2s, 1 calls)
+    [rag_state_filter/answer] 2650 chars
+[265/500] hqa_California_909                  PASS   gold=Yes pred=Yes (11.6s, 1 calls)
+    [rag_state_filter/answer] 1393 chars
+[266/500] hqa_Washington_8579                 FAIL   gold=No pred=Yes (7.9s, 1 calls)
+    [rag_state_filter/answer] 2324 chars
+[267/500] hqa_Idaho_2732                      FAIL   gold=No pred=Yes (90.7s, 1 calls)
+    [rag_state_filter/answer] 3140 chars
+[268/500] hqa_Colorado_6668                   PASS   gold=No pred=No (18.1s, 1 calls)
+    [rag_state_filter/answer] 2431 chars
+[269/500] hqa_New Hampshire_9043              PASS   gold=No pred=No (6.9s, 1 calls)
+    [rag_state_filter/answer] 979 chars
+[270/500] hqa_Hawaii_1068                     PASS   gold=Yes pred=Yes (29.0s, 1 calls)
+    [rag_state_filter/answer] 2357 chars
+[271/500] hqa_Indiana_4124                    PASS   gold=No pred=No (40.2s, 1 calls)
+    [rag_state_filter/answer] 2176 chars
+[272/500] hqa_Washington_1807                 PASS   gold=Yes pred=Yes (7.2s, 1 calls)
+    [rag_state_filter/answer] 2837 chars
+[273/500] hqa_Vermont_8527                    PASS   gold=Yes pred=Yes (32.0s, 1 calls)
+    [rag_state_filter/answer] 1863 chars
+[274/500] hqa_New Jersey_3757                 PASS   gold=No pred=No (41.1s, 1 calls)
+    [rag_state_filter/answer] 2628 chars
+[275/500] hqa_Tennessee_5886                  FAIL   gold=No pred=Yes (10.2s, 1 calls)
+    [rag_state_filter/answer] 1776 chars
+[276/500] hqa_Nebraska_8079                   FAIL   gold=No pred=Yes (27.7s, 1 calls)
+    [rag_state_filter/answer] 1947 chars
+[277/500] hqa_South Dakota_1659               FAIL   gold=No pred=Yes (38.8s, 1 calls)
+    [rag_state_filter/answer] 2174 chars
+[278/500] hqa_New Jersey_2124                 PASS   gold=No pred=No (10.5s, 1 calls)
+    [rag_state_filter/answer] 1901 chars
+[279/500] hqa_Tennessee_3202                  PASS   gold=Yes pred=Yes (16.8s, 1 calls)
+    [rag_state_filter/answer] 934 chars
+[280/500] hqa_Connecticut_942                 PASS   gold=Yes pred=Yes (7.5s, 1 calls)
+    [rag_state_filter/answer] 2253 chars
+[281/500] hqa_Delaware_6531                   PASS   gold=No pred=No (9.3s, 1 calls)
+    [rag_state_filter/answer] 3686 chars
+[282/500] hqa_Arkansas_3971                   FAIL   gold=No pred=Yes (19.6s, 1 calls)
+    [rag_state_filter/answer] 2017 chars
+[283/500] hqa_Alabama_3427                    PASS   gold=No pred=No (10.0s, 1 calls)
+    [rag_state_filter/answer] 1727 chars
+[284/500] hqa_Puerto Rico_6389                PASS   gold=No pred=No (19.0s, 1 calls)
+    [rag_state_filter/answer] 2114 chars
+[285/500] hqa_South Carolina_7180             FAIL   gold=No pred=Yes (19.6s, 1 calls)
+    [rag_state_filter/answer] 2248 chars
+[286/500] hqa_Michigan_3699                   FAIL   gold=No pred=Yes (15.3s, 1 calls)
+    [rag_state_filter/answer] 1363 chars
+[287/500] hqa_Arkansas_8846                   FAIL   gold=Yes pred=No (5.0s, 1 calls)
+    [rag_state_filter/answer] 2222 chars
+[288/500] hqa_Virginia_9178                   FAIL   gold=No pred=Yes (24.4s, 1 calls)
+    [rag_state_filter/answer] 2162 chars
+[289/500] hqa_Wisconsin_6503                  PASS   gold=Yes pred=Yes (9.5s, 1 calls)
+    [rag_state_filter/answer] 2207 chars
+[290/500] hqa_Tennessee_1686                  FAIL   gold=No pred=Yes (31.4s, 1 calls)
+    [rag_state_filter/answer] 2847 chars
+[291/500] hqa_Alabama_814                     PASS   gold=Yes pred=Yes (14.9s, 1 calls)
+    [rag_state_filter/answer] 1096 chars
+[292/500] hqa_Maine_7912                      PASS   gold=No pred=No (32.3s, 1 calls)
+    [rag_state_filter/answer] 1637 chars
+[293/500] hqa_Oklahoma_9093                   FAIL   gold=Yes pred=No (28.6s, 1 calls)
+    [rag_state_filter/answer] 1552 chars
+[294/500] hqa_California_2597                 PASS   gold=Yes pred=Yes (11.3s, 1 calls)
+    [rag_state_filter/answer] 2345 chars
+[295/500] hqa_Montana_2937                    FAIL   gold=No pred=Yes (59.6s, 1 calls)
+    [rag_state_filter/answer] 1162 chars
+[296/500] hqa_Massachusetts_7952              PASS   gold=No pred=No (6.9s, 1 calls)
+    [rag_state_filter/answer] 2186 chars
+[297/500] hqa_Georgia_4751                    PASS   gold=No pred=No (11.5s, 1 calls)
+    [rag_state_filter/answer] 1880 chars
+[298/500] hqa_Georgia_4063                    PASS   gold=No pred=No (11.8s, 1 calls)
+    [rag_state_filter/answer] 2431 chars
+[299/500] hqa_Delaware_4023                   FAIL   gold=No pred=Yes (68.9s, 1 calls)
+    [rag_state_filter/answer] 1076 chars
+[300/500] hqa_Rhode Island_3796               PASS   gold=No pred=No (11.1s, 1 calls)
+    [rag_state_filter/answer] 1718 chars
+[301/500] hqa_Kansas_4842                     FAIL   gold=Yes pred=No (9.0s, 1 calls)
+    [rag_state_filter/answer] 1072 chars
+[302/500] hqa_Hawaii_8682                     PASS   gold=No pred=No (6.3s, 1 calls)
+    [rag_state_filter/answer] 1242 chars
+[303/500] hqa_Maine_7918                      PASS   gold=No pred=No (10.6s, 1 calls)
+    [rag_state_filter/answer] 3031 chars
+[304/500] hqa_Missouri_6955                   FAIL   gold=No pred=Yes (14.3s, 1 calls)
+    [rag_state_filter/answer] 1747 chars
+[305/500] hqa_Idaho_2344                      FAIL   gold=Yes pred=No (9.6s, 1 calls)
+    [rag_state_filter/answer] 2544 chars
+[306/500] hqa_South Dakota_7195               FAIL   gold=No pred=Yes (29.0s, 1 calls)
+    [rag_state_filter/answer] 1484 chars
+[307/500] hqa_Arizona_589                     FAIL   gold=Yes pred=No (9.1s, 1 calls)
+    [rag_state_filter/answer] 2426 chars
+[308/500] hqa_Iowa_2014                       FAIL   gold=Yes pred=No (85.6s, 1 calls)
+    [rag_state_filter/answer] 1271 chars
+[309/500] hqa_Kansas_7839                     PASS   gold=No pred=No (8.9s, 1 calls)
+    [rag_state_filter/answer] 2162 chars
+[310/500] hqa_Wyoming_8642                    FAIL   gold=No pred=Yes (14.4s, 1 calls)
+    [rag_state_filter/answer] 2235 chars
+[311/500] hqa_Tennessee_7205                  PASS   gold=Yes pred=Yes (10.7s, 1 calls)
+    [rag_state_filter/answer] 1436 chars
+[312/500] hqa_New York_151                    FAIL   gold=Yes pred=No (20.7s, 1 calls)
+    [rag_state_filter/answer] 1857 chars
+[313/500] hqa_Maryland_1239                   PASS   gold=Yes pred=Yes (42.2s, 1 calls)
+    [rag_state_filter/answer] 5151 chars
+[314/500] hqa_Maryland_2854                   FAIL   gold=No pred=Yes (14.3s, 1 calls)
+    [rag_state_filter/answer] 1630 chars
+[315/500] hqa_South Dakota_8421               PASS   gold=No pred=No (10.0s, 1 calls)
+    [rag_state_filter/answer] 2265 chars
+[316/500] hqa_Puerto Rico_5824                PASS   gold=No pred=No (22.1s, 1 calls)
+    [rag_state_filter/answer] 1632 chars
+[317/500] hqa_Vermont_8529                    PASS   gold=No pred=No (8.1s, 1 calls)
+    [rag_state_filter/answer] 1772 chars
+[318/500] hqa_Indiana_7822                    PASS   gold=No pred=No (8.9s, 1 calls)
+    [rag_state_filter/answer] 3991 chars
+[319/500] hqa_Maine_1207                      FAIL   gold=No pred=Yes (24.6s, 1 calls)
+    [rag_state_filter/answer] 2069 chars
+[320/500] hqa_South Dakota_90                 FAIL   gold=Yes pred=No (6.8s, 1 calls)
+    [rag_state_filter/answer] 4638 chars
+[321/500] hqa_Arkansas_5330                   FAIL   gold=Yes pred=No (11.2s, 1 calls)
+    [rag_state_filter/answer] 2249 chars
+[322/500] hqa_Delaware_8664                   PASS   gold=No pred=No (9.0s, 1 calls)
+    [rag_state_filter/answer] 1431 chars
+[323/500] hqa_Maryland_3451                   FAIL   gold=Yes pred=No (13.1s, 1 calls)
+    [rag_state_filter/answer] 2810 chars
+[324/500] hqa_Oklahoma_8290                   FAIL   gold=No pred=Yes (24.2s, 1 calls)
+    [rag_state_filter/answer] 1157 chars
+[325/500] hqa_Oregon_4438                     PASS   gold=Yes pred=Yes (5.8s, 1 calls)
+    [rag_state_filter/answer] 1928 chars
+[326/500] hqa_Massachusetts_1256              PASS   gold=No pred=No (64.2s, 1 calls)
+    [rag_state_filter/answer] 2738 chars
+[327/500] hqa_California_5342                 PASS   gold=No pred=No (90.1s, 1 calls)
+    [rag_state_filter/answer] 1522 chars
+[328/500] hqa_Louisiana_2821                  FAIL   gold=Yes pred=No (24.0s, 1 calls)
+    [rag_state_filter/answer] 2125 chars
+[329/500] hqa_Wyoming_1864                    FAIL   gold=No pred=Yes (16.8s, 1 calls)
+    [rag_state_filter/answer] 1693 chars
+[330/500] hqa_New York_4364                   PASS   gold=No pred=No (9.5s, 1 calls)
+    [rag_state_filter/answer] 1655 chars
+[331/500] hqa_District of Columbia_3587       PASS   gold=No pred=No (11.9s, 1 calls)
+    [rag_state_filter/answer] 3018 chars
+[332/500] hqa_South Dakota_5877               PASS   gold=No pred=No (16.2s, 1 calls)
+    [rag_state_filter/answer] 2860 chars
+[333/500] hqa_Wisconsin_8611                  FAIL   gold=No pred=Yes (12.8s, 1 calls)
+    [rag_state_filter/answer] 1762 chars
+[334/500] hqa_Delaware_5370                   FAIL   gold=Yes pred=No (47.0s, 1 calls)
+    [rag_state_filter/answer] 1994 chars
+[335/500] hqa_Alabama_1871                    FAIL   gold=Yes pred=No (60.5s, 1 calls)
+    [rag_state_filter/answer] 2614 chars
+[336/500] hqa_Colorado_9262                   PASS   gold=No pred=No (123.3s, 1 calls)
+    [rag_state_filter/answer] 1188 chars
+[337/500] hqa_New Hampshire_3382              PASS   gold=No pred=No (18.2s, 1 calls)
+    [rag_state_filter/answer] 1306 chars
+[338/500] hqa_Vermont_9166                    FAIL   gold=Yes pred=No (18.0s, 1 calls)
+    [rag_state_filter/answer] 2700 chars
+[339/500] hqa_Texas_2502                      PASS   gold=No pred=No (26.5s, 1 calls)
+    [rag_state_filter/answer] 950 chars
+[340/500] hqa_Massachusetts_7947              PASS   gold=No pred=No (15.4s, 1 calls)
+    [rag_state_filter/answer] 1108 chars
+[341/500] hqa_Connecticut_7633                PASS   gold=No pred=No (13.9s, 1 calls)
+    [rag_state_filter/answer] 1568 chars
+[342/500] hqa_Florida_4050                    PASS   gold=No pred=No (97.6s, 1 calls)
+    [rag_state_filter/answer] 731 chars
+[343/500] hqa_California_3990                 PASS   gold=No pred=No (70.5s, 1 calls)
+    [rag_state_filter/answer] 1186 chars
+[344/500] hqa_Oklahoma_2173                   FAIL   gold=Yes pred=No (17.6s, 1 calls)
+    [rag_state_filter/answer] 3746 chars
+[345/500] hqa_Washington_5963                 PASS   gold=No pred=No (30.7s, 1 calls)
+    [rag_state_filter/answer] 3176 chars
+[346/500] hqa_Virginia_7277                   FAIL   gold=No pred=Yes (21.1s, 1 calls)
+    [rag_state_filter/answer] 1968 chars
+[347/500] hqa_Alabama_812                     FAIL   gold=No pred=Yes (19.9s, 1 calls)
+    [rag_state_filter/answer] 2569 chars
+[348/500] hqa_Alabama_5276                    FAIL   gold=No pred=Yes (12.7s, 1 calls)
+    [rag_state_filter/answer] 3349 chars
+[349/500] hqa_Oklahoma_1561                   PASS   gold=No pred=No (14.3s, 1 calls)
+    [rag_state_filter/answer] 2277 chars
+[350/500] hqa_Florida_7696                    FAIL   gold=No pred=Yes (18.1s, 1 calls)
+    [rag_state_filter/answer] 1521 chars
+[351/500] hqa_Ohio_8266                       PASS   gold=No pred=No (72.0s, 1 calls)
+    [rag_state_filter/answer] 1267 chars
+[352/500] hqa_Connecticut_7621                FAIL   gold=No pred=Yes (6.9s, 1 calls)
+    [rag_state_filter/answer] 1655 chars
+[353/500] hqa_Oklahoma_6354                   PASS   gold=No pred=No (9.7s, 1 calls)
+    [rag_state_filter/answer] 2103 chars
+[354/500] hqa_Arkansas_595                    PASS   gold=No pred=No (15.5s, 1 calls)
+    [rag_state_filter/answer] 1648 chars
+[355/500] hqa_Idaho_4099                      PASS   gold=No pred=No (21.5s, 1 calls)
+    [rag_state_filter/answer] 1365 chars
+[356/500] hqa_Maine_7324                      PASS   gold=No pred=No (29.3s, 1 calls)
+    [rag_state_filter/answer] 1845 chars
+[357/500] hqa_Mississippi_9013                PASS   gold=No pred=No (21.2s, 1 calls)
+    [rag_state_filter/answer] 2132 chars
+[358/500] hqa_Arkansas_597                    PASS   gold=No pred=No (9.8s, 1 calls)
+    [rag_state_filter/answer] 1411 chars
+[359/500] hqa_Wisconsin_801                   PASS   gold=No pred=No (12.8s, 1 calls)
+    [rag_state_filter/answer] 3083 chars
+[360/500] hqa_Idaho_2744                      FAIL   gold=No pred=Yes (127.3s, 1 calls)
+    [rag_state_filter/answer] 4115 chars
+[361/500] hqa_Maine_1206                      PASS   gold=Yes pred=Yes (115.6s, 1 calls)
+    [rag_state_filter/answer] 1523 chars
+[362/500] hqa_Oregon_8314                     FAIL   gold=No pred=Yes (12.6s, 1 calls)
+    [rag_state_filter/answer] 2477 chars
+[363/500] hqa_North Carolina_730              PASS   gold=No pred=No (17.7s, 1 calls)
+    [rag_state_filter/answer] 1467 chars
+[364/500] hqa_Mississippi_1303                PASS   gold=Yes pred=Yes (18.3s, 1 calls)
+    [rag_state_filter/answer] 1162 chars
+[365/500] hqa_Connecticut_610                 PASS   gold=No pred=No (13.8s, 1 calls)
+    [rag_state_filter/answer] 3357 chars
+[366/500] hqa_Maine_6874                      FAIL   gold=No pred=Yes (121.9s, 1 calls)
+    [rag_state_filter/answer] 2354 chars
+[367/500] hqa_Maine_7911                      PASS   gold=Yes pred=Yes (30.4s, 1 calls)
+    [rag_state_filter/answer] 3725 chars
+[368/500] hqa_Delaware_7659                   FAIL   gold=No pred=Yes (85.5s, 1 calls)
+    [rag_state_filter/answer] 2306 chars
+[369/500] hqa_Alabama_3921                    PASS   gold=No pred=No (87.3s, 1 calls)
+    [rag_state_filter/answer] 1390 chars
+[370/500] hqa_Maryland_4880                   FAIL   gold=Yes pred=No (12.5s, 1 calls)
+    [rag_state_filter/answer] 2439 chars
+[371/500] hqa_Indiana_1109                    FAIL   gold=No pred=Yes (36.1s, 1 calls)
+    [rag_state_filter/answer] 2881 chars
+[372/500] hqa_Puerto Rico_3143                FAIL   gold=No pred=Yes (26.7s, 1 calls)
+    [rag_state_filter/answer] 2512 chars
+[373/500] hqa_Florida_8901                    PASS   gold=No pred=No (29.2s, 1 calls)
+    [rag_state_filter/answer] 2373 chars
+[374/500] hqa_North Carolina_6329             PASS   gold=No pred=No (17.2s, 1 calls)
+    [rag_state_filter/answer] 2157 chars
+[375/500] hqa_Arkansas_8848                   PASS   gold=No pred=No (11.8s, 1 calls)
+    [rag_state_filter/answer] 2602 chars
+[376/500] hqa_Puerto Rico_8351                FAIL   gold=No pred=Yes (14.4s, 1 calls)
+    [rag_state_filter/answer] 1104 chars
+[377/500] hqa_Maryland_2386                   FAIL   gold=Yes pred=No (11.1s, 1 calls)
+    [rag_state_filter/answer] 1411 chars
+[378/500] hqa_Maine_5550                      FAIL   gold=Yes pred=No (66.8s, 1 calls)
+    [rag_state_filter/answer] 1218 chars
+[379/500] hqa_Vermont_9168                    PASS   gold=No pred=No (20.9s, 1 calls)
+    [rag_state_filter/answer] 3992 chars
+[380/500] hqa_Kansas_8951                     FAIL   gold=No pred=Yes (174.3s, 1 calls)
+    [rag_state_filter/answer] 3933 chars
+[381/500] hqa_Ohio_1525                       PASS   gold=No pred=No (90.3s, 1 calls)
+    [rag_state_filter/answer] 2228 chars
+[382/500] hqa_Kansas_4835                     PASS   gold=No pred=No (11.4s, 1 calls)
+    [rag_state_filter/answer] 1770 chars
+[383/500] hqa_Illinois_2752                   PASS   gold=Yes pred=Yes (18.8s, 1 calls)
+    [rag_state_filter/answer] 1823 chars
+[384/500] hqa_Wisconsin_4614                  PASS   gold=No pred=No (13.7s, 1 calls)
+    [rag_state_filter/answer] 1258 chars
+[385/500] hqa_Maine_3443                      FAIL   gold=Yes pred=No (8.9s, 1 calls)
+    [rag_state_filter/answer] 1567 chars
+[386/500] hqa_Wisconsin_9204                  PASS   gold=No pred=No (10.1s, 1 calls)
+    [rag_state_filter/answer] 3986 chars
+[387/500] hqa_Alabama_5273                    FAIL   gold=No pred=Yes (29.0s, 1 calls)
+    [rag_state_filter/answer] 1511 chars
+[388/500] hqa_Iowa_651                        PASS   gold=No pred=No (14.1s, 1 calls)
+    [rag_state_filter/answer] 3712 chars
+[389/500] hqa_California_6051                 PASS   gold=No pred=No (88.8s, 1 calls)
+    [rag_state_filter/answer] 2160 chars
+[390/500] hqa_Texas_2226                      FAIL   gold=Yes pred=No (54.6s, 1 calls)
+    [rag_state_filter/answer] 1904 chars
+[391/500] hqa_Nevada_4315                     FAIL   gold=No pred=Yes (17.9s, 1 calls)
+    [rag_state_filter/answer] 2738 chars
+[392/500] hqa_Tennessee_3197                  FAIL   gold=No pred=Yes (20.9s, 1 calls)
+    [rag_state_filter/answer] 1302 chars
+[393/500] hqa_District of Columbia_2663       PASS   gold=Yes pred=Yes (15.7s, 1 calls)
+    [rag_state_filter/answer] 1743 chars
+[394/500] hqa_Maine_667                       PASS   gold=No pred=No (27.0s, 1 calls)
+    [rag_state_filter/answer] 1322 chars
+[395/500] hqa_Rhode Island_8383               FAIL   gold=No pred=Yes (13.3s, 1 calls)
+    [rag_state_filter/answer] 2509 chars
+[396/500] hqa_Indiana_6798                    PASS   gold=Yes pred=Yes (15.6s, 1 calls)
+    [rag_state_filter/answer] 1344 chars
+[397/500] hqa_Alabama_2273                    PASS   gold=No pred=No (10.0s, 1 calls)
+    [rag_state_filter/answer] 1899 chars
+[398/500] hqa_Tennessee_7203                  FAIL   gold=No pred=Yes (9.7s, 1 calls)
+    [rag_state_filter/answer] 1815 chars
+[399/500] hqa_Rhode Island_2199               FAIL   gold=Yes pred=No (6.8s, 1 calls)
+    [rag_state_filter/answer] 3919 chars
+[400/500] hqa_Kansas_2803                     PASS   gold=No pred=No (15.7s, 1 calls)
+    [rag_state_filter/answer] 1779 chars
+[401/500] hqa_New Jersey_4335                 FAIL   gold=No pred=Yes (46.8s, 1 calls)
+    [rag_state_filter/answer] 1058 chars
+[402/500] hqa_Connecticut_8877                PASS   gold=No pred=No (14.1s, 1 calls)
+    [rag_state_filter/answer] 2043 chars
+[403/500] hqa_New Hampshire_9039              PASS   gold=No pred=No (21.3s, 1 calls)
+    [rag_state_filter/answer] 1430 chars
+[404/500] hqa_Connecticut_482                 PASS   gold=Yes pred=Yes (7.7s, 1 calls)
+    [rag_state_filter/answer] 2292 chars
+[405/500] hqa_Colorado_3996                   PASS   gold=No pred=No (43.0s, 1 calls)
+    [rag_state_filter/answer] 1963 chars
+[406/500] hqa_Massachusetts_2394              PASS   gold=No pred=No (17.9s, 1 calls)
+    [rag_state_filter/answer] 2447 chars
+[407/500] hqa_Washington_5236                 PASS   gold=No pred=No (28.3s, 1 calls)
+    [rag_state_filter/answer] 783 chars
+[408/500] hqa_California_910                  FAIL   gold=No pred=Yes (23.7s, 1 calls)
+    [rag_state_filter/answer] 1500 chars
+[409/500] hqa_Texas_3493                      FAIL   gold=Yes pred=No (14.2s, 1 calls)
+    [rag_state_filter/answer] 2333 chars
+[410/500] hqa_Colorado_917                    FAIL   gold=No pred=Yes (33.7s, 1 calls)
+    [rag_state_filter/answer] 2526 chars
+[411/500] hqa_Missouri_6961                   FAIL   gold=No pred=Yes (153.2s, 1 calls)
+    [rag_state_filter/answer] 2991 chars
+[412/500] hqa_South Carolina_7181             PASS   gold=Yes pred=Yes (18.1s, 1 calls)
+    [rag_state_filter/answer] 4075 chars
+[413/500] hqa_South Carolina_5864             PASS   gold=No pred=No (29.3s, 1 calls)
+    [rag_state_filter/answer] 2555 chars
+[414/500] hqa_Wisconsin_5992                  PASS   gold=No pred=No (36.4s, 1 calls)
+    [rag_state_filter/answer] 1547 chars
+[415/500] hqa_Montana_4280                    FAIL   gold=Yes pred=No (13.6s, 1 calls)
+    [rag_state_filter/answer] 1766 chars
+[416/500] hqa_Oregon_2187                     PASS   gold=No pred=No (20.8s, 1 calls)
+    [rag_state_filter/answer] 3457 chars
+[417/500] hqa_Nebraska_78                     PASS   gold=Yes pred=Yes (20.9s, 1 calls)
+    [rag_state_filter/answer] 2252 chars
+[418/500] hqa_Utah_1734                       FAIL   gold=No pred=Yes (14.9s, 1 calls)
+    [rag_state_filter/answer] 1528 chars
+[419/500] hqa_Missouri_8037                   PASS   gold=No pred=No (8.9s, 1 calls)
+    [rag_state_filter/answer] 1653 chars
+[420/500] hqa_New Mexico_719                  FAIL   gold=Yes pred=No (17.9s, 1 calls)
+    [rag_state_filter/answer] 2873 chars
+[421/500] hqa_Washington_788                  PASS   gold=Yes pred=Yes (13.0s, 1 calls)
+    [rag_state_filter/answer] 2309 chars
+[422/500] hqa_Arizona_872                     FAIL   gold=No pred=Yes (17.9s, 1 calls)
+    [rag_state_filter/answer] 2890 chars
+[423/500] hqa_Missouri_2922                   PASS   gold=Yes pred=Yes (13.3s, 1 calls)
+    [rag_state_filter/answer] 1447 chars
+[424/500] hqa_Georgia_64                      FAIL   gold=Yes pred=No (17.5s, 1 calls)
+    [rag_state_filter/answer] 1234 chars
+[425/500] hqa_Georgia_624                     FAIL   gold=Yes pred=No (7.4s, 1 calls)
+    [rag_state_filter/answer] 3828 chars
+[426/500] hqa_Iowa_4137                       PASS   gold=No pred=No (17.6s, 1 calls)
+    [rag_state_filter/answer] 3743 chars
+[427/500] hqa_Florida_1961                    PASS   gold=No pred=No (38.3s, 1 calls)
+    [rag_state_filter/answer] 2293 chars
+[428/500] hqa_Michigan_1260                   PASS   gold=Yes pred=Yes (21.6s, 1 calls)
+    [rag_state_filter/answer] 896 chars
+[429/500] hqa_California_7579                 PASS   gold=No pred=No (14.6s, 1 calls)
+    [rag_state_filter/answer] 2652 chars
+[430/500] hqa_Arkansas_891                    PASS   gold=Yes pred=Yes (19.5s, 1 calls)
+    [rag_state_filter/answer] 2693 chars
+[431/500] hqa_Nebraska_6992                   FAIL   gold=No pred=Yes (12.0s, 1 calls)
+    [rag_state_filter/answer] 1657 chars
+[432/500] hqa_Illinois_3625                   PASS   gold=No pred=No (17.7s, 1 calls)
+    [rag_state_filter/answer] 2272 chars
+[433/500] hqa_South Dakota_1665               FAIL   gold=No pred=Yes (12.6s, 1 calls)
+    [rag_state_filter/answer] 1196 chars
+[434/500] hqa_Wisconsin_3416                  FAIL   gold=Yes pred=No (7.9s, 1 calls)
+    [rag_state_filter/answer] 2438 chars
+[435/500] hqa_Maine_1209                      PASS   gold=Yes pred=Yes (47.4s, 1 calls)
+    [rag_state_filter/answer] 1846 chars
+[436/500] hqa_Alabama_818                     FAIL   gold=No pred=Yes (13.6s, 1 calls)
+    [rag_state_filter/answer] 2542 chars
+[437/500] hqa_Wisconsin_9199                  FAIL   gold=No pred=Yes (13.7s, 1 calls)
+    [rag_state_filter/answer] 1677 chars
+[438/500] hqa_Florida_2684                    FAIL   gold=No pred=Yes (37.4s, 1 calls)
+    [rag_state_filter/answer] 3710 chars
+[439/500] hqa_Utah_3255                       FAIL   gold=No pred=Yes (16.6s, 1 calls)
+    [rag_state_filter/answer] 2201 chars
+[440/500] hqa_New Mexico_448                  PASS   gold=No pred=No (20.6s, 1 calls)
+    [rag_state_filter/answer] 2865 chars
+[441/500] hqa_Oklahoma_8293                   FAIL   gold=No pred=Yes (24.0s, 1 calls)
+    [rag_state_filter/answer] 1517 chars
+[442/500] hqa_District of Columbia_1948       FAIL   gold=Yes pred=No (25.0s, 1 calls)
+    [rag_state_filter/answer] 2560 chars
+[443/500] hqa_Louisiana_2829                  FAIL   gold=No pred=Yes (31.6s, 1 calls)
+    [rag_state_filter/answer] 922 chars
+[444/500] hqa_Oregon_7403                     PASS   gold=No pred=No (16.9s, 1 calls)
+    [rag_state_filter/answer] 4155 chars
+[445/500] hqa_Delaware_5376                   PASS   gold=No pred=No (20.1s, 1 calls)
+    [rag_state_filter/answer] 2538 chars
+[446/500] hqa_Nevada_5695                     FAIL   gold=No pred=Yes (17.8s, 1 calls)
+    [rag_state_filter/answer] 1727 chars
+[447/500] hqa_Idaho_7784                      FAIL   gold=No pred=Yes (16.4s, 1 calls)
+    [rag_state_filter/answer] 2375 chars
+[448/500] hqa_Maryland_1238                   PASS   gold=No pred=No (54.5s, 1 calls)
+    [rag_state_filter/answer] 2544 chars
+[449/500] hqa_Nebraska_4967                   PASS   gold=No pred=No (13.6s, 1 calls)
+    [rag_state_filter/answer] 2145 chars
+[450/500] hqa_Kansas_2796                     PASS   gold=No pred=No (27.5s, 1 calls)
+    [rag_state_filter/answer] 2514 chars
+[451/500] hqa_Delaware_8882                   FAIL   gold=Yes pred=No (16.0s, 1 calls)
+    [rag_state_filter/answer] 3151 chars
+[452/500] hqa_Delaware_1946                   FAIL   gold=No pred=Yes (8.2s, 1 calls)
+    [rag_state_filter/answer] 2497 chars
+[453/500] hqa_Vermont_1765                    FAIL   gold=No pred=Yes (29.9s, 1 calls)
+    [rag_state_filter/answer] 1229 chars
+[454/500] hqa_Ohio_451                        FAIL   gold=Yes pred=No (51.9s, 1 calls)
+    [rag_state_filter/answer] 2146 chars
+[455/500] hqa_Nebraska_2943                   FAIL   gold=No pred=Yes (6.2s, 1 calls)
+    [rag_state_filter/answer] 3238 chars
+[456/500] hqa_Missouri_4948                   PASS   gold=No pred=No (26.4s, 1 calls)
+    [rag_state_filter/answer] 2943 chars
+[457/500] hqa_Georgia_6751                    FAIL   gold=No pred=Yes (57.1s, 1 calls)
+    [rag_state_filter/answer] 3373 chars
+[458/500] hqa_Vermont_1768                    FAIL   gold=No pred=Yes (16.8s, 1 calls)
+    [rag_state_filter/answer] 1369 chars
+[459/500] hqa_Vermont_780                     PASS   gold=No pred=No (6.9s, 1 calls)
+    [rag_state_filter/answer] 918 chars
+[460/500] hqa_Maine_664                       FAIL   gold=Yes pred=No (12.2s, 1 calls)
+    [rag_state_filter/answer] 1544 chars
+[461/500] hqa_Delaware_614                    FAIL   gold=Yes pred=No (5.3s, 1 calls)
+    [rag_state_filter/answer] 3430 chars
+[462/500] hqa_Illinois_366                    FAIL   gold=No pred=Yes (30.8s, 1 calls)
+    [rag_state_filter/answer] 1996 chars
+[463/500] hqa_Oklahoma_227                    PASS   gold=No pred=No (32.2s, 1 calls)
+    [rag_state_filter/answer] 1968 chars
+[464/500] hqa_Indiana_8945                    PASS   gold=Yes pred=Yes (18.3s, 1 calls)
+    [rag_state_filter/answer] 1654 chars
+[465/500] hqa_New Mexico_4343                 PASS   gold=No pred=No (20.6s, 1 calls)
+    [rag_state_filter/answer] 2221 chars
+[466/500] hqa_Indiana_6800                    FAIL   gold=No pred=Yes (12.8s, 1 calls)
+    [rag_state_filter/answer] 2260 chars
+[467/500] hqa_Vermont_1756                    PASS   gold=Yes pred=Yes (12.7s, 1 calls)
+    [rag_state_filter/answer] 1284 chars
+[468/500] hqa_Wisconsin_4603                  PASS   gold=No pred=No (11.7s, 1 calls)
+    [rag_state_filter/answer] 2638 chars
+[469/500] hqa_Rhode Island_460                PASS   gold=No pred=No (22.3s, 1 calls)
+    [rag_state_filter/answer] 1292 chars
+[470/500] hqa_Rhode Island_2478               PASS   gold=No pred=No (10.7s, 1 calls)
+    [rag_state_filter/answer] 1590 chars
+[471/500] hqa_Oregon_3406                     PASS   gold=No pred=No (18.3s, 1 calls)
+    [rag_state_filter/answer] 999 chars
+[472/500] hqa_Hawaii_7767                     FAIL   gold=No pred=Yes (10.7s, 1 calls)
+    [rag_state_filter/answer] 2072 chars
+[473/500] hqa_Massachusetts_7353              PASS   gold=No pred=No (20.2s, 1 calls)
+    [rag_state_filter/answer] 2727 chars
+[474/500] hqa_Indiana_6807                    FAIL   gold=No pred=Yes (13.0s, 1 calls)
+    [rag_state_filter/answer] 1258 chars
+[475/500] hqa_Connecticut_9207                PASS   gold=No pred=No (15.1s, 1 calls)
+    [rag_state_filter/answer] 2595 chars
+[476/500] hqa_Missouri_5644                   PASS   gold=No pred=No (10.2s, 1 calls)
+    [rag_state_filter/answer] 1233 chars
+[477/500] hqa_Ohio_2458                       FAIL   gold=Yes pred=No (9.7s, 1 calls)
+    [rag_state_filter/answer] 1725 chars
+[478/500] hqa_Georgia_4753                    PASS   gold=No pred=No (8.8s, 1 calls)
+    [rag_state_filter/answer] 3531 chars
+[479/500] hqa_South Carolina_5860             PASS   gold=No pred=No (18.0s, 1 calls)
+    [rag_state_filter/answer] 1711 chars
+[480/500] hqa_California_3347                 PASS   gold=No pred=No (72.1s, 1 calls)
+    [rag_state_filter/answer] 2397 chars
+[481/500] hqa_Arkansas_3968                   PASS   gold=No pred=No (13.9s, 1 calls)
+    [rag_state_filter/answer] 2367 chars
+[482/500] hqa_Delaware_7650                   PASS   gold=No pred=No (12.6s, 1 calls)
+    [rag_state_filter/answer] 1327 chars
+[483/500] hqa_Montana_6974                    FAIL   gold=Yes pred=No (15.9s, 1 calls)
+    [rag_state_filter/answer] 2881 chars
+[484/500] hqa_Washington_5967                 FAIL   gold=No pred=Yes (33.7s, 1 calls)
+    [rag_state_filter/answer] 2108 chars
+[485/500] hqa_Alaska_2555                     FAIL   gold=No pred=Yes (14.8s, 1 calls)
+    [rag_state_filter/answer] 1809 chars
+[486/500] hqa_South Dakota_8427               FAIL   gold=No pred=Yes (13.3s, 1 calls)
+    [rag_state_filter/answer] 2035 chars
+[487/500] hqa_Alaska_583                      FAIL   gold=Yes pred=No (11.2s, 1 calls)
+    [rag_state_filter/answer] 1762 chars
+[488/500] hqa_Hawaii_1059                     FAIL   gold=No pred=Yes (17.0s, 1 calls)
+    [rag_state_filter/answer] 1531 chars
+[489/500] hqa_Nevada_3738                     PASS   gold=No pred=No (17.4s, 1 calls)
+    [rag_state_filter/answer] 3582 chars
+[490/500] hqa_Louisiana_2834                  FAIL   gold=No pred=Yes (29.9s, 1 calls)
+    [rag_state_filter/answer] 2102 chars
+[491/500] hqa_Kansas_6162                     FAIL   gold=Yes pred=No (41.8s, 1 calls)
+    [rag_state_filter/answer] 2648 chars
+[492/500] hqa_New York_1454                   FAIL   gold=No pred=Yes (25.6s, 1 calls)
+    [rag_state_filter/answer] 3790 chars
+[493/500] hqa_Colorado_6061                   PASS   gold=No pred=No (22.1s, 1 calls)
+    [rag_state_filter/answer] 2361 chars
+[494/500] hqa_New York_3028                   PASS   gold=Yes pred=Yes (19.2s, 1 calls)
+    [rag_state_filter/answer] 1504 chars
+[495/500] hqa_Oregon_4436                     PASS   gold=No pred=No (10.0s, 1 calls)
+    [rag_state_filter/answer] 2085 chars
+[496/500] hqa_Maryland_7943                   FAIL   gold=No pred=Yes (18.9s, 1 calls)
+    [rag_state_filter/answer] 1480 chars
+[497/500] hqa_South Dakota_8783               PASS   gold=No pred=No (11.8s, 1 calls)
+    [rag_state_filter/answer] 2308 chars
+[498/500] hqa_Delaware_4024                   PASS   gold=No pred=No (16.9s, 1 calls)
+    [rag_state_filter/answer] 2532 chars
+[499/500] hqa_Colorado_8863                   FAIL   gold=No pred=Yes (13.4s, 1 calls)
+    [rag_state_filter/answer] 1483 chars
+[500/500] hqa_Connecticut_7616                FAIL   gold=Yes pred=No (8.7s, 1 calls)
+
+======================================================================
+RESULTS: 270/500 (54.0%)
+Total time: 12604s (25.2s/query)
+
+By subject:
+  Alabama         6/14 (43%)
+  Alaska          4/8 (50%)
+  Arizona         1/3 (33%)
+  Arkansas        6/10 (60%)
+  California      12/22 (55%)
+  Colorado        9/15 (60%)
+  Connecticut     10/14 (71%)
+  Delaware        7/15 (47%)
+  District of Columbia 3/6 (50%)
+  Florida         7/10 (70%)
+  Georgia         4/11 (36%)
+  Hawaii          4/7 (57%)
+  Idaho           3/11 (27%)
+  Illinois        4/8 (50%)
+  Indiana         4/10 (40%)
+  Iowa            4/6 (67%)
+  Kansas          6/10 (60%)
+  Louisiana       1/4 (25%)
+  Maine           10/16 (62%)
+  Maryland        5/14 (36%)
+  Massachusetts   9/13 (69%)
+  Michigan        4/7 (57%)
+  Mississippi     5/7 (71%)
+  Missouri        5/9 (56%)
+  Montana         2/8 (25%)
+  Nebraska        8/15 (53%)
+  Nevada          2/6 (33%)
+  New Hampshire   8/13 (62%)
+  New Jersey      4/5 (80%)
+  New Mexico      4/6 (67%)
+  New York        7/10 (70%)
+  North Carolina  3/6 (50%)
+  Ohio            6/12 (50%)
+  Oklahoma        4/13 (31%)
+  Oregon          11/15 (73%)
+  Puerto Rico     4/6 (67%)
+  Rhode Island    5/13 (38%)
+  South Carolina  9/12 (75%)
+  South Dakota    8/15 (53%)
+  Tennessee       6/13 (46%)
+  Texas           5/9 (56%)
+  Utah            3/9 (33%)
+  Vermont         9/12 (75%)
+  Virginia        5/10 (50%)
+  Washington      9/14 (64%)
+  West Virginia   4/8 (50%)
+  Wisconsin       10/17 (59%)
+  Wyoming         1/3 (33%)
+======================================================================
+
+Detail log: logs/eval_rag_state_filter_or-gemma4-26b_20260511_1552_housing_meeting-n500-canonical-or-gemma4-26b-housing-n500-k5-rag_state_filter_detail.jsonl
+Run summary appended to: logs/experiments.jsonl
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_state_filter_or-gemma4-26b_20260511_1552_housing_meeting-n500-canonical-or-gemma4-26b-housing-n500-k5-rag_state_filter_detail.jsonl
+mode=rag_state_filter rows=500 accuracy=270/500
+errors=0
+missing_predicted_answer=1
+parse_failures=0
+retrieval_key_rows=500
+empty_retrieval_rows=0
+avg_llm_calls=1.00
+max_output_tokens=967
+max_final_answer_chars=5151 idx=2854
+long_final_answer_rows=0
+top_level_hyde_artifacts=0
+top_level_report_artifacts=0
+top_level_knowledge_artifacts=0
+nested_gap_hyde_artifacts=0
+nested_gap_report_artifacts=0
+rows_with_formatted_question=0
+rows_with_intermediate_question=0
+rows_with_retrieval_queries=0
+rows_with_final_prompt_preview=0
+rows_with_call_trace=0
+rows_with_trace_events=0
+
+
+[2026-05-11T15:52:57-05:00] === MODE rag_rewrite tag=meeting-n500-canonical-or-gemma4-26b-housing-n500-k5-rag_rewrite ===
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+
+======================================================================
+EVAL: rag_rewrite | or-gemma4-26b (google/gemma-4-26b-a4b-it) | 500 questions | dataset=housing
+Tag: meeting-n500-canonical-or-gemma4-26b-housing-n500-k5-rag_rewrite
+======================================================================
+
+    [preflight_smoke] 2 chars
+[preflight] provider=or-gemma4-26b OK
+[preflight] collection count skipped by SKIP_EVAL_COLLECTION_PREFLIGHT=1
+    [rag_rewrite/rewrite] 367 chars
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Loading weights:   0%|          | 0/268 [00:00<?, ?it/s]Loading weights: 100%|██████████| 268/268 [00:00<00:00, 9287.79it/s]
+[rag_utils] Reinitialized embedding position_ids=8192
+[rag_utils] Embedding max_seq_length=512
+    [rag_rewrite/answer] 2378 chars
+[1/500] hqa_California_906                  PASS   gold=Yes pred=Yes (49.5s, 2 calls)
+    [rag_rewrite/rewrite] 445 chars
+    [rag_rewrite/answer] 2063 chars
+[2/500] hqa_New Hampshire_6299              PASS   gold=No pred=No (4.7s, 2 calls)
+    [rag_rewrite/rewrite] 407 chars
+    [rag_rewrite/answer] 3364 chars
+[3/500] hqa_Oklahoma_5813                   FAIL   gold=No pred=Yes (8.5s, 2 calls)
+    [rag_rewrite/rewrite] 289 chars
+    [rag_rewrite/answer] 2108 chars
+[4/500] hqa_Michigan_7987                   PASS   gold=Yes pred=Yes (18.3s, 2 calls)
+    [rag_rewrite/rewrite] 373 chars
+    [rag_rewrite/answer] 2273 chars
+[5/500] hqa_Ohio_6342                       PASS   gold=No pred=No (26.3s, 2 calls)
+    [rag_rewrite/rewrite] 334 chars
+    [rag_rewrite/answer] 2209 chars
+[6/500] hqa_South Carolina_4489             PASS   gold=No pred=No (4.4s, 2 calls)
+    [rag_rewrite/rewrite] 335 chars
+    [rag_rewrite/answer] 1357 chars
+[7/500] hqa_Massachusetts_7965              FAIL   gold=No pred=Yes (17.3s, 2 calls)
+    [rag_rewrite/rewrite] 329 chars
+    [rag_rewrite/answer] 2036 chars
+[8/500] hqa_Ohio_128                        FAIL   gold=Yes pred=No (13.6s, 2 calls)
+    [rag_rewrite/rewrite] 334 chars
+    [rag_rewrite/answer] 3210 chars
+[9/500] hqa_Florida_6724                    FAIL   gold=No pred=Yes (7.4s, 2 calls)
+    [rag_rewrite/rewrite] 380 chars
+    [rag_rewrite/answer] 3843 chars
+[10/500] hqa_Missouri_6256                   PASS   gold=No pred=No (7.7s, 2 calls)
+    [rag_rewrite/rewrite] 348 chars
+    [rag_rewrite/answer] 1659 chars
+[11/500] hqa_Maine_8974                      FAIL   gold=Yes pred=No (4.2s, 2 calls)
+    [rag_rewrite/rewrite] 376 chars
+    [rag_rewrite/answer] 3398 chars
+[12/500] hqa_New Jersey_5714                 FAIL   gold=No pred=Yes (5.5s, 2 calls)
+    [rag_rewrite/rewrite] 324 chars
+    [rag_rewrite/answer] 1606 chars
+[13/500] hqa_Oregon_273                      FAIL   gold=Yes pred=No (4.5s, 2 calls)
+    [rag_rewrite/rewrite] 330 chars
+    [rag_rewrite/answer] 3072 chars
+[14/500] hqa_Oregon_7400                     FAIL   gold=No pred=Yes (5.1s, 2 calls)
+    [rag_rewrite/rewrite] 342 chars
+    [rag_rewrite/answer] 1970 chars
+[15/500] hqa_Tennessee_7214                  FAIL   gold=No pred=Yes (3.4s, 2 calls)
+    [rag_rewrite/rewrite] 366 chars
+    [rag_rewrite/answer] 2980 chars
+[16/500] hqa_Rhode Island_1629               FAIL   gold=No pred=Yes (9.2s, 2 calls)
+    [rag_rewrite/rewrite] 388 chars
+    [rag_rewrite/answer] 2085 chars
+[17/500] hqa_Virginia_3832                   PASS   gold=No pred=No (3.7s, 2 calls)
+    [rag_rewrite/rewrite] 364 chars
+    [rag_rewrite/answer] 2085 chars
+[18/500] hqa_Michigan_4232                   FAIL   gold=Yes pred=No (10.2s, 2 calls)
+    [rag_rewrite/rewrite] 356 chars
+    [rag_rewrite/answer] 2297 chars
+[19/500] hqa_Illinois_7793                   FAIL   gold=No pred=Yes (6.1s, 2 calls)
+    [rag_rewrite/rewrite] 315 chars
+    [rag_rewrite/answer] 2524 chars
+[20/500] hqa_Georgia_4066                    FAIL   gold=Yes pred=No (7.3s, 2 calls)
+    [rag_rewrite/rewrite] 381 chars
+    [rag_rewrite/answer] 2464 chars
+[21/500] hqa_Virginia_1772                   FAIL   gold=No pred=Yes (7.5s, 2 calls)
+    [rag_rewrite/rewrite] 370 chars
+    [rag_rewrite/answer] 3031 chars
+[22/500] hqa_New Hampshire_7009              FAIL   gold=No pred=Yes (5.7s, 2 calls)
+    [rag_rewrite/rewrite] 370 chars
+    [rag_rewrite/answer] 4363 chars
+[23/500] hqa_Tennessee_5894                  PASS   gold=No pred=No (8.9s, 2 calls)
+    [rag_rewrite/rewrite] 307 chars
+    [rag_rewrite/answer] 2901 chars
+[24/500] hqa_Utah_3249                       FAIL   gold=No pred=Yes (76.8s, 2 calls)
+    [rag_rewrite/rewrite] 367 chars
+    [rag_rewrite/answer] 2291 chars
+[25/500] hqa_South Carolina_3809             PASS   gold=No pred=No (7.6s, 2 calls)
+    [rag_rewrite/rewrite] 365 chars
+    [rag_rewrite/answer] 2645 chars
+[26/500] hqa_Hawaii_1051                     PASS   gold=No pred=No (5.1s, 2 calls)
+    [rag_rewrite/rewrite] 359 chars
+    [rag_rewrite/answer] 3317 chars
+[27/500] hqa_Washington_5958                 PASS   gold=Yes pred=Yes (7.2s, 2 calls)
+    [rag_rewrite/rewrite] 330 chars
+    [rag_rewrite/answer] 2358 chars
+[28/500] hqa_Alaska_840                      PASS   gold=Yes pred=Yes (31.1s, 2 calls)
+    [rag_rewrite/rewrite] 343 chars
+    [rag_rewrite/answer] 2142 chars
+[29/500] hqa_Alabama_7499                    FAIL   gold=No pred=Yes (5.9s, 2 calls)
+    [rag_rewrite/rewrite] 345 chars
+    [rag_rewrite/answer] 2345 chars
+[30/500] hqa_Connecticut_7341                FAIL   gold=No pred=Yes (6.1s, 2 calls)
+    [rag_rewrite/rewrite] 317 chars
+    [rag_rewrite/answer] 1605 chars
+[31/500] hqa_New York_4365                   PASS   gold=No pred=No (29.9s, 2 calls)
+    [rag_rewrite/rewrite] 314 chars
+    [rag_rewrite/answer] 1592 chars
+[32/500] hqa_Rhode Island_275                FAIL   gold=Yes pred=No (14.0s, 2 calls)
+    [rag_rewrite/rewrite] 380 chars
+    [rag_rewrite/answer] 2489 chars
+[33/500] hqa_West Virginia_9193              FAIL   gold=Yes pred=No (42.2s, 2 calls)
+    [rag_rewrite/rewrite] 389 chars
+    [rag_rewrite/answer] 2717 chars
+[34/500] hqa_West Virginia_8811              PASS   gold=No pred=No (23.5s, 2 calls)
+    [rag_rewrite/rewrite] 346 chars
+    [rag_rewrite/answer] 2370 chars
+[35/500] hqa_Washington_3844                 FAIL   gold=Yes pred=No (22.2s, 2 calls)
+    [rag_rewrite/rewrite] 315 chars
+    [rag_rewrite/answer] 2428 chars
+[36/500] hqa_Maryland_1229                   FAIL   gold=No pred=Yes (35.0s, 2 calls)
+    [rag_rewrite/rewrite] 309 chars
+    [rag_rewrite/answer] 1396 chars
+[37/500] hqa_Hawaii_5445                     FAIL   gold=Yes pred=No (17.8s, 2 calls)
+    [rag_rewrite/rewrite] 336 chars
+    [rag_rewrite/answer] 3844 chars
+[38/500] hqa_District of Columbia_8887       FAIL   gold=Yes pred=No (8.0s, 2 calls)
+    [rag_rewrite/rewrite] 327 chars
+    [rag_rewrite/answer] 2602 chars
+[39/500] hqa_Mississippi_6241                PASS   gold=No pred=No (5.3s, 2 calls)
+    [rag_rewrite/rewrite] 327 chars
+    [rag_rewrite/answer] 1993 chars
+[40/500] hqa_South Carolina_8394             PASS   gold=No pred=No (8.7s, 2 calls)
+    [rag_rewrite/rewrite] 488 chars
+    [rag_rewrite/answer] 3563 chars
+[41/500] hqa_North Carolina_3036             PASS   gold=No pred=No (8.0s, 2 calls)
+    [rag_rewrite/rewrite] 350 chars
+    [rag_rewrite/answer] 2731 chars
+[42/500] hqa_New Mexico_7050                 PASS   gold=Yes pred=Yes (8.2s, 2 calls)
+    [rag_rewrite/rewrite] 334 chars
+    [rag_rewrite/answer] 2736 chars
+[43/500] hqa_Washington_8573                 FAIL   gold=No pred=Yes (8.6s, 2 calls)
+    [rag_rewrite/rewrite] 313 chars
+    [rag_rewrite/answer] 1985 chars
+[44/500] hqa_Wyoming_55                      FAIL   gold=Yes pred=No (17.3s, 2 calls)
+    [rag_rewrite/rewrite] 335 chars
+    [rag_rewrite/answer] 2219 chars
+[45/500] hqa_Nevada_8111                     FAIL   gold=No pred=Yes (5.7s, 2 calls)
+    [rag_rewrite/rewrite] 389 chars
+    [rag_rewrite/answer] 1837 chars
+[46/500] hqa_Vermont_3262                    PASS   gold=Yes pred=Yes (5.1s, 2 calls)
+    [rag_rewrite/rewrite] 344 chars
+    [rag_rewrite/answer] 4012 chars
+[47/500] hqa_West Virginia_9192              PASS   gold=No pred=No (58.2s, 2 calls)
+    [rag_rewrite/rewrite] 358 chars
+    [rag_rewrite/answer] 2051 chars
+[48/500] hqa_Tennessee_8446                  FAIL   gold=No pred=Yes (10.6s, 2 calls)
+    [rag_rewrite/rewrite] 369 chars
+    [rag_rewrite/answer] 1971 chars
+[49/500] hqa_Illinois_1997                   PASS   gold=No pred=No (10.4s, 2 calls)
+    [rag_rewrite/rewrite] 347 chars
+    [rag_rewrite/answer] 2853 chars
+[50/500] hqa_Rhode Island_3158               PASS   gold=Yes pred=Yes (85.5s, 2 calls)
+    [rag_rewrite/rewrite] 346 chars
+    [rag_rewrite/answer] 3010 chars
+[51/500] hqa_Nebraska_2945                   FAIL   gold=No pred=Yes (8.4s, 2 calls)
+    [rag_rewrite/rewrite] 407 chars
+    [rag_rewrite/answer] 1343 chars
+[52/500] hqa_Oregon_3792                     PASS   gold=No pred=No (5.9s, 2 calls)
+    [rag_rewrite/rewrite] 342 chars
+    [rag_rewrite/answer] 2340 chars
+[53/500] hqa_Utah_774                        FAIL   gold=Yes pred=No (5.7s, 2 calls)
+    [rag_rewrite/rewrite] 341 chars
+    [rag_rewrite/answer] 3592 chars
+[54/500] hqa_Florida_5402                    PASS   gold=No pred=No (6.6s, 2 calls)
+    [rag_rewrite/rewrite] 313 chars
+    [rag_rewrite/answer] 1636 chars
+[55/500] hqa_Alabama_6589                    PASS   gold=Yes pred=Yes (3.4s, 2 calls)
+    [rag_rewrite/rewrite] 394 chars
+    [rag_rewrite/answer] 2277 chars
+[56/500] hqa_Nevada_9035                     PASS   gold=No pred=No (14.1s, 2 calls)
+    [rag_rewrite/rewrite] 356 chars
+    [rag_rewrite/answer] 4106 chars
+[57/500] hqa_Virginia_1789                   PASS   gold=No pred=No (7.0s, 2 calls)
+    [rag_rewrite/rewrite] 364 chars
+    [rag_rewrite/answer] 2640 chars
+[58/500] hqa_Ohio_5803                       PASS   gold=No pred=No (6.8s, 2 calls)
+    [rag_rewrite/rewrite] 389 chars
+    [rag_rewrite/answer] 2593 chars
+[59/500] hqa_West Virginia_1815              FAIL   gold=No pred=Yes (5.4s, 2 calls)
+    [rag_rewrite/rewrite] 339 chars
+    [rag_rewrite/answer] 3012 chars
+[60/500] hqa_Idaho_7779                      FAIL   gold=No pred=Yes (5.0s, 2 calls)
+    [rag_rewrite/rewrite] 392 chars
+    [rag_rewrite/answer] 3536 chars
+[61/500] hqa_Maryland_7347                   FAIL   gold=No pred=Yes (6.8s, 2 calls)
+    [rag_rewrite/rewrite] 334 chars
+    [rag_rewrite/answer] 1316 chars
+[62/500] hqa_California_3984                 FAIL   gold=No pred=Yes (11.6s, 2 calls)
+    [rag_rewrite/rewrite] 322 chars
+    [rag_rewrite/answer] 1487 chars
+[63/500] hqa_Indiana_7816                    PASS   gold=No pred=No (5.5s, 2 calls)
+    [rag_rewrite/rewrite] 317 chars
+    [rag_rewrite/answer] 3950 chars
+[64/500] hqa_Vermont_3268                    FAIL   gold=Yes pred=No (7.9s, 2 calls)
+    [rag_rewrite/rewrite] 325 chars
+    [rag_rewrite/answer] 2125 chars
+[65/500] hqa_Illinois_332                    FAIL   gold=Yes pred=No (6.3s, 2 calls)
+    [rag_rewrite/rewrite] 401 chars
+    [rag_rewrite/answer] 2685 chars
+[66/500] hqa_Idaho_1083                      FAIL   gold=No pred=Yes (13.6s, 2 calls)
+    [rag_rewrite/rewrite] 343 chars
+    [rag_rewrite/answer] 2517 chars
+[67/500] hqa_Maryland_1228                   FAIL   gold=No pred=Yes (4.6s, 2 calls)
+    [rag_rewrite/rewrite] 319 chars
+    [rag_rewrite/answer] 1652 chars
+[68/500] hqa_Utah_6453                       FAIL   gold=Yes pred=No (6.4s, 2 calls)
+    [rag_rewrite/rewrite] 234 chars
+    [rag_rewrite/answer] 2285 chars
+[69/500] hqa_California_3981                 PASS   gold=No pred=No (4.6s, 2 calls)
+    [rag_rewrite/rewrite] 301 chars
+    [rag_rewrite/answer] 1743 chars
+[70/500] hqa_Delaware_1945                   PASS   gold=No pred=No (8.4s, 2 calls)
+    [rag_rewrite/rewrite] 320 chars
+    [rag_rewrite/answer] 1911 chars
+[71/500] hqa_Indiana_4127                    PASS   gold=No pred=No (9.8s, 2 calls)
+    [rag_rewrite/rewrite] 349 chars
+    [rag_rewrite/answer] 1355 chars
+[72/500] hqa_Maine_3675                      PASS   gold=No pred=No (9.0s, 2 calls)
+    [rag_rewrite/rewrite] 334 chars
+    [rag_rewrite/answer] 1817 chars
+[73/500] hqa_Nevada_3737                     FAIL   gold=Yes pred=No (5.4s, 2 calls)
+    [rag_rewrite/rewrite] 337 chars
+    [rag_rewrite/answer] 2135 chars
+[74/500] hqa_Florida_1003                    PASS   gold=Yes pred=Yes (4.4s, 2 calls)
+    [rag_rewrite/rewrite] 368 chars
+    [rag_rewrite/answer] 3623 chars
+[75/500] hqa_New Hampshire_7008              FAIL   gold=No pred=Yes (21.3s, 2 calls)
+    [rag_rewrite/rewrite] 363 chars
+    [rag_rewrite/answer] 2380 chars
+[76/500] hqa_West Virginia_7296              PASS   gold=Yes pred=Yes (20.4s, 2 calls)
+    [rag_rewrite/rewrite] 316 chars
+    [rag_rewrite/answer] 2362 chars
+[77/500] hqa_Idaho_1075                      PASS   gold=Yes pred=Yes (5.1s, 2 calls)
+    [rag_rewrite/rewrite] 327 chars
+    [rag_rewrite/answer] 2029 chars
+[78/500] hqa_Hawaii_4089                     PASS   gold=No pred=No (29.9s, 2 calls)
+    [rag_rewrite/rewrite] 342 chars
+    [rag_rewrite/answer] 3046 chars
+[79/500] hqa_Oklahoma_5810                   FAIL   gold=No pred=Yes (113.8s, 2 calls)
+    [rag_rewrite/rewrite] 343 chars
+    [rag_rewrite/answer] 817 chars
+[80/500] hqa_New York_9283                   PASS   gold=No pred=No (2.8s, 2 calls)
+    [rag_rewrite/rewrite] 327 chars
+    [rag_rewrite/answer] 3084 chars
+[81/500] hqa_Maine_4196                      PASS   gold=No pred=No (6.8s, 2 calls)
+    [rag_rewrite/rewrite] 314 chars
+    [rag_rewrite/answer] 5408 chars
+[82/500] hqa_Utah_3245                       PASS   gold=Yes pred=Yes (9.0s, 2 calls)
+    [rag_rewrite/rewrite] 308 chars
+    [rag_rewrite/answer] 2124 chars
+[83/500] hqa_Arizona_3                       FAIL   gold=Yes pred=No (4.5s, 2 calls)
+    [rag_rewrite/rewrite] 366 chars
+    [rag_rewrite/answer] 3679 chars
+[84/500] hqa_West Virginia_7305              FAIL   gold=No pred=Yes (6.7s, 2 calls)
+    [rag_rewrite/rewrite] 303 chars
+    [rag_rewrite/answer] 1631 chars
+[85/500] hqa_Texas_3213                      FAIL   gold=No pred=Yes (4.1s, 2 calls)
+    [rag_rewrite/rewrite] 358 chars
+    [rag_rewrite/answer] 3363 chars
+[86/500] hqa_Colorado_6675                   PASS   gold=Yes pred=Yes (7.6s, 2 calls)
+    [rag_rewrite/rewrite] 315 chars
+    [rag_rewrite/answer] 2086 chars
+[87/500] hqa_Tennessee_2498                  PASS   gold=Yes pred=Yes (14.2s, 2 calls)
+    [rag_rewrite/rewrite] 343 chars
+    [rag_rewrite/answer] 1992 chars
+[88/500] hqa_South Dakota_8789               PASS   gold=No pred=No (7.2s, 2 calls)
+    [rag_rewrite/rewrite] 350 chars
+    [rag_rewrite/answer] 3300 chars
+[89/500] hqa_Georgia_6746                    FAIL   gold=No pred=Yes (5.7s, 2 calls)
+    [rag_rewrite/rewrite] 327 chars
+    [rag_rewrite/answer] 2238 chars
+[90/500] hqa_Nebraska_6980                   FAIL   gold=No pred=Yes (6.6s, 2 calls)
+    [rag_rewrite/rewrite] 408 chars
+    [rag_rewrite/answer] 1982 chars
+[91/500] hqa_California_913                  PASS   gold=Yes pred=Yes (12.1s, 2 calls)
+    [rag_rewrite/rewrite] 330 chars
+    [rag_rewrite/answer] 2032 chars
+[92/500] hqa_New Jersey_8722                 PASS   gold=No pred=No (4.4s, 2 calls)
+    [rag_rewrite/rewrite] 343 chars
+    [rag_rewrite/answer] 3833 chars
+[93/500] hqa_California_6654                 FAIL   gold=No pred=Yes (16.6s, 2 calls)
+    [rag_rewrite/rewrite] 369 chars
+    [rag_rewrite/answer] 3509 chars
+[94/500] hqa_Georgia_6752                    PASS   gold=No pred=No (22.7s, 2 calls)
+    [rag_rewrite/rewrite] 347 chars
+    [rag_rewrite/answer] 3309 chars
+[95/500] hqa_Alaska_6609                     FAIL   gold=No pred=Yes (15.4s, 2 calls)
+    [rag_rewrite/rewrite] 338 chars
+    [rag_rewrite/answer] 2598 chars
+[96/500] hqa_Alaska_830                      PASS   gold=Yes pred=Yes (13.2s, 2 calls)
+    [rag_rewrite/rewrite] 281 chars
+    [rag_rewrite/answer] 2209 chars
+[97/500] hqa_Iowa_6824                       PASS   gold=Yes pred=Yes (13.3s, 2 calls)
+    [rag_rewrite/rewrite] 328 chars
+    [rag_rewrite/answer] 2166 chars
+[98/500] hqa_Nebraska_8091                   PASS   gold=No pred=No (8.3s, 2 calls)
+    [rag_rewrite/rewrite] 378 chars
+    [rag_rewrite/answer] 2068 chars
+[99/500] hqa_Massachusetts_1252              FAIL   gold=No pred=Yes (6.7s, 2 calls)
+    [rag_rewrite/rewrite] 362 chars
+    [rag_rewrite/answer] 2371 chars
+[100/500] hqa_Kansas_7854                     PASS   gold=No pred=No (12.8s, 2 calls)
+    [rag_rewrite/rewrite] 323 chars
+    [rag_rewrite/answer] 2146 chars
+[101/500] hqa_Michigan_1266                   FAIL   gold=No pred=Yes (11.3s, 2 calls)
+    [rag_rewrite/rewrite] 343 chars
+    [rag_rewrite/answer] 2662 chars
+[102/500] hqa_South Carolina_8387             PASS   gold=Yes pred=Yes (13.0s, 2 calls)
+    [rag_rewrite/rewrite] 335 chars
+    [rag_rewrite/answer] 1459 chars
+[103/500] hqa_Rhode Island_201                FAIL   gold=Yes pred=No (4.7s, 2 calls)
+    [rag_rewrite/rewrite] 308 chars
+    [rag_rewrite/answer] 2783 chars
+[104/500] hqa_Connecticut_952                 FAIL   gold=No pred=Yes (7.8s, 2 calls)
+    [rag_rewrite/rewrite] 347 chars
+    [rag_rewrite/answer] 3382 chars
+[105/500] hqa_Oregon_7142                     FAIL   gold=No pred=Yes (19.1s, 2 calls)
+    [rag_rewrite/rewrite] 318 chars
+    [rag_rewrite/answer] 1455 chars
+[106/500] hqa_Idaho_1984                      FAIL   gold=Yes pred=No (7.8s, 2 calls)
+    [rag_rewrite/rewrite] 366 chars
+    [rag_rewrite/answer] 2514 chars
+[107/500] hqa_California_2604                 FAIL   gold=No pred=Yes (15.7s, 2 calls)
+    [rag_rewrite/rewrite] 333 chars
+    [rag_rewrite/answer] 2360 chars
+[108/500] hqa_South Dakota_8413               PASS   gold=No pred=No (21.2s, 2 calls)
+    [rag_rewrite/rewrite] 360 chars
+    [rag_rewrite/answer] 2401 chars
+[109/500] hqa_Vermont_3410                    PASS   gold=No pred=No (18.3s, 2 calls)
+    [rag_rewrite/rewrite] 321 chars
+    [rag_rewrite/answer] 3335 chars
+[110/500] hqa_Virginia_5954                   FAIL   gold=No pred=Yes (16.0s, 2 calls)
+    [rag_rewrite/rewrite] 326 chars
+    [rag_rewrite/answer] 2499 chars
+[111/500] hqa_Indiana_1120                    PASS   gold=No pred=No (7.5s, 2 calls)
+    [rag_rewrite/rewrite] 349 chars
+    [rag_rewrite/answer] 1688 chars
+[112/500] hqa_Iowa_179                        FAIL   gold=Yes pred=No (5.1s, 2 calls)
+    [rag_rewrite/rewrite] 403 chars
+    [rag_rewrite/answer] 4274 chars
+[113/500] hqa_Colorado_5365                   PASS   gold=No pred=No (11.3s, 2 calls)
+    [rag_rewrite/rewrite] 382 chars
+    [rag_rewrite/answer] 3119 chars
+[114/500] hqa_Virginia_5952                   PASS   gold=No pred=No (11.8s, 2 calls)
+    [rag_rewrite/rewrite] 331 chars
+    [rag_rewrite/answer] 3432 chars
+[115/500] hqa_Utah_8794                       PASS   gold=No pred=No (18.4s, 2 calls)
+    [rag_rewrite/rewrite] 256 chars
+    [rag_rewrite/answer] 2150 chars
+[116/500] hqa_Utah_8506                       PASS   gold=No pred=No (11.8s, 2 calls)
+    [rag_rewrite/rewrite] 309 chars
+[2026-05-11T16:21:09.213] error: *** JOB 67912 ON a40-2205 CANCELLED AT 2026-05-11T16:21:09 DUE TO TIME LIMIT ***

@@ -152,7 +152,18 @@ These jobs were launched to satisfy the larger-slice sanity request for the
 canonical methods. They are not report numbers until the validation gates below
 pass.
 
-Latest monitor refresh, 2026-05-11 16:10 CDT: `67912` HousingQA
+Latest monitor refresh, 2026-05-11 16:30 CDT: the remaining monitored jobs
+`67911`, `67912`, and `67913` all hit the 4-hour SLURM time limit and are no
+longer running. No partial mode after cancellation is promoted. BarExam `67911`
+keeps only the copied `rag_simple` mode at 400/500 = 80.0% with one missing
+prediction; partial `rag_rewrite` stopped at `92/500`, and
+`adaptive_snap_hyre_v2` was not reached. HousingQA `67912` keeps only the
+copied `rag_state_filter` mode at 270/500 = 54.0% with one missing prediction;
+partial `rag_rewrite` stopped at `116/500`, and
+`adaptive_snap_hyre_housing_verifier` was not reached. CaseHOLD `67913` keeps
+copied clean `rag_simple` 359/500 = 71.8% and copied clean `rag_rewrite`
+354/500 = 70.8%; partial `adaptive_snap_hyre_diverse` stopped at `35/500`.
+The timeout stdout logs were copied locally. Earlier, `67912` HousingQA
 `rag_state_filter` completed and was copied locally with 500 rows, 270/500 =
 54.0%, errors 0, one missing prediction, parse failures 0, empty retrieval 0,
 average calls 1.00, max output tokens 967, max final-answer chars 5,151, and
@@ -181,19 +192,16 @@ The paired `adaptive_snap_hyre_frontier` half was copied locally and reaches
 calls 2.00, max output tokens 8,454, and max final-answer chars 20,480, but it
 fails `scripts/audit_adaptive_hyre_logs.py` because one row has no predicted
 answer; `scripts/analyze_detail_flags.py` also flags one long-answer row. Treat
-the frontier half as health-gated/rejected, not as a clean report row. The
-remaining active scale-up jobs are still running cleanly: `67911` BarExam
-`rag_rewrite` is `62/500`; `67912` HousingQA `rag_rewrite` is `65/500`;
-`67913` CaseHOLD `adaptive_snap_hyre_diverse` is `10/500`.
+the frontier half as health-gated/rejected, not as a clean report row.
 
 | Job | Dataset | N | Modes | Status |
 |---:|---|---:|---|---|
 | 67897 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Completed. `rag_simple` is clean at 419/571 = 73.4%; frontier is health-gated/rejected at 417/571 = 73.0% because the adaptive audit finds one missing prediction and the flag audit finds one long-answer row. |
 | 67914 | LegalBench-SCALR | 571 | `rag_rewrite` | Rejected: CUDA/ECC failure on `a40-2206` before a detail log. |
 | 67915 | LegalBench-SCALR | 571 | `rag_rewrite` | Completed clean retry at 423/571 = 74.1%, excluding `a40-2206`. |
-| 67911 | BarExam | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_v2` | Running baseline vs rewrite vs selected route; `rag_simple` mode copied and validated at 400/500 = 80.0% with one missing prediction. |
-| 67912 | HousingQA | 500 | `rag_state_filter`, `rag_rewrite`, `adaptive_snap_hyre_housing_verifier` | Running metadata-filter baseline vs rewrite vs verifier; `rag_state_filter` mode copied and validated at 270/500 = 54.0% with one missing prediction. |
-| 67913 | CaseHOLD | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_diverse` | Running baseline vs rewrite vs diverse HyRE; `rag_simple` is clean at 359/500 = 71.8%, and `rag_rewrite` is clean at 354/500 = 70.8%. |
+| 67911 | BarExam | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_v2` | Timed out. `rag_simple` mode copied and validated at 400/500 = 80.0% with one missing prediction; partial rewrite/adaptive are not promoted. |
+| 67912 | HousingQA | 500 | `rag_state_filter`, `rag_rewrite`, `adaptive_snap_hyre_housing_verifier` | Timed out. `rag_state_filter` mode copied and validated at 270/500 = 54.0% with one missing prediction; partial rewrite/verifier are not promoted. |
+| 67913 | CaseHOLD | 500 | `rag_simple`, `rag_rewrite`, `adaptive_snap_hyre_diverse` | Timed out. `rag_simple` is clean at 359/500 = 71.8%, and `rag_rewrite` is clean at 354/500 = 70.8%; partial diverse HyRE is not promoted. |
 
 Meeting standard: if these finish cleanly, integrate them as a scale-up sanity
 table. If they do not, keep the verified N=200/N=50 package as the main

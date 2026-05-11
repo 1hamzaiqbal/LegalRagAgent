@@ -1,0 +1,1358 @@
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+[preflight] modes OK: rag_simple, rag_rewrite, adaptive_snap_hyre_v2
+[preflight] Chroma collection count skipped by SKIP_CHROMA_PREFLIGHT=1
+[2026-05-11T12:21:46-05:00] provider=or-gemma4-26b dataset=barexam N=500 seed=42 k=5
+[2026-05-11T12:21:46-05:00] modes: rag_simple rag_rewrite adaptive_snap_hyre_v2
+
+[2026-05-11T12:21:46-05:00] === MODE rag_simple tag=meeting-n500-canonical-or-gemma4-26b-barexam-n500-k5-rag_simple ===
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+
+======================================================================
+EVAL: rag_simple | or-gemma4-26b (google/gemma-4-26b-a4b-it) | 500 questions
+Tag: meeting-n500-canonical-or-gemma4-26b-barexam-n500-k5-rag_simple
+======================================================================
+
+    [preflight_smoke] 2 chars
+[preflight] provider=or-gemma4-26b OK
+[preflight] collection count skipped by SKIP_EVAL_COLLECTION_PREFLIGHT=1
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Loading weights:   0%|          | 0/268 [00:00<?, ?it/s]Loading weights: 100%|██████████| 268/268 [00:00<00:00, 9100.19it/s]
+[rag_utils] Reinitialized embedding position_ids=8192
+[rag_utils] Embedding max_seq_length=512
+    [rag_simple/answer] 2657 chars
+[1/500] qa_CRIM. LAW_mbe_809                PASS   gold=A pred=A (23.8s, 1 calls)
+    [rag_simple/answer] 3314 chars
+[2/500] qa_nan_mbe_304                      PASS   gold=A pred=A (12.6s, 1 calls)
+    [rag_simple/answer] 3263 chars
+[3/500] qa_nan_mbe_118                      PASS   gold=D pred=D (15.7s, 1 calls)
+    [rag_simple/answer] 2638 chars
+[4/500] qa_nan_mbe_339                      PASS   gold=D pred=D (8.1s, 1 calls)
+    [rag_simple/answer] 2530 chars
+[5/500] qa_nan_mbe_73                       PASS   gold=C pred=C (13.2s, 1 calls)
+    [rag_simple/answer] 2936 chars
+[6/500] qa_TORTS_mbe_656                    PASS   gold=D pred=D (30.5s, 1 calls)
+    [rag_simple/answer] 4177 chars
+[7/500] qa_EVIDENCE_mbe_900                 FAIL   gold=B pred=C (20.0s, 1 calls)
+    [rag_simple/answer] 2455 chars
+[8/500] qa_CONST. LAW_mbe_795               PASS   gold=B pred=B (6.5s, 1 calls)
+    [rag_simple/answer] 2871 chars
+[9/500] qa_nan_mbe_134                      PASS   gold=D pred=D (5.3s, 1 calls)
+    [rag_simple/answer] 2828 chars
+[10/500] qa_TORTS_mbe_735                    PASS   gold=C pred=C (12.3s, 1 calls)
+    [rag_simple/answer] 3012 chars
+[11/500] qa_REAL PROP._mbe_718               PASS   gold=C pred=C (17.0s, 1 calls)
+    [rag_simple/answer] 2802 chars
+[12/500] qa_nan_mbe_51                       PASS   gold=A pred=A (14.9s, 1 calls)
+    [rag_simple/answer] 3863 chars
+[13/500] qa_nan_mbe_58                       PASS   gold=C pred=C (38.6s, 1 calls)
+    [rag_simple/answer] 2651 chars
+[14/500] qa_TORTS_mbe_761                    PASS   gold=C pred=C (14.7s, 1 calls)
+    [rag_simple/answer] 2226 chars
+[15/500] qa_nan_mbe_508                      PASS   gold=A pred=A (6.4s, 1 calls)
+    [rag_simple/answer] 2808 chars
+[16/500] qa_CONTRACTS_mbe_578                FAIL   gold=A pred=C (6.2s, 1 calls)
+    [rag_simple/answer] 3057 chars
+[17/500] qa_nan_mbe_967                      PASS   gold=B pred=B (17.3s, 1 calls)
+    [rag_simple/answer] 3057 chars
+[18/500] qa_nan_mbe_259                      PASS   gold=B pred=B (20.8s, 1 calls)
+    [rag_simple/answer] 3269 chars
+[19/500] qa_CONTRACTS_mbe_918                PASS   gold=D pred=D (18.1s, 1 calls)
+    [rag_simple/answer] 2825 chars
+[20/500] qa_REAL PROP._mbe_1148              PASS   gold=A pred=A (10.7s, 1 calls)
+    [rag_simple/answer] 2573 chars
+[21/500] qa_nan_mbe_207                      PASS   gold=D pred=D (17.5s, 1 calls)
+    [rag_simple/answer] 2999 chars
+[22/500] qa_TORTS_mbe_1094                   PASS   gold=C pred=C (6.9s, 1 calls)
+    [rag_simple/answer] 3198 chars
+[23/500] qa_REAL PROP._mbe_1043              PASS   gold=C pred=C (45.2s, 1 calls)
+    [rag_simple/answer] 2557 chars
+[24/500] qa_nan_mbe_411                      PASS   gold=D pred=D (17.9s, 1 calls)
+    [rag_simple/answer] 3274 chars
+[25/500] qa_nan_mbe_532                      FAIL   gold=A pred=D (23.1s, 1 calls)
+    [rag_simple/answer] 2844 chars
+[26/500] qa_EVIDENCE_mbe_663                 PASS   gold=A pred=A (21.2s, 1 calls)
+    [rag_simple/answer] 3082 chars
+[27/500] qa_nan_mbe_163                      PASS   gold=B pred=B (11.3s, 1 calls)
+    [rag_simple/answer] 2934 chars
+[28/500] qa_CONTRACTS_mbe_712                PASS   gold=C pred=C (10.3s, 1 calls)
+    [rag_simple/answer] 2655 chars
+[29/500] qa_nan_mbe_338                      FAIL   gold=D pred=B (7.9s, 1 calls)
+    [rag_simple/answer] 3342 chars
+[30/500] qa_nan_mbe_512                      PASS   gold=A pred=A (12.6s, 1 calls)
+    [rag_simple/answer] 2583 chars
+[31/500] qa_nan_mbe_377                      FAIL   gold=D pred=A (12.6s, 1 calls)
+    [rag_simple/answer] 2752 chars
+[32/500] qa_nan_mbe_191                      PASS   gold=C pred=C (5.7s, 1 calls)
+    [rag_simple/answer] 2384 chars
+[33/500] qa_TORTS_mbe_1170                   PASS   gold=A pred=A (14.3s, 1 calls)
+    [rag_simple/answer] 2757 chars
+[34/500] qa_REAL PROP._mbe_883               FAIL   gold=A pred=B (17.9s, 1 calls)
+    [rag_simple/answer] 3105 chars
+[35/500] qa_CRIM. LAW_mbe_670                PASS   gold=D pred=D (17.9s, 1 calls)
+    [rag_simple/answer] 2655 chars
+[36/500] qa_nan_mbe_170                      PASS   gold=C pred=C (6.6s, 1 calls)
+    [rag_simple/answer] 2407 chars
+[37/500] qa_CONTRACTS_mbe_1187               PASS   gold=D pred=D (20.2s, 1 calls)
+    [rag_simple/answer] 3538 chars
+[38/500] qa_nan_mbe_86                       PASS   gold=A pred=A (7.2s, 1 calls)
+    [rag_simple/answer] 3748 chars
+[39/500] qa_nan_mbe_400                      PASS   gold=D pred=D (16.6s, 1 calls)
+    [rag_simple/answer] 2942 chars
+[40/500] qa_TORTS_mbe_843                    PASS   gold=D pred=D (18.7s, 1 calls)
+    [rag_simple/answer] 2824 chars
+[41/500] qa_nan_mbe_473                      PASS   gold=A pred=A (37.8s, 1 calls)
+    [rag_simple/answer] 2799 chars
+[42/500] qa_nan_mbe_125                      PASS   gold=D pred=D (25.8s, 1 calls)
+    [rag_simple/answer] 3342 chars
+[43/500] qa_REAL PROP._mbe_557               PASS   gold=D pred=D (10.8s, 1 calls)
+    [rag_simple/answer] 3036 chars
+[44/500] qa_CONTRACTS_mbe_1045               PASS   gold=B pred=B (26.8s, 1 calls)
+    [rag_simple/answer] 3648 chars
+[45/500] qa_TORTS_mbe_764                    PASS   gold=B pred=B (23.0s, 1 calls)
+    [rag_simple/answer] 2944 chars
+[46/500] qa_TORTS_mbe_575                    PASS   gold=D pred=D (26.1s, 1 calls)
+    [rag_simple/answer] 2712 chars
+[47/500] qa_nan_mbe_443                      PASS   gold=B pred=B (21.0s, 1 calls)
+    [rag_simple/answer] 2779 chars
+[48/500] qa_nan_mbe_26                       PASS   gold=D pred=D (18.8s, 1 calls)
+    [rag_simple/answer] 3073 chars
+[49/500] qa_nan_mbe_50                       PASS   gold=C pred=C (19.5s, 1 calls)
+    [rag_simple/answer] 2591 chars
+[50/500] qa_CONTRACTS_mbe_695                PASS   gold=C pred=C (13.2s, 1 calls)
+    [rag_simple/answer] 2596 chars
+[51/500] qa_CONTRACTS_mbe_571                PASS   gold=C pred=C (14.6s, 1 calls)
+    [rag_simple/answer] 3110 chars
+[52/500] qa_CRIM. LAW_mbe_1002               PASS   gold=B pred=B (21.5s, 1 calls)
+    [rag_simple/answer] 3185 chars
+[53/500] qa_nan_mbe_369                      PASS   gold=D pred=D (15.6s, 1 calls)
+    [rag_simple/answer] 2970 chars
+[54/500] qa_CONTRACTS_mbe_824                FAIL   gold=A pred=C (11.5s, 1 calls)
+    [rag_simple/answer] 2855 chars
+[55/500] qa_EVIDENCE_mbe_1099                PASS   gold=B pred=B (10.5s, 1 calls)
+    [rag_simple/answer] 2854 chars
+[56/500] qa_CONST. LAW_mbe_1120              PASS   gold=C pred=C (10.4s, 1 calls)
+    [rag_simple/answer] 2923 chars
+[57/500] qa_nan_mbe_278                      FAIL   gold=C pred=A (3.5s, 1 calls)
+    [rag_simple/answer] 3134 chars
+[58/500] qa_CRIM. LAW_mbe_1107               PASS   gold=D pred=D (42.5s, 1 calls)
+    [rag_simple/answer] 2225 chars
+[59/500] qa_EVIDENCE_mbe_1082                PASS   gold=B pred=B (6.5s, 1 calls)
+    [rag_simple/answer] 2128 chars
+[60/500] qa_CRIM. LAW_mbe_1095               PASS   gold=A pred=A (37.5s, 1 calls)
+    [rag_simple/answer] 2587 chars
+[61/500] qa_CONST. LAW_mbe_940               PASS   gold=B pred=B (36.4s, 1 calls)
+    [rag_simple/answer] 3139 chars
+[62/500] qa_REAL PROP._mbe_862               FAIL   gold=C pred=B (15.2s, 1 calls)
+    [rag_simple/answer] 2666 chars
+[63/500] qa_nan_mbe_422                      PASS   gold=B pred=B (41.3s, 1 calls)
+    [rag_simple/answer] 2702 chars
+[64/500] qa_nan_mbe_213                      PASS   gold=B pred=B (12.9s, 1 calls)
+    [rag_simple/answer] 2216 chars
+[65/500] qa_EVIDENCE_mbe_722                 PASS   gold=A pred=A (9.6s, 1 calls)
+    [rag_simple/answer] 3168 chars
+[66/500] qa_CONTRACTS_mbe_1097               FAIL   gold=B pred=C (28.1s, 1 calls)
+    [rag_simple/answer] 2622 chars
+[67/500] qa_nan_mbe_60                       PASS   gold=D pred=D (25.5s, 1 calls)
+    [rag_simple/answer] 3279 chars
+[68/500] qa_nan_mbe_336                      PASS   gold=C pred=C (17.4s, 1 calls)
+    [rag_simple/answer] 2909 chars
+[69/500] qa_REAL PROP._mbe_1081              FAIL   gold=A pred=B (12.3s, 1 calls)
+    [rag_simple/answer] 2895 chars
+[70/500] qa_CONST. LAW_mbe_1155              PASS   gold=D pred=D (13.7s, 1 calls)
+    [rag_simple/answer] 3430 chars
+[71/500] qa_nan_mbe_530                      PASS   gold=B pred=B (9.0s, 1 calls)
+    [rag_simple/answer] 2783 chars
+[72/500] qa_EVIDENCE_mbe_1111                PASS   gold=C pred=C (6.5s, 1 calls)
+    [rag_simple/answer] 3119 chars
+[73/500] qa_nan_mbe_108                      PASS   gold=B pred=B (12.2s, 1 calls)
+    [rag_simple/answer] 2989 chars
+[74/500] qa_nan_mbe_63                       PASS   gold=B pred=B (7.2s, 1 calls)
+    [rag_simple/answer] 2852 chars
+[75/500] qa_nan_mbe_96                       PASS   gold=B pred=B (28.5s, 1 calls)
+    [rag_simple/answer] 2237 chars
+[76/500] qa_nan_mbe_198                      PASS   gold=D pred=D (7.7s, 1 calls)
+    [rag_simple/answer] 3372 chars
+[77/500] qa_CONST. LAW_mbe_777               PASS   gold=D pred=D (10.8s, 1 calls)
+    [rag_simple/answer] 2167 chars
+[78/500] qa_nan_mbe_65                       PASS   gold=C pred=C (14.6s, 1 calls)
+    [rag_simple/answer] 2916 chars
+[79/500] qa_CONST. LAW_mbe_574               PASS   gold=B pred=B (17.1s, 1 calls)
+    [rag_simple/answer] 2599 chars
+[80/500] qa_CONTRACTS_mbe_1023               PASS   gold=B pred=B (11.5s, 1 calls)
+    [rag_simple/answer] 3037 chars
+[81/500] qa_EVIDENCE_mbe_765                 PASS   gold=B pred=B (47.4s, 1 calls)
+    [rag_simple/answer] 3034 chars
+[82/500] qa_nan_mbe_136                      FAIL   gold=C pred=A (8.2s, 1 calls)
+    [rag_simple/answer] 2742 chars
+[83/500] qa_nan_mbe_248                      PASS   gold=B pred=B (34.4s, 1 calls)
+    [rag_simple/answer] 2389 chars
+[84/500] qa_REAL PROP._mbe_934               PASS   gold=D pred=D (76.4s, 1 calls)
+    [rag_simple/answer] 2707 chars
+[85/500] qa_CONST. LAW_mbe_1053              PASS   gold=D pred=D (30.4s, 1 calls)
+    [rag_simple/answer] 2773 chars
+[86/500] qa_CRIM. LAW_mbe_1065               PASS   gold=B pred=B (112.2s, 1 calls)
+    [rag_simple/answer] 2789 chars
+[87/500] qa_CONTRACTS_mbe_783                PASS   gold=D pred=D (15.1s, 1 calls)
+    [rag_simple/answer] 3504 chars
+[88/500] qa_TORTS_mbe_752                    PASS   gold=C pred=C (7.6s, 1 calls)
+    [rag_simple/answer] 2387 chars
+[89/500] qa_CONTRACTS_mbe_996                PASS   gold=B pred=B (14.3s, 1 calls)
+    [rag_simple/answer] 2721 chars
+[90/500] qa_nan_mbe_480                      PASS   gold=D pred=D (7.8s, 1 calls)
+    [rag_simple/answer] 2921 chars
+[91/500] qa_nan_mbe_270                      PASS   gold=B pred=B (14.9s, 1 calls)
+    [rag_simple/answer] 2604 chars
+[92/500] qa_nan_mbe_346                      PASS   gold=D pred=D (5.4s, 1 calls)
+    [rag_simple/answer] 4392 chars
+[93/500] qa_TORTS_mbe_906                    PASS   gold=D pred=D (32.0s, 1 calls)
+    [rag_simple/answer] 2622 chars
+[94/500] qa_nan_mbe_144                      PASS   gold=B pred=B (70.6s, 1 calls)
+    [rag_simple/answer] 3016 chars
+[95/500] qa_TORTS_mbe_1074                   PASS   gold=C pred=C (11.9s, 1 calls)
+    [rag_simple/answer] 2775 chars
+[96/500] qa_nan_mbe_190                      PASS   gold=B pred=B (7.9s, 1 calls)
+    [rag_simple/answer] 7373 chars
+[97/500] qa_nan_mbe_218                      FAIL   gold=D pred=B (77.9s, 1 calls)
+    [rag_simple/answer] 2549 chars
+[98/500] qa_nan_mbe_138                      FAIL   gold=A pred=C (40.2s, 1 calls)
+    [rag_simple/answer] 2894 chars
+[99/500] qa_nan_mbe_454                      PASS   gold=D pred=D (93.5s, 1 calls)
+    [rag_simple/answer] 2548 chars
+[100/500] qa_TORTS_mbe_1066                   FAIL   gold=A pred=D (8.5s, 1 calls)
+    [rag_simple/answer] 2588 chars
+[101/500] qa_CONTRACTS_mbe_617                FAIL   gold=B pred=D (22.5s, 1 calls)
+    [rag_simple/answer] 2334 chars
+[102/500] qa_EVIDENCE_mbe_1072                PASS   gold=D pred=D (45.9s, 1 calls)
+    [rag_simple/answer] 2609 chars
+[103/500] qa_nan_mbe_99                       FAIL   gold=B pred=C (13.7s, 1 calls)
+    [rag_simple/answer] 2785 chars
+[104/500] qa_nan_mbe_361                      PASS   gold=B pred=B (10.5s, 1 calls)
+    [rag_simple/answer] 3353 chars
+[105/500] qa_CONST. LAW_mbe_1041              PASS   gold=C pred=C (18.5s, 1 calls)
+    [rag_simple/answer] 3304 chars
+[106/500] qa_TORTS_mbe_1080                   PASS   gold=C pred=C (16.9s, 1 calls)
+    [rag_simple/answer] 3704 chars
+[107/500] qa_nan_mbe_293                      PASS   gold=A pred=A (27.3s, 1 calls)
+    [rag_simple/answer] 2870 chars
+[108/500] qa_nan_mbe_463                      PASS   gold=C pred=C (12.5s, 1 calls)
+    [rag_simple/answer] 3063 chars
+[109/500] qa_nan_mbe_446                      PASS   gold=D pred=D (20.0s, 1 calls)
+    [rag_simple/answer] 2555 chars
+[110/500] qa_EVIDENCE_mbe_1001                PASS   gold=C pred=C (9.2s, 1 calls)
+    [rag_simple/answer] 2540 chars
+[111/500] qa_EVIDENCE_mbe_691                 PASS   gold=A pred=A (12.8s, 1 calls)
+    [rag_simple/answer] 2835 chars
+[112/500] qa_CRIM. LAW_mbe_1126               PASS   gold=A pred=A (11.0s, 1 calls)
+    [rag_simple/answer] 2625 chars
+[113/500] qa_REAL PROP._mbe_804               PASS   gold=B pred=B (15.7s, 1 calls)
+    [rag_simple/answer] 3601 chars
+[114/500] qa_CONST. LAW_mbe_599               PASS   gold=A pred=A (17.4s, 1 calls)
+    [rag_simple/answer] 2689 chars
+[115/500] qa_nan_mbe_341                      PASS   gold=D pred=D (53.1s, 1 calls)
+    [rag_simple/answer] 2932 chars
+[116/500] qa_REAL PROP._mbe_1057              PASS   gold=C pred=C (51.5s, 1 calls)
+    [rag_simple/answer] 3045 chars
+[117/500] qa_EVIDENCE_mbe_1129                PASS   gold=D pred=D (9.9s, 1 calls)
+    [rag_simple/answer] 2591 chars
+[118/500] qa_nan_mbe_175                      PASS   gold=D pred=D (32.7s, 1 calls)
+    [rag_simple/answer] 2580 chars
+[119/500] qa_nan_mbe_402                      PASS   gold=D pred=D (13.2s, 1 calls)
+    [rag_simple/answer] 3638 chars
+[120/500] qa_CRIM. LAW_mbe_565                PASS   gold=C pred=C (42.1s, 1 calls)
+    [rag_simple/answer] 2402 chars
+[121/500] qa_EVIDENCE_mbe_1115                PASS   gold=C pred=C (17.8s, 1 calls)
+    [rag_simple/answer] 4009 chars
+[122/500] qa_TORTS_mbe_1154                   PASS   gold=C pred=C (16.9s, 1 calls)
+    [rag_simple/answer] 2717 chars
+[123/500] qa_CRIM. LAW_mbe_562                FAIL   gold=A pred=D (3.5s, 1 calls)
+    [rag_simple/answer] 3154 chars
+[124/500] qa_nan_mbe_324                      PASS   gold=C pred=C (30.9s, 1 calls)
+    [rag_simple/answer] 2790 chars
+[125/500] qa_nan_mbe_305                      PASS   gold=A pred=A (13.9s, 1 calls)
+    [rag_simple/answer] 2805 chars
+[126/500] qa_nan_mbe_474                      PASS   gold=B pred=B (12.1s, 1 calls)
+    [rag_simple/answer] 3627 chars
+[127/500] qa_REAL PROP._mbe_1100              PASS   gold=D pred=D (13.4s, 1 calls)
+    [rag_simple/answer] 3074 chars
+[128/500] qa_TORTS_mbe_908                    PASS   gold=A pred=A (11.8s, 1 calls)
+    [rag_simple/answer] 3436 chars
+[129/500] qa_TORTS_mbe_696                    PASS   gold=C pred=C (8.8s, 1 calls)
+    [rag_simple/answer] 2074 chars
+[130/500] qa_REAL PROP._mbe_604               PASS   gold=B pred=B (46.7s, 1 calls)
+    [rag_simple/answer] 3244 chars
+[131/500] qa_nan_mbe_445                      PASS   gold=A pred=A (11.7s, 1 calls)
+    [rag_simple/answer] 4073 chars
+[132/500] qa_nan_mbe_384                      FAIL   gold=A pred=D (27.1s, 1 calls)
+    [rag_simple/answer] 2652 chars
+[133/500] qa_TORTS_mbe_943                    PASS   gold=C pred=C (51.2s, 1 calls)
+    [rag_simple/answer] 2971 chars
+[134/500] qa_REAL PROP._mbe_1050              PASS   gold=B pred=B (23.1s, 1 calls)
+    [rag_simple/answer] 3073 chars
+[135/500] qa_REAL PROP._mbe_779               PASS   gold=B pred=B (18.8s, 1 calls)
+    [rag_simple/answer] 2816 chars
+[136/500] qa_nan_mbe_235                      PASS   gold=D pred=D (23.7s, 1 calls)
+    [rag_simple/answer] 2882 chars
+[137/500] qa_TORTS_mbe_705                    PASS   gold=A pred=A (6.0s, 1 calls)
+    [rag_simple/answer] 3664 chars
+[138/500] qa_EVIDENCE_mbe_713                 FAIL   gold=C pred=D (8.1s, 1 calls)
+    [rag_simple/answer] 2515 chars
+[139/500] qa_TORTS_mbe_1191                   PASS   gold=D pred=D (9.9s, 1 calls)
+    [rag_simple/answer] 5780 chars
+[140/500] qa_nan_mbe_539                      PASS   gold=D pred=D (27.1s, 1 calls)
+    [rag_simple/answer] 2720 chars
+[141/500] qa_CONTRACTS_mbe_790                PASS   gold=C pred=C (64.8s, 1 calls)
+    [rag_simple/answer] 3553 chars
+[142/500] qa_nan_mbe_485                      FAIL   gold=A pred=C (47.0s, 1 calls)
+    [rag_simple/answer] 2917 chars
+[143/500] qa_nan_mbe_226                      PASS   gold=C pred=C (10.8s, 1 calls)
+    [rag_simple/answer] 2694 chars
+[144/500] qa_EVIDENCE_mbe_1186                PASS   gold=C pred=C (9.0s, 1 calls)
+    [rag_simple/answer] 2936 chars
+[145/500] qa_nan_mbe_963                      PASS   gold=D pred=D (24.2s, 1 calls)
+    [rag_simple/answer] 2798 chars
+[146/500] qa_nan_mbe_395                      PASS   gold=A pred=A (28.6s, 1 calls)
+    [rag_simple/answer] 2596 chars
+[147/500] qa_CRIM. LAW_mbe_1181               PASS   gold=C pred=C (71.7s, 1 calls)
+    [rag_simple/answer] 2021 chars
+[148/500] qa_REAL PROP._mbe_751               PASS   gold=C pred=C (2.9s, 1 calls)
+    [rag_simple/answer] 3137 chars
+[149/500] qa_REAL PROP._mbe_919               PASS   gold=A pred=A (12.4s, 1 calls)
+    [rag_simple/answer] 3112 chars
+[150/500] qa_CONST. LAW_mbe_1173              PASS   gold=A pred=A (7.4s, 1 calls)
+    [rag_simple/answer] 2480 chars
+[151/500] qa_nan_mbe_379                      PASS   gold=D pred=D (12.8s, 1 calls)
+    [rag_simple/answer] 2987 chars
+[152/500] qa_CONTRACTS_mbe_913                PASS   gold=D pred=D (21.2s, 1 calls)
+    [rag_simple/answer] 3007 chars
+[153/500] qa_TORTS_mbe_784                    PASS   gold=C pred=C (10.2s, 1 calls)
+    [rag_simple/answer] 2788 chars
+[154/500] qa_CONTRACTS_mbe_1177               PASS   gold=C pred=C (12.6s, 1 calls)
+    [rag_simple/answer] 2954 chars
+[155/500] qa_nan_mbe_981                      PASS   gold=C pred=C (18.9s, 1 calls)
+    [rag_simple/answer] 4218 chars
+[156/500] qa_nan_mbe_416                      FAIL   gold=B pred=D (12.6s, 1 calls)
+    [rag_simple/answer] 6218 chars
+[157/500] qa_nan_mbe_291                      FAIL   gold=D pred=B (17.9s, 1 calls)
+    [rag_simple/answer] 2064 chars
+[158/500] qa_nan_mbe_193                      PASS   gold=D pred=D (4.8s, 1 calls)
+    [rag_simple/answer] 2767 chars
+[159/500] qa_nan_mbe_209                      FAIL   gold=A pred=C (3.4s, 1 calls)
+    [rag_simple/answer] 3057 chars
+[160/500] qa_nan_mbe_516                      PASS   gold=D pred=D (14.2s, 1 calls)
+    [rag_simple/answer] 3224 chars
+[161/500] qa_REAL PROP._mbe_725               PASS   gold=C pred=C (11.2s, 1 calls)
+    [rag_simple/answer] 2297 chars
+[162/500] qa_nan_mbe_385                      PASS   gold=B pred=B (7.2s, 1 calls)
+    [rag_simple/answer] 2732 chars
+[163/500] qa_nan_mbe_268                      PASS   gold=A pred=A (8.1s, 1 calls)
+    [rag_simple/answer] 2943 chars
+[164/500] qa_CONTRACTS_mbe_749                PASS   gold=C pred=C (25.0s, 1 calls)
+    [rag_simple/answer] 2948 chars
+[165/500] qa_CRIM. LAW_mbe_620                FAIL   gold=C pred=B (12.9s, 1 calls)
+    [rag_simple/answer] 2492 chars
+[166/500] qa_nan_mbe_119                      PASS   gold=C pred=C (33.2s, 1 calls)
+    [rag_simple/answer] 2695 chars
+[167/500] qa_nan_mbe_537                      PASS   gold=A pred=A (13.5s, 1 calls)
+    [rag_simple/answer] 2494 chars
+[168/500] qa_EVIDENCE_mbe_1075                FAIL   gold=B pred=C (17.5s, 1 calls)
+    [rag_simple/answer] 3351 chars
+[169/500] qa_nan_mbe_35                       PASS   gold=B pred=B (4.1s, 1 calls)
+    [rag_simple/answer] 2082 chars
+[170/500] qa_CONST. LAW_mbe_730               PASS   gold=C pred=C (9.8s, 1 calls)
+    [rag_simple/answer] 2601 chars
+[171/500] qa_CONTRACTS_mbe_1077               PASS   gold=A pred=A (20.1s, 1 calls)
+    [rag_simple/answer] 2601 chars
+[172/500] qa_CONTRACTS_mbe_1015               PASS   gold=C pred=C (22.1s, 1 calls)
+    [rag_simple/answer] 2626 chars
+[173/500] qa_nan_mbe_241                      PASS   gold=C pred=C (8.0s, 1 calls)
+    [rag_simple/answer] 2746 chars
+[174/500] qa_nan_mbe_247                      PASS   gold=B pred=B (4.2s, 1 calls)
+    [rag_simple/answer] 2518 chars
+[175/500] qa_nan_mbe_433                      PASS   gold=D pred=D (35.2s, 1 calls)
+    [rag_simple/answer] 3001 chars
+[176/500] qa_nan_mbe_258                      FAIL   gold=A pred=D (13.7s, 1 calls)
+    [rag_simple/answer] 2461 chars
+[177/500] qa_EVIDENCE_mbe_920                 FAIL   gold=C pred=D (5.5s, 1 calls)
+    [rag_simple/answer] 3042 chars
+[178/500] qa_nan_mbe_110                      PASS   gold=B pred=B (57.6s, 1 calls)
+    [rag_simple/answer] 2894 chars
+[179/500] qa_CONST. LAW_mbe_758               PASS   gold=C pred=C (22.0s, 1 calls)
+    [rag_simple/answer] 3667 chars
+[180/500] qa_nan_mbe_260                      PASS   gold=C pred=C (19.8s, 1 calls)
+    [rag_simple/answer] 3965 chars
+[181/500] qa_nan_mbe_536                      PASS   gold=B pred=B (29.5s, 1 calls)
+    [rag_simple/answer] 2971 chars
+[182/500] qa_nan_mbe_156                      PASS   gold=C pred=C (40.9s, 1 calls)
+    [rag_simple/answer] 3059 chars
+[183/500] qa_CONTRACTS_mbe_811                PASS   gold=B pred=B (82.1s, 1 calls)
+    [rag_simple/answer] 5008 chars
+[184/500] qa_nan_mbe_365                      FAIL   gold=C pred=A (21.8s, 1 calls)
+    [rag_simple/answer] 3189 chars
+[185/500] qa_nan_mbe_300                      PASS   gold=D pred=D (20.0s, 1 calls)
+    [rag_simple/answer] 3159 chars
+[186/500] qa_CONST. LAW_mbe_613               PASS   gold=D pred=D (13.9s, 1 calls)
+    [rag_simple/answer] 3726 chars
+[187/500] qa_CONTRACTS_mbe_672                PASS   gold=B pred=B (19.3s, 1 calls)
+    [rag_simple/answer] 2866 chars
+[188/500] qa_nan_mbe_535                      PASS   gold=A pred=A (6.9s, 1 calls)
+    [rag_simple/answer] 2962 chars
+[189/500] qa_nan_mbe_68                       PASS   gold=B pred=B (24.8s, 1 calls)
+    [rag_simple/answer] 3762 chars
+[190/500] qa_nan_mbe_423                      FAIL   gold=D pred=C (73.0s, 1 calls)
+    [rag_simple/answer] 2144 chars
+[191/500] qa_EVIDENCE_mbe_645                 PASS   gold=D pred=D (17.1s, 1 calls)
+    [rag_simple/answer] 2896 chars
+[192/500] qa_nan_mbe_13                       PASS   gold=D pred=D (14.4s, 1 calls)
+    [rag_simple/answer] 3424 chars
+[193/500] qa_CRIM. LAW_mbe_941                FAIL   gold=D pred=B (22.3s, 1 calls)
+    [rag_simple/answer] 3273 chars
+[194/500] qa_nan_mbe_961                      PASS   gold=C pred=C (14.1s, 1 calls)
+    [rag_simple/answer] 2428 chars
+[195/500] qa_nan_mbe_551                      FAIL   gold=A pred=C (11.8s, 1 calls)
+    [rag_simple/answer] 4878 chars
+[196/500] qa_nan_mbe_74                       PASS   gold=B pred=B (59.4s, 1 calls)
+    [rag_simple/answer] 3156 chars
+[197/500] qa_nan_mbe_357                      PASS   gold=D pred=D (39.1s, 1 calls)
+    [rag_simple/answer] 3016 chars
+[198/500] qa_nan_mbe_310                      PASS   gold=D pred=D (81.0s, 1 calls)
+    [rag_simple/answer] 2785 chars
+[199/500] qa_nan_mbe_345                      PASS   gold=C pred=C (12.1s, 1 calls)
+    [rag_simple/answer] 2712 chars
+[200/500] qa_CONST. LAW_mbe_1179              FAIL   gold=B pred=C (46.2s, 1 calls)
+    [rag_simple/answer] 3239 chars
+[201/500] qa_CONTRACTS_mbe_882                PASS   gold=B pred=B (24.4s, 1 calls)
+    [rag_simple/answer] 2817 chars
+[202/500] qa_REAL PROP._mbe_830               PASS   gold=C pred=C (234.7s, 1 calls)
+    [rag_simple/answer] 2937 chars
+[203/500] qa_REAL PROP._mbe_1168              PASS   gold=B pred=B (10.4s, 1 calls)
+    [rag_simple/answer] 3194 chars
+[204/500] qa_CONST. LAW_mbe_849               PASS   gold=B pred=B (20.9s, 1 calls)
+    [rag_simple/answer] 2723 chars
+[205/500] qa_CONTRACTS_mbe_1149               PASS   gold=D pred=D (15.4s, 1 calls)
+    [rag_simple/answer] 2265 chars
+[206/500] qa_nan_mbe_990                      PASS   gold=D pred=D (6.1s, 1 calls)
+    [rag_simple/answer] 3053 chars
+[207/500] qa_TORTS_mbe_720                    FAIL   gold=D pred=C (16.1s, 1 calls)
+    [rag_simple/answer] 4569 chars
+[208/500] qa_CRIM. LAW_mbe_706                FAIL   gold=B pred=D (36.2s, 1 calls)
+    [rag_simple/answer] 2802 chars
+[209/500] qa_nan_mbe_969                      PASS   gold=D pred=D (7.5s, 1 calls)
+    [rag_simple/answer] 3154 chars
+[210/500] qa_nan_mbe_417                      PASS   gold=C pred=C (9.1s, 1 calls)
+    [rag_simple/answer] 2921 chars
+[211/500] qa_nan_mbe_367                      PASS   gold=B pred=B (22.6s, 1 calls)
+    [rag_simple/answer] 2673 chars
+[212/500] qa_nan_mbe_520                      PASS   gold=D pred=D (18.0s, 1 calls)
+    [rag_simple/answer] 3039 chars
+[213/500] qa_CONTRACTS_mbe_1136               PASS   gold=C pred=C (11.7s, 1 calls)
+    [rag_simple/answer] 10197 chars
+[214/500] qa_TORTS_mbe_1178                   PASS   gold=A pred=A (223.1s, 1 calls)
+    [rag_simple/answer] 2658 chars
+[215/500] qa_TORTS_mbe_873                    PASS   gold=C pred=C (5.3s, 1 calls)
+    [rag_simple/answer] 2574 chars
+[216/500] qa_nan_mbe_66                       FAIL   gold=D pred=B (6.4s, 1 calls)
+    [rag_simple/answer] 3597 chars
+[217/500] qa_nan_mbe_348                      FAIL   gold=C pred=B (7.6s, 1 calls)
+    [rag_simple/answer] 3347 chars
+[218/500] qa_REAL PROP._mbe_1116              FAIL   gold=B pred=D (10.8s, 1 calls)
+    [rag_simple/answer] 3105 chars
+[219/500] qa_TORTS_mbe_697                    PASS   gold=A pred=A (22.1s, 1 calls)
+    [rag_simple/answer] 2867 chars
+[220/500] qa_nan_mbe_518                      PASS   gold=D pred=D (15.7s, 1 calls)
+    [rag_simple/answer] 2870 chars
+[221/500] qa_nan_mbe_281                      PASS   gold=C pred=C (16.2s, 1 calls)
+    [rag_simple/answer] 2670 chars
+[222/500] qa_CRIM. LAW_mbe_1132               PASS   gold=C pred=C (9.9s, 1 calls)
+    [rag_simple/answer] 2840 chars
+[223/500] qa_REAL PROP._mbe_910               PASS   gold=B pred=B (6.6s, 1 calls)
+    [rag_simple/answer] 3310 chars
+[224/500] qa_nan_mbe_363                      PASS   gold=A pred=A (31.0s, 1 calls)
+    [rag_simple/answer] 2574 chars
+[225/500] qa_REAL PROP._mbe_902               PASS   gold=D pred=D (11.7s, 1 calls)
+    [rag_simple/answer] 2618 chars
+[226/500] qa_EVIDENCE_mbe_658                 PASS   gold=B pred=B (25.6s, 1 calls)
+    [rag_simple/answer] 2433 chars
+[227/500] qa_nan_mbe_101                      PASS   gold=B pred=B (6.9s, 1 calls)
+    [rag_simple/answer] 3520 chars
+[228/500] qa_TORTS_mbe_680                    FAIL   gold=A pred=B (5.5s, 1 calls)
+    [rag_simple/answer] 3447 chars
+[229/500] qa_CRIM. LAW_mbe_875                PASS   gold=A pred=A (8.5s, 1 calls)
+    [rag_simple/answer] 2786 chars
+[230/500] qa_nan_mbe_388                      FAIL   gold=B pred=D (48.3s, 1 calls)
+    [rag_simple/answer] 2786 chars
+[231/500] qa_nan_mbe_164                      PASS   gold=A pred=A (51.9s, 1 calls)
+    [rag_simple/answer] 3466 chars
+[232/500] qa_CRIM. LAW_mbe_1131               PASS   gold=A pred=A (4.2s, 1 calls)
+    [rag_simple/answer] 2398 chars
+[233/500] qa_nan_mbe_472                      PASS   gold=D pred=D (111.3s, 1 calls)
+    [rag_simple/answer] 2486 chars
+[234/500] qa_nan_mbe_313                      PASS   gold=D pred=D (7.0s, 1 calls)
+    [rag_simple/answer] 2789 chars
+[235/500] qa_nan_mbe_478                      PASS   gold=C pred=C (7.9s, 1 calls)
+    [rag_simple/answer] 2885 chars
+[236/500] qa_CRIM. LAW_mbe_664                FAIL   gold=C pred=D (8.8s, 1 calls)
+    [rag_simple/answer] 3306 chars
+[237/500] qa_CONTRACTS_mbe_679                PASS   gold=A pred=A (23.0s, 1 calls)
+    [rag_simple/answer] 3081 chars
+[238/500] qa_nan_mbe_331                      FAIL   gold=C pred=B (20.9s, 1 calls)
+    [rag_simple/answer] 2304 chars
+[239/500] qa_EVIDENCE_mbe_1104                PASS   gold=D pred=D (67.7s, 1 calls)
+    [rag_simple/answer] 2733 chars
+[240/500] qa_CONST. LAW_mbe_1355              PASS   gold=D pred=D (83.4s, 1 calls)
+    [rag_simple/answer] 2898 chars
+[241/500] qa_CONST. LAW_mbe_687               PASS   gold=A pred=A (7.1s, 1 calls)
+    [rag_simple/answer] 4964 chars
+[242/500] qa_nan_mbe_94                       FAIL   gold=D pred=A (28.9s, 1 calls)
+    [rag_simple/answer] 2727 chars
+[243/500] qa_CRIM. LAW_mbe_1017               FAIL   gold=B pred=D (80.6s, 1 calls)
+    [rag_simple/answer] 2937 chars
+[244/500] qa_nan_mbe_173                      PASS   gold=B pred=B (108.6s, 1 calls)
+    [rag_simple/answer] 3332 chars
+[245/500] qa_REAL PROP._mbe_1028              PASS   gold=A pred=A (10.4s, 1 calls)
+    [rag_simple/answer] 3137 chars
+[246/500] qa_EVIDENCE_mbe_853                 PASS   gold=A pred=A (15.1s, 1 calls)
+    [rag_simple/answer] 2233 chars
+[247/500] qa_REAL PROP._mbe_1161              PASS   gold=A pred=A (17.0s, 1 calls)
+    [rag_simple/answer] 2404 chars
+[248/500] qa_nan_mbe_78                       PASS   gold=B pred=B (69.4s, 1 calls)
+    [rag_simple/answer] 3121 chars
+[249/500] qa_nan_mbe_176                      FAIL   gold=A pred=C (72.8s, 1 calls)
+    [rag_simple/answer] 3541 chars
+[250/500] qa_CONST. LAW_mbe_1083              PASS   gold=A pred=A (19.0s, 1 calls)
+    [rag_simple/answer] 2622 chars
+[251/500] qa_nan_mbe_475                      PASS   gold=C pred=C (7.4s, 1 calls)
+    [rag_simple/answer] 2812 chars
+[252/500] qa_nan_mbe_453                      PASS   gold=B pred=B (10.3s, 1 calls)
+    [rag_simple/answer] 2687 chars
+[253/500] qa_nan_mbe_174                      FAIL   gold=B pred=C (7.5s, 1 calls)
+    [rag_simple/answer] 2674 chars
+[254/500] qa_nan_mbe_541                      FAIL   gold=C pred=D (19.0s, 1 calls)
+    [rag_simple/answer] 2404 chars
+[255/500] qa_CRIM. LAW_mbe_1061               PASS   gold=C pred=C (6.0s, 1 calls)
+    [rag_simple/answer] 2839 chars
+[256/500] qa_nan_mbe_274                      PASS   gold=C pred=C (8.7s, 1 calls)
+    [rag_simple/answer] 2212 chars
+[257/500] qa_nan_mbe_387                      PASS   gold=C pred=C (3.6s, 1 calls)
+    [rag_simple/answer] 3373 chars
+[258/500] qa_nan_mbe_330                      PASS   gold=C pred=C (6.1s, 1 calls)
+    [rag_simple/answer] 3131 chars
+[259/500] qa_EVIDENCE_mbe_558                 PASS   gold=B pred=B (108.6s, 1 calls)
+    [rag_simple/answer] 2841 chars
+[260/500] qa_REAL PROP._mbe_1174              PASS   gold=C pred=C (9.1s, 1 calls)
+    [rag_simple/answer] 2696 chars
+[261/500] qa_nan_mbe_92                       PASS   gold=B pred=B (7.9s, 1 calls)
+    [rag_simple/answer] 4200 chars
+[262/500] qa_CRIM. LAW_mbe_1085               FAIL   gold=D pred=B (28.3s, 1 calls)
+    [rag_simple/answer] 2941 chars
+[263/500] qa_CRIM. LAW_mbe_776                PASS   gold=C pred=C (7.1s, 1 calls)
+    [rag_simple/answer] 3240 chars
+[264/500] qa_REAL PROP._mbe_855               FAIL   gold=D pred=B (15.2s, 1 calls)
+    [rag_simple/answer] 2602 chars
+[265/500] qa_EVIDENCE_mbe_947                 FAIL   gold=B pred=C (13.5s, 1 calls)
+    [rag_simple/answer] 3021 chars
+[266/500] qa_TORTS_mbe_581                    PASS   gold=B pred=B (5.1s, 1 calls)
+    [rag_simple/answer] 2574 chars
+[267/500] qa_TORTS_mbe_1012                   PASS   gold=D pred=D (7.7s, 1 calls)
+    [rag_simple/answer] 2638 chars
+[268/500] qa_nan_mbe_360                      PASS   gold=D pred=D (42.7s, 1 calls)
+    [rag_simple/answer] 2422 chars
+[269/500] qa_CONTRACTS_mbe_714                PASS   gold=B pred=B (32.0s, 1 calls)
+    [rag_simple/answer] 2615 chars
+[270/500] qa_CRIM. LAW_mbe_829                PASS   gold=B pred=B (31.8s, 1 calls)
+    [rag_simple/answer] 3304 chars
+[271/500] qa_CONST. LAW_mbe_931               PASS   gold=B pred=B (8.7s, 1 calls)
+    [rag_simple/answer] 2679 chars
+[272/500] qa_CONTRACTS_mbe_801                PASS   gold=C pred=C (15.0s, 1 calls)
+    [rag_simple/answer] 2893 chars
+[273/500] qa_CONST. LAW_mbe_1058              FAIL   gold=C pred=A (4.9s, 1 calls)
+    [rag_simple/answer] 2689 chars
+[274/500] qa_REAL PROP._mbe_593               PASS   gold=A pred=A (8.3s, 1 calls)
+    [rag_simple/answer] 9764 chars
+[275/500] qa_nan_mbe_43                       FAIL   gold=B pred=A (13.1s, 1 calls)
+    [rag_simple/answer] 2258 chars
+[276/500] qa_nan_mbe_34                       PASS   gold=D pred=D (7.5s, 1 calls)
+    [rag_simple/answer] 2914 chars
+[277/500] qa_nan_mbe_303                      PASS   gold=C pred=C (18.5s, 1 calls)
+    [rag_simple/answer] 3281 chars
+[278/500] qa_CONST. LAW_mbe_973               PASS   gold=B pred=B (22.0s, 1 calls)
+    [rag_simple/answer] 2602 chars
+[279/500] qa_nan_mbe_171                      PASS   gold=C pred=C (21.0s, 1 calls)
+    [rag_simple/answer] 2788 chars
+[280/500] qa_nan_mbe_131                      PASS   gold=D pred=D (21.1s, 1 calls)
+    [rag_simple/answer] 3508 chars
+[281/500] qa_nan_mbe_501                      PASS   gold=B pred=B (81.7s, 1 calls)
+    [rag_simple/answer] 2979 chars
+[282/500] qa_nan_mbe_3                        FAIL   gold=B pred=A (3.7s, 1 calls)
+    [rag_simple/answer] 3379 chars
+[283/500] qa_TORTS_mbe_825                    PASS   gold=B pred=B (6.8s, 1 calls)
+    [rag_simple/answer] 3007 chars
+[284/500] qa_EVIDENCE_mbe_757                 PASS   gold=A pred=A (60.1s, 1 calls)
+    [rag_simple/answer] 2716 chars
+[285/500] qa_nan_mbe_93                       PASS   gold=A pred=A (4.1s, 1 calls)
+    [rag_simple/answer] 3995 chars
+[286/500] qa_nan_mbe_479                      PASS   gold=A pred=A (23.4s, 1 calls)
+    [rag_simple/answer] 2949 chars
+[287/500] qa_CONST. LAW_mbe_1029              PASS   gold=C pred=C (8.3s, 1 calls)
+    [rag_simple/answer] 2214 chars
+[288/500] qa_CONST. LAW_mbe_665               PASS   gold=C pred=C (5.7s, 1 calls)
+    [rag_simple/answer] 2649 chars
+[289/500] qa_nan_mbe_548                      PASS   gold=A pred=A (8.6s, 1 calls)
+    [rag_simple/answer] 2724 chars
+[290/500] qa_nan_mbe_455                      PASS   gold=A pred=A (31.8s, 1 calls)
+    [rag_simple/answer] 2859 chars
+[291/500] qa_nan_mbe_435                      PASS   gold=C pred=C (12.9s, 1 calls)
+    [rag_simple/answer] 3322 chars
+[292/500] qa_CRIM. LAW_mbe_636                PASS   gold=A pred=A (8.0s, 1 calls)
+    [rag_simple/answer] 2426 chars
+[293/500] qa_nan_mbe_124                      PASS   gold=A pred=A (14.0s, 1 calls)
+    [rag_simple/answer] 2953 chars
+[294/500] qa_nan_mbe_223                      PASS   gold=D pred=D (18.3s, 1 calls)
+    [rag_simple/answer] 2982 chars
+[295/500] qa_CONTRACTS_mbe_789                FAIL   gold=B pred=C (29.4s, 1 calls)
+    [rag_simple/answer] 2614 chars
+[296/500] qa_CRIM. LAW_mbe_646                PASS   gold=A pred=A (18.2s, 1 calls)
+    [rag_simple/answer] 2885 chars
+[297/500] qa_TORTS_mbe_1016                   PASS   gold=A pred=A (46.4s, 1 calls)
+    [rag_simple/answer] 3060 chars
+[298/500] qa_nan_mbe_970                      PASS   gold=A pred=A (21.3s, 1 calls)
+    [rag_simple/answer] 2977 chars
+[299/500] qa_CONTRACTS_mbe_594                FAIL   gold=B pred=C (9.8s, 1 calls)
+    [rag_simple/answer] 2635 chars
+[300/500] qa_TORTS_mbe_1036                   PASS   gold=A pred=A (6.1s, 1 calls)
+    [rag_simple/answer] 2211 chars
+[301/500] qa_nan_mbe_277                      PASS   gold=A pred=A (5.1s, 1 calls)
+    [rag_simple/answer] 3009 chars
+[302/500] qa_nan_mbe_418                      PASS   gold=A pred=A (9.4s, 1 calls)
+    [rag_simple/answer] 2438 chars
+[303/500] qa_CRIM. LAW_mbe_928                PASS   gold=A pred=A (8.1s, 1 calls)
+    [rag_simple/answer] 2905 chars
+[304/500] qa_CRIM. LAW_mbe_1042               PASS   gold=C pred=C (8.7s, 1 calls)
+    [rag_simple/answer] 2706 chars
+[305/500] qa_TORTS_mbe_905                    PASS   gold=C pred=C (7.4s, 1 calls)
+    [rag_simple/answer] 3545 chars
+[306/500] qa_nan_mbe_82                       FAIL   gold=A pred=D (14.8s, 1 calls)
+    [rag_simple/answer] 4790 chars
+[307/500] qa_nan_mbe_83                       FAIL   gold=C pred=A (95.1s, 1 calls)
+    [rag_simple/answer] 3667 chars
+[308/500] qa_nan_mbe_421                      FAIL   gold=B pred=D (10.9s, 1 calls)
+    [rag_simple/answer] 2553 chars
+[309/500] qa_nan_mbe_261                      PASS   gold=D pred=D (6.2s, 1 calls)
+    [rag_simple/answer] 2467 chars
+[310/500] qa_nan_mbe_15                       PASS   gold=D pred=D (8.3s, 1 calls)
+    [rag_simple/answer] 2933 chars
+[311/500] qa_EVIDENCE_mbe_609                 PASS   gold=A pred=A (59.0s, 1 calls)
+    [rag_simple/answer] 2715 chars
+[312/500] qa_CONTRACTS_mbe_889                PASS   gold=B pred=B (62.9s, 1 calls)
+    [rag_simple/answer] 3077 chars
+[313/500] qa_nan_mbe_370                      PASS   gold=B pred=B (10.1s, 1 calls)
+    [rag_simple/answer] 2959 chars
+[314/500] qa_CONTRACTS_mbe_721                PASS   gold=A pred=A (8.7s, 1 calls)
+    [rag_simple/answer] 4908 chars
+[315/500] qa_nan_mbe_47                       FAIL   gold=A pred=C (18.8s, 1 calls)
+    [rag_simple/answer] 2545 chars
+[316/500] qa_TORTS_mbe_1114                   PASS   gold=C pred=C (8.9s, 1 calls)
+    [rag_simple/answer] 2915 chars
+[317/500] qa_nan_mbe_522                      PASS   gold=C pred=C (11.3s, 1 calls)
+    [rag_simple/answer] 2903 chars
+[318/500] qa_CONTRACTS_mbe_597                PASS   gold=B pred=B (8.9s, 1 calls)
+    [rag_simple/answer] 2510 chars
+[319/500] qa_CONST. LAW_mbe_612               PASS   gold=B pred=B (19.6s, 1 calls)
+    [rag_simple/answer] 2872 chars
+[320/500] qa_nan_mbe_544                      PASS   gold=B pred=B (11.0s, 1 calls)
+    [rag_simple/answer] 3978 chars
+[321/500] qa_TORTS_mbe_851                    PASS   gold=A pred=A (13.9s, 1 calls)
+    [rag_simple/answer] 2644 chars
+[322/500] qa_nan_mbe_122                      PASS   gold=B pred=B (6.4s, 1 calls)
+    [rag_simple/answer] 2916 chars
+[323/500] qa_nan_mbe_372                      PASS   gold=C pred=C (3.5s, 1 calls)
+    [rag_simple/answer] 2882 chars
+[324/500] qa_CONST. LAW_mbe_1158              FAIL   gold=B pred=D (9.1s, 1 calls)
+    [rag_simple/answer] 3148 chars
+[325/500] qa_nan_mbe_547                      PASS   gold=A pred=A (8.9s, 1 calls)
+    [rag_simple/answer] 3094 chars
+[326/500] qa_nan_mbe_344                      PASS   gold=A pred=A (19.5s, 1 calls)
+    [rag_simple/answer] 2390 chars
+[327/500] qa_nan_mbe_449                      PASS   gold=C pred=C (11.9s, 1 calls)
+    [rag_simple/answer] 2445 chars
+[328/500] qa_nan_mbe_297                      PASS   gold=D pred=D (7.7s, 1 calls)
+    [rag_simple/answer] 3123 chars
+[329/500] qa_nan_mbe_137                      PASS   gold=C pred=C (14.8s, 1 calls)
+    [rag_simple/answer] 2636 chars
+[330/500] qa_nan_mbe_2                        FAIL   gold=C pred=A (10.0s, 1 calls)
+    [rag_simple/answer] 4131 chars
+[331/500] qa_nan_mbe_9                        PASS   gold=B pred=B (15.3s, 1 calls)
+    [rag_simple/answer] 2713 chars
+[332/500] qa_nan_mbe_392                      PASS   gold=B pred=B (15.0s, 1 calls)
+    [rag_simple/answer] 2662 chars
+[333/500] qa_REAL PROP._mbe_642               PASS   gold=D pred=D (72.9s, 1 calls)
+    [rag_simple/answer] 2835 chars
+[334/500] qa_CONTRACTS_mbe_1150               PASS   gold=D pred=D (9.5s, 1 calls)
+    [rag_simple/answer] 4476 chars
+[335/500] qa_REAL PROP._mbe_586               FAIL   gold=B pred=D (35.2s, 1 calls)
+    [rag_simple/answer] 3025 chars
+[336/500] qa_nan_mbe_265                      PASS   gold=A pred=A (10.4s, 1 calls)
+    [rag_simple/answer] 3540 chars
+[337/500] qa_nan_mbe_459                      PASS   gold=D pred=D (39.0s, 1 calls)
+    [rag_simple/answer] 6525 chars
+[338/500] qa_nan_mbe_31                       FAIL   gold=B pred=D (21.5s, 1 calls)
+    [rag_simple/answer] 3936 chars
+[339/500] qa_CRIM. LAW_mbe_727                PASS   gold=D pred=D (10.2s, 1 calls)
+    [rag_simple/answer] 2807 chars
+[340/500] qa_nan_mbe_497                      FAIL   gold=B pred=D (20.2s, 1 calls)
+    [rag_simple/answer] 2783 chars
+[341/500] qa_CONST. LAW_mbe_832               PASS   gold=C pred=C (3.5s, 1 calls)
+    [rag_simple/answer] 2530 chars
+[342/500] qa_CRIM. LAW_mbe_850                PASS   gold=D pred=D (8.2s, 1 calls)
+    [rag_simple/answer] 2667 chars
+[343/500] qa_CONTRACTS_mbe_1165               PASS   gold=B pred=B (6.3s, 1 calls)
+    [rag_simple/answer] 2825 chars
+[344/500] qa_CONTRACTS_mbe_745                PASS   gold=B pred=B (17.2s, 1 calls)
+    [rag_simple/answer] 3035 chars
+[345/500] qa_REAL PROP._mbe_926               PASS   gold=B pred=B (14.1s, 1 calls)
+    [rag_simple/answer] 3184 chars
+[346/500] qa_CONST. LAW_mbe_668               FAIL   gold=D pred=B (13.5s, 1 calls)
+    [rag_simple/answer] 2547 chars
+[347/500] qa_CONST. LAW_mbe_1134              FAIL   gold=A pred=C (3.7s, 1 calls)
+    [rag_simple/answer] 3374 chars
+[348/500] qa_nan_mbe_517                      FAIL   gold=B pred=C (12.1s, 1 calls)
+    [rag_simple/answer] 2889 chars
+[349/500] qa_nan_mbe_320                      PASS   gold=B pred=B (10.7s, 1 calls)
+    [rag_simple/answer] 2954 chars
+[350/500] qa_nan_mbe_362                      FAIL   gold=D pred=A (7.2s, 1 calls)
+    [rag_simple/answer] 2229 chars
+[351/500] qa_nan_mbe_28                       PASS   gold=D pred=D (19.7s, 1 calls)
+    [rag_simple/answer] 2675 chars
+[352/500] qa_nan_mbe_426                      FAIL   gold=A pred=D (10.5s, 1 calls)
+    [rag_simple/answer] 2695 chars
+[353/500] qa_EVIDENCE_mbe_1059                PASS   gold=C pred=C (83.3s, 1 calls)
+    [rag_simple/answer] 3610 chars
+[354/500] qa_nan_mbe_56                       PASS   gold=A pred=A (11.1s, 1 calls)
+    [rag_simple/answer] 2599 chars
+[355/500] qa_nan_mbe_399                      PASS   gold=D pred=D (81.2s, 1 calls)
+    [rag_simple/answer] 2880 chars
+[356/500] qa_nan_mbe_133                      PASS   gold=A pred=A (15.3s, 1 calls)
+    [rag_simple/answer] 2752 chars
+[357/500] qa_REAL PROP._mbe_1005              PASS   gold=D pred=D (87.9s, 1 calls)
+    [rag_simple/answer] 3160 chars
+[358/500] qa_nan_mbe_64                       PASS   gold=C pred=C (5.6s, 1 calls)
+    [rag_simple/answer] 3067 chars
+[359/500] qa_TORTS_mbe_654                    PASS   gold=D pred=D (15.3s, 1 calls)
+    [rag_simple/answer] 2741 chars
+[360/500] qa_nan_mbe_263                      PASS   gold=D pred=D (4.9s, 1 calls)
+    [rag_simple/answer] 5198 chars
+[361/500] qa_nan_mbe_152                      FAIL   gold=B pred=A (16.8s, 1 calls)
+    [rag_simple/answer] 2990 chars
+[362/500] qa_CONST. LAW_mbe_703               FAIL   gold=C pred=D (9.2s, 1 calls)
+    [rag_simple/answer] 3497 chars
+[363/500] qa_CRIM. LAW_mbe_1054               FAIL   gold=A pred=B (11.3s, 1 calls)
+    [rag_simple/answer] 3071 chars
+[364/500] qa_nan_mbe_279                      FAIL   gold=D pred=A (111.8s, 1 calls)
+    [rag_simple/answer] 2690 chars
+[365/500] qa_nan_mbe_88                       PASS   gold=C pred=C (4.7s, 1 calls)
+    [rag_simple/answer] 2692 chars
+[366/500] qa_nan_mbe_971                      PASS   gold=D pred=D (11.4s, 1 calls)
+    [rag_simple/answer] 3137 chars
+[367/500] qa_CONTRACTS_mbe_723                PASS   gold=C pred=C (9.3s, 1 calls)
+    [rag_simple/answer] 2897 chars
+[368/500] qa_nan_mbe_483                      PASS   gold=D pred=D (6.0s, 1 calls)
+    [rag_simple/answer] 2799 chars
+[369/500] qa_EVIDENCE_mbe_867                 PASS   gold=C pred=C (94.6s, 1 calls)
+    [rag_simple/answer] 3076 chars
+[370/500] qa_CONTRACTS_mbe_1169               PASS   gold=C pred=C (13.5s, 1 calls)
+    [rag_simple/answer] 2581 chars
+[371/500] qa_nan_mbe_987                      PASS   gold=B pred=B (113.4s, 1 calls)
+    [rag_simple/answer] 2772 chars
+[372/500] qa_EVIDENCE_mbe_690                 FAIL   gold=B pred=D (12.5s, 1 calls)
+    [rag_simple/answer] 2185 chars
+[373/500] qa_REAL PROP._mbe_702               PASS   gold=B pred=B (20.0s, 1 calls)
+    [rag_simple/answer] 2563 chars
+[374/500] qa_nan_mbe_529                      PASS   gold=D pred=D (95.3s, 1 calls)
+    [rag_simple/answer] 3829 chars
+[375/500] qa_TORTS_mbe_603                    PASS   gold=D pred=D (14.8s, 1 calls)
+    [rag_simple/answer] 3239 chars
+[376/500] qa_TORTS_mbe_1133                   PASS   gold=C pred=C (6.4s, 1 calls)
+    [rag_simple/answer] 2444 chars
+[377/500] qa_TORTS_mbe_1164                   PASS   gold=C pred=C (58.4s, 1 calls)
+    [rag_simple/answer] 3555 chars
+[378/500] qa_nan_mbe_397                      PASS   gold=D pred=D (10.5s, 1 calls)
+    [rag_simple/answer] 2160 chars
+[379/500] qa_CONTRACTS_mbe_780                PASS   gold=B pred=B (11.4s, 1 calls)
+    [rag_simple/answer] 7216 chars
+[380/500] qa_nan_mbe_484                      FAIL   gold=C pred=D (33.3s, 1 calls)
+    [rag_simple/answer] 2854 chars
+[381/500] qa_TORTS_mbe_1027                   PASS   gold=C pred=C (78.5s, 1 calls)
+    [rag_simple/answer] 1786 chars
+[382/500] qa_CONTRACTS_mbe_864                FAIL   gold=D pred=None (113.4s, 1 calls)
+    [rag_simple/answer] 3089 chars
+[383/500] qa_nan_mbe_531                      PASS   gold=C pred=C (10.8s, 1 calls)
+    [rag_simple/answer] 3340 chars
+[384/500] qa_REAL PROP._mbe_683               FAIL   gold=A pred=B (12.2s, 1 calls)
+    [rag_simple/answer] 3305 chars
+[385/500] qa_nan_mbe_75                       FAIL   gold=B pred=C (85.4s, 1 calls)
+    [rag_simple/answer] 4890 chars
+[386/500] qa_EVIDENCE_mbe_914                 FAIL   gold=A pred=B (10.8s, 1 calls)
+    [rag_simple/answer] 2723 chars
+[387/500] qa_nan_mbe_114                      PASS   gold=C pred=C (4.2s, 1 calls)
+    [rag_simple/answer] 2675 chars
+[388/500] qa_TORTS_mbe_1084                   PASS   gold=C pred=C (11.6s, 1 calls)
+    [rag_simple/answer] 2352 chars
+[389/500] qa_nan_mbe_493                      PASS   gold=D pred=D (7.9s, 1 calls)
+    [rag_simple/answer] 2995 chars
+[390/500] qa_nan_mbe_442                      PASS   gold=A pred=A (22.2s, 1 calls)
+    [rag_simple/answer] 5206 chars
+[391/500] qa_CRIM. LAW_mbe_1176               PASS   gold=D pred=D (18.2s, 1 calls)
+    [rag_simple/answer] 3361 chars
+[392/500] qa_nan_mbe_351                      PASS   gold=C pred=C (11.9s, 1 calls)
+    [rag_simple/answer] 2858 chars
+[393/500] qa_nan_mbe_333                      PASS   gold=B pred=B (100.3s, 1 calls)
+    [rag_simple/answer] 3568 chars
+[394/500] qa_nan_mbe_337                      PASS   gold=B pred=B (36.6s, 1 calls)
+    [rag_simple/answer] 4235 chars
+[395/500] qa_nan_mbe_450                      FAIL   gold=D pred=B (16.1s, 1 calls)
+    [rag_simple/answer] 2643 chars
+[396/500] qa_nan_mbe_527                      PASS   gold=B pred=B (11.2s, 1 calls)
+    [rag_simple/answer] 3016 chars
+[397/500] qa_CONST. LAW_mbe_684               PASS   gold=C pred=C (10.0s, 1 calls)
+    [rag_simple/answer] 2880 chars
+[398/500] qa_REAL PROP._mbe_659               PASS   gold=D pred=D (5.1s, 1 calls)
+    [rag_simple/answer] 3195 chars
+[399/500] qa_TORTS_mbe_911                    PASS   gold=B pred=B (19.6s, 1 calls)
+    [rag_simple/answer] 2865 chars
+[400/500] qa_CONST. LAW_mbe_917               PASS   gold=C pred=C (5.2s, 1 calls)
+    [rag_simple/answer] 2997 chars
+[401/500] qa_nan_mbe_222                      PASS   gold=C pred=C (4.5s, 1 calls)
+    [rag_simple/answer] 2245 chars
+[402/500] qa_nan_mbe_975                      PASS   gold=C pred=C (7.8s, 1 calls)
+    [rag_simple/answer] 2792 chars
+[403/500] qa_nan_mbe_538                      PASS   gold=D pred=D (13.2s, 1 calls)
+    [rag_simple/answer] 2978 chars
+[404/500] qa_nan_mbe_139                      PASS   gold=B pred=B (13.0s, 1 calls)
+    [rag_simple/answer] 2859 chars
+[405/500] qa_nan_mbe_462                      PASS   gold=D pred=D (7.6s, 1 calls)
+    [rag_simple/answer] 2717 chars
+[406/500] qa_nan_mbe_299                      PASS   gold=B pred=B (10.9s, 1 calls)
+    [rag_simple/answer] 2917 chars
+[407/500] qa_nan_mbe_964                      FAIL   gold=B pred=D (110.2s, 1 calls)
+    [rag_simple/answer] 3022 chars
+[408/500] qa_CONST. LAW_mbe_1090              PASS   gold=C pred=C (13.6s, 1 calls)
+    [rag_simple/answer] 2805 chars
+[409/500] qa_CONST. LAW_mbe_746               PASS   gold=C pred=C (82.7s, 1 calls)
+    [rag_simple/answer] 3366 chars
+[410/500] qa_REAL PROP._mbe_600               PASS   gold=A pred=A (106.2s, 1 calls)
+    [rag_simple/answer] 3266 chars
+[411/500] qa_EVIDENCE_mbe_685                 PASS   gold=B pred=B (21.7s, 1 calls)
+    [rag_simple/answer] 3073 chars
+[412/500] qa_nan_mbe_325                      FAIL   gold=C pred=A (117.8s, 1 calls)
+    [rag_simple/answer] 3112 chars
+[413/500] qa_CONTRACTS_mbe_1068               PASS   gold=D pred=D (124.6s, 1 calls)
+    [rag_simple/answer] 2800 chars
+[414/500] qa_EVIDENCE_mbe_819                 FAIL   gold=A pred=B (86.7s, 1 calls)
+    [rag_simple/answer] 4290 chars
+[415/500] qa_nan_mbe_429                      PASS   gold=C pred=C (17.3s, 1 calls)
+    [rag_simple/answer] 2359 chars
+[416/500] qa_TORTS_mbe_856                    PASS   gold=D pred=D (4.5s, 1 calls)
+    [rag_simple/answer] 3044 chars
+[417/500] qa_CRIM. LAW_mbe_858                PASS   gold=D pred=D (10.8s, 1 calls)
+    [rag_simple/answer] 2913 chars
+[418/500] qa_TORTS_mbe_739                    PASS   gold=C pred=C (8.2s, 1 calls)
+    [rag_simple/answer] 2277 chars
+[419/500] qa_nan_mbe_224                      PASS   gold=B pred=B (207.6s, 1 calls)
+    [rag_simple/answer] 2292 chars
+[420/500] qa_nan_mbe_172                      PASS   gold=A pred=A (6.8s, 1 calls)
+    [rag_simple/answer] 4182 chars
+[421/500] qa_REAL PROP._mbe_740               PASS   gold=A pred=A (12.8s, 1 calls)
+    [rag_simple/answer] 1906 chars
+[422/500] qa_REAL PROP._mbe_895               PASS   gold=B pred=B (13.5s, 1 calls)
+    [rag_simple/answer] 2973 chars
+[423/500] qa_REAL PROP._mbe_674               FAIL   gold=B pred=C (26.1s, 1 calls)
+    [rag_simple/answer] 3140 chars
+[424/500] qa_nan_mbe_98                       PASS   gold=D pred=D (8.8s, 1 calls)
+    [rag_simple/answer] 3146 chars
+[425/500] qa_TORTS_mbe_915                    PASS   gold=B pred=B (23.6s, 1 calls)
+    [rag_simple/answer] 2251 chars
+[426/500] qa_REAL PROP._mbe_1079              PASS   gold=A pred=A (11.0s, 1 calls)
+    [rag_simple/answer] 3014 chars
+[427/500] qa_nan_mbe_960                      PASS   gold=D pred=D (22.3s, 1 calls)
+    [rag_simple/answer] 4722 chars
+[428/500] qa_nan_mbe_33                       PASS   gold=B pred=B (26.9s, 1 calls)
+    [rag_simple/answer] 2688 chars
+[429/500] qa_nan_mbe_542                      PASS   gold=D pred=D (9.6s, 1 calls)
+    [rag_simple/answer] 2854 chars
+[430/500] qa_nan_mbe_204                      PASS   gold=B pred=B (18.1s, 1 calls)
+    [rag_simple/answer] 5255 chars
+[431/500] qa_nan_mbe_311                      FAIL   gold=B pred=C (17.1s, 1 calls)
+    [rag_simple/answer] 3310 chars
+[432/500] qa_nan_mbe_386                      FAIL   gold=D pred=A (14.3s, 1 calls)
+    [rag_simple/answer] 2303 chars
+[433/500] qa_nan_mbe_437                      PASS   gold=D pred=D (19.9s, 1 calls)
+    [rag_simple/answer] 4324 chars
+[434/500] qa_nan_mbe_424                      PASS   gold=A pred=A (25.9s, 1 calls)
+    [rag_simple/answer] 1718 chars
+[435/500] qa_nan_mbe_356                      PASS   gold=D pred=D (13.5s, 1 calls)
+    [rag_simple/answer] 2548 chars
+[436/500] qa_nan_mbe_408                      PASS   gold=C pred=C (11.4s, 1 calls)
+    [rag_simple/answer] 2769 chars
+[437/500] qa_nan_mbe_120                      PASS   gold=A pred=A (10.1s, 1 calls)
+    [rag_simple/answer] 2801 chars
+[438/500] qa_nan_mbe_389                      PASS   gold=C pred=C (9.5s, 1 calls)
+    [rag_simple/answer] 2980 chars
+[439/500] qa_CONST. LAW_mbe_798               PASS   gold=C pred=C (136.0s, 1 calls)
+    [rag_simple/answer] 2711 chars
+[440/500] qa_CONST. LAW_mbe_1153              PASS   gold=C pred=C (20.9s, 1 calls)
+    [rag_simple/answer] 3610 chars
+[441/500] qa_CRIM. LAW_mbe_756                PASS   gold=A pred=A (80.1s, 1 calls)
+    [rag_simple/answer] 3616 chars
+[442/500] qa_CONTRACTS_mbe_863                PASS   gold=D pred=D (10.4s, 1 calls)
+    [rag_simple/answer] 2726 chars
+[443/500] qa_REAL PROP._mbe_772               PASS   gold=D pred=D (11.9s, 1 calls)
+    [rag_simple/answer] 5905 chars
+[444/500] qa_EVIDENCE_mbe_1008                PASS   gold=A pred=A (23.9s, 1 calls)
+    [rag_simple/answer] 2676 chars
+[445/500] qa_nan_mbe_977                      PASS   gold=B pred=B (8.7s, 1 calls)
+    [rag_simple/answer] 2307 chars
+[446/500] qa_nan_mbe_962                      PASS   gold=C pred=C (11.7s, 1 calls)
+    [rag_simple/answer] 2910 chars
+[447/500] qa_nan_mbe_80                       PASS   gold=B pred=B (7.6s, 1 calls)
+    [rag_simple/answer] 2935 chars
+[448/500] qa_TORTS_mbe_802                    PASS   gold=A pred=A (12.1s, 1 calls)
+    [rag_simple/answer] 2499 chars
+[449/500] qa_EVIDENCE_mbe_939                 PASS   gold=A pred=A (8.6s, 1 calls)
+    [rag_simple/answer] 4234 chars
+[450/500] qa_nan_mbe_968                      PASS   gold=A pred=A (18.6s, 1 calls)
+    [rag_simple/answer] 2926 chars
+[451/500] qa_nan_mbe_46                       PASS   gold=C pred=C (13.0s, 1 calls)
+    [rag_simple/answer] 2997 chars
+[452/500] qa_nan_mbe_151                      PASS   gold=D pred=D (13.3s, 1 calls)
+    [rag_simple/answer] 2488 chars
+[453/500] qa_nan_mbe_375                      PASS   gold=D pred=D (9.7s, 1 calls)
+    [rag_simple/answer] 1945 chars
+[454/500] qa_nan_mbe_318                      PASS   gold=A pred=A (10.7s, 1 calls)
+    [rag_simple/answer] 2404 chars
+[455/500] qa_CONTRACTS_mbe_692                FAIL   gold=D pred=A (6.8s, 1 calls)
+    [rag_simple/answer] 3412 chars
+[456/500] qa_TORTS_mbe_1175                   PASS   gold=B pred=B (14.1s, 1 calls)
+    [rag_simple/answer] 3148 chars
+[457/500] qa_nan_mbe_393                      PASS   gold=C pred=C (8.6s, 1 calls)
+    [rag_simple/answer] 3073 chars
+[458/500] qa_TORTS_mbe_662                    FAIL   gold=A pred=D (10.2s, 1 calls)
+    [rag_simple/answer] 2891 chars
+[459/500] qa_nan_mbe_271                      FAIL   gold=B pred=D (9.6s, 1 calls)
+    [rag_simple/answer] 3098 chars
+[460/500] qa_nan_mbe_491                      PASS   gold=B pred=B (16.1s, 1 calls)
+    [rag_simple/answer] 3014 chars
+[461/500] qa_nan_mbe_295                      PASS   gold=C pred=C (8.8s, 1 calls)
+    [rag_simple/answer] 2900 chars
+[462/500] qa_EVIDENCE_mbe_1021                FAIL   gold=B pred=A (11.7s, 1 calls)
+    [rag_simple/answer] 2768 chars
+[463/500] qa_TORTS_mbe_595                    PASS   gold=D pred=D (8.8s, 1 calls)
+    [rag_simple/answer] 2848 chars
+[464/500] qa_CONST. LAW_mbe_901               PASS   gold=A pred=A (11.3s, 1 calls)
+    [rag_simple/answer] 3888 chars
+[465/500] qa_nan_mbe_383                      PASS   gold=B pred=B (21.9s, 1 calls)
+    [rag_simple/answer] 3456 chars
+[466/500] qa_nan_mbe_308                      FAIL   gold=A pred=C (6.2s, 1 calls)
+    [rag_simple/answer] 2883 chars
+[467/500] qa_CONST. LAW_mbe_879               PASS   gold=C pred=C (20.3s, 1 calls)
+    [rag_simple/answer] 2712 chars
+[468/500] qa_nan_mbe_974                      FAIL   gold=C pred=B (12.9s, 1 calls)
+    [rag_simple/answer] 2080 chars
+[469/500] qa_EVIDENCE_mbe_1157                PASS   gold=A pred=A (5.7s, 1 calls)
+    [rag_simple/answer] 4066 chars
+[470/500] qa_TORTS_mbe_614                    FAIL   gold=A pred=C (10.1s, 1 calls)
+    [rag_simple/answer] 2501 chars
+[471/500] qa_nan_mbe_312                      PASS   gold=A pred=A (17.6s, 1 calls)
+    [rag_simple/answer] 2597 chars
+[472/500] qa_nan_mbe_957                      PASS   gold=A pred=A (9.6s, 1 calls)
+    [rag_simple/answer] 2271 chars
+[473/500] qa_EVIDENCE_mbe_748                 PASS   gold=C pred=C (9.2s, 1 calls)
+    [rag_simple/answer] 3724 chars
+[474/500] qa_nan_mbe_87                       PASS   gold=C pred=C (17.8s, 1 calls)
+    [rag_simple/answer] 3637 chars
+[475/500] qa_nan_mbe_116                      PASS   gold=A pred=A (10.6s, 1 calls)
+    [rag_simple/answer] 2702 chars
+[476/500] qa_TORTS_mbe_682                    PASS   gold=C pred=C (12.3s, 1 calls)
+    [rag_simple/answer] 3205 chars
+[477/500] qa_nan_mbe_37                       FAIL   gold=B pred=D (11.9s, 1 calls)
+    [rag_simple/answer] 2999 chars
+[478/500] qa_CONTRACTS_mbe_1087               PASS   gold=A pred=A (41.1s, 1 calls)
+    [rag_simple/answer] 6963 chars
+[479/500] qa_EVIDENCE_mbe_1035                PASS   gold=A pred=A (26.1s, 1 calls)
+    [rag_simple/answer] 3099 chars
+[480/500] qa_TORTS_mbe_559                    PASS   gold=A pred=A (25.3s, 1 calls)
+    [rag_simple/answer] 2455 chars
+[481/500] qa_CONTRACTS_mbe_555                PASS   gold=C pred=C (6.8s, 1 calls)
+    [rag_simple/answer] 2682 chars
+[482/500] qa_nan_mbe_323                      PASS   gold=D pred=D (33.7s, 1 calls)
+    [rag_simple/answer] 2582 chars
+[483/500] qa_nan_mbe_254                      PASS   gold=A pred=A (5.8s, 1 calls)
+    [rag_simple/answer] 3264 chars
+[484/500] qa_REAL PROP._mbe_1000              PASS   gold=C pred=C (18.6s, 1 calls)
+    [rag_simple/answer] 2780 chars
+[485/500] qa_REAL PROP._mbe_1143              PASS   gold=A pred=A (12.9s, 1 calls)
+    [rag_simple/answer] 2922 chars
+[486/500] qa_CRIM. LAW_mbe_733                FAIL   gold=B pred=A (8.0s, 1 calls)
+    [rag_simple/answer] 3500 chars
+[487/500] qa_nan_mbe_457                      PASS   gold=D pred=D (12.3s, 1 calls)
+    [rag_simple/answer] 2228 chars
+[488/500] qa_EVIDENCE_mbe_861                 PASS   gold=D pred=D (22.6s, 1 calls)
+    [rag_simple/answer] 2904 chars
+[489/500] qa_nan_mbe_95                       FAIL   gold=A pred=B (43.4s, 1 calls)
+    [rag_simple/answer] 3220 chars
+[490/500] qa_nan_mbe_103                      PASS   gold=D pred=D (11.4s, 1 calls)
+    [rag_simple/answer] 3358 chars
+[491/500] qa_CONST. LAW_mbe_673               FAIL   gold=C pred=A (9.5s, 1 calls)
+    [rag_simple/answer] 2765 chars
+[492/500] qa_nan_mbe_100                      PASS   gold=A pred=A (13.0s, 1 calls)
+    [rag_simple/answer] 3016 chars
+[493/500] qa_CONTRACTS_mbe_570                PASS   gold=C pred=C (14.5s, 1 calls)
+    [rag_simple/answer] 3207 chars
+[494/500] qa_REAL PROP._mbe_608               PASS   gold=D pred=D (11.8s, 1 calls)
+    [rag_simple/answer] 3431 chars
+[495/500] qa_nan_mbe_406                      FAIL   gold=C pred=D (20.7s, 1 calls)
+    [rag_simple/answer] 2955 chars
+[496/500] qa_EVIDENCE_mbe_1151                PASS   gold=B pred=B (11.4s, 1 calls)
+    [rag_simple/answer] 3243 chars
+[497/500] qa_CRIM. LAW_mbe_1118               PASS   gold=D pred=D (12.6s, 1 calls)
+    [rag_simple/answer] 2716 chars
+[498/500] qa_CRIM. LAW_mbe_929                FAIL   gold=B pred=D (24.0s, 1 calls)
+    [rag_simple/answer] 2839 chars
+[499/500] qa_nan_mbe_545                      PASS   gold=C pred=C (9.5s, 1 calls)
+    [rag_simple/answer] 3320 chars
+[500/500] qa_CONTRACTS_mbe_937                FAIL   gold=D pred=C (22.9s, 1 calls)
+
+======================================================================
+RESULTS: 400/500 (80.0%)
+Total time: 11759s (23.5s/query)
+
+By subject:
+  CONST. LAW      31/38 (82%)
+  CONTRACTS       37/46 (80%)
+  CRIM. LAW       25/35 (71%)
+  EVIDENCE        29/38 (76%)
+  REAL PROP.      35/43 (81%)
+  TORTS           45/50 (90%)
+  nan             198/250 (79%)
+======================================================================
+
+Detail log: logs/eval_rag_simple_or-gemma4-26b_20260511_1538_barexam_meeting-n500-canonical-or-gemma4-26b-barexam-n500-k5-rag_simple_detail.jsonl
+Run summary appended to: logs/experiments.jsonl
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_simple_or-gemma4-26b_20260511_1538_barexam_meeting-n500-canonical-or-gemma4-26b-barexam-n500-k5-rag_simple_detail.jsonl
+mode=rag_simple rows=500 accuracy=400/500
+errors=0
+missing_predicted_answer=1
+parse_failures=0
+retrieval_key_rows=500
+empty_retrieval_rows=0
+avg_llm_calls=1.00
+max_output_tokens=2260
+max_final_answer_chars=10197 idx=mbe_1178
+long_final_answer_rows=0
+top_level_hyde_artifacts=0
+top_level_report_artifacts=0
+top_level_knowledge_artifacts=0
+nested_gap_hyde_artifacts=0
+nested_gap_report_artifacts=0
+rows_with_formatted_question=0
+rows_with_intermediate_question=0
+rows_with_retrieval_queries=0
+rows_with_final_prompt_preview=0
+rows_with_call_trace=0
+rows_with_trace_events=0
+
+
+[2026-05-11T15:38:50-05:00] === MODE rag_rewrite tag=meeting-n500-canonical-or-gemma4-26b-barexam-n500-k5-rag_rewrite ===
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+
+======================================================================
+EVAL: rag_rewrite | or-gemma4-26b (google/gemma-4-26b-a4b-it) | 500 questions
+Tag: meeting-n500-canonical-or-gemma4-26b-barexam-n500-k5-rag_rewrite
+======================================================================
+
+    [preflight_smoke] 2 chars
+[preflight] provider=or-gemma4-26b OK
+[preflight] collection count skipped by SKIP_EVAL_COLLECTION_PREFLIGHT=1
+    [rag_rewrite/rewrite] 306 chars
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Loading weights:   0%|          | 0/268 [00:00<?, ?it/s]Loading weights: 100%|██████████| 268/268 [00:00<00:00, 9476.97it/s]
+[rag_utils] Reinitialized embedding position_ids=8192
+[rag_utils] Embedding max_seq_length=512
+    [rag_rewrite/answer] 2578 chars
+[1/500] qa_CRIM. LAW_mbe_809                PASS   gold=A pred=A (29.4s, 2 calls)
+    [rag_rewrite/rewrite] 416 chars
+    [rag_rewrite/answer] 2764 chars
+[2/500] qa_nan_mbe_304                      PASS   gold=A pred=A (13.1s, 2 calls)
+    [rag_rewrite/rewrite] 421 chars
+    [rag_rewrite/answer] 3011 chars
+[3/500] qa_nan_mbe_118                      PASS   gold=D pred=D (20.4s, 2 calls)
+    [rag_rewrite/rewrite] 416 chars
+    [rag_rewrite/answer] 2754 chars
+[4/500] qa_nan_mbe_339                      PASS   gold=D pred=D (5.5s, 2 calls)
+    [rag_rewrite/rewrite] 323 chars
+    [rag_rewrite/answer] 2762 chars
+[5/500] qa_nan_mbe_73                       PASS   gold=C pred=C (17.4s, 2 calls)
+    [rag_rewrite/rewrite] 309 chars
+    [rag_rewrite/answer] 3064 chars
+[6/500] qa_TORTS_mbe_656                    PASS   gold=D pred=D (22.0s, 2 calls)
+    [rag_rewrite/rewrite] 378 chars
+    [rag_rewrite/answer] 3825 chars
+[7/500] qa_EVIDENCE_mbe_900                 FAIL   gold=B pred=D (21.9s, 2 calls)
+    [rag_rewrite/rewrite] 366 chars
+    [rag_rewrite/answer] 2314 chars
+[8/500] qa_CONST. LAW_mbe_795               PASS   gold=B pred=B (20.5s, 2 calls)
+    [rag_rewrite/rewrite] 431 chars
+    [rag_rewrite/answer] 2861 chars
+[9/500] qa_nan_mbe_134                      PASS   gold=D pred=D (11.0s, 2 calls)
+    [rag_rewrite/rewrite] 277 chars
+    [rag_rewrite/answer] 2572 chars
+[10/500] qa_TORTS_mbe_735                    PASS   gold=C pred=C (9.8s, 2 calls)
+    [rag_rewrite/rewrite] 337 chars
+    [rag_rewrite/answer] 2843 chars
+[11/500] qa_REAL PROP._mbe_718               PASS   gold=C pred=C (13.6s, 2 calls)
+    [rag_rewrite/rewrite] 340 chars
+    [rag_rewrite/answer] 2917 chars
+[12/500] qa_nan_mbe_51                       PASS   gold=A pred=A (10.8s, 2 calls)
+    [rag_rewrite/rewrite] 393 chars
+    [rag_rewrite/answer] 2948 chars
+[13/500] qa_nan_mbe_58                       PASS   gold=C pred=C (57.8s, 2 calls)
+    [rag_rewrite/rewrite] 323 chars
+    [rag_rewrite/answer] 2587 chars
+[14/500] qa_TORTS_mbe_761                    PASS   gold=C pred=C (10.3s, 2 calls)
+    [rag_rewrite/rewrite] 405 chars
+    [rag_rewrite/answer] 3252 chars
+[15/500] qa_nan_mbe_508                      PASS   gold=A pred=A (14.0s, 2 calls)
+    [rag_rewrite/rewrite] 422 chars
+    [rag_rewrite/answer] 2947 chars
+[16/500] qa_CONTRACTS_mbe_578                FAIL   gold=A pred=C (10.9s, 2 calls)
+    [rag_rewrite/rewrite] 349 chars
+    [rag_rewrite/answer] 2491 chars
+[17/500] qa_nan_mbe_967                      PASS   gold=B pred=B (5.6s, 2 calls)
+    [rag_rewrite/rewrite] 392 chars
+    [rag_rewrite/answer] 3077 chars
+[18/500] qa_nan_mbe_259                      PASS   gold=B pred=B (13.2s, 2 calls)
+    [rag_rewrite/rewrite] 349 chars
+    [rag_rewrite/answer] 3266 chars
+[19/500] qa_CONTRACTS_mbe_918                PASS   gold=D pred=D (47.4s, 2 calls)
+    [rag_rewrite/rewrite] 324 chars
+    [rag_rewrite/answer] 3571 chars
+[20/500] qa_REAL PROP._mbe_1148              PASS   gold=A pred=A (12.8s, 2 calls)
+    [rag_rewrite/rewrite] 378 chars
+    [rag_rewrite/answer] 2614 chars
+[21/500] qa_nan_mbe_207                      PASS   gold=D pred=D (10.5s, 2 calls)
+    [rag_rewrite/rewrite] 354 chars
+    [rag_rewrite/answer] 3061 chars
+[22/500] qa_TORTS_mbe_1094                   PASS   gold=C pred=C (18.7s, 2 calls)
+    [rag_rewrite/rewrite] 343 chars
+    [rag_rewrite/answer] 3649 chars
+[23/500] qa_REAL PROP._mbe_1043              PASS   gold=C pred=C (15.8s, 2 calls)
+    [rag_rewrite/rewrite] 334 chars
+    [rag_rewrite/answer] 2392 chars
+[24/500] qa_nan_mbe_411                      PASS   gold=D pred=D (16.5s, 2 calls)
+    [rag_rewrite/rewrite] 541 chars
+    [rag_rewrite/answer] 3090 chars
+[25/500] qa_nan_mbe_532                      PASS   gold=A pred=A (26.2s, 2 calls)
+    [rag_rewrite/rewrite] 395 chars
+    [rag_rewrite/answer] 2721 chars
+[26/500] qa_EVIDENCE_mbe_663                 PASS   gold=A pred=A (14.9s, 2 calls)
+    [rag_rewrite/rewrite] 399 chars
+    [rag_rewrite/answer] 3479 chars
+[27/500] qa_nan_mbe_163                      PASS   gold=B pred=B (15.6s, 2 calls)
+    [rag_rewrite/rewrite] 358 chars
+    [rag_rewrite/answer] 2998 chars
+[28/500] qa_CONTRACTS_mbe_712                PASS   gold=C pred=C (13.8s, 2 calls)
+    [rag_rewrite/rewrite] 399 chars
+    [rag_rewrite/answer] 2571 chars
+[29/500] qa_nan_mbe_338                      FAIL   gold=D pred=B (13.5s, 2 calls)
+    [rag_rewrite/rewrite] 428 chars
+    [rag_rewrite/answer] 2808 chars
+[30/500] qa_nan_mbe_512                      FAIL   gold=A pred=B (20.8s, 2 calls)
+    [rag_rewrite/rewrite] 373 chars
+    [rag_rewrite/answer] 2697 chars
+[31/500] qa_nan_mbe_377                      FAIL   gold=D pred=A (31.6s, 2 calls)
+    [rag_rewrite/rewrite] 333 chars
+    [rag_rewrite/answer] 2567 chars
+[32/500] qa_nan_mbe_191                      PASS   gold=C pred=C (27.5s, 2 calls)
+    [rag_rewrite/rewrite] 322 chars
+    [rag_rewrite/answer] 2574 chars
+[33/500] qa_TORTS_mbe_1170                   PASS   gold=A pred=A (19.5s, 2 calls)
+    [rag_rewrite/rewrite] 316 chars
+    [rag_rewrite/answer] 3686 chars
+[34/500] qa_REAL PROP._mbe_883               FAIL   gold=A pred=D (33.8s, 2 calls)
+    [rag_rewrite/rewrite] 294 chars
+    [rag_rewrite/answer] 3115 chars
+[35/500] qa_CRIM. LAW_mbe_670                PASS   gold=D pred=D (9.7s, 2 calls)
+    [rag_rewrite/rewrite] 341 chars
+    [rag_rewrite/answer] 2151 chars
+[36/500] qa_nan_mbe_170                      PASS   gold=C pred=C (11.2s, 2 calls)
+    [rag_rewrite/rewrite] 319 chars
+    [rag_rewrite/answer] 2416 chars
+[37/500] qa_CONTRACTS_mbe_1187               PASS   gold=D pred=D (11.1s, 2 calls)
+    [rag_rewrite/rewrite] 409 chars
+    [rag_rewrite/answer] 2830 chars
+[38/500] qa_nan_mbe_86                       PASS   gold=A pred=A (24.5s, 2 calls)
+    [rag_rewrite/rewrite] 330 chars
+    [rag_rewrite/answer] 8270 chars
+[39/500] qa_nan_mbe_400                      FAIL   gold=D pred=C (47.9s, 2 calls)
+    [rag_rewrite/rewrite] 386 chars
+    [rag_rewrite/answer] 2771 chars
+[40/500] qa_TORTS_mbe_843                    PASS   gold=D pred=D (24.8s, 2 calls)
+    [rag_rewrite/rewrite] 338 chars
+    [rag_rewrite/answer] 2843 chars
+[41/500] qa_nan_mbe_473                      PASS   gold=A pred=A (12.4s, 2 calls)
+    [rag_rewrite/rewrite] 20 chars
+    [rag_rewrite/answer] 2726 chars
+[42/500] qa_nan_mbe_125                      PASS   gold=D pred=D (188.2s, 2 calls)
+    [rag_rewrite/rewrite] 316 chars
+    [rag_rewrite/answer] 3196 chars
+[43/500] qa_REAL PROP._mbe_557               PASS   gold=D pred=D (18.5s, 2 calls)
+    [rag_rewrite/rewrite] 416 chars
+    [rag_rewrite/answer] 2980 chars
+[44/500] qa_CONTRACTS_mbe_1045               PASS   gold=B pred=B (60.3s, 2 calls)
+    [rag_rewrite/rewrite] 414 chars
+    [rag_rewrite/answer] 3707 chars
+[45/500] qa_TORTS_mbe_764                    PASS   gold=B pred=B (22.2s, 2 calls)
+    [rag_rewrite/rewrite] 345 chars
+    [rag_rewrite/answer] 3459 chars
+[46/500] qa_TORTS_mbe_575                    PASS   gold=D pred=D (12.3s, 2 calls)
+    [rag_rewrite/rewrite] 422 chars
+    [rag_rewrite/answer] 2418 chars
+[47/500] qa_nan_mbe_443                      PASS   gold=B pred=B (9.4s, 2 calls)
+    [rag_rewrite/rewrite] 331 chars
+    [rag_rewrite/answer] 3107 chars
+[48/500] qa_nan_mbe_26                       PASS   gold=D pred=D (23.1s, 2 calls)
+    [rag_rewrite/rewrite] 335 chars
+    [rag_rewrite/answer] 3263 chars
+[49/500] qa_nan_mbe_50                       PASS   gold=C pred=C (19.0s, 2 calls)
+    [rag_rewrite/rewrite] 291 chars
+    [rag_rewrite/answer] 425 chars
+[50/500] qa_CONTRACTS_mbe_695                FAIL   gold=C pred=None (97.8s, 2 calls)
+    [rag_rewrite/rewrite] 402 chars
+    [rag_rewrite/answer] 3030 chars
+[51/500] qa_CONTRACTS_mbe_571                PASS   gold=C pred=C (43.4s, 2 calls)
+    [rag_rewrite/rewrite] 278 chars
+    [rag_rewrite/answer] 2644 chars
+[52/500] qa_CRIM. LAW_mbe_1002               PASS   gold=B pred=B (18.8s, 2 calls)
+    [rag_rewrite/rewrite] 395 chars
+    [rag_rewrite/answer] 3415 chars
+[53/500] qa_nan_mbe_369                      PASS   gold=D pred=D (156.8s, 2 calls)
+    [rag_rewrite/rewrite] 429 chars
+    [rag_rewrite/answer] 3318 chars
+[54/500] qa_CONTRACTS_mbe_824                FAIL   gold=A pred=C (17.6s, 2 calls)
+    [rag_rewrite/rewrite] 348 chars
+    [rag_rewrite/answer] 2323 chars
+[55/500] qa_EVIDENCE_mbe_1099                PASS   gold=B pred=B (93.3s, 2 calls)
+    [rag_rewrite/rewrite] 365 chars
+    [rag_rewrite/answer] 2910 chars
+[56/500] qa_CONST. LAW_mbe_1120              PASS   gold=C pred=C (25.0s, 2 calls)
+    [rag_rewrite/rewrite] 386 chars
+    [rag_rewrite/answer] 2953 chars
+[57/500] qa_nan_mbe_278                      PASS   gold=C pred=C (19.1s, 2 calls)
+    [rag_rewrite/rewrite] 384 chars
+    [rag_rewrite/answer] 2818 chars
+[58/500] qa_CRIM. LAW_mbe_1107               PASS   gold=D pred=D (24.4s, 2 calls)
+    [rag_rewrite/rewrite] 346 chars
+    [rag_rewrite/answer] 2349 chars
+[59/500] qa_EVIDENCE_mbe_1082                PASS   gold=B pred=B (32.7s, 2 calls)
+    [rag_rewrite/rewrite] 367 chars
+    [rag_rewrite/answer] 2225 chars
+[60/500] qa_CRIM. LAW_mbe_1095               PASS   gold=A pred=A (6.8s, 2 calls)
+    [rag_rewrite/rewrite] 436 chars
+    [rag_rewrite/answer] 2487 chars
+[61/500] qa_CONST. LAW_mbe_940               PASS   gold=B pred=B (6.0s, 2 calls)
+    [rag_rewrite/rewrite] 337 chars
+    [rag_rewrite/answer] 2457 chars
+[62/500] qa_REAL PROP._mbe_862               FAIL   gold=C pred=B (17.3s, 2 calls)
+    [rag_rewrite/rewrite] 377 chars
+    [rag_rewrite/answer] 2763 chars
+[63/500] qa_nan_mbe_422                      PASS   gold=B pred=B (78.6s, 2 calls)
+    [rag_rewrite/rewrite] 348 chars
+    [rag_rewrite/answer] 3253 chars
+[64/500] qa_nan_mbe_213                      PASS   gold=B pred=B (11.7s, 2 calls)
+    [rag_rewrite/rewrite] 297 chars
+    [rag_rewrite/answer] 2223 chars
+[65/500] qa_EVIDENCE_mbe_722                 PASS   gold=A pred=A (6.5s, 2 calls)
+    [rag_rewrite/rewrite] 356 chars
+    [rag_rewrite/answer] 3964 chars
+[66/500] qa_CONTRACTS_mbe_1097               PASS   gold=B pred=B (18.0s, 2 calls)
+    [rag_rewrite/rewrite] 332 chars
+    [rag_rewrite/answer] 3136 chars
+[67/500] qa_nan_mbe_60                       PASS   gold=D pred=D (9.8s, 2 calls)
+    [rag_rewrite/rewrite] 367 chars
+    [rag_rewrite/answer] 3344 chars
+[68/500] qa_nan_mbe_336                      PASS   gold=C pred=C (25.3s, 2 calls)
+    [rag_rewrite/rewrite] 309 chars
+    [rag_rewrite/answer] 3150 chars
+[69/500] qa_REAL PROP._mbe_1081              FAIL   gold=A pred=B (19.9s, 2 calls)
+    [rag_rewrite/rewrite] 362 chars
+    [rag_rewrite/answer] 2723 chars
+[70/500] qa_CONST. LAW_mbe_1155              PASS   gold=D pred=D (8.7s, 2 calls)
+    [rag_rewrite/rewrite] 432 chars
+    [rag_rewrite/answer] 3650 chars
+[71/500] qa_nan_mbe_530                      PASS   gold=B pred=B (14.9s, 2 calls)
+    [rag_rewrite/rewrite] 404 chars
+    [rag_rewrite/answer] 2576 chars
+[72/500] qa_EVIDENCE_mbe_1111                PASS   gold=C pred=C (18.4s, 2 calls)
+    [rag_rewrite/rewrite] 321 chars
+    [rag_rewrite/answer] 2981 chars
+[73/500] qa_nan_mbe_108                      PASS   gold=B pred=B (99.4s, 2 calls)
+    [rag_rewrite/rewrite] 261 chars
+    [rag_rewrite/answer] 2480 chars
+[74/500] qa_nan_mbe_63                       PASS   gold=B pred=B (25.6s, 2 calls)
+    [rag_rewrite/rewrite] 337 chars
+    [rag_rewrite/answer] 2827 chars
+[75/500] qa_nan_mbe_96                       PASS   gold=B pred=B (7.5s, 2 calls)
+    [rag_rewrite/rewrite] 353 chars
+    [rag_rewrite/answer] 2012 chars
+[76/500] qa_nan_mbe_198                      PASS   gold=D pred=D (10.7s, 2 calls)
+    [rag_rewrite/rewrite] 382 chars
+    [rag_rewrite/answer] 2567 chars
+[77/500] qa_CONST. LAW_mbe_777               PASS   gold=D pred=D (6.9s, 2 calls)
+    [rag_rewrite/rewrite] 370 chars
+    [rag_rewrite/answer] 2523 chars
+[78/500] qa_nan_mbe_65                       PASS   gold=C pred=C (11.3s, 2 calls)
+    [rag_rewrite/rewrite] 425 chars
+    [rag_rewrite/answer] 2707 chars
+[79/500] qa_CONST. LAW_mbe_574               PASS   gold=B pred=B (8.8s, 2 calls)
+    [rag_rewrite/rewrite] 277 chars
+    [rag_rewrite/answer] 3501 chars
+[80/500] qa_CONTRACTS_mbe_1023               PASS   gold=B pred=B (34.7s, 2 calls)
+    [rag_rewrite/rewrite] 332 chars
+    [rag_rewrite/answer] 2831 chars
+[81/500] qa_EVIDENCE_mbe_765                 PASS   gold=B pred=B (11.2s, 2 calls)
+    [rag_rewrite/rewrite] 338 chars
+    [rag_rewrite/answer] 2574 chars
+[82/500] qa_nan_mbe_136                      FAIL   gold=C pred=A (9.5s, 2 calls)
+    [rag_rewrite/rewrite] 377 chars
+    [rag_rewrite/answer] 2825 chars
+[83/500] qa_nan_mbe_248                      PASS   gold=B pred=B (14.9s, 2 calls)
+    [rag_rewrite/rewrite] 347 chars
+    [rag_rewrite/answer] 2907 chars
+[84/500] qa_REAL PROP._mbe_934               PASS   gold=D pred=D (11.5s, 2 calls)
+    [rag_rewrite/rewrite] 429 chars
+    [rag_rewrite/answer] 2632 chars
+[85/500] qa_CONST. LAW_mbe_1053              PASS   gold=D pred=D (42.4s, 2 calls)
+    [rag_rewrite/rewrite] 371 chars
+    [rag_rewrite/answer] 2896 chars
+[86/500] qa_CRIM. LAW_mbe_1065               PASS   gold=B pred=B (15.3s, 2 calls)
+    [rag_rewrite/rewrite] 341 chars
+    [rag_rewrite/answer] 2499 chars
+[87/500] qa_CONTRACTS_mbe_783                PASS   gold=D pred=D (9.3s, 2 calls)
+    [rag_rewrite/rewrite] 348 chars
+    [rag_rewrite/answer] 3145 chars
+[88/500] qa_TORTS_mbe_752                    PASS   gold=C pred=C (13.0s, 2 calls)
+    [rag_rewrite/rewrite] 282 chars
+    [rag_rewrite/answer] 2537 chars
+[89/500] qa_CONTRACTS_mbe_996                PASS   gold=B pred=B (14.6s, 2 calls)
+    [rag_rewrite/rewrite] 360 chars
+    [rag_rewrite/answer] 4342 chars
+[90/500] qa_nan_mbe_480                      FAIL   gold=D pred=A (10.6s, 2 calls)
+    [rag_rewrite/rewrite] 418 chars
+    [rag_rewrite/answer] 2931 chars
+[91/500] qa_nan_mbe_270                      PASS   gold=B pred=B (97.0s, 2 calls)
+    [rag_rewrite/rewrite] 342 chars
+    [rag_rewrite/answer] 3002 chars
+[92/500] qa_nan_mbe_346                      PASS   gold=D pred=D (10.4s, 2 calls)
+    [rag_rewrite/rewrite] 307 chars
+[2026-05-11T16:21:09.213] error: *** JOB 67911 ON a40-2205 CANCELLED AT 2026-05-11T16:21:09 DUE TO TIME LIMIT ***

@@ -173,6 +173,15 @@ Branch: `codex/final-report-snap-hyde`
    calls 2.00, errors 0, missing predictions 0, empty retrieval 0, max output
    tokens 2,213, and no long-answer rows. This is a clean N>=500 CaseHOLD
    rewrite control; diverse HyRE remains pending.
+25. ❌ **Remaining N=500 scale-up jobs timed out before completing all modes**:
+   SLURM jobs `67911`, `67912`, and `67913` hit the 4-hour time limit and the
+   stdout logs were copied locally as
+   `logs/slurm_67911_n500_barexam_timeout.out`,
+   `logs/slurm_67912_n500_housing_timeout.out`, and
+   `logs/slurm_67913_n500_casehold_timeout.out`. Do not promote partial modes:
+   BarExam `rag_rewrite` stopped at `92/500` and adaptive v2 was not reached;
+   HousingQA `rag_rewrite` stopped at `116/500` and the verifier was not
+   reached; CaseHOLD diverse HyRE stopped at `35/500`.
 
 ### New source paths
 
@@ -232,6 +241,10 @@ Branch: `codex/final-report-snap-hyde`
   `logs/eval_rag_rewrite_or-gemma4-26b_20260511_1557_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_rewrite_detail.jsonl`.
 - N>=500 rejected/health-gated adaptive detail logs:
   `logs/eval_adaptive_snap_hyre_frontier_or-gemma4-26b_20260511_1513_legalbench_scalr_meeting-full-scalr-capped-or-gemma4-26b-n571-k5-adaptive_snap_hyre_frontier_detail.jsonl`.
+- N>=500 timeout stdout logs:
+  `logs/slurm_67911_n500_barexam_timeout.out`,
+  `logs/slurm_67912_n500_housing_timeout.out`,
+  `logs/slurm_67913_n500_casehold_timeout.out`.
 
 ## Update 2026-05-01 ~meeting prep
 

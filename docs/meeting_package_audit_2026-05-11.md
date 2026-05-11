@@ -144,6 +144,13 @@ empty retrieval 0, average calls 2.00, max output tokens 2,213, and no
 long-answer rows. HousingQA rewrite/verifier and CaseHOLD diverse remain
 running or pending.
 
+Refresh note, 2026-05-11 16:30 CDT: remaining jobs `67911`, `67912`, and
+`67913` timed out at the 4-hour SLURM limit. The timeout stdout logs were
+copied locally. Do not promote partial modes: BarExam `rag_rewrite` stopped at
+`92/500` and adaptive v2 was not reached; HousingQA `rag_rewrite` stopped at
+`116/500` and the verifier was not reached; CaseHOLD diverse HyRE stopped at
+`35/500`.
+
 ```bash
 uv run python scripts/build_meeting_package_figures.py
 uv run python scripts/audit_adaptive_hyre_logs.py logs/eval_adaptive_snap_hyre_option_table_or-gemma4-26b_20260511_0028_casehold_casehold-option-table-direct-or-gemma4-26b-api-q250-start200-end250-k5-adaptive_snap_hyre_option_table_detail.jsonl
@@ -166,6 +173,7 @@ uv run python scripts/analyze_detail_flags.py logs/eval_rag_rewrite_or-gemma4-26
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_simple_or-gemma4-26b_20260511_1538_barexam_meeting-n500-canonical-or-gemma4-26b-barexam-n500-k5-rag_simple_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_state_filter_or-gemma4-26b_20260511_1552_housing_meeting-n500-canonical-or-gemma4-26b-housing-n500-k5-rag_state_filter_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_rewrite_or-gemma4-26b_20260511_1557_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_rewrite_detail.jsonl
+rg -n "DUE TO TIME LIMIT|=== MODE|RESULTS:|Detail log:" logs/slurm_67911_n500_barexam_timeout.out logs/slurm_67912_n500_housing_timeout.out logs/slurm_67913_n500_casehold_timeout.out
 rg -n "232797|CANCELLED|RESULTS" logs/slurm_67863_full_scalr_cancelled.out
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl

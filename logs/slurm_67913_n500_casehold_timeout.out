@@ -1,0 +1,2726 @@
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+[preflight] modes OK: rag_simple, rag_rewrite, adaptive_snap_hyre_diverse
+[preflight] Chroma collection count skipped by SKIP_CHROMA_PREFLIGHT=1
+[2026-05-11T12:21:46-05:00] provider=or-gemma4-26b dataset=casehold N=500 seed=42 k=5
+[2026-05-11T12:21:46-05:00] modes: rag_simple rag_rewrite adaptive_snap_hyre_diverse
+
+[2026-05-11T12:21:46-05:00] === MODE rag_simple tag=meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_simple ===
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+
+======================================================================
+EVAL: rag_simple | or-gemma4-26b (google/gemma-4-26b-a4b-it) | 500 questions | dataset=casehold
+Tag: meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_simple
+======================================================================
+
+    [preflight_smoke] 2 chars
+[preflight] provider=or-gemma4-26b OK
+[preflight] collection count skipped by SKIP_EVAL_COLLECTION_PREFLIGHT=1
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Loading weights:   0%|          | 0/268 [00:00<?, ?it/s]Loading weights: 100%|██████████| 268/268 [00:00<00:00, 8989.14it/s]
+[rag_utils] Reinitialized embedding position_ids=8192
+[rag_utils] Embedding max_seq_length=512
+    [rag_simple/answer] 3162 chars
+[1/500] ch_ch_test_1340                     PASS   gold=D pred=D (17.3s, 1 calls)
+    [rag_simple/answer] 3046 chars
+[2/500] ch_ch_test_1601                     PASS   gold=C pred=C (12.3s, 1 calls)
+    [rag_simple/answer] 2909 chars
+[3/500] ch_ch_test_3549                     FAIL   gold=B pred=A (31.1s, 1 calls)
+    [rag_simple/answer] 2352 chars
+[4/500] ch_ch_test_3575                     PASS   gold=C pred=C (7.4s, 1 calls)
+    [rag_simple/answer] 2762 chars
+[5/500] ch_ch_test_211                      PASS   gold=C pred=C (12.9s, 1 calls)
+    [rag_simple/answer] 2712 chars
+[6/500] ch_ch_test_3515                     PASS   gold=E pred=E (9.7s, 1 calls)
+    [rag_simple/answer] 2924 chars
+[7/500] ch_ch_test_1465                     FAIL   gold=E pred=D (10.6s, 1 calls)
+    [rag_simple/answer] 2546 chars
+[8/500] ch_ch_test_134                      PASS   gold=C pred=C (8.3s, 1 calls)
+    [rag_simple/answer] 4396 chars
+[9/500] ch_ch_test_2677                     FAIL   gold=A pred=C (14.3s, 1 calls)
+    [rag_simple/answer] 3579 chars
+[10/500] ch_ch_test_1742                     PASS   gold=E pred=E (10.3s, 1 calls)
+    [rag_simple/answer] 3182 chars
+[11/500] ch_ch_test_2316                     PASS   gold=D pred=D (7.4s, 1 calls)
+    [rag_simple/answer] 2627 chars
+[12/500] ch_ch_test_26                       FAIL   gold=A pred=E (10.8s, 1 calls)
+    [rag_simple/answer] 2967 chars
+[13/500] ch_ch_test_929                      FAIL   gold=E pred=D (14.0s, 1 calls)
+    [rag_simple/answer] 2658 chars
+[14/500] ch_ch_test_32                       PASS   gold=E pred=E (8.4s, 1 calls)
+    [rag_simple/answer] 3610 chars
+[15/500] ch_ch_test_315                      PASS   gold=C pred=C (11.8s, 1 calls)
+    [rag_simple/answer] 2848 chars
+[16/500] ch_ch_test_2707                     FAIL   gold=D pred=C (10.3s, 1 calls)
+    [rag_simple/answer] 2347 chars
+[17/500] ch_ch_test_2887                     PASS   gold=C pred=C (7.2s, 1 calls)
+    [rag_simple/answer] 2892 chars
+[18/500] ch_ch_test_1509                     FAIL   gold=A pred=E (10.7s, 1 calls)
+    [rag_simple/answer] 3915 chars
+[19/500] ch_ch_test_270                      FAIL   gold=E pred=D (9.8s, 1 calls)
+    [rag_simple/answer] 2957 chars
+[20/500] ch_ch_test_1965                     PASS   gold=E pred=E (9.9s, 1 calls)
+    [rag_simple/answer] 2774 chars
+[21/500] ch_ch_test_879                      PASS   gold=A pred=A (8.6s, 1 calls)
+    [rag_simple/answer] 2333 chars
+[22/500] ch_ch_test_1924                     PASS   gold=C pred=C (9.4s, 1 calls)
+    [rag_simple/answer] 2699 chars
+[23/500] ch_ch_test_1057                     PASS   gold=C pred=C (8.3s, 1 calls)
+    [rag_simple/answer] 2958 chars
+[24/500] ch_ch_test_2377                     FAIL   gold=B pred=D (10.1s, 1 calls)
+    [rag_simple/answer] 2462 chars
+[25/500] ch_ch_test_1231                     PASS   gold=D pred=D (7.2s, 1 calls)
+    [rag_simple/answer] 2929 chars
+[26/500] ch_ch_test_439                      FAIL   gold=E pred=A (10.6s, 1 calls)
+    [rag_simple/answer] 1786 chars
+[27/500] ch_ch_test_415                      PASS   gold=B pred=B (6.8s, 1 calls)
+    [rag_simple/answer] 2811 chars
+[28/500] ch_ch_test_670                      PASS   gold=C pred=C (7.3s, 1 calls)
+    [rag_simple/answer] 3132 chars
+[29/500] ch_ch_test_2843                     FAIL   gold=D pred=B (8.7s, 1 calls)
+    [rag_simple/answer] 3259 chars
+[30/500] ch_ch_test_3019                     PASS   gold=D pred=D (10.6s, 1 calls)
+    [rag_simple/answer] 3005 chars
+[31/500] ch_ch_test_811                      PASS   gold=E pred=E (8.3s, 1 calls)
+    [rag_simple/answer] 3739 chars
+[32/500] ch_ch_test_2357                     PASS   gold=C pred=C (9.7s, 1 calls)
+    [rag_simple/answer] 3289 chars
+[33/500] ch_ch_test_179                      PASS   gold=E pred=E (12.9s, 1 calls)
+    [rag_simple/answer] 3553 chars
+[34/500] ch_ch_test_2762                     FAIL   gold=B pred=A (9.6s, 1 calls)
+    [rag_simple/answer] 2902 chars
+[35/500] ch_ch_test_2988                     PASS   gold=E pred=E (12.2s, 1 calls)
+    [rag_simple/answer] 3537 chars
+[36/500] ch_ch_test_2456                     PASS   gold=B pred=B (9.1s, 1 calls)
+    [rag_simple/answer] 3662 chars
+[37/500] ch_ch_test_1226                     PASS   gold=E pred=E (10.0s, 1 calls)
+    [rag_simple/answer] 2993 chars
+[38/500] ch_ch_test_999                      PASS   gold=C pred=C (16.3s, 1 calls)
+    [rag_simple/answer] 2778 chars
+[39/500] ch_ch_test_817                      PASS   gold=E pred=E (10.0s, 1 calls)
+    [rag_simple/answer] 2403 chars
+[40/500] ch_ch_test_927                      PASS   gold=E pred=E (7.3s, 1 calls)
+    [rag_simple/answer] 2814 chars
+[41/500] ch_ch_test_2696                     PASS   gold=A pred=A (11.0s, 1 calls)
+    [rag_simple/answer] 2791 chars
+[42/500] ch_ch_test_3033                     FAIL   gold=D pred=C (7.9s, 1 calls)
+    [rag_simple/answer] 2269 chars
+[43/500] ch_ch_test_2955                     PASS   gold=D pred=D (9.6s, 1 calls)
+    [rag_simple/answer] 3232 chars
+[44/500] ch_ch_test_120                      FAIL   gold=A pred=C (10.2s, 1 calls)
+    [rag_simple/answer] 3547 chars
+[45/500] ch_ch_test_1786                     FAIL   gold=D pred=C (10.2s, 1 calls)
+    [rag_simple/answer] 2575 chars
+[46/500] ch_ch_test_1403                     PASS   gold=A pred=A (8.1s, 1 calls)
+    [rag_simple/answer] 3120 chars
+[47/500] ch_ch_test_387                      PASS   gold=C pred=C (9.0s, 1 calls)
+    [rag_simple/answer] 2044 chars
+[48/500] ch_ch_test_1510                     PASS   gold=D pred=D (7.3s, 1 calls)
+    [rag_simple/answer] 2216 chars
+[49/500] ch_ch_test_2104                     PASS   gold=E pred=E (9.2s, 1 calls)
+    [rag_simple/answer] 2582 chars
+[50/500] ch_ch_test_2962                     PASS   gold=B pred=B (7.8s, 1 calls)
+    [rag_simple/answer] 4237 chars
+[51/500] ch_ch_test_1957                     FAIL   gold=D pred=B (13.1s, 1 calls)
+    [rag_simple/answer] 2477 chars
+[52/500] ch_ch_test_842                      PASS   gold=D pred=D (9.0s, 1 calls)
+    [rag_simple/answer] 2548 chars
+[53/500] ch_ch_test_184                      PASS   gold=E pred=E (6.8s, 1 calls)
+    [rag_simple/answer] 2355 chars
+[54/500] ch_ch_test_495                      PASS   gold=D pred=D (7.1s, 1 calls)
+    [rag_simple/answer] 3270 chars
+[55/500] ch_ch_test_2211                     PASS   gold=A pred=A (7.6s, 1 calls)
+    [rag_simple/answer] 2691 chars
+[56/500] ch_ch_test_3201                     PASS   gold=B pred=B (6.9s, 1 calls)
+    [rag_simple/answer] 3257 chars
+[57/500] ch_ch_test_926                      PASS   gold=C pred=C (14.1s, 1 calls)
+    [rag_simple/answer] 2530 chars
+[58/500] ch_ch_test_461                      PASS   gold=E pred=E (6.7s, 1 calls)
+    [rag_simple/answer] 2682 chars
+[59/500] ch_ch_test_33                       PASS   gold=D pred=D (7.6s, 1 calls)
+    [rag_simple/answer] 3428 chars
+[60/500] ch_ch_test_1793                     FAIL   gold=B pred=A (14.2s, 1 calls)
+    [rag_simple/answer] 2521 chars
+[61/500] ch_ch_test_289                      PASS   gold=C pred=C (9.5s, 1 calls)
+    [rag_simple/answer] 2499 chars
+[62/500] ch_ch_test_2589                     PASS   gold=A pred=A (25.8s, 1 calls)
+    [rag_simple/answer] 3114 chars
+[63/500] ch_ch_test_1539                     FAIL   gold=D pred=B (12.1s, 1 calls)
+    [rag_simple/answer] 2425 chars
+[64/500] ch_ch_test_644                      PASS   gold=D pred=D (11.8s, 1 calls)
+    [rag_simple/answer] 2979 chars
+[65/500] ch_ch_test_93                       FAIL   gold=C pred=B (9.1s, 1 calls)
+    [rag_simple/answer] 3872 chars
+[66/500] ch_ch_test_969                      FAIL   gold=B pred=E (12.4s, 1 calls)
+    [rag_simple/answer] 3083 chars
+[67/500] ch_ch_test_1554                     FAIL   gold=B pred=D (10.0s, 1 calls)
+    [rag_simple/answer] 3156 chars
+[68/500] ch_ch_test_1174                     FAIL   gold=A pred=D (10.5s, 1 calls)
+    [rag_simple/answer] 5198 chars
+[69/500] ch_ch_test_2575                     FAIL   gold=D pred=C (14.6s, 1 calls)
+    [rag_simple/answer] 2103 chars
+[70/500] ch_ch_test_3153                     PASS   gold=B pred=B (6.8s, 1 calls)
+    [rag_simple/answer] 2870 chars
+[71/500] ch_ch_test_803                      FAIL   gold=C pred=E (9.0s, 1 calls)
+    [rag_simple/answer] 3024 chars
+[72/500] ch_ch_test_1474                     PASS   gold=E pred=E (8.8s, 1 calls)
+    [rag_simple/answer] 2426 chars
+[73/500] ch_ch_test_602                      FAIL   gold=C pred=D (10.2s, 1 calls)
+    [rag_simple/answer] 2467 chars
+[74/500] ch_ch_test_1964                     PASS   gold=B pred=B (12.8s, 1 calls)
+    [rag_simple/answer] 2850 chars
+[75/500] ch_ch_test_2728                     PASS   gold=B pred=B (9.7s, 1 calls)
+    [rag_simple/answer] 3116 chars
+[76/500] ch_ch_test_1336                     PASS   gold=C pred=C (10.0s, 1 calls)
+    [rag_simple/answer] 2654 chars
+[77/500] ch_ch_test_948                      PASS   gold=E pred=E (9.9s, 1 calls)
+    [rag_simple/answer] 3153 chars
+[78/500] ch_ch_test_3176                     PASS   gold=D pred=D (8.8s, 1 calls)
+    [rag_simple/answer] 2659 chars
+[79/500] ch_ch_test_802                      PASS   gold=E pred=E (7.0s, 1 calls)
+    [rag_simple/answer] 2828 chars
+[80/500] ch_ch_test_1765                     PASS   gold=C pred=C (8.8s, 1 calls)
+    [rag_simple/answer] 3214 chars
+[81/500] ch_ch_test_70                       PASS   gold=A pred=A (8.9s, 1 calls)
+    [rag_simple/answer] 2380 chars
+[82/500] ch_ch_test_443                      PASS   gold=B pred=B (6.8s, 1 calls)
+    [rag_simple/answer] 3736 chars
+[83/500] ch_ch_test_2329                     PASS   gold=E pred=E (13.7s, 1 calls)
+    [rag_simple/answer] 2993 chars
+[84/500] ch_ch_test_2453                     FAIL   gold=E pred=C (11.6s, 1 calls)
+    [rag_simple/answer] 2344 chars
+[85/500] ch_ch_test_1067                     PASS   gold=D pred=D (9.2s, 1 calls)
+    [rag_simple/answer] 3128 chars
+[86/500] ch_ch_test_2636                     PASS   gold=E pred=E (10.5s, 1 calls)
+    [rag_simple/answer] 2755 chars
+[87/500] ch_ch_test_2772                     PASS   gold=D pred=D (9.6s, 1 calls)
+    [rag_simple/answer] 2897 chars
+[88/500] ch_ch_test_2334                     FAIL   gold=C pred=B (11.5s, 1 calls)
+    [rag_simple/answer] 2446 chars
+[89/500] ch_ch_test_2282                     PASS   gold=D pred=D (9.8s, 1 calls)
+    [rag_simple/answer] 2728 chars
+[90/500] ch_ch_test_1414                     PASS   gold=A pred=A (9.3s, 1 calls)
+    [rag_simple/answer] 3211 chars
+[91/500] ch_ch_test_605                      FAIL   gold=C pred=B (9.8s, 1 calls)
+    [rag_simple/answer] 2252 chars
+[92/500] ch_ch_test_291                      PASS   gold=B pred=B (9.6s, 1 calls)
+    [rag_simple/answer] 2119 chars
+[93/500] ch_ch_test_564                      PASS   gold=C pred=C (7.5s, 1 calls)
+    [rag_simple/answer] 2763 chars
+[94/500] ch_ch_test_2567                     PASS   gold=A pred=A (7.9s, 1 calls)
+    [rag_simple/answer] 2738 chars
+[95/500] ch_ch_test_3581                     PASS   gold=D pred=D (18.4s, 1 calls)
+    [rag_simple/answer] 2582 chars
+[96/500] ch_ch_test_1106                     PASS   gold=B pred=B (11.2s, 1 calls)
+    [rag_simple/answer] 3203 chars
+[97/500] ch_ch_test_2384                     PASS   gold=A pred=A (11.4s, 1 calls)
+    [rag_simple/answer] 11702 chars
+[98/500] ch_ch_test_551                      FAIL   gold=B pred=A (46.7s, 1 calls)
+    [rag_simple/answer] 3126 chars
+[99/500] ch_ch_test_1236                     PASS   gold=E pred=E (12.2s, 1 calls)
+    [rag_simple/answer] 2568 chars
+[100/500] ch_ch_test_1572                     PASS   gold=A pred=A (9.1s, 1 calls)
+    [rag_simple/answer] 2877 chars
+[101/500] ch_ch_test_1995                     PASS   gold=D pred=D (10.7s, 1 calls)
+    [rag_simple/answer] 3036 chars
+[102/500] ch_ch_test_1426                     PASS   gold=D pred=D (8.7s, 1 calls)
+    [rag_simple/answer] 2605 chars
+[103/500] ch_ch_test_196                      PASS   gold=B pred=B (7.6s, 1 calls)
+    [rag_simple/answer] 2149 chars
+[104/500] ch_ch_test_3262                     PASS   gold=D pred=D (7.4s, 1 calls)
+    [rag_simple/answer] 2271 chars
+[105/500] ch_ch_test_1053                     PASS   gold=D pred=D (7.4s, 1 calls)
+    [rag_simple/answer] 3220 chars
+[106/500] ch_ch_test_889                      FAIL   gold=C pred=B (13.7s, 1 calls)
+    [rag_simple/answer] 2792 chars
+[107/500] ch_ch_test_2864                     PASS   gold=A pred=A (8.8s, 1 calls)
+    [rag_simple/answer] 2416 chars
+[108/500] ch_ch_test_3199                     PASS   gold=E pred=E (7.7s, 1 calls)
+    [rag_simple/answer] 2713 chars
+[109/500] ch_ch_test_411                      PASS   gold=D pred=D (11.2s, 1 calls)
+    [rag_simple/answer] 2871 chars
+[110/500] ch_ch_test_149                      PASS   gold=E pred=E (14.2s, 1 calls)
+    [rag_simple/answer] 2779 chars
+[111/500] ch_ch_test_937                      PASS   gold=E pred=E (10.4s, 1 calls)
+    [rag_simple/answer] 2595 chars
+[112/500] ch_ch_test_2225                     PASS   gold=A pred=A (7.2s, 1 calls)
+    [rag_simple/answer] 2890 chars
+[113/500] ch_ch_test_314                      PASS   gold=D pred=D (9.5s, 1 calls)
+    [rag_simple/answer] 2905 chars
+[114/500] ch_ch_test_2503                     PASS   gold=A pred=A (8.0s, 1 calls)
+    [rag_simple/answer] 2351 chars
+[115/500] ch_ch_test_2269                     PASS   gold=B pred=B (8.1s, 1 calls)
+    [rag_simple/answer] 4529 chars
+[116/500] ch_ch_test_1896                     PASS   gold=D pred=D (14.5s, 1 calls)
+    [rag_simple/answer] 2928 chars
+[117/500] ch_ch_test_1813                     PASS   gold=C pred=C (11.8s, 1 calls)
+    [rag_simple/answer] 2893 chars
+[118/500] ch_ch_test_1298                     PASS   gold=A pred=A (11.4s, 1 calls)
+    [rag_simple/answer] 2769 chars
+[119/500] ch_ch_test_2147                     FAIL   gold=C pred=D (9.5s, 1 calls)
+    [rag_simple/answer] 2843 chars
+[120/500] ch_ch_test_3424                     PASS   gold=A pred=A (11.1s, 1 calls)
+    [rag_simple/answer] 2950 chars
+[121/500] ch_ch_test_3222                     PASS   gold=B pred=B (17.6s, 1 calls)
+    [rag_simple/answer] 2478 chars
+[122/500] ch_ch_test_3532                     PASS   gold=C pred=C (8.2s, 1 calls)
+    [rag_simple/answer] 2963 chars
+[123/500] ch_ch_test_299                      PASS   gold=B pred=B (8.1s, 1 calls)
+    [rag_simple/answer] 3291 chars
+[124/500] ch_ch_test_1108                     PASS   gold=A pred=A (4.3s, 1 calls)
+    [rag_simple/answer] 2942 chars
+[125/500] ch_ch_test_1770                     PASS   gold=B pred=B (3.7s, 1 calls)
+    [rag_simple/answer] 2499 chars
+[126/500] ch_ch_test_805                      PASS   gold=C pred=C (13.6s, 1 calls)
+    [rag_simple/answer] 3317 chars
+[127/500] ch_ch_test_2985                     FAIL   gold=C pred=B (6.9s, 1 calls)
+    [rag_simple/answer] 1774 chars
+[128/500] ch_ch_test_183                      PASS   gold=B pred=B (3.3s, 1 calls)
+    [rag_simple/answer] 2375 chars
+[129/500] ch_ch_test_3327                     PASS   gold=A pred=A (3.4s, 1 calls)
+    [rag_simple/answer] 2772 chars
+[130/500] ch_ch_test_1025                     PASS   gold=E pred=E (9.3s, 1 calls)
+    [rag_simple/answer] 3201 chars
+[131/500] ch_ch_test_2189                     FAIL   gold=A pred=C (10.2s, 1 calls)
+    [rag_simple/answer] 2607 chars
+[132/500] ch_ch_test_881                      FAIL   gold=B pred=E (6.0s, 1 calls)
+    [rag_simple/answer] 3242 chars
+[133/500] ch_ch_test_2793                     PASS   gold=D pred=D (5.8s, 1 calls)
+    [rag_simple/answer] 2452 chars
+[134/500] ch_ch_test_2844                     PASS   gold=B pred=B (6.9s, 1 calls)
+    [rag_simple/answer] 3291 chars
+[135/500] ch_ch_test_1376                     PASS   gold=D pred=D (17.6s, 1 calls)
+    [rag_simple/answer] 2272 chars
+[136/500] ch_ch_test_1171                     PASS   gold=E pred=E (6.1s, 1 calls)
+    [rag_simple/answer] 2791 chars
+[137/500] ch_ch_test_3423                     PASS   gold=E pred=E (8.6s, 1 calls)
+    [rag_simple/answer] 2894 chars
+[138/500] ch_ch_test_51                       FAIL   gold=E pred=A (7.2s, 1 calls)
+    [rag_simple/answer] 2533 chars
+[139/500] ch_ch_test_351                      PASS   gold=E pred=E (5.5s, 1 calls)
+    [rag_simple/answer] 2981 chars
+[140/500] ch_ch_test_1877                     PASS   gold=D pred=D (6.6s, 1 calls)
+    [rag_simple/answer] 3273 chars
+[141/500] ch_ch_test_862                      PASS   gold=E pred=E (7.0s, 1 calls)
+    [rag_simple/answer] 3056 chars
+[142/500] ch_ch_test_534                      FAIL   gold=B pred=C (9.0s, 1 calls)
+    [rag_simple/answer] 3002 chars
+[143/500] ch_ch_test_2893                     PASS   gold=A pred=A (8.1s, 1 calls)
+    [rag_simple/answer] 3262 chars
+[144/500] ch_ch_test_2827                     PASS   gold=C pred=C (5.9s, 1 calls)
+    [rag_simple/answer] 2130 chars
+[145/500] ch_ch_test_2918                     PASS   gold=E pred=E (4.1s, 1 calls)
+    [rag_simple/answer] 2616 chars
+[146/500] ch_ch_test_1044                     PASS   gold=C pred=C (7.4s, 1 calls)
+    [rag_simple/answer] 2574 chars
+[147/500] ch_ch_test_3351                     PASS   gold=E pred=E (9.8s, 1 calls)
+    [rag_simple/answer] 2569 chars
+[148/500] ch_ch_test_170                      PASS   gold=C pred=C (12.6s, 1 calls)
+    [rag_simple/answer] 2180 chars
+[149/500] ch_ch_test_139                      PASS   gold=C pred=C (6.7s, 1 calls)
+    [rag_simple/answer] 2740 chars
+[150/500] ch_ch_test_1213                     PASS   gold=C pred=C (5.8s, 1 calls)
+    [rag_simple/answer] 2707 chars
+[151/500] ch_ch_test_2113                     PASS   gold=D pred=D (5.7s, 1 calls)
+    [rag_simple/answer] 2326 chars
+[152/500] ch_ch_test_3306                     FAIL   gold=C pred=D (5.3s, 1 calls)
+    [rag_simple/answer] 2542 chars
+[153/500] ch_ch_test_279                      PASS   gold=A pred=A (5.2s, 1 calls)
+    [rag_simple/answer] 2460 chars
+[154/500] ch_ch_test_1980                     PASS   gold=E pred=E (5.0s, 1 calls)
+    [rag_simple/answer] 2910 chars
+[155/500] ch_ch_test_2899                     PASS   gold=E pred=E (6.4s, 1 calls)
+    [rag_simple/answer] 2202 chars
+[156/500] ch_ch_test_2374                     PASS   gold=D pred=D (5.1s, 1 calls)
+    [rag_simple/answer] 2708 chars
+[157/500] ch_ch_test_1064                     PASS   gold=B pred=B (6.5s, 1 calls)
+    [rag_simple/answer] 2370 chars
+[158/500] ch_ch_test_567                      PASS   gold=C pred=C (9.2s, 1 calls)
+    [rag_simple/answer] 3224 chars
+[159/500] ch_ch_test_1480                     FAIL   gold=D pred=C (10.4s, 1 calls)
+    [rag_simple/answer] 2724 chars
+[160/500] ch_ch_test_2996                     FAIL   gold=D pred=B (6.3s, 1 calls)
+    [rag_simple/answer] 2332 chars
+[161/500] ch_ch_test_3114                     PASS   gold=B pred=B (6.2s, 1 calls)
+    [rag_simple/answer] 3249 chars
+[162/500] ch_ch_test_1608                     FAIL   gold=D pred=E (8.1s, 1 calls)
+    [rag_simple/answer] 2446 chars
+[163/500] ch_ch_test_2726                     PASS   gold=D pred=D (4.8s, 1 calls)
+    [rag_simple/answer] 2887 chars
+[164/500] ch_ch_test_964                      PASS   gold=A pred=A (7.9s, 1 calls)
+    [rag_simple/answer] 3301 chars
+[165/500] ch_ch_test_1936                     PASS   gold=A pred=A (6.6s, 1 calls)
+    [rag_simple/answer] 2399 chars
+[166/500] ch_ch_test_1391                     PASS   gold=E pred=E (6.1s, 1 calls)
+    [rag_simple/answer] 2563 chars
+[167/500] ch_ch_test_2396                     PASS   gold=C pred=C (5.8s, 1 calls)
+    [rag_simple/answer] 2664 chars
+[168/500] ch_ch_test_2221                     FAIL   gold=D pred=A (5.2s, 1 calls)
+    [rag_simple/answer] 2368 chars
+[169/500] ch_ch_test_3556                     PASS   gold=D pred=D (6.3s, 1 calls)
+    [rag_simple/answer] 2610 chars
+[170/500] ch_ch_test_3214                     PASS   gold=B pred=B (6.6s, 1 calls)
+    [rag_simple/answer] 4085 chars
+[171/500] ch_ch_test_3192                     FAIL   gold=E pred=C (12.4s, 1 calls)
+    [rag_simple/answer] 3560 chars
+[172/500] ch_ch_test_2148                     FAIL   gold=A pred=B (9.9s, 1 calls)
+    [rag_simple/answer] 2796 chars
+[173/500] ch_ch_test_1488                     FAIL   gold=E pred=C (7.5s, 1 calls)
+    [rag_simple/answer] 2940 chars
+[174/500] ch_ch_test_2736                     PASS   gold=E pred=E (9.0s, 1 calls)
+    [rag_simple/answer] 2873 chars
+[175/500] ch_ch_test_2929                     FAIL   gold=D pred=A (6.4s, 1 calls)
+    [rag_simple/answer] 3959 chars
+[176/500] ch_ch_test_1718                     PASS   gold=C pred=C (12.3s, 1 calls)
+    [rag_simple/answer] 2416 chars
+[177/500] ch_ch_test_1157                     PASS   gold=A pred=A (6.1s, 1 calls)
+    [rag_simple/answer] 3518 chars
+[178/500] ch_ch_test_1953                     PASS   gold=E pred=E (10.4s, 1 calls)
+    [rag_simple/answer] 3525 chars
+[179/500] ch_ch_test_3198                     FAIL   gold=C pred=A (11.8s, 1 calls)
+    [rag_simple/answer] 3350 chars
+[180/500] ch_ch_test_2905                     FAIL   gold=D pred=C (8.7s, 1 calls)
+    [rag_simple/answer] 2954 chars
+[181/500] ch_ch_test_2562                     PASS   gold=E pred=E (6.0s, 1 calls)
+    [rag_simple/answer] 3060 chars
+[182/500] ch_ch_test_1788                     PASS   gold=A pred=A (4.5s, 1 calls)
+    [rag_simple/answer] 2729 chars
+[183/500] ch_ch_test_438                      PASS   gold=D pred=D (5.4s, 1 calls)
+    [rag_simple/answer] 3365 chars
+[184/500] ch_ch_test_2611                     PASS   gold=C pred=C (6.1s, 1 calls)
+    [rag_simple/answer] 2883 chars
+[185/500] ch_ch_test_752                      PASS   gold=B pred=B (5.7s, 1 calls)
+    [rag_simple/answer] 2290 chars
+[186/500] ch_ch_test_2713                     PASS   gold=E pred=E (9.3s, 1 calls)
+    [rag_simple/answer] 3600 chars
+[187/500] ch_ch_test_1397                     FAIL   gold=A pred=B (12.5s, 1 calls)
+    [rag_simple/answer] 2895 chars
+[188/500] ch_ch_test_3356                     FAIL   gold=C pred=D (6.3s, 1 calls)
+    [rag_simple/answer] 2428 chars
+[189/500] ch_ch_test_1882                     FAIL   gold=E pred=D (5.1s, 1 calls)
+    [rag_simple/answer] 3147 chars
+[190/500] ch_ch_test_2960                     FAIL   gold=D pred=B (7.5s, 1 calls)
+    [rag_simple/answer] 2407 chars
+[191/500] ch_ch_test_2321                     PASS   gold=C pred=C (3.7s, 1 calls)
+    [rag_simple/answer] 2792 chars
+[192/500] ch_ch_test_1829                     FAIL   gold=B pred=E (7.6s, 1 calls)
+    [rag_simple/answer] 2419 chars
+[193/500] ch_ch_test_1637                     PASS   gold=C pred=C (8.6s, 1 calls)
+    [rag_simple/answer] 2527 chars
+[194/500] ch_ch_test_408                      PASS   gold=A pred=A (4.5s, 1 calls)
+    [rag_simple/answer] 2265 chars
+[195/500] ch_ch_test_3335                     PASS   gold=E pred=E (3.1s, 1 calls)
+    [rag_simple/answer] 2774 chars
+[196/500] ch_ch_test_52                       PASS   gold=C pred=C (4.5s, 1 calls)
+    [rag_simple/answer] 2735 chars
+[197/500] ch_ch_test_949                      PASS   gold=D pred=D (8.0s, 1 calls)
+    [rag_simple/answer] 2310 chars
+[198/500] ch_ch_test_1874                     PASS   gold=C pred=C (3.4s, 1 calls)
+    [rag_simple/answer] 2211 chars
+[199/500] ch_ch_test_2780                     PASS   gold=B pred=B (3.2s, 1 calls)
+    [rag_simple/answer] 2443 chars
+[200/500] ch_ch_test_393                      PASS   gold=E pred=E (5.0s, 1 calls)
+    [rag_simple/answer] 2780 chars
+[201/500] ch_ch_test_676                      PASS   gold=D pred=D (7.4s, 1 calls)
+    [rag_simple/answer] 3030 chars
+[202/500] ch_ch_test_1791                     FAIL   gold=B pred=C (4.9s, 1 calls)
+    [rag_simple/answer] 2630 chars
+[203/500] ch_ch_test_3017                     PASS   gold=A pred=A (6.6s, 1 calls)
+    [rag_simple/answer] 2342 chars
+[204/500] ch_ch_test_1462                     FAIL   gold=C pred=D (4.9s, 1 calls)
+    [rag_simple/answer] 2797 chars
+[205/500] ch_ch_test_1221                     PASS   gold=E pred=E (4.6s, 1 calls)
+    [rag_simple/answer] 2486 chars
+[206/500] ch_ch_test_1583                     PASS   gold=E pred=E (3.0s, 1 calls)
+    [rag_simple/answer] 3170 chars
+[207/500] ch_ch_test_144                      FAIL   gold=C pred=B (4.3s, 1 calls)
+    [rag_simple/answer] 2144 chars
+[208/500] ch_ch_test_1173                     PASS   gold=E pred=E (2.5s, 1 calls)
+    [rag_simple/answer] 3102 chars
+[209/500] ch_ch_test_3470                     PASS   gold=B pred=B (4.0s, 1 calls)
+    [rag_simple/answer] 2629 chars
+[210/500] ch_ch_test_2651                     PASS   gold=A pred=A (4.4s, 1 calls)
+    [rag_simple/answer] 2962 chars
+[211/500] ch_ch_test_76                       PASS   gold=B pred=B (4.0s, 1 calls)
+    [rag_simple/answer] 2893 chars
+[212/500] ch_ch_test_1110                     PASS   gold=A pred=A (7.2s, 1 calls)
+    [rag_simple/answer] 2940 chars
+[213/500] ch_ch_test_251                      PASS   gold=B pred=B (9.4s, 1 calls)
+    [rag_simple/answer] 2756 chars
+[214/500] ch_ch_test_2315                     FAIL   gold=C pred=B (6.2s, 1 calls)
+    [rag_simple/answer] 3633 chars
+[215/500] ch_ch_test_17                       PASS   gold=C pred=C (8.4s, 1 calls)
+    [rag_simple/answer] 3260 chars
+[216/500] ch_ch_test_298                      PASS   gold=A pred=A (4.6s, 1 calls)
+    [rag_simple/answer] 3333 chars
+[217/500] ch_ch_test_2236                     FAIL   gold=B pred=E (11.2s, 1 calls)
+    [rag_simple/answer] 2651 chars
+[218/500] ch_ch_test_2822                     PASS   gold=C pred=C (3.6s, 1 calls)
+    [rag_simple/answer] 2678 chars
+[219/500] ch_ch_test_1764                     PASS   gold=A pred=A (15.3s, 1 calls)
+    [rag_simple/answer] 3688 chars
+[220/500] ch_ch_test_1738                     FAIL   gold=B pred=A (14.3s, 1 calls)
+    [rag_simple/answer] 2646 chars
+[221/500] ch_ch_test_557                      PASS   gold=A pred=A (6.0s, 1 calls)
+    [rag_simple/answer] 3368 chars
+[222/500] ch_ch_test_3196                     FAIL   gold=B pred=A (7.0s, 1 calls)
+    [rag_simple/answer] 2395 chars
+[223/500] ch_ch_test_2153                     PASS   gold=E pred=E (5.0s, 1 calls)
+    [rag_simple/answer] 2523 chars
+[224/500] ch_ch_test_1871                     PASS   gold=B pred=B (4.3s, 1 calls)
+    [rag_simple/answer] 4489 chars
+[225/500] ch_ch_test_2223                     FAIL   gold=B pred=A (5.8s, 1 calls)
+    [rag_simple/answer] 2450 chars
+[226/500] ch_ch_test_2232                     PASS   gold=B pred=B (4.1s, 1 calls)
+    [rag_simple/answer] 2847 chars
+[227/500] ch_ch_test_3137                     PASS   gold=D pred=D (3.9s, 1 calls)
+    [rag_simple/answer] 2744 chars
+[228/500] ch_ch_test_322                      PASS   gold=A pred=A (3.4s, 1 calls)
+    [rag_simple/answer] 2907 chars
+[229/500] ch_ch_test_1402                     PASS   gold=A pred=A (4.0s, 1 calls)
+    [rag_simple/answer] 3282 chars
+[230/500] ch_ch_test_2018                     FAIL   gold=E pred=D (5.4s, 1 calls)
+    [rag_simple/answer] 2893 chars
+[231/500] ch_ch_test_3301                     PASS   gold=E pred=E (4.6s, 1 calls)
+    [rag_simple/answer] 3691 chars
+[232/500] ch_ch_test_2415                     FAIL   gold=C pred=E (5.2s, 1 calls)
+    [rag_simple/answer] 3016 chars
+[233/500] ch_ch_test_1569                     PASS   gold=A pred=A (5.0s, 1 calls)
+    [rag_simple/answer] 3142 chars
+[234/500] ch_ch_test_932                      PASS   gold=A pred=A (3.2s, 1 calls)
+    [rag_simple/answer] 2257 chars
+[235/500] ch_ch_test_1075                     PASS   gold=B pred=B (2.8s, 1 calls)
+    [rag_simple/answer] 3086 chars
+[236/500] ch_ch_test_1034                     FAIL   gold=E pred=A (4.1s, 1 calls)
+    [rag_simple/answer] 3563 chars
+[237/500] ch_ch_test_1681                     PASS   gold=A pred=A (6.5s, 1 calls)
+    [rag_simple/answer] 2913 chars
+[238/500] ch_ch_test_2216                     PASS   gold=A pred=A (9.2s, 1 calls)
+    [rag_simple/answer] 2840 chars
+[239/500] ch_ch_test_1795                     FAIL   gold=B pred=E (6.8s, 1 calls)
+    [rag_simple/answer] 2220 chars
+[240/500] ch_ch_test_1023                     PASS   gold=D pred=D (3.3s, 1 calls)
+    [rag_simple/answer] 2642 chars
+[241/500] ch_ch_test_2594                     PASS   gold=A pred=A (4.4s, 1 calls)
+    [rag_simple/answer] 3766 chars
+[242/500] ch_ch_test_3557                     FAIL   gold=D pred=B (10.2s, 1 calls)
+    [rag_simple/answer] 2783 chars
+[243/500] ch_ch_test_657                      FAIL   gold=E pred=D (5.0s, 1 calls)
+    [rag_simple/answer] 2669 chars
+[244/500] ch_ch_test_527                      PASS   gold=A pred=A (6.7s, 1 calls)
+    [rag_simple/answer] 2830 chars
+[245/500] ch_ch_test_2256                     PASS   gold=A pred=A (5.6s, 1 calls)
+    [rag_simple/answer] 2454 chars
+[246/500] ch_ch_test_3440                     FAIL   gold=E pred=D (21.2s, 1 calls)
+    [rag_simple/answer] 2487 chars
+[247/500] ch_ch_test_1891                     PASS   gold=D pred=D (7.1s, 1 calls)
+    [rag_simple/answer] 2280 chars
+[248/500] ch_ch_test_2247                     PASS   gold=A pred=A (6.0s, 1 calls)
+    [rag_simple/answer] 3222 chars
+[249/500] ch_ch_test_2725                     PASS   gold=A pred=A (5.4s, 1 calls)
+    [rag_simple/answer] 2669 chars
+[250/500] ch_ch_test_2764                     FAIL   gold=B pred=A (4.6s, 1 calls)
+    [rag_simple/answer] 2643 chars
+[251/500] ch_ch_test_3075                     PASS   gold=B pred=B (4.6s, 1 calls)
+    [rag_simple/answer] 3098 chars
+[252/500] ch_ch_test_325                      PASS   gold=E pred=E (7.1s, 1 calls)
+    [rag_simple/answer] 3334 chars
+[253/500] ch_ch_test_432                      FAIL   gold=B pred=A (6.7s, 1 calls)
+    [rag_simple/answer] 2619 chars
+[254/500] ch_ch_test_30                       PASS   gold=A pred=A (5.5s, 1 calls)
+    [rag_simple/answer] 2152 chars
+[255/500] ch_ch_test_457                      FAIL   gold=D pred=E (6.4s, 1 calls)
+    [rag_simple/answer] 2691 chars
+[256/500] ch_ch_test_229                      PASS   gold=D pred=D (6.8s, 1 calls)
+    [rag_simple/answer] 3139 chars
+[257/500] ch_ch_test_203                      FAIL   gold=B pred=D (4.9s, 1 calls)
+    [rag_simple/answer] 3204 chars
+[258/500] ch_ch_test_2622                     PASS   gold=A pred=A (4.2s, 1 calls)
+    [rag_simple/answer] 4282 chars
+[259/500] ch_ch_test_785                      FAIL   gold=E pred=C (9.2s, 1 calls)
+    [rag_simple/answer] 3090 chars
+[260/500] ch_ch_test_1483                     PASS   gold=D pred=D (9.6s, 1 calls)
+    [rag_simple/answer] 2387 chars
+[261/500] ch_ch_test_2270                     PASS   gold=A pred=A (7.4s, 1 calls)
+    [rag_simple/answer] 3074 chars
+[262/500] ch_ch_test_1582                     PASS   gold=D pred=D (7.2s, 1 calls)
+    [rag_simple/answer] 3127 chars
+[263/500] ch_ch_test_693                      FAIL   gold=A pred=D (5.2s, 1 calls)
+    [rag_simple/answer] 2629 chars
+[264/500] ch_ch_test_2922                     PASS   gold=E pred=E (8.2s, 1 calls)
+    [rag_simple/answer] 2727 chars
+[265/500] ch_ch_test_2020                     FAIL   gold=E pred=B (6.9s, 1 calls)
+    [rag_simple/answer] 2486 chars
+[266/500] ch_ch_test_192                      PASS   gold=D pred=D (5.3s, 1 calls)
+    [rag_simple/answer] 3263 chars
+[267/500] ch_ch_test_2667                     PASS   gold=D pred=D (6.8s, 1 calls)
+    [rag_simple/answer] 2194 chars
+[268/500] ch_ch_test_1536                     PASS   gold=E pred=E (4.8s, 1 calls)
+    [rag_simple/answer] 2616 chars
+[269/500] ch_ch_test_3472                     PASS   gold=E pred=E (5.7s, 1 calls)
+    [rag_simple/answer] 3173 chars
+[270/500] ch_ch_test_3048                     PASS   gold=B pred=B (8.3s, 1 calls)
+    [rag_simple/answer] 3201 chars
+[271/500] ch_ch_test_166                      FAIL   gold=B pred=E (13.3s, 1 calls)
+    [rag_simple/answer] 2608 chars
+[272/500] ch_ch_test_3064                     PASS   gold=C pred=C (6.4s, 1 calls)
+    [rag_simple/answer] 3414 chars
+[273/500] ch_ch_test_1736                     FAIL   gold=D pred=C (8.8s, 1 calls)
+    [rag_simple/answer] 5156 chars
+[274/500] ch_ch_test_2825                     FAIL   gold=D pred=C (11.3s, 1 calls)
+    [rag_simple/answer] 2704 chars
+[275/500] ch_ch_test_2678                     FAIL   gold=A pred=C (3.8s, 1 calls)
+    [rag_simple/answer] 3256 chars
+[276/500] ch_ch_test_3256                     PASS   gold=A pred=A (3.5s, 1 calls)
+    [rag_simple/answer] 2672 chars
+[277/500] ch_ch_test_976                      PASS   gold=A pred=A (3.3s, 1 calls)
+    [rag_simple/answer] 3870 chars
+[278/500] ch_ch_test_1606                     PASS   gold=E pred=E (8.6s, 1 calls)
+    [rag_simple/answer] 2773 chars
+[279/500] ch_ch_test_321                      PASS   gold=E pred=E (9.1s, 1 calls)
+    [rag_simple/answer] 3093 chars
+[280/500] ch_ch_test_1511                     PASS   gold=C pred=C (6.0s, 1 calls)
+    [rag_simple/answer] 2375 chars
+[281/500] ch_ch_test_3430                     PASS   gold=C pred=C (4.2s, 1 calls)
+    [rag_simple/answer] 3406 chars
+[282/500] ch_ch_test_194                      PASS   gold=D pred=D (11.8s, 1 calls)
+    [rag_simple/answer] 2953 chars
+[283/500] ch_ch_test_1442                     PASS   gold=B pred=B (5.1s, 1 calls)
+    [rag_simple/answer] 2769 chars
+[284/500] ch_ch_test_3004                     PASS   gold=A pred=A (3.1s, 1 calls)
+    [rag_simple/answer] 9406 chars
+[285/500] ch_ch_test_3143                     FAIL   gold=E pred=B (21.7s, 1 calls)
+    [rag_simple/answer] 2691 chars
+[286/500] ch_ch_test_1042                     FAIL   gold=C pred=E (9.2s, 1 calls)
+    [rag_simple/answer] 2218 chars
+[287/500] ch_ch_test_3336                     PASS   gold=D pred=D (9.5s, 1 calls)
+    [rag_simple/answer] 2975 chars
+[288/500] ch_ch_test_501                      PASS   gold=C pred=C (7.5s, 1 calls)
+    [rag_simple/answer] 2394 chars
+[289/500] ch_ch_test_2679                     PASS   gold=B pred=B (10.0s, 1 calls)
+    [rag_simple/answer] 2930 chars
+[290/500] ch_ch_test_3405                     PASS   gold=B pred=B (15.9s, 1 calls)
+    [rag_simple/answer] 2409 chars
+[291/500] ch_ch_test_2077                     PASS   gold=C pred=C (33.2s, 1 calls)
+    [rag_simple/answer] 3268 chars
+[292/500] ch_ch_test_1916                     PASS   gold=A pred=A (12.8s, 1 calls)
+    [rag_simple/answer] 2905 chars
+[293/500] ch_ch_test_1789                     FAIL   gold=D pred=C (9.7s, 1 calls)
+    [rag_simple/answer] 3279 chars
+[294/500] ch_ch_test_3588                     PASS   gold=C pred=C (13.8s, 1 calls)
+    [rag_simple/answer] 2575 chars
+[295/500] ch_ch_test_3471                     PASS   gold=D pred=D (15.4s, 1 calls)
+    [rag_simple/answer] 2943 chars
+[296/500] ch_ch_test_3363                     FAIL   gold=A pred=B (13.7s, 1 calls)
+    [rag_simple/answer] 2365 chars
+[297/500] ch_ch_test_1436                     PASS   gold=B pred=B (6.5s, 1 calls)
+    [rag_simple/answer] 2650 chars
+[298/500] ch_ch_test_1006                     PASS   gold=A pred=A (8.1s, 1 calls)
+    [rag_simple/answer] 3988 chars
+[299/500] ch_ch_test_1163                     FAIL   gold=D pred=E (17.7s, 1 calls)
+    [rag_simple/answer] 6408 chars
+[300/500] ch_ch_test_80                       FAIL   gold=D pred=E (23.4s, 1 calls)
+    [rag_simple/answer] 3090 chars
+[301/500] ch_ch_test_1632                     PASS   gold=E pred=E (10.8s, 1 calls)
+    [rag_simple/answer] 2715 chars
+[302/500] ch_ch_test_295                      PASS   gold=A pred=A (8.4s, 1 calls)
+    [rag_simple/answer] 5632 chars
+[303/500] ch_ch_test_2266                     FAIL   gold=C pred=A (15.2s, 1 calls)
+    [rag_simple/answer] 2612 chars
+[304/500] ch_ch_test_1717                     FAIL   gold=E pred=C (12.4s, 1 calls)
+    [rag_simple/answer] 2910 chars
+[305/500] ch_ch_test_1578                     PASS   gold=E pred=E (10.6s, 1 calls)
+    [rag_simple/answer] 2760 chars
+[306/500] ch_ch_test_3597                     PASS   gold=A pred=A (8.0s, 1 calls)
+    [rag_simple/answer] 2354 chars
+[307/500] ch_ch_test_3235                     PASS   gold=B pred=B (8.3s, 1 calls)
+    [rag_simple/answer] 2795 chars
+[308/500] ch_ch_test_3320                     PASS   gold=D pred=D (9.0s, 1 calls)
+    [rag_simple/answer] 2487 chars
+[309/500] ch_ch_test_2623                     PASS   gold=D pred=D (7.8s, 1 calls)
+    [rag_simple/answer] 4471 chars
+[310/500] ch_ch_test_1898                     FAIL   gold=B pred=A (19.4s, 1 calls)
+    [rag_simple/answer] 3161 chars
+[311/500] ch_ch_test_897                      FAIL   gold=D pred=A (6.6s, 1 calls)
+    [rag_simple/answer] 3021 chars
+[312/500] ch_ch_test_463                      FAIL   gold=B pred=A (6.1s, 1 calls)
+    [rag_simple/answer] 2581 chars
+[313/500] ch_ch_test_840                      FAIL   gold=E pred=A (6.7s, 1 calls)
+    [rag_simple/answer] 2704 chars
+[314/500] ch_ch_test_1647                     PASS   gold=C pred=C (10.5s, 1 calls)
+    [rag_simple/answer] 2124 chars
+[315/500] ch_ch_test_1187                     PASS   gold=B pred=B (13.4s, 1 calls)
+    [rag_simple/answer] 4000 chars
+[316/500] ch_ch_test_1228                     FAIL   gold=B pred=D (10.4s, 1 calls)
+    [rag_simple/answer] 2645 chars
+[317/500] ch_ch_test_2370                     PASS   gold=D pred=D (6.1s, 1 calls)
+    [rag_simple/answer] 2489 chars
+[318/500] ch_ch_test_3516                     PASS   gold=E pred=E (6.3s, 1 calls)
+    [rag_simple/answer] 2529 chars
+[319/500] ch_ch_test_1117                     PASS   gold=E pred=E (7.3s, 1 calls)
+    [rag_simple/answer] 2896 chars
+[320/500] ch_ch_test_2643                     PASS   gold=A pred=A (7.4s, 1 calls)
+    [rag_simple/answer] 2780 chars
+[321/500] ch_ch_test_257                      PASS   gold=B pred=B (7.4s, 1 calls)
+    [rag_simple/answer] 2727 chars
+[322/500] ch_ch_test_1429                     PASS   gold=A pred=A (8.3s, 1 calls)
+    [rag_simple/answer] 3092 chars
+[323/500] ch_ch_test_1688                     FAIL   gold=D pred=C (8.6s, 1 calls)
+    [rag_simple/answer] 2854 chars
+[324/500] ch_ch_test_3373                     FAIL   gold=C pred=A (8.1s, 1 calls)
+    [rag_simple/answer] 2486 chars
+[325/500] ch_ch_test_1815                     PASS   gold=D pred=D (6.1s, 1 calls)
+    [rag_simple/answer] 2385 chars
+[326/500] ch_ch_test_2584                     PASS   gold=B pred=B (6.0s, 1 calls)
+    [rag_simple/answer] 5502 chars
+[327/500] ch_ch_test_3422                     FAIL   gold=C pred=A (15.3s, 1 calls)
+    [rag_simple/answer] 3736 chars
+[328/500] ch_ch_test_238                      FAIL   gold=C pred=D (17.3s, 1 calls)
+    [rag_simple/answer] 2587 chars
+[329/500] ch_ch_test_358                      PASS   gold=A pred=A (9.7s, 1 calls)
+    [rag_simple/answer] 3188 chars
+[330/500] ch_ch_test_736                      PASS   gold=A pred=A (8.6s, 1 calls)
+    [rag_simple/answer] 2437 chars
+[331/500] ch_ch_test_3319                     FAIL   gold=A pred=D (4.8s, 1 calls)
+    [rag_simple/answer] 2227 chars
+[332/500] ch_ch_test_511                      PASS   gold=A pred=A (4.1s, 1 calls)
+    [rag_simple/answer] 2376 chars
+[333/500] ch_ch_test_3398                     PASS   gold=B pred=B (10.0s, 1 calls)
+    [rag_simple/answer] 2231 chars
+[334/500] ch_ch_test_2871                     PASS   gold=B pred=B (6.5s, 1 calls)
+    [rag_simple/answer] 2570 chars
+[335/500] ch_ch_test_174                      PASS   gold=D pred=D (6.8s, 1 calls)
+    [rag_simple/answer] 2758 chars
+[336/500] ch_ch_test_755                      PASS   gold=E pred=E (4.3s, 1 calls)
+    [rag_simple/answer] 3038 chars
+[337/500] ch_ch_test_214                      PASS   gold=D pred=D (4.8s, 1 calls)
+    [rag_simple/answer] 2611 chars
+[338/500] ch_ch_test_479                      PASS   gold=A pred=A (3.8s, 1 calls)
+    [rag_simple/answer] 3684 chars
+[339/500] ch_ch_test_2928                     FAIL   gold=B pred=A (8.6s, 1 calls)
+    [rag_simple/answer] 2257 chars
+[340/500] ch_ch_test_414                      FAIL   gold=A pred=B (6.7s, 1 calls)
+    [rag_simple/answer] 3054 chars
+[341/500] ch_ch_test_2240                     PASS   gold=E pred=E (7.9s, 1 calls)
+    [rag_simple/answer] 2812 chars
+[342/500] ch_ch_test_759                      FAIL   gold=A pred=B (7.7s, 1 calls)
+    [rag_simple/answer] 2270 chars
+[343/500] ch_ch_test_102                      PASS   gold=B pred=B (4.5s, 1 calls)
+    [rag_simple/answer] 2851 chars
+[344/500] ch_ch_test_2934                     PASS   gold=E pred=E (5.6s, 1 calls)
+    [rag_simple/answer] 2369 chars
+[345/500] ch_ch_test_1586                     PASS   gold=B pred=B (10.7s, 1 calls)
+    [rag_simple/answer] 3170 chars
+[346/500] ch_ch_test_239                      FAIL   gold=B pred=E (5.3s, 1 calls)
+    [rag_simple/answer] 2574 chars
+[347/500] ch_ch_test_410                      PASS   gold=B pred=B (3.8s, 1 calls)
+    [rag_simple/answer] 2186 chars
+[348/500] ch_ch_test_402                      PASS   gold=B pred=B (3.0s, 1 calls)
+    [rag_simple/answer] 2872 chars
+[349/500] ch_ch_test_1564                     PASS   gold=C pred=C (7.0s, 1 calls)
+    [rag_simple/answer] 2376 chars
+[350/500] ch_ch_test_2339                     PASS   gold=E pred=E (13.0s, 1 calls)
+    [rag_simple/answer] 2721 chars
+[351/500] ch_ch_test_1624                     PASS   gold=A pred=A (10.4s, 1 calls)
+    [rag_simple/answer] 3421 chars
+[352/500] ch_ch_test_2071                     PASS   gold=E pred=E (8.7s, 1 calls)
+    [rag_simple/answer] 3828 chars
+[353/500] ch_ch_test_2471                     FAIL   gold=A pred=B (6.9s, 1 calls)
+    [rag_simple/answer] 3200 chars
+[354/500] ch_ch_test_2293                     FAIL   gold=D pred=A (7.6s, 1 calls)
+    [rag_simple/answer] 2513 chars
+[355/500] ch_ch_test_44                       PASS   gold=E pred=E (3.0s, 1 calls)
+    [rag_simple/answer] 2811 chars
+[356/500] ch_ch_test_45                       PASS   gold=D pred=D (3.7s, 1 calls)
+    [rag_simple/answer] 2829 chars
+[357/500] ch_ch_test_1037                     FAIL   gold=E pred=D (3.3s, 1 calls)
+    [rag_simple/answer] 2280 chars
+[358/500] ch_ch_test_332                      PASS   gold=E pred=E (5.5s, 1 calls)
+    [rag_simple/answer] 2614 chars
+[359/500] ch_ch_test_1068                     FAIL   gold=E pred=D (13.5s, 1 calls)
+    [rag_simple/answer] 2696 chars
+[360/500] ch_ch_test_2063                     PASS   gold=D pred=D (3.1s, 1 calls)
+    [rag_simple/answer] 3412 chars
+[361/500] ch_ch_test_1767                     PASS   gold=A pred=A (8.3s, 1 calls)
+    [rag_simple/answer] 2824 chars
+[362/500] ch_ch_test_1027                     PASS   gold=E pred=E (4.7s, 1 calls)
+    [rag_simple/answer] 2457 chars
+[363/500] ch_ch_test_1052                     FAIL   gold=E pred=C (7.3s, 1 calls)
+    [rag_simple/answer] 2451 chars
+[364/500] ch_ch_test_718                      FAIL   gold=D pred=E (6.7s, 1 calls)
+    [rag_simple/answer] 2806 chars
+[365/500] ch_ch_test_58                       FAIL   gold=E pred=A (11.4s, 1 calls)
+    [rag_simple/answer] 1962 chars
+[366/500] ch_ch_test_3594                     PASS   gold=B pred=B (7.2s, 1 calls)
+    [rag_simple/answer] 2031 chars
+[367/500] ch_ch_test_1011                     PASS   gold=E pred=E (6.5s, 1 calls)
+    [rag_simple/answer] 2953 chars
+[368/500] ch_ch_test_3293                     PASS   gold=B pred=B (7.0s, 1 calls)
+    [rag_simple/answer] 2893 chars
+[369/500] ch_ch_test_3138                     PASS   gold=A pred=A (4.8s, 1 calls)
+    [rag_simple/answer] 2742 chars
+[370/500] ch_ch_test_1611                     PASS   gold=D pred=D (7.3s, 1 calls)
+    [rag_simple/answer] 2439 chars
+[371/500] ch_ch_test_2461                     PASS   gold=A pred=A (4.3s, 1 calls)
+    [rag_simple/answer] 2854 chars
+[372/500] ch_ch_test_2002                     FAIL   gold=E pred=A (7.1s, 1 calls)
+    [rag_simple/answer] 2975 chars
+[373/500] ch_ch_test_2389                     PASS   gold=C pred=C (7.3s, 1 calls)
+    [rag_simple/answer] 3078 chars
+[374/500] ch_ch_test_1395                     PASS   gold=C pred=C (12.3s, 1 calls)
+    [rag_simple/answer] 2530 chars
+[375/500] ch_ch_test_2633                     PASS   gold=D pred=D (7.7s, 1 calls)
+    [rag_simple/answer] 2568 chars
+[376/500] ch_ch_test_309                      PASS   gold=A pred=A (6.7s, 1 calls)
+    [rag_simple/answer] 2247 chars
+[377/500] ch_ch_test_2045                     PASS   gold=C pred=C (15.1s, 1 calls)
+    [rag_simple/answer] 3078 chars
+[378/500] ch_ch_test_1432                     PASS   gold=E pred=E (12.1s, 1 calls)
+    [rag_simple/answer] 2694 chars
+[379/500] ch_ch_test_1665                     FAIL   gold=A pred=B (11.1s, 1 calls)
+    [rag_simple/answer] 3355 chars
+[380/500] ch_ch_test_1116                     FAIL   gold=A pred=B (10.3s, 1 calls)
+    [rag_simple/answer] 1934 chars
+[381/500] ch_ch_test_2157                     PASS   gold=C pred=C (3.7s, 1 calls)
+    [rag_simple/answer] 2833 chars
+[382/500] ch_ch_test_2795                     PASS   gold=C pred=C (4.5s, 1 calls)
+    [rag_simple/answer] 2706 chars
+[383/500] ch_ch_test_794                      FAIL   gold=C pred=D (4.2s, 1 calls)
+    [rag_simple/answer] 2838 chars
+[384/500] ch_ch_test_1427                     PASS   gold=B pred=B (6.6s, 1 calls)
+    [rag_simple/answer] 2634 chars
+[385/500] ch_ch_test_1490                     PASS   gold=E pred=E (4.3s, 1 calls)
+    [rag_simple/answer] 5879 chars
+[386/500] ch_ch_test_1468                     FAIL   gold=A pred=D (20.3s, 1 calls)
+    [rag_simple/answer] 3155 chars
+[387/500] ch_ch_test_712                      PASS   gold=B pred=B (7.9s, 1 calls)
+    [rag_simple/answer] 2470 chars
+[388/500] ch_ch_test_538                      PASS   gold=C pred=C (4.4s, 1 calls)
+    [rag_simple/answer] 3169 chars
+[389/500] ch_ch_test_1233                     PASS   gold=A pred=A (4.4s, 1 calls)
+    [rag_simple/answer] 3622 chars
+[390/500] ch_ch_test_1211                     PASS   gold=E pred=E (5.4s, 1 calls)
+    [rag_simple/answer] 3628 chars
+[391/500] ch_ch_test_781                      PASS   gold=B pred=B (15.0s, 1 calls)
+    [rag_simple/answer] 4193 chars
+[392/500] ch_ch_test_2691                     FAIL   gold=A pred=E (40.4s, 1 calls)
+    [rag_simple/answer] 2483 chars
+[393/500] ch_ch_test_188                      PASS   gold=D pred=D (20.1s, 1 calls)
+    [rag_simple/answer] 3237 chars
+[394/500] ch_ch_test_1557                     FAIL   gold=E pred=A (18.5s, 1 calls)
+    [rag_simple/answer] 3070 chars
+[395/500] ch_ch_test_2817                     PASS   gold=E pred=E (7.2s, 1 calls)
+    [rag_simple/answer] 2265 chars
+[396/500] ch_ch_test_3560                     FAIL   gold=B pred=D (5.6s, 1 calls)
+    [rag_simple/answer] 2257 chars
+[397/500] ch_ch_test_2149                     PASS   gold=E pred=E (8.1s, 1 calls)
+    [rag_simple/answer] 3024 chars
+[398/500] ch_ch_test_2686                     PASS   gold=D pred=D (13.6s, 1 calls)
+    [rag_simple/answer] 2421 chars
+[399/500] ch_ch_test_3378                     FAIL   gold=D pred=B (13.3s, 1 calls)
+    [rag_simple/answer] 3066 chars
+[400/500] ch_ch_test_2970                     FAIL   gold=A pred=E (7.5s, 1 calls)
+    [rag_simple/answer] 2825 chars
+[401/500] ch_ch_test_354                      PASS   gold=D pred=D (6.4s, 1 calls)
+    [rag_simple/answer] 2574 chars
+[402/500] ch_ch_test_240                      PASS   gold=B pred=B (8.1s, 1 calls)
+    [rag_simple/answer] 2609 chars
+[403/500] ch_ch_test_790                      FAIL   gold=E pred=B (6.4s, 1 calls)
+    [rag_simple/answer] 2617 chars
+[404/500] ch_ch_test_3100                     PASS   gold=D pred=D (9.1s, 1 calls)
+    [rag_simple/answer] 3654 chars
+[405/500] ch_ch_test_965                      FAIL   gold=C pred=B (6.0s, 1 calls)
+    [rag_simple/answer] 4655 chars
+[406/500] ch_ch_test_3487                     FAIL   gold=C pred=B (7.5s, 1 calls)
+    [rag_simple/answer] 2563 chars
+[407/500] ch_ch_test_2392                     PASS   gold=E pred=E (5.2s, 1 calls)
+    [rag_simple/answer] 3117 chars
+[408/500] ch_ch_test_1001                     PASS   gold=D pred=D (10.8s, 1 calls)
+    [rag_simple/answer] 3083 chars
+[409/500] ch_ch_test_578                      FAIL   gold=D pred=B (6.3s, 1 calls)
+    [rag_simple/answer] 2694 chars
+[410/500] ch_ch_test_554                      PASS   gold=A pred=A (7.4s, 1 calls)
+    [rag_simple/answer] 2748 chars
+[411/500] ch_ch_test_478                      PASS   gold=B pred=B (6.3s, 1 calls)
+    [rag_simple/answer] 2545 chars
+[412/500] ch_ch_test_3488                     PASS   gold=D pred=D (4.2s, 1 calls)
+    [rag_simple/answer] 2924 chars
+[413/500] ch_ch_test_1626                     PASS   gold=C pred=C (6.1s, 1 calls)
+    [rag_simple/answer] 2899 chars
+[414/500] ch_ch_test_2631                     PASS   gold=E pred=E (8.0s, 1 calls)
+    [rag_simple/answer] 2089 chars
+[415/500] ch_ch_test_152                      PASS   gold=C pred=C (3.4s, 1 calls)
+    [rag_simple/answer] 3142 chars
+[416/500] ch_ch_test_2740                     PASS   gold=B pred=B (9.8s, 1 calls)
+    [rag_simple/answer] 2868 chars
+[417/500] ch_ch_test_2259                     PASS   gold=C pred=C (7.8s, 1 calls)
+    [rag_simple/answer] 2476 chars
+[418/500] ch_ch_test_2912                     PASS   gold=C pred=C (8.2s, 1 calls)
+    [rag_simple/answer] 2295 chars
+[419/500] ch_ch_test_1912                     PASS   gold=C pred=C (5.5s, 1 calls)
+    [rag_simple/answer] 3700 chars
+[420/500] ch_ch_test_256                      PASS   gold=B pred=B (5.0s, 1 calls)
+    [rag_simple/answer] 2090 chars
+[421/500] ch_ch_test_1872                     PASS   gold=D pred=D (3.8s, 1 calls)
+    [rag_simple/answer] 2421 chars
+[422/500] ch_ch_test_346                      PASS   gold=B pred=B (6.7s, 1 calls)
+    [rag_simple/answer] 2918 chars
+[423/500] ch_ch_test_1538                     PASS   gold=C pred=C (11.9s, 1 calls)
+    [rag_simple/answer] 2263 chars
+[424/500] ch_ch_test_1807                     PASS   gold=D pred=D (4.4s, 1 calls)
+    [rag_simple/answer] 2442 chars
+[425/500] ch_ch_test_776                      FAIL   gold=E pred=A (5.0s, 1 calls)
+    [rag_simple/answer] 2541 chars
+[426/500] ch_ch_test_2512                     PASS   gold=B pred=B (16.0s, 1 calls)
+    [rag_simple/answer] 3001 chars
+[427/500] ch_ch_test_2517                     FAIL   gold=E pred=B (20.7s, 1 calls)
+    [rag_simple/answer] 2875 chars
+[428/500] ch_ch_test_1104                     PASS   gold=E pred=E (8.7s, 1 calls)
+    [rag_simple/answer] 2768 chars
+[429/500] ch_ch_test_1706                     PASS   gold=B pred=B (6.5s, 1 calls)
+    [rag_simple/answer] 2682 chars
+[430/500] ch_ch_test_2954                     PASS   gold=A pred=A (5.1s, 1 calls)
+    [rag_simple/answer] 2749 chars
+[431/500] ch_ch_test_1424                     PASS   gold=C pred=C (7.7s, 1 calls)
+    [rag_simple/answer] 2548 chars
+[432/500] ch_ch_test_2487                     PASS   gold=E pred=E (5.2s, 1 calls)
+    [rag_simple/answer] 3350 chars
+[433/500] ch_ch_test_1420                     PASS   gold=E pred=E (7.7s, 1 calls)
+    [rag_simple/answer] 2464 chars
+[434/500] ch_ch_test_178                      PASS   gold=B pred=B (5.0s, 1 calls)
+    [rag_simple/answer] 2751 chars
+[435/500] ch_ch_test_2815                     PASS   gold=E pred=E (6.5s, 1 calls)
+    [rag_simple/answer] 3200 chars
+[436/500] ch_ch_test_1983                     PASS   gold=E pred=E (9.4s, 1 calls)
+    [rag_simple/answer] 3316 chars
+[437/500] ch_ch_test_1061                     FAIL   gold=A pred=E (12.9s, 1 calls)
+    [rag_simple/answer] 2491 chars
+[438/500] ch_ch_test_573                      PASS   gold=C pred=C (11.7s, 1 calls)
+    [rag_simple/answer] 2895 chars
+[439/500] ch_ch_test_1268                     PASS   gold=B pred=B (5.9s, 1 calls)
+    [rag_simple/answer] 2911 chars
+[440/500] ch_ch_test_1080                     PASS   gold=B pred=B (8.3s, 1 calls)
+    [rag_simple/answer] 2702 chars
+[441/500] ch_ch_test_2700                     PASS   gold=A pred=A (11.6s, 1 calls)
+    [rag_simple/answer] 2084 chars
+[442/500] ch_ch_test_1726                     FAIL   gold=A pred=E (6.7s, 1 calls)
+    [rag_simple/answer] 3631 chars
+[443/500] ch_ch_test_1284                     FAIL   gold=A pred=E (11.7s, 1 calls)
+    [rag_simple/answer] 2441 chars
+[444/500] ch_ch_test_1123                     FAIL   gold=A pred=D (9.2s, 1 calls)
+    [rag_simple/answer] 2603 chars
+[445/500] ch_ch_test_3195                     FAIL   gold=E pred=C (13.1s, 1 calls)
+    [rag_simple/answer] 2618 chars
+[446/500] ch_ch_test_705                      PASS   gold=D pred=D (7.4s, 1 calls)
+    [rag_simple/answer] 2692 chars
+[447/500] ch_ch_test_14                       PASS   gold=C pred=C (7.3s, 1 calls)
+    [rag_simple/answer] 2676 chars
+[448/500] ch_ch_test_985                      PASS   gold=E pred=E (8.4s, 1 calls)
+    [rag_simple/answer] 2599 chars
+[449/500] ch_ch_test_173                      PASS   gold=B pred=B (6.2s, 1 calls)
+    [rag_simple/answer] 2676 chars
+[450/500] ch_ch_test_3428                     PASS   gold=C pred=C (7.0s, 1 calls)
+    [rag_simple/answer] 2322 chars
+[451/500] ch_ch_test_2763                     PASS   gold=B pred=B (5.3s, 1 calls)
+    [rag_simple/answer] 2921 chars
+[452/500] ch_ch_test_331                      PASS   gold=B pred=B (7.9s, 1 calls)
+    [rag_simple/answer] 2706 chars
+[453/500] ch_ch_test_691                      PASS   gold=C pred=C (12.3s, 1 calls)
+    [rag_simple/answer] 2610 chars
+[454/500] ch_ch_test_430                      PASS   gold=E pred=E (6.6s, 1 calls)
+    [rag_simple/answer] 2893 chars
+[455/500] ch_ch_test_2586                     PASS   gold=B pred=B (7.4s, 1 calls)
+    [rag_simple/answer] 2727 chars
+[456/500] ch_ch_test_3574                     PASS   gold=E pred=E (9.7s, 1 calls)
+    [rag_simple/answer] 2491 chars
+[457/500] ch_ch_test_3377                     FAIL   gold=E pred=C (8.1s, 1 calls)
+    [rag_simple/answer] 2746 chars
+[458/500] ch_ch_test_2840                     PASS   gold=C pred=C (7.0s, 1 calls)
+    [rag_simple/answer] 3066 chars
+[459/500] ch_ch_test_2059                     FAIL   gold=A pred=B (5.9s, 1 calls)
+    [rag_simple/answer] 2492 chars
+[460/500] ch_ch_test_1677                     PASS   gold=B pred=B (2.7s, 1 calls)
+    [rag_simple/answer] 2501 chars
+[461/500] ch_ch_test_1446                     PASS   gold=E pred=E (3.2s, 1 calls)
+    [rag_simple/answer] 2578 chars
+[462/500] ch_ch_test_544                      FAIL   gold=B pred=A (5.9s, 1 calls)
+    [rag_simple/answer] 3308 chars
+[463/500] ch_ch_test_1161                     PASS   gold=C pred=C (21.1s, 1 calls)
+    [rag_simple/answer] 2588 chars
+[464/500] ch_ch_test_3232                     PASS   gold=E pred=E (8.5s, 1 calls)
+    [rag_simple/answer] 2870 chars
+[465/500] ch_ch_test_1289                     PASS   gold=B pred=B (5.6s, 1 calls)
+    [rag_simple/answer] 2858 chars
+[466/500] ch_ch_test_2226                     PASS   gold=C pred=C (4.7s, 1 calls)
+    [rag_simple/answer] 2567 chars
+[467/500] ch_ch_test_450                      PASS   gold=E pred=E (4.6s, 1 calls)
+    [rag_simple/answer] 2783 chars
+[468/500] ch_ch_test_3044                     FAIL   gold=B pred=D (4.2s, 1 calls)
+    [rag_simple/answer] 2598 chars
+[469/500] ch_ch_test_1748                     PASS   gold=A pred=A (3.8s, 1 calls)
+    [rag_simple/answer] 2609 chars
+[470/500] ch_ch_test_2493                     PASS   gold=D pred=D (5.0s, 1 calls)
+    [rag_simple/answer] 2779 chars
+[471/500] ch_ch_test_324                      PASS   gold=C pred=C (4.0s, 1 calls)
+    [rag_simple/answer] 2271 chars
+[472/500] ch_ch_test_1022                     PASS   gold=D pred=D (5.4s, 1 calls)
+    [rag_simple/answer] 2472 chars
+[473/500] ch_ch_test_486                      PASS   gold=D pred=D (11.6s, 1 calls)
+    [rag_simple/answer] 2773 chars
+[474/500] ch_ch_test_1146                     FAIL   gold=A pred=E (11.4s, 1 calls)
+    [rag_simple/answer] 2901 chars
+[475/500] ch_ch_test_818                      PASS   gold=A pred=A (9.7s, 1 calls)
+    [rag_simple/answer] 2566 chars
+[476/500] ch_ch_test_63                       PASS   gold=C pred=C (11.8s, 1 calls)
+    [rag_simple/answer] 4422 chars
+[477/500] ch_ch_test_266                      FAIL   gold=A pred=B (19.1s, 1 calls)
+    [rag_simple/answer] 2986 chars
+[478/500] ch_ch_test_1728                     PASS   gold=D pred=D (8.7s, 1 calls)
+    [rag_simple/answer] 3300 chars
+[479/500] ch_ch_test_925                      PASS   gold=B pred=B (10.3s, 1 calls)
+    [rag_simple/answer] 3137 chars
+[480/500] ch_ch_test_157                      FAIL   gold=D pred=B (11.0s, 1 calls)
+    [rag_simple/answer] 2822 chars
+[481/500] ch_ch_test_857                      PASS   gold=E pred=E (11.2s, 1 calls)
+    [rag_simple/answer] 1999 chars
+[482/500] ch_ch_test_368                      PASS   gold=D pred=D (10.1s, 1 calls)
+    [rag_simple/answer] 2934 chars
+[483/500] ch_ch_test_61                       FAIL   gold=B pred=A (7.3s, 1 calls)
+    [rag_simple/answer] 2862 chars
+[484/500] ch_ch_test_2978                     PASS   gold=B pred=B (4.4s, 1 calls)
+    [rag_simple/answer] 3477 chars
+[485/500] ch_ch_test_2571                     FAIL   gold=C pred=D (4.6s, 1 calls)
+    [rag_simple/answer] 2855 chars
+[486/500] ch_ch_test_3024                     PASS   gold=E pred=E (8.5s, 1 calls)
+    [rag_simple/answer] 2483 chars
+[487/500] ch_ch_test_254                      PASS   gold=C pred=C (5.4s, 1 calls)
+    [rag_simple/answer] 2804 chars
+[488/500] ch_ch_test_2441                     PASS   gold=B pred=B (4.5s, 1 calls)
+    [rag_simple/answer] 2680 chars
+[489/500] ch_ch_test_2791                     FAIL   gold=C pred=B (8.9s, 1 calls)
+    [rag_simple/answer] 2952 chars
+[490/500] ch_ch_test_2554                     FAIL   gold=C pred=B (6.4s, 1 calls)
+    [rag_simple/answer] 2530 chars
+[491/500] ch_ch_test_2123                     PASS   gold=D pred=D (6.0s, 1 calls)
+    [rag_simple/answer] 3247 chars
+[492/500] ch_ch_test_109                      FAIL   gold=B pred=C (9.6s, 1 calls)
+    [rag_simple/answer] 2661 chars
+[493/500] ch_ch_test_124                      PASS   gold=A pred=A (5.9s, 1 calls)
+    [rag_simple/answer] 2566 chars
+[494/500] ch_ch_test_1263                     PASS   gold=C pred=C (6.9s, 1 calls)
+    [rag_simple/answer] 4157 chars
+[495/500] ch_ch_test_2436                     PASS   gold=E pred=E (8.6s, 1 calls)
+    [rag_simple/answer] 2760 chars
+[496/500] ch_ch_test_263                      PASS   gold=C pred=C (10.7s, 1 calls)
+    [rag_simple/answer] 4080 chars
+[497/500] ch_ch_test_3250                     PASS   gold=C pred=C (16.0s, 1 calls)
+    [rag_simple/answer] 2459 chars
+[498/500] ch_ch_test_2989                     PASS   gold=A pred=A (7.6s, 1 calls)
+    [rag_simple/answer] 4172 chars
+[499/500] ch_ch_test_599                      FAIL   gold=E pred=B (9.6s, 1 calls)
+    [rag_simple/answer] 2691 chars
+[500/500] ch_ch_test_1613                     PASS   gold=C pred=C (5.2s, 1 calls)
+
+======================================================================
+RESULTS: 359/500 (71.8%)
+Total time: 4271s (8.5s/query)
+======================================================================
+
+Detail log: logs/eval_rag_simple_or-gemma4-26b_20260511_1334_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_simple_detail.jsonl
+Run summary appended to: logs/experiments.jsonl
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_simple_or-gemma4-26b_20260511_1334_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_simple_detail.jsonl
+mode=rag_simple rows=500 accuracy=359/500
+errors=0
+missing_predicted_answer=0
+parse_failures=0
+retrieval_key_rows=500
+empty_retrieval_rows=0
+avg_llm_calls=1.00
+max_output_tokens=2725
+max_final_answer_chars=11702 idx=ch_test_551
+long_final_answer_rows=0
+top_level_hyde_artifacts=0
+top_level_report_artifacts=0
+top_level_knowledge_artifacts=0
+nested_gap_hyde_artifacts=0
+nested_gap_report_artifacts=0
+rows_with_formatted_question=0
+rows_with_intermediate_question=0
+rows_with_retrieval_queries=0
+rows_with_final_prompt_preview=0
+rows_with_call_trace=0
+rows_with_trace_events=0
+
+
+[2026-05-11T13:34:07-05:00] === MODE rag_rewrite tag=meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_rewrite ===
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+
+======================================================================
+EVAL: rag_rewrite | or-gemma4-26b (google/gemma-4-26b-a4b-it) | 500 questions | dataset=casehold
+Tag: meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_rewrite
+======================================================================
+
+    [preflight_smoke] 2 chars
+[preflight] provider=or-gemma4-26b OK
+[preflight] collection count skipped by SKIP_EVAL_COLLECTION_PREFLIGHT=1
+    [rag_rewrite/rewrite] 380 chars
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Loading weights:   0%|          | 0/268 [00:00<?, ?it/s]Loading weights: 100%|██████████| 268/268 [00:00<00:00, 9196.23it/s]
+[rag_utils] Reinitialized embedding position_ids=8192
+[rag_utils] Embedding max_seq_length=512
+    [rag_rewrite/answer] 3400 chars
+[1/500] ch_ch_test_1340                     FAIL   gold=D pred=B (176.0s, 2 calls)
+    [rag_rewrite/rewrite] 402 chars
+    [rag_rewrite/answer] 2801 chars
+[2/500] ch_ch_test_1601                     PASS   gold=C pred=C (8.9s, 2 calls)
+    [rag_rewrite/rewrite] 375 chars
+    [rag_rewrite/answer] 3081 chars
+[3/500] ch_ch_test_3549                     FAIL   gold=B pred=A (11.9s, 2 calls)
+    [rag_rewrite/rewrite] 373 chars
+    [rag_rewrite/answer] 2402 chars
+[4/500] ch_ch_test_3575                     PASS   gold=C pred=C (7.2s, 2 calls)
+    [rag_rewrite/rewrite] 458 chars
+    [rag_rewrite/answer] 2784 chars
+[5/500] ch_ch_test_211                      PASS   gold=C pred=C (5.6s, 2 calls)
+    [rag_rewrite/rewrite] 434 chars
+    [rag_rewrite/answer] 2932 chars
+[6/500] ch_ch_test_3515                     PASS   gold=E pred=E (6.5s, 2 calls)
+    [rag_rewrite/rewrite] 313 chars
+    [rag_rewrite/answer] 2998 chars
+[7/500] ch_ch_test_1465                     FAIL   gold=E pred=D (8.3s, 2 calls)
+    [rag_rewrite/rewrite] 448 chars
+    [rag_rewrite/answer] 2759 chars
+[8/500] ch_ch_test_134                      PASS   gold=C pred=C (7.7s, 2 calls)
+    [rag_rewrite/rewrite] 424 chars
+    [rag_rewrite/answer] 3479 chars
+[9/500] ch_ch_test_2677                     FAIL   gold=A pred=C (9.1s, 2 calls)
+    [rag_rewrite/rewrite] 340 chars
+    [rag_rewrite/answer] 3172 chars
+[10/500] ch_ch_test_1742                     PASS   gold=E pred=E (9.7s, 2 calls)
+    [rag_rewrite/rewrite] 304 chars
+    [rag_rewrite/answer] 3782 chars
+[11/500] ch_ch_test_2316                     PASS   gold=D pred=D (20.1s, 2 calls)
+    [rag_rewrite/rewrite] 369 chars
+    [rag_rewrite/answer] 2680 chars
+[12/500] ch_ch_test_26                       FAIL   gold=A pred=E (12.7s, 2 calls)
+    [rag_rewrite/rewrite] 377 chars
+    [rag_rewrite/answer] 2691 chars
+[13/500] ch_ch_test_929                      FAIL   gold=E pred=D (5.7s, 2 calls)
+    [rag_rewrite/rewrite] 413 chars
+    [rag_rewrite/answer] 2482 chars
+[14/500] ch_ch_test_32                       PASS   gold=E pred=E (6.9s, 2 calls)
+    [rag_rewrite/rewrite] 394 chars
+    [rag_rewrite/answer] 3185 chars
+[15/500] ch_ch_test_315                      PASS   gold=C pred=C (13.3s, 2 calls)
+    [rag_rewrite/rewrite] 479 chars
+    [rag_rewrite/answer] 3130 chars
+[16/500] ch_ch_test_2707                     FAIL   gold=D pred=C (13.3s, 2 calls)
+    [rag_rewrite/rewrite] 375 chars
+    [rag_rewrite/answer] 2380 chars
+[17/500] ch_ch_test_2887                     PASS   gold=C pred=C (7.7s, 2 calls)
+    [rag_rewrite/rewrite] 510 chars
+    [rag_rewrite/answer] 2965 chars
+[18/500] ch_ch_test_1509                     FAIL   gold=A pred=C (12.5s, 2 calls)
+    [rag_rewrite/rewrite] 445 chars
+    [rag_rewrite/answer] 3406 chars
+[19/500] ch_ch_test_270                      FAIL   gold=E pred=D (10.1s, 2 calls)
+    [rag_rewrite/rewrite] 343 chars
+    [rag_rewrite/answer] 2586 chars
+[20/500] ch_ch_test_1965                     PASS   gold=E pred=E (5.9s, 2 calls)
+    [rag_rewrite/rewrite] 327 chars
+    [rag_rewrite/answer] 2928 chars
+[21/500] ch_ch_test_879                      PASS   gold=A pred=A (11.6s, 2 calls)
+    [rag_rewrite/rewrite] 403 chars
+    [rag_rewrite/answer] 2780 chars
+[22/500] ch_ch_test_1924                     PASS   gold=C pred=C (21.6s, 2 calls)
+    [rag_rewrite/rewrite] 371 chars
+    [rag_rewrite/answer] 2591 chars
+[23/500] ch_ch_test_1057                     PASS   gold=C pred=C (25.3s, 2 calls)
+    [rag_rewrite/rewrite] 385 chars
+    [rag_rewrite/answer] 2408 chars
+[24/500] ch_ch_test_2377                     FAIL   gold=B pred=C (17.5s, 2 calls)
+    [rag_rewrite/rewrite] 374 chars
+    [rag_rewrite/answer] 2408 chars
+[25/500] ch_ch_test_1231                     PASS   gold=D pred=D (8.5s, 2 calls)
+    [rag_rewrite/rewrite] 388 chars
+    [rag_rewrite/answer] 2738 chars
+[26/500] ch_ch_test_439                      FAIL   gold=E pred=A (9.7s, 2 calls)
+    [rag_rewrite/rewrite] 391 chars
+    [rag_rewrite/answer] 2003 chars
+[27/500] ch_ch_test_415                      PASS   gold=B pred=B (11.0s, 2 calls)
+    [rag_rewrite/rewrite] 463 chars
+    [rag_rewrite/answer] 2801 chars
+[28/500] ch_ch_test_670                      PASS   gold=C pred=C (16.6s, 2 calls)
+    [rag_rewrite/rewrite] 302 chars
+    [rag_rewrite/answer] 2960 chars
+[29/500] ch_ch_test_2843                     FAIL   gold=D pred=B (5.2s, 2 calls)
+    [rag_rewrite/rewrite] 332 chars
+    [rag_rewrite/answer] 3722 chars
+[30/500] ch_ch_test_3019                     PASS   gold=D pred=D (15.3s, 2 calls)
+    [rag_rewrite/rewrite] 376 chars
+    [rag_rewrite/answer] 3185 chars
+[31/500] ch_ch_test_811                      PASS   gold=E pred=E (16.4s, 2 calls)
+    [rag_rewrite/rewrite] 405 chars
+    [rag_rewrite/answer] 5042 chars
+[32/500] ch_ch_test_2357                     FAIL   gold=C pred=B (21.0s, 2 calls)
+    [rag_rewrite/rewrite] 362 chars
+    [rag_rewrite/answer] 3414 chars
+[33/500] ch_ch_test_179                      FAIL   gold=E pred=D (32.4s, 2 calls)
+    [rag_rewrite/rewrite] 368 chars
+    [rag_rewrite/answer] 3883 chars
+[34/500] ch_ch_test_2762                     FAIL   gold=B pred=A (11.6s, 2 calls)
+    [rag_rewrite/rewrite] 453 chars
+    [rag_rewrite/answer] 2828 chars
+[35/500] ch_ch_test_2988                     PASS   gold=E pred=E (12.6s, 2 calls)
+    [rag_rewrite/rewrite] 450 chars
+    [rag_rewrite/answer] 3439 chars
+[36/500] ch_ch_test_2456                     PASS   gold=B pred=B (9.2s, 2 calls)
+    [rag_rewrite/rewrite] 357 chars
+    [rag_rewrite/answer] 4313 chars
+[37/500] ch_ch_test_1226                     PASS   gold=E pred=E (15.3s, 2 calls)
+    [rag_rewrite/rewrite] 339 chars
+    [rag_rewrite/answer] 2661 chars
+[38/500] ch_ch_test_999                      PASS   gold=C pred=C (13.0s, 2 calls)
+    [rag_rewrite/rewrite] 439 chars
+    [rag_rewrite/answer] 2764 chars
+[39/500] ch_ch_test_817                      PASS   gold=E pred=E (16.7s, 2 calls)
+    [rag_rewrite/rewrite] 382 chars
+    [rag_rewrite/answer] 2483 chars
+[40/500] ch_ch_test_927                      PASS   gold=E pred=E (11.1s, 2 calls)
+    [rag_rewrite/rewrite] 427 chars
+    [rag_rewrite/answer] 2999 chars
+[41/500] ch_ch_test_2696                     PASS   gold=A pred=A (14.6s, 2 calls)
+    [rag_rewrite/rewrite] 451 chars
+    [rag_rewrite/answer] 3293 chars
+[42/500] ch_ch_test_3033                     PASS   gold=D pred=D (15.6s, 2 calls)
+    [rag_rewrite/rewrite] 319 chars
+    [rag_rewrite/answer] 2119 chars
+[43/500] ch_ch_test_2955                     PASS   gold=D pred=D (11.5s, 2 calls)
+    [rag_rewrite/rewrite] 387 chars
+    [rag_rewrite/answer] 2828 chars
+[44/500] ch_ch_test_120                      FAIL   gold=A pred=C (16.2s, 2 calls)
+    [rag_rewrite/rewrite] 360 chars
+    [rag_rewrite/answer] 3672 chars
+[45/500] ch_ch_test_1786                     FAIL   gold=D pred=C (15.7s, 2 calls)
+    [rag_rewrite/rewrite] 414 chars
+    [rag_rewrite/answer] 2569 chars
+[46/500] ch_ch_test_1403                     PASS   gold=A pred=A (13.4s, 2 calls)
+    [rag_rewrite/rewrite] 456 chars
+    [rag_rewrite/answer] 3318 chars
+[47/500] ch_ch_test_387                      PASS   gold=C pred=C (17.2s, 2 calls)
+    [rag_rewrite/rewrite] 386 chars
+    [rag_rewrite/answer] 2036 chars
+[48/500] ch_ch_test_1510                     PASS   gold=D pred=D (11.0s, 2 calls)
+    [rag_rewrite/rewrite] 374 chars
+    [rag_rewrite/answer] 2228 chars
+[49/500] ch_ch_test_2104                     PASS   gold=E pred=E (13.6s, 2 calls)
+    [rag_rewrite/rewrite] 404 chars
+    [rag_rewrite/answer] 2355 chars
+[50/500] ch_ch_test_2962                     PASS   gold=B pred=B (13.5s, 2 calls)
+    [rag_rewrite/rewrite] 393 chars
+    [rag_rewrite/answer] 3773 chars
+[51/500] ch_ch_test_1957                     FAIL   gold=D pred=E (20.2s, 2 calls)
+    [rag_rewrite/rewrite] 359 chars
+    [rag_rewrite/answer] 2688 chars
+[52/500] ch_ch_test_842                      PASS   gold=D pred=D (5.0s, 2 calls)
+    [rag_rewrite/rewrite] 406 chars
+    [rag_rewrite/answer] 2226 chars
+[53/500] ch_ch_test_184                      PASS   gold=E pred=E (6.3s, 2 calls)
+    [rag_rewrite/rewrite] 414 chars
+    [rag_rewrite/answer] 3752 chars
+[54/500] ch_ch_test_495                      PASS   gold=D pred=D (10.8s, 2 calls)
+    [rag_rewrite/rewrite] 415 chars
+    [rag_rewrite/answer] 3359 chars
+[55/500] ch_ch_test_2211                     PASS   gold=A pred=A (141.2s, 2 calls)
+    [rag_rewrite/rewrite] 393 chars
+    [rag_rewrite/answer] 2798 chars
+[56/500] ch_ch_test_3201                     PASS   gold=B pred=B (9.1s, 2 calls)
+    [rag_rewrite/rewrite] 431 chars
+    [rag_rewrite/answer] 2750 chars
+[57/500] ch_ch_test_926                      PASS   gold=C pred=C (7.2s, 2 calls)
+    [rag_rewrite/rewrite] 404 chars
+    [rag_rewrite/answer] 2528 chars
+[58/500] ch_ch_test_461                      PASS   gold=E pred=E (8.7s, 2 calls)
+    [rag_rewrite/rewrite] 399 chars
+    [rag_rewrite/answer] 2626 chars
+[59/500] ch_ch_test_33                       PASS   gold=D pred=D (6.6s, 2 calls)
+    [rag_rewrite/rewrite] 391 chars
+    [rag_rewrite/answer] 3347 chars
+[60/500] ch_ch_test_1793                     FAIL   gold=B pred=A (8.0s, 2 calls)
+    [rag_rewrite/rewrite] 370 chars
+    [rag_rewrite/answer] 2804 chars
+[61/500] ch_ch_test_289                      PASS   gold=C pred=C (8.7s, 2 calls)
+    [rag_rewrite/rewrite] 391 chars
+    [rag_rewrite/answer] 2290 chars
+[62/500] ch_ch_test_2589                     PASS   gold=A pred=A (6.9s, 2 calls)
+    [rag_rewrite/rewrite] 382 chars
+    [rag_rewrite/answer] 3247 chars
+[63/500] ch_ch_test_1539                     FAIL   gold=D pred=B (14.2s, 2 calls)
+    [rag_rewrite/rewrite] 371 chars
+    [rag_rewrite/answer] 2342 chars
+[64/500] ch_ch_test_644                      PASS   gold=D pred=D (8.9s, 2 calls)
+    [rag_rewrite/rewrite] 420 chars
+    [rag_rewrite/answer] 2882 chars
+[65/500] ch_ch_test_93                       FAIL   gold=C pred=A (10.4s, 2 calls)
+    [rag_rewrite/rewrite] 366 chars
+    [rag_rewrite/answer] 3410 chars
+[66/500] ch_ch_test_969                      FAIL   gold=B pred=A (11.0s, 2 calls)
+    [rag_rewrite/rewrite] 521 chars
+    [rag_rewrite/answer] 2822 chars
+[67/500] ch_ch_test_1554                     FAIL   gold=B pred=A (13.3s, 2 calls)
+    [rag_rewrite/rewrite] 376 chars
+    [rag_rewrite/answer] 3191 chars
+[68/500] ch_ch_test_1174                     PASS   gold=A pred=A (19.8s, 2 calls)
+    [rag_rewrite/rewrite] 438 chars
+    [rag_rewrite/answer] 4894 chars
+[69/500] ch_ch_test_2575                     FAIL   gold=D pred=C (22.3s, 2 calls)
+    [rag_rewrite/rewrite] 366 chars
+    [rag_rewrite/answer] 2295 chars
+[70/500] ch_ch_test_3153                     PASS   gold=B pred=B (9.9s, 2 calls)
+    [rag_rewrite/rewrite] 416 chars
+    [rag_rewrite/answer] 2934 chars
+[71/500] ch_ch_test_803                      FAIL   gold=C pred=E (58.0s, 2 calls)
+    [rag_rewrite/rewrite] 372 chars
+    [rag_rewrite/answer] 2781 chars
+[72/500] ch_ch_test_1474                     PASS   gold=E pred=E (12.3s, 2 calls)
+    [rag_rewrite/rewrite] 385 chars
+    [rag_rewrite/answer] 2992 chars
+[73/500] ch_ch_test_602                      FAIL   gold=C pred=D (8.1s, 2 calls)
+    [rag_rewrite/rewrite] 377 chars
+    [rag_rewrite/answer] 2623 chars
+[74/500] ch_ch_test_1964                     PASS   gold=B pred=B (5.6s, 2 calls)
+    [rag_rewrite/rewrite] 405 chars
+    [rag_rewrite/answer] 2846 chars
+[75/500] ch_ch_test_2728                     PASS   gold=B pred=B (14.7s, 2 calls)
+    [rag_rewrite/rewrite] 447 chars
+    [rag_rewrite/answer] 4910 chars
+[76/500] ch_ch_test_1336                     FAIL   gold=C pred=A (21.5s, 2 calls)
+    [rag_rewrite/rewrite] 389 chars
+    [rag_rewrite/answer] 2745 chars
+[77/500] ch_ch_test_948                      PASS   gold=E pred=E (23.5s, 2 calls)
+    [rag_rewrite/rewrite] 497 chars
+    [rag_rewrite/answer] 3327 chars
+[78/500] ch_ch_test_3176                     PASS   gold=D pred=D (20.2s, 2 calls)
+    [rag_rewrite/rewrite] 386 chars
+    [rag_rewrite/answer] 2697 chars
+[79/500] ch_ch_test_802                      PASS   gold=E pred=E (23.7s, 2 calls)
+    [rag_rewrite/rewrite] 443 chars
+    [rag_rewrite/answer] 2413 chars
+[80/500] ch_ch_test_1765                     PASS   gold=C pred=C (5.4s, 2 calls)
+    [rag_rewrite/rewrite] 339 chars
+    [rag_rewrite/answer] 3932 chars
+[81/500] ch_ch_test_70                       PASS   gold=A pred=A (6.6s, 2 calls)
+    [rag_rewrite/rewrite] 421 chars
+    [rag_rewrite/answer] 2606 chars
+[82/500] ch_ch_test_443                      PASS   gold=B pred=B (23.6s, 2 calls)
+    [rag_rewrite/rewrite] 271 chars
+    [rag_rewrite/answer] 3502 chars
+[83/500] ch_ch_test_2329                     PASS   gold=E pred=E (7.9s, 2 calls)
+    [rag_rewrite/rewrite] 482 chars
+    [rag_rewrite/answer] 3177 chars
+[84/500] ch_ch_test_2453                     FAIL   gold=E pred=C (18.7s, 2 calls)
+    [rag_rewrite/rewrite] 427 chars
+    [rag_rewrite/answer] 1998 chars
+[85/500] ch_ch_test_1067                     PASS   gold=D pred=D (5.4s, 2 calls)
+    [rag_rewrite/rewrite] 421 chars
+    [rag_rewrite/answer] 3181 chars
+[86/500] ch_ch_test_2636                     PASS   gold=E pred=E (6.5s, 2 calls)
+    [rag_rewrite/rewrite] 397 chars
+    [rag_rewrite/answer] 2950 chars
+[87/500] ch_ch_test_2772                     PASS   gold=D pred=D (5.9s, 2 calls)
+    [rag_rewrite/rewrite] 412 chars
+    [rag_rewrite/answer] 2952 chars
+[88/500] ch_ch_test_2334                     FAIL   gold=C pred=B (7.1s, 2 calls)
+    [rag_rewrite/rewrite] 452 chars
+    [rag_rewrite/answer] 2426 chars
+[89/500] ch_ch_test_2282                     PASS   gold=D pred=D (11.7s, 2 calls)
+    [rag_rewrite/rewrite] 409 chars
+    [rag_rewrite/answer] 2706 chars
+[90/500] ch_ch_test_1414                     PASS   gold=A pred=A (5.4s, 2 calls)
+    [rag_rewrite/rewrite] 439 chars
+    [rag_rewrite/answer] 2937 chars
+[91/500] ch_ch_test_605                      FAIL   gold=C pred=B (7.0s, 2 calls)
+    [rag_rewrite/rewrite] 363 chars
+    [rag_rewrite/answer] 2277 chars
+[92/500] ch_ch_test_291                      PASS   gold=B pred=B (6.8s, 2 calls)
+    [rag_rewrite/rewrite] 375 chars
+    [rag_rewrite/answer] 2215 chars
+[93/500] ch_ch_test_564                      PASS   gold=C pred=C (11.9s, 2 calls)
+    [rag_rewrite/rewrite] 392 chars
+    [rag_rewrite/answer] 2763 chars
+[94/500] ch_ch_test_2567                     PASS   gold=A pred=A (17.9s, 2 calls)
+    [rag_rewrite/rewrite] 368 chars
+    [rag_rewrite/answer] 2786 chars
+[95/500] ch_ch_test_3581                     PASS   gold=D pred=D (16.5s, 2 calls)
+    [rag_rewrite/rewrite] 449 chars
+    [rag_rewrite/answer] 2596 chars
+[96/500] ch_ch_test_1106                     PASS   gold=B pred=B (7.8s, 2 calls)
+    [rag_rewrite/rewrite] 349 chars
+    [rag_rewrite/answer] 2309 chars
+[97/500] ch_ch_test_2384                     FAIL   gold=A pred=E (8.2s, 2 calls)
+    [rag_rewrite/rewrite] 385 chars
+    [rag_rewrite/answer] 5129 chars
+[98/500] ch_ch_test_551                      PASS   gold=B pred=B (34.5s, 2 calls)
+    [rag_rewrite/rewrite] 432 chars
+    [rag_rewrite/answer] 3212 chars
+[99/500] ch_ch_test_1236                     PASS   gold=E pred=E (7.6s, 2 calls)
+    [rag_rewrite/rewrite] 385 chars
+    [rag_rewrite/answer] 2635 chars
+[100/500] ch_ch_test_1572                     PASS   gold=A pred=A (11.0s, 2 calls)
+    [rag_rewrite/rewrite] 442 chars
+    [rag_rewrite/answer] 2851 chars
+[101/500] ch_ch_test_1995                     PASS   gold=D pred=D (5.3s, 2 calls)
+    [rag_rewrite/rewrite] 408 chars
+    [rag_rewrite/answer] 2916 chars
+[102/500] ch_ch_test_1426                     PASS   gold=D pred=D (6.1s, 2 calls)
+    [rag_rewrite/rewrite] 368 chars
+    [rag_rewrite/answer] 2905 chars
+[103/500] ch_ch_test_196                      PASS   gold=B pred=B (9.5s, 2 calls)
+    [rag_rewrite/rewrite] 370 chars
+    [rag_rewrite/answer] 2352 chars
+[104/500] ch_ch_test_3262                     PASS   gold=D pred=D (7.3s, 2 calls)
+    [rag_rewrite/rewrite] 322 chars
+    [rag_rewrite/answer] 2468 chars
+[105/500] ch_ch_test_1053                     PASS   gold=D pred=D (7.1s, 2 calls)
+    [rag_rewrite/rewrite] 332 chars
+    [rag_rewrite/answer] 2836 chars
+[106/500] ch_ch_test_889                      FAIL   gold=C pred=B (7.0s, 2 calls)
+    [rag_rewrite/rewrite] 451 chars
+    [rag_rewrite/answer] 2907 chars
+[107/500] ch_ch_test_2864                     PASS   gold=A pred=A (12.7s, 2 calls)
+    [rag_rewrite/rewrite] 358 chars
+    [rag_rewrite/answer] 2622 chars
+[108/500] ch_ch_test_3199                     PASS   gold=E pred=E (9.3s, 2 calls)
+    [rag_rewrite/rewrite] 412 chars
+    [rag_rewrite/answer] 2705 chars
+[109/500] ch_ch_test_411                      PASS   gold=D pred=D (7.7s, 2 calls)
+    [rag_rewrite/rewrite] 440 chars
+    [rag_rewrite/answer] 3002 chars
+[110/500] ch_ch_test_149                      PASS   gold=E pred=E (8.1s, 2 calls)
+    [rag_rewrite/rewrite] 429 chars
+    [rag_rewrite/answer] 2972 chars
+[111/500] ch_ch_test_937                      PASS   gold=E pred=E (8.4s, 2 calls)
+    [rag_rewrite/rewrite] 410 chars
+    [rag_rewrite/answer] 2300 chars
+[112/500] ch_ch_test_2225                     PASS   gold=A pred=A (9.3s, 2 calls)
+    [rag_rewrite/rewrite] 433 chars
+    [rag_rewrite/answer] 3039 chars
+[113/500] ch_ch_test_314                      PASS   gold=D pred=D (6.6s, 2 calls)
+    [rag_rewrite/rewrite] 424 chars
+    [rag_rewrite/answer] 2903 chars
+[114/500] ch_ch_test_2503                     PASS   gold=A pred=A (10.1s, 2 calls)
+    [rag_rewrite/rewrite] 415 chars
+    [rag_rewrite/answer] 2579 chars
+[115/500] ch_ch_test_2269                     PASS   gold=B pred=B (9.7s, 2 calls)
+    [rag_rewrite/rewrite] 369 chars
+    [rag_rewrite/answer] 3681 chars
+[116/500] ch_ch_test_1896                     FAIL   gold=D pred=E (8.2s, 2 calls)
+    [rag_rewrite/rewrite] 418 chars
+    [rag_rewrite/answer] 2854 chars
+[117/500] ch_ch_test_1813                     PASS   gold=C pred=C (11.2s, 2 calls)
+    [rag_rewrite/rewrite] 390 chars
+    [rag_rewrite/answer] 2659 chars
+[118/500] ch_ch_test_1298                     PASS   gold=A pred=A (30.8s, 2 calls)
+    [rag_rewrite/rewrite] 440 chars
+    [rag_rewrite/answer] 3360 chars
+[119/500] ch_ch_test_2147                     FAIL   gold=C pred=D (7.1s, 2 calls)
+    [rag_rewrite/rewrite] 338 chars
+    [rag_rewrite/answer] 2817 chars
+[120/500] ch_ch_test_3424                     PASS   gold=A pred=A (50.1s, 2 calls)
+    [rag_rewrite/rewrite] 354 chars
+    [rag_rewrite/answer] 6157 chars
+[121/500] ch_ch_test_3222                     FAIL   gold=B pred=D (22.8s, 2 calls)
+    [rag_rewrite/rewrite] 423 chars
+    [rag_rewrite/answer] 2807 chars
+[122/500] ch_ch_test_3532                     PASS   gold=C pred=C (7.6s, 2 calls)
+    [rag_rewrite/rewrite] 435 chars
+    [rag_rewrite/answer] 2758 chars
+[123/500] ch_ch_test_299                      PASS   gold=B pred=B (7.0s, 2 calls)
+    [rag_rewrite/rewrite] 301 chars
+    [rag_rewrite/answer] 3078 chars
+[124/500] ch_ch_test_1108                     PASS   gold=A pred=A (6.2s, 2 calls)
+    [rag_rewrite/rewrite] 448 chars
+    [rag_rewrite/answer] 2824 chars
+[125/500] ch_ch_test_1770                     PASS   gold=B pred=B (6.4s, 2 calls)
+    [rag_rewrite/rewrite] 391 chars
+    [rag_rewrite/answer] 2926 chars
+[126/500] ch_ch_test_805                      PASS   gold=C pred=C (10.0s, 2 calls)
+    [rag_rewrite/rewrite] 377 chars
+    [rag_rewrite/answer] 2917 chars
+[127/500] ch_ch_test_2985                     FAIL   gold=C pred=B (20.0s, 2 calls)
+    [rag_rewrite/rewrite] 334 chars
+    [rag_rewrite/answer] 1605 chars
+[128/500] ch_ch_test_183                      PASS   gold=B pred=B (11.4s, 2 calls)
+    [rag_rewrite/rewrite] 340 chars
+    [rag_rewrite/answer] 2359 chars
+[129/500] ch_ch_test_3327                     PASS   gold=A pred=A (13.8s, 2 calls)
+    [rag_rewrite/rewrite] 332 chars
+    [rag_rewrite/answer] 2680 chars
+[130/500] ch_ch_test_1025                     PASS   gold=E pred=E (10.8s, 2 calls)
+    [rag_rewrite/rewrite] 338 chars
+    [rag_rewrite/answer] 2671 chars
+[131/500] ch_ch_test_2189                     FAIL   gold=A pred=C (19.9s, 2 calls)
+    [rag_rewrite/rewrite] 365 chars
+    [rag_rewrite/answer] 2622 chars
+[132/500] ch_ch_test_881                      FAIL   gold=B pred=E (14.9s, 2 calls)
+    [rag_rewrite/rewrite] 434 chars
+    [rag_rewrite/answer] 3165 chars
+[133/500] ch_ch_test_2793                     PASS   gold=D pred=D (14.7s, 2 calls)
+    [rag_rewrite/rewrite] 390 chars
+    [rag_rewrite/answer] 2499 chars
+[134/500] ch_ch_test_2844                     PASS   gold=B pred=B (6.0s, 2 calls)
+    [rag_rewrite/rewrite] 407 chars
+    [rag_rewrite/answer] 3087 chars
+[135/500] ch_ch_test_1376                     PASS   gold=D pred=D (8.1s, 2 calls)
+    [rag_rewrite/rewrite] 415 chars
+    [rag_rewrite/answer] 2564 chars
+[136/500] ch_ch_test_1171                     PASS   gold=E pred=E (16.9s, 2 calls)
+    [rag_rewrite/rewrite] 349 chars
+    [rag_rewrite/answer] 2819 chars
+[137/500] ch_ch_test_3423                     PASS   gold=E pred=E (13.5s, 2 calls)
+    [rag_rewrite/rewrite] 335 chars
+    [rag_rewrite/answer] 3847 chars
+[138/500] ch_ch_test_51                       FAIL   gold=E pred=A (8.1s, 2 calls)
+    [rag_rewrite/rewrite] 412 chars
+    [rag_rewrite/answer] 3046 chars
+[139/500] ch_ch_test_351                      PASS   gold=E pred=E (8.6s, 2 calls)
+    [rag_rewrite/rewrite] 366 chars
+    [rag_rewrite/answer] 2750 chars
+[140/500] ch_ch_test_1877                     PASS   gold=D pred=D (17.2s, 2 calls)
+    [rag_rewrite/rewrite] 264 chars
+    [rag_rewrite/answer] 2583 chars
+[141/500] ch_ch_test_862                      PASS   gold=E pred=E (32.2s, 2 calls)
+    [rag_rewrite/rewrite] 448 chars
+    [rag_rewrite/answer] 2837 chars
+[142/500] ch_ch_test_534                      FAIL   gold=B pred=C (16.9s, 2 calls)
+    [rag_rewrite/rewrite] 395 chars
+    [rag_rewrite/answer] 3159 chars
+[143/500] ch_ch_test_2893                     PASS   gold=A pred=A (11.1s, 2 calls)
+    [rag_rewrite/rewrite] 365 chars
+    [rag_rewrite/answer] 3472 chars
+[144/500] ch_ch_test_2827                     PASS   gold=C pred=C (16.6s, 2 calls)
+    [rag_rewrite/rewrite] 423 chars
+    [rag_rewrite/answer] 2063 chars
+[145/500] ch_ch_test_2918                     PASS   gold=E pred=E (9.5s, 2 calls)
+    [rag_rewrite/rewrite] 410 chars
+    [rag_rewrite/answer] 2763 chars
+[146/500] ch_ch_test_1044                     PASS   gold=C pred=C (43.6s, 2 calls)
+    [rag_rewrite/rewrite] 372 chars
+    [rag_rewrite/answer] 2651 chars
+[147/500] ch_ch_test_3351                     PASS   gold=E pred=E (28.4s, 2 calls)
+    [rag_rewrite/rewrite] 382 chars
+    [rag_rewrite/answer] 2622 chars
+[148/500] ch_ch_test_170                      PASS   gold=C pred=C (11.3s, 2 calls)
+    [rag_rewrite/rewrite] 422 chars
+    [rag_rewrite/answer] 2850 chars
+[149/500] ch_ch_test_139                      PASS   gold=C pred=C (7.9s, 2 calls)
+    [rag_rewrite/rewrite] 484 chars
+    [rag_rewrite/answer] 2531 chars
+[150/500] ch_ch_test_1213                     PASS   gold=C pred=C (18.6s, 2 calls)
+    [rag_rewrite/rewrite] 384 chars
+    [rag_rewrite/answer] 2626 chars
+[151/500] ch_ch_test_2113                     PASS   gold=D pred=D (9.1s, 2 calls)
+    [rag_rewrite/rewrite] 403 chars
+    [rag_rewrite/answer] 2333 chars
+[152/500] ch_ch_test_3306                     FAIL   gold=C pred=D (8.8s, 2 calls)
+    [rag_rewrite/rewrite] 352 chars
+    [rag_rewrite/answer] 2624 chars
+[153/500] ch_ch_test_279                      PASS   gold=A pred=A (23.6s, 2 calls)
+    [rag_rewrite/rewrite] 434 chars
+    [rag_rewrite/answer] 2197 chars
+[154/500] ch_ch_test_1980                     PASS   gold=E pred=E (9.8s, 2 calls)
+    [rag_rewrite/rewrite] 386 chars
+    [rag_rewrite/answer] 3351 chars
+[155/500] ch_ch_test_2899                     PASS   gold=E pred=E (16.2s, 2 calls)
+    [rag_rewrite/rewrite] 334 chars
+    [rag_rewrite/answer] 2346 chars
+[156/500] ch_ch_test_2374                     PASS   gold=D pred=D (19.5s, 2 calls)
+    [rag_rewrite/rewrite] 393 chars
+    [rag_rewrite/answer] 2753 chars
+[157/500] ch_ch_test_1064                     PASS   gold=B pred=B (44.7s, 2 calls)
+    [rag_rewrite/rewrite] 391 chars
+    [rag_rewrite/answer] 2745 chars
+[158/500] ch_ch_test_567                      PASS   gold=C pred=C (17.8s, 2 calls)
+    [rag_rewrite/rewrite] 373 chars
+    [rag_rewrite/answer] 3194 chars
+[159/500] ch_ch_test_1480                     FAIL   gold=D pred=C (18.1s, 2 calls)
+    [rag_rewrite/rewrite] 354 chars
+    [rag_rewrite/answer] 2707 chars
+[160/500] ch_ch_test_2996                     FAIL   gold=D pred=B (41.9s, 2 calls)
+    [rag_rewrite/rewrite] 390 chars
+    [rag_rewrite/answer] 2346 chars
+[161/500] ch_ch_test_3114                     PASS   gold=B pred=B (15.3s, 2 calls)
+    [rag_rewrite/rewrite] 509 chars
+    [rag_rewrite/answer] 3014 chars
+[162/500] ch_ch_test_1608                     FAIL   gold=D pred=E (26.9s, 2 calls)
+    [rag_rewrite/rewrite] 336 chars
+    [rag_rewrite/answer] 2515 chars
+[163/500] ch_ch_test_2726                     PASS   gold=D pred=D (21.2s, 2 calls)
+    [rag_rewrite/rewrite] 414 chars
+    [rag_rewrite/answer] 2971 chars
+[164/500] ch_ch_test_964                      PASS   gold=A pred=A (29.3s, 2 calls)
+    [rag_rewrite/rewrite] 454 chars
+    [rag_rewrite/answer] 3454 chars
+[165/500] ch_ch_test_1936                     PASS   gold=A pred=A (16.9s, 2 calls)
+    [rag_rewrite/rewrite] 342 chars
+    [rag_rewrite/answer] 2446 chars
+[166/500] ch_ch_test_1391                     PASS   gold=E pred=E (12.7s, 2 calls)
+    [rag_rewrite/rewrite] 388 chars
+    [rag_rewrite/answer] 2659 chars
+[167/500] ch_ch_test_2396                     PASS   gold=C pred=C (9.9s, 2 calls)
+    [rag_rewrite/rewrite] 382 chars
+    [rag_rewrite/answer] 3104 chars
+[168/500] ch_ch_test_2221                     FAIL   gold=D pred=A (19.8s, 2 calls)
+    [rag_rewrite/rewrite] 429 chars
+    [rag_rewrite/answer] 2786 chars
+[169/500] ch_ch_test_3556                     PASS   gold=D pred=D (16.0s, 2 calls)
+    [rag_rewrite/rewrite] 405 chars
+    [rag_rewrite/answer] 2515 chars
+[170/500] ch_ch_test_3214                     PASS   gold=B pred=B (13.7s, 2 calls)
+    [rag_rewrite/rewrite] 393 chars
+    [rag_rewrite/answer] 4105 chars
+[171/500] ch_ch_test_3192                     PASS   gold=E pred=E (17.0s, 2 calls)
+    [rag_rewrite/rewrite] 404 chars
+    [rag_rewrite/answer] 3457 chars
+[172/500] ch_ch_test_2148                     FAIL   gold=A pred=B (14.6s, 2 calls)
+    [rag_rewrite/rewrite] 424 chars
+    [rag_rewrite/answer] 2873 chars
+[173/500] ch_ch_test_1488                     FAIL   gold=E pred=C (15.8s, 2 calls)
+    [rag_rewrite/rewrite] 492 chars
+    [rag_rewrite/answer] 3011 chars
+[174/500] ch_ch_test_2736                     PASS   gold=E pred=E (22.9s, 2 calls)
+    [rag_rewrite/rewrite] 431 chars
+    [rag_rewrite/answer] 2871 chars
+[175/500] ch_ch_test_2929                     FAIL   gold=D pred=A (11.4s, 2 calls)
+    [rag_rewrite/rewrite] 413 chars
+    [rag_rewrite/answer] 3605 chars
+[176/500] ch_ch_test_1718                     FAIL   gold=C pred=A (24.2s, 2 calls)
+    [rag_rewrite/rewrite] 364 chars
+    [rag_rewrite/answer] 2766 chars
+[177/500] ch_ch_test_1157                     PASS   gold=A pred=A (14.4s, 2 calls)
+    [rag_rewrite/rewrite] 380 chars
+    [rag_rewrite/answer] 3283 chars
+[178/500] ch_ch_test_1953                     PASS   gold=E pred=E (18.6s, 2 calls)
+    [rag_rewrite/rewrite] 510 chars
+    [rag_rewrite/answer] 4064 chars
+[179/500] ch_ch_test_3198                     FAIL   gold=C pred=A (23.2s, 2 calls)
+    [rag_rewrite/rewrite] 489 chars
+    [rag_rewrite/answer] 2140 chars
+[180/500] ch_ch_test_2905                     FAIL   gold=D pred=C (18.1s, 2 calls)
+    [rag_rewrite/rewrite] 352 chars
+    [rag_rewrite/answer] 3081 chars
+[181/500] ch_ch_test_2562                     FAIL   gold=E pred=B (27.1s, 2 calls)
+    [rag_rewrite/rewrite] 445 chars
+    [rag_rewrite/answer] 2962 chars
+[182/500] ch_ch_test_1788                     PASS   gold=A pred=A (30.8s, 2 calls)
+    [rag_rewrite/rewrite] 381 chars
+    [rag_rewrite/answer] 2638 chars
+[183/500] ch_ch_test_438                      PASS   gold=D pred=D (10.3s, 2 calls)
+    [rag_rewrite/rewrite] 379 chars
+    [rag_rewrite/answer] 3189 chars
+[184/500] ch_ch_test_2611                     PASS   gold=C pred=C (13.3s, 2 calls)
+    [rag_rewrite/rewrite] 378 chars
+    [rag_rewrite/answer] 2563 chars
+[185/500] ch_ch_test_752                      PASS   gold=B pred=B (15.6s, 2 calls)
+    [rag_rewrite/rewrite] 388 chars
+    [rag_rewrite/answer] 2360 chars
+[186/500] ch_ch_test_2713                     PASS   gold=E pred=E (19.9s, 2 calls)
+    [rag_rewrite/rewrite] 386 chars
+    [rag_rewrite/answer] 3393 chars
+[187/500] ch_ch_test_1397                     FAIL   gold=A pred=B (30.8s, 2 calls)
+    [rag_rewrite/rewrite] 409 chars
+    [rag_rewrite/answer] 3982 chars
+[188/500] ch_ch_test_3356                     FAIL   gold=C pred=D (27.5s, 2 calls)
+    [rag_rewrite/rewrite] 364 chars
+    [rag_rewrite/answer] 2702 chars
+[189/500] ch_ch_test_1882                     FAIL   gold=E pred=D (18.3s, 2 calls)
+    [rag_rewrite/rewrite] 374 chars
+    [rag_rewrite/answer] 3003 chars
+[190/500] ch_ch_test_2960                     PASS   gold=D pred=D (20.8s, 2 calls)
+    [rag_rewrite/rewrite] 418 chars
+    [rag_rewrite/answer] 3079 chars
+[191/500] ch_ch_test_2321                     PASS   gold=C pred=C (24.1s, 2 calls)
+    [rag_rewrite/rewrite] 421 chars
+    [rag_rewrite/answer] 3812 chars
+[192/500] ch_ch_test_1829                     FAIL   gold=B pred=E (24.9s, 2 calls)
+    [rag_rewrite/rewrite] 418 chars
+    [rag_rewrite/answer] 2790 chars
+[193/500] ch_ch_test_1637                     PASS   gold=C pred=C (64.4s, 2 calls)
+    [rag_rewrite/rewrite] 380 chars
+    [rag_rewrite/answer] 2727 chars
+[194/500] ch_ch_test_408                      PASS   gold=A pred=A (9.7s, 2 calls)
+    [rag_rewrite/rewrite] 385 chars
+    [rag_rewrite/answer] 2223 chars
+[195/500] ch_ch_test_3335                     PASS   gold=E pred=E (22.5s, 2 calls)
+    [rag_rewrite/rewrite] 379 chars
+    [rag_rewrite/answer] 2656 chars
+[196/500] ch_ch_test_52                       PASS   gold=C pred=C (10.9s, 2 calls)
+    [rag_rewrite/rewrite] 403 chars
+    [rag_rewrite/answer] 2735 chars
+[197/500] ch_ch_test_949                      PASS   gold=D pred=D (10.2s, 2 calls)
+    [rag_rewrite/rewrite] 367 chars
+    [rag_rewrite/answer] 2727 chars
+[198/500] ch_ch_test_1874                     PASS   gold=C pred=C (13.7s, 2 calls)
+    [rag_rewrite/rewrite] 349 chars
+    [rag_rewrite/answer] 2216 chars
+[199/500] ch_ch_test_2780                     PASS   gold=B pred=B (46.2s, 2 calls)
+    [rag_rewrite/rewrite] 356 chars
+    [rag_rewrite/answer] 2738 chars
+[200/500] ch_ch_test_393                      PASS   gold=E pred=E (33.7s, 2 calls)
+    [rag_rewrite/rewrite] 454 chars
+    [rag_rewrite/answer] 2435 chars
+[201/500] ch_ch_test_676                      PASS   gold=D pred=D (28.8s, 2 calls)
+    [rag_rewrite/rewrite] 416 chars
+    [rag_rewrite/answer] 3851 chars
+[202/500] ch_ch_test_1791                     FAIL   gold=B pred=C (23.8s, 2 calls)
+    [rag_rewrite/rewrite] 389 chars
+    [rag_rewrite/answer] 2543 chars
+[203/500] ch_ch_test_3017                     PASS   gold=A pred=A (14.8s, 2 calls)
+    [rag_rewrite/rewrite] 409 chars
+    [rag_rewrite/answer] 2602 chars
+[204/500] ch_ch_test_1462                     FAIL   gold=C pred=D (20.4s, 2 calls)
+    [rag_rewrite/rewrite] 411 chars
+    [rag_rewrite/answer] 2924 chars
+[205/500] ch_ch_test_1221                     PASS   gold=E pred=E (19.4s, 2 calls)
+    [rag_rewrite/rewrite] 355 chars
+    [rag_rewrite/answer] 2706 chars
+[206/500] ch_ch_test_1583                     PASS   gold=E pred=E (14.5s, 2 calls)
+    [rag_rewrite/rewrite] 362 chars
+    [rag_rewrite/answer] 3206 chars
+[207/500] ch_ch_test_144                      FAIL   gold=C pred=B (30.4s, 2 calls)
+    [rag_rewrite/rewrite] 326 chars
+    [rag_rewrite/answer] 2088 chars
+[208/500] ch_ch_test_1173                     PASS   gold=E pred=E (8.4s, 2 calls)
+    [rag_rewrite/rewrite] 485 chars
+    [rag_rewrite/answer] 3255 chars
+[209/500] ch_ch_test_3470                     FAIL   gold=B pred=E (17.7s, 2 calls)
+    [rag_rewrite/rewrite] 362 chars
+    [rag_rewrite/answer] 2424 chars
+[210/500] ch_ch_test_2651                     PASS   gold=A pred=A (17.0s, 2 calls)
+    [rag_rewrite/rewrite] 344 chars
+    [rag_rewrite/answer] 2981 chars
+[211/500] ch_ch_test_76                       PASS   gold=B pred=B (93.5s, 2 calls)
+    [rag_rewrite/rewrite] 400 chars
+    [rag_rewrite/answer] 2893 chars
+[212/500] ch_ch_test_1110                     PASS   gold=A pred=A (11.4s, 2 calls)
+    [rag_rewrite/rewrite] 407 chars
+    [rag_rewrite/answer] 2850 chars
+[213/500] ch_ch_test_251                      PASS   gold=B pred=B (9.2s, 2 calls)
+    [rag_rewrite/rewrite] 352 chars
+    [rag_rewrite/answer] 3345 chars
+[214/500] ch_ch_test_2315                     FAIL   gold=C pred=B (9.3s, 2 calls)
+    [rag_rewrite/rewrite] 371 chars
+    [rag_rewrite/answer] 3507 chars
+[215/500] ch_ch_test_17                       PASS   gold=C pred=C (12.3s, 2 calls)
+    [rag_rewrite/rewrite] 444 chars
+    [rag_rewrite/answer] 5034 chars
+[216/500] ch_ch_test_298                      PASS   gold=A pred=A (17.6s, 2 calls)
+    [rag_rewrite/rewrite] 316 chars
+    [rag_rewrite/answer] 3319 chars
+[217/500] ch_ch_test_2236                     FAIL   gold=B pred=E (31.8s, 2 calls)
+    [rag_rewrite/rewrite] 394 chars
+    [rag_rewrite/answer] 2756 chars
+[218/500] ch_ch_test_2822                     PASS   gold=C pred=C (21.0s, 2 calls)
+    [rag_rewrite/rewrite] 436 chars
+    [rag_rewrite/answer] 2549 chars
+[219/500] ch_ch_test_1764                     PASS   gold=A pred=A (7.9s, 2 calls)
+    [rag_rewrite/rewrite] 461 chars
+    [rag_rewrite/answer] 2182 chars
+[220/500] ch_ch_test_1738                     FAIL   gold=B pred=D (5.5s, 2 calls)
+    [rag_rewrite/rewrite] 438 chars
+    [rag_rewrite/answer] 2893 chars
+[221/500] ch_ch_test_557                      PASS   gold=A pred=A (30.0s, 2 calls)
+    [rag_rewrite/rewrite] 330 chars
+    [rag_rewrite/answer] 3399 chars
+[222/500] ch_ch_test_3196                     FAIL   gold=B pred=C (5.9s, 2 calls)
+    [rag_rewrite/rewrite] 386 chars
+    [rag_rewrite/answer] 2453 chars
+[223/500] ch_ch_test_2153                     PASS   gold=E pred=E (6.4s, 2 calls)
+    [rag_rewrite/rewrite] 354 chars
+    [rag_rewrite/answer] 2711 chars
+[224/500] ch_ch_test_1871                     PASS   gold=B pred=B (6.0s, 2 calls)
+    [rag_rewrite/rewrite] 422 chars
+    [rag_rewrite/answer] 4197 chars
+[225/500] ch_ch_test_2223                     FAIL   gold=B pred=A (12.8s, 2 calls)
+    [rag_rewrite/rewrite] 479 chars
+    [rag_rewrite/answer] 2380 chars
+[226/500] ch_ch_test_2232                     PASS   gold=B pred=B (14.0s, 2 calls)
+    [rag_rewrite/rewrite] 393 chars
+    [rag_rewrite/answer] 2556 chars
+[227/500] ch_ch_test_3137                     PASS   gold=D pred=D (8.4s, 2 calls)
+    [rag_rewrite/rewrite] 390 chars
+    [rag_rewrite/answer] 2713 chars
+[228/500] ch_ch_test_322                      PASS   gold=A pred=A (7.4s, 2 calls)
+    [rag_rewrite/rewrite] 372 chars
+    [rag_rewrite/answer] 3101 chars
+[229/500] ch_ch_test_1402                     PASS   gold=A pred=A (9.5s, 2 calls)
+    [rag_rewrite/rewrite] 399 chars
+    [rag_rewrite/answer] 3167 chars
+[230/500] ch_ch_test_2018                     FAIL   gold=E pred=D (6.4s, 2 calls)
+    [rag_rewrite/rewrite] 363 chars
+    [rag_rewrite/answer] 2766 chars
+[231/500] ch_ch_test_3301                     PASS   gold=E pred=E (21.7s, 2 calls)
+    [rag_rewrite/rewrite] 415 chars
+    [rag_rewrite/answer] 3173 chars
+[232/500] ch_ch_test_2415                     FAIL   gold=C pred=A (9.3s, 2 calls)
+    [rag_rewrite/rewrite] 379 chars
+    [rag_rewrite/answer] 2835 chars
+[233/500] ch_ch_test_1569                     PASS   gold=A pred=A (44.7s, 2 calls)
+    [rag_rewrite/rewrite] 336 chars
+    [rag_rewrite/answer] 2953 chars
+[234/500] ch_ch_test_932                      PASS   gold=A pred=A (12.7s, 2 calls)
+    [rag_rewrite/rewrite] 384 chars
+    [rag_rewrite/answer] 2340 chars
+[235/500] ch_ch_test_1075                     PASS   gold=B pred=B (4.8s, 2 calls)
+    [rag_rewrite/rewrite] 283 chars
+    [rag_rewrite/answer] 2977 chars
+[236/500] ch_ch_test_1034                     FAIL   gold=E pred=A (11.6s, 2 calls)
+    [rag_rewrite/rewrite] 348 chars
+    [rag_rewrite/answer] 3169 chars
+[237/500] ch_ch_test_1681                     PASS   gold=A pred=A (16.7s, 2 calls)
+    [rag_rewrite/rewrite] 423 chars
+    [rag_rewrite/answer] 2962 chars
+[238/500] ch_ch_test_2216                     PASS   gold=A pred=A (9.9s, 2 calls)
+    [rag_rewrite/rewrite] 370 chars
+    [rag_rewrite/answer] 3588 chars
+[239/500] ch_ch_test_1795                     FAIL   gold=B pred=E (9.5s, 2 calls)
+    [rag_rewrite/rewrite] 360 chars
+    [rag_rewrite/answer] 2212 chars
+[240/500] ch_ch_test_1023                     PASS   gold=D pred=D (5.9s, 2 calls)
+    [rag_rewrite/rewrite] 362 chars
+    [rag_rewrite/answer] 2996 chars
+[241/500] ch_ch_test_2594                     PASS   gold=A pred=A (10.8s, 2 calls)
+    [rag_rewrite/rewrite] 450 chars
+    [rag_rewrite/answer] 3921 chars
+[242/500] ch_ch_test_3557                     FAIL   gold=D pred=B (29.6s, 2 calls)
+    [rag_rewrite/rewrite] 419 chars
+    [rag_rewrite/answer] 2637 chars
+[243/500] ch_ch_test_657                      PASS   gold=E pred=E (14.4s, 2 calls)
+    [rag_rewrite/rewrite] 282 chars
+    [rag_rewrite/answer] 2534 chars
+[244/500] ch_ch_test_527                      PASS   gold=A pred=A (5.3s, 2 calls)
+    [rag_rewrite/rewrite] 391 chars
+    [rag_rewrite/answer] 2845 chars
+[245/500] ch_ch_test_2256                     PASS   gold=A pred=A (12.6s, 2 calls)
+    [rag_rewrite/rewrite] 442 chars
+    [rag_rewrite/answer] 2395 chars
+[246/500] ch_ch_test_3440                     FAIL   gold=E pred=D (30.0s, 2 calls)
+    [rag_rewrite/rewrite] 383 chars
+    [rag_rewrite/answer] 2473 chars
+[247/500] ch_ch_test_1891                     PASS   gold=D pred=D (26.2s, 2 calls)
+    [rag_rewrite/rewrite] 342 chars
+    [rag_rewrite/answer] 2448 chars
+[248/500] ch_ch_test_2247                     PASS   gold=A pred=A (25.7s, 2 calls)
+    [rag_rewrite/rewrite] 400 chars
+    [rag_rewrite/answer] 3244 chars
+[249/500] ch_ch_test_2725                     PASS   gold=A pred=A (15.0s, 2 calls)
+    [rag_rewrite/rewrite] 441 chars
+    [rag_rewrite/answer] 2900 chars
+[250/500] ch_ch_test_2764                     FAIL   gold=B pred=A (11.5s, 2 calls)
+    [rag_rewrite/rewrite] 376 chars
+    [rag_rewrite/answer] 2777 chars
+[251/500] ch_ch_test_3075                     PASS   gold=B pred=B (8.9s, 2 calls)
+    [rag_rewrite/rewrite] 363 chars
+    [rag_rewrite/answer] 3406 chars
+[252/500] ch_ch_test_325                      PASS   gold=E pred=E (9.3s, 2 calls)
+    [rag_rewrite/rewrite] 281 chars
+    [rag_rewrite/answer] 3857 chars
+[253/500] ch_ch_test_432                      FAIL   gold=B pred=A (18.3s, 2 calls)
+    [rag_rewrite/rewrite] 379 chars
+    [rag_rewrite/answer] 2603 chars
+[254/500] ch_ch_test_30                       PASS   gold=A pred=A (28.3s, 2 calls)
+    [rag_rewrite/rewrite] 360 chars
+    [rag_rewrite/answer] 2044 chars
+[255/500] ch_ch_test_457                      FAIL   gold=D pred=E (24.6s, 2 calls)
+    [rag_rewrite/rewrite] 348 chars
+    [rag_rewrite/answer] 2699 chars
+[256/500] ch_ch_test_229                      PASS   gold=D pred=D (10.0s, 2 calls)
+    [rag_rewrite/rewrite] 319 chars
+    [rag_rewrite/answer] 2647 chars
+[257/500] ch_ch_test_203                      FAIL   gold=B pred=D (27.1s, 2 calls)
+    [rag_rewrite/rewrite] 452 chars
+    [rag_rewrite/answer] 3000 chars
+[258/500] ch_ch_test_2622                     PASS   gold=A pred=A (9.8s, 2 calls)
+    [rag_rewrite/rewrite] 367 chars
+    [rag_rewrite/answer] 3982 chars
+[259/500] ch_ch_test_785                      PASS   gold=E pred=E (25.4s, 2 calls)
+    [rag_rewrite/rewrite] 371 chars
+    [rag_rewrite/answer] 2603 chars
+[260/500] ch_ch_test_1483                     PASS   gold=D pred=D (7.4s, 2 calls)
+    [rag_rewrite/rewrite] 403 chars
+    [rag_rewrite/answer] 2374 chars
+[261/500] ch_ch_test_2270                     PASS   gold=A pred=A (5.7s, 2 calls)
+    [rag_rewrite/rewrite] 404 chars
+    [rag_rewrite/answer] 2980 chars
+[262/500] ch_ch_test_1582                     PASS   gold=D pred=D (41.7s, 2 calls)
+    [rag_rewrite/rewrite] 463 chars
+    [rag_rewrite/answer] 2978 chars
+[263/500] ch_ch_test_693                      FAIL   gold=A pred=D (8.1s, 2 calls)
+    [rag_rewrite/rewrite] 355 chars
+    [rag_rewrite/answer] 2310 chars
+[264/500] ch_ch_test_2922                     PASS   gold=E pred=E (5.7s, 2 calls)
+    [rag_rewrite/rewrite] 390 chars
+    [rag_rewrite/answer] 2979 chars
+[265/500] ch_ch_test_2020                     FAIL   gold=E pred=B (20.7s, 2 calls)
+    [rag_rewrite/rewrite] 409 chars
+    [rag_rewrite/answer] 2667 chars
+[266/500] ch_ch_test_192                      PASS   gold=D pred=D (8.4s, 2 calls)
+    [rag_rewrite/rewrite] 408 chars
+    [rag_rewrite/answer] 3148 chars
+[267/500] ch_ch_test_2667                     PASS   gold=D pred=D (6.9s, 2 calls)
+    [rag_rewrite/rewrite] 349 chars
+    [rag_rewrite/answer] 2109 chars
+[268/500] ch_ch_test_1536                     PASS   gold=E pred=E (12.4s, 2 calls)
+    [rag_rewrite/rewrite] 430 chars
+    [rag_rewrite/answer] 2540 chars
+[269/500] ch_ch_test_3472                     PASS   gold=E pred=E (15.4s, 2 calls)
+    [rag_rewrite/rewrite] 369 chars
+    [rag_rewrite/answer] 3153 chars
+[270/500] ch_ch_test_3048                     PASS   gold=B pred=B (25.9s, 2 calls)
+    [rag_rewrite/rewrite] 335 chars
+    [rag_rewrite/answer] 2958 chars
+[271/500] ch_ch_test_166                      FAIL   gold=B pred=E (25.0s, 2 calls)
+    [rag_rewrite/rewrite] 501 chars
+    [rag_rewrite/answer] 2584 chars
+[272/500] ch_ch_test_3064                     PASS   gold=C pred=C (32.6s, 2 calls)
+    [rag_rewrite/rewrite] 412 chars
+    [rag_rewrite/answer] 3117 chars
+[273/500] ch_ch_test_1736                     FAIL   gold=D pred=C (20.6s, 2 calls)
+    [rag_rewrite/rewrite] 385 chars
+    [rag_rewrite/answer] 3492 chars
+[274/500] ch_ch_test_2825                     FAIL   gold=D pred=C (9.6s, 2 calls)
+    [rag_rewrite/rewrite] 376 chars
+    [rag_rewrite/answer] 3048 chars
+[275/500] ch_ch_test_2678                     FAIL   gold=A pred=C (44.0s, 2 calls)
+    [rag_rewrite/rewrite] 347 chars
+    [rag_rewrite/answer] 2770 chars
+[276/500] ch_ch_test_3256                     FAIL   gold=A pred=E (5.9s, 2 calls)
+    [rag_rewrite/rewrite] 433 chars
+    [rag_rewrite/answer] 2607 chars
+[277/500] ch_ch_test_976                      PASS   gold=A pred=A (8.1s, 2 calls)
+    [rag_rewrite/rewrite] 372 chars
+    [rag_rewrite/answer] 2632 chars
+[278/500] ch_ch_test_1606                     PASS   gold=E pred=E (21.0s, 2 calls)
+    [rag_rewrite/rewrite] 360 chars
+    [rag_rewrite/answer] 2682 chars
+[279/500] ch_ch_test_321                      PASS   gold=E pred=E (22.8s, 2 calls)
+    [rag_rewrite/rewrite] 340 chars
+    [rag_rewrite/answer] 2233 chars
+[280/500] ch_ch_test_1511                     PASS   gold=C pred=C (12.6s, 2 calls)
+    [rag_rewrite/rewrite] 408 chars
+    [rag_rewrite/answer] 2395 chars
+[281/500] ch_ch_test_3430                     PASS   gold=C pred=C (9.4s, 2 calls)
+    [rag_rewrite/rewrite] 409 chars
+    [rag_rewrite/answer] 3549 chars
+[282/500] ch_ch_test_194                      PASS   gold=D pred=D (14.4s, 2 calls)
+    [rag_rewrite/rewrite] 412 chars
+    [rag_rewrite/answer] 2906 chars
+[283/500] ch_ch_test_1442                     PASS   gold=B pred=B (8.6s, 2 calls)
+    [rag_rewrite/rewrite] 363 chars
+    [rag_rewrite/answer] 2798 chars
+[284/500] ch_ch_test_3004                     PASS   gold=A pred=A (10.2s, 2 calls)
+    [rag_rewrite/rewrite] 401 chars
+    [rag_rewrite/answer] 9745 chars
+[285/500] ch_ch_test_3143                     FAIL   gold=E pred=B (22.7s, 2 calls)
+    [rag_rewrite/rewrite] 351 chars
+    [rag_rewrite/answer] 2585 chars
+[286/500] ch_ch_test_1042                     FAIL   gold=C pred=E (12.5s, 2 calls)
+    [rag_rewrite/rewrite] 386 chars
+    [rag_rewrite/answer] 2092 chars
+[287/500] ch_ch_test_3336                     PASS   gold=D pred=D (7.6s, 2 calls)
+    [rag_rewrite/rewrite] 430 chars
+    [rag_rewrite/answer] 2787 chars
+[288/500] ch_ch_test_501                      PASS   gold=C pred=C (15.3s, 2 calls)
+    [rag_rewrite/rewrite] 442 chars
+    [rag_rewrite/answer] 2472 chars
+[289/500] ch_ch_test_2679                     PASS   gold=B pred=B (9.8s, 2 calls)
+    [rag_rewrite/rewrite] 331 chars
+    [rag_rewrite/answer] 2943 chars
+[290/500] ch_ch_test_3405                     PASS   gold=B pred=B (5.2s, 2 calls)
+    [rag_rewrite/rewrite] 337 chars
+    [rag_rewrite/answer] 2160 chars
+[291/500] ch_ch_test_2077                     PASS   gold=C pred=C (8.5s, 2 calls)
+    [rag_rewrite/rewrite] 411 chars
+    [rag_rewrite/answer] 2864 chars
+[292/500] ch_ch_test_1916                     PASS   gold=A pred=A (19.8s, 2 calls)
+    [rag_rewrite/rewrite] 398 chars
+    [rag_rewrite/answer] 4621 chars
+[293/500] ch_ch_test_1789                     FAIL   gold=D pred=C (13.2s, 2 calls)
+    [rag_rewrite/rewrite] 370 chars
+    [rag_rewrite/answer] 2895 chars
+[294/500] ch_ch_test_3588                     PASS   gold=C pred=C (8.5s, 2 calls)
+    [rag_rewrite/rewrite] 480 chars
+    [rag_rewrite/answer] 2585 chars
+[295/500] ch_ch_test_3471                     PASS   gold=D pred=D (10.9s, 2 calls)
+    [rag_rewrite/rewrite] 411 chars
+    [rag_rewrite/answer] 2940 chars
+[296/500] ch_ch_test_3363                     FAIL   gold=A pred=B (18.2s, 2 calls)
+    [rag_rewrite/rewrite] 390 chars
+    [rag_rewrite/answer] 2698 chars
+[297/500] ch_ch_test_1436                     PASS   gold=B pred=B (21.2s, 2 calls)
+    [rag_rewrite/rewrite] 408 chars
+    [rag_rewrite/answer] 2701 chars
+[298/500] ch_ch_test_1006                     PASS   gold=A pred=A (9.2s, 2 calls)
+    [rag_rewrite/rewrite] 437 chars
+    [rag_rewrite/answer] 3388 chars
+[299/500] ch_ch_test_1163                     FAIL   gold=D pred=E (17.1s, 2 calls)
+    [rag_rewrite/rewrite] 391 chars
+    [rag_rewrite/answer] 3258 chars
+[300/500] ch_ch_test_80                       FAIL   gold=D pred=B (11.7s, 2 calls)
+    [rag_rewrite/rewrite] 350 chars
+    [rag_rewrite/answer] 3122 chars
+[301/500] ch_ch_test_1632                     PASS   gold=E pred=E (13.7s, 2 calls)
+    [rag_rewrite/rewrite] 414 chars
+    [rag_rewrite/answer] 2610 chars
+[302/500] ch_ch_test_295                      PASS   gold=A pred=A (9.2s, 2 calls)
+    [rag_rewrite/rewrite] 309 chars
+    [rag_rewrite/answer] 3577 chars
+[303/500] ch_ch_test_2266                     FAIL   gold=C pred=B (20.1s, 2 calls)
+    [rag_rewrite/rewrite] 287 chars
+    [rag_rewrite/answer] 3123 chars
+[304/500] ch_ch_test_1717                     FAIL   gold=E pred=C (52.6s, 2 calls)
+    [rag_rewrite/rewrite] 346 chars
+    [rag_rewrite/answer] 2584 chars
+[305/500] ch_ch_test_1578                     PASS   gold=E pred=E (9.0s, 2 calls)
+    [rag_rewrite/rewrite] 416 chars
+    [rag_rewrite/answer] 2832 chars
+[306/500] ch_ch_test_3597                     PASS   gold=A pred=A (16.2s, 2 calls)
+    [rag_rewrite/rewrite] 398 chars
+    [rag_rewrite/answer] 2561 chars
+[307/500] ch_ch_test_3235                     PASS   gold=B pred=B (9.4s, 2 calls)
+    [rag_rewrite/rewrite] 400 chars
+    [rag_rewrite/answer] 2711 chars
+[308/500] ch_ch_test_3320                     PASS   gold=D pred=D (18.1s, 2 calls)
+    [rag_rewrite/rewrite] 345 chars
+    [rag_rewrite/answer] 2334 chars
+[309/500] ch_ch_test_2623                     PASS   gold=D pred=D (21.0s, 2 calls)
+    [rag_rewrite/rewrite] 414 chars
+    [rag_rewrite/answer] 2989 chars
+[310/500] ch_ch_test_1898                     PASS   gold=B pred=B (18.0s, 2 calls)
+    [rag_rewrite/rewrite] 347 chars
+    [rag_rewrite/answer] 3399 chars
+[311/500] ch_ch_test_897                      FAIL   gold=D pred=C (34.5s, 2 calls)
+    [rag_rewrite/rewrite] 347 chars
+    [rag_rewrite/answer] 3072 chars
+[312/500] ch_ch_test_463                      FAIL   gold=B pred=A (17.4s, 2 calls)
+    [rag_rewrite/rewrite] 402 chars
+    [rag_rewrite/answer] 2954 chars
+[313/500] ch_ch_test_840                      FAIL   gold=E pred=A (11.7s, 2 calls)
+    [rag_rewrite/rewrite] 482 chars
+    [rag_rewrite/answer] 2961 chars
+[314/500] ch_ch_test_1647                     PASS   gold=C pred=C (19.3s, 2 calls)
+    [rag_rewrite/rewrite] 372 chars
+    [rag_rewrite/answer] 2096 chars
+[315/500] ch_ch_test_1187                     PASS   gold=B pred=B (28.3s, 2 calls)
+    [rag_rewrite/rewrite] 460 chars
+    [rag_rewrite/answer] 4206 chars
+[316/500] ch_ch_test_1228                     FAIL   gold=B pred=D (30.3s, 2 calls)
+    [rag_rewrite/rewrite] 405 chars
+    [rag_rewrite/answer] 2559 chars
+[317/500] ch_ch_test_2370                     PASS   gold=D pred=D (11.6s, 2 calls)
+    [rag_rewrite/rewrite] 437 chars
+    [rag_rewrite/answer] 2673 chars
+[318/500] ch_ch_test_3516                     PASS   gold=E pred=E (12.3s, 2 calls)
+    [rag_rewrite/rewrite] 369 chars
+    [rag_rewrite/answer] 2202 chars
+[319/500] ch_ch_test_1117                     PASS   gold=E pred=E (19.1s, 2 calls)
+    [rag_rewrite/rewrite] 378 chars
+    [rag_rewrite/answer] 2956 chars
+[320/500] ch_ch_test_2643                     PASS   gold=A pred=A (22.4s, 2 calls)
+    [rag_rewrite/rewrite] 441 chars
+    [rag_rewrite/answer] 2802 chars
+[321/500] ch_ch_test_257                      PASS   gold=B pred=B (13.9s, 2 calls)
+    [rag_rewrite/rewrite] 445 chars
+    [rag_rewrite/answer] 2663 chars
+[322/500] ch_ch_test_1429                     PASS   gold=A pred=A (26.3s, 2 calls)
+    [rag_rewrite/rewrite] 391 chars
+    [rag_rewrite/answer] 2979 chars
+[323/500] ch_ch_test_1688                     FAIL   gold=D pred=E (8.8s, 2 calls)
+    [rag_rewrite/rewrite] 371 chars
+    [rag_rewrite/answer] 2717 chars
+[324/500] ch_ch_test_3373                     FAIL   gold=C pred=A (12.2s, 2 calls)
+    [rag_rewrite/rewrite] 367 chars
+    [rag_rewrite/answer] 2564 chars
+[325/500] ch_ch_test_1815                     PASS   gold=D pred=D (24.7s, 2 calls)
+    [rag_rewrite/rewrite] 357 chars
+    [rag_rewrite/answer] 2535 chars
+[326/500] ch_ch_test_2584                     PASS   gold=B pred=B (21.8s, 2 calls)
+    [rag_rewrite/rewrite] 313 chars
+    [rag_rewrite/answer] 4182 chars
+[327/500] ch_ch_test_3422                     FAIL   gold=C pred=E (12.8s, 2 calls)
+    [rag_rewrite/rewrite] 330 chars
+    [rag_rewrite/answer] 3135 chars
+[328/500] ch_ch_test_238                      PASS   gold=C pred=C (22.5s, 2 calls)
+    [rag_rewrite/rewrite] 344 chars
+    [rag_rewrite/answer] 2758 chars
+[329/500] ch_ch_test_358                      PASS   gold=A pred=A (26.0s, 2 calls)
+    [rag_rewrite/rewrite] 392 chars
+    [rag_rewrite/answer] 3458 chars
+[330/500] ch_ch_test_736                      PASS   gold=A pred=A (14.3s, 2 calls)
+    [rag_rewrite/rewrite] 351 chars
+    [rag_rewrite/answer] 2556 chars
+[331/500] ch_ch_test_3319                     FAIL   gold=A pred=D (21.6s, 2 calls)
+    [rag_rewrite/rewrite] 292 chars
+    [rag_rewrite/answer] 2241 chars
+[332/500] ch_ch_test_511                      PASS   gold=A pred=A (12.5s, 2 calls)
+    [rag_rewrite/rewrite] 433 chars
+    [rag_rewrite/answer] 2847 chars
+[333/500] ch_ch_test_3398                     PASS   gold=B pred=B (13.2s, 2 calls)
+    [rag_rewrite/rewrite] 403 chars
+    [rag_rewrite/answer] 2738 chars
+[334/500] ch_ch_test_2871                     PASS   gold=B pred=B (19.7s, 2 calls)
+    [rag_rewrite/rewrite] 265 chars
+    [rag_rewrite/answer] 2559 chars
+[335/500] ch_ch_test_174                      PASS   gold=D pred=D (11.7s, 2 calls)
+    [rag_rewrite/rewrite] 401 chars
+    [rag_rewrite/answer] 3213 chars
+[336/500] ch_ch_test_755                      PASS   gold=E pred=E (14.3s, 2 calls)
+    [rag_rewrite/rewrite] 401 chars
+    [rag_rewrite/answer] 3599 chars
+[337/500] ch_ch_test_214                      PASS   gold=D pred=D (19.4s, 2 calls)
+    [rag_rewrite/rewrite] 360 chars
+    [rag_rewrite/answer] 2510 chars
+[338/500] ch_ch_test_479                      PASS   gold=A pred=A (10.3s, 2 calls)
+    [rag_rewrite/rewrite] 378 chars
+    [rag_rewrite/answer] 3445 chars
+[339/500] ch_ch_test_2928                     FAIL   gold=B pred=A (26.7s, 2 calls)
+    [rag_rewrite/rewrite] 382 chars
+    [rag_rewrite/answer] 2266 chars
+[340/500] ch_ch_test_414                      FAIL   gold=A pred=B (24.4s, 2 calls)
+    [rag_rewrite/rewrite] 395 chars
+    [rag_rewrite/answer] 3281 chars
+[341/500] ch_ch_test_2240                     PASS   gold=E pred=E (12.5s, 2 calls)
+    [rag_rewrite/rewrite] 348 chars
+    [rag_rewrite/answer] 2805 chars
+[342/500] ch_ch_test_759                      FAIL   gold=A pred=B (20.7s, 2 calls)
+    [rag_rewrite/rewrite] 428 chars
+    [rag_rewrite/answer] 2186 chars
+[343/500] ch_ch_test_102                      PASS   gold=B pred=B (9.7s, 2 calls)
+    [rag_rewrite/rewrite] 373 chars
+    [rag_rewrite/answer] 2636 chars
+[344/500] ch_ch_test_2934                     PASS   gold=E pred=E (14.2s, 2 calls)
+    [rag_rewrite/rewrite] 388 chars
+    [rag_rewrite/answer] 2099 chars
+[345/500] ch_ch_test_1586                     PASS   gold=B pred=B (10.7s, 2 calls)
+    [rag_rewrite/rewrite] 338 chars
+    [rag_rewrite/answer] 3323 chars
+[346/500] ch_ch_test_239                      FAIL   gold=B pred=E (17.9s, 2 calls)
+    [rag_rewrite/rewrite] 324 chars
+    [rag_rewrite/answer] 3003 chars
+[347/500] ch_ch_test_410                      PASS   gold=B pred=B (11.5s, 2 calls)
+    [rag_rewrite/rewrite] 398 chars
+    [rag_rewrite/answer] 2381 chars
+[348/500] ch_ch_test_402                      PASS   gold=B pred=B (10.9s, 2 calls)
+    [rag_rewrite/rewrite] 359 chars
+    [rag_rewrite/answer] 2701 chars
+[349/500] ch_ch_test_1564                     PASS   gold=C pred=C (21.8s, 2 calls)
+    [rag_rewrite/rewrite] 378 chars
+    [rag_rewrite/answer] 2372 chars
+[350/500] ch_ch_test_2339                     PASS   gold=E pred=E (20.3s, 2 calls)
+    [rag_rewrite/rewrite] 417 chars
+    [rag_rewrite/answer] 4396 chars
+[351/500] ch_ch_test_1624                     FAIL   gold=A pred=B (19.2s, 2 calls)
+    [rag_rewrite/rewrite] 359 chars
+    [rag_rewrite/answer] 3113 chars
+[352/500] ch_ch_test_2071                     PASS   gold=E pred=E (13.0s, 2 calls)
+    [rag_rewrite/rewrite] 415 chars
+    [rag_rewrite/answer] 3934 chars
+[353/500] ch_ch_test_2471                     FAIL   gold=A pred=C (25.9s, 2 calls)
+    [rag_rewrite/rewrite] 391 chars
+    [rag_rewrite/answer] 2816 chars
+[354/500] ch_ch_test_2293                     FAIL   gold=D pred=A (22.8s, 2 calls)
+    [rag_rewrite/rewrite] 426 chars
+    [rag_rewrite/answer] 2529 chars
+[355/500] ch_ch_test_44                       PASS   gold=E pred=E (14.8s, 2 calls)
+    [rag_rewrite/rewrite] 337 chars
+    [rag_rewrite/answer] 2720 chars
+[356/500] ch_ch_test_45                       PASS   gold=D pred=D (12.3s, 2 calls)
+    [rag_rewrite/rewrite] 461 chars
+    [rag_rewrite/answer] 3038 chars
+[357/500] ch_ch_test_1037                     FAIL   gold=E pred=D (11.0s, 2 calls)
+    [rag_rewrite/rewrite] 407 chars
+    [rag_rewrite/answer] 2295 chars
+[358/500] ch_ch_test_332                      PASS   gold=E pred=E (9.1s, 2 calls)
+    [rag_rewrite/rewrite] 382 chars
+    [rag_rewrite/answer] 3164 chars
+[359/500] ch_ch_test_1068                     FAIL   gold=E pred=D (11.9s, 2 calls)
+    [rag_rewrite/rewrite] 433 chars
+    [rag_rewrite/answer] 2582 chars
+[360/500] ch_ch_test_2063                     PASS   gold=D pred=D (8.2s, 2 calls)
+    [rag_rewrite/rewrite] 424 chars
+    [rag_rewrite/answer] 3583 chars
+[361/500] ch_ch_test_1767                     PASS   gold=A pred=A (13.6s, 2 calls)
+    [rag_rewrite/rewrite] 389 chars
+    [rag_rewrite/answer] 2579 chars
+[362/500] ch_ch_test_1027                     PASS   gold=E pred=E (8.5s, 2 calls)
+    [rag_rewrite/rewrite] 354 chars
+    [rag_rewrite/answer] 2400 chars
+[363/500] ch_ch_test_1052                     FAIL   gold=E pred=C (11.4s, 2 calls)
+    [rag_rewrite/rewrite] 400 chars
+    [rag_rewrite/answer] 2324 chars
+[364/500] ch_ch_test_718                      FAIL   gold=D pred=E (10.1s, 2 calls)
+    [rag_rewrite/rewrite] 372 chars
+    [rag_rewrite/answer] 2857 chars
+[365/500] ch_ch_test_58                       FAIL   gold=E pred=A (14.2s, 2 calls)
+    [rag_rewrite/rewrite] 423 chars
+    [rag_rewrite/answer] 2546 chars
+[366/500] ch_ch_test_3594                     PASS   gold=B pred=B (12.1s, 2 calls)
+    [rag_rewrite/rewrite] 327 chars
+    [rag_rewrite/answer] 2691 chars
+[367/500] ch_ch_test_1011                     PASS   gold=E pred=E (32.0s, 2 calls)
+    [rag_rewrite/rewrite] 384 chars
+    [rag_rewrite/answer] 2636 chars
+[368/500] ch_ch_test_3293                     PASS   gold=B pred=B (10.0s, 2 calls)
+    [rag_rewrite/rewrite] 321 chars
+    [rag_rewrite/answer] 2698 chars
+[369/500] ch_ch_test_3138                     PASS   gold=A pred=A (11.8s, 2 calls)
+    [rag_rewrite/rewrite] 365 chars
+    [rag_rewrite/answer] 3294 chars
+[370/500] ch_ch_test_1611                     PASS   gold=D pred=D (24.2s, 2 calls)
+    [rag_rewrite/rewrite] 506 chars
+    [rag_rewrite/answer] 2379 chars
+[371/500] ch_ch_test_2461                     PASS   gold=A pred=A (12.2s, 2 calls)
+    [rag_rewrite/rewrite] 447 chars
+    [rag_rewrite/answer] 2837 chars
+[372/500] ch_ch_test_2002                     FAIL   gold=E pred=A (32.8s, 2 calls)
+    [rag_rewrite/rewrite] 399 chars
+    [rag_rewrite/answer] 3258 chars
+[373/500] ch_ch_test_2389                     PASS   gold=C pred=C (11.5s, 2 calls)
+    [rag_rewrite/rewrite] 339 chars
+    [rag_rewrite/answer] 2924 chars
+[374/500] ch_ch_test_1395                     PASS   gold=C pred=C (10.0s, 2 calls)
+    [rag_rewrite/rewrite] 340 chars
+    [rag_rewrite/answer] 2635 chars
+[375/500] ch_ch_test_2633                     PASS   gold=D pred=D (15.8s, 2 calls)
+    [rag_rewrite/rewrite] 387 chars
+    [rag_rewrite/answer] 2684 chars
+[376/500] ch_ch_test_309                      PASS   gold=A pred=A (10.0s, 2 calls)
+    [rag_rewrite/rewrite] 358 chars
+    [rag_rewrite/answer] 2544 chars
+[377/500] ch_ch_test_2045                     PASS   gold=C pred=C (25.9s, 2 calls)
+    [rag_rewrite/rewrite] 443 chars
+    [rag_rewrite/answer] 2909 chars
+[378/500] ch_ch_test_1432                     PASS   gold=E pred=E (15.0s, 2 calls)
+    [rag_rewrite/rewrite] 393 chars
+    [rag_rewrite/answer] 3198 chars
+[379/500] ch_ch_test_1665                     FAIL   gold=A pred=B (20.4s, 2 calls)
+    [rag_rewrite/rewrite] 433 chars
+    [rag_rewrite/answer] 5012 chars
+[380/500] ch_ch_test_1116                     PASS   gold=A pred=A (24.3s, 2 calls)
+    [rag_rewrite/rewrite] 355 chars
+    [rag_rewrite/answer] 2172 chars
+[381/500] ch_ch_test_2157                     PASS   gold=C pred=C (12.2s, 2 calls)
+    [rag_rewrite/rewrite] 372 chars
+    [rag_rewrite/answer] 2498 chars
+[382/500] ch_ch_test_2795                     PASS   gold=C pred=C (16.5s, 2 calls)
+    [rag_rewrite/rewrite] 382 chars
+    [rag_rewrite/answer] 2996 chars
+[383/500] ch_ch_test_794                      FAIL   gold=C pred=D (53.8s, 2 calls)
+    [rag_rewrite/rewrite] 300 chars
+    [rag_rewrite/answer] 2536 chars
+[384/500] ch_ch_test_1427                     PASS   gold=B pred=B (16.8s, 2 calls)
+    [rag_rewrite/rewrite] 339 chars
+    [rag_rewrite/answer] 2590 chars
+[385/500] ch_ch_test_1490                     PASS   gold=E pred=E (29.7s, 2 calls)
+    [rag_rewrite/rewrite] 416 chars
+    [rag_rewrite/answer] 3717 chars
+[386/500] ch_ch_test_1468                     FAIL   gold=A pred=D (30.8s, 2 calls)
+    [rag_rewrite/rewrite] 501 chars
+    [rag_rewrite/answer] 3178 chars
+[387/500] ch_ch_test_712                      PASS   gold=B pred=B (29.1s, 2 calls)
+    [rag_rewrite/rewrite] 454 chars
+    [rag_rewrite/answer] 2592 chars
+[388/500] ch_ch_test_538                      PASS   gold=C pred=C (18.9s, 2 calls)
+    [rag_rewrite/rewrite] 398 chars
+    [rag_rewrite/answer] 3648 chars
+[389/500] ch_ch_test_1233                     PASS   gold=A pred=A (13.6s, 2 calls)
+    [rag_rewrite/rewrite] 438 chars
+    [rag_rewrite/answer] 2395 chars
+[390/500] ch_ch_test_1211                     FAIL   gold=E pred=C (19.5s, 2 calls)
+    [rag_rewrite/rewrite] 393 chars
+    [rag_rewrite/answer] 2657 chars
+[391/500] ch_ch_test_781                      PASS   gold=B pred=B (15.3s, 2 calls)
+    [rag_rewrite/rewrite] 411 chars
+    [rag_rewrite/answer] 4860 chars
+[392/500] ch_ch_test_2691                     FAIL   gold=A pred=B (18.1s, 2 calls)
+    [rag_rewrite/rewrite] 375 chars
+    [rag_rewrite/answer] 2209 chars
+[393/500] ch_ch_test_188                      PASS   gold=D pred=D (9.8s, 2 calls)
+    [rag_rewrite/rewrite] 337 chars
+    [rag_rewrite/answer] 3174 chars
+[394/500] ch_ch_test_1557                     FAIL   gold=E pred=A (14.5s, 2 calls)
+    [rag_rewrite/rewrite] 385 chars
+    [rag_rewrite/answer] 2995 chars
+[395/500] ch_ch_test_2817                     PASS   gold=E pred=E (11.9s, 2 calls)
+    [rag_rewrite/rewrite] 400 chars
+    [rag_rewrite/answer] 2697 chars
+[396/500] ch_ch_test_3560                     FAIL   gold=B pred=D (16.3s, 2 calls)
+    [rag_rewrite/rewrite] 424 chars
+    [rag_rewrite/answer] 2215 chars
+[397/500] ch_ch_test_2149                     PASS   gold=E pred=E (12.3s, 2 calls)
+    [rag_rewrite/rewrite] 444 chars
+    [rag_rewrite/answer] 3131 chars
+[398/500] ch_ch_test_2686                     PASS   gold=D pred=D (14.0s, 2 calls)
+    [rag_rewrite/rewrite] 384 chars
+    [rag_rewrite/answer] 2830 chars
+[399/500] ch_ch_test_3378                     FAIL   gold=D pred=B (12.4s, 2 calls)
+    [rag_rewrite/rewrite] 337 chars
+    [rag_rewrite/answer] 3486 chars
+[400/500] ch_ch_test_2970                     FAIL   gold=A pred=E (14.0s, 2 calls)
+    [rag_rewrite/rewrite] 382 chars
+    [rag_rewrite/answer] 2689 chars
+[401/500] ch_ch_test_354                      PASS   gold=D pred=D (11.1s, 2 calls)
+    [rag_rewrite/rewrite] 381 chars
+    [rag_rewrite/answer] 2625 chars
+[402/500] ch_ch_test_240                      PASS   gold=B pred=B (15.3s, 2 calls)
+    [rag_rewrite/rewrite] 480 chars
+    [rag_rewrite/answer] 2970 chars
+[403/500] ch_ch_test_790                      FAIL   gold=E pred=B (10.5s, 2 calls)
+    [rag_rewrite/rewrite] 392 chars
+    [rag_rewrite/answer] 2961 chars
+[404/500] ch_ch_test_3100                     PASS   gold=D pred=D (16.1s, 2 calls)
+    [rag_rewrite/rewrite] 343 chars
+    [rag_rewrite/answer] 4022 chars
+[405/500] ch_ch_test_965                      FAIL   gold=C pred=B (23.3s, 2 calls)
+    [rag_rewrite/rewrite] 426 chars
+    [rag_rewrite/answer] 6101 chars
+[406/500] ch_ch_test_3487                     FAIL   gold=C pred=B (34.3s, 2 calls)
+    [rag_rewrite/rewrite] 426 chars
+    [rag_rewrite/answer] 2625 chars
+[407/500] ch_ch_test_2392                     PASS   gold=E pred=E (13.9s, 2 calls)
+    [rag_rewrite/rewrite] 359 chars
+    [rag_rewrite/answer] 3047 chars
+[408/500] ch_ch_test_1001                     PASS   gold=D pred=D (12.0s, 2 calls)
+    [rag_rewrite/rewrite] 362 chars
+    [rag_rewrite/answer] 2582 chars
+[409/500] ch_ch_test_578                      FAIL   gold=D pred=B (11.4s, 2 calls)
+    [rag_rewrite/rewrite] 441 chars
+    [rag_rewrite/answer] 2578 chars
+[410/500] ch_ch_test_554                      PASS   gold=A pred=A (19.0s, 2 calls)
+    [rag_rewrite/rewrite] 423 chars
+    [rag_rewrite/answer] 2778 chars
+[411/500] ch_ch_test_478                      PASS   gold=B pred=B (15.1s, 2 calls)
+    [rag_rewrite/rewrite] 359 chars
+    [rag_rewrite/answer] 2804 chars
+[412/500] ch_ch_test_3488                     PASS   gold=D pred=D (25.5s, 2 calls)
+    [rag_rewrite/rewrite] 401 chars
+    [rag_rewrite/answer] 2962 chars
+[413/500] ch_ch_test_1626                     PASS   gold=C pred=C (26.9s, 2 calls)
+    [rag_rewrite/rewrite] 374 chars
+    [rag_rewrite/answer] 2853 chars
+[414/500] ch_ch_test_2631                     PASS   gold=E pred=E (39.2s, 2 calls)
+    [rag_rewrite/rewrite] 372 chars
+    [rag_rewrite/answer] 2411 chars
+[415/500] ch_ch_test_152                      PASS   gold=C pred=C (24.1s, 2 calls)
+    [rag_rewrite/rewrite] 340 chars
+    [rag_rewrite/answer] 2833 chars
+[416/500] ch_ch_test_2740                     PASS   gold=B pred=B (44.8s, 2 calls)
+    [rag_rewrite/rewrite] 357 chars
+    [rag_rewrite/answer] 2684 chars
+[417/500] ch_ch_test_2259                     PASS   gold=C pred=C (27.2s, 2 calls)
+    [rag_rewrite/rewrite] 376 chars
+    [rag_rewrite/answer] 2109 chars
+[418/500] ch_ch_test_2912                     PASS   gold=C pred=C (22.1s, 2 calls)
+    [rag_rewrite/rewrite] 353 chars
+    [rag_rewrite/answer] 2360 chars
+[419/500] ch_ch_test_1912                     PASS   gold=C pred=C (21.8s, 2 calls)
+    [rag_rewrite/rewrite] 433 chars
+    [rag_rewrite/answer] 3178 chars
+[420/500] ch_ch_test_256                      FAIL   gold=B pred=A (23.7s, 2 calls)
+    [rag_rewrite/rewrite] 345 chars
+    [rag_rewrite/answer] 1852 chars
+[421/500] ch_ch_test_1872                     PASS   gold=D pred=D (15.2s, 2 calls)
+    [rag_rewrite/rewrite] 380 chars
+    [rag_rewrite/answer] 2454 chars
+[422/500] ch_ch_test_346                      PASS   gold=B pred=B (10.7s, 2 calls)
+    [rag_rewrite/rewrite] 364 chars
+    [rag_rewrite/answer] 2836 chars
+[423/500] ch_ch_test_1538                     PASS   gold=C pred=C (13.6s, 2 calls)
+    [rag_rewrite/rewrite] 431 chars
+    [rag_rewrite/answer] 2596 chars
+[424/500] ch_ch_test_1807                     PASS   gold=D pred=D (17.9s, 2 calls)
+    [rag_rewrite/rewrite] 291 chars
+    [rag_rewrite/answer] 2429 chars
+[425/500] ch_ch_test_776                      FAIL   gold=E pred=A (19.3s, 2 calls)
+    [rag_rewrite/rewrite] 348 chars
+    [rag_rewrite/answer] 2543 chars
+[426/500] ch_ch_test_2512                     PASS   gold=B pred=B (10.8s, 2 calls)
+    [rag_rewrite/rewrite] 361 chars
+    [rag_rewrite/answer] 2249 chars
+[427/500] ch_ch_test_2517                     FAIL   gold=E pred=B (15.3s, 2 calls)
+    [rag_rewrite/rewrite] 415 chars
+    [rag_rewrite/answer] 2694 chars
+[428/500] ch_ch_test_1104                     PASS   gold=E pred=E (12.4s, 2 calls)
+    [rag_rewrite/rewrite] 396 chars
+    [rag_rewrite/answer] 2740 chars
+[429/500] ch_ch_test_1706                     PASS   gold=B pred=B (18.5s, 2 calls)
+    [rag_rewrite/rewrite] 410 chars
+    [rag_rewrite/answer] 2919 chars
+[430/500] ch_ch_test_2954                     PASS   gold=A pred=A (14.5s, 2 calls)
+    [rag_rewrite/rewrite] 391 chars
+    [rag_rewrite/answer] 2789 chars
+[431/500] ch_ch_test_1424                     PASS   gold=C pred=C (15.5s, 2 calls)
+    [rag_rewrite/rewrite] 395 chars
+    [rag_rewrite/answer] 3295 chars
+[432/500] ch_ch_test_2487                     PASS   gold=E pred=E (18.2s, 2 calls)
+    [rag_rewrite/rewrite] 385 chars
+    [rag_rewrite/answer] 3972 chars
+[433/500] ch_ch_test_1420                     PASS   gold=E pred=E (19.6s, 2 calls)
+    [rag_rewrite/rewrite] 342 chars
+    [rag_rewrite/answer] 2483 chars
+[434/500] ch_ch_test_178                      PASS   gold=B pred=B (10.6s, 2 calls)
+    [rag_rewrite/rewrite] 379 chars
+    [rag_rewrite/answer] 2732 chars
+[435/500] ch_ch_test_2815                     PASS   gold=E pred=E (20.3s, 2 calls)
+    [rag_rewrite/rewrite] 439 chars
+    [rag_rewrite/answer] 3364 chars
+[436/500] ch_ch_test_1983                     PASS   gold=E pred=E (29.7s, 2 calls)
+    [rag_rewrite/rewrite] 449 chars
+    [rag_rewrite/answer] 2987 chars
+[437/500] ch_ch_test_1061                     FAIL   gold=A pred=E (16.3s, 2 calls)
+    [rag_rewrite/rewrite] 370 chars
+    [rag_rewrite/answer] 2731 chars
+[438/500] ch_ch_test_573                      PASS   gold=C pred=C (142.8s, 2 calls)
+    [rag_rewrite/rewrite] 381 chars
+    [rag_rewrite/answer] 2593 chars
+[439/500] ch_ch_test_1268                     PASS   gold=B pred=B (12.7s, 2 calls)
+    [rag_rewrite/rewrite] 402 chars
+    [rag_rewrite/answer] 2771 chars
+[440/500] ch_ch_test_1080                     PASS   gold=B pred=B (15.1s, 2 calls)
+    [rag_rewrite/rewrite] 403 chars
+    [rag_rewrite/answer] 2757 chars
+[441/500] ch_ch_test_2700                     PASS   gold=A pred=A (13.4s, 2 calls)
+    [rag_rewrite/rewrite] 428 chars
+    [rag_rewrite/answer] 2914 chars
+[442/500] ch_ch_test_1726                     FAIL   gold=A pred=E (20.2s, 2 calls)
+    [rag_rewrite/rewrite] 360 chars
+    [rag_rewrite/answer] 3753 chars
+[443/500] ch_ch_test_1284                     FAIL   gold=A pred=E (13.2s, 2 calls)
+    [rag_rewrite/rewrite] 353 chars
+    [rag_rewrite/answer] 2714 chars
+[444/500] ch_ch_test_1123                     FAIL   gold=A pred=D (9.6s, 2 calls)
+    [rag_rewrite/rewrite] 311 chars
+    [rag_rewrite/answer] 2710 chars
+[445/500] ch_ch_test_3195                     FAIL   gold=E pred=C (13.9s, 2 calls)
+    [rag_rewrite/rewrite] 360 chars
+    [rag_rewrite/answer] 2710 chars
+[446/500] ch_ch_test_705                      PASS   gold=D pred=D (10.7s, 2 calls)
+    [rag_rewrite/rewrite] 384 chars
+    [rag_rewrite/answer] 2897 chars
+[447/500] ch_ch_test_14                       PASS   gold=C pred=C (23.9s, 2 calls)
+    [rag_rewrite/rewrite] 445 chars
+    [rag_rewrite/answer] 2941 chars
+[448/500] ch_ch_test_985                      PASS   gold=E pred=E (15.6s, 2 calls)
+    [rag_rewrite/rewrite] 405 chars
+    [rag_rewrite/answer] 2718 chars
+[449/500] ch_ch_test_173                      PASS   gold=B pred=B (14.3s, 2 calls)
+    [rag_rewrite/rewrite] 443 chars
+    [rag_rewrite/answer] 3072 chars
+[450/500] ch_ch_test_3428                     PASS   gold=C pred=C (17.1s, 2 calls)
+    [rag_rewrite/rewrite] 439 chars
+    [rag_rewrite/answer] 2540 chars
+[451/500] ch_ch_test_2763                     PASS   gold=B pred=B (34.0s, 2 calls)
+    [rag_rewrite/rewrite] 450 chars
+    [rag_rewrite/answer] 3160 chars
+[452/500] ch_ch_test_331                      PASS   gold=B pred=B (36.0s, 2 calls)
+    [rag_rewrite/rewrite] 366 chars
+    [rag_rewrite/answer] 2337 chars
+[453/500] ch_ch_test_691                      PASS   gold=C pred=C (24.7s, 2 calls)
+    [rag_rewrite/rewrite] 428 chars
+    [rag_rewrite/answer] 2654 chars
+[454/500] ch_ch_test_430                      PASS   gold=E pred=E (28.7s, 2 calls)
+    [rag_rewrite/rewrite] 510 chars
+    [rag_rewrite/answer] 2741 chars
+[455/500] ch_ch_test_2586                     PASS   gold=B pred=B (42.5s, 2 calls)
+    [rag_rewrite/rewrite] 425 chars
+    [rag_rewrite/answer] 3367 chars
+[456/500] ch_ch_test_3574                     PASS   gold=E pred=E (13.9s, 2 calls)
+    [rag_rewrite/rewrite] 386 chars
+    [rag_rewrite/answer] 2699 chars
+[457/500] ch_ch_test_3377                     FAIL   gold=E pred=C (9.9s, 2 calls)
+    [rag_rewrite/rewrite] 407 chars
+    [rag_rewrite/answer] 2455 chars
+[458/500] ch_ch_test_2840                     PASS   gold=C pred=C (11.1s, 2 calls)
+    [rag_rewrite/rewrite] 430 chars
+    [rag_rewrite/answer] 3191 chars
+[459/500] ch_ch_test_2059                     FAIL   gold=A pred=B (12.6s, 2 calls)
+    [rag_rewrite/rewrite] 399 chars
+    [rag_rewrite/answer] 2524 chars
+[460/500] ch_ch_test_1677                     PASS   gold=B pred=B (11.1s, 2 calls)
+    [rag_rewrite/rewrite] 320 chars
+    [rag_rewrite/answer] 2263 chars
+[461/500] ch_ch_test_1446                     PASS   gold=E pred=E (11.2s, 2 calls)
+    [rag_rewrite/rewrite] 364 chars
+    [rag_rewrite/answer] 2530 chars
+[462/500] ch_ch_test_544                      FAIL   gold=B pred=A (20.5s, 2 calls)
+    [rag_rewrite/rewrite] 370 chars
+    [rag_rewrite/answer] 2712 chars
+[463/500] ch_ch_test_1161                     PASS   gold=C pred=C (13.8s, 2 calls)
+    [rag_rewrite/rewrite] 393 chars
+    [rag_rewrite/answer] 2700 chars
+[464/500] ch_ch_test_3232                     PASS   gold=E pred=E (43.2s, 2 calls)
+    [rag_rewrite/rewrite] 407 chars
+    [rag_rewrite/answer] 2889 chars
+[465/500] ch_ch_test_1289                     PASS   gold=B pred=B (10.8s, 2 calls)
+    [rag_rewrite/rewrite] 387 chars
+    [rag_rewrite/answer] 2737 chars
+[466/500] ch_ch_test_2226                     PASS   gold=C pred=C (10.5s, 2 calls)
+    [rag_rewrite/rewrite] 356 chars
+    [rag_rewrite/answer] 2511 chars
+[467/500] ch_ch_test_450                      PASS   gold=E pred=E (9.0s, 2 calls)
+    [rag_rewrite/rewrite] 344 chars
+    [rag_rewrite/answer] 2723 chars
+[468/500] ch_ch_test_3044                     FAIL   gold=B pred=D (21.5s, 2 calls)
+    [rag_rewrite/rewrite] 422 chars
+    [rag_rewrite/answer] 2493 chars
+[469/500] ch_ch_test_1748                     PASS   gold=A pred=A (9.5s, 2 calls)
+    [rag_rewrite/rewrite] 413 chars
+    [rag_rewrite/answer] 2808 chars
+[470/500] ch_ch_test_2493                     PASS   gold=D pred=D (10.6s, 2 calls)
+    [rag_rewrite/rewrite] 384 chars
+    [rag_rewrite/answer] 2562 chars
+[471/500] ch_ch_test_324                      PASS   gold=C pred=C (10.6s, 2 calls)
+    [rag_rewrite/rewrite] 340 chars
+    [rag_rewrite/answer] 2278 chars
+[472/500] ch_ch_test_1022                     PASS   gold=D pred=D (8.2s, 2 calls)
+    [rag_rewrite/rewrite] 385 chars
+    [rag_rewrite/answer] 2530 chars
+[473/500] ch_ch_test_486                      PASS   gold=D pred=D (12.3s, 2 calls)
+    [rag_rewrite/rewrite] 345 chars
+    [rag_rewrite/answer] 2825 chars
+[474/500] ch_ch_test_1146                     FAIL   gold=A pred=E (12.2s, 2 calls)
+    [rag_rewrite/rewrite] 476 chars
+    [rag_rewrite/answer] 2968 chars
+[475/500] ch_ch_test_818                      PASS   gold=A pred=A (12.4s, 2 calls)
+    [rag_rewrite/rewrite] 344 chars
+    [rag_rewrite/answer] 2795 chars
+[476/500] ch_ch_test_63                       PASS   gold=C pred=C (15.4s, 2 calls)
+    [rag_rewrite/rewrite] 393 chars
+    [rag_rewrite/answer] 4976 chars
+[477/500] ch_ch_test_266                      FAIL   gold=A pred=B (21.8s, 2 calls)
+    [rag_rewrite/rewrite] 502 chars
+    [rag_rewrite/answer] 2950 chars
+[478/500] ch_ch_test_1728                     PASS   gold=D pred=D (11.7s, 2 calls)
+    [rag_rewrite/rewrite] 380 chars
+    [rag_rewrite/answer] 4031 chars
+[479/500] ch_ch_test_925                      FAIL   gold=B pred=E (16.9s, 2 calls)
+    [rag_rewrite/rewrite] 305 chars
+    [rag_rewrite/answer] 3051 chars
+[480/500] ch_ch_test_157                      FAIL   gold=D pred=B (13.4s, 2 calls)
+    [rag_rewrite/rewrite] 396 chars
+    [rag_rewrite/answer] 2645 chars
+[481/500] ch_ch_test_857                      PASS   gold=E pred=E (11.2s, 2 calls)
+    [rag_rewrite/rewrite] 316 chars
+    [rag_rewrite/answer] 2049 chars
+[482/500] ch_ch_test_368                      PASS   gold=D pred=D (8.6s, 2 calls)
+    [rag_rewrite/rewrite] 424 chars
+    [rag_rewrite/answer] 3415 chars
+[483/500] ch_ch_test_61                       FAIL   gold=B pred=A (13.4s, 2 calls)
+    [rag_rewrite/rewrite] 383 chars
+    [rag_rewrite/answer] 2930 chars
+[484/500] ch_ch_test_2978                     PASS   gold=B pred=B (20.4s, 2 calls)
+    [rag_rewrite/rewrite] 403 chars
+    [rag_rewrite/answer] 3147 chars
+[485/500] ch_ch_test_2571                     FAIL   gold=C pred=B (16.4s, 2 calls)
+    [rag_rewrite/rewrite] 429 chars
+    [rag_rewrite/answer] 2860 chars
+[486/500] ch_ch_test_3024                     PASS   gold=E pred=E (10.5s, 2 calls)
+    [rag_rewrite/rewrite] 444 chars
+    [rag_rewrite/answer] 2466 chars
+[487/500] ch_ch_test_254                      PASS   gold=C pred=C (18.8s, 2 calls)
+    [rag_rewrite/rewrite] 435 chars
+    [rag_rewrite/answer] 2736 chars
+[488/500] ch_ch_test_2441                     PASS   gold=B pred=B (10.8s, 2 calls)
+    [rag_rewrite/rewrite] 378 chars
+    [rag_rewrite/answer] 2225 chars
+[489/500] ch_ch_test_2791                     FAIL   gold=C pred=B (19.6s, 2 calls)
+    [rag_rewrite/rewrite] 349 chars
+    [rag_rewrite/answer] 2970 chars
+[490/500] ch_ch_test_2554                     PASS   gold=C pred=C (28.9s, 2 calls)
+    [rag_rewrite/rewrite] 336 chars
+    [rag_rewrite/answer] 2383 chars
+[491/500] ch_ch_test_2123                     PASS   gold=D pred=D (9.0s, 2 calls)
+    [rag_rewrite/rewrite] 375 chars
+    [rag_rewrite/answer] 3001 chars
+[492/500] ch_ch_test_109                      FAIL   gold=B pred=C (10.1s, 2 calls)
+    [rag_rewrite/rewrite] 419 chars
+    [rag_rewrite/answer] 2650 chars
+[493/500] ch_ch_test_124                      PASS   gold=A pred=A (9.1s, 2 calls)
+    [rag_rewrite/rewrite] 392 chars
+    [rag_rewrite/answer] 2427 chars
+[494/500] ch_ch_test_1263                     PASS   gold=C pred=C (12.6s, 2 calls)
+    [rag_rewrite/rewrite] 443 chars
+    [rag_rewrite/answer] 4076 chars
+[495/500] ch_ch_test_2436                     PASS   gold=E pred=E (13.3s, 2 calls)
+    [rag_rewrite/rewrite] 355 chars
+    [rag_rewrite/answer] 2878 chars
+[496/500] ch_ch_test_263                      PASS   gold=C pred=C (26.3s, 2 calls)
+    [rag_rewrite/rewrite] 432 chars
+    [rag_rewrite/answer] 2665 chars
+[497/500] ch_ch_test_3250                     FAIL   gold=C pred=E (17.6s, 2 calls)
+    [rag_rewrite/rewrite] 400 chars
+    [rag_rewrite/answer] 2569 chars
+[498/500] ch_ch_test_2989                     PASS   gold=A pred=A (10.3s, 2 calls)
+    [rag_rewrite/rewrite] 389 chars
+    [rag_rewrite/answer] 4208 chars
+[499/500] ch_ch_test_599                      FAIL   gold=E pred=B (14.9s, 2 calls)
+    [rag_rewrite/rewrite] 307 chars
+    [rag_rewrite/answer] 2931 chars
+[500/500] ch_ch_test_1613                     PASS   gold=C pred=C (9.1s, 2 calls)
+
+======================================================================
+RESULTS: 354/500 (70.8%)
+Total time: 8521s (17.0s/query)
+======================================================================
+
+Detail log: logs/eval_rag_rewrite_or-gemma4-26b_20260511_1557_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_rewrite_detail.jsonl
+Run summary appended to: logs/experiments.jsonl
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/eval_rag_rewrite_or-gemma4-26b_20260511_1557_casehold_meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-rag_rewrite_detail.jsonl
+mode=rag_rewrite rows=500 accuracy=354/500
+errors=0
+missing_predicted_answer=0
+parse_failures=0
+retrieval_key_rows=500
+empty_retrieval_rows=0
+avg_llm_calls=2.00
+max_output_tokens=2213
+max_final_answer_chars=9745 idx=ch_test_3143
+long_final_answer_rows=0
+top_level_hyde_artifacts=0
+top_level_report_artifacts=0
+top_level_knowledge_artifacts=0
+nested_gap_hyde_artifacts=0
+nested_gap_report_artifacts=0
+rows_with_formatted_question=0
+rows_with_intermediate_question=0
+rows_with_retrieval_queries=0
+rows_with_final_prompt_preview=0
+rows_with_call_trace=0
+rows_with_trace_events=0
+
+
+[2026-05-11T15:58:01-05:00] === MODE adaptive_snap_hyre_diverse tag=meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-adaptive_snap_hyre_diverse ===
+/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+
+======================================================================
+EVAL: adaptive_snap_hyre_diverse | or-gemma4-26b (google/gemma-4-26b-a4b-it) | 500 questions | dataset=casehold
+Tag: meeting-n500-canonical-or-gemma4-26b-casehold-n500-k5-adaptive_snap_hyre_diverse
+======================================================================
+
+    [preflight_smoke] 2 chars
+[preflight] provider=or-gemma4-26b OK
+[preflight] collection count skipped by SKIP_EVAL_COLLECTION_PREFLIGHT=1
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 1054 chars
+[rag_utils] Loading embedding model: Alibaba-NLP/gte-large-en-v1.5
+Loading weights:   0%|          | 0/268 [00:00<?, ?it/s]Loading weights: 100%|██████████| 268/268 [00:00<00:00, 9137.92it/s]
+[rag_utils] Reinitialized embedding position_ids=8192
+[rag_utils] Embedding max_seq_length=512
+    [adaptive_snap_hyre_diverse/answer] 2345 chars
+[1/500] ch_ch_test_1340                     PASS   gold=D pred=D (26.1s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 878 chars
+    [adaptive_snap_hyre_diverse/answer] 3636 chars
+[2/500] ch_ch_test_1601                     PASS   gold=C pred=C (29.1s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 1449 chars
+    [adaptive_snap_hyre_diverse/answer] 3501 chars
+[3/500] ch_ch_test_3549                     FAIL   gold=B pred=A (37.6s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 1035 chars
+    [adaptive_snap_hyre_diverse/answer] 2671 chars
+[4/500] ch_ch_test_3575                     PASS   gold=C pred=C (164.2s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 1011 chars
+    [adaptive_snap_hyre_diverse/answer] 2684 chars
+[5/500] ch_ch_test_211                      PASS   gold=C pred=C (9.1s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 1067 chars
+    [adaptive_snap_hyre_diverse/answer] 2812 chars
+[6/500] ch_ch_test_3515                     PASS   gold=E pred=E (10.1s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 972 chars
+    [adaptive_snap_hyre_diverse/answer] 4288 chars
+[7/500] ch_ch_test_1465                     FAIL   gold=E pred=D (218.8s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 951 chars
+    [adaptive_snap_hyre_diverse/answer] 2345 chars
+[8/500] ch_ch_test_134                      PASS   gold=C pred=C (16.5s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 1051 chars
+    [adaptive_snap_hyre_diverse/answer] 4399 chars
+[9/500] ch_ch_test_2677                     PASS   gold=A pred=A (29.6s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 1045 chars
+    [adaptive_snap_hyre_diverse/answer] 4373 chars
+[10/500] ch_ch_test_1742                     PASS   gold=E pred=E (92.7s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 980 chars
+    [adaptive_snap_hyre_diverse/answer] 4041 chars
+[11/500] ch_ch_test_2316                     PASS   gold=D pred=D (64.9s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 952 chars
+    [adaptive_snap_hyre_diverse/answer] 2975 chars
+[12/500] ch_ch_test_26                       FAIL   gold=A pred=E (18.4s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 950 chars
+    [adaptive_snap_hyre_diverse/answer] 3384 chars
+[13/500] ch_ch_test_929                      PASS   gold=E pred=E (95.2s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 898 chars
+    [adaptive_snap_hyre_diverse/answer] 2951 chars
+[14/500] ch_ch_test_32                       PASS   gold=E pred=E (47.3s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 966 chars
+    [adaptive_snap_hyre_diverse/answer] 3197 chars
+[15/500] ch_ch_test_315                      PASS   gold=C pred=C (7.6s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 1071 chars
+    [adaptive_snap_hyre_diverse/answer] 2650 chars
+[16/500] ch_ch_test_2707                     FAIL   gold=D pred=C (56.7s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 906 chars
+    [adaptive_snap_hyre_diverse/answer] 2815 chars
+[17/500] ch_ch_test_2887                     PASS   gold=C pred=C (10.3s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 956 chars
+    [adaptive_snap_hyre_diverse/answer] 2611 chars
+[18/500] ch_ch_test_1509                     PASS   gold=A pred=A (10.6s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 974 chars
+    [adaptive_snap_hyre_diverse/answer] 3288 chars
+[19/500] ch_ch_test_270                      FAIL   gold=E pred=D (12.3s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 1091 chars
+    [adaptive_snap_hyre_diverse/answer] 2033 chars
+[20/500] ch_ch_test_1965                     PASS   gold=E pred=E (12.2s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 1023 chars
+    [adaptive_snap_hyre_diverse/answer] 2824 chars
+[21/500] ch_ch_test_879                      PASS   gold=A pred=A (17.5s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 865 chars
+    [adaptive_snap_hyre_diverse/answer] 2684 chars
+[22/500] ch_ch_test_1924                     PASS   gold=C pred=C (24.9s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 941 chars
+    [adaptive_snap_hyre_diverse/answer] 2406 chars
+[23/500] ch_ch_test_1057                     PASS   gold=C pred=C (37.2s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 1130 chars
+    [adaptive_snap_hyre_diverse/answer] 4285 chars
+[24/500] ch_ch_test_2377                     FAIL   gold=B pred=C (44.4s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 990 chars
+    [adaptive_snap_hyre_diverse/answer] 2658 chars
+[25/500] ch_ch_test_1231                     PASS   gold=D pred=D (14.5s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 910 chars
+    [adaptive_snap_hyre_diverse/answer] 2848 chars
+[26/500] ch_ch_test_439                      FAIL   gold=E pred=A (16.4s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 816 chars
+    [adaptive_snap_hyre_diverse/answer] 1547 chars
+[27/500] ch_ch_test_415                      PASS   gold=B pred=B (15.3s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 993 chars
+    [adaptive_snap_hyre_diverse/answer] 2664 chars
+[28/500] ch_ch_test_670                      PASS   gold=C pred=C (13.2s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 985 chars
+    [adaptive_snap_hyre_diverse/answer] 2599 chars
+[29/500] ch_ch_test_2843                     FAIL   gold=D pred=B (8.9s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 973 chars
+    [adaptive_snap_hyre_diverse/answer] 3055 chars
+[30/500] ch_ch_test_3019                     PASS   gold=D pred=D (93.6s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 1128 chars
+    [adaptive_snap_hyre_diverse/answer] 3361 chars
+[31/500] ch_ch_test_811                      PASS   gold=E pred=E (8.1s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 1092 chars
+    [adaptive_snap_hyre_diverse/answer] 2790 chars
+[32/500] ch_ch_test_2357                     PASS   gold=C pred=C (10.2s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 920 chars
+    [adaptive_snap_hyre_diverse/answer] 2647 chars
+[33/500] ch_ch_test_179                      PASS   gold=E pred=E (14.0s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 983 chars
+    [adaptive_snap_hyre_diverse/answer] 3728 chars
+[34/500] ch_ch_test_2762                     FAIL   gold=B pred=A (13.5s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 1077 chars
+    [adaptive_snap_hyre_diverse/answer] 2986 chars
+[35/500] ch_ch_test_2988                     PASS   gold=E pred=E (14.3s, 2 calls)
+    [adaptive_snap_hyre_diverse/snap_and_hyre] 982 chars
+[2026-05-11T16:21:09.213] error: *** JOB 67913 ON a40-2205 CANCELLED AT 2026-05-11T16:21:09 DUE TO TIME LIMIT ***
