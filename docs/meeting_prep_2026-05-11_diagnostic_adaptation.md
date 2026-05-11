@@ -30,7 +30,10 @@ source-gated, and meeting-ready by May 11 at 4pm.
 
 The framework is past the "idea only" stage. We have a source-gated
 calibration portfolio and a compact held-out validation over four legal
-datasets. The current evidence supports this claim:
+datasets. The controller is currently rule/evidence-summary based rather than a
+learned router; the meeting claim is that the diagnostic signals are useful and
+auditable enough to route methods, not that the routing policy is finished. The
+current evidence supports this claim:
 
 > Legal RAG does not fail through one universal bottleneck. Snap-HyRE/HyRE helps
 > when generated reasoning is aimed at the active bottleneck, but fixed HyRE is
@@ -65,7 +68,7 @@ Generated with `uv run python scripts/build_meeting_package_figures.py`.
 
 | Figure | Purpose |
 |---|---|
-| `docs/presentation/figures/12_diagnostic_adaptation_calibration_ablation.png` | Slide-ready inherited calibration table: baseline retrieval, query rewrite, fixed HyRE, diagnostic controller. |
+| `docs/presentation/figures/12_diagnostic_adaptation_calibration_ablation.png` | Slide-ready inherited calibration table: matched baseline route, query rewrite, preselected HyRE-family route, diagnostic controller. |
 | `docs/presentation/figures/13_diagnostic_adaptation_heldout_ablation.png` | Slide-ready inherited held-out table on rows 200-249. |
 | `docs/presentation/figures/14_diagnostic_controller_macro_lift.png` | Compact macro-accuracy/call-cost comparison for baseline versus controller. |
 | `docs/presentation/figures/15_bottleneck_diagnostic_route_map.png` | Visual map from evidence signal to bottleneck label to routed policy. |
@@ -90,19 +93,26 @@ is legal-only. It can remain an internal mechanism check for retrieval depth.
 
 Source: `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json` and
 `docs/snap_only_controls_2026-05-11.json`. Rows are current source-gated
-calibration evidence, mostly N=200. Query-rewrite is mixed-N except BarExam;
-use it as a control, not the main portfolio result.
+calibration evidence, mostly N=200. "Matched baseline route" means the strongest
+simple route currently used for that dataset, so HousingQA uses state-filtered
+retrieval rather than generic `rag_simple`. Query-rewrite is mixed-N except
+BarExam; use it as a control, not the main portfolio result.
 
 | Model & Method | BarExam | HousingQA | CaseHOLD | SCALR | Avg. | Calls |
 |---|---:|---:|---:|---:|---:|---:|
-| Gemma 4 26B + baseline retrieval | 80.0 | 60.5 | 73.0 | 74.0 | 71.9 | 1.00 |
+| Gemma 4 26B + matched baseline route | 80.0 | 60.5 | 73.0 | 74.0 | 71.9 | 1.00 |
 | + snap-only reasoning | 85.5 | 55.0 | 74.0 | 72.5 | 71.8 | 2.00 |
 | + legal query rewrite control | 82.0 | 58.0* | 72.0* | 76.0* | 72.0 | 2.00 |
-| + fixed HyRE family | 86.0 | 63.5 | 73.5 | 76.0 | 74.8 | 2.00 |
+| + preselected HyRE-family route | 86.0 | 63.5 | 73.5 | 76.0 | 74.8 | 2.00 |
 | + diagnostic controller routes | 86.0 | 74.5 | 73.5 | 77.5 | 77.9 | 1.30 |
 
 `*` means the query-rewrite row is N=50 for that dataset in the calibration
 portfolio. BarExam query rewrite is N=200.
+
+The preselected HyRE-family row is the best fixed route available before the
+diagnostic controller, not the literal `rag_snap_hyde_2call` row on every
+dataset. The expanded ladder below separates HyRE-only and literal fixed
+Snap-HyRE controls.
 
 Snap-only is a useful diagnostic row, not the proposed final method: it nearly
 matches the best BarExam route, slightly beats the CaseHOLD baseline, and falls
@@ -115,8 +125,12 @@ Expanded Gemma ladder:
 |---|---:|---:|---:|---:|---:|
 | BarExam | 80.0 | 85.5 | 82.0 | 84.5 | 86.0 |
 | HousingQA | 60.5 | 55.0 | 50.0 | 51.5 | 74.5 |
-| CaseHOLD | 73.0 | 74.0 | 71.5 | 72.0 | 73.5 |
+| CaseHOLD | 73.0 | 74.0* | 71.5 | 72.0 | 73.5 |
 | LegalBench-SCALR | 74.0 | 72.5 | rejected | 76.0 | 77.5 |
+
+`*` CaseHOLD snap-only is accuracy-usable but health-caveated: one correct row
+entered a repetition loop with 41,898 final-answer characters. A capped
+replacement was launched as SLURM `67866`.
 
 For SCALR, the uncapped HyRE-only job completed at 71.0% but is rejected as a
 clean row because one answer ran away to 267,458 characters. A capped rerun is
@@ -232,7 +246,7 @@ Use this as the live checklist for final meeting prep:
 |---|---|
 | Main legal-only diagnostic package | Done: four benchmarks, calibration table, held-out table, bottleneck summary, and figure pack are source-gated. |
 | CaseHOLD option-table blocker | Done: implementation is repaired; result is a clean negative against stronger CaseHOLD routes. |
-| Expanded inherited ladder | In progress: completed snap-only rows are documented; retrieval-bearing and cross-model rows remain pending until logs pass gates. |
+| Expanded inherited ladder | Mostly done: snap-only, HyRE-only, literal fixed Snap-HyRE, and Groq held-out sanity rows are documented; only SCALR capped HyRE-only (`67864`), CaseHOLD capped snap-only replacement (`67866`), and the full-SCALR probe (`67863`) remain pending. |
 | Final handoff hygiene | Keep new runs out of the main table until validated; keep branch state clean after documentation updates are committed. |
 
 ## What To Say In The Meeting
@@ -242,11 +256,12 @@ One-minute version:
 > We moved from "does Snap-HyRE win everywhere?" to a stronger diagnostic claim:
 > legal RAG tasks expose different bottlenecks, and generated reasoning helps
 > only when aimed at the right one. A bottleneck-aware controller improves the
-> calibration portfolio from 71.9% to 77.9% macro accuracy, while the compact
-> held-out check improves from 71.5% to 77.5%. The held-out lift is driven by
-> HousingQA verifier routing and CaseHOLD diverse HyRE; BarExam and SCALR expose
-> route-policy gaps that motivate a more automatic rewrite-vs-HyRE selector and
-> better disagreement arbitration.
+> calibration portfolio from 71.9% to 77.9% macro accuracy at 1.30 average LLM
+> calls per question, while the compact held-out check improves from 71.5% to
+> 77.5% at 1.54 average calls. The held-out lift is driven by HousingQA verifier
+> routing and CaseHOLD diverse HyRE; BarExam and SCALR expose route-policy gaps
+> that motivate a more automatic rewrite-vs-HyRE selector and better disagreement
+> arbitration.
 
 Most defensible thesis:
 

@@ -39,14 +39,17 @@ Existing headline table:
 
 | Model & Method | BarExam | HousingQA | CaseHOLD | SCALR | Avg. | Calls |
 |---|---:|---:|---:|---:|---:|---:|
-| Gemma 4 26B + baseline retrieval | 80.0 | 60.5 | 73.0 | 74.0 | 71.9 | 1.00 |
+| Gemma 4 26B + matched baseline route | 80.0 | 60.5 | 73.0 | 74.0 | 71.9 | 1.00 |
 | + snap-only reasoning | 85.5 | 55.0 | 74.0 | 72.5 | 71.8 | 2.00 |
 | + legal query rewrite control | 82.0 | 58.0* | 72.0* | 76.0* | 72.0 | 2.00 |
-| + fixed HyRE family | 86.0 | 63.5 | 73.5 | 76.0 | 74.8 | 2.00 |
+| + preselected HyRE-family route | 86.0 | 63.5 | 73.5 | 76.0 | 74.8 | 2.00 |
 | + diagnostic controller routes | 86.0 | 74.5 | 73.5 | 77.5 | 77.9 | 1.30 |
 
 `*` = N=50 calibration control. Do not hide that caveat; also do not let it
-dominate the meeting narrative.
+dominate the meeting narrative. The baseline row is a matched simple route:
+HousingQA uses `rag_state_filter`, while the other datasets use `rag_simple`.
+The preselected HyRE-family row is not identical to literal
+`rag_snap_hyde_2call` on every dataset.
 
 ## Expanded Ablation Gap
 
@@ -58,10 +61,11 @@ The professor-facing ablation should look inherited:
 4. fixed Snap-HyRE,
 5. diagnostic route.
 
-Existing N=200 logs already cover the key baseline/controller rows, but they
-do not yet cover every inherited control at N=200. The snap-only row has now
-landed across all four legal benchmarks; HyRE-only and fixed Snap-HyRE fill-in
-rows remain live targeted jobs rather than a broad sweep.
+Existing N=200 logs cover the key baseline/controller rows and most inherited
+controls. Snap-only, HyRE-only, and literal fixed Snap-HyRE rows have landed
+across the four legal benchmarks, with two health caveats: SCALR HyRE-only is
+rejected pending a capped rerun, and CaseHOLD snap-only is accuracy-usable but
+has one long-answer outlier pending a capped replacement.
 
 ## Landed Since This Expansion
 
@@ -72,7 +76,7 @@ These are source-gated additions after the initial package:
 | BarExam snap-only control | SLURM `67773`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0346_barexam_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 171/200 = 85.5%, avg calls 2.00, errors 0, missing prediction 1 |
 | BarExam HyRE-only retrieval control | SLURM `67825`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0526_barexam_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl` | Completed, 164/200 = 82.0%, avg calls 2.00, errors 0 |
 | HousingQA snap-only control | SLURM `67775`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 110/200 = 55.0%, avg calls 2.00, errors 0, missing prediction 1 |
-| CaseHOLD snap-only control | SLURM `67777`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 148/200 = 74.0%, avg calls 2.00, errors 0 |
+| CaseHOLD snap-only control | SLURM `67777`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 148/200 = 74.0%, avg calls 2.00, errors 0; health-caveated because one correct row has a 41,898-character repetition loop |
 | LegalBench-SCALR snap-only control | SLURM `67779`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 145/200 = 72.5%, avg calls 2.00, errors 0 |
 | HousingQA HyRE-only retrieval control | SLURM `67826`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0443_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl` | Completed, 100/200 = 50.0%, avg calls 2.00, errors 0 |
 | CaseHOLD HyRE-only retrieval control | SLURM `67827`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0511_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl` | Completed, 143/200 = 71.5%, avg calls 2.00, errors 0, missing prediction 1 |
@@ -80,6 +84,7 @@ These are source-gated additions after the initial package:
 | HousingQA fixed Snap-HyRE control | SLURM `67830`; `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0559_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl` | Completed, 103/200 = 51.5%, avg calls 2.00, errors 0 |
 | CaseHOLD fixed Snap-HyRE control | SLURM `67831`; `logs/eval_rag_snap_hyde_2call_or-gemma4-26b_20260511_0602_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_snap_hyde_2call_detail.jsonl` | Completed, 144/200 = 72.0%, avg calls 2.00, errors 0 |
 | SCALR capped HyRE-only rerun | SLURM `67864`; `LLM_MAX_COMPLETION_TOKENS=4096` | Launched to replace rejected uncapped SCALR HyRE-only row |
+| CaseHOLD capped snap-only rerun | SLURM `67866`; `LLM_MAX_COMPLETION_TOKENS=4096` | Launched to replace the health-caveated CaseHOLD snap-only row if it lands cleanly |
 | GTE query-embedding repair | `rag_utils.py`; direct smoke SLURM `67820` | Completed; repaired `position_ids`, finite 1024-d unit-norm query embeddings |
 | Retrieval smoke after repair | SLURM `67821`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0341_barexam_embedding-fix-smoke2-or-gemma4-26b-n5-k5-rag_hyde_detail.jsonl` | Completed, 5/5; confirms retrieval-bearing jobs can run again |
 
@@ -124,7 +129,7 @@ that row as clean evidence; capped rerun `67864` was launched with
 ## Active And Pending Jobs
 
 All active, pending, and newly completed expansion jobs below use the repaired
-cluster script from commit `dfa4d8a` plus the current `rag_utils.py`
+cluster script in the adaptive checkout plus the current `rag_utils.py`
 embedding-loader repair. They set
 `DATA_REPO=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent`,
 `CHROMA_DB_DIR=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/chroma_db`,
@@ -146,11 +151,12 @@ Provider: `or-gemma4-26b`. Sample: N=200, seed 42, k=5.
 | 67825 | BarExam | `rag_hyde` | Completed and copied locally: 82.0%, 2.00 calls. |
 | 67775 | HousingQA | `snap_only_in_final` | Completed and copied locally: 55.0%, 2.00 calls. |
 | 67826 | HousingQA | `rag_hyde` | Completed and copied locally: 50.0%, 2.00 calls. |
-| 67777 | CaseHOLD | `snap_only_in_final` | Completed and copied locally: 74.0%, 2.00 calls. |
+| 67777 | CaseHOLD | `snap_only_in_final` | Completed and copied locally: 74.0%, 2.00 calls; health-caveated due one long-answer outlier. |
 | 67827 | CaseHOLD | `rag_hyde` | Completed and copied locally: 71.5%, 2.00 calls. |
 | 67779 | LegalBench-SCALR | `snap_only_in_final` | Completed and copied locally: 72.5%, 2.00 calls. |
 | 67828 | LegalBench-SCALR | `rag_hyde` | Completed and copied locally: 71.0%, but rejected as a clean row due one runaway final answer. |
 | 67864 | LegalBench-SCALR | `rag_hyde` | Capped rerun launched with `LLM_MAX_COMPLETION_TOKENS=4096`. |
+| 67866 | CaseHOLD | `snap_only_in_final` | Capped rerun launched with `LLM_MAX_COMPLETION_TOKENS=4096` because the first row is accuracy-usable but has one long-answer health outlier. |
 | 67829 | BarExam | `rag_snap_hyde_2call` | Completed and copied locally: 84.5%, 2.00 calls, one missing prediction. |
 | 67830 | HousingQA | `rag_snap_hyde_2call` | Completed and copied locally: 51.5%, 2.00 calls. |
 | 67831 | CaseHOLD | `rag_snap_hyde_2call` | Completed and copied locally: 72.0%, 2.00 calls. |
@@ -235,8 +241,10 @@ A result can be promoted only if all gates pass:
 3. The expected detail JSONL exists in
    `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre/logs/`.
 4. `scripts/analyze_detail_flags.py <detail.jsonl>` reports sane health:
-   rows match target, no missing predictions spike, no empty-retrieval failure,
-   and no runaway final-answer length spike.
+   rows match target, no missing predictions spike, no empty-retrieval failure
+   for retrieval-bearing modes, and no runaway final-answer length spike.
+   `snap_only_in_final` intentionally has no retrieval payload; judge it by
+   errors, missing predictions, parse failures, calls, and long-answer rows.
 5. Adaptive/HyRE-family rows also pass
    `scripts/audit_adaptive_hyre_logs.py <detail.jsonl>`.
 6. Paired comparisons use overlapping labels only; McNemar tests are optional
@@ -247,9 +255,9 @@ A result can be promoted only if all gates pass:
 If the active jobs do not finish before the meeting, the package is still
 usable. Present the verified controller story, then say:
 
-> We launched a source-gated inherited-ladder fill-in: snap-only, HyRE-only,
-> and fixed Snap-HyRE controls at N=200, plus a Groq Llama 70B held-out sanity
-> layer. Those numbers are intentionally not in the table until logs pass the
-> same gates as the current results.
+> We launched source-gated fill-ins for the inherited ladder and a Groq Llama 70B
+> held-out sanity layer. Most are now validated or explicitly rejected; the rows
+> still pending are the capped SCALR HyRE-only rerun, the capped CaseHOLD
+> snap-only replacement, and the targeted full-SCALR probe.
 
 That is stronger than rushing invalid numbers into the deck.

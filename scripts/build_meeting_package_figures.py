@@ -133,7 +133,7 @@ def calibration_ablation() -> None:
         ]
 
     table_rows = [
-        ("Gemma 4 26B + baseline retrieval", vals(base, "baseline_retrieval"), "N=200"),
+        ("Gemma 4 26B + matched baseline", vals(base, "baseline_retrieval"), "N=200"),
         (
             "+ snap-only reasoning",
             [pct(snap_rows[dataset]["accuracy"]) for dataset in DATASETS]
@@ -141,13 +141,13 @@ def calibration_ablation() -> None:
             "N=200",
         ),
         ("+ legal query rewrite control", vals(rewrite, "query_rewrite_available"), "mixed N"),
-        ("+ fixed HyRE family", vals(hyre, "fixed_hyre_only"), "N=200"),
+        ("+ preselected HyRE-family route", vals(hyre, "fixed_hyre_only"), "N=200"),
         ("+ diagnostic controller routes", vals(controller, "diagnostic_controller"), "N=200 / replay"),
     ]
     make_table_figure(
         "12_diagnostic_adaptation_calibration_ablation.png",
         "Inherited Ablation: Calibration Portfolio",
-        "Controller routes improve macro accuracy while using fewer calls than fixed HyRE.",
+        "Controller routes improve macro accuracy while using fewer calls than preselected HyRE-family routes.",
         table_rows,
         "Sources: docs/diagnostic_controller_portfolio_comparison_2026-05-10.json and "
         "docs/snap_only_controls_2026-05-11.json.",
@@ -362,25 +362,25 @@ def method_ladder_flowchart() -> None:
         },
     ]
 
-    fig, ax = plt.subplots(figsize=(13.2, 7.1), dpi=220)
+    fig, ax = plt.subplots(figsize=(13.2, 7.4), dpi=220)
     ax.axis("off")
     ax.text(0.02, 0.965, "Inherited Method Ladder", fontsize=18, weight="bold", color=COLORS["ink"], transform=ax.transAxes)
     ax.text(
         0.02,
-        0.925,
-        "The ablation is not a bag of prompts: each row inherits the previous retrieval/answer surface and adds one reasoning or routing mechanism.",
+        0.908,
+        "Each row adds one reasoning or routing mechanism to a comparable legal-QA surface.",
         fontsize=10,
         color=COLORS["muted"],
         transform=ax.transAxes,
     )
 
-    y0 = 0.79
-    row_h = 0.125
+    y0 = 0.755
+    row_h = 0.112
     step_w = 0.17
     x_name = 0.035
     x_steps = [0.24, 0.43, 0.62, 0.81]
     for ridx, method in enumerate(methods):
-        y = y0 - ridx * 0.15
+        y = y0 - ridx * 0.135
         ax.text(x_name, y + row_h * 0.62, method["name"], fontsize=11.3, weight="bold", color=method["color"], va="center", transform=ax.transAxes)
         ax.text(x_name, y + row_h * 0.25, textwrap.fill(method["note"], 28), fontsize=8.2, color=COLORS["muted"], va="center", transform=ax.transAxes)
 

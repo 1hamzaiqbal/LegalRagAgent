@@ -34,20 +34,25 @@ Branch: `codex/final-report-snap-hyde`
    portfolio and held-out query/controller JSON files; figures 15-16 are
    scripted diagrams derived from the meeting-prep source claims and linked
    result docs.
-5. ✅ **Snap-only ladder controls are locally auditable across all four legal benchmarks**:
+5. ⚠️ **Snap-only ladder controls are locally auditable across all four legal benchmarks**:
    BarExam `snap_only_in_final` job `67773` is 171/200 = 85.5% with 2.00 calls,
    errors 0, and one missing prediction. HousingQA `snap_only_in_final` job
    `67775` is 110/200 = 55.0% with 2.00 calls, errors 0, and one missing
    prediction. CaseHOLD `snap_only_in_final` job `67777` is 148/200 = 74.0%
-   with 2.00 calls, errors 0, and no missing predictions. LegalBench-SCALR
+   with 2.00 calls, errors 0, and no missing predictions, but one correct row
+   entered a 41,898-character repetition loop. LegalBench-SCALR
    `snap_only_in_final` job `67779` is 145/200 = 72.5% with 2.00 calls, errors
    0, and no missing predictions. All four detail logs were copied from the
-   cluster and pass `scripts/analyze_detail_flags.py`.
-6. ✅ **Retrieval-bearing blocker is repaired enough for live jobs**:
+   cluster and summarized with `scripts/analyze_detail_flags.py`; empty
+   retrieval payloads are expected for `snap_only_in_final`. Treat CaseHOLD
+   snap-only as accuracy-usable but health-caveated until capped rerun `67866`
+   lands cleanly.
+6. ✅ **Retrieval-bearing blocker is repaired enough for evaluated jobs**:
    `rag_utils.py` reinitializes the GTE remote-code `position_ids` buffer.
    Direct embedding smoke `67820` produced finite unit-norm query embeddings,
-   and `rag_hyde` smoke `67821` completed 5/5. Treat longer retrieval-bearing
-   rows as pending until their N=200 logs finish and pass the normal gates.
+   and `rag_hyde` smoke `67821` completed 5/5. The N=200 HyRE-only and fixed
+   Snap-HyRE rows below have since landed under the normal gates, except SCALR
+   HyRE-only, which is rejected pending capped rerun `67864`.
 7. ✅ **BarExam HyRE-only landed as a modest positive retrieval control**:
    `rag_hyde` job `67825` completed with exit `0:0` at 164/200 = 82.0%,
    average calls 2.00, errors 0, missing predictions 0, and empty retrieval 0.

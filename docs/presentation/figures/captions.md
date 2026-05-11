@@ -2,6 +2,56 @@
 
 All figures live in `docs/presentation/figures/` as PNGs. Click any figure path in VSCode to open it inline.
 
+## `12_diagnostic_adaptation_calibration_ablation.png`
+
+**May 11 calibration ablation — Gemma 4 26B legal-only N=200 portfolio.**
+The table compares matched baseline routes, snap-only reasoning, legal query
+rewrite, a preselected HyRE-family route, and diagnostic controller routes. The
+controller is the strongest macro row at 77.9% while averaging 1.30 LLM calls
+per question; query rewrite includes mixed-N controls outside BarExam.
+
+Source data: `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json`
+and `docs/snap_only_controls_2026-05-11.json`.
+
+## `13_diagnostic_adaptation_heldout_ablation.png`
+
+**May 11 held-out check — rows 200-249 across the four legal benchmarks.**
+Matched baselines average 71.5%, legal query rewrite averages 75.5%, and the
+selected diagnostic routes average 77.5% at 1.54 LLM calls per question. The
+lift is concentrated in HousingQA verifier routing and CaseHOLD diverse HyRE;
+BarExam and SCALR remain route-policy refinement cases.
+
+Source data: `docs/heldout_controller_eval_2026-05-10.json` and
+`docs/heldout_query_rewrite_2026-05-10.json`.
+
+## `14_diagnostic_controller_macro_lift.png`
+
+**Macro accuracy versus average LLM calls.** The controller lifts calibration
+macro accuracy over the matched baseline and preselected HyRE-family row while
+spending fewer average calls than fixed two-call methods, because it can route
+some questions through cheaper replay/verifier policies.
+
+Source data: `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json`.
+
+## `15_bottleneck_diagnostic_route_map.png`
+
+**Evidence signal to bottleneck to policy route.** The route map is the compact
+meeting narrative: BarExam points to rewrite-vs-HyRE selection, HousingQA to
+state-filter plus verifier, CaseHOLD to option-conversion work, and SCALR to
+disagreement arbitration.
+
+Source: scripted from `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md`
+and the linked source-gated result docs.
+
+## `16_method_ladder_flowchart.png`
+
+**Inherited method ladder for the ablation table.** The flowchart shows how the
+main controls differ: baseline RAG, snap-only, HyRE/HyDE-only retrieval,
+Snap-HyRE, and diagnostic routing. Use it to explain that the comparison is not
+a broad prompt sweep; each row adds a specific reasoning or routing mechanism.
+
+Source: scripted from `scripts/build_meeting_package_figures.py`.
+
 ## `01_llama70b_method_matrix.png`
 
 **Llama 3.3 70b dense x MuSiQue N=200, pre-2call method matrix.** 8 method bars sorted by mode name. Two methods lift over the rag_simple baseline: `multi_hyde_diverse` +8pp p=0.020 SIG (green) and `iterative_planning_table` +8.5pp p=0.053 TRENDING (yellow). `subagent_rag` -12pp p=0.0007 SIG NEG (red). `snap_hyde_2call` is the newer 2026-04-30 method vehicle and should be discussed alongside this figure. The blue dashed line is the `rag_simple` baseline at 27.5%.
