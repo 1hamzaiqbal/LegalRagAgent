@@ -77,7 +77,9 @@ else
 fi
 
 mkdir -p "$LOG_DIR" "$HF_CACHE" "$XDG_CACHE_HOME" "$TORCH_HOME" "$REPO/logs"
-ln -sfn "$DATA_REPO/datasets" "$REPO/datasets"
+if [[ "$DATA_REPO" != "$REPO" ]]; then
+  ln -sfnT "$DATA_REPO/datasets" "$REPO/datasets"
+fi
 cd "$REPO"
 
 export HUGGINGFACE_HUB_CACHE="$HF_CACHE"

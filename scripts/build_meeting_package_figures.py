@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import textwrap
 from pathlib import Path
 from typing import Any
 
@@ -313,12 +314,114 @@ def route_map() -> None:
     plt.close(fig)
 
 
+def method_ladder_flowchart() -> None:
+    """Show the inherited method family as a compact process diagram."""
+    methods = [
+        {
+            "name": "Baseline RAG",
+            "steps": ["Question", "Corpus retrieval", "Evidence-grounded answer"],
+            "note": "1 LLM call after retrieval",
+            "color": "#8292a2",
+        },
+        {
+            "name": "Snap Only",
+            "steps": ["Question", "Quick legal reasoning", "Final answer, no corpus"],
+            "note": "Tests parametric reasoning and anchoring",
+            "color": COLORS["purple"],
+        },
+        {
+            "name": "HyRE / HyDE",
+            "steps": ["Question", "Hypothetical legal passage", "Retrieve by generated reasoning", "Answer with evidence"],
+            "note": "Generated reasoning is the retrieval query",
+            "color": COLORS["blue"],
+        },
+        {
+            "name": "Snap-HyRE",
+            "steps": ["Question", "Snap answer + HyRE passage", "Retrieve with HyRE", "Answer with evidence"],
+            "note": "Reasoning is snap-conditioned before retrieval",
+            "color": COLORS["green"],
+        },
+        {
+            "name": "Diagnostic Controller",
+            "steps": ["Calibration traces", "Bottleneck label", "Route: rewrite, HyRE, filter, verifier, option, reject"],
+            "note": "Adapts the intervention to the failure mode",
+            "color": COLORS["orange"],
+        },
+    ]
+
+    fig, ax = plt.subplots(figsize=(13.2, 7.1), dpi=220)
+    ax.axis("off")
+    ax.text(0.02, 0.965, "Inherited Method Ladder", fontsize=18, weight="bold", color=COLORS["ink"], transform=ax.transAxes)
+    ax.text(
+        0.02,
+        0.925,
+        "The ablation is not a bag of prompts: each row inherits the previous retrieval/answer surface and adds one reasoning or routing mechanism.",
+        fontsize=10,
+        color=COLORS["muted"],
+        transform=ax.transAxes,
+    )
+
+    y0 = 0.79
+    row_h = 0.125
+    step_w = 0.17
+    x_name = 0.035
+    x_steps = [0.24, 0.43, 0.62, 0.81]
+    for ridx, method in enumerate(methods):
+        y = y0 - ridx * 0.15
+        ax.text(x_name, y + row_h * 0.62, method["name"], fontsize=11.3, weight="bold", color=method["color"], va="center", transform=ax.transAxes)
+        ax.text(x_name, y + row_h * 0.25, textwrap.fill(method["note"], 28), fontsize=8.2, color=COLORS["muted"], va="center", transform=ax.transAxes)
+
+        for sidx, step in enumerate(method["steps"]):
+            x = x_steps[sidx]
+            rect = patches.FancyBboxPatch(
+                (x, y),
+                step_w,
+                row_h,
+                boxstyle="round,pad=0.010,rounding_size=0.012",
+                transform=ax.transAxes,
+                facecolor="white",
+                edgecolor=method["color"],
+                linewidth=1.2,
+            )
+            ax.add_patch(rect)
+            ax.text(
+                x + step_w / 2,
+                y + row_h / 2,
+                textwrap.fill(step, 22),
+                ha="center",
+                va="center",
+                fontsize=8.5,
+                color=COLORS["ink"],
+                transform=ax.transAxes,
+            )
+            if sidx < len(method["steps"]) - 1:
+                ax.annotate(
+                    "",
+                    xy=(x_steps[sidx + 1] - 0.004, y + row_h / 2),
+                    xytext=(x + step_w + 0.004, y + row_h / 2),
+                    xycoords=ax.transAxes,
+                    arrowprops=dict(arrowstyle="->", color=COLORS["line"], lw=1.35),
+                )
+
+    ax.text(
+        0.02,
+        0.025,
+        "Use this with the ablation table: baseline -> snap-only -> HyRE-only -> fixed Snap-HyRE -> bottleneck-aware routing.",
+        fontsize=8.2,
+        color=COLORS["muted"],
+        transform=ax.transAxes,
+    )
+    fig.savefig(OUT / "16_method_ladder_flowchart.png", bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+
+
 def main() -> None:
     calibration_ablation()
     heldout_ablation()
     controller_lift_bar()
     route_map()
-    for path in sorted(OUT.glob("1[2-5]_*.png")):
+    method_ladder_flowchart()
+    for path in sorted(OUT.glob("1[2-6]_*.png")):
         print(path)
 
 
