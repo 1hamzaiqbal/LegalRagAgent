@@ -1,6 +1,6 @@
-# Meeting Prep - Diagnostic Adaptation Framework - 2026-05-12
+# Meeting Prep - Diagnostic Adaptation Framework - 2026-05-11
 
-Purpose: source-gated status for the May 12, 2026 meeting. This consolidates
+Purpose: source-gated status for the May 11, 2026 meeting. This consolidates
 the current bottleneck-aware legal RAG direction, the ablation table to present,
 and the narrow set of work worth doing before the meeting.
 
@@ -23,7 +23,7 @@ for legal RAG: use calibration traces to identify each dataset's active failure
 mode, then route to the cheapest effective intervention among baseline RAG,
 query rewrite, Snap-HyRE/HyRE, metadata filtering, option grounding, verifier,
 disagreement arbitration, or reject/escalate. Keep the evidence legal-only,
-source-gated, and meeting-ready by May 12 at 4pm.
+source-gated, and meeting-ready by May 11 at 4pm.
 ```
 
 ## Where We Are
@@ -88,19 +88,26 @@ is legal-only. It can remain an internal mechanism check for retrieval depth.
 
 ## Calibration Ablation Table
 
-Source: `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json`.
-Rows are current source-gated calibration evidence, mostly N=200. Query-rewrite
-is mixed-N except BarExam; treat it as a control, not the main portfolio result.
+Source: `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json` and
+`docs/snap_only_controls_2026-05-11.json`. Rows are current source-gated
+calibration evidence, mostly N=200. Query-rewrite is mixed-N except BarExam;
+use it as a control, not the main portfolio result.
 
 | Model & Method | BarExam | HousingQA | CaseHOLD | SCALR | Avg. | Calls |
 |---|---:|---:|---:|---:|---:|---:|
 | Gemma 4 26B + baseline retrieval | 80.0 | 60.5 | 73.0 | 74.0 | 71.9 | 1.00 |
+| + snap-only reasoning | 85.5 | 55.0 | 74.0 | 72.5 | 71.8 | 2.00 |
 | + legal query rewrite control | 82.0 | 58.0* | 72.0* | 76.0* | 72.0 | 2.00 |
 | + fixed HyRE family | 86.0 | 63.5 | 73.5 | 76.0 | 74.8 | 2.00 |
 | + diagnostic controller routes | 86.0 | 74.5 | 73.5 | 77.5 | 77.9 | 1.30 |
 
 `*` means the query-rewrite row is N=50 for that dataset in the calibration
 portfolio. BarExam query rewrite is N=200.
+
+Snap-only is a useful diagnostic row, not the proposed final method: it nearly
+matches the best BarExam route, slightly beats the CaseHOLD baseline, and falls
+below the stronger HousingQA and SCALR routes. That pattern supports routing
+rather than a universal "add reasoning before answering" policy.
 
 Route inheritance:
 
@@ -125,7 +132,8 @@ dataset.
 
 Interpretation:
 
-- HousingQA is the cleanest controller win: +14pp over held-out baseline.
+- HousingQA is the cleanest controller lift: +14pp over held-out baseline,
+  with one unparseable verifier answer counted wrong in the source audit.
 - CaseHOLD held-out is encouraging for diverse HyRE: +10pp over baseline and
   +2pp over query rewrite.
 - BarExam is route-unstable: held-out query rewrite wins this slice while the
@@ -173,32 +181,31 @@ showing all five holdings to an option-table selector is not enough.
 
 The older goal list mentions subagent RAG, GAP RAG, CRAG, and Self-RAG. Those
 are reasonable related-work or future-work anchors, but they are not the right
-15-hour target. Reimplementing them now would create a large engineering
+meeting target. Reimplementing them now would create a large engineering
 surface without source-gated legal results.
 
 The meeting-ready table should instead show inheritance across our current
 intervention family:
 
 1. baseline retrieval,
-2. normal legal query rewrite,
-3. fixed Snap-HyRE/HyRE,
-4. bottleneck-specific controller routes.
+2. snap-only reasoning,
+3. normal legal query rewrite,
+4. fixed Snap-HyRE/HyRE,
+5. bottleneck-specific controller routes.
 
 That matches the evidence we actually have and still leaves room to describe
 CRAG/Self-RAG as retrieval/verifier policies the controller could subsume later.
 
-## Next 15 Hours
+## Handoff Checklist
 
-High priority before May 12 at 4pm:
+Use this as the live checklist for final meeting prep:
 
-| Window | Task | Output |
-|---|---|---|
-| T+0-1h | Monitor job `67744`; validate stdout and detail log if complete. | Done: clean negative option-table result documented. |
-| T+1-3h | Re-run lightweight source checks on the four result JSONs and docs. | Done for current package; audit manifest added. |
-| T+3-6h | Update final report/talk figures around the controller and bottleneck table. | Done for meeting package figure pack; report integration remains optional. |
-| T+6-10h | Only run targeted follow-ups if they answer a known routing gap. | BarExam rewrite-vs-HyRE selector or SCALR disagreement refinement; no broad sweeps. |
-| T+10-13h | Integrate the final language into report/presentation. | Meeting-ready narrative with caveats in footnotes, not everywhere. |
-| T+13-15h | Final verification: git clean, source links, PDF/table render, pushed branch. | Stable handoff state before the meeting. |
+| Item | Status |
+|---|---|
+| Main legal-only diagnostic package | Done: four benchmarks, calibration table, held-out table, bottleneck summary, and figure pack are source-gated. |
+| CaseHOLD option-table blocker | Done: implementation is repaired; result is a clean negative against stronger CaseHOLD routes. |
+| Expanded inherited ladder | In progress: completed snap-only rows are documented; retrieval-bearing and cross-model rows remain pending until logs pass gates. |
+| Final handoff hygiene | Keep new runs out of the main table until validated; keep branch state clean after documentation updates are committed. |
 
 ## What To Say In The Meeting
 
@@ -206,14 +213,12 @@ One-minute version:
 
 > We moved from "does Snap-HyRE win everywhere?" to a stronger diagnostic claim:
 > legal RAG tasks expose different bottlenecks, and generated reasoning helps
-> only when aimed at the right one. Across four legal benchmarks, a
-> bottleneck-aware controller improves the calibration portfolio from 71.9% to
-> 77.9% macro accuracy, while the compact held-out check improves from 71.5% to
-> 77.5%. The strongest evidence is HousingQA, where verifier-style statutory
-> entailment fixes a false-positive pattern, and CaseHOLD held-out, where
-> diverse HyRE beats the baseline by 10pp. The open work is making the route
-> policy more automatic, especially for BarExam rewrite-vs-HyRE selection and
-> SCALR disagreement arbitration.
+> only when aimed at the right one. A bottleneck-aware controller improves the
+> calibration portfolio from 71.9% to 77.9% macro accuracy, while the compact
+> held-out check improves from 71.5% to 77.5%. The held-out lift is driven by
+> HousingQA verifier routing and CaseHOLD diverse HyRE; BarExam and SCALR expose
+> route-policy gaps that motivate a more automatic rewrite-vs-HyRE selector and
+> better disagreement arbitration.
 
 Most defensible thesis:
 

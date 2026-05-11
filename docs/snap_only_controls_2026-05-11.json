@@ -1,0 +1,63 @@
+{
+  "date": "2026-05-11",
+  "provider": "or-gemma4-26b",
+  "mode": "snap_only_in_final",
+  "sample": {
+    "n": 200,
+    "seed": 42,
+    "k": 5
+  },
+  "rows": [
+    {
+      "dataset": "barexam",
+      "job_id": "67773",
+      "correct": 171,
+      "total": 200,
+      "accuracy": 0.855,
+      "avg_calls": 2.0,
+      "errors": 0,
+      "missing_predictions": 1,
+      "detail_log": "logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0346_barexam_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl"
+    },
+    {
+      "dataset": "housing",
+      "job_id": "67775",
+      "correct": 110,
+      "total": 200,
+      "accuracy": 0.55,
+      "avg_calls": 2.0,
+      "errors": 0,
+      "missing_predictions": 1,
+      "detail_log": "logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl"
+    },
+    {
+      "dataset": "casehold",
+      "job_id": "67777",
+      "correct": 148,
+      "total": 200,
+      "accuracy": 0.74,
+      "avg_calls": 2.0,
+      "errors": 0,
+      "missing_predictions": 0,
+      "detail_log": "logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl"
+    },
+    {
+      "dataset": "legalbench_scalr",
+      "job_id": "67779",
+      "correct": 145,
+      "total": 200,
+      "accuracy": 0.725,
+      "avg_calls": 2.0,
+      "errors": 0,
+      "missing_predictions": 0,
+      "detail_log": "logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl"
+    }
+  ],
+  "macro_accuracy": 0.7175,
+  "macro_avg_calls": 2.0,
+  "validation": [
+    "sacct completed exit 0:0 for jobs 67773, 67775, 67777, 67779",
+    "scripts/analyze_detail_flags.py loaded 200 rows for each copied detail log",
+    "artifact counters were zero for each copied detail log"
+  ]
+}

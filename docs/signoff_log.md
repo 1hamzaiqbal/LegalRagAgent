@@ -2,7 +2,7 @@
 
 ## Update 2026-05-11 ~meeting package
 
-Change reason: consolidated the May 12 diagnostic-adaptation meeting package,
+Change reason: consolidated the May 11 diagnostic-adaptation meeting package,
 validated the repaired CaseHOLD direct option-table held-out run, and generated
 source-gated figures for the inherited ablation/controller story.
 
@@ -12,10 +12,10 @@ Branch: `codex/final-report-snap-hyde`
 ### Delta since 2026-05-10 diagnostic controller package
 
 1. ✅ **Meeting package ready for the diagnostic-adaptation frame**:
-   `docs/meeting_prep_2026-05-12_diagnostic_adaptation.md` consolidates the
+   `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md` consolidates the
    four legal benchmarks, inherited calibration/held-out ablation tables,
    bottleneck summary, controller narrative, and generated figure pack. Use it
-   as the first meeting entrypoint for the May 12 discussion.
+   as the first meeting entrypoint for the May 11 discussion.
 2. ✅ **CaseHOLD direct option-table route is no longer implementation-blocked**:
    SLURM job `67744` completed with exit `0:0`. The repaired
    `adaptive_snap_hyre_option_table` route runs on the held-out CaseHOLD rows
@@ -29,14 +29,31 @@ Branch: `codex/final-report-snap-hyde`
    b/c=2/6, p=0.2891). Cite this as evidence that answer-option conversion
    remains a distinct bottleneck, not as a positive route.
 4. ✅ **Figure pack generated from source-gated summaries**:
-   `scripts/build_meeting_package_figures.py` emits figures 12-15 under
-   `docs/presentation/figures/`, using the diagnostic controller portfolio and
-   held-out query/controller JSON files.
+   `scripts/build_meeting_package_figures.py` emits figures 12-16 under
+   `docs/presentation/figures/`. Figures 12-14 use the diagnostic controller
+   portfolio and held-out query/controller JSON files; figures 15-16 are
+   scripted diagrams derived from the meeting-prep source claims and linked
+   result docs.
+5. ✅ **Snap-only ladder controls are locally auditable across all four legal benchmarks**:
+   BarExam `snap_only_in_final` job `67773` is 171/200 = 85.5% with 2.00 calls,
+   errors 0, and one missing prediction. HousingQA `snap_only_in_final` job
+   `67775` is 110/200 = 55.0% with 2.00 calls, errors 0, and one missing
+   prediction. CaseHOLD `snap_only_in_final` job `67777` is 148/200 = 74.0%
+   with 2.00 calls, errors 0, and no missing predictions. LegalBench-SCALR
+   `snap_only_in_final` job `67779` is 145/200 = 72.5% with 2.00 calls, errors
+   0, and no missing predictions. All four detail logs were copied from the
+   cluster and pass `scripts/analyze_detail_flags.py`.
+6. ✅ **Retrieval-bearing blocker is repaired enough for live jobs**:
+   `rag_utils.py` reinitializes the GTE remote-code `position_ids` buffer.
+   Direct embedding smoke `67820` produced finite unit-norm query embeddings,
+   and `rag_hyde` smoke `67821` completed 5/5. Treat longer retrieval-bearing
+   rows as pending until their N=200 logs finish and pass the normal gates.
 
 ### New source paths
 
-- Meeting package: `docs/meeting_prep_2026-05-12_diagnostic_adaptation.md`.
+- Meeting package: `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md`.
 - Package audit: `docs/meeting_package_audit_2026-05-11.md`.
+- Snap-only summary: `docs/snap_only_controls_2026-05-11.json`.
 - CaseHOLD direct option-table result:
   `docs/casehold_option_table_direct_heldout_2026-05-11.md`.
 - Figure generator: `scripts/build_meeting_package_figures.py`.
@@ -44,7 +61,13 @@ Branch: `codex/final-report-snap-hyde`
   `docs/presentation/figures/12_diagnostic_adaptation_calibration_ablation.png`,
   `docs/presentation/figures/13_diagnostic_adaptation_heldout_ablation.png`,
   `docs/presentation/figures/14_diagnostic_controller_macro_lift.png`,
-  `docs/presentation/figures/15_bottleneck_diagnostic_route_map.png`.
+  `docs/presentation/figures/15_bottleneck_diagnostic_route_map.png`,
+  `docs/presentation/figures/16_method_ladder_flowchart.png`.
+- Snap-only detail logs:
+  `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0346_barexam_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`,
+  `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`,
+  `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`,
+  `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`.
 
 ## Update 2026-05-01 ~meeting prep
 

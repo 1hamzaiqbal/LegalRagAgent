@@ -10,11 +10,11 @@ separates citeable state from historical working notes.
 2. `meeting_eval_expansion_status_2026-05-11.md` - May 11 expanded status for
    the inherited ablation ladder, active cluster jobs, invalid run exclusions,
    full-corpus feasibility, and validation gates.
-3. `meeting_prep_2026-05-12_diagnostic_adaptation.md` - current May 12 meeting
+3. `meeting_prep_2026-05-11_diagnostic_adaptation.md` - current May 11 meeting
    brief for the legal-only diagnostic adaptation framework, including the
    north-star goal, calibration/held-out ablation tables, live CaseHOLD
-   option-table status, and the 15-hour work budget.
-4. `meeting_package_audit_2026-05-11.md` - completion checklist for the May 12
+   option-table status, and the pre-meeting work budget.
+4. `meeting_package_audit_2026-05-11.md` - completion checklist for the May 11
    package, mapping the goal to source JSONs, validation commands, generated
    figures, and remaining paper risks.
 5. `meeting_state_2026-05-01.md` - meeting-ready synthesis of current findings,
@@ -29,9 +29,10 @@ separates citeable state from historical working notes.
    `../reports/final_class_report/main.tex`
    - current class-report draft with figures/tables.
 
-Five-minute path: read `meeting_state_2026-05-01.md`, then use
-`signoff_log.md` and `compiled_results.md` to verify any number before citing
-it.
+Five-minute path: read `meeting_prep_2026-05-11_diagnostic_adaptation.md`,
+then `meeting_eval_expansion_status_2026-05-11.md`. Use `signoff_log.md`,
+the cited JSON files, and the cited detail logs to verify any number before
+citing it.
 
 ## Current Claim Gates
 
@@ -155,12 +156,14 @@ signoff log decides whether a claim is ready to cite.
   direct option-table held-out result: clean execution at 35/50 = 70.0%, a
   small baseline lift but negative versus query rewrite and diverse HyRE.
 - `meeting_package_audit_2026-05-11.md` and
-  `../scripts/build_meeting_package_figures.py` - May 12 diagnostic-adaptation
+  `../scripts/build_meeting_package_figures.py` - May 11 diagnostic-adaptation
   package audit plus reproducible generation for figures 12-16 under
-  `presentation/figures/`.
+  `docs/presentation/figures/`.
 - `meeting_eval_expansion_status_2026-05-11.md` - active May 11 expansion
   status: inherited ladder jobs, Groq cross-model sanity layer, invalid run
   exclusions, and validation gates before any new number can be cited.
+- `snap_only_controls_2026-05-11.json` - source-gated N=200 snap-only row
+  across BarExam, HousingQA, CaseHOLD, and LegalBench-SCALR.
 - `bottleneck_aware_diagnostic_framework_2026-05-10.md` - current pivot from
   fixed Snap-HyRE prompt iteration to bottleneck-aware diagnostic adaptation.
 - `diagnostic_controller_route_plan_2026-05-10.md` and

@@ -15,20 +15,22 @@ Objective audited:
 
 | Requirement | Evidence | Status |
 |---|---|---|
-| Consolidate four legal benchmarks | `docs/meeting_prep_2026-05-12_diagnostic_adaptation.md` uses BarExam, HousingQA, CaseHOLD, and LegalBench-SCALR; MuSiQue is explicitly excluded from the main table. | Done |
+| Consolidate four legal benchmarks | `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md` uses BarExam, HousingQA, CaseHOLD, and LegalBench-SCALR; MuSiQue is explicitly excluded from the main table. | Done |
 | Verify calibration results | `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json` backs the calibration table: baseline macro 71.9%, fixed HyRE 74.8%, controller 77.9%. | Done |
 | Verify held-out results | `docs/heldout_controller_eval_2026-05-10.json` and `docs/heldout_query_rewrite_2026-05-10.json` back the held-out table: baseline 71.5%, rewrite 75.5%, controller 77.5%. | Done |
 | Verify the live CaseHOLD targeted run | SLURM job `67744` completed with exit `0:0`; `analyze_detail_flags.py` and `audit_adaptive_hyre_logs.py` passed on the copied detail log. | Done |
-| Verify BarExam snap-only control | SLURM job `67773` completed with exit `0:0`; detail log has 200 rows, 171/200 = 85.5%, average calls 2.00, errors 0, and one missing prediction. | Done |
-| Verify HousingQA snap-only control | SLURM job `67775` completed with exit `0:0`; detail log has 200 rows, 110/200 = 55.0%, average calls 2.00, and errors 0. | Done, negative control |
+| Verify BarExam snap-only control | SLURM job `67773` completed with exit `0:0`; copied detail log has 200 rows, 171/200 = 85.5%, average calls 2.00, errors 0, and one missing prediction. | Done |
+| Verify HousingQA snap-only control | SLURM job `67775` completed with exit `0:0`; copied detail log has 200 rows, 110/200 = 55.0%, average calls 2.00, errors 0, and one missing prediction. | Done, negative control |
+| Verify CaseHOLD snap-only control | SLURM job `67777` completed with exit `0:0`; copied detail log has 200 rows, 148/200 = 74.0%, average calls 2.00, errors 0, and no missing predictions. | Done |
+| Verify SCALR snap-only control | SLURM job `67779` completed with exit `0:0`; copied detail log has 200 rows, 145/200 = 72.5%, average calls 2.00, errors 0, and no missing predictions. | Done |
 | Repair retrieval-bearing launch blocker | `rag_utils.py` now reinitializes the GTE remote-code `position_ids` buffer; direct embedding smoke `67820` and `rag_hyde` smoke `67821` completed cleanly. | Done |
 | Relaunch missing ladder/model-coverage jobs | Gemma N=200 retrieval controls `67825-67831` and Groq held-out sanity jobs `67832-67839` are queued/running with the repaired embedder. | In progress; not report numbers yet |
-| Build inherited ablation tables | Markdown tables in `docs/meeting_prep_2026-05-12_diagnostic_adaptation.md`; slide-ready PNGs `12_diagnostic_adaptation_calibration_ablation.png` and `13_diagnostic_adaptation_heldout_ablation.png`. | Done |
+| Build inherited ablation tables | Markdown tables in `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md`; slide-ready PNGs `12_diagnostic_adaptation_calibration_ablation.png` and `13_diagnostic_adaptation_heldout_ablation.png`. | Done |
 | Build diagrams | Mermaid controller diagram in the meeting prep; PNG route-map and macro-lift figures in `docs/presentation/figures/`. | Done |
-| Build bottleneck summaries | `docs/meeting_prep_2026-05-12_diagnostic_adaptation.md` has the benchmark table and bottleneck summary table; `15_bottleneck_diagnostic_route_map.png` visualizes it. | Done |
-| Use targeted runs only | The only new run incorporated here is CaseHOLD direct option-table held-out job `67744`, launched to resolve the specific option-table blocker. | Done |
+| Build bottleneck summaries | `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md` has the benchmark table and bottleneck summary table; `15_bottleneck_diagnostic_route_map.png` visualizes it. | Done |
+| Use targeted runs only | The main meeting table incorporates the targeted CaseHOLD option-table repair; the expansion status separately tracks snap-only controls and retrieval/model-coverage jobs. | Done |
 | Show routes across all named intervention families | The meeting prep and route map cover baseline RAG, query rewrite, Snap-HyRE/HyRE, metadata/state filtering, option grounding, verifier policies, disagreement arbitration, and reject/escalate. | Done |
-| Show what works | Housing verifier and CaseHOLD diverse HyRE have the clearest held-out gains; controller macro improves by +6.0pp in calibration and held-out summaries. | Done |
+| Show what works | Housing verifier and CaseHOLD diverse HyRE have the clearest held-out gains; controller macro improves by +6.0pp in calibration and held-out summaries. Snap-only is now fully measured and shows why routing is needed. | Done |
 | Show what fails | CaseHOLD direct option table is clean but weak: 70.0%, below query rewrite 76.0% and diverse HyRE 78.0%; replay selector is 66.0%. | Done |
 | Show what needs improvement for a paper | Meeting prep identifies BarExam rewrite-vs-HyRE selection, SCALR disagreement arbitration, and deeper CaseHOLD option-conversion mechanisms. | Done |
 
@@ -48,11 +50,16 @@ Outputs:
 - `docs/presentation/figures/15_bottleneck_diagnostic_route_map.png`
 - `docs/presentation/figures/16_method_ladder_flowchart.png`
 
-The figure builder reads only source-gated JSON summaries:
+Figures 12-14 read source-gated JSON summaries:
 
 - `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json`
+- `docs/snap_only_controls_2026-05-11.json`
 - `docs/heldout_controller_eval_2026-05-10.json`
 - `docs/heldout_query_rewrite_2026-05-10.json`
+
+Figures 15-16 are scripted diagrams generated from the same meeting-prep source
+claims and the linked source-gated result docs; they are not independent result
+sources.
 
 ## Commands Re-Run During This Audit
 
@@ -60,6 +67,10 @@ The figure builder reads only source-gated JSON summaries:
 uv run python scripts/build_meeting_package_figures.py
 uv run python scripts/audit_adaptive_hyre_logs.py logs/eval_adaptive_snap_hyre_option_table_or-gemma4-26b_20260511_0028_casehold_casehold-option-table-direct-or-gemma4-26b-api-q250-start200-end250-k5-adaptive_snap_hyre_option_table_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_adaptive_snap_hyre_option_table_or-gemma4-26b_20260511_0028_casehold_casehold-option-table-direct-or-gemma4-26b-api-q250-start200-end250-k5-adaptive_snap_hyre_option_table_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0346_barexam_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
 ```
 
 Health-check result for the direct option-table log:
@@ -71,6 +82,42 @@ Health-check result for the direct option-table log:
 - parse failures: 0
 - missing predictions: 0
 - empty retrieval: 0
+- artifact flags: 0
+
+Health-check result for BarExam snap-only:
+
+- rows: 200
+- correct: 171/200 = 85.5%
+- average calls: 2.00
+- errors: 0
+- missing predictions: 1
+- artifact flags: 0
+
+Health-check result for CaseHOLD snap-only:
+
+- rows: 200
+- correct: 148/200 = 74.0%
+- average calls: 2.00
+- errors: 0
+- missing predictions: 0
+- artifact flags: 0
+
+Health-check result for SCALR snap-only:
+
+- rows: 200
+- correct: 145/200 = 72.5%
+- average calls: 2.00
+- errors: 0
+- missing predictions: 0
+- artifact flags: 0
+
+Health-check result for HousingQA snap-only:
+
+- rows: 200
+- correct: 110/200 = 55.0%
+- average calls: 2.00
+- errors: 0
+- missing predictions: 1
 - artifact flags: 0
 
 ## Remaining Risk

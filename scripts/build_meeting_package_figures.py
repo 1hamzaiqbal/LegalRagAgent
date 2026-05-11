@@ -19,6 +19,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 PORTFOLIO_JSON = ROOT / "docs" / "diagnostic_controller_portfolio_comparison_2026-05-10.json"
 HELDOUT_CONTROLLER_JSON = ROOT / "docs" / "heldout_controller_eval_2026-05-10.json"
 HELDOUT_REWRITE_JSON = ROOT / "docs" / "heldout_query_rewrite_2026-05-10.json"
+SNAP_ONLY_JSON = ROOT / "docs" / "snap_only_controls_2026-05-11.json"
 
 DATASETS = ["barexam", "housing", "casehold", "legalbench_scalr"]
 DATASET_LABELS = {
@@ -63,8 +64,9 @@ def make_table_figure(
     title: str,
     subtitle: str,
     rows: list[tuple[str, list[str], str]],
+    source_note: str,
 ) -> None:
-    fig, ax = plt.subplots(figsize=(12.4, 4.7), dpi=220)
+    fig, ax = plt.subplots(figsize=(12.4, 5.1), dpi=220)
     ax.axis("off")
     ax.text(0.0, 1.03, title, transform=ax.transAxes, fontsize=16, weight="bold", color=COLORS["ink"])
     ax.text(0.0, 0.965, subtitle, transform=ax.transAxes, fontsize=9.6, color=COLORS["muted"])
@@ -104,8 +106,7 @@ def make_table_figure(
     ax.text(
         0.0,
         0.0,
-        "Source-gated from docs/diagnostic_controller_portfolio_comparison_2026-05-10.json, "
-        "docs/heldout_controller_eval_2026-05-10.json, and docs/heldout_query_rewrite_2026-05-10.json.",
+        source_note,
         transform=ax.transAxes,
         fontsize=7.6,
         color=COLORS["muted"],
@@ -116,6 +117,8 @@ def make_table_figure(
 
 def calibration_ablation() -> None:
     portfolios = portfolio_rows()
+    snap = load_json(SNAP_ONLY_JSON)
+    snap_rows = {row["dataset"]: row for row in snap["rows"]}
     base = row_by_dataset(portfolios["baseline_retrieval"])
     rewrite = row_by_dataset(portfolios["query_rewrite_available"])
     hyre = row_by_dataset(portfolios["fixed_hyre_only"])
@@ -131,6 +134,12 @@ def calibration_ablation() -> None:
 
     table_rows = [
         ("Gemma 4 26B + baseline retrieval", vals(base, "baseline_retrieval"), "N=200"),
+        (
+            "+ snap-only reasoning",
+            [pct(snap_rows[dataset]["accuracy"]) for dataset in DATASETS]
+            + [pct(snap["macro_accuracy"]), f"{snap['macro_avg_calls']:.2f}"],
+            "N=200",
+        ),
         ("+ legal query rewrite control", vals(rewrite, "query_rewrite_available"), "mixed N"),
         ("+ fixed HyRE family", vals(hyre, "fixed_hyre_only"), "N=200"),
         ("+ diagnostic controller routes", vals(controller, "diagnostic_controller"), "N=200 / replay"),
@@ -140,6 +149,8 @@ def calibration_ablation() -> None:
         "Inherited Ablation: Calibration Portfolio",
         "Controller routes improve macro accuracy while using fewer calls than fixed HyRE.",
         table_rows,
+        "Sources: docs/diagnostic_controller_portfolio_comparison_2026-05-10.json and "
+        "docs/snap_only_controls_2026-05-11.json.",
     )
 
 
@@ -177,6 +188,8 @@ def heldout_ablation() -> None:
         "Inherited Ablation: Held-Out Slice",
         "Held-out rows validate the routing story, with HousingQA and CaseHOLD carrying the clearest gains.",
         table_rows,
+        "Sources: docs/heldout_controller_eval_2026-05-10.json and "
+        "docs/heldout_query_rewrite_2026-05-10.json.",
     )
 
 
@@ -305,7 +318,7 @@ def route_map() -> None:
     ax.text(
         0.02,
         0.02,
-        "Source: docs/meeting_prep_2026-05-12_diagnostic_adaptation.md and linked source-gated result docs.",
+        "Source: docs/meeting_prep_2026-05-11_diagnostic_adaptation.md and linked source-gated result docs.",
         fontsize=8,
         color=COLORS["muted"],
         transform=ax.transAxes,

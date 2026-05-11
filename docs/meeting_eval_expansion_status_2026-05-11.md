@@ -27,7 +27,7 @@ These are meeting-ready now:
 
 | Item | Source | Status |
 |---|---|---|
-| Four legal benchmarks only | `docs/meeting_prep_2026-05-12_diagnostic_adaptation.md` | Done |
+| Four legal benchmarks only | `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md` | Done |
 | Calibration controller table | `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json` | Done |
 | Held-out controller table | `docs/heldout_controller_eval_2026-05-10.json` | Done |
 | Query-rewrite held-out control | `docs/heldout_query_rewrite_2026-05-10.json` | Done |
@@ -40,6 +40,7 @@ Existing headline table:
 | Model & Method | BarExam | HousingQA | CaseHOLD | SCALR | Avg. | Calls |
 |---|---:|---:|---:|---:|---:|---:|
 | Gemma 4 26B + baseline retrieval | 80.0 | 60.5 | 73.0 | 74.0 | 71.9 | 1.00 |
+| + snap-only reasoning | 85.5 | 55.0 | 74.0 | 72.5 | 71.8 | 2.00 |
 | + legal query rewrite control | 82.0 | 58.0* | 72.0* | 76.0* | 72.0 | 2.00 |
 | + fixed HyRE family | 86.0 | 63.5 | 73.5 | 76.0 | 74.8 | 2.00 |
 | + diagnostic controller routes | 86.0 | 74.5 | 73.5 | 77.5 | 77.9 | 1.30 |
@@ -58,8 +59,9 @@ The professor-facing ablation should look inherited:
 5. diagnostic route.
 
 Existing N=200 logs already cover the key baseline/controller rows, but they
-do not yet cover every inherited control at N=200. The missing rows are being
-run as targeted jobs rather than a broad sweep.
+do not yet cover every inherited control at N=200. The snap-only row has now
+landed across all four legal benchmarks; HyRE-only and fixed Snap-HyRE fill-in
+rows remain live targeted jobs rather than a broad sweep.
 
 ## Landed Since This Expansion
 
@@ -68,22 +70,27 @@ These are source-gated additions after the initial package:
 | Item | Source | Status |
 |---|---|---|
 | BarExam snap-only control | SLURM `67773`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0346_barexam_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 171/200 = 85.5%, avg calls 2.00, errors 0, missing prediction 1 |
-| HousingQA snap-only control | SLURM `67775`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 110/200 = 55.0%, avg calls 2.00, errors 0 |
+| HousingQA snap-only control | SLURM `67775`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 110/200 = 55.0%, avg calls 2.00, errors 0, missing prediction 1 |
+| CaseHOLD snap-only control | SLURM `67777`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 148/200 = 74.0%, avg calls 2.00, errors 0 |
+| LegalBench-SCALR snap-only control | SLURM `67779`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 145/200 = 72.5%, avg calls 2.00, errors 0 |
 | GTE query-embedding repair | `rag_utils.py`; direct smoke SLURM `67820` | Completed; repaired `position_ids`, finite 1024-d unit-norm query embeddings |
 | Retrieval smoke after repair | SLURM `67821`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0341_barexam_embedding-fix-smoke2-or-gemma4-26b-n5-k5-rag_hyde_detail.jsonl` | Completed, 5/5; confirms retrieval-bearing jobs can run again |
 
-The HousingQA snap-only row is a usable negative control: visible snap reasoning
-alone is below the verified state-filter baseline (60.5%) and far below the
-Housing verifier route (74.5%), supporting the claim that this task needs
-statutory entailment verification rather than more final-answer reasoning.
-The BarExam snap-only row is the opposite diagnostic pattern: it nearly reaches
-the best verified BarExam controller row (86.0%), so the route decision should
-ask whether retrieval is worth the extra latency on this task.
+The completed snap-only row is a useful diagnostic control. BarExam nearly
+matches the best verified BarExam controller row (86.0%), so its route decision
+should ask whether retrieval is worth the extra latency. HousingQA is the
+opposite pattern: visible snap reasoning alone is below the verified state-filter
+baseline (60.5%) and far below the Housing verifier route (74.5%). CaseHOLD
+slightly beats its baseline but does not resolve the option-conversion story;
+SCALR falls below the existing retrieval/Snap-HyRE rows. The macro result is
+therefore not a positive method claim; it is evidence that the controller needs
+to decide where reasoning is spent.
 
-## Active Jobs
+## Active And Pending Jobs
 
-All active jobs below use the repaired cluster script from commit `dfa4d8a`
-plus the current `rag_utils.py` embedding-loader repair. They set
+All active, pending, and newly completed expansion jobs below use the repaired
+cluster script from commit `dfa4d8a` plus the current `rag_utils.py`
+embedding-loader repair. They set
 `DATA_REPO=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent`,
 `CHROMA_DB_DIR=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/chroma_db`,
 skip Chroma count preflight, and exclude the bad A40 nodes that produced
@@ -91,19 +98,19 @@ CUDA/ECC failures. Retrieval-bearing jobs also run with the repaired online GTE
 query embedder: reinitialized RoPE `position_ids`, `max_seq_length=512`, fp16
 disabled by default, and finite embedding smoke verified by SLURM `67820`.
 
-### Missing Gemma 4 26B Ladder Controls
+### Gemma 4 26B Ladder Controls
 
 Provider: `or-gemma4-26b`. Sample: N=200, seed 42, k=5.
 
 | Job | Dataset | Mode | Why it matters |
 |---:|---|---|---|
-| 67773 | BarExam | `snap_only_in_final` | Completed clean: 85.5%, 2.00 calls. |
+| 67773 | BarExam | `snap_only_in_final` | Completed and copied locally: 85.5%, 2.00 calls. |
 | 67825 | BarExam | `rag_hyde` | HyRE/HyDE-only control; relaunched after embedding repair. |
-| 67775 | HousingQA | `snap_only_in_final` | Completed clean: 55.0%, 2.00 calls. |
+| 67775 | HousingQA | `snap_only_in_final` | Completed and copied locally: 55.0%, 2.00 calls. |
 | 67826 | HousingQA | `rag_hyde` | Tests whether plain HyRE helps without state/verifier route. |
-| 67777 | CaseHOLD | `snap_only_in_final` | Snap-only control for option conversion. |
+| 67777 | CaseHOLD | `snap_only_in_final` | Completed and copied locally: 74.0%, 2.00 calls. |
 | 67827 | CaseHOLD | `rag_hyde` | HyRE-only control for holding retrieval. |
-| 67779 | LegalBench-SCALR | `snap_only_in_final` | Snap-only control for candidate disambiguation. |
+| 67779 | LegalBench-SCALR | `snap_only_in_final` | Completed and copied locally: 72.5%, 2.00 calls. |
 | 67828 | LegalBench-SCALR | `rag_hyde` | HyRE-only control. |
 | 67829 | BarExam | `rag_snap_hyde_2call` | Fixed Snap-HyRE N=200 row missing for this provider. |
 | 67830 | HousingQA | `rag_snap_hyde_2call` | Fixed Snap-HyRE N=200 row missing for this provider. |
