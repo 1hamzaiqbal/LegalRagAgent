@@ -100,6 +100,15 @@ sources.
 
 ## Commands Re-Run During This Audit
 
+Refresh note, 2026-05-11 12:55 CDT: these validation commands were rerun for
+the promoted May 11 detail logs. The rerun matches the documented promoted and
+rejected rows: snap-only, HyRE-only, fixed Snap-HyRE, CaseHOLD option-table, and
+Groq held-out rows remain source-consistent; the SCALR uncapped HyRE-only row
+and full-SCALR `67863` baseline half remain rejected/health-gated for runaway
+final-answer length; Groq CaseHOLD diverse remains rejected by the adaptive log
+audit because it has errors, empty retrieval rows, missing predictions, and
+unexpected call counts.
+
 ```bash
 uv run python scripts/build_meeting_package_figures.py
 uv run python scripts/audit_adaptive_hyre_logs.py logs/eval_adaptive_snap_hyre_option_table_or-gemma4-26b_20260511_0028_casehold_casehold-option-table-direct-or-gemma4-26b-api-q250-start200-end250-k5-adaptive_snap_hyre_option_table_detail.jsonl

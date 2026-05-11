@@ -152,6 +152,15 @@ These jobs were launched to satisfy the larger-slice sanity request for the
 canonical methods. They are not report numbers until the validation gates below
 pass.
 
+Latest monitor refresh, 2026-05-11 12:55 CDT: `squeue`/`sacct` report all five
+active scale-up jobs still running. Stdout/error scans found no Tracebacks,
+API/rate-limit/auth failures, empty-retrieval warnings, CUDA/ECC errors,
+timeouts, or runaway-output signatures. The only grep hits were normal
+validation-summary strings from already known rows. Current observed progress:
+`67897` SCALR frontier `122/571`; `67911` BarExam `rag_simple` `98/500`;
+`67912` HousingQA `rag_state_filter` `62/500`; `67913` CaseHOLD `rag_simple`
+`219/500`; `67915` SCALR `rag_rewrite` `93/571`. No new row is promoted.
+
 | Job | Dataset | N | Modes | Status |
 |---:|---|---:|---|---|
 | 67897 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Running capped replacement for rejected full-SCALR probe `67863`. |

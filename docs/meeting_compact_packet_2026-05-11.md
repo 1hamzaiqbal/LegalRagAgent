@@ -44,6 +44,13 @@ These jobs were launched after the N=200 ladder to test the canonical routes at
 larger scale. They are pending source gates and must not be promoted until
 their stdout and detail logs validate.
 
+Latest monitor refresh, 2026-05-11 12:55 CDT: all five active scale-up jobs
+remain `RUNNING`, stdout tails are clean for the checked failure strings, and
+no new detail log has been promoted. Current observed progress: `67897`
+SCALR frontier `122/571`; `67911` BarExam `rag_simple` `98/500`; `67912`
+HousingQA `rag_state_filter` `62/500`; `67913` CaseHOLD `rag_simple`
+`219/500`; `67915` SCALR `rag_rewrite` `93/571`.
+
 | Job | Dataset | N | Modes | Status / purpose |
 |---:|---|---:|---|---|
 | 67897 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Capped full-SCALR replacement after rejected `67863`. |
