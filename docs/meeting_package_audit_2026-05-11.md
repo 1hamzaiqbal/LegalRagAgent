@@ -23,6 +23,7 @@ Objective audited:
 | Verify HousingQA snap-only control | SLURM job `67775` completed with exit `0:0`; copied detail log has 200 rows, 110/200 = 55.0%, average calls 2.00, errors 0, and one missing prediction. | Done, negative control |
 | Verify CaseHOLD snap-only control | SLURM job `67777` completed with exit `0:0`; copied detail log has 200 rows, 148/200 = 74.0%, average calls 2.00, errors 0, and no missing predictions. | Done |
 | Verify SCALR snap-only control | SLURM job `67779` completed with exit `0:0`; copied detail log has 200 rows, 145/200 = 72.5%, average calls 2.00, errors 0, and no missing predictions. | Done |
+| Verify HousingQA HyRE-only control | SLURM job `67826` completed with exit `0:0`; copied detail log has 200 rows, 100/200 = 50.0%, average calls 2.00, errors 0, and no missing predictions. | Done, negative control |
 | Repair retrieval-bearing launch blocker | `rag_utils.py` now reinitializes the GTE remote-code `position_ids` buffer; direct embedding smoke `67820` and `rag_hyde` smoke `67821` completed cleanly. | Done |
 | Relaunch missing ladder/model-coverage jobs | Gemma N=200 retrieval controls `67825-67831` and Groq held-out sanity jobs `67832-67839` are queued/running with the repaired embedder. | In progress; not report numbers yet |
 | Build inherited ablation tables | Markdown tables in `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md`; slide-ready PNGs `12_diagnostic_adaptation_calibration_ablation.png` and `13_diagnostic_adaptation_heldout_ablation.png`. | Done |
@@ -47,11 +48,11 @@ itself mean every long-horizon experiment has completed.
 | Source-gated result reporting | Source JSONs, copied detail logs, `signoff_log.md`, and validation commands are listed in this audit. | Covered for reported numbers. |
 | Inherited ablation table | Calibration table now includes baseline retrieval, snap-only reasoning, query rewrite, fixed HyRE family, and diagnostic controller. | Covered at the portfolio level. |
 | Snap-only across all four legal benchmarks | `docs/snap_only_controls_2026-05-11.json` and four copied detail logs; all pass `analyze_detail_flags.py`. | Covered. |
-| HyRE-only across all four legal benchmarks | SLURM jobs `67825-67828` are running under the repaired embedder. | In progress; do not cite yet. |
+| HyRE-only across all four legal benchmarks | HousingQA job `67826` is complete and negative; BarExam, CaseHOLD, and SCALR jobs `67825`, `67827`, and `67828` are still running under the repaired embedder. | Partial; only HousingQA is citeable. |
 | Fixed Snap-HyRE fill-in rows | Existing portfolio has fixed HyRE-family rows; missing provider-matched N=200 fill-ins are SLURM `67829-67831`. | In progress / pending; do not cite yet. |
 | Adaptive/controller rows | `docs/diagnostic_controller_portfolio_comparison_2026-05-10.json` and `docs/heldout_controller_eval_2026-05-10.json`. | Covered for current controller story. |
 | Cross-model coverage | Groq Llama 70B held-out sanity jobs `67832-67839` are queued. | Pending; not a report result yet. |
-| Full-corpus evaluations where feasible | Harness full sizes are documented in `docs/meeting_eval_expansion_status_2026-05-11.md`; all-method/all-model full corpus is not feasible before the meeting. | Documented feasibility gap; no full-corpus result is promoted. |
+| Full-corpus evaluations where feasible | Harness full sizes are documented in `docs/meeting_eval_expansion_status_2026-05-11.md`; all-method/all-model full corpus is not feasible before the meeting; targeted full-SCALR sanity job `67863` is launched for `rag_simple` and `adaptive_snap_hyre_frontier`. | Launched / pending; no full-corpus result is promoted. |
 | Diagrams and flowcharts | Figures 12-16 under `docs/presentation/figures/`, plus Mermaid framework diagram in the meeting prep. | Covered. |
 | Bottleneck summaries | Meeting prep bottleneck table maps each dataset to evidence signal and route. | Covered. |
 | Targeted runs only | Run list is scoped to snap-only fill-in, HyRE/Snap-HyRE ladder controls, CaseHOLD option-table repair, and cross-model sanity. | Covered. |
@@ -95,6 +96,7 @@ uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-ge
 uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
 uv run python scripts/analyze_detail_flags.py logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl
+uv run python scripts/analyze_detail_flags.py logs/eval_rag_hyde_or-gemma4-26b_20260511_0443_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl
 ```
 
 Health-check result for the direct option-table log:
@@ -142,6 +144,16 @@ Health-check result for HousingQA snap-only:
 - average calls: 2.00
 - errors: 0
 - missing predictions: 1
+- artifact flags: 0
+
+Health-check result for HousingQA HyRE-only:
+
+- rows: 200
+- correct: 100/200 = 50.0%
+- average calls: 2.00
+- errors: 0
+- missing predictions: 0
+- empty retrieval: 0
 - artifact flags: 0
 
 ## Remaining Risk

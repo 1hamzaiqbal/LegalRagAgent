@@ -48,6 +48,11 @@ Branch: `codex/final-report-snap-hyde`
    Direct embedding smoke `67820` produced finite unit-norm query embeddings,
    and `rag_hyde` smoke `67821` completed 5/5. Treat longer retrieval-bearing
    rows as pending until their N=200 logs finish and pass the normal gates.
+7. ⚠️ **HousingQA HyRE-only landed as a negative control**:
+   `rag_hyde` job `67826` completed with exit `0:0` at 100/200 = 50.0%,
+   average calls 2.00, errors 0, missing predictions 0, and empty retrieval 0.
+   Cite as evidence against generic HyRE retrieval for HousingQA; the stronger
+   route remains state-filter retrieval plus verifier.
 
 ### New source paths
 
@@ -68,6 +73,8 @@ Branch: `codex/final-report-snap-hyde`
   `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`,
   `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`,
   `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`.
+- HousingQA HyRE-only detail log:
+  `logs/eval_rag_hyde_or-gemma4-26b_20260511_0443_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl`.
 
 ## Update 2026-05-01 ~meeting prep
 

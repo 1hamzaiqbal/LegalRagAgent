@@ -73,6 +73,7 @@ These are source-gated additions after the initial package:
 | HousingQA snap-only control | SLURM `67775`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0259_housing_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 110/200 = 55.0%, avg calls 2.00, errors 0, missing prediction 1 |
 | CaseHOLD snap-only control | SLURM `67777`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 148/200 = 74.0%, avg calls 2.00, errors 0 |
 | LegalBench-SCALR snap-only control | SLURM `67779`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 145/200 = 72.5%, avg calls 2.00, errors 0 |
+| HousingQA HyRE-only retrieval control | SLURM `67826`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0443_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl` | Completed, 100/200 = 50.0%, avg calls 2.00, errors 0 |
 | GTE query-embedding repair | `rag_utils.py`; direct smoke SLURM `67820` | Completed; repaired `position_ids`, finite 1024-d unit-norm query embeddings |
 | Retrieval smoke after repair | SLURM `67821`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0341_barexam_embedding-fix-smoke2-or-gemma4-26b-n5-k5-rag_hyde_detail.jsonl` | Completed, 5/5; confirms retrieval-bearing jobs can run again |
 
@@ -85,6 +86,11 @@ slightly beats its baseline but does not resolve the option-conversion story;
 SCALR falls below the existing retrieval/Snap-HyRE rows. The macro result is
 therefore not a positive method claim; it is evidence that the controller needs
 to decide where reasoning is spent.
+
+The repaired HousingQA HyRE-only row is also negative: `rag_hyde` reaches 50.0%,
+below snap-only reasoning (55.0%), state-filter retrieval (60.5%), and the
+Housing verifier route (74.5%). This further supports routing HousingQA toward
+state scoping and verification rather than generic hypothetical retrieval.
 
 ## Active And Pending Jobs
 
@@ -107,7 +113,7 @@ Provider: `or-gemma4-26b`. Sample: N=200, seed 42, k=5.
 | 67773 | BarExam | `snap_only_in_final` | Completed and copied locally: 85.5%, 2.00 calls. |
 | 67825 | BarExam | `rag_hyde` | HyRE/HyDE-only control; relaunched after embedding repair. |
 | 67775 | HousingQA | `snap_only_in_final` | Completed and copied locally: 55.0%, 2.00 calls. |
-| 67826 | HousingQA | `rag_hyde` | Tests whether plain HyRE helps without state/verifier route. |
+| 67826 | HousingQA | `rag_hyde` | Completed and copied locally: 50.0%, 2.00 calls. |
 | 67777 | CaseHOLD | `snap_only_in_final` | Completed and copied locally: 74.0%, 2.00 calls. |
 | 67827 | CaseHOLD | `rag_hyde` | HyRE-only control for holding retrieval. |
 | 67779 | LegalBench-SCALR | `snap_only_in_final` | Completed and copied locally: 72.5%, 2.00 calls. |
@@ -134,6 +140,17 @@ Provider: `groq-llama70b`. Sample: same held-out slice rows 200-249
 
 These are not report numbers until the stdout and detail logs pass the
 validation gates below.
+
+### Full-Corpus Feasibility Probe
+
+Provider: `or-gemma4-26b`. This is a targeted full-SCALR sanity check, not an
+all-dataset full-corpus sweep.
+
+| Job | Dataset | N | Modes | Why it matters |
+|---:|---|---:|---|---|
+| 67863 | LegalBench-SCALR | 571 | `rag_simple`, `adaptive_snap_hyre_frontier` | Tests whether the smaller legal benchmark's controller signal survives beyond the N=200 slice. |
+
+This is not a report number until it completes and passes the validation gates.
 
 ## Invalid / Rejected Runs
 
@@ -163,12 +180,14 @@ Harness-level full sizes are:
 
 Full-corpus all-method, all-model coverage is not a realistic May 11 4pm gate.
 It would be thousands to tens of thousands of LLM calls, with HousingQA and
-CaseHOLD dominating cost and runtime. The meeting-safe standard is therefore:
+CaseHOLD dominating cost and runtime. A targeted full-SCALR probe has been
+launched as SLURM `67863` because SCALR is the smallest legal benchmark in the
+current four-task set. The meeting-safe standard is therefore:
 
 - report existing verified N=200/N=50 source-gated results;
 - integrate new N=200 ladder controls only if they land cleanly;
-- treat full-corpus expansion as post-meeting paper work unless a smaller full
-  dataset such as SCALR lands cleanly under the repaired retrieval path.
+- treat full-corpus expansion beyond the SCALR probe as post-meeting paper
+  work unless additional full runs land cleanly under the same gates.
 
 ## Validation Gates
 

@@ -262,7 +262,7 @@ def route_map() -> None:
         {
             "dataset": "HousingQA",
             "bottleneck": "Statutory entailment / false-positive Yes",
-            "signal": "Verifier 74.5 vs state baseline 60.5\nHeld-out: 76.0 vs 62.0",
+            "signal": "Verifier 74.5 vs state baseline 60.5\nHyRE-only 50.0; held-out 76.0 vs 62.0",
             "route": "state filter + verifier",
             "color": COLORS["orange"],
         },
