@@ -74,6 +74,7 @@ These are source-gated additions after the initial package:
 | CaseHOLD snap-only control | SLURM `67777`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0418_casehold_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 148/200 = 74.0%, avg calls 2.00, errors 0 |
 | LegalBench-SCALR snap-only control | SLURM `67779`; `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl` | Completed, 145/200 = 72.5%, avg calls 2.00, errors 0 |
 | HousingQA HyRE-only retrieval control | SLURM `67826`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0443_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl` | Completed, 100/200 = 50.0%, avg calls 2.00, errors 0 |
+| CaseHOLD HyRE-only retrieval control | SLURM `67827`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0511_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl` | Completed, 143/200 = 71.5%, avg calls 2.00, errors 0, missing prediction 1 |
 | GTE query-embedding repair | `rag_utils.py`; direct smoke SLURM `67820` | Completed; repaired `position_ids`, finite 1024-d unit-norm query embeddings |
 | Retrieval smoke after repair | SLURM `67821`; `logs/eval_rag_hyde_or-gemma4-26b_20260511_0341_barexam_embedding-fix-smoke2-or-gemma4-26b-n5-k5-rag_hyde_detail.jsonl` | Completed, 5/5; confirms retrieval-bearing jobs can run again |
 
@@ -91,6 +92,10 @@ The repaired HousingQA HyRE-only row is also negative: `rag_hyde` reaches 50.0%,
 below snap-only reasoning (55.0%), state-filter retrieval (60.5%), and the
 Housing verifier route (74.5%). This further supports routing HousingQA toward
 state scoping and verification rather than generic hypothetical retrieval.
+CaseHOLD HyRE-only is also not enough: `rag_hyde` reaches 71.5%, below the
+baseline retrieval row (73.0%), snap-only reasoning (74.0%), and diverse HyRE
+(73.5%). That keeps the CaseHOLD diagnosis focused on answer-option conversion,
+not generic hypothetical retrieval.
 
 ## Active And Pending Jobs
 
@@ -115,7 +120,7 @@ Provider: `or-gemma4-26b`. Sample: N=200, seed 42, k=5.
 | 67775 | HousingQA | `snap_only_in_final` | Completed and copied locally: 55.0%, 2.00 calls. |
 | 67826 | HousingQA | `rag_hyde` | Completed and copied locally: 50.0%, 2.00 calls. |
 | 67777 | CaseHOLD | `snap_only_in_final` | Completed and copied locally: 74.0%, 2.00 calls. |
-| 67827 | CaseHOLD | `rag_hyde` | HyRE-only control for holding retrieval. |
+| 67827 | CaseHOLD | `rag_hyde` | Completed and copied locally: 71.5%, 2.00 calls. |
 | 67779 | LegalBench-SCALR | `snap_only_in_final` | Completed and copied locally: 72.5%, 2.00 calls. |
 | 67828 | LegalBench-SCALR | `rag_hyde` | HyRE-only control. |
 | 67829 | BarExam | `rag_snap_hyde_2call` | Fixed Snap-HyRE N=200 row missing for this provider. |

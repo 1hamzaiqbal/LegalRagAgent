@@ -53,6 +53,12 @@ Branch: `codex/final-report-snap-hyde`
    average calls 2.00, errors 0, missing predictions 0, and empty retrieval 0.
    Cite as evidence against generic HyRE retrieval for HousingQA; the stronger
    route remains state-filter retrieval plus verifier.
+8. ⚠️ **CaseHOLD HyRE-only landed as a weak/negative retrieval control**:
+   `rag_hyde` job `67827` completed with exit `0:0` at 143/200 = 71.5%,
+   average calls 2.00, errors 0, one missing prediction, and empty retrieval 0.
+   It trails the current N=200 `rag_simple` baseline (73.0%), snap-only
+   control (74.0%), and diverse HyRE-family row (73.5%), so generic HyRE-only
+   does not resolve the CaseHOLD answer-option conversion bottleneck.
 
 ### New source paths
 
@@ -75,6 +81,8 @@ Branch: `codex/final-report-snap-hyde`
   `logs/eval_snap_only_in_final_or-gemma4-26b_20260511_0411_legalbench_scalr_meeting-missing-ladder-retry-or-gemma4-26b-n200-k5-snap_only_in_final_detail.jsonl`.
 - HousingQA HyRE-only detail log:
   `logs/eval_rag_hyde_or-gemma4-26b_20260511_0443_housing_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl`.
+- CaseHOLD HyRE-only detail log:
+  `logs/eval_rag_hyde_or-gemma4-26b_20260511_0511_casehold_meeting-missing-retrieval-fixed-or-gemma4-26b-n200-k5-rag_hyde_detail.jsonl`.
 
 ## Update 2026-05-01 ~meeting prep
 

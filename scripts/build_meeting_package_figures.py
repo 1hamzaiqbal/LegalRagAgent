@@ -269,7 +269,7 @@ def route_map() -> None:
         {
             "dataset": "CaseHOLD",
             "bottleneck": "Answer-option conversion",
-            "signal": "Diverse HyRE 78.0 vs baseline 68.0\nOption table 70.0: clean negative",
+            "signal": "Diverse HyRE 78.0 vs baseline 68.0\nHyRE-only 71.5; option table 70.0",
             "route": "diverse HyRE + reject/escalate",
             "color": COLORS["red"],
         },
