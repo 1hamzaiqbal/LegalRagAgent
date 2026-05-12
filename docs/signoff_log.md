@@ -1,5 +1,32 @@
 # Sign-off Log — verified results approved for paper/meeting citation
 
+## Update 2026-05-12 ~Snap-HyRE comprehensive branch
+
+Change reason: branch `snap_hyre_comprehensive` pivots the active narrative
+from diagnostic adaptation to a fixed Snap-HyRE method evaluation. The May 11
+diagnostic/controller docs and scripts were archived for traversibility, but
+their validated rows remain source-gated here.
+
+Last updated: 2026-05-12
+Branch: `snap_hyre_comprehensive`
+
+Current active planning docs:
+
+- `docs/snap_hyre_comprehensive_plan_2026-05-12.md`
+- `docs/literature_snap_hyre_2026-05-12.md`
+- `docs/README.md`
+
+Archived May 11 package source docs now live under:
+
+- `docs/archive/diagnostic_adaptation_2026-05-12/meeting_prep_2026-05-11_diagnostic_adaptation.md`
+- `docs/archive/diagnostic_adaptation_2026-05-12/meeting_package_audit_2026-05-11.md`
+- `docs/archive/diagnostic_adaptation_2026-05-12/meeting_eval_expansion_status_2026-05-11.md`
+
+Do not treat the archived diagnostic-controller framing as the active paper
+story. Treat the rows below as historical, source-gated evidence that may be
+reused in the new fixed-method Snap-HyRE tables only when the method, dataset,
+model, `k`, detail log, and caveat still match.
+
 ## Update 2026-05-11 ~meeting package
 
 Change reason: consolidated the May 11 diagnostic-adaptation meeting package,
@@ -12,7 +39,7 @@ Branch: `codex/final-report-snap-hyde`
 ### Delta since 2026-05-10 diagnostic controller package
 
 1. ✅ **Meeting package ready for the diagnostic-adaptation frame**:
-   `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md` consolidates the
+   `docs/archive/diagnostic_adaptation_2026-05-12/meeting_prep_2026-05-11_diagnostic_adaptation.md` consolidates the
    four legal benchmarks, inherited calibration/held-out ablation tables,
    bottleneck summary, controller narrative, and generated figure pack. Use it
    as the first meeting entrypoint for the May 11 discussion.
@@ -185,11 +212,11 @@ Branch: `codex/final-report-snap-hyde`
 
 ### New source paths
 
-- Meeting package: `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md`.
-- Package audit: `docs/meeting_package_audit_2026-05-11.md`.
+- Meeting package: `docs/archive/diagnostic_adaptation_2026-05-12/meeting_prep_2026-05-11_diagnostic_adaptation.md`.
+- Package audit: `docs/archive/diagnostic_adaptation_2026-05-12/meeting_package_audit_2026-05-11.md`.
 - Snap-only summary: `docs/snap_only_controls_2026-05-11.json`.
 - CaseHOLD direct option-table result:
-  `docs/casehold_option_table_direct_heldout_2026-05-11.md`.
+  `docs/archive/diagnostic_adaptation_2026-05-12/casehold_option_table_direct_heldout_2026-05-11.md`.
 - Figure generator: `scripts/build_meeting_package_figures.py`.
 - Figure outputs:
   `docs/presentation/figures/12_diagnostic_adaptation_calibration_ablation.png`,

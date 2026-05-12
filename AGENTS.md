@@ -24,8 +24,10 @@ Repository-local instructions for coding agents.
 
 ## Current Headline
 
-As of the 2026-04-28 pivot, the live paper framing is the bottleneck taxonomy:
-MuSiQue x Llama 70B is retrieval-depth sensitive, BarExam x Gemma 4 26B is
-retrieval-depth flat, and LegalBench-SCALR/CaseHOLD are option-disambiguation
-replicates. See `CLAUDE.md` and `docs/snap_hyde_2call_2026-04-28.md` for the
-current numbers and caveats.
+As of the 2026-05-12 branch pivot, the live framing is a fixed-method
+Snap-HyRE evaluation, not a diagnostic adaptive-controller story. The branch
+goal is to evaluate one straightforward Snap-HyRE method across BarExamQA,
+HousingQA, CaseHOLD, and LegalBench-SCALR, with retrieval exposure metrics
+reported alongside downstream answer accuracy. See `CLAUDE.md` and
+`docs/snap_hyre_comprehensive_plan_2026-05-12.md` for the current mission,
+method ladder, caching plan, and launch gates.

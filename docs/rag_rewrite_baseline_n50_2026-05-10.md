@@ -67,9 +67,11 @@ calibration sweep. It reached 164/200 = 82.0%, below the current N=200
 `adaptive_snap_hyre_v2` BarExam route at 86.0%. See
 `docs/rag_rewrite_barexam_n200_2026-05-10.md`.
 
-The updated generated artifacts are:
+The updated generated artifacts were archived on the `snap_hyre_comprehensive`
+branch because the active story is now fixed-method Snap-HyRE rather than a
+diagnostic controller:
 
-- `docs/legal_rag_diagnostic_table_with_rewrite_2026-05-10.md`
-- `docs/legal_rag_diagnostic_table_with_rewrite_2026-05-10.json`
-- `docs/diagnostic_controller_route_plan_with_rewrite_2026-05-10.md`
-- `docs/diagnostic_controller_route_plan_with_rewrite_2026-05-10.json`
+- `docs/archive/diagnostic_adaptation_2026-05-12/legal_rag_diagnostic_table_with_rewrite_2026-05-10.md`
+- `docs/archive/diagnostic_adaptation_2026-05-12/legal_rag_diagnostic_table_with_rewrite_2026-05-10.json`
+- `docs/archive/diagnostic_adaptation_2026-05-12/diagnostic_controller_route_plan_with_rewrite_2026-05-10.md`
+- `docs/archive/diagnostic_adaptation_2026-05-12/diagnostic_controller_route_plan_with_rewrite_2026-05-10.json`

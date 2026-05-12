@@ -1,286 +1,91 @@
 # Documentation Index - LegalRagAgent
 
-Updated 2026-05-11. Repo map separating the live paper draft, current
-citeable state, and historical working notes.
+Updated 2026-05-12 for branch `snap_hyre_comprehensive`.
 
 ## Start Here
 
-1. `../paper/main.pdf` and `../paper/main.tex` - **ICML 2026 submission
-   draft**. 8-file section split lives in `../paper/sections/`. See
-   `../paper/README.md` for build instructions and
-   `../paper/TODO_for_writers.md` for process notes and pending decisions
-   deliberately kept out of the paper body.
-2. `../CLAUDE.md` - operational context for agents: active snapshot,
-   commands, environment notes, methodology gates, and known cluster
-   caveats.
-3. `meeting_eval_expansion_status_2026-05-11.md` - May 11 expanded status
-   for the inherited ablation ladder, active cluster jobs, invalid run
-   exclusions, full-corpus feasibility, and validation gates.
-4. `meeting_compact_packet_2026-05-11.md` - compact meeting handoff: main
-   tables, bottleneck readout, figure list, and N>=500 canonical scale-up
-   jobs.
-5. `meeting_prep_2026-05-11_diagnostic_adaptation.md` - May 11 meeting
-   brief for the legal-only diagnostic adaptation framework: north-star
-   goal, calibration/held-out ablation tables, live CaseHOLD option-table
-   status, and pre-meeting work budget. This is the closest doc-side
-   mirror of the paper's main result.
-6. `meeting_package_audit_2026-05-11.md` - completion checklist for the
-   May 11 package: source JSONs, validation commands, generated figures,
-   and remaining paper risks.
-7. `meeting_state_2026-05-01.md` - meeting-ready synthesis of current
-   findings, open blockers, live jobs, and defensible interpretation.
-8. `signoff_log.md` - cite-or-not gate. If a result is absent, `PENDING`,
-   or explicitly caveated here, do not promote it to a paper-grade claim.
-9. `compiled_results.md` plus `../logs/experiments.jsonl` - audited result
-   ledger and machine-readable run summaries.
-10. `benchmark_method_birdseye_2026-04-30.md` - compact map of benchmarks,
-   methods, what each dataset tests, and harness gaps.
-11. `../reports/final_class_report/main.pdf` and `main.tex` - pre-pivot
-   class report. Superseded by the paper draft for current claims but
-   preserved for traceability; its BarExam Tier-3 N=1,195 result lives
-   on as an appendix robustness check in the new paper.
+1. `../CLAUDE.md` - operational context and branch north star.
+2. `snap_hyre_comprehensive_plan_2026-05-12.md` - active research plan:
+   fixed Snap-HyRE across four legal benchmarks, three models, top-k
+   calibration, retrieval caches, and validation gates.
+3. `literature_snap_hyre_2026-05-12.md` - notes from the three downloaded
+   related papers and the LegalSearchQA decision.
+4. `signoff_log.md` - cite-or-not gate for any reported result.
+5. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
+   and machine-readable summaries.
+6. `method_index.md` - local harness mode names.
+7. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
+   notes, and operational caveats.
 
-Five-minute path: skim `../paper/main.pdf` for the science.
-Five-minute working path: read `meeting_compact_packet_2026-05-11.md`,
-then `meeting_prep_2026-05-11_diagnostic_adaptation.md`. Use
-`signoff_log.md`, the cited JSON files, and the cited detail logs to
-verify any number before citing it.
+## Current Branch Narrative
+
+The active direction is no longer a diagnostic adaptive controller. The current
+target is a single, straightforward Snap-HyRE method that can be applied across
+four legal benchmarks under the same comparison rules.
+
+Primary method:
+
+- `rag_snap_hyde_2call`: one call produces snap reasoning plus a HyRE passage;
+  retrieval is conditioned on the HyRE passage; a second call answers using
+  retrieved evidence and the original question.
+
+Primary comparison rows:
+
+- `llm_only`
+- `rag_simple`
+- `rag_hyde`
+- `rag_snap_hyde_2call`
+- `golden_passage`
+- planned `golden_plus_neighbors`
+- `rag_rewrite` as a strong non-HyRE control
+
+Primary benchmarks:
+
+- BarExamQA
+- HousingQA
+- CaseHOLD
+- LegalBench-SCALR
+
+MuSiQue and other non-legal datasets are not active main-report benchmarks on
+this branch.
 
 ## Current Claim Gates
 
-- Bottleneck-taxonomy pivot: `snap_hyde_2call_2026-04-28.md`.
-- Retrieval-depth signature: `top1_ablation_2026-04-28.md`.
-- MuSiQue disagreement buckets and golden-passage control:
-  `musique_disagreement_audit_2026-04-30.md` and
-  `musique_golden_passage_2026-04-30.md`.
-- CaseHOLD repaired pair: `casehold_repaired_rerun_2026-05-01.md`.
-- Housing state-filter caveat and fixed k=5/k=10 diagnostics:
-  `housing_state_filter_followup_2026-05-01.md`.
-- SCALR depth behavior: `scalr_depth_disagreement_2026-04-30.md`.
-- BarExam post-fix audit truth: `audit_log.md`.
+Use `signoff_log.md` first. If a number is absent, pending, rejected, or
+caveated there, do not promote it as a clean claim.
 
-Use these after `signoff_log.md`; they explain mechanisms and caveats, but the
-signoff log decides whether a claim is ready to cite.
+Useful source-gated result docs still live at top level:
 
-## If You Need...
+- `snap_hyde_2call_2026-04-28.md`
+- `top1_ablation_2026-04-28.md`
+- `casehold_repaired_rerun_2026-05-01.md`
+- `housing_state_filter_followup_2026-05-01.md`
+- `scalr_depth_disagreement_2026-04-30.md`
+- `rag_rewrite_barexam_n200_2026-05-10.md`
+- `rag_rewrite_baseline_n50_2026-05-10.md`
+- `snap_only_controls_2026-05-11.json`
 
-### Research Story And Literature
+Older diagnostic-controller and adaptive-route artifacts were archived under
+`archive/diagnostic_adaptation_2026-05-12/`. They remain provenance, not active
+entrypoints.
 
-- `research_strategy_2026-04-30.md` - novelty boundary, grounded motivation,
-  and recommended next experiments.
-- `mechanism_literature_synthesis_2026-04-30.md` - how the observed bottlenecks
-  connect to RAG/legal-RAG literature and likely gaps.
-- `search_space_consolidation_2026-04-30.md` - keep/pause/kill decisions across
-  current methods.
-- `agentic_legal_rag_angles_2026-04-30.md` - workshop vs EMNLP positioning and
-  multi-agent evidence-sharing angles.
-- `paper_narrative_2026-04-28.md` - paper skeleton after the pivot. Prefer
-  `meeting_state_2026-05-01.md` for current wording.
+## Active Analysis Helpers
 
-### Methods, Metrics, And Controllers
+- `../scripts/analyze_detail_flags.py` - detail-log health scan.
+- `../scripts/score_retrieval_qrels.py` - Hit/Recall, MRR, nDCG scoring from
+  retrieved ids and gold ids/qrels.
+- `../scripts/build_hyre_cache.py` - build Snap-HyRE generation replay caches.
+- `../scripts/merge_detail_logs.py` - merge chunked detail logs.
+- `../scripts/compute_mcnemar.py` - paired significance tests.
+- `../scripts/audit_golden_paradox.py` - BarExam golden-passage paradox audit.
 
-- `method_index.md` - mode taxonomy and local method names.
-- `adaptive_hyre_legal_runbook_2026-05-09.md` - current legal-only adaptive
-  HyRE sweep plan, cluster launch commands, and log-audit gates.
-- `adaptive_hyre_status_2026-05-09.md` - current handoff: pushed commit,
-  cluster auth blocker, exact launch command, and missing adaptive coverage.
-- `adaptive_hyre_frontier_n200_latest.md` and
-  `adaptive_hyre_frontier_n200_latest.json` - clean explicit-selector N=200
-  summary for `adaptive_snap_hyre_frontier`.
-- `adaptive_hyre_frontier_n200_analysis_2026-05-10.md` - interpretation of the
-  selector N=200 run versus the stronger component frontier.
-- `adaptive_hyre_stability_n50_latest.md` and
-  `adaptive_hyre_stability_n50_analysis_2026-05-10.md` - N=50
-  stability-arbitration probe showing clean execution but poor cost/lift.
-- `adaptive_hyre_cached_replay_n50_2026-05-10.md` - cached frontier replay
-  showing one-call fixed-HyRE evaluation across the four legal datasets.
-- `adaptive_hyre_housing_verifier_n200_2026-05-10.md` - targeted HousingQA
-  verifier result: fixed HyRE retrieval plus conservative yes/no entailment.
-- `adaptive_hyre_candidate_verifier_n50_2026-05-10.md` - candidate-first
-  verifier probe for CaseHOLD and SCALR, with keep/reject decisions.
-- `adaptive_hyre_casehold_option_reranker_n50_2026-05-10.md` - CaseHOLD
-  per-candidate retrieval-bundle probe and scale/no-scale decision.
-- `adaptive_hyre_casehold_option_score_n50_2026-05-10.md` - CaseHOLD
-  score-only selector rejection: gold retrieval is not enough without calibrated
-  answer-option conversion.
-- `adaptive_hyre_casehold_selector_replay_n50_2026-05-10.md` - CaseHOLD
-  replay-selector rejection: re-prompting existing option-reranker evidence
-  underperforms the original verifier/reranker.
-- `adaptive_hyre_casehold_disagreement_analysis_2026-05-10.md` - CaseHOLD
-  row-level selector headroom: oracle reaches 84.0%, but simple ensembles stay
-  at 74.0%.
-- `adaptive_hyre_casehold_rule_frame_replay_2026-05-10.md` - CaseHOLD
-  escalation-only rule-frame replay: clean execution, but selective policy
-  remains at 74.0%.
-- `casehold_reject_escalate_policy_2026-05-10.md` - CaseHOLD controller policy:
-  accept high-agreement rows and route high-entropy/disagreement rows to
-  `reject_or_escalate` rather than treating retrieval lift as answer accuracy.
-- `casehold_calibrated_selector_offline_2026-05-10.md` and
-  `casehold_calibrated_selector_offline_2026-05-10.json` - offline CaseHOLD
-  selector calibration over existing N=50 traces; high score-margin override
-  reaches 76.0%, a small calibration signal that still needs held-out
-  validation.
-- `adaptive_hyre_portfolio_analysis_2026-05-10.md` - cross-dataset N=200
-  detail-log portfolio analysis: best single method, oracle headroom, majority
-  probe, and disagreement buckets.
-- `adaptive_hyre_scalr_disagreement_replay_2026-05-10.md` - SCALR cached
-  disagreement-only arbitrator: 77.5% at N=200, a small directional lift over
-  the 76.5% frontier.
-- `legal_rag_diagnostic_table_2026-05-10.md` and
-  `legal_rag_diagnostic_table_2026-05-10.json` - generated diagnostic table for
-  accuracy, retrieval exposure, conditional accuracy, rank metrics, calls, and
-  health across current N=200 legal logs.
-- `rag_rewrite_baseline_n50_2026-05-10.md`,
-  `rag_rewrite_barexam_n200_2026-05-10.md`,
-  `legal_rag_diagnostic_table_with_rewrite_2026-05-10.md`, and
-  `diagnostic_controller_route_plan_with_rewrite_2026-05-10.md` - N=50 legal
-  query-rewrite controls plus the BarExam N=200 follow-up and updated
-  diagnostic route plan. Treat the remaining N=50 rewrite rows as calibration
-  evidence, not replacements for N=200 source-gated comparisons.
-- `diagnostic_controller_eval_with_rewrite_2026-05-10.md` and
-  `diagnostic_framework_completion_audit_2026-05-10.md` - current controller
-  evidence-summary evaluation and explicit checklist of what remains before the
-  diagnostic framework can be treated as complete.
-- `diagnostic_controller_portfolio_comparison_2026-05-10.md` and
-  `diagnostic_controller_portfolio_comparison_2026-05-10.json` - controller vs
-  fixed baseline / HyRE / non-adaptive portfolio comparison over current
-  source-gated calibration evidence.
-- `heldout_controller_matrix_2026-05-10.md` - submitted compact held-out
-  controller/component matrix on rows 200-249; includes invalid first launch
-  and corrected retry manifest.
-- `heldout_controller_eval_2026-05-10.md` and
-  `heldout_controller_eval_2026-05-10.json` - compact held-out validation:
-  exact selected routes reach 77.5% macro accuracy vs 71.5% baseline, with
-  explicit Housing parse and SCALR disagreement-replay caveats.
-- `heldout_query_rewrite_2026-05-10.md` and
-  `heldout_query_rewrite_2026-05-10.json` - validated same held-out rows
-  200-249 for `rag_rewrite` across the four legal datasets: 75.5% macro
-  accuracy, between matched baseline retrieval at 71.5% and selected-route
-  controller accuracy at 77.5%, with strong BarExam lift but Housing/SCALR
-  failures that support routing rather than a universal rewrite policy.
-- `casehold_option_table_heldout_2026-05-10.md` - targeted CaseHOLD
-  option-conversion probe on held-out rows 200-249; blocked before evaluation
-  by an embedding/query index error, so no accuracy claim is promoted.
-- `casehold_replay_selector_heldout_2026-05-10.md` - validated CaseHOLD
-  held-out replay selector over the already validated diverse-route evidence:
-  33/50 = 66.0%, a clean negative result below the 78.0% selected route.
-- `casehold_option_table_direct_heldout_2026-05-11.md` - repaired CaseHOLD
-  direct option-table held-out result: clean execution at 35/50 = 70.0%, a
-  small baseline lift but negative versus query rewrite and diverse HyRE.
-- `meeting_package_audit_2026-05-11.md` and
-  `../scripts/build_meeting_package_figures.py` - May 11 diagnostic-adaptation
-  package audit plus reproducible generation for figures 12-16 under
-  `docs/presentation/figures/`.
-- `meeting_eval_expansion_status_2026-05-11.md` - active May 11 expansion
-  status: inherited ladder jobs, Groq cross-model sanity layer, invalid run
-  exclusions, and validation gates before any new number can be cited.
-- `snap_only_controls_2026-05-11.json` - source-gated N=200 snap-only row
-  across BarExam, HousingQA, CaseHOLD, and LegalBench-SCALR.
-- `bottleneck_aware_diagnostic_framework_2026-05-10.md` - current pivot from
-  fixed Snap-HyRE prompt iteration to bottleneck-aware diagnostic adaptation.
-- `diagnostic_controller_route_plan_2026-05-10.md` and
-  `diagnostic_controller_route_plan_2026-05-10.json` - executable rule-based
-  controller draft generated from the diagnostic table.
-- `dataset_metric_consolidation_2026-04-30.md` - Speculative-RAG metric mapping,
-  LegalBench/Legal RAG Bench dataset notes, and wiring gaps.
-- `specrag_lite_diagnostic_controller_2026-04-30.md` - selective escalation
-  proposal based on cheap bottleneck diagnostics.
-- `adaptive_controller_design_2026-04-30.md` - feasible bottleneck-aware routing
-  design.
-- `evidence_budgeted_ledger_router_plan.md` - branch plan for a shared evidence
-  ledger plus bottleneck-aware method routing.
-- `router_probe_findings_2026-04-30.md`,
-  `router_oracle_musique_2026-04-30.md`,
-  `router_oracle_barexam_2026-04-30.md`,
-  `router_baseline_report_2026-04-30.md`, and
-  `router_baseline_housing_depth_2026-04-30.md` - offline routing headroom and
-  failure modes.
+## Archive Map
 
-### Dataset Evidence
+- `archive/diagnostic_adaptation_2026-05-12/` - May 9-11 adaptive/controller
+  sprint docs and generated snapshots.
+- `archive/legacy_working_notes_2026-05-12/` - older brainstorms, MuSiQue
+  notes, pre-pivot paper drafts, router probes, and stale meeting notes.
+- `archive/` and `archive_2026-04-27/` - earlier historical material.
 
-- MuSiQue: `musique_disagreement_audit_2026-04-30.md`,
-  `musique_golden_passage_2026-04-30.md`.
-- BarExam: `audit_log.md`, `top1_ablation_2026-04-28.md`,
-  `snap_hyde_2call_2026-04-28.md`.
-- HousingQA: `housing_speculative_metrics_2026-04-30.md`,
-  `housing_metadata_depth_audit_2026-04-30.md`,
-  `housing_state_filter_followup_2026-05-01.md`.
-- CaseHOLD: `casehold_flatness_audit_2026-04-30.md`,
-  `casehold_gold_mapping_repair_2026-04-30.md`,
-  `casehold_repaired_rerun_2026-05-01.md`.
-- LegalBench-SCALR / MLEB-SCALR: `scalr_depth_disagreement_2026-04-30.md`,
-  `mleb_scalr_retrieval_baseline_2026-04-30.md`,
-  `mleb_scalr_embedding_ab_2026-04-30.md`.
-
-### Generated Evidence Artifacts
-
-- `evidence_matrix_2026-04-30.md` - generated hypothesis/result matrix.
-- `run_manifest_2026-04-30.json` - machine-readable map from detail logs to
-  hypotheses, interventions, bottleneck regimes, and caveats.
-- `speculative_metrics_report_2026-04-30.md` - Speculative-RAG-aligned metrics
-  generated from landed detail logs.
-- `scripts/build_evidence_matrix.py`,
-  `scripts/build_speculative_metrics_report.py`,
-  `scripts/audit_disagreement_buckets.py`,
-  `scripts/evaluate_routing_oracle.py`, and
-  `scripts/score_retrieval_qrels.py` - reusable analysis scripts behind the
-  reports.
-
-### Presentation And Report Materials
-
-- `../reports/final_class_report/main.tex` and
-  `../reports/final_class_report/main.pdf`
-  - current class-report draft.
-- `report_adversarial_pass_2026-04-30.md` - reviewer-style critique and gaps to
-  substantiate.
-- `presentation/00_index.md` - presentation entrypoint.
-- `presentation/01_results_tables.md` - talk-facing result tables.
-- `presentation/02_methods_explained.md` - method descriptions.
-- `presentation/03_takeaways.md` - talk takeaways.
-- `presentation/04_datasets_and_models.md` - dataset/model context.
-- `presentation/05_logs_index.md` - source logs behind presentation claims.
-- `presentation/06_next_steps.md` - talk-facing next steps.
-
-### Cluster And Reproducibility
-
-- `hpc_setup_log.md` - cluster SSH, paths, venvs, model caches, and bad nodes.
-- `cluster_workflow.md` - practical cluster run workflow.
-- `hpc_throughput.md`, `hpc_qwen3_8b_eval.md`,
-  `hpc_qwen3_8b_baseline_golden.md` - older cluster/model timing notes.
-- `rigour_signoff.md` - methodology checklist before new claims.
-
-## Historical Or Superseded
-
-These files are retained for traceability. Do not use them as current claim
-sources without re-checking `signoff_log.md` and the detail logs.
-
-- `../RESEARCH.md` - historical running research log; useful for process, not
-  the current entrypoint.
-- `../EXPERIMENTS.md` - append-only experiment chronology; newest claim gates
-  live in this docs index and the signoff log.
-- `narrative_2026_04_27.md` - superseded by the bottleneck-taxonomy pivot.
-- `experiment_overview.md` - high-level summary from an earlier consolidation.
-- `meeting_2026_04_17.md`, `meeting_notes_042726.md`, and `action_items.md`
-  - older meeting and sprint notes.
-- `mcnemar_2026-04-27.md` - older paired-stat ledger for the multi-HyDE phase;
-  use current dataset gates before quoting it.
-- `golden_paradox_audit_2026-04-27.md`,
-  `methods_vs_golden_audit_2026-04-27.md`, and
-  `verification_2026-04-27.md` - useful mechanism context, but narrower than
-  the current framing.
-- `archive_2026-04-27/` and `archive/` - archived working docs retained for
-  audit continuity.
-
-## Validation Rule
-
-Before citing a result:
-
-1. Check `signoff_log.md`.
-2. Confirm the source detail log or audit path in `compiled_results.md`,
-   `snap_hyde_2call_2026-04-28.md`, `top1_ablation_2026-04-28.md`, or the
-   dataset-specific gate above.
-3. For paired claims, verify McNemar b/c counts where available.
-4. If sources disagree, prefer the newest audit/signoff document and preserve
-   the disagreement as a caveat.
-
-Branch: `codex/final-report-snap-hyde`.
+Preserve archives for traceability. Prefer adding a current summary over
+deleting old evidence.

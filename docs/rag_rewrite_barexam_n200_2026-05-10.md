@@ -47,11 +47,13 @@ formulation is a real route, but the controller should choose generated
 reasoning on BarExam when the calibrated comparison includes the full N=200
 slice.
 
-Updated generated artifacts:
+Updated generated artifacts were archived on the `snap_hyre_comprehensive`
+branch because the active story is now fixed-method Snap-HyRE rather than a
+diagnostic controller:
 
-- `docs/legal_rag_diagnostic_table_with_rewrite_2026-05-10.md`
-- `docs/legal_rag_diagnostic_table_with_rewrite_2026-05-10.json`
-- `docs/diagnostic_controller_route_plan_with_rewrite_2026-05-10.md`
-- `docs/diagnostic_controller_route_plan_with_rewrite_2026-05-10.json`
-- `docs/diagnostic_controller_eval_with_rewrite_2026-05-10.md`
-- `docs/diagnostic_controller_eval_with_rewrite_2026-05-10.json`
+- `docs/archive/diagnostic_adaptation_2026-05-12/legal_rag_diagnostic_table_with_rewrite_2026-05-10.md`
+- `docs/archive/diagnostic_adaptation_2026-05-12/legal_rag_diagnostic_table_with_rewrite_2026-05-10.json`
+- `docs/archive/diagnostic_adaptation_2026-05-12/diagnostic_controller_route_plan_with_rewrite_2026-05-10.md`
+- `docs/archive/diagnostic_adaptation_2026-05-12/diagnostic_controller_route_plan_with_rewrite_2026-05-10.json`
+- `docs/archive/diagnostic_adaptation_2026-05-12/diagnostic_controller_eval_with_rewrite_2026-05-10.md`
+- `docs/archive/diagnostic_adaptation_2026-05-12/diagnostic_controller_eval_with_rewrite_2026-05-10.json`

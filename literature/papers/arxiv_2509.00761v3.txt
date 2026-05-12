@@ -1,0 +1,804 @@
+L-MARS: Legal Multi-Agent Workflow with
+Orchestrated Reasoning and Agentic Search
+
+arXiv:2509.00761v3 [cs.AI] 30 Mar 2026
+
+Ziqi Wang∗
+University of Southern California
+zwang234@usc.edu
+
+Boqin Yuan∗
+University of California, San Diego
+b4yuan@ucsd.edu
+
+Abstract
+We present L-MARS (Legal Multi-Agent Workflow with Orchestrated Reasoning
+and Agentic Search), a multi-agent retrieval framework for grounded legal question
+answering that decomposes queries into structured sub-problems, retrieves evidence
+via agentic web search, filters results through a verification agent, and synthesizes
+cited answers. Existing legal QA benchmarks test either closed-book reasoning or
+retrieval over fixed corpora, but neither captures scenarios requiring current legal
+information. We introduce LegalSearchQA, a 50-question benchmark across five
+legal domains whose answers depend on recent developments that post-date model
+training data. L-MARS achieves 96.0% accuracy in LegalSearchQA, a 38.0%
+improvement over zero-shot (58.0%), while chain-of-thought prompting degrades
+performance to 30.0%. On Bar Exam QA [28], a reasoning-focused benchmark of
+594 bar examination questions, retrieval provides negligible gains (+0.7 percentage
+points), consistent with prior findings. These results show that agentic retrieval
+dramatically improves legal QA when tasks require up-to-date factual knowledge,
+but the benefit is benchmark-dependent, underscoring the need for retrieval-focused
+evaluation. Code and data: https://github.com/boqiny/L-MARS.
+
+1
+
+Introduction
+
+Large language models (LLMs) such as GPT [1], Claude [3], and Gemini [4] are increasingly
+applied to legal tasks including case law retrieval [26], statutory interpretation, and automated legal
+assistance [2]. However, direct application often produces hallucinations [5, 27] where the model
+states confidently incorrect legal facts. In legal contexts such errors carry real-world risk, as wrong
+citations or outdated statutes can undermine credibility and affect decision-making.
+Domain-specific fine-tuning [6] can help but requires frequent retraining as laws change, making it
+impractical for continuously evolving domains. Retrieval-Augmented Generation (RAG) [7] avoids
+retraining by fetching relevant documents at inference time, but its effectiveness depends on retrieval
+quality. Recent work has shown that on reasoning-intensive legal benchmarks, standard retrieval
+pipelines barely improve downstream QA accuracy. On Bar Exam QA, even the best traditional
+retriever improves GPT-4o-mini accuracy by only 0.5 percentage points over zero-shot [28].
+We introduce L-MARS, a multi-agent retrieval framework that addresses these challenges through
+structured agent orchestration. L-MARS combines online search via the Serper API [8], offline
+retrieval using BM25 over local documents, and case law retrieval through the CourtListener API [9].
+Unlike naive retrieve-and-generate pipelines, L-MARS employs a multi-agent workflow that decomposes queries into structured search intents, executes targeted retrieval, filters evidence through a
+Judge Agent, and synthesizes grounded answers.
+∗
+
+Equal contribution.
+
+Preprint.
+
+Figure 1: Comparison of the two L-MARS operating modes. (a) Simple Mode: executes a single-pass
+retrieval–summarization pipeline. (b) Multi-Turn Mode: adds Judge Agent–guided iterations with
+sufficiency checks and query refinement.
+
+L-MARS operates in two modes. In Simple Mode, a single-pass pipeline decomposes the query,
+retrieves and filters evidence, and synthesizes a grounded answer. In Multi-Turn Mode, an iterative
+loop enables the system to adaptively search, verify, and refine until an evidence sufficiency threshold
+is met. In this work we evaluate Simple Mode to isolate the contribution of agent orchestration from
+iterative refinement.
+In legal practice, outdated information can lead to materially incorrect advice. Our results suggest
+that retrieval is essential for legal QA tasks that depend on current facts, and may be important for
+reliable deployment in domains where knowledge changes rapidly.
+Our contributions are threefold. First, we introduce LegalSearchQA, a benchmark for legal QA
+requiring post-training, time-sensitive knowledge. Second, we present L-MARS, a multi-agent
+retrieval framework for grounded legal question answering. Third, we show empirically that retrieval
+yields large gains only in retrieval-dependent settings, while chain-of-thought reasoning can degrade
+performance when parametric knowledge is outdated. All prompts, evaluation scripts, and raw outputs
+are released to ensure full reproducibility.
+
+2
+
+Related Work
+
+Agentic RAG and Search Systems RAG grounds model output in external evidence to reduce
+hallucination [7], and interleaving reasoning with retrieval [30, 10] further improves factual grounding.
+Multi-agent frameworks [11, 12] enable role specialization and iterative critique, with recent agentic
+RAG variants combining planning, verification, and retrieval for long-horizon tasks [31, 33]. On
+the search side, Search-o1 and WebThinker [13, 14] integrate agentic search into reasoning models,
+while OpenAI’s Deep Research [15] exposes a production-grade web-scale research loop. These
+systems complement reasoning models [16, 17] that scale deliberation at test time through chain-ofthought prompting [18], self-consistency [19], verifier-based calibration [32], and dedicated reasoning
+architectures [20, 21].
+Legal AI and Benchmarks Legal AI evaluation spans benchmarks for reasoning [24], multi-task
+NLU [22], Chinese legal knowledge [34], and pretraining data [23]. More recent work targets retrieval
+and reasoning specifically: Bar Exam QA [28] captures realistic legal RAG settings where standard
+retrieval fails, and LEXam [29] benchmarks multi-step legal reasoning across languages. On the
+systems side, ChatLaw [35] explores multi-agent approaches for legal tasks. We note that many
+LegalBench [24] subtasks are now saturated, with GPT-4o-mini achieving 100% on the rule_qa,
+limiting their discriminative value for knowledge-intensive legal QA.
+2
+
+3
+
+Methodology
+
+3.1
+
+Problem Formation
+
+We formalize legal question answering as generating both a reasoning chain R and a final answer
+a given a user query q, external retrieval results D, and optional user clarifications U . Each query
+state is represented as (q, U, D), which evolves iteratively through the workflow. At each step, the
+system decides whether (i) expand D by issuing new search queries, or (ii) terminate with a sufficient
+answer. Formally, the system computes a mapping
+(q, U, D) 7→ (R, a),
+where R = {r1 , r2 , . . . , rT } is a sequence of reasoning steps interleaved with the retrieved
+evidence, and a is the final response string. The Judge Agent makes a sufficiency decision
+s ∈ {S UFFICIENT, I NSUFFICIENT} and refinement notes E guiding the next query state. The
+loop terminates when s = S UFFICIENT or after M iterations, as illustrated in Figure 1.
+3.2
+
+Workflow and Agents Overview
+
+Workflow L-MARS is a multi-agent workflow implemented in LangGraph with structured output
+validation and tool use. The system employs a directed graph in which agents are represented as
+nodes and the control flow is represented as edges with conditional routing. The workflow maintains
+a centralized WorkflowState that tracks: (i) the evolving query representation, (ii) the accumulated
+search results with metadata, (iii) the iteration history and refinement notes, and (iv) the intermediate
+agent outputs. State transitions are deterministic and type-checked, ensuring reproducibility across
+runs.
+Agents The Query agent parses the user’s question into a structured query result. The
+Search Agent executes tool calls to the retrieval backends and returns normalized SearchResult
+objects (title, url, snippet, optional full content, source type). The Judge Agent performs evidence
+sufficiency checks and an explicit checklist (factual support, jurisdiction match, temporal specificity,
+and contradiction analysis). Summary Agent composes the final response with citations and rationale.
+Detailed agent implementations can be found in the Appendix A.
+3.3
+
+Agentic Search
+
+Online Search We adopt an agentic retrieval policy inspired by Search-o1[13], interleaving targeted web queries with stepwise reasoning rather than performing a single problem-oriented fetch.
+Concretely, the Search Agent triggers retrieval when either (i) the Judge Agent flags a knowledge gap
+(e.g. missing statute/case authority, date or jurisdiction ambiguity), or (ii) the query classifier predicts
+that external evidence will reduce answer uncertainty. Once activated, the agent executes one of two
+complementary search modes against Google Serper, as shown in Table 1 :
+Basic Search (titles/snippets) parses organic results into a normalized schema (title, URL, site, date,
+snippet). This mode is fast and used for query exploration, de-duplication, and document selection
+under a strict token budget.
+Enhanced Search (content extraction) uses the top-m URLs selected by the agent (default m=3),
+then fetches page contents and PDFs with robust headers and timeouts. HTML is cleaned with
+BeautifulSoup; PDFs are parsed with pdfplumber. To avoid flooding the context, we perform
+a snippet-anchored extraction: given the search snippet, we locate the best-matching sentence in
+the full text using a token-level F1 overlap and return a fixed window of the surrounding context
+(2.5k chars). This preserves local evidence while discarding boilerplate and navigation chrome. The
+extractor also normalizes whitespace, strips punctuation, and truncates long pages to a hard cap to
+guarantee bounded latency.
+Local RAG Indexing We also maintain a local retrieval index over user-provided documents.
+Markdown files are segmented into overlapping windows of 500 characters with 100-character stride
+and indexed using the BM25 ranking function [25]. At query time, the retriever returns the top-k
+segments (default k = 5), enriched with document titles and section headers to preserve context. The
+indexing process is dynamic: new files added to the inputs directory are automatically detected and
+incorporated without requiring a system restart.
+3
+
+Table 1: Comparison of Basic vs. Enhanced (Deep) Search on the query “Can I work remotely in the
+United States as an F1 student as of 2025?”
+Dimension
+Basic Search (Titles & Snippets)
+Enhanced Search (Full Content)
+Source Types
+
+Interstride blog, Reddit, Quora
+
+Interstride blog (full text), others truncated
+
+Output Length
+
+1,145 chars, 19 lines
+
+4,154 chars, 15 lines
+
+Example Result
+
+“Even if you are working remotely...
+must have work authorization.”
+
+“Remote work for international students on F-1 visas: Any work done on
+US soil requires authorization...”
+
+Content Depth
+
+Snippets only; limited context
+
+Full article text (4k cap); snippetanchored window (2.5k chars)
+
+Latency
+
+Fast
+
+Slower; scraping + parsing
+
+Use Case
+
+Quick exploration, de-duplication
+
+Detailed evidence; grounding in authoritative text
+
+CourtListener Integration To incorporate authoritative case law into the reasoning process, we
+integrate the CourtListener Legal Search API as a tool, providing access to millions of judicial
+opinions, oral arguments, and dockets curated by the Free Law Project. When enabled, the Search
+Agent queries by party name, citation, docket number, or keyword. The API returns structured
+metadata (case name, citation, court, filing date, opinion text), which we normalize into a uniform
+schema. This integration allows the system to ground answers in both retrieved secondary sources
+and primary case law to improve legal credibility.
+3.4
+
+L-MARS Operating Mode
+
+Simple Mode The Simple Mode executes a single-pass pipeline that prioritizes minimal latency.
+The Query Agent generates structured intents from the user question, which the Search Agent
+uses to retrieve evidence from enabled sources (Serper web snippets, optional BM25 index, and
+CourtListener). The Summary Agent then composes an answer with citations in one step.
+Multi-Turn Mode The Multi-Turn mode adds an iterative search–judge–refine loop to improve
+recall and reduce hallucinations. The Query Agent first proposes clarifying follow-ups; optional
+user responses are folded into a structured query state. Each iteration generates targeted search
+queries, runs deep search (top-3 with content), and invokes a deterministic Judge Agent (T =0)
+that performs chain-of-thought analysis, source quality checks, and date/jurisdiction/contradiction
+screening to decide sufficiency. If insufficient, the system refines the query state and repeats up to a
+fixed maximum. A final Summary Agent composes the answer.
+Judge Agent and Stopping Rule The Judge Agent runs with temperature = 0 to reduce variance
+and improve reproducibility. Its prompt elicits three outputs: (i) a chain-of-thought style rationale,
+(ii) a structured checklist decision on sufficiency, and (iii) missing-evidence directives that guide the
+next refinement queries. The loop ends once the decision is made Sufficient or when the maximum
+iteration limit is reached. In practice, we found the Judge Agent especially useful when search results
+included unofficial forums (e.g., Reddit, Quora) instead of government domains; in such cases it
+flagged insufficiency and steered subsequent searches toward more compelling, authoritative sources
+such as government websites and official regulations.
+We describe both operating modes and all three retrieval backends for completeness, as they form the
+full L-MARS system available in our codebase. In our evaluation we use only Simple Mode with Serper web search, since this minimal configuration already achieves 96% accuracy on LegalSearchQA.
+Local RAG indexing and CourtListener case law retrieval are available as optional backends for
+practitioners working with proprietary document collections or case-specific research, but are not
+exercised in our benchmark evaluation.
+4
+
+4
+
+Experiments
+
+4.1
+
+Tasks and Datasets
+
+LegalSearchQA Existing legal QA benchmarks test either closed-book reasoning on static exam
+questions or retrieval over fixed corpora. Neither reflects the real-world setting where a legal professional needs current information, such as recently enacted statutes, updated regulatory thresholds,
+or new court decisions, that was not available when the model was trained. To address this gap we
+introduce LegalSearchQA, a 50-question multiple-choice benchmark designed to evaluate retrievalaugmented legal QA systems on current legal knowledge.
+Each question has four answer choices and exactly one correct answer. Questions span five legal
+domains: Tax, Corporate & Financial Regulation (13), Labor & Employment (11), Immigration
+(9), Technology & Privacy (9), and Criminal, Drug & State Law (8). The benchmark targets three
+categories of legal knowledge: status questions about the current state of laws, threshold questions
+about specific numerical values such as dollar amounts or deadlines, and requirement questions about
+what rules mandate. All questions were authored by the paper’s authors and verified against primary
+legal authorities such as IRS.gov, USCIS.gov, SEC.gov, and Supreme Court opinions during March
+2026. By construction, correct answers require information from 2024 to 2026 that is unlikely to
+appear in model training data, making web retrieval essential. To reduce author bias, each question
+is grounded in a verifiable primary legal source and the task is purely factual retrieval rather than
+subjective interpretation, limiting degrees of freedom in answer labeling. While the absolute accuracy
+of 96% is high, this reflects the benchmark’s design: questions are intentionally selected to isolate
+retrieval-dependent knowledge where access to current information provides a clear advantage.
+To further reduce potential bias, we release all questions with source citations, timestamps, and
+verification notes. Each question is constructed to have a single unambiguous factual answer grounded
+in primary legal sources (e.g., IRS, SEC, Federal Register). Because the task is factual rather than
+interpretive, correctness can be independently verified without subjective judgment. The complete
+dataset is available at https://huggingface.co/datasets/boqiny/LegalSearchQA.
+Bar Exam QA We additionally evaluate on Bar Exam QA [28], a legal QA benchmark drawn
+from the Reasoning-Focused Legal Retrieval Benchmark. The dataset consists of multistate bar
+examination questions that test legal reasoning across core areas of U.S. law. We use the publicly
+released Historical MBE subset of 594 questions with subject labels spanning six domains: Contracts
+(113), Torts (112), Constitutional Law (95), Evidence (93), Real Property (92), and Criminal Law
+(89).
+The authors of Bar Exam QA showed that standard retrieval pipelines achieve very low recall on this
+benchmark and their best retriever improves GPT-4o-mini accuracy by only 0.5 percentage points
+over zero-shot. We include this benchmark to confirm that retrieval provides negligible gains on
+reasoning-focused tasks. We note that the Historical MBE subset overlaps with the MMLU auxiliary
+training set [36] and may inflate zero-shot baselines through memorization; we mitigate this by
+focusing primary claims on LegalSearchQA, where memorization is not a factor.
+4.2
+
+Baselines and Experimental Conditions
+
+We compare three conditions, all using GPT-4o-mini as the backbone model:
+Zero-Shot The model answers directly with no retrieval and no explicit reasoning instructions. The
+prompt presents the question and four choices, instructing the model to select a single answer letter.
+Chain-of-Thought (CoT) The model is prompted to reason step-by-step: identify the legal issue,
+recall the relevant rule, apply it to the facts, and eliminate incorrect options before selecting an answer.
+No external retrieval is provided.
+L-MARS (Simple Mode) The full L-MARS pipeline in single-pass mode: the Query Agent
+decomposes the question into structured search intents, the Search Agent retrieves from Serper with
+enhanced content extraction, and the Summary Agent synthesizes the final answer with citations. All
+agents use GPT-4o-mini with T =0.
+5
+
+This experimental ladder isolates specific contributions: Zero-Shot to CoT tests whether reasoning
+alone helps, and CoT to L-MARS tests whether agentic retrieval adds value beyond reasoning. We
+leave evaluation of the Multi-Turn Mode to future work, as it targets open-ended legal research
+questions where a single retrieval pass may not surface sufficient evidence, a setting not captured by
+our current multiple-choice benchmarks.
+While L-MARS includes multiple components, our evaluation isolates the contribution of retrieval
+itself by comparing zero-shot against the full pipeline. Since Simple Mode excludes iterative refinement and Judge Agent loops, the observed improvements can be attributed primarily to structured
+web retrieval rather than multi-turn reasoning.
+4.3
+
+Implementation Details
+
+All conditions were evaluated using a standardized pipeline. For LegalSearchQA, we evaluated all 50
+questions under each of the three conditions. For Bar Exam QA, we evaluated the full 594-question
+subset under zero-shot and L-MARS conditions. For the zero-shot and CoT conditions, prompts
+instruct the model to select a single answer letter (A–D). For L-MARS, all agents use GPT-4o-mini
+with T =0; CourtListener integration was disabled since neither benchmark requires specific case
+citations. On Bar Exam QA, we additionally tested L-MARS with the Tavily search backend as an
+alternative to Serper. The complete evaluation pipeline, including prompts, scripts, and all results, is
+available at https://github.com/boqiny/L-MARS.
+
+5
+
+Results
+
+5.1
+
+LegalSearchQA
+
+Table 2 reports accuracy across three conditions on LegalSearchQA. L-MARS achieves 96.0%
+accuracy, improving over zero-shot by 38 percentage points while maintaining moderate latency at
+2.4s per question. Chain-of-thought prompting degrades performance from 58.0% to 30.0%, falling
+below the 25% random baseline for four-choice questions. Without access to current information,
+CoT causes the model to construct plausible but outdated rationales and arrive at wrong answers with
+high confidence. We term this confident confabulation: the model recalls stale figures from prior
+tax years or superseded regulations, then builds step-by-step justifications around them. L-MARS
+rescued 19 questions that zero-shot answered incorrectly while regressing on none. We use a standard
+legal reasoning CoT prompt following the issue-rule-application-conclusion (IRAC) structure. We
+attribute the degradation to reliance on outdated parametric knowledge rather than prompt design, as
+the model produces internally coherent reasoning from stale premises across all five domains. We
+verified consistent degradation patterns with temperature T =0 across all five domains, suggesting the
+effect is robust rather than an artifact of a single prompt configuration.
+Table 2: Accuracy on LegalSearchQA (50 questions). All conditions use GPT-4o-mini.
+Condition
+Retrieval
+Accuracy (%) Correct/Total Avg. Latency (s)
+Zero-Shot
+Chain-of-Thought
+L-MARS (Simple)
+
+None
+None
+Serper + agents
+
+58.0
+30.0
+96.0
+
+29/50
+15/50
+48/50
+
+0.7
+6.8
+2.4
+
+Figure 2 and Table 3 break down accuracy by legal domain. The largest gains appear in Tax,
+Corporate & Financial Regulation, where L-MARS improves over zero-shot by 61.5 percentage
+points. Questions in this domain ask for specific dollar amounts, filing deadlines, and regulatory
+thresholds that changed in 2025 and 2026. Zero-shot accuracy here is only 30.8%, reflecting the
+model’s inability to access post-training information; L-MARS reaches 92.3% by retrieving current
+IRS and SEC sources. The smallest gains appear in Criminal, Drug & State Law, where zero-shot
+already achieves 87.5% because many questions concern well-publicized events that likely entered
+the model’s training data through news coverage. Notably, CoT falls below the random baseline in
+three of five domains, confirming that reasoning from stale knowledge is worse than no reasoning at
+all when current facts are required.
+6
+
+Figure 2: Per-domain accuracy on LegalSearchQA. L-MARS achieves near-perfect accuracy across
+all domains. CoT falls below the 25% random baseline in three of five domains.
+Table 3: Per-domain accuracy (%) on LegalSearchQA. ∆ is L-MARS gain over zero-shot.
+Domain
+N Zero-Shot CoT L-MARS
+∆
+
+5.2
+
+Tax, Corporate & Financial
+Labor & Employment
+Technology & Privacy
+Immigration
+Criminal, Drug & State Law
+
+13
+11
+9
+9
+8
+
+30.8
+63.6
+55.6
+66.7
+87.5
+
+15.4
+18.2
+44.4
+22.2
+62.5
+
+92.3
+100.0
+100.0
+88.9
+100.0
+
++61.5
++36.4
++44.4
++22.2
++12.5
+
+Overall
+
+50
+
+58.0
+
+30.0
+
+96.0
+
++38.0
+
+Bar Exam QA
+
+Figure 3 visualizes the contrast between the two benchmarks. On Bar Exam QA (Table 4), L-MARS
+provides a negligible 0.7 point gain with Serper and a slight 0.8 point degradation with Tavily. Bar
+Exam QA tests legal reasoning over hypothetical fact patterns whose answers follow from general
+legal principles already in the model’s parameters, so web retrieval adds noise rather than signal. The
+gap between a 38 point gain on LegalSearchQA and a 0.7 point gain on Bar Exam QA confirms that
+the value of agentic retrieval depends on whether the task requires current information or abstract
+reasoning.
+
+Figure 3: Benchmark comparison. On retrieval-dependent LegalSearchQA, L-MARS gains 38
+percentage points over zero-shot. On reasoning-focused Bar Exam QA, retrieval provides negligible
+improvement.
+
+7
+
+Table 4: Accuracy on Bar Exam QA (594 questions). All conditions use GPT-4o-mini.
+Condition
+Acc. (%) Correct
+Zero-Shot
+L-MARS (Serper)
+L-MARS (Tavily)
+
+55.2
+55.9
+54.4
+
+328/594
+332/594
+323/594
+
+Prior work [28]:
+GPT-4o-mini
++ Best retriever
+
+49.7
+50.2
+
+–
+–
+
+Table 5: Per-subject accuracy (%) on Bar Exam
+QA.
+Subject
+N
+ZS L-MARS
+Const. Law
+Contracts
+Criminal
+Evidence
+Real Prop.
+Torts
+
+95
+113
+89
+93
+92
+112
+
+81.1
+46.9
+43.8
+54.8
+47.8
+57.1
+
+76.8
+52.2
+41.6
+61.3
+50.0
+53.6
+
+Table 5 shows per-subject results. L-MARS with Serper yields modest gains on Contracts (+5.3
+points) and Evidence (+6.5 points) but slight regressions on Constitutional Law and Torts. No subject
+shows a large or consistent benefit from retrieval, reinforcing the conclusion that this benchmark
+primarily tests reasoning ability rather than information access.
+5.3
+
+Error Analysis
+
+L-MARS answered only two LegalSearchQA questions incorrectly. Q27 asked about H-1B weighted
+selection details involving a nuanced procedural rule about wage-level assignment for multiple
+registrations; the retrieved results did not surface the specific Federal Register provision. Q44 asked
+for the exact effective date of T+1 settlement; search results discussed the policy broadly but missed
+the precise date. Both errors share a pattern: the correct answer requires a specific fact buried in a
+longer document, and snippet-level retrieval missed the critical sentence.
+The CoT degradation deserves separate attention. On tax threshold questions, for instance, the model
+recalls outdated dollar amounts from prior years and builds multi-step justifications around them.
+This pattern is not unique to legal QA. In any domain where facts change faster than model training
+cycles, prompting the model to reason more carefully can amplify rather than correct errors, because
+the model reasons from wrong premises with greater conviction. This finding suggests caution when
+deploying CoT in fast-changing domains without concurrent retrieval.
+5.4
+
+Ablation: Retrieval Depth
+
+On a 50-question subsample of Bar Exam QA, we compared single-query web retrieval at varying
+retrieval depths. Retrieving k=1 snippet achieved 66.0% accuracy, while k=5 and k=10 both
+achieved 62.0%, suggesting that additional snippets introduce noise without improving accuracy on
+reasoning-focused questions. We also compared basic search (snippets only) against enhanced deep
+search (full content extraction) at k=5: both achieved 64.0%, but deep search incurred 40× higher
+latency (30.4s vs 0.75s). These results motivated our use of basic search in Simple Mode, reserving
+deep search for the Multi-Turn Mode where the Judge Agent can filter noisy content.
+
+6
+
+Conclusion
+
+We presented L-MARS, a multi-agent retrieval framework for legal QA, and LegalSearchQA, a 50question benchmark requiring current legal knowledge that post-dates model training data. L-MARS
+achieves 96.0% on LegalSearchQA, a 38 percentage point gain over zero-shot, while CoT degrades
+accuracy to 30.0% through confident confabulation from stale knowledge. On reasoning-focused
+Bar Exam QA, retrieval provides negligible gains, confirming that the value of agentic retrieval is
+benchmark-dependent. These findings underscore the need for retrieval-focused legal benchmarks
+and suggest caution when deploying CoT in fast-changing domains without concurrent retrieval.
+Limitations LegalSearchQA contains 50 questions verified as of March 2026; the benchmark is
+sufficient for demonstrating large effect sizes but limits per-domain statistical power, and answers may
+become outdated as laws change. We evaluate only Simple Mode with web search; the Multi-Turn
+Mode, local RAG indexing, and CourtListener integration are available in the released codebase
+but not benchmarked here, as the simple configuration already demonstrates the core finding. Our
+8
+
+evaluation covers U.S. law in English with a single backbone model, and performance remains
+bounded by search engine quality, as seen in the two errors where snippet-level retrieval missed
+critical details buried in longer documents.
+
+References
+[1] Hurst, Aaron, Adam Lerer, Adam P. Goucher, Adam Perelman, Aditya Ramesh, Aidan Clark,
+AJ Ostrow, Akila Welihinda, Alan Hayes, Alec Radford, et al. (2024). Gpt-4o system card.
+arXiv preprint arXiv:2410.21276.
+[2] Rincón-Riveros, Daniel A., Sergio M. Salazar-Molina, William A. Pinto-Cáceres, Sindy P.
+Amaya, and Juan M. Calderon. (2021). Automation System Based on NLP for Legal Clinic
+Assistance. IFAC-PapersOnLine.
+[3] Anthropic. (2024). Introducing Claude 3.5 Sonnet. https://www.anthropic.com/news/
+claude-3-5-sonnet.
+[4] Gemini Team and DeepMind. (2024). Gemini 1.5: Unlocking Multimodal Understanding
+Across Millions of Tokens of Context. arXiv preprint arXiv:2403.05530.
+[5] Ji, Ziwei, Nayeon Lee, Jason Fries, Tao Yu, and Pascale Fung. (2023). Survey of Hallucination
+in Natural Language Generation. ACM Computing Surveys, 55(12):1–38.
+[6] Chalkidis, Ilias, Manos Fergadiotis, Prodromos Malakasiotis, Nikolaos Aletras, and Ion Androutsopoulos. (2020). LEGAL-BERT: The Muppets straight out of Law School. arXiv preprint
+arXiv:2010.02559.
+[7] Lewis, Patrick, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman
+Goyal, Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim Rocktäschel, Sebastian Riedel, and
+Douwe Kiela. (2020). Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.
+In NeurIPS.
+[8] Serper. (2024). Serper: Google Search API. https://serper.dev/. Accessed: 2025-08-21.
+[9] Free Law Project. (2024). CourtListener API. https://www.courtlistener.com/api/
+rest/v4/search/.
+[10] Khattab, Omar, Keshav Santhanam, Xiang Lisa Li, David Hall, Percy Liang, Christopher Potts,
+and Matei Zaharia. (2023). Demonstrate-Search-Predict: Composing retrieval and language
+models for knowledge-intensive NLP. arXiv preprint arXiv:2212.14024.
+[11] Wu, Qianfan, Gagan Bansal, Jingfeng Zhang, et al. (2023). AutoGen: Enabling Next-Gen LLM
+Applications via Multi-Agent Conversation. arXiv preprint arXiv:2308.08155.
+[12] LangChain. (2024). LangGraph: State-Driven Multi-Agent Workflows for LLM Applications.
+https://www.langchain.com/langgraph.
+[13] Li, Xiaoxi, Guanting Dong, Jiajie Jin, Yuyao Zhang, Yujia Zhou, Yutao Zhu, Peitian Zhang, and
+Zhicheng Dou. (2025). Search-o1: Agentic Search-Enhanced Large Reasoning Models. arXiv
+preprint arXiv:2501.05366.
+[14] Li, Xiaoxi, Jiajie Jin, Guanting Dong, Hongjin Qian, Yutao Zhu, Yongkang Wu, Ji-Rong Wen,
+and Zhicheng Dou. (2025). WebThinker: Empowering Large Reasoning Models with Deep
+Research Capability. arXiv preprint arXiv:2504.21776.
+[15] OpenAI. (2025).
+Introducing Deep Research.
+introducing-deep-research/.
+
+https://openai.com/index/
+
+[16] OpenAI. (2024). OpenAI o1 System Card. arXiv preprint arXiv:2412.16720.
+[17] OpenAI. (2025). OpenAI o3 and o4-mini System Card. https://openai.com/index/
+o3-o4-mini-system-card/.
+9
+
+[18] Wei, Jason, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia, Ed Chi,
+Quoc Le, and Denny Zhou. (2023). Chain-of-Thought Prompting Elicits Reasoning in Large
+Language Models. arXiv preprint arXiv:2201.11903.
+[19] Wang, Xuezhi, Jason Wei, Dale Schuurmans, et al. (2022). Self-Consistency Improves Chainof-Thought Reasoning in Language Models. arXiv preprint arXiv:2203.11171.
+[20] Qwen Team. (2024). QwQ: Reflect Deeply on the Boundaries of the Unknown. https:
+//qwenlm.github.io/blog/qwq-32b-preview/.
+[21] DeepSeek-AI. (2025). DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning. arXiv preprint arXiv:2501.12948.
+[22] Chalkidis, Ilias, Manos Fergadiotis, Prodromos Malakasiotis, Spyridon Spanakis, and Nikolaos
+Aletras. (2022). LexGLUE: A Benchmark Dataset for Legal Language Understanding in English.
+In ACL, pp. 4310–4330.
+[23] Henderson, Peter, Massimiliano S. Krass, Lucy Zheng, et al. (2022). Pile of Law: Learning
+Responsible Data Filtering from the Law and a 256GB Open-Source Legal Dataset. arXiv
+preprint arXiv:2207.00220.
+[24] Guha, Neel, Julian Nyarko, Daniel E. Ho, et al. (2023). LegalBench: A Collaboratively Built
+Benchmark for Measuring Legal Reasoning in LLMs. arXiv preprint arXiv:2308.11462.
+[25] Robertson, Stephen and Hugo Zaragoza. (2009). The Probabilistic Relevance Framework:
+BM25 and Beyond. Foundations and Trends in Information Retrieval, 3(4):333–389.
+[26] Locke, Daniel and Guido Zuccon. (2022). Case law retrieval: problems, methods, challenges
+and evaluations in the last 20 years. arXiv preprint arXiv:2202.07209.
+[27] Xu, Ziwei, Sanjay Jain, and Mohan Kankanhalli. (2025). Hallucination is Inevitable: An Innate
+Limitation of Large Language Models. arXiv preprint arXiv:2401.11817.
+[28] Zheng, Lucia, Neel Guha, Javokhir Arifov, Sarah Zhang, Michal Skreta, Christopher D. Manning, Peter Henderson, and Daniel E. Ho. (2025). A Reasoning-Focused Legal Retrieval
+Benchmark. In CSLAW ’25, pp. 169–193. ACM.
+[29] Fan, Yu, Jingwei Ni, Jakob Merane, Etienne Salimbeni, Yang Tian, Yoan Hermstrüwer, Yinya
+Huang, Mubashara Akhtar, Florian Geering, Oliver Dreyer, Daniel Brunner, Markus Leippold,
+Mrinmaya Sachan, Alexander Stremitzer, Christoph Engel, Elliott Ash, and Joel Niklaus. (2025).
+LEXam: Benchmarking Legal Reasoning on 340 Law Exams. arXiv preprint arXiv:2505.12864.
+[30] Yao, Shunyu, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, and Yuan
+Cao. (2023). ReAct: Synergizing Reasoning and Acting in Language Models. arXiv preprint
+arXiv:2210.03629.
+[31] Singh, Aditi, Abul Ehtesham, Saket Kumar, and Tala Talaei Khoei. (2025). Agentic RetrievalAugmented Generation: A Survey on Agentic RAG. arXiv preprint arXiv:2501.09136.
+[32] Kadavath, Saurav, Tom Conerly, Amanda Askell, et al. (2022). Language Models (Mostly)
+Know What They Know. arXiv preprint arXiv:2207.05221.
+[33] Shinn, Noah, Federico Cassano, Edward Berman, Ashwin Gopinath, Karthik Narasimhan, and
+Shunyu Yao. (2023). Reflexion: Language Agents with Verbal Reinforcement Learning. arXiv
+preprint arXiv:2303.11366.
+[34] Fei, Zhiwei, Xiaoyu Shen, Dawei Zhu, Fengzhe Zhou, Zhuo Han, Songyang Zhang, Kai Chen,
+Zongwen Shen, and Jidong Ge. (2023). LawBench: Benchmarking Legal Knowledge of Large
+Language Models. arXiv preprint arXiv:2309.16289.
+[35] Cui, Jiaxi, Munan Ning, Zongjian Li, Bohua Chen, Yang Yan, Hao Li, Bin Ling, Yonghong Tian,
+and Li Yuan. (2024). ChatLaw: A Multi-Agent Collaborative Legal Assistant with Knowledge
+Graph Enhanced Mixture-of-Experts Large Language Model. arXiv preprint arXiv:2306.16092.
+[36] Hendrycks, Dan, Collin Burns, Steven Basart, Andy Zou, Mantas Mazeika, Dawn Song, and
+Jacob Steinhardt. (2021). Measuring Massive Multitask Language Understanding. In ICLR.
+10
+
+Appendix
+A
+
+Agent Instructions
+Query Agent
+The Query Agent is a stateless pass-through that wraps the user
+query into a structured QueryGeneration dataclass:
+@dataclass
+class QueryGeneration:
+query: str
+query_type: str = "web_search"
+priority: str = "high"
+class QueryAgent:
+def build_query(self, user_query: str) -> QueryGeneration:
+return QueryGeneration(query=user_query.strip())
+
+Summary Agent
+You are a bar exam expert. A user will provide retrieved legal
+sources and a multiple-choice question. Use the retrieved sources
+together with your legal knowledge to select the single best answer.
+Rules:
+1. Your response MUST start with exactly one letter on the first
+line: A, B, C, or D.
+2. Follow with a concise 1-2 sentence rationale citing the
+controlling legal rule.
+3. Bar exam questions test specific exceptions and nuances -- do
+not just apply the most common general rule if the specific
+facts call for an exception.
+Response format:
+[Letter]
+[Brief rationale]
+The user message is structured as:
+Retrieved Evidence:
+<concatenated search results with source, title, content>
+Question:
+<full MCQ with answer choices A-D>
+
+Judge Agent System Prompt
+You are a legal research quality judge for US bar exam questions.
+You will receive a bar exam multiple-choice question and a list of
+retrieved search result snippets. Your job is to decide whether the
+retrieved evidence is sufficient to reliably answer the question.
+"Sufficient" means: at least one result contains specific legal
+rules, statutes, case holdings, or doctrinal exceptions that
+directly address the core legal issue tested by the question -- not
+just a restatement of the facts.
+If the evidence is NOT sufficient, provide a better search query
+that targets primary legal sources (e.g., specific rule names,
+statute citations, or doctrine names) rather than generic question
+text.
+Respond with valid JSON only, no markdown fences:
+{"sufficient": true_or_false, "reason": "one sentence",
+"next_query": "refined query (omit if sufficient)"}
+Pre-filtering: Before LLM evaluation, results matching any of
+these patterns are deterministically removed at zero cost:
+HTTP error, 403/404, Connection error, Request timed out,
+JavaScript is disabled, No search results found, etc.
+
+11
+
+B
+
+Case Study: Post-Training Knowledge Gap
+
+We present two representative examples from LegalSearchQA where zero-shot and chain-of-thought
+both fail due to outdated parametric knowledge, while L-MARS retrieves the correct current information.
+Q1 (lsqa_001): Executive Order 14110 Status
+Question: What is the current status of Executive Order 14110, the
+Biden administration’s executive order on AI safety signed in
+October 2023?
+A. It remains in full effect and is being actively enforced
+B. It was revoked by President Trump on January 20, 2025
+C. It was partially amended but key provisions remain
+D. It expired automatically after 12 months
+Correct Answer: B
+
+Zero-Shot Response (Incorrect)
+Selected: A
+The model’s parametric knowledge contains EO 14110 as an active,
+enforceable order -- it has no information about the January 2025
+revocation, which post-dates its training data.
+
+Chain-of-Thought Response (Incorrect)
+Selected: A
+The model reasons step-by-step from stale knowledge: it recalls
+that EO 14110 was signed in October 2023, notes that executive
+orders do not expire automatically, and concludes it must still be
+in effect. The reasoning is internally consistent but factually
+wrong -- an example of "confident confabulation" from outdated
+parametric memory.
+
+L-MARS Response (Correct)
+Selected: B
+Executive Order 14110 has been revoked, as indicated by the sources
+stating that President Trump took action to revoke it during his
+final week in office. Therefore, it is no longer in effect.
+Retrieved sources included whitehouse.gov and Federal Register
+entries confirming revocation via EO 14148 on January 20, 2025.
+
+Q2 (lsqa_002): 2025 Standard Deduction
+Question: For tax year 2025, what is the standard deduction for a
+single filer under age 65, after the One Big Beautiful Bill Act
+amendments?
+A. $14,600
+
+B. $15,000
+
+C. $15,350
+
+D. $15,750
+
+Correct Answer: D
+
+12
+
+Zero-Shot: C (Incorrect)
+
+CoT: C (Incorrect)
+
+L-MARS: D (Correct)
+
+Zero-Shot selected C ($15,350) -- the model recalls an intermediate
+figure from pre-OBBBA IRS projections but lacks knowledge of the
+legislative amendment.
+CoT selected C ($15,350) -- step-by-step reasoning reinforces the
+wrong figure: the model recalls the 2024 standard deduction
+($14,600), applies an estimated inflation adjustment, and arrives
+at $15,350. The reasoning is plausible but based on stale data.
+L-MARS selected D ($15,750) -- retrieved current IRS sources
+confirming the One Big Beautiful Bill Act raised the 2025 standard
+deduction to $15,750 for single filers.
+
+B.1
+
+Analysis
+
+Both examples illustrate the same failure mode: the model’s parametric knowledge is confidently
+wrong about post-training developments. In Q1, a major policy reversal (EO revocation) is invisible
+to the model. In Q2, a legislative amendment changes a specific dollar figure that the model can only
+approximate from outdated data.
+Chain-of-thought prompting amplifies these failures rather than mitigating them. By encouraging the
+model to reason step-by-step from stale premises, CoT produces internally coherent but factually
+incorrect justifications. This “confident confabulation” effect explains why CoT accuracy (30.0%)
+falls below even zero-shot (58.0%) on LegalSearchQA.
+L-MARS resolves both cases by retrieving current authoritative sources (whitehouse.gov, IRS.gov)
+and grounding the answer in retrieved evidence rather than parametric memory. The system’s ability
+to access post-training information is the primary driver of its 38-percentage-point improvement over
+zero-shot on this benchmark.
+
+13
+
+

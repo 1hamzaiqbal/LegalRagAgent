@@ -1,6 +1,51 @@
 # CLAUDE.md
 
-## Update 2026-05-11 (diagnostic-adaptation meeting package)
+## Update 2026-05-12 (Snap-HyRE comprehensive pivot)
+
+**Current north star**: fixed-method Snap-HyRE, not a bottleneck-aware adaptive
+controller. The active branch is `snap_hyre_comprehensive`, tracking
+`shrango/snap_hyre_comprehensive`. The goal is to evaluate one straightforward
+Snap-HyRE method across four legal benchmarks, with retrieval exposure as a
+first-class outcome and downstream answer accuracy as the harder second
+outcome.
+
+**Start with these current docs**:
+- `docs/snap_hyre_comprehensive_plan_2026-05-12.md` - active plan for four
+  legal benchmarks, three models, top-k selection, retrieval caches, method
+  ladder, and launch discipline.
+- `docs/literature_snap_hyre_2026-05-12.md` - notes from L-MARS /
+  LegalSearchQA, Zheng et al. BarExamQA/HousingQA, and LRAGE.
+- `docs/README.md` - current documentation map and archive locations.
+- `docs/signoff_log.md` - cite-or-not gate for any reported result.
+- `docs/compiled_results.md` and `logs/experiments.jsonl` - historical ledger
+  and machine-readable summaries.
+
+**Active method story**:
+- Primary row: `rag_snap_hyde_2call`, described as Snap-HyRE.
+- Main controls: `llm_only`, `rag_simple`, `rag_hyde`, `golden_passage`,
+  planned `golden_plus_neighbors`, and `rag_rewrite`.
+- Main benchmarks: BarExamQA, HousingQA, CaseHOLD, LegalBench-SCALR.
+- Main models: Gemma 4 E4B, Gemma 4 26B, and Llama 3.3 70B Versatile.
+- Main metrics: downstream accuracy, Hit/Recall@1/5/10, MRR@10, gold retrieved
+  but wrong, gold missing but correct, conditional accuracy, calls, tokens,
+  latency, and health status.
+
+**Run-control rules**:
+- Do not launch broad method sweeps. Keep at most 2-3 active jobs.
+- Use generation caching (`scripts/build_hyre_cache.py` and
+  `--hyre-cache-path`) before repeated Snap-HyRE answer runs.
+- Implement or use retrieval-id caches before large top-k sweeps where
+  possible.
+- Every promoted row must have copied detail logs, `analyze_detail_flags.py`,
+  retrieval scoring where gold ids exist, and a signoff entry.
+- LegalSearchQA is related work unless converted into a frozen corpus task.
+
+**Archived pivot**: the May 9-11 diagnostic/adaptive-controller package was
+archived under `docs/archive/diagnostic_adaptation_2026-05-12/` and
+`scripts/archive/diagnostic_adaptation_2026-05-12/`. Use it for provenance, not
+as the active branch narrative.
+
+## Archived Update 2026-05-11 (diagnostic-adaptation meeting package)
 
 **Current north star**: source-gated diagnostic adaptation for legal RAG. The
 meeting package frames Snap-HyRE/HyRE as one intervention family inside a
@@ -9,15 +54,11 @@ baseline RAG, legal query rewrite, Snap-HyRE/HyRE, state metadata filtering,
 option grounding, verifier policies, disagreement arbitration, or
 reject/escalate.
 
-**Start with these current docs**:
-- `docs/meeting_prep_2026-05-11_diagnostic_adaptation.md` - meeting brief,
-  ablation tables, bottleneck summary, diagrams, and defensible narrative.
-- `docs/meeting_eval_expansion_status_2026-05-11.md` - live expansion status,
-  active SLURM jobs, invalid-run exclusions, full-corpus feasibility, and
-  validation gates.
-- `docs/meeting_package_audit_2026-05-11.md` - requirement-by-requirement
-  completion audit with exact validation commands.
-- `docs/signoff_log.md` - cite-or-not gate for any reported number.
+**Archived docs for this package**:
+- `docs/archive/diagnostic_adaptation_2026-05-12/meeting_prep_2026-05-11_diagnostic_adaptation.md`
+- `docs/archive/diagnostic_adaptation_2026-05-12/meeting_eval_expansion_status_2026-05-11.md`
+- `docs/archive/diagnostic_adaptation_2026-05-12/meeting_package_audit_2026-05-11.md`
+- `docs/signoff_log.md` remains the cite-or-not gate for rows from this sprint.
 
 **Latest source-gated deltas**:
 - Snap-only controls are complete across the four legal benchmarks with copied
@@ -53,8 +94,8 @@ reject/escalate.
 
 **Do not promote pending rows**: the capped full-SCALR replacement job `67897`
 must remain pending until its stdout, detail logs, and local validation all pass. Use
-`docs/meeting_eval_expansion_status_2026-05-11.md` for the current queue state
-before citing anything. The full-SCALR `rag_simple` half of `67863` is copied
+`docs/archive/diagnostic_adaptation_2026-05-12/meeting_eval_expansion_status_2026-05-11.md`
+for the archived queue state before citing anything from this sprint. The full-SCALR `rag_simple` half of `67863` is copied
 locally and structurally complete at 424/571, but it has three long-answer rows
 and is health-gated rather than reportable. The paired frontier half of `67863`
 also hit a 232,797-character answer and was cancelled, so `67863` is not a
