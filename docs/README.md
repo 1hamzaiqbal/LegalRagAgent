@@ -12,11 +12,13 @@ Updated 2026-05-12 for branch `snap_hyre_comprehensive`.
    cache workflow, validation gate, launch order, and open decisions.
 4. `literature_snap_hyre_2026-05-12.md` - notes from the three downloaded
    related papers and the LegalSearchQA decision.
-5. `signoff_log.md` - cite-or-not gate for any reported result.
-6. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
+5. `local_api_mirror_setup_2026-05-12.md` - optional local Chroma/API mirror
+   setup to avoid SSH/SLURM for API-backed iteration.
+6. `signoff_log.md` - cite-or-not gate for any reported result.
+7. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
    and machine-readable summaries.
-7. `method_index.md` - local harness mode names.
-8. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
+8. `method_index.md` - local harness mode names.
+9. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
    notes, and operational caveats.
 
 ## Current Branch Narrative
