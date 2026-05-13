@@ -17,11 +17,13 @@ Updated 2026-05-12 for branch `snap_hyre_comprehensive`.
 6. `local_snap_hyre_handoff_2026-05-12.md` - pasteable local-machine handoff
    for API keys, embedding, retrieval caches, top-k diagnostics, full sweeps,
    and promotion gates.
-7. `signoff_log.md` - cite-or-not gate for any reported result.
-8. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
+7. `snap_hyre_completion_audit_2026-05-12.md` - objective-to-artifact checklist
+   showing what is present, missing, and still unverified.
+8. `signoff_log.md` - cite-or-not gate for any reported result.
+9. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
    and machine-readable summaries.
-9. `method_index.md` - local harness mode names.
-10. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
+10. `method_index.md` - local harness mode names.
+11. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
    notes, and operational caveats.
 
 ## Current Branch Narrative
@@ -88,6 +90,8 @@ entrypoints.
 - `../scripts/build_retrieval_cache.py` - build deterministic passage-id
   retrieval caches for raw question, HyDE, Snap-HyRE, and golden-neighbor
   queries.
+- `../scripts/local/` - API-first local runner scripts for provider smoke
+  tests, retrieval-cache construction, and one-cell answer sweeps.
 - `../scripts/audit_retrieval_cache.py` - audit cache integrity and Hit/Recall,
   MRR at multiple k values before answer generation.
 - `../scripts/audit_retrieval_id_alignment.py` - verify dataset gold ids are

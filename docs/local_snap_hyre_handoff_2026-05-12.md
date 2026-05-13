@@ -35,6 +35,8 @@ docs/README.md
 docs/snap_hyre_comprehensive_plan_2026-05-12.md
 docs/snap_hyre_experiment_runbook_2026-05-12.md
 docs/local_api_mirror_setup_2026-05-12.md
+docs/snap_hyre_completion_audit_2026-05-12.md
+scripts/local/README.md
 ```
 
 ## API Keys
@@ -149,6 +151,14 @@ First build deterministic raw-question and golden-neighbor caches. These choose
 the universal top-k and provide retrieval-first figures without spending LLM
 calls.
 
+Preferred local helper:
+
+```bash
+scripts/local/build_retrieval_caches.sh
+```
+
+Equivalent explicit command:
+
 ```bash
 mkdir -p caches/retrieval/full docs/generated
 
@@ -257,6 +267,14 @@ uv run python scripts/audit_retrieval_cache.py \
 
 Before full runs, smoke each provider with `snap_hyre` and `rag_simple`.
 
+Preferred local helper:
+
+```bash
+scripts/local/run_api_smoke.sh
+```
+
+Equivalent explicit command:
+
 ```bash
 for provider in or-gemma3n-e4b or-gemma4-26b groq-llama70b; do
   for mode in rag_simple snap_hyre; do
@@ -277,6 +295,13 @@ missing predictions, empty retrieval, runaway output, or parse failures.
 
 After top-k is selected and caches are validated, run one dataset/provider cell
 at a time. Keep at most one or two active local jobs.
+
+Preferred local helper:
+
+```bash
+PROVIDER=or-gemma4-26b MODEL_LABEL=gemma4-26b DATASET=legalbench_scalr \
+QUESTIONS=full RETRIEVAL_K=5 scripts/local/run_answer_cell.sh
+```
 
 Example:
 

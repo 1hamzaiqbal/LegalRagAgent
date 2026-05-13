@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+# Run one local dataset/provider Snap-HyRE answer ladder cell.
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$ROOT"
+
+UV="${UV:-uv}"
+PROVIDER="${PROVIDER:-or-gemma4-26b}"
+MODEL_LABEL="${MODEL_LABEL:-$PROVIDER}"
+DATASET="${DATASET:-legalbench_scalr}"
+QUESTIONS="${QUESTIONS:-50}"
+SEED="${SEED:-42}"
+RETRIEVAL_K="${RETRIEVAL_K:-5}"
+USE_CACHES="${USE_CACHES:-1}"
+STOP_ON_FAILURE="${STOP_ON_FAILURE:-1}"
+LLM_MAX_COMPLETION_TOKENS="${LLM_MAX_COMPLETION_TOKENS:-768}"
+HYRE_CACHE_ROOT="${HYRE_CACHE_ROOT:-$ROOT/caches/hyre/full}"
+RETRIEVAL_CACHE_ROOT="${RETRIEVAL_CACHE_ROOT:-$ROOT/caches/retrieval/full}"
+
+if [[ -n "${MODES:-}" ]]; then
+  # shellcheck disable=SC2206
+  MODES_ARR=(${MODES})
+else
+  MODES_ARR=(llm_only rag_simple rag_rewrite rag_hyde snap_hyre golden_passage golden_plus_neighbors)
+fi
+
+if [[ -f .env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
+case "$PROVIDER" in
+  or-*) [[ -n "${OPENROUTER_API_KEY:-}" ]] || { echo "missing OPENROUTER_API_KEY for $PROVIDER" >&2; exit 2; } ;;
+  groq-*) [[ -n "${GROQ_API_KEY:-}" ]] || { echo "missing GROQ_API_KEY for $PROVIDER" >&2; exit 2; } ;;
+esac
+
+export CHROMA_DB_DIR="${CHROMA_DB_DIR:-$ROOT/chroma_db}"
+export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
+export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
+export HF_DATASETS_OFFLINE="${HF_DATASETS_OFFLINE:-1}"
+export DISABLE_CROSS_ENCODER="${DISABLE_CROSS_ENCODER:-1}"
+export LLM_MAX_COMPLETION_TOKENS
+export PYTHONUNBUFFERED=1
+
+mkdir -p logs
+
+echo "[$(date -Is)] local answer cell root=$ROOT commit=$(git rev-parse --short HEAD)"
+echo "[$(date -Is)] provider=$PROVIDER model_label=$MODEL_LABEL dataset=$DATASET questions=$QUESTIONS retrieval_k=$RETRIEVAL_K"
+echo "[$(date -Is)] modes=${MODES_ARR[*]} use_caches=$USE_CACHES"
+
+"$UV" run python -m py_compile eval/eval_harness.py scripts/analyze_detail_flags.py
+
+add_cache_args_for_mode() {
+  local mode="$1"
+  local hyre_cache=""
+  local retrieval_cache=""
+  extra_args=()
+
+  case "$mode" in
+    rag_simple)
+      retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_raw_question_k10.jsonl"
+      ;;
+    rag_hyde)
+      hyre_cache="$HYRE_CACHE_ROOT/${DATASET}_${MODEL_LABEL}_rag_hyde.jsonl"
+      retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${MODEL_LABEL}_rag_hyde_k10.jsonl"
+      ;;
+    snap_hyre)
+      hyre_cache="$HYRE_CACHE_ROOT/${DATASET}_${MODEL_LABEL}_snap_hyre.jsonl"
+      retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${MODEL_LABEL}_snap_hyre_k10.jsonl"
+      ;;
+    golden_plus_neighbors)
+      retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_golden_neighbors_k10.jsonl"
+      ;;
+  esac
+
+  if [[ "$USE_CACHES" != "1" ]]; then
+    return 0
+  fi
+  if [[ -n "$hyre_cache" ]]; then
+    [[ -f "$hyre_cache" ]] || { echo "missing hyre cache $hyre_cache" >&2; return 2; }
+    extra_args+=(--hyre-cache-path "$hyre_cache")
+  fi
+  if [[ -n "$retrieval_cache" ]]; then
+    [[ -f "$retrieval_cache" ]] || { echo "missing retrieval cache $retrieval_cache" >&2; return 2; }
+    extra_args+=(--retrieval-cache-path "$retrieval_cache")
+  fi
+}
+
+for mode in "${MODES_ARR[@]}"; do
+  tag="local-snap-hyre-${MODEL_LABEL}-${DATASET}-${mode}-n${QUESTIONS}-k${RETRIEVAL_K}"
+  echo
+  echo "[$(date -Is)] run dataset=$DATASET provider=$PROVIDER mode=$mode tag=$tag"
+
+  if ! add_cache_args_for_mode "$mode"; then
+    echo "[$(date -Is)] FAILED dataset=$DATASET mode=$mode while resolving caches"
+    if [[ "$STOP_ON_FAILURE" == "1" ]]; then
+      exit 2
+    fi
+    continue
+  fi
+
+  set +e
+  LLM_PROVIDER="$PROVIDER" \
+  EVAL_TRACE_CALLS=1 \
+  EVAL_TRACE_EVENTS=1 \
+  EVAL_TRACE_MAX_CHARS=1200 \
+  "$UV" run python eval/eval_harness.py \
+    --mode "$mode" \
+    --provider "$PROVIDER" \
+    --dataset "$DATASET" \
+    --questions "$QUESTIONS" \
+    --seed "$SEED" \
+    --retrieval-k "$RETRIEVAL_K" \
+    --tag "$tag" \
+    "${extra_args[@]}"
+  status=$?
+  set -e
+
+  latest_log="$(find logs -maxdepth 1 -name "eval_${mode}_${PROVIDER}_*_${DATASET}_*${tag}*_detail.jsonl" -print | sort | tail -n 1)"
+  if [[ -z "$latest_log" ]]; then
+    echo "[$(date -Is)] ERROR: no detail log found for dataset=$DATASET provider=$PROVIDER mode=$mode"
+    status=1
+  else
+    "$UV" run python scripts/analyze_detail_flags.py "$latest_log" || status=1
+    "$UV" run python - "$latest_log" <<'PY' || status=1
+import json
+import sys
+
+path = sys.argv[1]
+bad = []
+errors = []
+with open(path) as f:
+    for line_no, line in enumerate(f, 1):
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        pred = row.get("predicted_answer")
+        if pred is None or str(pred).strip() == "":
+            bad.append(str(row.get("label") or row.get("idx") or line_no))
+        if row.get("error"):
+            errors.append(str(row.get("label") or row.get("idx") or line_no))
+if bad:
+    raise SystemExit("missing predicted_answer rows: " + ",".join(bad[:10]))
+if errors:
+    raise SystemExit("error rows: " + ",".join(errors[:10]))
+PY
+  fi
+
+  if [[ "$status" -ne 0 ]]; then
+    echo "[$(date -Is)] FAILED dataset=$DATASET provider=$PROVIDER mode=$mode exit=$status"
+    if [[ "$STOP_ON_FAILURE" == "1" ]]; then
+      exit "$status"
+    fi
+  else
+    echo "[$(date -Is)] OK dataset=$DATASET provider=$PROVIDER mode=$mode"
+  fi
+done
+
+echo "[$(date -Is)] local answer cell complete."
