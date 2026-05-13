@@ -43,6 +43,7 @@ Concrete success criteria:
 | Local retrieval-cache runner | `scripts/local/build_retrieval_caches.sh` | Present, not yet run locally |
 | Local generation-cache runner | `scripts/local/build_generation_caches.sh` | Present, not yet run locally |
 | Local answer-cell runner | `scripts/local/run_answer_cell.sh` | Present, not yet run locally |
+| Local result-package builder | `scripts/build_snap_hyre_package.py`, `scripts/local/build_result_package.sh` | Present, not yet populated with local full-corpus evidence |
 | Four benchmark full embeddings available locally | `chroma_db/` expected under local checkout | Missing on this Mac; planned for local machine |
 | Full raw/golden retrieval caches for all four datasets | `caches/retrieval/full/*.jsonl` | Incomplete/stale; must be regenerated or copied and audited |
 | HyDE/Snap-HyRE generation caches for all three providers and four datasets | `caches/hyre/full/*.jsonl` | Missing/incomplete |
@@ -51,7 +52,7 @@ Concrete success criteria:
 | Detail-log health validation for promoted rows | `scripts/analyze_detail_flags.py` output and `docs/signoff_log.md` | Missing for new full-corpus package |
 | Retrieval exposure metrics | `scripts/audit_retrieval_cache.py`, `scripts/compile_retrieval_cache_matrix.py`, qrel alignment reports | Tooling present; full evidence missing |
 | BarExam qrel policy | `docs/local_snap_hyre_handoff_2026-05-12.md` caveat | Decision recorded; full retrieval fix/selection pending |
-| Tables and plots for final package | `docs/generated/` and figure outputs | Missing |
+| Tables and plots for final package | `scripts/build_snap_hyre_package.py` writes `docs/generated/snap_hyre_package/` | Tooling present; full evidence missing |
 | Branch pushed | `snap_hyre_comprehensive` on `shrango` | Present as of the latest pushed commit before this audit |
 
 ## Current Completion Verdict
@@ -78,4 +79,4 @@ answer logs, top-k matrix, tables, plots, and signoff entries.
 6. Run `scripts/local/run_answer_cell.sh` for one dataset/model cell, validate
    logs, then scale across the remaining cells.
 7. Add only validated rows to `docs/signoff_log.md`, then regenerate result
-   tables and plots.
+   tables and plots with `scripts/local/build_result_package.sh`.

@@ -11,6 +11,8 @@ Use them in this order:
 3. `build_generation_caches.sh` - HyDE/Snap-HyRE generation caches plus
    retrieval caches from those generated passages.
 4. `run_answer_cell.sh` - one dataset/model answer ladder at a time.
+5. `build_result_package.sh` - source-gated package status tables and optional
+   plots after caches/logs exist.
 
 The scripts intentionally default to small or bounded runs where possible.
 Set `QUESTIONS=full` only after smokes and cache audits are clean.
@@ -38,4 +40,10 @@ Required `.env` keys for the planned providers:
 ```env
 OPENROUTER_API_KEY=...
 GROQ_API_KEY=...
+```
+
+After any clean batch, rebuild the package status:
+
+```bash
+scripts/local/build_result_package.sh
 ```

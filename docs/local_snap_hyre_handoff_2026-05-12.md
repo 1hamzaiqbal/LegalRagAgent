@@ -389,6 +389,12 @@ replaced.
 11. Regenerate tables/plots and update `docs/signoff_log.md`.
 12. Commit and push after every clean batch of promoted rows.
 
+Rebuild source-gated package status after each clean batch:
+
+```bash
+scripts/local/build_result_package.sh
+```
+
 ## What Not To Do
 
 - Do not queue many long jobs without a health monitor.
