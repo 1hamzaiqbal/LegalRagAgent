@@ -27,12 +27,20 @@ headline requirement.
 
 | Label | Preferred provider | Fallback | Role |
 |---|---|---|---|
-| Gemma 4 E4B | HPC vLLM | OpenRouter | small Gemma axis |
-| Gemma 4 26B | HPC vLLM | OpenRouter | main Gemma axis |
-| Llama 3.3 70B Versatile | Groq | OpenRouter | cross-family large model |
+| Gemma 4 E4B | HPC vLLM | none for exact Gemma 4 E4B | small Gemma axis |
+| Gemma 4 26B | OpenRouter `or-gemma4-26b` | HPC vLLM | main Gemma axis |
+| Llama 3.3 70B Versatile | Groq `groq-llama70b` | OpenRouter `or-llama70b` | cross-family large model |
 
 Run provider smokes before queueing full jobs. Do not mix provider rows in the
 same table cell unless the provider is explicitly labeled.
+
+Provider policy: use API-backed runs by default for answer and generation
+sweeps. They avoid vLLM startup, GPU memory failures, and long cluster
+reservation costs while still using the populated HPC Chroma collections. vLLM
+is retained only for exact Gemma 4 E4B rows or if API access blocks a needed
+cell. OpenRouter currently exposes Gemma 4 26B/31B, but not a true Gemma 4 E4B
+endpoint. `or-gemma3n-e4b` and `or-gemma3-4b` can be used as small-Gemma API
+controls only if the table labels them as Gemma 3-family rows.
 
 ## Method Ladder
 
@@ -142,14 +150,15 @@ sbatch scripts/hpc/slurm_snap_hyre_retrieval_cache.sh
 For Snap-HyRE caches, first build the HyRE generation cache, then launch with
 `QUERY_TYPES='hyde_cache hyre_cache' HYRE_MODELS='<model-labels>'`.
 
-The HPC helper for generation caches is:
+The HPC helper for generation caches is API-first:
 
 ```bash
 PROVIDER=<provider> MODEL_LABEL=<model-label> \
 sbatch scripts/hpc/slurm_snap_hyre_generation_cache.sh
 ```
 
-For local vLLM Gemma, add `BACKEND=vllm MODEL=<hf-model-id> PORT=<port>`.
+For exact Gemma 4 E4B only, add
+`BACKEND=vllm MODEL=google/gemma-4-E4B-it PORT=<port>`.
 
 Before treating Hit@k/MRR as valid retrieval-exposure metrics, run the Chroma
 gold-id alignment gate:
@@ -194,7 +203,7 @@ uv run python eval/eval_harness.py \
   --tag snap-hyre-comp-v1-<dataset>-<model>-k<k>
 ```
 
-The HPC helper for one deliberate dataset/model answer cell is:
+The HPC helper for one deliberate dataset/model answer cell is API-first:
 
 ```bash
 DATASET=<dataset> PROVIDER=<provider> MODEL_LABEL=<model-label> RETRIEVAL_K=<k> \
@@ -203,8 +212,9 @@ sbatch scripts/hpc/slurm_snap_hyre_answer_sweep.sh
 
 It runs the canonical ladder by default:
 `llm_only rag_simple rag_hyde snap_hyre golden_passage golden_plus_neighbors rag_rewrite`.
-For vLLM Gemma, add `BACKEND=vllm MODEL=<hf-model-id> PORT=<port>`. Keep this
-one dataset/model per job so monitoring stays tight.
+For exact Gemma 4 E4B only, add
+`BACKEND=vllm MODEL=google/gemma-4-E4B-it PORT=<port>`. Keep this one
+dataset/model per job so monitoring stays tight.
 
 ## Validation Gate
 
@@ -225,8 +235,9 @@ Do not promote a result row unless all of these pass:
 
 1. Local/HPC corpus check: confirm Chroma collections exist for BarExamQA,
    CaseHOLD, LegalBench-SCALR, and HousingQA on the machine we will use.
-2. Provider smoke: confirm Gemma 4 E4B, Gemma 4 26B, and Llama 3.3 70B
-   Versatile return parseable answers on one question each.
+2. Provider smoke: confirm `or-gemma4-26b` and `groq-llama70b` return
+   parseable answers on one question each. Exact Gemma 4 E4B requires a vLLM
+   smoke because no API endpoint has been verified.
 3. Method smoke: `--questions 5` for each dataset on `rag_simple`,
    `rag_hyde`, `snap_hyre`, `golden_plus_neighbors`, and `rag_rewrite`.
 4. Retrieval/top-k cache build: full-dataset k=10 retrieval caches for all
@@ -262,10 +273,9 @@ Completed locally on 2026-05-12:
   `tests/test_eval_metrics.py`, `tests/test_formatter.py`, and
   `tests/test_sanitizer.py` (`27 passed`).
 
-Still needs HPC smoke before full launches:
-
-- vLLM smokes for Gemma 4 E4B and Gemma 4 26B using
-  `scripts/hpc/slurm_snap_hyre_vllm_smoke.sh`.
+No required provider smoke is currently missing for the API-first path. Exact
+Gemma 4 E4B uses the completed vLLM smoke below because no API endpoint has
+been verified.
 
 Remote collection check on 2026-05-12:
 
@@ -323,6 +333,13 @@ Provider smoke status:
   harness. Retry on H100 or fall back to the already clean OpenRouter
   `or-gemma4-26b` provider smoke. Smoke stdout:
   `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/68417.out`.
+- Gemma 4 26B vLLM smoke retry job `68421` completed cleanly on 2026-05-12 in
+  13:14 using `google/gemma-4-26B-A4B-it` on H100. It validated `llm_only` and
+  `snap_hyre` with `missing_predicted_answer=0`, no parse failures, no
+  long-answer rows, and nonempty Snap-HyRE retrieval. This confirms vLLM is
+  available as a fallback, but API providers remain the default path for full
+  sweeps. Smoke stdout:
+  `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/68421.out`.
 - Retrieval-cache job `68418` is rejected/cancelled. It started before the
   golden-neighbor cache schema was corrected, so its BarExam
   `golden_neighbors` cache prepended question-level gold ids such as `mbe_0`

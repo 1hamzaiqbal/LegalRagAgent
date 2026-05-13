@@ -3,7 +3,8 @@
 Supports multiple providers via LLM_PROVIDER env var:
   gemma, gemini-flash, gemini-flash-lite,
   groq-llama70b, groq-llama8b, groq-maverick, groq-scout, groq-gpt120b, groq-kimi, groq-qwen,
-  or-llama70b, or-gpt20b, or-gemma3-4b, or-gemma27b, or-gemma4-26b, or-gemma4-31b,
+  or-llama70b, or-gpt20b, or-gemma3n-e4b, or-gemma3-4b, or-gemma27b,
+  or-gemma4-26b, or-gemma4-31b,
   or-qwen3-coder, or-nemotron, or-mistral, or-hermes,
   ollama, cerebras
 
@@ -52,7 +53,9 @@ PROVIDERS = {
     # --- OpenRouter (free tier — weekly token limits, no RPD cap) ---
     "or-llama70b":        ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "meta-llama/llama-3.3-70b-instruct:free",     None, None),
     "or-gpt20b":          ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "openai/gpt-oss-20b:free",                    None, None),
+    "or-gemma3n-e4b":     ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-3n-e4b-it",                 None, None),
     "or-gemma3-4b":       ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-3-4b-it",                  None, None),
+    # Legacy alias retained for old scripts. This is Gemma 3 4B, not Gemma 4 E4B.
     "or-gemma4b":         ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-3-4b-it",                  None, None),
     "or-gemma27b":        ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-3-27b-it",                 None, None),
     # --- Gemma 4 via OpenRouter (matches our cluster vLLM Gemma 4 models) ---
