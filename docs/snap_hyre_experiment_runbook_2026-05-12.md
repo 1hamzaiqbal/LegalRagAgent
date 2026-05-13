@@ -177,6 +177,18 @@ uv run python eval/eval_harness.py \
   --tag snap-hyre-comp-v1-<dataset>-<model>-k<k>
 ```
 
+The HPC helper for one deliberate dataset/model answer cell is:
+
+```bash
+DATASET=<dataset> PROVIDER=<provider> MODEL_LABEL=<model-label> RETRIEVAL_K=<k> \
+sbatch scripts/hpc/slurm_snap_hyre_answer_sweep.sh
+```
+
+It runs the canonical ladder by default:
+`llm_only rag_simple rag_hyde snap_hyre golden_passage golden_plus_neighbors rag_rewrite`.
+For vLLM Gemma, add `BACKEND=vllm MODEL=<hf-model-id> PORT=<port>`. Keep this
+one dataset/model per job so monitoring stays tight.
+
 ## Validation Gate
 
 Do not promote a result row unless all of these pass:
