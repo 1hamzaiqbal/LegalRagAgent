@@ -25,6 +25,7 @@ class EvalConfig:
     sample_start: int = 0             # optional slice start after deterministic sampling
     sample_end: int | None = None     # optional slice end after deterministic sampling
     hyre_cache_path: str = ""         # optional JSONL cache for replaying snap/HyRE generations
+    retrieval_cache_path: str = ""    # optional JSONL cache of retrieved passage ids for top-k replay
 
 
 EVAL_MODES = {
@@ -34,6 +35,7 @@ EVAL_MODES = {
     "rag_simple":          "Raw question → retrieval → synthesize",
     "rag_state_filter":    "HousingQA state-filtered RAG: retrieve only statutes matching the question state, then synthesize",
     "golden_passage":      "LLM answer with gold passage injected as context",
+    "golden_plus_neighbors": "Gold passage plus retrieved neighboring passages, for testing whether gold-only context is under-specified",
     "golden_arbitration":       "LLM answers naive, then reviews golden passage (neutral framing)",
     "golden_arb_conservative":  "LLM answers naive, then reviews golden passage (biased toward keeping)",
     "rag_arbitration":          "LLM answers naive, then reviews retrieved passages (conservative)",
@@ -42,6 +44,7 @@ EVAL_MODES = {
     "rag_multi_hyde":           "Multi-HyDE: 3 hypothetical passages (rule/exception/application)",
     "rag_snap_hyde":            "Snap-informed HyDE: answer first, then targeted retrieval",
     "rag_snap_hyde_1call":      "1-call ablation: retrieve on bare question (rag_simple style), then 1 LLM call producing snap reasoning + final answer (tests whether 2nd LLM call is necessary)",
+    "snap_hyre":                "Snap-HyRE: snap reasoning + HyRE passage in one LLM call, then retrieve + final synth",
     "rag_snap_hyde_2call":      "2-call snap+HyDE: snap reasoning + HyDE passage in one LLM call, then retrieve + final synth (efficiency variant of rag_snap_hyde)",
     "adaptive_snap_route":      "Bottleneck-adaptive routing: 1 LLM call produces snap + ROUTE (SUFFICIENT|NEEDS_RETRIEVAL) + HyDE; if SUFFICIENT return snap (1 call), else retrieve + synth (2 calls). Per-question bottleneck-aware variant of snap_hyde_2call.",
     "snap_hyde_aligned":        "Snap-HyDE aligned: HyDE for dense retrieval, raw question for cross-encoder reranking",

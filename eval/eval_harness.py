@@ -33,7 +33,7 @@ from main import (
     load_skill,
 )
 from llm_config import get_provider_info, _get_llm_cached
-from rag_utils import retrieve_documents_multi_query, get_vectorstore
+from rag_utils import retrieve_documents_multi_query, get_documents_by_idx, get_vectorstore
 
 
 _CALL_TRACE: list[dict] = []
@@ -437,6 +437,8 @@ def _preview_text(text: str, limit: int = 1200) -> str:
 
 _HYRE_CACHE: dict[str, dict] | None = None
 _HYRE_CACHE_PATH: str | None = None
+_RETRIEVAL_CACHE: dict[tuple[str, str, str, str, str], dict] | None = None
+_RETRIEVAL_CACHE_PATH: str | None = None
 
 
 def _row_label(row: pd.Series, config: EvalConfig, fallback_i: int | None = None) -> str:
@@ -483,6 +485,123 @@ def _hyre_cache_entry(row: pd.Series, config: EvalConfig) -> dict | None:
     if not path:
         return None
     return _load_hyre_cache(path).get(_row_label(row, config))
+
+
+def _json_key(value) -> str:
+    """Stable JSON key for retrieval-cache metadata."""
+    return json.dumps(value or {}, sort_keys=True, separators=(",", ":"))
+
+
+def _row_idx_for_cache(row: pd.Series) -> str:
+    value = row.get("idx", "")
+    if value is None:
+        return ""
+    try:
+        if pd.isna(value):
+            return ""
+    except Exception:
+        pass
+    return str(value)
+
+
+def _load_retrieval_cache(path: str) -> dict[tuple[str, str, str, str, str], dict]:
+    """Load deterministic retrieval-id cache keyed by row idx and retrieval settings."""
+    global _RETRIEVAL_CACHE, _RETRIEVAL_CACHE_PATH
+    if not path:
+        return {}
+    if _RETRIEVAL_CACHE is not None and _RETRIEVAL_CACHE_PATH == path:
+        return _RETRIEVAL_CACHE
+
+    cache: dict[tuple[str, str, str, str, str], dict] = {}
+    with open(path) as f:
+        for line_no, line in enumerate(f, 1):
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            raw_idx = entry.get("idx")
+            if raw_idx is None or raw_idx == "":
+                raw_idx = entry.get("row_idx", "")
+            idx = str(raw_idx)
+            label_prefix = str(entry.get("label_prefix") or "")
+            collection = str(entry.get("collection") or "")
+            embedding_model = str(entry.get("embedding_model") or "")
+            where_key = _json_key(entry.get("where") or {})
+            retrieved_ids = entry.get("retrieved_ids") or []
+            if not idx:
+                raise ValueError(f"{path}:{line_no}: missing idx")
+            if not label_prefix:
+                raise ValueError(f"{path}:{line_no}: missing label_prefix")
+            if not collection:
+                raise ValueError(f"{path}:{line_no}: missing collection")
+            if not isinstance(retrieved_ids, list):
+                raise ValueError(f"{path}:{line_no}: retrieved_ids must be a list")
+            cache[(idx, label_prefix, collection, embedding_model, where_key)] = entry
+    _RETRIEVAL_CACHE = cache
+    _RETRIEVAL_CACHE_PATH = path
+    return cache
+
+
+def _retrieval_cache_entry(
+    row: pd.Series,
+    label_prefix: str,
+    collection: str,
+    where: dict | None,
+    embedding_model: str | None,
+) -> dict | None:
+    path = os.getenv("RETRIEVAL_CACHE_PATH", "").strip()
+    if not path:
+        return None
+    cache = _load_retrieval_cache(path)
+    key = (
+        _row_idx_for_cache(row),
+        label_prefix,
+        collection,
+        embedding_model or "",
+        _json_key(where or {}),
+    )
+    if key not in cache:
+        raise KeyError(
+            "retrieval cache miss for "
+            f"idx={key[0]} label_prefix={label_prefix} collection={collection} "
+            f"embedding_model={embedding_model or ''} where={where or {}} path={path}"
+        )
+    return cache[key]
+
+
+def _documents_from_retrieval_cache(
+    row: pd.Series,
+    label_prefix: str,
+    collection: str,
+    where: dict | None,
+    embedding_model: str | None,
+    k: int,
+):
+    entry = _retrieval_cache_entry(row, label_prefix, collection, where, embedding_model)
+    if entry is None:
+        return None
+    retrieved_ids = [str(idx) for idx in entry.get("retrieved_ids", [])]
+    if len(retrieved_ids) < k:
+        raise ValueError(
+            f"retrieval cache row idx={_row_idx_for_cache(row)} label_prefix={label_prefix} "
+            f"has {len(retrieved_ids)} ids, need k={k}"
+        )
+    docs = get_documents_by_idx(collection, retrieved_ids[:k], embedding_model=embedding_model)
+    got_ids = {str(doc.metadata.get("idx", "")) for doc in docs}
+    missing = [idx for idx in retrieved_ids[:k] if idx not in got_ids]
+    if missing:
+        raise ValueError(
+            f"retrieval cache row idx={_row_idx_for_cache(row)} label_prefix={label_prefix} "
+            f"references ids not found in {collection}: {missing[:5]}"
+        )
+    score_by_id = {
+        str(idx): score
+        for idx, score in zip(retrieved_ids, entry.get("scores") or [])
+    }
+    for doc in docs:
+        idx = str(doc.metadata.get("idx", ""))
+        if "cross_encoder_score" not in doc.metadata:
+            doc.metadata["cross_encoder_score"] = float(score_by_id.get(idx, 0.0) or 0.0)
+    return docs, entry
 
 
 def _question_only_hyde_user(question_text: str) -> str:
@@ -1144,6 +1263,70 @@ def run_golden_passage(row: pd.Series, config: EvalConfig) -> dict:
     }
 
 
+def run_golden_plus_neighbors(row: pd.Series, config: EvalConfig) -> dict:
+    """Gold passage plus nearest corpus neighbors.
+
+    This is a diagnostic control for the observed "gold passage can underperform
+    LLM-only" issue. It keeps the gold passage first, then fills the remaining
+    context budget with passages retrieved by embedding the gold passage.
+    """
+    question = _fmt(row, config)
+    gold = str(row.get("gold_passage", ""))
+    if not gold or gold == "nan":
+        result = run_llm_only(row, config)
+        result["golden_plus_neighbors_fallback"] = "missing_gold_passage"
+        return result
+
+    gold_ids = _gold_ids(row)
+    gold_idx = ",".join(gold_ids)
+    max_neighbors = max(config.retrieval_k - 1, 0)
+    retrieval = _retrieve_and_format(
+        row,
+        [gold],
+        k=max(config.retrieval_k, 1),
+        label_prefix="golden_plus_neighbors",
+        where=_where_from_config(config),
+        collection=_collection_for_config(config),
+    )
+
+    gold_id_set = set(gold_ids)
+    neighbor_evidence = [
+        ev for ev in retrieval["evidence_store"]
+        if str(ev.get("idx", "")) not in gold_id_set
+    ][:max_neighbors]
+
+    evidence_store = []
+    if gold_idx:
+        evidence_store.append({
+            "idx": gold_idx,
+            "text": gold,
+            "source": "golden_passage",
+            "cross_encoder_score": 0.0,
+        })
+    evidence_store.extend(neighbor_evidence)
+
+    passages = [
+        f"[Source {i}]\n{ev.get('text', '')}"
+        for i, ev in enumerate(evidence_store, 1)
+    ]
+    passage_block = "\n\n".join(passages)
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="golden_plus_neighbors")
+
+    retrieved_ids = list(gold_ids)
+    retrieved_ids.extend(str(ev.get("idx", "")) for ev in neighbor_evidence)
+    return {
+        "final_answer": answer,
+        "gold_retrieved": bool(gold_ids),
+        "retrieved_ids": retrieved_ids,
+        "evidence_store": evidence_store,
+        "neighbor_retrieved_ids": [str(ev.get("idx", "")) for ev in neighbor_evidence],
+        "retrieval_cache_hit": retrieval.get("retrieval_cache_hit", False),
+        "final_context_fields": ["gold_passage", "retrieved_neighbors", "question"],
+        "final_prompt_preview": _preview_text(user),
+    }
+
+
 def _golden_arb_common(row: pd.Series, config: EvalConfig, arb_system: str, label_prefix: str) -> dict:
     """Shared logic for golden arbitration variants."""
     question = _fmt(row, config)
@@ -1309,9 +1492,22 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
         return _retrieve_musique_in_row(row, queries, k=k, label_prefix=label_prefix)
 
     embedding_model = os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or None
-    vs = get_vectorstore(collection, embedding_model=embedding_model)
-    docs = retrieve_documents_multi_query(queries=queries, k=k, vectorstore=vs, where=where,
-                                          rerank_query=rerank_query)
+    cached = _documents_from_retrieval_cache(
+        row=row,
+        label_prefix=label_prefix,
+        collection=collection,
+        where=where,
+        embedding_model=embedding_model,
+        k=k,
+    )
+    retrieval_cache_hit = cached is not None
+    retrieval_cache_entry = cached[1] if cached is not None else None
+    if cached is not None:
+        docs = cached[0]
+    else:
+        vs = get_vectorstore(collection, embedding_model=embedding_model)
+        docs = retrieve_documents_multi_query(queries=queries, k=k, vectorstore=vs, where=where,
+                                              rerank_query=rerank_query)
 
     passages = []
     evidence_store = []
@@ -1341,6 +1537,8 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
         where=where or {},
         collection=collection,
         embedding_model=embedding_model or "",
+        retrieval_cache_hit=retrieval_cache_hit,
+        retrieval_cache_label=(retrieval_cache_entry or {}).get("label", ""),
         results=evidence_store,
         retrieved_ids=retrieved_ids,
         gold_idx=gold_idx,
@@ -1354,6 +1552,7 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
         "retrieved_ids": retrieved_ids,
         "gold_retrieved": gold_retrieved,
         "max_ce_score": max_ce_score,
+        "retrieval_cache_hit": retrieval_cache_hit,
     }
 
 
@@ -6188,6 +6387,7 @@ MODE_RUNNERS = {
     "rag_simple": run_rag_simple,
     "rag_state_filter": run_rag_state_filter,
     "golden_passage": run_golden_passage,
+    "golden_plus_neighbors": run_golden_plus_neighbors,
     "golden_arbitration": run_golden_arbitration,
     "golden_arb_conservative": run_golden_arb_conservative,
     "rag_arbitration": run_rag_arbitration,
@@ -6196,6 +6396,7 @@ MODE_RUNNERS = {
     "rag_multi_hyde": run_rag_multi_hyde,
     "rag_snap_hyde": run_rag_snap_hyde,
     "rag_snap_hyde_1call": run_rag_snap_hyde_1call,
+    "snap_hyre": run_rag_snap_hyde_2call,
     "rag_snap_hyde_2call": run_rag_snap_hyde_2call,
     "adaptive_snap_route": run_adaptive_snap_route,
     "snap_hyde_aligned": run_snap_hyde_aligned,
@@ -6270,6 +6471,10 @@ MODE_RUNNERS = {
 def _setup_provider(config: EvalConfig):
     """Set env vars and clear caches for provider/skill switching."""
     os.environ["LLM_PROVIDER"] = config.provider
+    if config.hyre_cache_path:
+        os.environ["HYRE_CACHE_PATH"] = config.hyre_cache_path
+    if config.retrieval_cache_path:
+        os.environ["RETRIEVAL_CACHE_PATH"] = config.retrieval_cache_path
     _get_llm_cached.cache_clear()
 
     if config.skill_dir != "skills":
@@ -6707,6 +6912,8 @@ def main():
                         help="Optional end offset after deterministic question sampling")
     parser.add_argument("--hyre-cache-path", default="",
                         help="Optional JSONL cache of snap/HyRE generations keyed by detail-log label")
+    parser.add_argument("--retrieval-cache-path", default="",
+                        help="Optional JSONL cache of retrieved passage ids for top-k replay")
 
     args = parser.parse_args()
 
@@ -6727,6 +6934,7 @@ def main():
         sample_start=args.sample_start,
         sample_end=args.sample_end,
         hyre_cache_path=args.hyre_cache_path,
+        retrieval_cache_path=args.retrieval_cache_path,
     )
 
     run_eval(config)

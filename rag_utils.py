@@ -183,6 +183,65 @@ def get_vectorstore(collection_name: str = COLLECTION_NAME,
             )
     return _vectorstore_instances[cache_key]
 
+
+def get_documents_by_idx(
+    collection_name: str,
+    idxs: List[str],
+    embedding_model: str = None,
+) -> List[Document]:
+    """Fetch Chroma documents by corpus `idx`, preserving requested order.
+
+    `utils/fast_embed.py` writes Chroma ids as `doc_{idx}` and stores the same
+    value in metadata field `idx`. The direct id lookup is fast; the metadata
+    fallback keeps older collections usable if their Chroma ids differ.
+    """
+    requested = [str(idx) for idx in idxs if str(idx) != ""]
+    if not requested:
+        return []
+
+    try:
+        import chromadb
+
+        client = chromadb.PersistentClient(path=CHROMA_DB_DIR)
+        collection = client.get_collection(collection_name)
+    except Exception as exc:
+        logger.debug("Direct Chroma client lookup failed for %s: %s", collection_name, exc)
+        vectorstore = get_vectorstore(collection_name, embedding_model=embedding_model)
+        collection = vectorstore._collection
+    found: Dict[str, Document] = {}
+
+    def _store_batch(batch: dict) -> None:
+        ids = batch.get("ids") or []
+        documents = batch.get("documents") or []
+        metadatas = batch.get("metadatas") or []
+        for chroma_id, text, metadata in zip(ids, documents, metadatas):
+            metadata = dict(metadata or {})
+            idx = str(metadata.get("idx") or str(chroma_id).removeprefix("doc_"))
+            if idx and idx not in found:
+                metadata.setdefault("idx", idx)
+                found[idx] = Document(page_content=text or "", metadata=metadata)
+
+    try:
+        _store_batch(collection.get(ids=[f"doc_{idx}" for idx in requested], include=["documents", "metadatas"]))
+    except Exception as exc:
+        logger.debug("Direct Chroma id lookup failed for %s: %s", collection_name, exc)
+
+    missing = [idx for idx in requested if idx not in found]
+    if missing:
+        try:
+            _store_batch(collection.get(where={"idx": {"$in": missing}}, include=["documents", "metadatas"]))
+        except Exception as exc:
+            logger.debug("Batch metadata lookup failed for %s: %s", collection_name, exc)
+
+    missing = [idx for idx in requested if idx not in found]
+    for idx in missing:
+        try:
+            _store_batch(collection.get(where={"idx": idx}, include=["documents", "metadatas"]))
+        except Exception as exc:
+            logger.debug("Metadata lookup failed for %s idx=%s: %s", collection_name, idx, exc)
+
+    return [found[idx] for idx in requested if idx in found]
+
 # ---------------------------------------------------------------------------
 # BM25 index
 # ---------------------------------------------------------------------------

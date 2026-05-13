@@ -8,13 +8,15 @@ Updated 2026-05-12 for branch `snap_hyre_comprehensive`.
 2. `snap_hyre_comprehensive_plan_2026-05-12.md` - active research plan:
    fixed Snap-HyRE across four legal benchmarks, three models, top-k
    calibration, retrieval caches, and validation gates.
-3. `literature_snap_hyre_2026-05-12.md` - notes from the three downloaded
+3. `snap_hyre_experiment_runbook_2026-05-12.md` - concrete method ladder,
+   cache workflow, validation gate, launch order, and open decisions.
+4. `literature_snap_hyre_2026-05-12.md` - notes from the three downloaded
    related papers and the LegalSearchQA decision.
-4. `signoff_log.md` - cite-or-not gate for any reported result.
-5. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
+5. `signoff_log.md` - cite-or-not gate for any reported result.
+6. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
    and machine-readable summaries.
-6. `method_index.md` - local harness mode names.
-7. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
+7. `method_index.md` - local harness mode names.
+8. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
    notes, and operational caveats.
 
 ## Current Branch Narrative
@@ -25,19 +27,20 @@ four legal benchmarks under the same comparison rules.
 
 Primary method:
 
-- `rag_snap_hyde_2call`: one call produces snap reasoning plus a HyRE passage;
+- `snap_hyre`: one call produces snap reasoning plus a HyRE passage;
   retrieval is conditioned on the HyRE passage; a second call answers using
-  retrieved evidence and the original question.
+  retrieved evidence and the original question. Legacy logs may call the same
+  structure `rag_snap_hyde_2call`.
 
 Primary comparison rows:
 
 - `llm_only`
 - `rag_simple`
 - `rag_hyde`
-- `rag_snap_hyde_2call`
+- `snap_hyre`
 - `golden_passage`
-- planned `golden_plus_neighbors`
-- `rag_rewrite` as a strong non-HyRE control
+- `golden_plus_neighbors`
+- `rag_rewrite`
 
 Primary benchmarks:
 
@@ -75,6 +78,10 @@ entrypoints.
 - `../scripts/score_retrieval_qrels.py` - Hit/Recall, MRR, nDCG scoring from
   retrieved ids and gold ids/qrels.
 - `../scripts/build_hyre_cache.py` - build Snap-HyRE generation replay caches.
+- `../scripts/build_retrieval_cache.py` - build deterministic passage-id
+  retrieval caches for raw question, Snap-HyRE, and golden-neighbor queries.
+- `../scripts/audit_retrieval_cache.py` - audit cache integrity and Hit/Recall,
+  MRR at multiple k values before answer generation.
 - `../scripts/merge_detail_logs.py` - merge chunked detail logs.
 - `../scripts/compute_mcnemar.py` - paired significance tests.
 - `../scripts/audit_golden_paradox.py` - BarExam golden-passage paradox audit.

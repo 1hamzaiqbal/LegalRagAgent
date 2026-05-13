@@ -13,6 +13,8 @@ outcome.
 - `docs/snap_hyre_comprehensive_plan_2026-05-12.md` - active plan for four
   legal benchmarks, three models, top-k selection, retrieval caches, method
   ladder, and launch discipline.
+- `docs/snap_hyre_experiment_runbook_2026-05-12.md` - concrete method ladder,
+  cache workflow, validation gate, launch order, and open questions.
 - `docs/literature_snap_hyre_2026-05-12.md` - notes from L-MARS /
   LegalSearchQA, Zheng et al. BarExamQA/HousingQA, and LRAGE.
 - `docs/README.md` - current documentation map and archive locations.
@@ -21,10 +23,13 @@ outcome.
   and machine-readable summaries.
 
 **Active method story**:
-- Primary row: `rag_snap_hyde_2call`, described as Snap-HyRE.
+- Primary row: `snap_hyre`, with `rag_snap_hyde_2call` kept as the legacy
+  alias/provenance name.
 - Main controls: `llm_only`, `rag_simple`, `rag_hyde`, `golden_passage`,
-  planned `golden_plus_neighbors`, and `rag_rewrite`.
-- Main benchmarks: BarExamQA, HousingQA, CaseHOLD, LegalBench-SCALR.
+  `golden_plus_neighbors`, and `rag_rewrite`.
+- Main benchmarks: BarExamQA, HousingQA, CaseHOLD, LegalBench-SCALR. HousingQA
+  stays unless smoke/audit evidence shows the yes/no format is not
+  interpretable for the fixed-method story.
 - Main models: Gemma 4 E4B, Gemma 4 26B, and Llama 3.3 70B Versatile.
 - Main metrics: downstream accuracy, Hit/Recall@1/5/10, MRR@10, gold retrieved
   but wrong, gold missing but correct, conditional accuracy, calls, tokens,
@@ -34,10 +39,14 @@ outcome.
 - Do not launch broad method sweeps. Keep at most 2-3 active jobs.
 - Use generation caching (`scripts/build_hyre_cache.py` and
   `--hyre-cache-path`) before repeated Snap-HyRE answer runs.
-- Implement or use retrieval-id caches before large top-k sweeps where
-  possible.
+- Use retrieval-id caches (`scripts/build_retrieval_cache.py`,
+  `scripts/audit_retrieval_cache.py`, and `--retrieval-cache-path`) before
+  large top-k sweeps where possible.
 - Every promoted row must have copied detail logs, `analyze_detail_flags.py`,
   retrieval scoring where gold ids exist, and a signoff entry.
+- Full-corpus means every available row. If provider budget or rate limits
+  block a full row, mark it as blocked/provisional rather than substituting an
+  unannounced cap.
 - LegalSearchQA is related work unless converted into a frozen corpus task.
 
 **Archived pivot**: the May 9-11 diagnostic/adaptive-controller package was

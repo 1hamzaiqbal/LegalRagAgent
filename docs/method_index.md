@@ -111,6 +111,31 @@ Total: `1` LLM call.
 
 **Example trace:** Detail log: [logs/eval_golden_passage_cluster-vllm_20260408_1615_detail.jsonl](../logs/eval_golden_passage_cluster-vllm_20260408_1615_detail.jsonl)
 
+### Golden Plus Neighbors (`golden_plus_neighbors`)
+
+**One-line summary:** Gold passage plus nearest retrieved corpus neighbors
+
+**Pipeline:**
+
+1. If `gold_passage` is missing, fall back to `llm_only`.
+2. Keep the gold passage as Source 1.
+3. Retrieve neighboring corpus passages using the gold passage as the query.
+4. Fill the remaining `retrieval_k - 1` context slots with non-gold neighbors.
+5. Answer once with `_system_prompt(config, "rag")` over the combined context
+   plus the formatted question.
+Total: `1` LLM call.
+
+**System prompts used:** `rag`
+
+**What the final decision-maker sees:** The gold passage, nearest retrieved
+neighbors, and the formatted question.
+
+**Key design choice:** This is a diagnostic for the "gold passage paradox": if
+single-gold context underperforms, gold plus neighbors tests whether the labeled
+gold passage is under-specified rather than whether retrieval itself is harmful.
+
+**Example trace:** No detail log found in `logs/`.
+
 ### Golden Arbitration (`golden_arbitration`)
 
 **One-line summary:** LLM answers naive, then reviews golden passage (neutral framing)
@@ -228,6 +253,29 @@ Total: `3` LLM calls.
 **Key design choice:** Retrieval is conditioned on the model's first-pass reasoning, but the final answer is still a fresh evidence-driven answer.
 
 **Example trace:** Detail log: [logs/eval_rag_snap_hyde_cluster-vllm_20260413_1102_detail.jsonl](../logs/eval_rag_snap_hyde_cluster-vllm_20260413_1102_detail.jsonl)
+
+### Snap-HyRE (`snap_hyre`; legacy alias `rag_snap_hyde_2call`)
+
+**One-line summary:** Snap reasoning plus a HyRE passage in one call, then retrieval and final synthesis
+
+**Pipeline:**
+
+1. Produce a snap answer and a short HyRE reference passage in one LLM call.
+2. Retrieve with the HyRE passage.
+3. Answer with `_system_prompt(config, "rag")` over the retrieved passages plus
+   the formatted question.
+Total: `2` LLM calls.
+
+**System prompts used:** `answer` plus Snap-HyRE passage instructions, then `rag`
+
+**What the final decision-maker sees:** Raw retrieved passages plus the
+formatted question; the snap answer is not shown to the final call.
+
+**Key design choice:** This is the primary branch method. It keeps the useful
+snap-conditioned retrieval behavior while avoiding the older 3-call
+`rag_snap_hyde` structure.
+
+**Example trace:** Legacy detail logs may use mode `rag_snap_hyde_2call`.
 
 ### Snap-HyDE Aligned (`snap_hyde_aligned`)
 

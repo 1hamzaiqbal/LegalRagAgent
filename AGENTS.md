@@ -8,9 +8,9 @@ Repository-local instructions for coding agents.
    methodology gates, and the active result snapshot.
 2. Read `docs/README.md` for the canonical documentation map and citation path.
 3. For result claims, prefer the current citation gates in this order:
-   `docs/signoff_log.md`, `docs/snap_hyde_2call_2026-04-28.md`,
-   `docs/top1_ablation_2026-04-28.md`, `docs/compiled_results.md`, and
-   `logs/experiments.jsonl`.
+   `docs/signoff_log.md`, `docs/compiled_results.md`,
+   `logs/experiments.jsonl`, and then older source-gated result docs listed in
+   `docs/README.md`.
 
 ## Scope Rules
 
@@ -25,9 +25,11 @@ Repository-local instructions for coding agents.
 ## Current Headline
 
 As of the 2026-05-12 branch pivot, the live framing is a fixed-method
-Snap-HyRE evaluation, not a diagnostic adaptive-controller story. The branch
-goal is to evaluate one straightforward Snap-HyRE method across BarExamQA,
-HousingQA, CaseHOLD, and LegalBench-SCALR, with retrieval exposure metrics
-reported alongside downstream answer accuracy. See `CLAUDE.md` and
-`docs/snap_hyre_comprehensive_plan_2026-05-12.md` for the current mission,
-method ladder, caching plan, and launch gates.
+Snap-HyRE evaluation, not a diagnostic adaptive-controller story. The primary
+harness mode is `snap_hyre`; `rag_snap_hyde_2call` remains a legacy alias for
+older logs. The branch goal is to evaluate one straightforward Snap-HyRE method
+across BarExamQA, HousingQA, CaseHOLD, and LegalBench-SCALR, with retrieval
+exposure metrics reported alongside downstream answer accuracy. See `CLAUDE.md` and
+`docs/snap_hyre_comprehensive_plan_2026-05-12.md` plus
+`docs/snap_hyre_experiment_runbook_2026-05-12.md` for the current mission,
+method ladder, caching workflow, and launch gates.
