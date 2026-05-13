@@ -1,14 +1,13 @@
+from __future__ import annotations
+
 import logging
 import os
 import re
 import threading
 import numpy as np
 from typing import List, Dict
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 from rank_bm25 import BM25Okapi
-from sentence_transformers import CrossEncoder
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,11 +24,11 @@ DEFAULT_EMBEDDING_MODEL = "Alibaba-NLP/gte-large-en-v1.5"
 # Model singletons
 # ---------------------------------------------------------------------------
 
-_embeddings_instances: Dict[str, HuggingFaceEmbeddings] = {}
+_embeddings_instances: Dict[str, object] = {}
 _embeddings_lock = threading.Lock()
 
 
-def _repair_position_ids(embeddings: HuggingFaceEmbeddings) -> None:
+def _repair_position_ids(embeddings) -> None:
     """Repair remote-code embedders whose non-persistent position buffer is stale.
 
     Alibaba GTE's `new-impl` module reads `embeddings.position_ids` for RoPE.
@@ -59,7 +58,7 @@ def _repair_position_ids(embeddings: HuggingFaceEmbeddings) -> None:
         logger.warning("Could not repair embedding position_ids: %s", exc)
 
 
-def get_embeddings(model_name: str = None) -> HuggingFaceEmbeddings:
+def get_embeddings(model_name: str = None):
     """Get a cached embedding model instance. Supports multiple models for A/B testing.
 
     Args:
@@ -73,6 +72,8 @@ def get_embeddings(model_name: str = None) -> HuggingFaceEmbeddings:
 
     with _embeddings_lock:
         if model_name not in _embeddings_instances:
+            from langchain_huggingface import HuggingFaceEmbeddings
+
             print(f"[rag_utils] Loading embedding model: {model_name}")
             device = os.getenv("EMBEDDING_DEVICE", "").strip()
             backend = os.getenv("EMBEDDING_BACKEND", "").strip()
@@ -120,6 +121,8 @@ def get_cross_encoder():
 
     with _cross_encoder_lock:
         if _cross_encoder_instance is None:
+            from sentence_transformers import CrossEncoder
+
             device = os.getenv("CROSS_ENCODER_DEVICE", "").strip()
             kwargs = {"device": device} if device else {}
             _cross_encoder_instance = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", **kwargs)
@@ -157,11 +160,11 @@ def rerank_with_cross_encoder(
 # Vector store
 # ---------------------------------------------------------------------------
 
-_vectorstore_instances: Dict[str, Chroma] = {}
+_vectorstore_instances: Dict[str, object] = {}
 _vectorstore_lock = threading.Lock()
 
 def get_vectorstore(collection_name: str = COLLECTION_NAME,
-                    embedding_model: str = None) -> Chroma:
+                    embedding_model: str = None):
     """Returns a Chroma vector store singleton for the given collection.
 
     For embedding A/B testing, pass embedding_model to pair the correct
@@ -175,6 +178,8 @@ def get_vectorstore(collection_name: str = COLLECTION_NAME,
 
     with _vectorstore_lock:
         if cache_key not in _vectorstore_instances:
+            from langchain_chroma import Chroma
+
             embeddings = get_embeddings(embedding_model)
             _vectorstore_instances[cache_key] = Chroma(
                 collection_name=collection_name,

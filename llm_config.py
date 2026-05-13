@@ -13,7 +13,6 @@ Falls back to raw LLM_BASE_URL/LLM_API_KEY/LLM_MODEL if LLM_PROVIDER is not set.
 import functools
 import os
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
 
 load_dotenv()
 
@@ -121,13 +120,15 @@ def get_provider_info() -> dict:
 
 
 @functools.lru_cache(maxsize=4)
-def get_llm(temperature: float = 0.0, _provider: str = "") -> ChatOpenAI:
+def get_llm(temperature: float = 0.0, _provider: str = ""):
     """Returns a cached ChatOpenAI instance configured from environment variables.
 
     The _provider param is resolved automatically from LLM_PROVIDER and included
     in the cache key so that switching providers mid-process returns a fresh client.
     Callers should not pass _provider directly — use the wrapper below.
     """
+    from langchain_openai import ChatOpenAI
+
     base_url, api_key, model = _resolve_provider()
     max_completion_tokens = _max_completion_tokens()
     kwargs = {
@@ -151,7 +152,7 @@ def get_llm(temperature: float = 0.0, _provider: str = "") -> ChatOpenAI:
 # Re-wrap so callers don't need to pass _provider manually
 _get_llm_cached = get_llm
 
-def get_llm(temperature: float = 0.0) -> ChatOpenAI:
+def get_llm(temperature: float = 0.0):
     """Returns a cached ChatOpenAI instance, keyed on (temperature, provider)."""
     provider = os.getenv("LLM_PROVIDER", "").strip().lower()
     return _get_llm_cached(temperature=temperature, _provider=provider)
