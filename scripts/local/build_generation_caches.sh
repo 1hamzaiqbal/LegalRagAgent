@@ -71,19 +71,6 @@ echo "[$(ts)] datasets=${DATASETS_ARR[*]} modes=${MODES_ARR[*]}"
   scripts/audit_retrieval_cache.py \
   scripts/compile_retrieval_cache_matrix.py
 
-resume_args=()
-if [[ "$RESUME" == "1" ]]; then
-  resume_args+=(--resume)
-fi
-
-trace_args=()
-if [[ "$TRACE_CALLS" == "1" ]]; then
-  trace_args+=(--trace-calls)
-fi
-if [[ "$TRACE_EVENTS" == "1" ]]; then
-  trace_args+=(--trace-events)
-fi
-
 outputs=()
 
 for dataset in "${DATASETS_ARR[@]}"; do
@@ -100,17 +87,27 @@ for dataset in "${DATASETS_ARR[@]}"; do
 
     echo
     echo "[$(ts)] build generation dataset=$dataset mode=$mode out=$gen_out"
+    gen_cmd=(
+      "$UV" run python scripts/build_generation_cache.py
+      --mode "$mode"
+      --provider "$PROVIDER"
+      --dataset "$dataset"
+      --questions "$QUESTIONS"
+      --seed "$SEED"
+      --tag "$tag"
+      --out "$gen_out"
+    )
+    if [[ "$RESUME" == "1" ]]; then
+      gen_cmd+=(--resume)
+    fi
+    if [[ "$TRACE_CALLS" == "1" ]]; then
+      gen_cmd+=(--trace-calls)
+    fi
+    if [[ "$TRACE_EVENTS" == "1" ]]; then
+      gen_cmd+=(--trace-events)
+    fi
     LLM_PROVIDER="$PROVIDER" \
-    "$UV" run python scripts/build_generation_cache.py \
-      --mode "$mode" \
-      --provider "$PROVIDER" \
-      --dataset "$dataset" \
-      --questions "$QUESTIONS" \
-      --seed "$SEED" \
-      --tag "$tag" \
-      --out "$gen_out" \
-      "${resume_args[@]}" \
-      "${trace_args[@]}"
+    "${gen_cmd[@]}"
 
     echo "[$(ts)] build retrieval-from-generation dataset=$dataset mode=$mode out=$ret_out"
     "$UV" run python scripts/build_retrieval_cache.py \

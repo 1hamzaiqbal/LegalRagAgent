@@ -108,19 +108,24 @@ for mode in "${MODES_ARR[@]}"; do
   fi
 
   set +e
+  eval_cmd=(
+    "$UV" run python eval/eval_harness.py
+    --mode "$mode"
+    --provider "$PROVIDER"
+    --dataset "$DATASET"
+    --questions "$QUESTIONS"
+    --seed "$SEED"
+    --retrieval-k "$RETRIEVAL_K"
+    --tag "$tag"
+  )
+  if [[ "${#extra_args[@]}" -gt 0 ]]; then
+    eval_cmd+=("${extra_args[@]}")
+  fi
   LLM_PROVIDER="$PROVIDER" \
   EVAL_TRACE_CALLS=1 \
   EVAL_TRACE_EVENTS=1 \
   EVAL_TRACE_MAX_CHARS=1200 \
-  "$UV" run python eval/eval_harness.py \
-    --mode "$mode" \
-    --provider "$PROVIDER" \
-    --dataset "$DATASET" \
-    --questions "$QUESTIONS" \
-    --seed "$SEED" \
-    --retrieval-k "$RETRIEVAL_K" \
-    --tag "$tag" \
-    "${extra_args[@]}"
+  "${eval_cmd[@]}"
   status=$?
   set -e
 

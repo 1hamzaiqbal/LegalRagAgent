@@ -58,18 +58,19 @@ outputs=()
 
 for dataset in "${DATASETS_ARR[@]}"; do
   alignment_report="$CACHE_DIR/retrieval_id_alignment_${dataset}.txt"
-  alignment_args=()
+  alignment_cmd=(
+    "$UV" run python scripts/audit_retrieval_id_alignment.py
+    --dataset "$dataset"
+    --questions "$QUESTIONS"
+    --min-exists "$ALIGN_MIN_EXISTS"
+  )
   if [[ "$ALIGN_METADATA_FALLBACK" == "1" ]]; then
-    alignment_args+=(--metadata-fallback)
+    alignment_cmd+=(--metadata-fallback)
   fi
 
   echo
   echo "[$(ts)] audit retrieval-id alignment dataset=$dataset"
-  if "$UV" run python scripts/audit_retrieval_id_alignment.py \
-    --dataset "$dataset" \
-    --questions "$QUESTIONS" \
-    --min-exists "$ALIGN_MIN_EXISTS" \
-    "${alignment_args[@]}" > "$alignment_report" 2>&1; then
+  if "${alignment_cmd[@]}" > "$alignment_report" 2>&1; then
     echo "[$(ts)] alignment OK dataset=$dataset report=$alignment_report"
   else
     echo "[$(ts)] WARNING: alignment failed dataset=$dataset; Hit/MRR is not promotable without repair"
