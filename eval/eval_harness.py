@@ -1578,13 +1578,21 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
     question_intermediate = _fmt_intermediate(row, config)
 
     # Step 1: Generate hypothetical passage
-    hyde = _generate_hyde(
-        config,
-        "hyde",
-        _question_only_hyde_user(question_intermediate),
-        label="hyde/generate",
-        fallback=question_intermediate,
-    )
+    cache_entry = _hyre_cache_entry(row, config)
+    if cache_entry and cache_entry.get("hyde_passage"):
+        hyde = {
+            "text": str(cache_entry.get("hyde_passage") or ""),
+            "raw": str(cache_entry.get("hyde_passage_raw") or cache_entry.get("hyde_passage") or ""),
+            "contains_answer": bool(cache_entry.get("hyde_contains_answer_artifact", False)),
+        }
+    else:
+        hyde = _generate_hyde(
+            config,
+            "hyde",
+            _question_only_hyde_user(question_intermediate),
+            label="hyde/generate",
+            fallback=question_intermediate,
+        )
 
     # Step 2: Retrieve using the hypothetical passage as query
     retrieval = _retrieve_and_format(row, [hyde["text"]], k=config.retrieval_k, label_prefix="hyde",
@@ -1603,6 +1611,9 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
         "hyde_passage": hyde["text"],
         "hyde_passage_raw": hyde["raw"],
         "hyde_contains_answer_artifact": hyde["contains_answer"],
+        "hyde_cache_hit": bool(cache_entry),
+        "hyre_cache_hit": bool(cache_entry),
+        "hyre_cache_label": _row_label(row, config) if cache_entry else "",
         "retrieval_queries": [hyde["text"]],
         "rerank_query": "",
         "final_context_fields": ["retrieved_passages", "question"],

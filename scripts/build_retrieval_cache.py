@@ -34,6 +34,7 @@ from rag_utils import get_vectorstore, retrieve_documents_multi_query  # noqa: E
 
 
 QUERY_TYPE_TO_LABEL_PREFIX = {
+    "hyde_cache": "hyde",
     "raw_question": "simple",
     "hyre_cache": "snap_hyre",
     "golden_neighbors": "golden_plus_neighbors",
@@ -87,7 +88,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sample-end", type=int)
     parser.add_argument("--query-type", required=True, choices=sorted(QUERY_TYPE_TO_LABEL_PREFIX))
     parser.add_argument("--label-prefix", help="Override cache label_prefix")
-    parser.add_argument("--hyre-cache-path", type=Path, help="Required for --query-type hyre_cache")
+    parser.add_argument("--hyre-cache-path", type=Path, help="Required for --query-type hyde_cache or hyre_cache")
     parser.add_argument("--max-k", type=int, default=10)
     parser.add_argument("--source-filter", default="")
     parser.add_argument("--collection", help="Override dataset collection")
@@ -102,8 +103,8 @@ def main() -> None:
         raise SystemExit("--max-k must be positive")
     if args.embedding_model:
         os.environ["EVAL_EMBEDDING_MODEL"] = args.embedding_model
-    if args.query_type == "hyre_cache" and not args.hyre_cache_path:
-        raise SystemExit("--hyre-cache-path is required for --query-type hyre_cache")
+    if args.query_type in {"hyde_cache", "hyre_cache"} and not args.hyre_cache_path:
+        raise SystemExit("--hyre-cache-path is required for --query-type hyde_cache or hyre_cache")
 
     config = EvalConfig(
         mode="rag_simple",

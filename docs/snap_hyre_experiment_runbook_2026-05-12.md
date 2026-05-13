@@ -67,15 +67,29 @@ model-specific.
 
 ## Cache Workflow
 
-1. Build or reuse Snap-HyRE generation cache:
+1. Build or reuse generation caches for generated-query methods:
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
-uv run python scripts/build_hyre_cache.py \
-  --log logs/<snap_hyre_detail>.jsonl \
-  --output caches/hyre/<dataset>_<model>_snap_hyre.jsonl \
-  --require-parse-ok
+uv run python scripts/build_generation_cache.py \
+  --mode snap_hyre \
+  --provider <provider> \
+  --dataset <dataset> \
+  --questions full \
+  --out caches/hyre/full/<dataset>_<model>_snap_hyre.jsonl
+
+UV_CACHE_DIR=/tmp/uv-cache HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+uv run python scripts/build_generation_cache.py \
+  --mode rag_hyde \
+  --provider <provider> \
+  --dataset <dataset> \
+  --questions full \
+  --out caches/hyre/full/<dataset>_<model>_rag_hyde.jsonl
 ```
+
+`scripts/build_hyre_cache.py` remains available for extracting replay caches
+from older detail logs, but the generation-cache builder is the preferred path
+for top-k selection before answer sweeps.
 
 2. Build deterministic retrieval caches:
 
@@ -92,8 +106,17 @@ UV_CACHE_DIR=/tmp/uv-cache HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
 uv run python scripts/build_retrieval_cache.py \
   --dataset <dataset> \
   --questions <N-or-full> \
+  --query-type hyde_cache \
+  --hyre-cache-path caches/hyre/full/<dataset>_<model>_rag_hyde.jsonl \
+  --max-k 10 \
+  --out caches/retrieval/<dataset>_<model>_rag_hyde_k10.jsonl
+
+UV_CACHE_DIR=/tmp/uv-cache HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+uv run python scripts/build_retrieval_cache.py \
+  --dataset <dataset> \
+  --questions <N-or-full> \
   --query-type hyre_cache \
-  --hyre-cache-path caches/hyre/<dataset>_<model>_snap_hyre.jsonl \
+  --hyre-cache-path caches/hyre/full/<dataset>_<model>_snap_hyre.jsonl \
   --max-k 10 \
   --out caches/retrieval/<dataset>_<model>_snap_hyre_k10.jsonl
 ```
@@ -117,7 +140,16 @@ sbatch scripts/hpc/slurm_snap_hyre_retrieval_cache.sh
 ```
 
 For Snap-HyRE caches, first build the HyRE generation cache, then launch with
-`QUERY_TYPES=hyre_cache HYRE_MODELS='<model-labels>'`.
+`QUERY_TYPES='hyde_cache hyre_cache' HYRE_MODELS='<model-labels>'`.
+
+The HPC helper for generation caches is:
+
+```bash
+PROVIDER=<provider> MODEL_LABEL=<model-label> \
+sbatch scripts/hpc/slurm_snap_hyre_generation_cache.sh
+```
+
+For local vLLM Gemma, add `BACKEND=vllm MODEL=<hf-model-id> PORT=<port>`.
 
 4. Audit before answer generation:
 
@@ -254,6 +286,12 @@ Provider smoke status:
   `missing_predicted_answer=0`, no parse failures, no long-answer rows, and
   nonempty Snap-HyRE retrieval. Smoke stdout:
   `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/68377.out`.
+- Gemma 4 26B vLLM smoke job `68417` is rejected as an infrastructure failure:
+  it landed on an A60 with 47.4 GiB GPU memory and failed during vLLM startup
+  with `torch.OutOfMemoryError`. This does not validate or invalidate the
+  harness. Retry on H100 or fall back to the already clean OpenRouter
+  `or-gemma4-26b` provider smoke. Smoke stdout:
+  `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/68417.out`.
 
 ## Open Questions for the Team
 

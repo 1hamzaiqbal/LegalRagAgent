@@ -27,7 +27,7 @@ XDG_CACHE_HOME=${XDG_CACHE_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/cache}
 TORCH_HOME=${TORCH_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/cache/torch}
 CACHE_DIR=${CACHE_DIR:-$REPO/caches/retrieval/full}
 HYRE_CACHE_ROOT=${HYRE_CACHE_ROOT:-$REPO/caches/hyre}
-HYRE_CACHE_PATTERN=${HYRE_CACHE_PATTERN:-"$HYRE_CACHE_ROOT/{dataset}_{model}_snap_hyre.jsonl"}
+HYRE_CACHE_PATTERN=${HYRE_CACHE_PATTERN:-"$HYRE_CACHE_ROOT/{dataset}_{model}_{mode}.jsonl"}
 QUESTIONS=${QUESTIONS:-full}
 MAX_K=${MAX_K:-10}
 KS=${KS:-1,3,5,10}
@@ -110,32 +110,37 @@ for dataset in "${DATASETS_ARR[@]}"; do
           --ks "$KS"
         outputs+=("$out")
         ;;
-      hyre_cache)
+      hyde_cache|hyre_cache)
         if [[ "${#HYRE_MODELS_ARR[@]}" -eq 0 ]]; then
-          echo "[$(date -Is)] ERROR: HYRE_MODELS is required when QUERY_TYPES includes hyre_cache"
+          echo "[$(date -Is)] ERROR: HYRE_MODELS is required when QUERY_TYPES includes $query_type"
           exit 2
+        fi
+        generation_mode=snap_hyre
+        if [[ "$query_type" == "hyde_cache" ]]; then
+          generation_mode=rag_hyde
         fi
         for model in "${HYRE_MODELS_ARR[@]}"; do
           hyre_cache=${HYRE_CACHE_PATTERN//\{dataset\}/$dataset}
           hyre_cache=${hyre_cache//\{model\}/$model}
+          hyre_cache=${hyre_cache//\{mode\}/$generation_mode}
           if [[ ! -f "$hyre_cache" ]]; then
             echo "[$(date -Is)] ERROR: missing HyRE cache $hyre_cache"
             exit 2
           fi
-          out="$CACHE_DIR/${dataset}_${model}_snap_hyre_k${MAX_K}.jsonl"
+          out="$CACHE_DIR/${dataset}_${model}_${generation_mode}_k${MAX_K}.jsonl"
           echo
-          echo "[$(date -Is)] build dataset=$dataset query_type=hyre_cache model=$model hyre_cache=$hyre_cache out=$out"
+          echo "[$(date -Is)] build dataset=$dataset query_type=$query_type model=$model generation_mode=$generation_mode hyre_cache=$hyre_cache out=$out"
           python scripts/build_retrieval_cache.py \
             --dataset "$dataset" \
             --questions "$QUESTIONS" \
-            --query-type hyre_cache \
+            --query-type "$query_type" \
             --hyre-cache-path "$hyre_cache" \
             --max-k "$MAX_K" \
             --out "$out"
           python scripts/audit_retrieval_cache.py \
             --cache "$out" \
             --dataset "$dataset" \
-            --query-type hyre_cache \
+            --query-type "$query_type" \
             --min-k "$MAX_K" \
             --ks "$KS"
           outputs+=("$out")
