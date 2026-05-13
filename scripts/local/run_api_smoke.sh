@@ -14,8 +14,11 @@ UV="${UV:-uv}"
 DATASET="${DATASET:-legalbench_scalr}"
 QUESTIONS="${QUESTIONS:-2}"
 SEED="${SEED:-42}"
+SAMPLE_START="${SAMPLE_START:-0}"
+SAMPLE_END="${SAMPLE_END:-}"
 RETRIEVAL_K="${RETRIEVAL_K:-3}"
 LLM_MAX_COMPLETION_TOKENS="${LLM_MAX_COMPLETION_TOKENS:-768}"
+BAREXAM_COLLECTION="${BAREXAM_COLLECTION:-}"
 
 if [[ -n "${PROVIDERS:-}" ]]; then
   # shellcheck disable=SC2206
@@ -57,15 +60,31 @@ export CHROMA_DB_DIR="${CHROMA_DB_DIR:-$ROOT/chroma_db}"
 export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
 export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
 export HF_DATASETS_OFFLINE="${HF_DATASETS_OFFLINE:-1}"
-export DISABLE_CROSS_ENCODER="${DISABLE_CROSS_ENCODER:-1}"
+export DISABLE_CROSS_ENCODER="${DISABLE_CROSS_ENCODER:-0}"
 export LLM_MAX_COMPLETION_TOKENS
 export PYTHONUNBUFFERED=1
+
+sample_args=(--sample-start "$SAMPLE_START")
+if [[ -n "$SAMPLE_END" ]]; then
+  sample_args+=(--sample-end "$SAMPLE_END")
+fi
+
+if [[ "$DATASET" == "barexam" && -n "$BAREXAM_COLLECTION" ]]; then
+  if [[ -n "${EVAL_COLLECTION_OVERRIDE:-}" && "$EVAL_COLLECTION_OVERRIDE" != "$BAREXAM_COLLECTION" ]]; then
+    echo "conflicting EVAL_COLLECTION_OVERRIDE=$EVAL_COLLECTION_OVERRIDE and BAREXAM_COLLECTION=$BAREXAM_COLLECTION" >&2
+    exit 2
+  fi
+  export EVAL_COLLECTION_OVERRIDE="$BAREXAM_COLLECTION"
+fi
 
 mkdir -p logs
 
 echo "[$(ts)] local API smoke root=$ROOT commit=$(git rev-parse --short HEAD)"
-echo "[$(ts)] dataset=$DATASET questions=$QUESTIONS retrieval_k=$RETRIEVAL_K"
+echo "[$(ts)] dataset=$DATASET questions=$QUESTIONS seed=$SEED sample=${SAMPLE_START}:${SAMPLE_END:-end} retrieval_k=$RETRIEVAL_K"
 echo "[$(ts)] providers=${PROVIDERS_ARR[*]} modes=${MODES_ARR[*]}"
+if [[ "$DATASET" == "barexam" && -n "${EVAL_COLLECTION_OVERRIDE:-}" ]]; then
+  echo "[$(ts)] barexam_collection=$EVAL_COLLECTION_OVERRIDE"
+fi
 
 "$UV" run python -m py_compile eval/eval_harness.py scripts/analyze_detail_flags.py
 
@@ -86,6 +105,7 @@ for provider in "${PROVIDERS_ARR[@]}"; do
       --dataset "$DATASET" \
       --questions "$QUESTIONS" \
       --seed "$SEED" \
+      "${sample_args[@]}" \
       --retrieval-k "$RETRIEVAL_K" \
       --tag "$tag"
     status=$?

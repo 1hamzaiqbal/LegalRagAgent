@@ -106,6 +106,8 @@ def _method_name(row: dict[str, Any], path: Path) -> str:
         return "rag_simple"
     if query_type == "golden_neighbors":
         return "golden_plus_neighbors"
+    if query_type == "hyde_cache":
+        return "rag_hyde"
     if query_type == "hyre_cache":
         return "snap_hyre"
     return label_prefix or query_type or path.stem

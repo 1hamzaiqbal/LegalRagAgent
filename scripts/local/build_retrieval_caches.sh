@@ -13,10 +13,15 @@ ts() {
 UV="${UV:-uv}"
 CACHE_DIR="${CACHE_DIR:-$ROOT/caches/retrieval/full}"
 QUESTIONS="${QUESTIONS:-full}"
+SEED="${SEED:-42}"
+SAMPLE_START="${SAMPLE_START:-0}"
+SAMPLE_END="${SAMPLE_END:-}"
 MAX_K="${MAX_K:-10}"
 KS="${KS:-1,3,5,10}"
 ALIGN_MIN_EXISTS="${ALIGN_MIN_EXISTS:-0.95}"
 ALIGN_METADATA_FALLBACK="${ALIGN_METADATA_FALLBACK:-0}"
+BAREXAM_COLLECTION="${BAREXAM_COLLECTION:-}"
+CACHE_SCOPE="${CACHE_SCOPE:-}"
 
 if [[ -n "${DATASETS:-}" ]]; then
   # shellcheck disable=SC2206
@@ -34,16 +39,32 @@ fi
 
 mkdir -p "$CACHE_DIR" docs/generated
 
+if [[ -z "$CACHE_SCOPE" ]]; then
+  CACHE_SCOPE="q${QUESTIONS}_seed${SEED}"
+  if [[ "$SAMPLE_START" != "0" || -n "$SAMPLE_END" ]]; then
+    CACHE_SCOPE="${CACHE_SCOPE}_s${SAMPLE_START}_e${SAMPLE_END:-end}"
+  fi
+fi
+
+sample_args=(--sample-start "$SAMPLE_START")
+if [[ -n "$SAMPLE_END" ]]; then
+  sample_args+=(--sample-end "$SAMPLE_END")
+fi
+
 export CHROMA_DB_DIR="${CHROMA_DB_DIR:-$ROOT/chroma_db}"
 export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
 export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
 export HF_DATASETS_OFFLINE="${HF_DATASETS_OFFLINE:-1}"
-export DISABLE_CROSS_ENCODER="${DISABLE_CROSS_ENCODER:-1}"
+export DISABLE_CROSS_ENCODER="${DISABLE_CROSS_ENCODER:-0}"
 export PYTHONUNBUFFERED=1
 
 echo "[$(ts)] local retrieval cache root=$ROOT commit=$(git rev-parse --short HEAD)"
-echo "[$(ts)] chroma=$CHROMA_DB_DIR cache_dir=$CACHE_DIR questions=$QUESTIONS max_k=$MAX_K"
+echo "[$(ts)] chroma=$CHROMA_DB_DIR cache_dir=$CACHE_DIR questions=$QUESTIONS seed=$SEED sample=${SAMPLE_START}:${SAMPLE_END:-end} max_k=$MAX_K"
+echo "[$(ts)] cache_scope=$CACHE_SCOPE"
 echo "[$(ts)] datasets=${DATASETS_ARR[*]} query_types=${QUERY_TYPES_ARR[*]}"
+if [[ -n "$BAREXAM_COLLECTION" ]]; then
+  echo "[$(ts)] barexam_collection=$BAREXAM_COLLECTION"
+fi
 
 "$UV" run python -m py_compile \
   eval/eval_config.py \
@@ -57,12 +78,19 @@ echo "[$(ts)] datasets=${DATASETS_ARR[*]} query_types=${QUERY_TYPES_ARR[*]}"
 outputs=()
 
 for dataset in "${DATASETS_ARR[@]}"; do
+  collection_args=()
+  if [[ "$dataset" == "barexam" && -n "$BAREXAM_COLLECTION" ]]; then
+    collection_args=(--collection "$BAREXAM_COLLECTION")
+  fi
+
   alignment_report="$CACHE_DIR/retrieval_id_alignment_${dataset}.txt"
   alignment_cmd=(
     "$UV" run python scripts/audit_retrieval_id_alignment.py
     --dataset "$dataset"
     --questions "$QUESTIONS"
+    --seed "$SEED"
     --min-exists "$ALIGN_MIN_EXISTS"
+    "${collection_args[@]}"
   )
   if [[ "$ALIGN_METADATA_FALLBACK" == "1" ]]; then
     alignment_cmd+=(--metadata-fallback)
@@ -78,23 +106,30 @@ for dataset in "${DATASETS_ARR[@]}"; do
   fi
 
   for query_type in "${QUERY_TYPES_ARR[@]}"; do
-    out="$CACHE_DIR/${dataset}_${query_type}_k${MAX_K}.jsonl"
+    out="$CACHE_DIR/${dataset}_${CACHE_SCOPE}_${query_type}_k${MAX_K}.jsonl"
     echo
     echo "[$(ts)] build dataset=$dataset query_type=$query_type out=$out"
     "$UV" run python scripts/build_retrieval_cache.py \
       --dataset "$dataset" \
       --questions "$QUESTIONS" \
+      --seed "$SEED" \
+      "${sample_args[@]}" \
       --query-type "$query_type" \
+      "${collection_args[@]}" \
       --max-k "$MAX_K" \
       --out "$out"
 
-    "$UV" run python scripts/audit_retrieval_cache.py \
-      --cache "$out" \
-      --dataset "$dataset" \
-      --query-type "$query_type" \
-      --min-k "$MAX_K" \
-      --ks "$KS"
-    outputs+=("$out")
+    if [[ -s "$out" ]]; then
+      "$UV" run python scripts/audit_retrieval_cache.py \
+        --cache "$out" \
+        --dataset "$dataset" \
+        --query-type "$query_type" \
+        --min-k "$MAX_K" \
+        --ks "$KS"
+      outputs+=("$out")
+    else
+      echo "[$(ts)] WARNING: empty cache dataset=$dataset query_type=$query_type out=$out; skipping audit/matrix entry"
+    fi
   done
 done
 

@@ -241,6 +241,31 @@ def _gold_choice_text(row: pd.Series, gold: str) -> str:
     return str(row.get(f"choice_{gold.lower()}", ""))[:500]
 
 
+def _gold_reference_text(row: pd.Series, config: EvalConfig) -> str:
+    """Return the text to inject for oracle/reference-passage controls."""
+    gold = str(row.get("gold_passage", "")).strip()
+    if gold and gold.lower() != "nan":
+        return gold
+    if config.dataset in ("casehold", "legalbench_scalr"):
+        gold = _gold_choice_text(row, str(row.get("answer", "")).strip()).strip()
+        if gold:
+            return gold
+    gold_ids = _gold_ids(row)
+    if gold_ids:
+        try:
+            docs = get_documents_by_idx(
+                _collection_for_config(config),
+                gold_ids,
+                embedding_model=os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or None,
+            )
+            texts = [str(doc.page_content).strip() for doc in docs if str(doc.page_content).strip()]
+            if texts:
+                return "\n\n".join(texts)
+        except Exception:
+            return ""
+    return ""
+
+
 def _stable_holding_id(text: str, prefix: str = "casehold") -> str:
     normalized = " ".join(str(text or "").split())
     digest = hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:16]
@@ -1243,8 +1268,8 @@ def run_llm_only(row: pd.Series, config: EvalConfig) -> dict:
 def run_golden_passage(row: pd.Series, config: EvalConfig) -> dict:
     """LLM answer with the gold passage injected as context."""
     question = _fmt(row, config)
-    gold = str(row.get("gold_passage", ""))
-    if not gold or gold == "nan":
+    gold = _gold_reference_text(row, config)
+    if not gold:
         return run_llm_only(row, config)
 
     system = _system_prompt(config, "rag")
@@ -1271,8 +1296,8 @@ def run_golden_plus_neighbors(row: pd.Series, config: EvalConfig) -> dict:
     context budget with passages retrieved by embedding the gold passage.
     """
     question = _fmt(row, config)
-    gold = str(row.get("gold_passage", ""))
-    if not gold or gold == "nan":
+    gold = _gold_reference_text(row, config)
+    if not gold:
         result = run_llm_only(row, config)
         result["golden_plus_neighbors_fallback"] = "missing_gold_passage"
         return result
@@ -1330,8 +1355,8 @@ def run_golden_plus_neighbors(row: pd.Series, config: EvalConfig) -> dict:
 def _golden_arb_common(row: pd.Series, config: EvalConfig, arb_system: str, label_prefix: str) -> dict:
     """Shared logic for golden arbitration variants."""
     question = _fmt(row, config)
-    gold = str(row.get("gold_passage", ""))
-    if not gold or gold == "nan":
+    gold = _gold_reference_text(row, config)
+    if not gold:
         return run_llm_only(row, config)
 
     # Step 1: Naive LLM answer (the "snap")

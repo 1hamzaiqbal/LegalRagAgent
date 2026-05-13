@@ -27,6 +27,12 @@ PROVIDER=or-gemma4-26b MODEL_LABEL=gemma4-26b QUESTIONS=50 \
   scripts/local/build_generation_caches.sh
 ```
 
+Cache filenames are scoped by `QUESTIONS`, `SEED`, and optional
+`SAMPLE_START`/`SAMPLE_END`, for example
+`legalbench_scalr_q50_seed42_gemma4-26b_snap_hyre_k10.jsonl`. Use the same
+scope values when building generation caches, retrieval caches, and answer
+cells. Override `CACHE_SCOPE` only when you intentionally want a custom name.
+
 Common environment:
 
 ```bash
@@ -34,8 +40,26 @@ export CHROMA_DB_DIR="$PWD/chroma_db"
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export HF_DATASETS_OFFLINE=1
-export DISABLE_CROSS_ENCODER=1
+export DISABLE_CROSS_ENCODER=0
 export LLM_MAX_COMPLETION_TOKENS=768
+```
+
+Keep `DISABLE_CROSS_ENCODER=0` for any retrieval cache or answer row that may
+be promoted. Set it to `1` only for a deliberately labeled dense-only speed
+smoke.
+
+`run_answer_cell.sh` defaults to `REQUIRE_RETRIEVAL_CACHES=1`, so cacheable
+retrieval modes fail instead of silently falling back to live retrieval. Set it
+to `0` only for exploratory runs.
+
+To check that a cache will replay through the harness before spending answer
+calls:
+
+```bash
+uv run python scripts/smoke_retrieval_cache_hydration.py \
+  --cache caches/retrieval/full/legalbench_scalr_q50_seed42_raw_question_k10.jsonl \
+  --dataset legalbench_scalr --questions 50 --label-prefix simple \
+  --retrieval-k 5
 ```
 
 Required `.env` keys for the planned providers:

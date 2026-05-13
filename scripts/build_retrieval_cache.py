@@ -25,6 +25,7 @@ from eval_harness import (  # noqa: E402
     _collection_for_config,
     _fmt_intermediate,
     _gold_ids,
+    _gold_reference_text,
     _is_gold_retrieved,
     _retrieval_question,
     _row_label,
@@ -139,8 +140,8 @@ def main() -> None:
             if args.query_type == "raw_question":
                 queries = [_retrieval_question(row)]
             elif args.query_type == "golden_neighbors":
-                gold = str(row.get("gold_passage", ""))
-                if not gold or gold == "nan":
+                gold = _gold_reference_text(row, config)
+                if not gold:
                     skipped += 1
                     continue
                 queries = [gold]
@@ -151,9 +152,13 @@ def main() -> None:
                     continue
                 queries = [str(cache_entry["hyde_passage"])]
 
+            retrieve_k = args.max_k
+            if args.query_type == "golden_neighbors":
+                retrieve_k = args.max_k + max(args.max_k, len(_gold_ids(row)))
+
             docs = retrieve_documents_multi_query(
                 queries=queries,
-                k=args.max_k,
+                k=retrieve_k,
                 vectorstore=vectorstore,
                 where=where,
                 rerank_query=None,

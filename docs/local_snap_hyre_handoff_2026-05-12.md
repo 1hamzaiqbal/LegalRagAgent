@@ -90,9 +90,13 @@ export CHROMA_DB_DIR="$PWD/chroma_db"
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export HF_DATASETS_OFFLINE=1
-export DISABLE_CROSS_ENCODER=1
+export DISABLE_CROSS_ENCODER=0
 export LLM_MAX_COMPLETION_TOKENS=768
 ```
+
+Keep the cross-encoder enabled for any retrieval cache or answer row that may
+be promoted. `DISABLE_CROSS_ENCODER=1` is acceptable only for explicitly
+labeled dense-only speed smokes.
 
 The Windows machine should not assume WUSTL/HPC access. Populate prerequisites
 by downloading datasets and embedding locally, or by copying `datasets/` and
@@ -129,26 +133,30 @@ For a clean rebuild, omit `--resume`; that deletes/rebuilds the target
 collection. Do not rebuild a populated collection unless disk and runtime are
 confirmed.
 
-## Important BarExam Retrieval Caveat
+## BarExam Alignment Status
 
-Before promoting BarExam retrieval metrics, run the qrel alignment audit.
-Current evidence from the branch pivot showed that the embedded BarExam corpus
-aligned cleanly for the train split but not for all validation/test gold ids.
+Before promoting BarExam retrieval metrics, run the qrel alignment audit. The
+local WSL collection was patched on 2026-05-13 by appending the validation/test
+passages from `datasets/barexam_qa/passages/passages.tsv` into
+`legal_passages` with the same GTE-large encoder.
 
-Conservative policy:
+Current local status:
 
-- Full BarExam downstream answer accuracy may use all 1195 QA rows.
-- BarExam Hit@k/MRR should be reported only on the qrel-aligned subset unless a
-  qrel-complete augmented BarExam collection is built and explicitly labeled.
+- `legal_passages`: 856,835 docs.
+- BarExam qrel alignment: 1149/1149 unique gold ids found.
+- Full-set BarExam Hit@k/MRR is promotable after rebuilding caches against this
+  patched collection.
 
-The harness supports collection override:
+If another machine still has the train-only 686,324-doc collection, run:
 
 ```bash
-EVAL_COLLECTION_OVERRIDE=legal_passages_barexam_complete ...
+uv run python utils/augment_barexam_collection.py
+uv run python scripts/audit_retrieval_id_alignment.py \
+  --dataset barexam --questions full --min-exists 1.0
 ```
 
-Only use that after intentionally creating and embedding an augmented complete
-BarExam corpus.
+Rerunning the augmentation is idempotent: it checks existing Chroma ids and
+only embeds passages still missing from the target collection.
 
 ## Retrieval Cache And Top-k Diagnostics
 
@@ -161,6 +169,12 @@ Preferred local helper:
 ```bash
 scripts/local/build_retrieval_caches.sh
 ```
+
+Cache filenames include question scope by default, for example
+`barexam_qfull_seed42_raw_question_k10.jsonl` and
+`legalbench_scalr_q50_seed42_gemma4-26b_snap_hyre_k10.jsonl`. Keep the same
+`QUESTIONS`, `SEED`, `SAMPLE_START`, `SAMPLE_END`, collection, embedding model,
+and source filter between cache build and answer replay.
 
 Equivalent explicit command:
 

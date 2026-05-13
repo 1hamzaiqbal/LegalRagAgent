@@ -30,3 +30,37 @@ Move to comprehensive full-corpus evals only after all of these are true:
 
 If any condition fails, fix or document that blocker before launching broader
 full-corpus runs.
+
+## Status - 2026-05-13
+
+Passed for local alignment/cache readiness; comprehensive model grid still
+blocked on the Llama provider.
+
+- Local WSL checkout, `.env`, datasets, Chroma collections, GTE embeddings, and
+  MiniLM reranker are set up.
+- API smoke passed for `or-gemma3n-e4b` and `or-gemma4-26b`.
+- API smoke did not pass for `groq-llama70b`: Groq returned 401 invalid API
+  key. `or-llama70b` fallback reached preflight but failed answer calls with
+  upstream OpenRouter 429 rate limits.
+- `legal_passages` was patched from 686,324 train passages to the full
+  856,835-passage BarExam corpus by appending validation/test passages with the
+  same GTE 1.5 large encoder.
+- Qrel alignment now passes at 100% for all four datasets: BarExamQA,
+  HousingQA, CaseHOLD, and LegalBench-SCALR.
+- `scripts/local/build_retrieval_caches.sh` now writes question-scoped cache
+  filenames and produced clean BarExam full caches plus q5 raw/golden cache
+  smokes for all four datasets.
+- Provisional `RETRIEVAL_K=5` was used for the answer-cell validation; broader
+  generated-query/downstream evidence is still needed before changing it.
+- `legalbench_scalr` × `or-gemma4-26b` N=50 generation caches and answer ladder
+  completed at `k=5`; main rows passed detail-log validation.
+- A follow-up `legalbench_scalr` × `or-gemma4-26b` q5 smoke validated the new
+  scoped HyDE/Snap-HyRE cache filenames, strict retrieval-cache replay, and
+  hydrated oracle controls across the full seven-row ladder.
+- `scripts/local/build_result_package.sh` produced
+  `docs/generated/snap_hyre_package/package_status.md` and companion CSV/plot
+  artifacts.
+
+Do not start broad comprehensive sweeps until the Llama provider is repaired or
+the third model axis is explicitly marked blocked. BarExam alignment and
+golden-control hydration are resolved locally.

@@ -60,23 +60,57 @@ Concrete success criteria:
 Not complete.
 
 The branch now has a clear plan, handoff, provider naming, local runner scripts,
-and validation gates. The actual full-corpus package is still missing because
-the local machine has not yet produced the required embeddings/caches, full
-answer logs, top-k matrix, tables, plots, and signoff entries.
+validation gates, a populated local WSL Chroma mirror, 100% qrel-aligned
+corpora for the four comprehensive datasets, raw/golden retrieval-cache smokes,
+one source-gated N=50 answer-cell validation, generated status tables, and a
+signoff entry for the local validation gate.
+
+The actual comprehensive package is still incomplete because most
+dataset/model/method answer cells are missing, HyDE/Snap-HyRE generation caches
+exist only for `legalbench_scalr` × `gemma4-26b` N=50 plus a partial BarExam
+cache, and the Llama 70B API axis is blocked by provider/key issues.
+
+## Local Validation Snapshot - 2026-05-13
+
+- WSL/local setup verified at commit `4e6236d`.
+- Canonical retrieval stack confirmed and cached locally:
+  `Alibaba-NLP/gte-large-en-v1.5` plus
+  `cross-encoder/ms-marco-MiniLM-L-6-v2`.
+- Local Chroma collections:
+  `legal_passages` 856,835 docs, `housing_statutes` 1,837,403 docs,
+  rebuilt `casehold_holdings` 51,296 docs, and
+  `legalbench_scalr_holdings` 1,733 docs.
+- Local runner defaults were hardened so `DISABLE_CROSS_ENCODER=0` unless a
+  dense-only speed smoke is explicitly requested.
+- API smoke passed for `or-gemma3n-e4b` and `or-gemma4-26b`; `groq-llama70b`
+  failed with a Groq 401 invalid-key preflight, and `or-llama70b` fallback hit
+  upstream OpenRouter 429 rate limits.
+- BarExamQA was repaired by appending 170,511 validation/test passages to the
+  existing GTE-large `legal_passages` collection. Qrel alignment now passes at
+  100% for BarExamQA, HousingQA, CaseHOLD, and LegalBench-SCALR.
+- Scoped cache filenames were added to prevent N=50/sample caches from being
+  replayed as full-corpus caches. Full BarExam raw/golden caches and q5
+  raw/golden cache smokes across all four datasets hydrate cleanly through the
+  harness replay path.
+- `legalbench_scalr` × `or-gemma4-26b` N=50 answer ladder at `k=5` completed:
+  `llm_only` 76.0%, `rag_simple` 76.0%, `rag_rewrite` 74.0%,
+  `rag_hyde` 78.0%, and `snap_hyre` 80.0%, all clean by
+  `scripts/analyze_detail_flags.py`.
+- SCALR N=50 `golden_passage` and `golden_plus_neighbors` remain rejected as
+  oracle controls because they were run before oracle reference hydration was
+  fixed. The follow-up q5 smoke confirms hydrated oracle controls now work.
+- Generated package artifacts now live under
+  `docs/generated/snap_hyre_package/`.
 
 ## Next Concrete Gates
 
-1. On the capable local machine, pull `snap_hyre_comprehensive`, set `.env`, and
-   run `scripts/local/run_api_smoke.sh`.
-2. Populate or rebuild `datasets/` and `chroma_db/`, then run
-   `scripts/local/build_retrieval_caches.sh`.
-3. Inspect `docs/generated/retrieval_cache_matrix.md` and
-   `caches/retrieval/full/retrieval_id_alignment_*.txt`; decide whether BarExam
-   retrieval is train-aligned only or uses an augmented qrel-complete collection.
-4. Select universal `RETRIEVAL_K`.
-5. Build full `rag_hyde` and `snap_hyre` generation caches one
-   provider/dataset at a time with `scripts/local/build_generation_caches.sh`.
-6. Run `scripts/local/run_answer_cell.sh` for one dataset/model cell, validate
-   logs, then scale across the remaining cells.
-7. Add only validated rows to `docs/signoff_log.md`, then regenerate result
+1. Replace or repair the Groq key, or configure a non-rate-limited Llama 70B
+   fallback before launching the third model axis.
+2. Continue generation-cache construction one provider/dataset at a time,
+   using `--resume`; the partial BarExam `gemma4-26b` `rag_hyde` cache can be
+   resumed.
+3. Expand answer ladders one dataset/model cell at a time after cache audits,
+   keeping `RETRIEVAL_K=5` provisional until broader generated-cache/downstream
+   evidence justifies changing it.
+4. Add only validated rows to `docs/signoff_log.md`, then regenerate result
    tables and plots with `scripts/local/build_result_package.sh`.

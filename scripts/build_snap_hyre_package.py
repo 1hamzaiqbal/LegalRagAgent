@@ -176,11 +176,22 @@ def _answer_pivot(rows: list[dict[str, Any]]) -> dict[tuple[str, str], dict[str,
 
 def _retrieval_summary(rows: list[dict[str, str]]) -> list[dict[str, str]]:
     clean = []
+    seen: set[tuple[str, str, str, str, str]] = set()
     for row in rows:
         if row.get("scope") != "cache":
             continue
         if row.get("method") not in {"rag_simple", "rag_hyde", "snap_hyre", "golden_plus_neighbors"}:
             continue
+        key = (
+            row.get("dataset", ""),
+            row.get("model", ""),
+            row.get("method", ""),
+            str(row.get("k", "")),
+            row.get("path", ""),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
         clean.append(row)
     return clean
 

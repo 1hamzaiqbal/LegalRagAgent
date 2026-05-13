@@ -7,7 +7,7 @@ from diagnostic adaptation to a fixed Snap-HyRE method evaluation. The May 11
 diagnostic/controller docs and scripts were archived for traversibility, but
 their validated rows remain source-gated here.
 
-Last updated: 2026-05-12
+Last updated: 2026-05-13
 Branch: `snap_hyre_comprehensive`
 
 Current active planning docs:
@@ -26,6 +26,98 @@ Do not treat the archived diagnostic-controller framing as the active paper
 story. Treat the rows below as historical, source-gated evidence that may be
 reused in the new fixed-method Snap-HyRE tables only when the method, dataset,
 model, `k`, detail log, and caveat still match.
+
+## Update 2026-05-13 ~local WSL validation gate
+
+Change reason: local WSL setup was validated for the Snap-HyRE comprehensive
+path before broader full-corpus answer sweeps. These rows are N=50 validation
+evidence, not final full-corpus claims.
+
+Environment/source artifacts:
+
+- Commit: `4e6236d` plus local runner/reporting hardening in this working tree.
+- Collections: `legal_passages` patched to 856,835 docs, `housing_statutes` 1,837,403 docs,
+  `casehold_holdings` rebuilt cleanly to 51,296 docs, and
+  `legalbench_scalr_holdings` 1,733 docs.
+- Retrieval stack: `Alibaba-NLP/gte-large-en-v1.5`, 1024 dimensions,
+  `EMBEDDING_MAX_SEQ_LENGTH=512`; `cross-encoder/ms-marco-MiniLM-L-6-v2`
+  cached locally and enabled for cache builds.
+- Package artifacts:
+  `docs/generated/retrieval_cache_matrix.md`,
+  `docs/generated/retrieval_cache_matrix_gemma4-26b_generated.md`, and
+  `docs/generated/snap_hyre_package/package_status.md`.
+
+Provider smoke:
+
+| Provider | Status | Evidence | Sign-off |
+|---|---|---|---|
+| `or-gemma3n-e4b` | `rag_simple` and `snap_hyre` N=2 smoke passed on LegalBench-SCALR | `logs/eval_rag_simple_or-gemma3n-e4b_20260512_2349_legalbench_scalr_local-api-smoke-or-gemma3n-e4b-rag_simple-n2-k3_detail.jsonl`; `logs/eval_snap_hyre_or-gemma3n-e4b_20260512_2350_legalbench_scalr_local-api-smoke-or-gemma3n-e4b-snap_hyre-n2-k3_detail.jsonl` | ✅ SMOKE-CLEAN |
+| `or-gemma4-26b` | `rag_simple` and `snap_hyre` N=2 smoke passed on LegalBench-SCALR | `logs/eval_rag_simple_or-gemma4-26b_20260512_2350_legalbench_scalr_local-api-smoke-or-gemma4-26b-rag_simple-n2-k3_detail.jsonl`; `logs/eval_snap_hyre_or-gemma4-26b_20260512_2352_legalbench_scalr_local-api-smoke-or-gemma4-26b-snap_hyre-n2-k3_detail.jsonl` | ✅ SMOKE-CLEAN |
+| `groq-llama70b` | blocked by Groq 401 invalid API key before detail logs | `scripts/local/run_api_smoke.sh` stdout from 2026-05-13T04:52Z | ⛔ BLOCKED |
+| `or-llama70b` | fallback preflight reachable but answer calls hit upstream OpenRouter 429 rate limits | `logs/eval_rag_simple_or-llama70b_20260512_2357_legalbench_scalr_local-api-smoke-or-llama70b-rag_simple-n2-k3_detail.jsonl` is failed/do-not-use | ⛔ BLOCKED |
+
+Retrieval-cache/qrel gate:
+
+| Dataset | Cache evidence | Qrel alignment | Sign-off |
+|---|---|---:|---|
+| BarExamQA | `caches/retrieval/full/barexam_qfull_seed42_raw_question_k10.jsonl`; `caches/retrieval/full/barexam_qfull_seed42_golden_neighbors_k10.jsonl` | 1149/1149 unique gold ids found = 100.00% after appending validation/test passages to `legal_passages` | ✅ RETRIEVAL-CACHE-CLEAN |
+| HousingQA | `caches/retrieval/full/housing_raw_question_k10.jsonl` | 990/990 unique gold ids found = 100.00% | ✅ RETRIEVAL-CACHE-CLEAN |
+| CaseHOLD | `caches/retrieval/full/casehold_raw_question_k10.jsonl`; collection rebuilt from scratch before cache | 3595/3595 unique gold ids found = 100.00% | ✅ RETRIEVAL-CACHE-CLEAN |
+| LegalBench-SCALR | `caches/retrieval/full/legalbench_scalr_raw_question_k10.jsonl` | 571/571 unique gold ids found = 100.00% | ✅ RETRIEVAL-CACHE-CLEAN |
+
+LegalBench-SCALR × `or-gemma4-26b` N=50 validation answer ladder at `k=5`:
+
+| Mode | Detail log | Accuracy | Health | Sign-off |
+|---|---|---:|---|---|
+| `llm_only` | `logs/eval_llm_only_or-gemma4-26b_20260513_0138_legalbench_scalr_local-snap-hyre-gemma4-26b-legalbench_scalr-llm_only-n50-k5_detail.jsonl` | 38/50 = 76.0% | `analyze_detail_flags.py`: 0 errors, 0 missing predictions, 0 parse failures, 0 long rows | ✅ VALIDATION-CLEAN |
+| `rag_simple` | `logs/eval_rag_simple_or-gemma4-26b_20260513_0149_legalbench_scalr_local-snap-hyre-gemma4-26b-legalbench_scalr-rag_simple-n50-k5_detail.jsonl` | 38/50 = 76.0% | clean; cached retrieval; empty retrieval 0 | ✅ VALIDATION-CLEAN |
+| `rag_rewrite` | `logs/eval_rag_rewrite_or-gemma4-26b_20260513_0204_legalbench_scalr_local-snap-hyre-gemma4-26b-legalbench_scalr-rag_rewrite-n50-k5_detail.jsonl` | 37/50 = 74.0% | clean; 2.00 answer-run calls | ✅ VALIDATION-CLEAN |
+| `rag_hyde` | `logs/eval_rag_hyde_or-gemma4-26b_20260513_0215_legalbench_scalr_local-snap-hyre-gemma4-26b-legalbench_scalr-rag_hyde-n50-k5_detail.jsonl` | 39/50 = 78.0% | clean; generation/retrieval replay cache used; answer log records final calls only | ✅ VALIDATION-CLEAN |
+| `snap_hyre` | `logs/eval_snap_hyre_or-gemma4-26b_20260513_0225_legalbench_scalr_local-snap-hyre-gemma4-26b-legalbench_scalr-snap_hyre-n50-k5_detail.jsonl` | 40/50 = 80.0% | clean; generation/retrieval replay cache used; answer log records final calls only | ✅ VALIDATION-CLEAN |
+| `golden_passage` | `logs/eval_golden_passage_or-gemma4-26b_20260513_0237_legalbench_scalr_local-snap-hyre-gemma4-26b-legalbench_scalr-golden_passage-n50-k5_detail.jsonl` | 37/50 = 74.0% | clean detail log, but SCALR rows lack `gold_passage` text and the mode fell back to direct answering | ⚠️ NON-ORACLE/FALLBACK |
+| `golden_plus_neighbors` | `logs/eval_golden_plus_neighbors_or-gemma4-26b_20260513_0300_legalbench_scalr_local-snap-hyre-gemma4-26b-legalbench_scalr-golden_plus_neighbors-n50-k5_detail.jsonl` | 39/50 = 78.0% | summary-guard tagged `_FAILED-EMPTY-RETRIEVAL`; no golden-neighbor cache for SCALR | ⛔ REJECT AS ORACLE CONTROL |
+
+Generated-query retrieval cache on the same SCALR N=50 slice:
+
+| Method | Cache | Hit@5 | Hit@10 | MRR@10 | Sign-off |
+|---|---|---:|---:|---:|---|
+| `rag_hyde` | `caches/retrieval/full/legalbench_scalr_gemma4-26b_rag_hyde_k10.jsonl` | 74.0% | 84.0% | 0.6565 | ✅ RETRIEVAL-CACHE-CLEAN |
+| `snap_hyre` | `caches/retrieval/full/legalbench_scalr_gemma4-26b_snap_hyre_k10.jsonl` | 68.0% | 82.0% | 0.6017 | ✅ RETRIEVAL-CACHE-CLEAN |
+
+Validation interpretation:
+
+- The local WSL stack is ready for deliberate one-cell-at-a-time expansion with
+  MiniLM reranking enabled.
+- Keep `RETRIEVAL_K=5` as the provisional answer-sweep value until generated
+  caches and downstream rows exist across more datasets; raw retrieval exposure
+  generally rises through `k=10`, but the current validation run used the
+  predeclared `k=5` gate.
+- The earlier N=50 SCALR `golden_passage` / `golden_plus_neighbors` rows remain
+  rejected as oracle controls because they were run before gold-reference
+  hydration was fixed.
+- Do not launch `groq-llama70b` rows until the Groq key is replaced or another
+  non-rate-limited Llama 70B provider is configured.
+
+Cache/alignment hardening follow-up on 2026-05-13:
+
+- `utils/augment_barexam_collection.py` appended the 170,511 missing
+  validation/test BarExam passages to `legal_passages` with the same
+  `Alibaba-NLP/gte-large-en-v1.5` encoder and `max_seq_length=512`; final
+  count is 856,835 docs.
+- Qrel alignment is now 100% on all four comprehensive corpora:
+  BarExamQA 1149/1149, HousingQA 990/990, CaseHOLD 3595/3595, and
+  LegalBench-SCALR 571/571 unique gold ids found.
+- Scoped retrieval cache names now include question scope, e.g.
+  `barexam_qfull_seed42_raw_question_k10.jsonl` and
+  `legalbench_scalr_q5_seed42_gemma4-26b_snap_hyre_k10.jsonl`, so N=50 caches
+  cannot be mistaken for full-corpus caches.
+- `scripts/smoke_retrieval_cache_hydration.py` verified strict replay on all
+  rows of the two BarExam full caches and on q5 raw/golden caches for all four
+  datasets.
+- SCALR q5 `or-gemma4-26b` generated-cache and answer-ladder smoke completed
+  with strict cache requirements: all seven ladder modes were 5/5 with zero
+  errors, missing predictions, parse failures, and empty retrieval rows for
+  retrieval modes. This is a cache-path smoke only, not a result claim.
 
 ## Update 2026-05-11 ~meeting package
 

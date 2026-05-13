@@ -15,6 +15,8 @@ PROVIDER="${PROVIDER:-or-gemma4-26b}"
 MODEL_LABEL="${MODEL_LABEL:-$PROVIDER}"
 QUESTIONS="${QUESTIONS:-50}"
 SEED="${SEED:-42}"
+SAMPLE_START="${SAMPLE_START:-0}"
+SAMPLE_END="${SAMPLE_END:-}"
 MAX_K="${MAX_K:-10}"
 KS="${KS:-1,3,5,10}"
 RESUME="${RESUME:-1}"
@@ -22,6 +24,8 @@ TRACE_CALLS="${TRACE_CALLS:-1}"
 TRACE_EVENTS="${TRACE_EVENTS:-1}"
 HYRE_CACHE_ROOT="${HYRE_CACHE_ROOT:-$ROOT/caches/hyre/full}"
 RETRIEVAL_CACHE_ROOT="${RETRIEVAL_CACHE_ROOT:-$ROOT/caches/retrieval/full}"
+BAREXAM_COLLECTION="${BAREXAM_COLLECTION:-}"
+CACHE_SCOPE="${CACHE_SCOPE:-}"
 
 if [[ -n "${DATASETS:-}" ]]; then
   # shellcheck disable=SC2206
@@ -51,17 +55,33 @@ esac
 
 mkdir -p "$HYRE_CACHE_ROOT" "$RETRIEVAL_CACHE_ROOT" docs/generated
 
+if [[ -z "$CACHE_SCOPE" ]]; then
+  CACHE_SCOPE="q${QUESTIONS}_seed${SEED}"
+  if [[ "$SAMPLE_START" != "0" || -n "$SAMPLE_END" ]]; then
+    CACHE_SCOPE="${CACHE_SCOPE}_s${SAMPLE_START}_e${SAMPLE_END:-end}"
+  fi
+fi
+
+sample_args=(--sample-start "$SAMPLE_START")
+if [[ -n "$SAMPLE_END" ]]; then
+  sample_args+=(--sample-end "$SAMPLE_END")
+fi
+
 export CHROMA_DB_DIR="${CHROMA_DB_DIR:-$ROOT/chroma_db}"
 export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
 export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
 export HF_DATASETS_OFFLINE="${HF_DATASETS_OFFLINE:-1}"
-export DISABLE_CROSS_ENCODER="${DISABLE_CROSS_ENCODER:-1}"
+export DISABLE_CROSS_ENCODER="${DISABLE_CROSS_ENCODER:-0}"
 export LLM_MAX_COMPLETION_TOKENS="${LLM_MAX_COMPLETION_TOKENS:-768}"
 export PYTHONUNBUFFERED=1
 
 echo "[$(ts)] local generation cache root=$ROOT commit=$(git rev-parse --short HEAD)"
-echo "[$(ts)] provider=$PROVIDER model_label=$MODEL_LABEL questions=$QUESTIONS max_k=$MAX_K"
+echo "[$(ts)] provider=$PROVIDER model_label=$MODEL_LABEL questions=$QUESTIONS seed=$SEED sample=${SAMPLE_START}:${SAMPLE_END:-end} max_k=$MAX_K"
+echo "[$(ts)] cache_scope=$CACHE_SCOPE"
 echo "[$(ts)] datasets=${DATASETS_ARR[*]} modes=${MODES_ARR[*]}"
+if [[ -n "$BAREXAM_COLLECTION" ]]; then
+  echo "[$(ts)] barexam_collection=$BAREXAM_COLLECTION"
+fi
 
 "$UV" run python -m py_compile \
   eval/eval_config.py \
@@ -74,6 +94,11 @@ echo "[$(ts)] datasets=${DATASETS_ARR[*]} modes=${MODES_ARR[*]}"
 outputs=()
 
 for dataset in "${DATASETS_ARR[@]}"; do
+  collection_args=()
+  if [[ "$dataset" == "barexam" && -n "$BAREXAM_COLLECTION" ]]; then
+    collection_args=(--collection "$BAREXAM_COLLECTION")
+  fi
+
   for mode in "${MODES_ARR[@]}"; do
     case "$mode" in
       rag_hyde) query_type="hyde_cache" ;;
@@ -81,8 +106,8 @@ for dataset in "${DATASETS_ARR[@]}"; do
       *) echo "unknown generation mode=$mode; expected rag_hyde or snap_hyre" >&2; exit 2 ;;
     esac
 
-    gen_out="$HYRE_CACHE_ROOT/${dataset}_${MODEL_LABEL}_${mode}.jsonl"
-    ret_out="$RETRIEVAL_CACHE_ROOT/${dataset}_${MODEL_LABEL}_${mode}_k${MAX_K}.jsonl"
+    gen_out="$HYRE_CACHE_ROOT/${dataset}_${CACHE_SCOPE}_${MODEL_LABEL}_${mode}.jsonl"
+    ret_out="$RETRIEVAL_CACHE_ROOT/${dataset}_${CACHE_SCOPE}_${MODEL_LABEL}_${mode}_k${MAX_K}.jsonl"
     tag="local-gen-${MODEL_LABEL}-${dataset}-${mode}-n${QUESTIONS}"
 
     echo
@@ -94,6 +119,7 @@ for dataset in "${DATASETS_ARR[@]}"; do
       --dataset "$dataset"
       --questions "$QUESTIONS"
       --seed "$SEED"
+      "${sample_args[@]}"
       --tag "$tag"
       --out "$gen_out"
     )
@@ -113,8 +139,11 @@ for dataset in "${DATASETS_ARR[@]}"; do
     "$UV" run python scripts/build_retrieval_cache.py \
       --dataset "$dataset" \
       --questions "$QUESTIONS" \
+      --seed "$SEED" \
+      "${sample_args[@]}" \
       --query-type "$query_type" \
       --hyre-cache-path "$gen_out" \
+      "${collection_args[@]}" \
       --max-k "$MAX_K" \
       --out "$ret_out"
 

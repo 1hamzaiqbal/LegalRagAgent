@@ -49,7 +49,7 @@ export CHROMA_DB_DIR="$PWD/chroma_db"
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export HF_DATASETS_OFFLINE=1
-export DISABLE_CROSS_ENCODER=1
+export DISABLE_CROSS_ENCODER=0
 export LLM_MAX_COMPLETION_TOKENS=768
 
 uv run python eval/eval_harness.py \
@@ -60,6 +60,10 @@ uv run python eval/eval_harness.py \
   --retrieval-k 3 \
   --tag local-api-mirror-smoke
 ```
+
+Leave `DISABLE_CROSS_ENCODER=0` for canonical retrieval caches and promoted
+answer rows so retrieval uses `cross-encoder/ms-marco-MiniLM-L-6-v2`. Use
+`DISABLE_CROSS_ENCODER=1` only for explicitly labeled dense-only speed smokes.
 
 Then validate the generated detail log:
 

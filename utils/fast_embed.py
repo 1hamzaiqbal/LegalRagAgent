@@ -5,6 +5,7 @@ avoid OOM on large corpora. ~10x faster than load_corpus.py.
 
 Usage:
   uv run python utils/fast_embed.py barexam           # Full barexam corpus (686K)
+  uv run python utils/fast_embed.py barexam_complete  # Qrel-complete barexam corpus (857K)
   uv run python utils/fast_embed.py barexam 50000     # First 50K barexam passages
   uv run python utils/fast_embed.py housing            # Full housing statutes (1.84M)
   uv run python utils/fast_embed.py housing 200000     # First 200K housing statutes
@@ -89,6 +90,13 @@ CORPORA = {
         "text_col": "text",
         "idx_col": "idx",
     },
+    "barexam_complete": {
+        "csv": "datasets/barexam_qa/passages/passages.tsv",
+        "sep": "\t",
+        "collection": "legal_passages_barexam_complete",
+        "text_col": "text",
+        "idx_col": "idx",
+    },
     "housing": {
         "csv": "datasets/housing_qa/statutes.csv",
         "collection": "housing_statutes",
@@ -165,7 +173,7 @@ def embed_corpus(corpus_name: str, max_passages: int = 0, resume: bool = False,
     # Load CSV
     print(f"Reading {csv_path}...")
     t0 = time.time()
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, sep=config.get("sep", ","))
     if max_passages > 0:
         df = df.head(max_passages)
     print(f"  Loaded {len(df):,} rows in {time.time()-t0:.1f}s")
