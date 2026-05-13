@@ -148,6 +148,12 @@ The HPC helper for raw-question/golden-neighbor caches is:
 sbatch scripts/hpc/slurm_snap_hyre_retrieval_cache.sh
 ```
 
+This launcher now writes
+`caches/retrieval/full/retrieval_id_alignment_<dataset>.txt` before building
+each dataset cache. A failed alignment report does not stop downstream answer
+cache construction, but Hit@k/MRR from that dataset must not be promoted until
+the qrel mapping is repaired.
+
 For Snap-HyRE caches, first build the HyRE generation cache, then launch with
 `QUERY_TYPES='hyde_cache hyre_cache' HYRE_MODELS='<model-labels>'`.
 
