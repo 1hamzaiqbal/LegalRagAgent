@@ -17,13 +17,15 @@ Updated 2026-05-12 for branch `snap_hyre_comprehensive`.
 6. `local_snap_hyre_handoff_2026-05-12.md` - pasteable local-machine handoff
    for API keys, embedding, retrieval caches, top-k diagnostics, full sweeps,
    and promotion gates.
-7. `snap_hyre_completion_audit_2026-05-12.md` - objective-to-artifact checklist
+7. `local_validation_goal_2026-05-12.md` - short-lived local validation goal
+   to complete before launching the full comprehensive eval grid.
+8. `snap_hyre_completion_audit_2026-05-12.md` - objective-to-artifact checklist
    showing what is present, missing, and still unverified.
-8. `signoff_log.md` - cite-or-not gate for any reported result.
-9. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
+9. `signoff_log.md` - cite-or-not gate for any reported result.
+10. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
    and machine-readable summaries.
-10. `method_index.md` - local harness mode names.
-11. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
+11. `method_index.md` - local harness mode names.
+12. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
    notes, and operational caveats.
 
 ## Current Branch Narrative
