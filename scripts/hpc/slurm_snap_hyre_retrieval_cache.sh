@@ -32,6 +32,7 @@ QUESTIONS=${QUESTIONS:-full}
 MAX_K=${MAX_K:-10}
 KS=${KS:-1,3,5,10}
 ALIGN_MIN_EXISTS=${ALIGN_MIN_EXISTS:-0.95}
+ALIGN_METADATA_FALLBACK=${ALIGN_METADATA_FALLBACK:-0}
 
 if [[ -n "${DATASETS:-}" ]]; then
   # shellcheck disable=SC2206
@@ -93,12 +94,17 @@ outputs=()
 
 for dataset in "${DATASETS_ARR[@]}"; do
   alignment_report="$CACHE_DIR/retrieval_id_alignment_${dataset}.txt"
+  alignment_args=()
+  if [[ "$ALIGN_METADATA_FALLBACK" == "1" ]]; then
+    alignment_args+=(--metadata-fallback)
+  fi
   echo
   echo "[$(date -Is)] audit retrieval-id alignment dataset=$dataset report=$alignment_report"
   if python scripts/audit_retrieval_id_alignment.py \
     --dataset "$dataset" \
     --questions "$QUESTIONS" \
-    --min-exists "$ALIGN_MIN_EXISTS" > "$alignment_report" 2>&1; then
+    --min-exists "$ALIGN_MIN_EXISTS" \
+    "${alignment_args[@]}" > "$alignment_report" 2>&1; then
     echo "[$(date -Is)] alignment OK dataset=$dataset"
   else
     echo "[$(date -Is)] WARNING: alignment failed dataset=$dataset; retrieval Hit/MRR is not promotable without a qrel fix"

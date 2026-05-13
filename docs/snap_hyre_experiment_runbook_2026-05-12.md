@@ -152,7 +152,10 @@ This launcher now writes
 `caches/retrieval/full/retrieval_id_alignment_<dataset>.txt` before building
 each dataset cache. A failed alignment report does not stop downstream answer
 cache construction, but Hit@k/MRR from that dataset must not be promoted until
-the qrel mapping is repaired.
+the qrel mapping is repaired. The alignment check defaults to fast direct
+Chroma-id lookup (`doc_<gold_id>`) so invalid qrels fail quickly instead of
+spending minutes on per-id metadata scans; set `ALIGN_METADATA_FALLBACK=1` only
+when auditing an older collection that is known to need metadata lookup.
 
 For Snap-HyRE caches, first build the HyRE generation cache, then launch with
 `QUERY_TYPES='hyde_cache hyre_cache' HYRE_MODELS='<model-labels>'`.
