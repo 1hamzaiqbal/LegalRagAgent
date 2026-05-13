@@ -1,8 +1,8 @@
 # Local Snap-HyRE Execution Handoff - 2026-05-12
 
-Paste this into the Codex instance running on the local machine that will own
-embedding, cache construction, full-corpus API sweeps, monitoring, and result
-validation.
+Paste this into the Codex instance running on the Windows local machine that
+will own embedding, cache construction, full-corpus API sweeps, monitoring, and
+result validation. This machine is not expected to have WUSTL/HPC access.
 
 ## Mission
 
@@ -77,6 +77,11 @@ exact E4B endpoint becomes available.
 
 ## Local Environment
 
+On Windows, use WSL Ubuntu for the main run if available. The checked-in local
+helpers are Bash scripts, and the Python/Chroma stack is less fragile under WSL
+than native PowerShell. Clone the repo inside the WSL filesystem, not under
+`/mnt/c`, if disk space allows.
+
 Use local Chroma and offline HF settings once data and embeddings are present:
 
 ```bash
@@ -89,8 +94,8 @@ export DISABLE_CROSS_ENCODER=1
 export LLM_MAX_COMPLETION_TOKENS=768
 ```
 
-The other machine should not assume WUSTL/HPC access. Populate prerequisites by
-downloading datasets and embedding locally, or by copying `datasets/` and
+The Windows machine should not assume WUSTL/HPC access. Populate prerequisites
+by downloading datasets and embedding locally, or by copying `datasets/` and
 `chroma_db/` from a machine you can directly access. Do not block on WUSTL SSH.
 
 Budget at least 80 GB free for the full local mirror. The last checked populated
@@ -112,6 +117,7 @@ Build or verify embeddings:
 
 ```bash
 export CHROMA_DB_DIR="$PWD/chroma_db"
+mkdir -p "$CHROMA_DB_DIR"
 uv run python utils/fast_embed.py barexam --resume
 uv run python utils/fast_embed.py housing --resume
 uv run python utils/fast_embed.py casehold --resume

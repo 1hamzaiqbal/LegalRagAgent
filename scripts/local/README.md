@@ -3,6 +3,9 @@
 These scripts mirror the comprehensive Snap-HyRE SLURM helpers for a local
 machine with populated `datasets/`, `chroma_db/`, and API keys in `.env`.
 
+On Windows, run these from WSL Ubuntu if possible. Native PowerShell can run the
+underlying Python commands, but these helper scripts are Bash-first.
+
 Use them in this order:
 
 1. `run_api_smoke.sh` - provider and harness smoke, no result promotion.

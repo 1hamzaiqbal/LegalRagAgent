@@ -2,9 +2,10 @@
 
 ## Recommendation
 
-Set up a local mirror if the machine has at least 80 GB free. The current
-preferred path is local execution with API providers and local Chroma, not
-WUSTL/SLURM.
+Set up a local mirror on the Windows machine if it has at least 80 GB free. The
+current preferred path is local execution with API providers and local Chroma,
+not WUSTL/SLURM. WSL Ubuntu is preferred over native PowerShell for the repo
+scripts and Chroma path handling.
 
 Last checked populated artifact sizes:
 
@@ -33,10 +34,11 @@ unless space is cleared first.
 
 ## Data Population
 
-Do not assume the local machine can access WUSTL. Prefer downloading datasets
-and re-embedding locally on the capable machine. If another already-populated
-machine is directly reachable, copying `datasets/` and `chroma_db/` from that
-machine is fine, but this branch no longer relies on WUSTL SSH.
+Do not assume the Windows local machine can access WUSTL. Prefer downloading
+datasets and re-embedding locally on that machine. If another
+already-populated machine is directly reachable, copying `datasets/` and
+`chroma_db/` from that machine is fine, but this branch no longer relies on
+WUSTL SSH.
 
 ## Local Smoke
 
