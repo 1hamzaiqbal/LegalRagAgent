@@ -13,6 +13,7 @@ import argparse
 import csv
 import glob
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -164,12 +165,51 @@ def _health(rows: list[dict[str, Any]], min_k: int) -> dict[str, int]:
     }
 
 
+def _alignment_status(cache_path: Path, dataset: str) -> dict[str, Any]:
+    """Read optional qrel-alignment report emitted by the HPC cache launcher."""
+    report = cache_path.parent / f"retrieval_id_alignment_{dataset}.txt"
+    if not report.exists():
+        return {
+            "qrel_status": "alignment_missing",
+            "qrel_exists_fraction": "",
+            "qrel_report": "",
+        }
+
+    text = report.read_text()
+    values: dict[str, str] = {}
+    for line in text.splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip()
+
+    exists_match = re.search(r"\bexists_fraction=([0-9.]+)", text)
+    min_match = re.search(r"\bmin_exists=([0-9.]+)", text)
+    exists_raw = exists_match.group(1) if exists_match else values.get("exists_fraction", "")
+    min_raw = min_match.group(1) if min_match else values.get("min_exists", "")
+    status = "alignment_unknown"
+    try:
+        exists = float(exists_raw)
+        min_exists = float(min_raw)
+    except ValueError:
+        exists = None
+    if exists is not None:
+        status = "aligned" if exists >= min_exists else "qrels_failed"
+
+    return {
+        "qrel_status": status,
+        "qrel_exists_fraction": exists_raw,
+        "qrel_report": str(report),
+    }
+
+
 def _cache_metrics(path: Path, rows: list[dict[str, Any]], ks: list[int], min_k: int) -> list[dict[str, Any]]:
     first = rows[0]
     dataset = str(first.get("dataset") or "unknown")
     method = _method_name(first, path)
     model = _model_hint(path)
     health = _health(rows, min_k=min_k)
+    alignment = _alignment_status(path, dataset)
     scored_rows = [row for row in rows if _coerce_ids(row.get("gold_ids"))]
     records: list[dict[str, Any]] = []
     for k in ks:
@@ -196,6 +236,7 @@ def _cache_metrics(path: Path, rows: list[dict[str, Any]], ks: list[int], min_k:
             "hit": _mean(hits),
             "recall": _mean(recalls),
             "mrr": _mean(mrrs),
+            **alignment,
             **health,
         })
     return records
@@ -219,6 +260,9 @@ def _macro_records(records: list[dict[str, Any]], ks: list[int]) -> list[dict[st
             "hit": _mean([float(row["hit"]) for row in subset]),
             "recall": _mean([float(row["recall"]) for row in subset]),
             "mrr": _mean([float(row["mrr"]) for row in subset]),
+            "qrel_status": "mixed",
+            "qrel_exists_fraction": "",
+            "qrel_report": "",
             "duplicate_keys": sum(int(row["duplicate_keys"]) for row in subset),
             "missing_idx": sum(int(row["missing_idx"]) for row in subset),
             "empty_retrieval": sum(int(row["empty_retrieval"]) for row in subset),
@@ -232,8 +276,10 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
         "scope", "dataset", "model", "method", "k", "rows", "scored_rows",
-        "hit", "recall", "mrr", "duplicate_keys", "missing_idx",
+        "hit", "recall", "mrr", "qrel_status", "qrel_exists_fraction",
+        "duplicate_keys", "missing_idx",
         "empty_retrieval", "short_rows", "rows_without_gold", "path",
+        "qrel_report",
     ]
     with path.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -246,8 +292,8 @@ def _write_md(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as f:
         f.write("# Retrieval Cache Matrix\n\n")
-        f.write("| scope | dataset | model | method | k | rows | Hit@k | Recall@k | MRR@k | health |\n")
-        f.write("|---|---|---|---|---:|---:|---:|---:|---:|---|\n")
+        f.write("| scope | dataset | model | method | k | rows | Hit@k | Recall@k | MRR@k | qrels | health |\n")
+        f.write("|---|---|---|---|---:|---:|---:|---:|---:|---|---|\n")
         for row in rows:
             health = (
                 f"dup={row['duplicate_keys']}, missing_idx={row['missing_idx']}, "
@@ -258,7 +304,8 @@ def _write_md(path: Path, rows: list[dict[str, Any]]) -> None:
                 f"| {row['scope']} | {row['dataset']} | {row['model']} | "
                 f"{row['method']} | {row['k']} | {row['rows']} | "
                 f"{float(row['hit']):.4f} | {float(row['recall']):.4f} | "
-                f"{float(row['mrr']):.4f} | {health} |\n"
+                f"{float(row['mrr']):.4f} | {row['qrel_status']} "
+                f"({row['qrel_exists_fraction']}) | {health} |\n"
             )
 
 

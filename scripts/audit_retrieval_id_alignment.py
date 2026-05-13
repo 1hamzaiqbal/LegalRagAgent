@@ -94,7 +94,8 @@ def main() -> None:
     print(f"collection={collection}")
     print(f"rows={len(questions)} rows_with_gold={rows_with_gold}")
     print(f"unique_gold_ids={len(unique_gold)} found={len(unique_gold)-len(missing)} missing={len(missing)}")
-    print(f"exists_fraction={exists_fraction:.4f} min_exists={args.min_exists:.4f}")
+    print(f"exists_fraction={exists_fraction:.4f}")
+    print(f"min_exists={args.min_exists:.4f}")
     print(f"metadata_fallback={args.metadata_fallback}")
     if missing:
         print("missing_examples=" + ",".join(missing[:args.sample_missing]))
