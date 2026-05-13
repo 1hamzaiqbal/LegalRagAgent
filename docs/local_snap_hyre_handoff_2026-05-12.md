@@ -303,6 +303,14 @@ PROVIDER=or-gemma4-26b MODEL_LABEL=gemma4-26b DATASET=legalbench_scalr \
 QUESTIONS=full RETRIEVAL_K=5 scripts/local/run_answer_cell.sh
 ```
 
+Run the generated-query cache helper before `rag_hyde` or `snap_hyre` answer
+rows:
+
+```bash
+PROVIDER=or-gemma4-26b MODEL_LABEL=gemma4-26b QUESTIONS=full \
+scripts/local/build_generation_caches.sh
+```
+
 Example:
 
 ```bash

@@ -41,6 +41,7 @@ Concrete success criteria:
 | API-first provider labels | `llm_config.py`, `docs/snap_hyre_experiment_runbook_2026-05-12.md` | Present |
 | Local provider/harness smoke scripts | `scripts/local/run_api_smoke.sh` | Present, not yet run locally |
 | Local retrieval-cache runner | `scripts/local/build_retrieval_caches.sh` | Present, not yet run locally |
+| Local generation-cache runner | `scripts/local/build_generation_caches.sh` | Present, not yet run locally |
 | Local answer-cell runner | `scripts/local/run_answer_cell.sh` | Present, not yet run locally |
 | Four benchmark full embeddings available locally | `chroma_db/` expected under local checkout | Missing on this Mac; planned for local machine |
 | Full raw/golden retrieval caches for all four datasets | `caches/retrieval/full/*.jsonl` | Incomplete/stale; must be regenerated or copied and audited |
@@ -72,10 +73,9 @@ answer logs, top-k matrix, tables, plots, and signoff entries.
    `caches/retrieval/full/retrieval_id_alignment_*.txt`; decide whether BarExam
    retrieval is train-aligned only or uses an augmented qrel-complete collection.
 4. Select universal `RETRIEVAL_K`.
-5. Build full `rag_hyde` and `snap_hyre` generation caches one provider/dataset
-   at a time.
+5. Build full `rag_hyde` and `snap_hyre` generation caches one
+   provider/dataset at a time with `scripts/local/build_generation_caches.sh`.
 6. Run `scripts/local/run_answer_cell.sh` for one dataset/model cell, validate
    logs, then scale across the remaining cells.
 7. Add only validated rows to `docs/signoff_log.md`, then regenerate result
    tables and plots.
-

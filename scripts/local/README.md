@@ -8,10 +8,19 @@ Use them in this order:
 1. `run_api_smoke.sh` - provider and harness smoke, no result promotion.
 2. `build_retrieval_caches.sh` - raw/golden retrieval caches plus qrel
    alignment and top-k matrix.
-3. `run_answer_cell.sh` - one dataset/model answer ladder at a time.
+3. `build_generation_caches.sh` - HyDE/Snap-HyRE generation caches plus
+   retrieval caches from those generated passages.
+4. `run_answer_cell.sh` - one dataset/model answer ladder at a time.
 
 The scripts intentionally default to small or bounded runs where possible.
 Set `QUESTIONS=full` only after smokes and cache audits are clean.
+
+Example generation-cache pass:
+
+```bash
+PROVIDER=or-gemma4-26b MODEL_LABEL=gemma4-26b QUESTIONS=50 \
+  scripts/local/build_generation_caches.sh
+```
 
 Common environment:
 
@@ -30,4 +39,3 @@ Required `.env` keys for the planned providers:
 OPENROUTER_API_KEY=...
 GROQ_API_KEY=...
 ```
-
