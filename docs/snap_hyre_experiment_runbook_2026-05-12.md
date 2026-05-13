@@ -180,9 +180,6 @@ Completed locally on 2026-05-12:
 
 Still needs HPC smoke before full launches:
 
-- Compute-node cache smoke via `scripts/hpc/slurm_snap_hyre_cache_smoke.sh`.
-  It validates imports, populated Chroma access, and one raw-question
-  retrieval-cache row per headline benchmark without making LLM calls.
 - Provider/API smokes for Gemma 4 E4B, Gemma 4 26B, and Llama 3.3 70B
   Versatile.
 
@@ -198,6 +195,19 @@ Remote collection check on 2026-05-12:
 - `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-snap-hyre-comprehensive`
   is a clean clone of this branch. It uses local symlinks to the populated
   `datasets` and `chroma_db` directories, excluded via `.git/info/exclude`.
+
+Compute-node cache smoke:
+
+- SLURM job `68366` completed cleanly on 2026-05-12 in 5:55 using
+  `scripts/hpc/slurm_snap_hyre_cache_smoke.sh`.
+- The smoke validated imports, populated Chroma access, `snap_hyre` runner
+  registration, and one raw-question retrieval-cache row for BarExamQA,
+  HousingQA, CaseHOLD, and LegalBench-SCALR.
+- Each smoke cache passed `scripts/audit_retrieval_cache.py` with zero
+  duplicate keys, missing idxs, empty retrieval rows, or rows shorter than
+  `min_k=3`.
+- Smoke stdout:
+  `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/68366.out`.
 
 ## Open Questions for the Team
 
