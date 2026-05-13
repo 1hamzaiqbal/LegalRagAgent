@@ -14,11 +14,14 @@ Updated 2026-05-12 for branch `snap_hyre_comprehensive`.
    related papers and the LegalSearchQA decision.
 5. `local_api_mirror_setup_2026-05-12.md` - optional local Chroma/API mirror
    setup to avoid SSH/SLURM for API-backed iteration.
-6. `signoff_log.md` - cite-or-not gate for any reported result.
-7. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
+6. `local_snap_hyre_handoff_2026-05-12.md` - pasteable local-machine handoff
+   for API keys, embedding, retrieval caches, top-k diagnostics, full sweeps,
+   and promotion gates.
+7. `signoff_log.md` - cite-or-not gate for any reported result.
+8. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
    and machine-readable summaries.
-8. `method_index.md` - local harness mode names.
-9. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
+9. `method_index.md` - local harness mode names.
+10. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
    notes, and operational caveats.
 
 ## Current Branch Narrative
