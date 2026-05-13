@@ -30,7 +30,7 @@ PORT=${PORT:-8011}
 N_QUESTIONS=${N_QUESTIONS:-1}
 SEED=${SEED:-42}
 RETRIEVAL_K=${RETRIEVAL_K:-3}
-LLM_MAX_COMPLETION_TOKENS=${LLM_MAX_COMPLETION_TOKENS:-256}
+LLM_MAX_COMPLETION_TOKENS=${LLM_MAX_COMPLETION_TOKENS:-768}
 
 if [[ -n "${MODES:-}" ]]; then
   # shellcheck disable=SC2206
@@ -127,6 +127,23 @@ for mode in "${MODES_ARR[@]}"; do
   latest_log=$(ls -t "$REPO"/logs/eval_"$mode"_cluster-vllm_*_detail.jsonl 2>/dev/null | head -n 1 || true)
   if [[ -n "$latest_log" ]]; then
     python scripts/analyze_detail_flags.py "$latest_log" || status=1
+    python - "$latest_log" <<'PY' || status=1
+import json
+import sys
+
+path = sys.argv[1]
+bad = []
+with open(path) as f:
+    for line_no, line in enumerate(f, 1):
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        pred = row.get("predicted_answer")
+        if pred is None or str(pred).strip() == "":
+            bad.append(str(row.get("label") or row.get("idx") or line_no))
+if bad:
+    raise SystemExit("missing predicted_answer rows: " + ",".join(bad[:10]))
+PY
   else
     echo "[$(date -Is)] ERROR: no detail log found for $mode"
     status=1

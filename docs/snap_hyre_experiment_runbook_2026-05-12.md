@@ -209,6 +209,17 @@ Compute-node cache smoke:
 - Smoke stdout:
   `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/68366.out`.
 
+Provider smoke status:
+
+- API smoke job `68369` was cancelled intentionally after the first Groq
+  `llm_only` row showed `predicted_answer=None`. Root cause was the smoke
+  script's overly small `LLM_MAX_COMPLETION_TOKENS=256`, which truncated the
+  model before a parseable final answer. The row is rejected as a smoke result.
+- `scripts/hpc/slurm_snap_hyre_api_smoke.sh` and
+  `scripts/hpc/slurm_snap_hyre_vllm_smoke.sh` now default to
+  `LLM_MAX_COMPLETION_TOKENS=768` and fail hard if any detail row has missing
+  `predicted_answer`.
+
 ## Open Questions for the Team
 
 1. If HousingQA needs replacement, what legal retrieval benchmark has a frozen
