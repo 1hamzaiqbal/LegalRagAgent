@@ -249,6 +249,11 @@ Provider smoke status:
 - New Snap-HyRE runs now use `snap_hyre` as the retrieval trace/cache label.
   Legacy `rag_snap_hyde_2call` remains accepted by `scripts/build_hyre_cache.py`
   for older detail logs.
+- Gemma 4 E4B vLLM smoke job `68377` completed cleanly on 2026-05-12 in 16:04
+  using `google/gemma-4-E4B-it`. It validated `llm_only` and `snap_hyre` with
+  `missing_predicted_answer=0`, no parse failures, no long-answer rows, and
+  nonempty Snap-HyRE retrieval. Smoke stdout:
+  `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/68377.out`.
 
 ## Open Questions for the Team
 
