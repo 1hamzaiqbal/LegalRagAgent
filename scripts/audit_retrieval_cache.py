@@ -113,6 +113,7 @@ def main() -> None:
         if idx_value is None or idx_value == "":
             missing_idx += 1
         retrieved = _coerce_ids(row.get("retrieved_ids"))
+        metric_retrieved = _coerce_ids(row.get("effective_retrieved_ids")) or retrieved
         gold = set(_coerce_ids(row.get("gold_ids")))
         if not retrieved:
             empty += 1
@@ -122,10 +123,10 @@ def main() -> None:
             no_gold += 1
             continue
         for k in args.ks:
-            hits = len(set(retrieved[:k]) & gold)
+            hits = len(set(metric_retrieved[:k]) & gold)
             hit_by_k[k].append(1.0 if hits else 0.0)
             recall_by_k[k].append(hits / len(gold))
-            mrr_by_k[k].append(_mrr(retrieved, gold, k))
+            mrr_by_k[k].append(_mrr(metric_retrieved, gold, k))
 
     print(f"cache={args.cache}")
     print(f"rows={len(rows)} duplicate_keys={duplicate_keys} missing_idx={missing_idx}")

@@ -178,11 +178,12 @@ def _cache_metrics(path: Path, rows: list[dict[str, Any]], ks: list[int], min_k:
         mrrs: list[float] = []
         for row in scored_rows:
             retrieved = _coerce_ids(row.get("retrieved_ids"))
+            metric_retrieved = _coerce_ids(row.get("effective_retrieved_ids")) or retrieved
             gold = set(_coerce_ids(row.get("gold_ids")))
-            match_count = len(set(retrieved[:k]) & gold)
+            match_count = len(set(metric_retrieved[:k]) & gold)
             hits.append(1.0 if match_count else 0.0)
             recalls.append(match_count / len(gold) if gold else 0.0)
-            mrrs.append(_mrr(retrieved, gold, k))
+            mrrs.append(_mrr(metric_retrieved, gold, k))
         records.append({
             "scope": "cache",
             "path": str(path),

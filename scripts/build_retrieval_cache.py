@@ -163,11 +163,13 @@ def main() -> None:
             if args.query_type == "golden_neighbors":
                 gold_ids = _gold_ids(row)
                 neighbor_ids = [idx for idx in doc_ids if idx not in set(gold_ids)]
-                retrieved_ids = _dedupe(gold_ids + neighbor_ids)[:args.max_k]
+                retrieved_ids = _dedupe(neighbor_ids)[:args.max_k]
+                effective_retrieved_ids = _dedupe(gold_ids + retrieved_ids)[:args.max_k]
                 score_by_id = {idx: score for idx, score in zip(doc_ids, scores)}
-                scores = [0.0 if idx in set(gold_ids) else score_by_id.get(idx, 0.0) for idx in retrieved_ids]
+                scores = [score_by_id.get(idx, 0.0) for idx in retrieved_ids]
             else:
                 retrieved_ids = _dedupe(doc_ids)[:args.max_k]
+                effective_retrieved_ids = retrieved_ids
                 scores = scores[:len(retrieved_ids)]
 
             record = {
@@ -183,10 +185,14 @@ def main() -> None:
                 "retrieved_ids": retrieved_ids,
                 "scores": scores,
                 "gold_ids": _gold_ids(row),
-                "gold_retrieved": _is_gold_retrieved(row, retrieved_ids),
+                "gold_retrieved": _is_gold_retrieved(row, effective_retrieved_ids),
+                "effective_retrieved_ids": effective_retrieved_ids,
                 "query_hash": _hash_texts(queries),
                 "question_hash": _hash_texts([_fmt_intermediate(row, config)]),
             }
+            if args.query_type == "golden_neighbors":
+                record["injected_gold_ids"] = _gold_ids(row)
+                record["gold_injected"] = bool(_gold_ids(row))
             f.write(json.dumps(record, sort_keys=True) + "\n")
             wrote += 1
 

@@ -151,6 +151,23 @@ sbatch scripts/hpc/slurm_snap_hyre_generation_cache.sh
 
 For local vLLM Gemma, add `BACKEND=vllm MODEL=<hf-model-id> PORT=<port>`.
 
+Before treating Hit@k/MRR as valid retrieval-exposure metrics, run the Chroma
+gold-id alignment gate:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+uv run python scripts/audit_retrieval_id_alignment.py \
+  --dataset <dataset> \
+  --questions full \
+  --min-exists 0.95
+```
+
+If this fails, the dataset can still be used for downstream answer accuracy,
+but its gold ids are not valid corpus-id qrels for that collection. For
+golden-plus-neighbor replay, retrieval caches store only actual Chroma neighbor
+ids in `retrieved_ids`; the injected gold passage is tracked separately in
+`injected_gold_ids` and `effective_retrieved_ids`.
+
 4. Audit before answer generation:
 
 ```bash
@@ -199,6 +216,8 @@ Do not promote a result row unless all of these pass:
   spikes. Single-row caveats are allowed only if explicitly documented.
 - Retrieval rows are scored with `scripts/score_retrieval_qrels.py` or
   `scripts/audit_retrieval_cache.py`.
+- Gold-id alignment passes through `scripts/audit_retrieval_id_alignment.py`
+  before promoting Hit@k/MRR as a retrieval-exposure claim.
 - `docs/signoff_log.md` names the detail log, job/provenance, metric values,
   caveats, and clean/caveated/rejected status.
 
@@ -304,6 +323,13 @@ Provider smoke status:
   harness. Retry on H100 or fall back to the already clean OpenRouter
   `or-gemma4-26b` provider smoke. Smoke stdout:
   `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/68417.out`.
+- Retrieval-cache job `68418` is rejected/cancelled. It started before the
+  golden-neighbor cache schema was corrected, so its BarExam
+  `golden_neighbors` cache prepended question-level gold ids such as `mbe_0`
+  into `retrieved_ids`; those are not Chroma document ids in `legal_passages`
+  and would break cached replay. The clean BarExam raw-question output from the
+  same job is useful for debugging only, not for promotion. Stdout:
+  `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/68418.out`.
 
 ## Open Questions for the Team
 
