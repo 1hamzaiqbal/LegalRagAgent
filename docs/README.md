@@ -78,10 +78,17 @@ entrypoints.
 - `../scripts/score_retrieval_qrels.py` - Hit/Recall, MRR, nDCG scoring from
   retrieved ids and gold ids/qrels.
 - `../scripts/build_hyre_cache.py` - build Snap-HyRE generation replay caches.
+- `../scripts/build_generation_cache.py` - build full question-only HyDE and
+  Snap-HyRE generation caches before answer sweeps.
 - `../scripts/build_retrieval_cache.py` - build deterministic passage-id
-  retrieval caches for raw question, Snap-HyRE, and golden-neighbor queries.
+  retrieval caches for raw question, HyDE, Snap-HyRE, and golden-neighbor
+  queries.
 - `../scripts/audit_retrieval_cache.py` - audit cache integrity and Hit/Recall,
   MRR at multiple k values before answer generation.
+- `../scripts/audit_retrieval_id_alignment.py` - verify dataset gold ids are
+  actual Chroma document ids before promoting Hit@k/MRR claims.
+- `../scripts/compile_retrieval_cache_matrix.py` - compile cache audits into
+  top-k selection tables.
 - `../scripts/merge_detail_logs.py` - merge chunked detail logs.
 - `../scripts/compute_mcnemar.py` - paired significance tests.
 - `../scripts/audit_golden_paradox.py` - BarExam golden-passage paradox audit.

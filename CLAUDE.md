@@ -37,11 +37,18 @@ outcome.
 
 **Run-control rules**:
 - Do not launch broad method sweeps. Keep at most 2-3 active jobs.
-- Use generation caching (`scripts/build_hyre_cache.py` and
-  `--hyre-cache-path`) before repeated Snap-HyRE answer runs.
+- Use generation caching (`scripts/build_generation_cache.py` for new full
+  caches, or `scripts/build_hyre_cache.py` for older detail-log extraction, plus
+  `--hyre-cache-path`) before repeated HyDE/Snap-HyRE answer runs.
 - Use retrieval-id caches (`scripts/build_retrieval_cache.py`,
   `scripts/audit_retrieval_cache.py`, and `--retrieval-cache-path`) before
   large top-k sweeps where possible.
+- Run `scripts/audit_retrieval_id_alignment.py` before treating Hit@k/MRR as
+  valid retrieval-exposure claims; some datasets may have gold labels that are
+  not Chroma document ids for the active collection.
+- Use `scripts/compile_retrieval_cache_matrix.py` for top-k selection tables and
+  `scripts/hpc/slurm_snap_hyre_answer_sweep.sh` for one deliberate
+  dataset/model answer cell at a time.
 - Every promoted row must have copied detail logs, `analyze_detail_flags.py`,
   retrieval scoring where gold ids exist, and a signoff entry.
 - Full-corpus means every available row. If provider budget or rate limits
