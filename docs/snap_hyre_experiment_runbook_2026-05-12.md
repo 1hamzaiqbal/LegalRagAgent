@@ -180,8 +180,8 @@ Completed locally on 2026-05-12:
 
 Still needs HPC smoke before full launches:
 
-- Provider/API smokes for Gemma 4 E4B, Gemma 4 26B, and Llama 3.3 70B
-  Versatile.
+- vLLM smokes for Gemma 4 E4B and Gemma 4 26B using
+  `scripts/hpc/slurm_snap_hyre_vllm_smoke.sh`.
 
 Remote collection check on 2026-05-12:
 
@@ -219,6 +219,12 @@ Provider smoke status:
   `scripts/hpc/slurm_snap_hyre_vllm_smoke.sh` now default to
   `LLM_MAX_COMPLETION_TOKENS=768` and fail hard if any detail row has missing
   `predicted_answer`.
+- Hardened API smoke job `68372` completed cleanly on 2026-05-12 in 6:23.
+  It validated `llm_only` and `snap_hyre` for `groq-llama70b` and
+  `or-gemma4-26b`; all four rows had `missing_predicted_answer=0`,
+  no parse failures, no long-answer rows, and `snap_hyre` had nonempty
+  retrieval. Smoke stdout:
+  `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/68372.out`.
 
 ## Open Questions for the Team
 
