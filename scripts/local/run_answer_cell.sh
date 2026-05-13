@@ -6,6 +6,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
+ts() {
+  date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
 UV="${UV:-uv}"
 PROVIDER="${PROVIDER:-or-gemma4-26b}"
 MODEL_LABEL="${MODEL_LABEL:-$PROVIDER}"
@@ -48,9 +52,9 @@ export PYTHONUNBUFFERED=1
 
 mkdir -p logs
 
-echo "[$(date -Is)] local answer cell root=$ROOT commit=$(git rev-parse --short HEAD)"
-echo "[$(date -Is)] provider=$PROVIDER model_label=$MODEL_LABEL dataset=$DATASET questions=$QUESTIONS retrieval_k=$RETRIEVAL_K"
-echo "[$(date -Is)] modes=${MODES_ARR[*]} use_caches=$USE_CACHES"
+echo "[$(ts)] local answer cell root=$ROOT commit=$(git rev-parse --short HEAD)"
+echo "[$(ts)] provider=$PROVIDER model_label=$MODEL_LABEL dataset=$DATASET questions=$QUESTIONS retrieval_k=$RETRIEVAL_K"
+echo "[$(ts)] modes=${MODES_ARR[*]} use_caches=$USE_CACHES"
 
 "$UV" run python -m py_compile eval/eval_harness.py scripts/analyze_detail_flags.py
 
@@ -93,10 +97,10 @@ add_cache_args_for_mode() {
 for mode in "${MODES_ARR[@]}"; do
   tag="local-snap-hyre-${MODEL_LABEL}-${DATASET}-${mode}-n${QUESTIONS}-k${RETRIEVAL_K}"
   echo
-  echo "[$(date -Is)] run dataset=$DATASET provider=$PROVIDER mode=$mode tag=$tag"
+  echo "[$(ts)] run dataset=$DATASET provider=$PROVIDER mode=$mode tag=$tag"
 
   if ! add_cache_args_for_mode "$mode"; then
-    echo "[$(date -Is)] FAILED dataset=$DATASET mode=$mode while resolving caches"
+    echo "[$(ts)] FAILED dataset=$DATASET mode=$mode while resolving caches"
     if [[ "$STOP_ON_FAILURE" == "1" ]]; then
       exit 2
     fi
@@ -122,7 +126,7 @@ for mode in "${MODES_ARR[@]}"; do
 
   latest_log="$(find logs -maxdepth 1 -name "eval_${mode}_${PROVIDER}_*_${DATASET}_*${tag}*_detail.jsonl" -print | sort | tail -n 1)"
   if [[ -z "$latest_log" ]]; then
-    echo "[$(date -Is)] ERROR: no detail log found for dataset=$DATASET provider=$PROVIDER mode=$mode"
+    echo "[$(ts)] ERROR: no detail log found for dataset=$DATASET provider=$PROVIDER mode=$mode"
     status=1
   else
     "$UV" run python scripts/analyze_detail_flags.py "$latest_log" || status=1
@@ -151,13 +155,13 @@ PY
   fi
 
   if [[ "$status" -ne 0 ]]; then
-    echo "[$(date -Is)] FAILED dataset=$DATASET provider=$PROVIDER mode=$mode exit=$status"
+    echo "[$(ts)] FAILED dataset=$DATASET provider=$PROVIDER mode=$mode exit=$status"
     if [[ "$STOP_ON_FAILURE" == "1" ]]; then
       exit "$status"
     fi
   else
-    echo "[$(date -Is)] OK dataset=$DATASET provider=$PROVIDER mode=$mode"
+    echo "[$(ts)] OK dataset=$DATASET provider=$PROVIDER mode=$mode"
   fi
 done
 
-echo "[$(date -Is)] local answer cell complete."
+echo "[$(ts)] local answer cell complete."

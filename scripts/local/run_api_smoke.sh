@@ -6,6 +6,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
+ts() {
+  date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
 UV="${UV:-uv}"
 DATASET="${DATASET:-legalbench_scalr}"
 QUESTIONS="${QUESTIONS:-2}"
@@ -44,7 +48,7 @@ need_key_for_provider() {
 
 for provider in "${PROVIDERS_ARR[@]}"; do
   if ! need_key_for_provider "$provider"; then
-    echo "[$(date -Is)] ERROR: missing API key for provider=$provider" >&2
+    echo "[$(ts)] ERROR: missing API key for provider=$provider" >&2
     exit 2
   fi
 done
@@ -59,9 +63,9 @@ export PYTHONUNBUFFERED=1
 
 mkdir -p logs
 
-echo "[$(date -Is)] local API smoke root=$ROOT commit=$(git rev-parse --short HEAD)"
-echo "[$(date -Is)] dataset=$DATASET questions=$QUESTIONS retrieval_k=$RETRIEVAL_K"
-echo "[$(date -Is)] providers=${PROVIDERS_ARR[*]} modes=${MODES_ARR[*]}"
+echo "[$(ts)] local API smoke root=$ROOT commit=$(git rev-parse --short HEAD)"
+echo "[$(ts)] dataset=$DATASET questions=$QUESTIONS retrieval_k=$RETRIEVAL_K"
+echo "[$(ts)] providers=${PROVIDERS_ARR[*]} modes=${MODES_ARR[*]}"
 
 "$UV" run python -m py_compile eval/eval_harness.py scripts/analyze_detail_flags.py
 
@@ -70,7 +74,7 @@ for provider in "${PROVIDERS_ARR[@]}"; do
   for mode in "${MODES_ARR[@]}"; do
     tag="local-api-smoke-${provider}-${mode}-n${QUESTIONS}-k${RETRIEVAL_K}"
     echo
-    echo "[$(date -Is)] run provider=$provider mode=$mode tag=$tag"
+    echo "[$(ts)] run provider=$provider mode=$mode tag=$tag"
     set +e
     LLM_PROVIDER="$provider" \
     EVAL_TRACE_CALLS=1 \
@@ -89,7 +93,7 @@ for provider in "${PROVIDERS_ARR[@]}"; do
 
     latest_log="$(find logs -maxdepth 1 -name "eval_${mode}_${provider}_*_${DATASET}_*${tag}*_detail.jsonl" -print | sort | tail -n 1)"
     if [[ -z "$latest_log" ]]; then
-      echo "[$(date -Is)] ERROR: no detail log found for provider=$provider mode=$mode"
+      echo "[$(ts)] ERROR: no detail log found for provider=$provider mode=$mode"
       status=1
     else
       "$UV" run python scripts/analyze_detail_flags.py "$latest_log" || status=1
@@ -114,17 +118,16 @@ PY
 
     if [[ "$status" -ne 0 ]]; then
       failures=$((failures + 1))
-      echo "[$(date -Is)] FAILED provider=$provider mode=$mode exit=$status"
+      echo "[$(ts)] FAILED provider=$provider mode=$mode exit=$status"
     else
-      echo "[$(date -Is)] OK provider=$provider mode=$mode"
+      echo "[$(ts)] OK provider=$provider mode=$mode"
     fi
   done
 done
 
 if [[ "$failures" -gt 0 ]]; then
-  echo "[$(date -Is)] API smoke completed with $failures failure(s)"
+  echo "[$(ts)] API smoke completed with $failures failure(s)"
   exit 1
 fi
 
-echo "[$(date -Is)] API smoke complete."
-
+echo "[$(ts)] API smoke complete."

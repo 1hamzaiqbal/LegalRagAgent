@@ -6,6 +6,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
+ts() {
+  date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
 UV="${UV:-uv}"
 PROVIDER="${PROVIDER:-or-gemma4-26b}"
 MODEL_LABEL="${MODEL_LABEL:-$PROVIDER}"
@@ -55,9 +59,9 @@ export DISABLE_CROSS_ENCODER="${DISABLE_CROSS_ENCODER:-1}"
 export LLM_MAX_COMPLETION_TOKENS="${LLM_MAX_COMPLETION_TOKENS:-768}"
 export PYTHONUNBUFFERED=1
 
-echo "[$(date -Is)] local generation cache root=$ROOT commit=$(git rev-parse --short HEAD)"
-echo "[$(date -Is)] provider=$PROVIDER model_label=$MODEL_LABEL questions=$QUESTIONS max_k=$MAX_K"
-echo "[$(date -Is)] datasets=${DATASETS_ARR[*]} modes=${MODES_ARR[*]}"
+echo "[$(ts)] local generation cache root=$ROOT commit=$(git rev-parse --short HEAD)"
+echo "[$(ts)] provider=$PROVIDER model_label=$MODEL_LABEL questions=$QUESTIONS max_k=$MAX_K"
+echo "[$(ts)] datasets=${DATASETS_ARR[*]} modes=${MODES_ARR[*]}"
 
 "$UV" run python -m py_compile \
   eval/eval_config.py \
@@ -95,7 +99,7 @@ for dataset in "${DATASETS_ARR[@]}"; do
     tag="local-gen-${MODEL_LABEL}-${dataset}-${mode}-n${QUESTIONS}"
 
     echo
-    echo "[$(date -Is)] build generation dataset=$dataset mode=$mode out=$gen_out"
+    echo "[$(ts)] build generation dataset=$dataset mode=$mode out=$gen_out"
     LLM_PROVIDER="$PROVIDER" \
     "$UV" run python scripts/build_generation_cache.py \
       --mode "$mode" \
@@ -108,7 +112,7 @@ for dataset in "${DATASETS_ARR[@]}"; do
       "${resume_args[@]}" \
       "${trace_args[@]}"
 
-    echo "[$(date -Is)] build retrieval-from-generation dataset=$dataset mode=$mode out=$ret_out"
+    echo "[$(ts)] build retrieval-from-generation dataset=$dataset mode=$mode out=$ret_out"
     "$UV" run python scripts/build_retrieval_cache.py \
       --dataset "$dataset" \
       --questions "$QUESTIONS" \
@@ -140,9 +144,8 @@ if [[ "${#outputs[@]}" -gt 0 ]]; then
     --out-md "docs/generated/retrieval_cache_matrix_${MODEL_LABEL}_generated.md" \
     --out-csv "docs/generated/retrieval_cache_matrix_${MODEL_LABEL}_generated.csv"
 
-  echo "[$(date -Is)] wrote docs/generated/retrieval_cache_matrix_${MODEL_LABEL}_generated.md"
-  echo "[$(date -Is)] wrote docs/generated/retrieval_cache_matrix_${MODEL_LABEL}_generated.csv"
+  echo "[$(ts)] wrote docs/generated/retrieval_cache_matrix_${MODEL_LABEL}_generated.md"
+  echo "[$(ts)] wrote docs/generated/retrieval_cache_matrix_${MODEL_LABEL}_generated.csv"
 fi
 
-echo "[$(date -Is)] local generation cache pass complete."
-
+echo "[$(ts)] local generation cache pass complete."

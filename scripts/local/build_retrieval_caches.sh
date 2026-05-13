@@ -6,6 +6,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
+ts() {
+  date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
 UV="${UV:-uv}"
 CACHE_DIR="${CACHE_DIR:-$ROOT/caches/retrieval/full}"
 QUESTIONS="${QUESTIONS:-full}"
@@ -37,9 +41,9 @@ export HF_DATASETS_OFFLINE="${HF_DATASETS_OFFLINE:-1}"
 export DISABLE_CROSS_ENCODER="${DISABLE_CROSS_ENCODER:-1}"
 export PYTHONUNBUFFERED=1
 
-echo "[$(date -Is)] local retrieval cache root=$ROOT commit=$(git rev-parse --short HEAD)"
-echo "[$(date -Is)] chroma=$CHROMA_DB_DIR cache_dir=$CACHE_DIR questions=$QUESTIONS max_k=$MAX_K"
-echo "[$(date -Is)] datasets=${DATASETS_ARR[*]} query_types=${QUERY_TYPES_ARR[*]}"
+echo "[$(ts)] local retrieval cache root=$ROOT commit=$(git rev-parse --short HEAD)"
+echo "[$(ts)] chroma=$CHROMA_DB_DIR cache_dir=$CACHE_DIR questions=$QUESTIONS max_k=$MAX_K"
+echo "[$(ts)] datasets=${DATASETS_ARR[*]} query_types=${QUERY_TYPES_ARR[*]}"
 
 "$UV" run python -m py_compile \
   eval/eval_config.py \
@@ -60,22 +64,22 @@ for dataset in "${DATASETS_ARR[@]}"; do
   fi
 
   echo
-  echo "[$(date -Is)] audit retrieval-id alignment dataset=$dataset"
+  echo "[$(ts)] audit retrieval-id alignment dataset=$dataset"
   if "$UV" run python scripts/audit_retrieval_id_alignment.py \
     --dataset "$dataset" \
     --questions "$QUESTIONS" \
     --min-exists "$ALIGN_MIN_EXISTS" \
     "${alignment_args[@]}" > "$alignment_report" 2>&1; then
-    echo "[$(date -Is)] alignment OK dataset=$dataset report=$alignment_report"
+    echo "[$(ts)] alignment OK dataset=$dataset report=$alignment_report"
   else
-    echo "[$(date -Is)] WARNING: alignment failed dataset=$dataset; Hit/MRR is not promotable without repair"
+    echo "[$(ts)] WARNING: alignment failed dataset=$dataset; Hit/MRR is not promotable without repair"
     cat "$alignment_report"
   fi
 
   for query_type in "${QUERY_TYPES_ARR[@]}"; do
     out="$CACHE_DIR/${dataset}_${query_type}_k${MAX_K}.jsonl"
     echo
-    echo "[$(date -Is)] build dataset=$dataset query_type=$query_type out=$out"
+    echo "[$(ts)] build dataset=$dataset query_type=$query_type out=$out"
     "$UV" run python scripts/build_retrieval_cache.py \
       --dataset "$dataset" \
       --questions "$QUESTIONS" \
@@ -106,9 +110,8 @@ if [[ "${#outputs[@]}" -gt 0 ]]; then
     --out-md docs/generated/retrieval_cache_matrix.md \
     --out-csv docs/generated/retrieval_cache_matrix.csv
 
-  echo "[$(date -Is)] wrote docs/generated/retrieval_cache_matrix.md"
-  echo "[$(date -Is)] wrote docs/generated/retrieval_cache_matrix.csv"
+  echo "[$(ts)] wrote docs/generated/retrieval_cache_matrix.md"
+  echo "[$(ts)] wrote docs/generated/retrieval_cache_matrix.csv"
 fi
 
-echo "[$(date -Is)] local retrieval cache pass complete."
-
+echo "[$(ts)] local retrieval cache pass complete."
