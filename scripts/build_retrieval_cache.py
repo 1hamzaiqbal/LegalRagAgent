@@ -35,7 +35,7 @@ from rag_utils import get_vectorstore, retrieve_documents_multi_query  # noqa: E
 
 QUERY_TYPE_TO_LABEL_PREFIX = {
     "raw_question": "simple",
-    "hyre_cache": "snap_hyde_2call",
+    "hyre_cache": "snap_hyre",
     "golden_neighbors": "golden_plus_neighbors",
 }
 

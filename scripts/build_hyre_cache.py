@@ -18,6 +18,15 @@ def load_rows(path: Path) -> list[dict[str, Any]]:
         return [json.loads(line) for line in f if line.strip()]
 
 
+def _parse_ok(row: dict[str, Any]) -> bool:
+    """Accept new Snap-HyRE logs and legacy rag_snap_hyde_2call logs."""
+    if "snap_hyre_parse_ok" in row:
+        return bool(row.get("snap_hyre_parse_ok"))
+    if "snap_hyde_2call_parse_ok" in row:
+        return bool(row.get("snap_hyde_2call_parse_ok"))
+    return True
+
+
 def cache_record(row: dict[str, Any], source: Path) -> dict[str, Any] | None:
     label = row.get("label")
     hyde = row.get("hyde_passage")
@@ -30,10 +39,20 @@ def cache_record(row: dict[str, Any], source: Path) -> dict[str, Any] | None:
         "source_mode": row.get("mode"),
         "source_log": str(source),
         "snap_answer": snap,
-        "snap_and_hyre_raw": row.get("snap_and_hyre_raw") or row.get("hyde_passage_raw") or "",
-        "snap_hyre_parse_ok": row.get("snap_hyre_parse_ok", True),
+        "snap_and_hyre_raw": (
+            row.get("snap_and_hyre_raw")
+            or row.get("snap_and_hyde_raw")
+            or row.get("hyde_passage_raw")
+            or ""
+        ),
+        "snap_hyre_parse_ok": _parse_ok(row),
         "hyde_passage": hyde,
-        "hyde_passage_raw": row.get("hyde_passage_raw") or row.get("snap_and_hyre_raw") or "",
+        "hyde_passage_raw": (
+            row.get("hyde_passage_raw")
+            or row.get("snap_and_hyre_raw")
+            or row.get("snap_and_hyde_raw")
+            or ""
+        ),
         "snap_letter": row.get("snap_letter"),
     }
 
@@ -49,7 +68,7 @@ def main() -> None:
     skipped = 0
     for path in args.log:
         for row in load_rows(path):
-            if args.require_parse_ok and row.get("snap_hyre_parse_ok") is False:
+            if args.require_parse_ok and not _parse_ok(row):
                 skipped += 1
                 continue
             rec = cache_record(row, path)

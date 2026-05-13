@@ -98,7 +98,28 @@ uv run python scripts/build_retrieval_cache.py \
   --out caches/retrieval/<dataset>_<model>_snap_hyre_k10.jsonl
 ```
 
-3. Audit before answer generation:
+3. Compile the top-k matrix after per-cache audits:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+uv run python scripts/compile_retrieval_cache_matrix.py \
+  --cache 'caches/retrieval/full/*.jsonl' \
+  --ks 1,3,5,10 \
+  --min-k 10 \
+  --out-md docs/generated/retrieval_cache_matrix.md \
+  --out-csv docs/generated/retrieval_cache_matrix.csv
+```
+
+The HPC helper for raw-question/golden-neighbor caches is:
+
+```bash
+sbatch scripts/hpc/slurm_snap_hyre_retrieval_cache.sh
+```
+
+For Snap-HyRE caches, first build the HyRE generation cache, then launch with
+`QUERY_TYPES=hyre_cache HYRE_MODELS='<model-labels>'`.
+
+4. Audit before answer generation:
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
@@ -109,7 +130,7 @@ uv run python scripts/audit_retrieval_cache.py \
   --min-k 10
 ```
 
-4. Replay answer generation at chosen `k`:
+5. Replay answer generation at chosen `k`:
 
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
@@ -225,14 +246,14 @@ Provider smoke status:
   no parse failures, no long-answer rows, and `snap_hyre` had nonempty
   retrieval. Smoke stdout:
   `/engrfs/tmp/jacobsn/hiqbal_legalrag/logs/68372.out`.
+- New Snap-HyRE runs now use `snap_hyre` as the retrieval trace/cache label.
+  Legacy `rag_snap_hyde_2call` remains accepted by `scripts/build_hyre_cache.py`
+  for older detail logs.
 
 ## Open Questions for the Team
 
 1. If HousingQA needs replacement, what legal retrieval benchmark has a frozen
    local corpus/qrels and can be run without harness contortion?
-2. Do we want to create a dedicated `snap_hyre` retrieval label in future logs,
-   or keep the internal `snap_hyde_2call` retrieval label for cache compatibility
-   while exposing `snap_hyre` as the harness mode?
-3. If `rag_rewrite` becomes competitive, should we later add rewrite-query
+2. If `rag_rewrite` becomes competitive, should we later add rewrite-query
    replay caches for a more exact top-k curve, or is second-stage uncached
    control coverage enough?

@@ -2130,6 +2130,13 @@ def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
 
     Goal: preserve most of the rag_snap_hyde lift with 33% fewer LLM calls.
     """
+    label_prefix = "snap_hyre" if config.mode == "snap_hyre" else "snap_hyde_2call"
+    call_label = (
+        "snap_hyre/snap_and_hyre"
+        if label_prefix == "snap_hyre"
+        else "snap_hyde_2call/snap_and_hyde"
+    )
+    answer_label = f"{label_prefix}/answer"
     question = _fmt(row, config)
     question_intermediate = _fmt_intermediate(row, config)
 
@@ -2147,20 +2154,20 @@ def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
                 fallback_passage=question_intermediate,
             )
     else:
-        combined_raw = _llm_call(_snap_hyde_2call_system(config), question, label="snap_hyde_2call/snap_and_hyde")
+        combined_raw = _llm_call(_snap_hyde_2call_system(config), question, label=call_label)
         snap_block, hyde_passage, parse_ok = _split_snap_and_hyde(combined_raw, fallback_passage=question_intermediate)
     snap_letter = _extract_answer(snap_block, config)
     hyde_contains_answer = _contains_answer_artifact(hyde_passage)
 
     # Step 2: Retrieve using parsed HyDE passage (same retrieval as rag_snap_hyde).
-    retrieval = _retrieve_and_format(row, [hyde_passage], k=config.retrieval_k, label_prefix="snap_hyde_2call",
+    retrieval = _retrieve_and_format(row, [hyde_passage], k=config.retrieval_k, label_prefix=label_prefix,
                                      where=_where_from_config(config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
     # Step 3: Final synthesis (call #2). Snap letter NOT shown — same final-context contract as rag_snap_hyde.
     user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
-    answer = _llm_call(_system_prompt(config, "rag"), user, label="snap_hyde_2call/answer")
+    answer = _llm_call(_system_prompt(config, "rag"), user, label=answer_label)
 
     out = {
         "final_answer": answer,
@@ -2168,7 +2175,9 @@ def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
         "intermediate_question": question_intermediate,
         "snap_answer": snap_block,
         "snap_letter": snap_letter,
+        "snap_and_hyre_raw": combined_raw,
         "snap_and_hyde_raw": combined_raw,
+        "snap_hyre_parse_ok": parse_ok,
         "snap_hyde_2call_parse_ok": parse_ok,
         "hyre_cache_hit": bool(cache_entry),
         "hyre_cache_label": _row_label(row, config) if cache_entry else "",
@@ -2184,7 +2193,7 @@ def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
         "gold_retrieved": retrieval["gold_retrieved"],
     }
     if not parse_ok:
-        out["routed_to"] = "snap_hyde_2call_parse_failed_fallback_to_question"
+        out["routed_to"] = f"{label_prefix}_parse_failed_fallback_to_question"
     return out
 
 
