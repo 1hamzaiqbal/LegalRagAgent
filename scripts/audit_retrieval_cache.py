@@ -115,9 +115,9 @@ def main() -> None:
         retrieved = _coerce_ids(row.get("retrieved_ids"))
         metric_retrieved = _coerce_ids(row.get("effective_retrieved_ids")) or retrieved
         gold = set(_coerce_ids(row.get("gold_ids")))
-        if not retrieved:
+        if not metric_retrieved:
             empty += 1
-        if len(retrieved) < args.min_k:
+        if len(metric_retrieved) < args.min_k:
             short += 1
         if not gold:
             no_gold += 1

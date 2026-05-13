@@ -149,10 +149,11 @@ def _health(rows: list[dict[str, Any]], min_k: int) -> dict[str, int]:
         if row.get("idx") in (None, ""):
             missing_idx += 1
         retrieved = _coerce_ids(row.get("retrieved_ids"))
+        effective_retrieved = _coerce_ids(row.get("effective_retrieved_ids")) or retrieved
         gold = _coerce_ids(row.get("gold_ids"))
-        if not retrieved:
+        if not effective_retrieved:
             empty_retrieval += 1
-        if len(retrieved) < min_k:
+        if len(effective_retrieved) < min_k:
             short_rows += 1
         if not gold:
             rows_without_gold += 1
