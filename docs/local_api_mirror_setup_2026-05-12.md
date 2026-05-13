@@ -2,11 +2,11 @@
 
 ## Recommendation
 
-Set up a local mirror if the machine has at least 80 GB free. This does not
-replace the current HPC run, but it removes SSH/SLURM from API-backed answer
-sweeps, cache replay, plotting, and log validation.
+Set up a local mirror if the machine has at least 80 GB free. The current
+preferred path is local execution with API providers and local Chroma, not
+WUSTL/SLURM.
 
-Current artifact sizes on WUSTL:
+Last checked populated artifact sizes:
 
 - `chroma_db/`: about 33 GB.
 - `datasets/`: about 4.8 GB.
@@ -27,38 +27,16 @@ unless space is cleared first.
 
 ## What Local Does Not Remove
 
-- Initial transfer still needs one reliable copy path from WUSTL or another
-  already-populated machine.
-- First-time embedding retrieval can be slower on CPU-only local hardware.
+- First-time embedding can be slower on CPU-only local hardware.
 - Exact historical `google/gemma-4-E4B-it` rows still need vLLM or another
   exact provider; the API E4B row is `or-gemma3n-e4b`.
 
-## Sync Commands
+## Data Population
 
-From the local checkout root:
-
-```bash
-mkdir -p datasets chroma_db caches
-
-rsync -aH --info=progress2 \
-  -e 'ssh -o ControlMaster=no -o ControlPath=none' \
-  wustl:/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/datasets/ \
-  datasets/
-
-rsync -aH --info=progress2 \
-  -e 'ssh -o ControlMaster=no -o ControlPath=none' \
-  wustl:/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/chroma_db/ \
-  chroma_db/
-```
-
-Optional cache sync after HPC jobs finish:
-
-```bash
-rsync -aH --info=progress2 \
-  -e 'ssh -o ControlMaster=no -o ControlPath=none' \
-  wustl:/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-snap-hyre-comprehensive/caches/ \
-  caches/
-```
+Do not assume the local machine can access WUSTL. Prefer downloading datasets
+and re-embedding locally on the capable machine. If another already-populated
+machine is directly reachable, copying `datasets/` and `chroma_db/` from that
+machine is fine, but this branch no longer relies on WUSTL SSH.
 
 ## Local Smoke
 

@@ -42,6 +42,14 @@ scripts/local/README.md
 ## API Keys
 
 Put secrets in a local untracked `.env` at the repo root. Do not commit it.
+On the original Mac checkout, the source file is:
+
+```text
+/Users/hamzaiqbal/grad/LegalRagAgent/.env
+```
+
+Copy that file to the other machine out of band, or recreate the same variables
+there. Do not add API keys to this repo, a commit, or a shared handoff.
 
 Required for the planned API-first runs:
 
@@ -81,22 +89,13 @@ export DISABLE_CROSS_ENCODER=1
 export LLM_MAX_COMPLETION_TOKENS=768
 ```
 
-If copying from WUSTL is still needed, avoid the stale SSH control-socket path:
+The other machine should not assume WUSTL/HPC access. Populate prerequisites by
+downloading datasets and embedding locally, or by copying `datasets/` and
+`chroma_db/` from a machine you can directly access. Do not block on WUSTL SSH.
 
-```bash
-rsync -aH --info=progress2 \
-  -e 'ssh -o ControlMaster=no -o ControlPath=none' \
-  wustl:/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/datasets/ \
-  datasets/
-
-rsync -aH --info=progress2 \
-  -e 'ssh -o ControlMaster=no -o ControlPath=none' \
-  wustl:/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/chroma_db/ \
-  chroma_db/
-```
-
-If re-embedding locally, budget at least 80 GB free. The last checked WUSTL
-sizes were about 33 GB for `chroma_db/` and 4.8 GB for `datasets/`.
+Budget at least 80 GB free for the full local mirror. The last checked populated
+mirror sizes were about 33 GB for `chroma_db/` and 4.8 GB for `datasets/`, with
+extra room needed for retrieval/generation caches and logs.
 
 ## Dataset And Embedding Setup
 
