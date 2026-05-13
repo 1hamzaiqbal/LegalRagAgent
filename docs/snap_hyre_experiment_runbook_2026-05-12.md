@@ -180,8 +180,9 @@ Completed locally on 2026-05-12:
 
 Still needs HPC smoke before full launches:
 
-- CaseHOLD and HousingQA retrieval-cache builds, because local Chroma currently
-  lacks `casehold_holdings` and `housing_statutes`.
+- Compute-node cache smoke via `scripts/hpc/slurm_snap_hyre_cache_smoke.sh`.
+  It validates imports, populated Chroma access, and one raw-question
+  retrieval-cache row per headline benchmark without making LLM calls.
 - Provider/API smokes for Gemma 4 E4B, Gemma 4 26B, and Llama 3.3 70B
   Versatile.
 
@@ -194,6 +195,9 @@ Remote collection check on 2026-05-12:
   exists but did not list collections in the read-only check. Prefer syncing
   this branch into the main `LegalRagAgent` HPC checkout or explicitly pointing
   `CHROMA_DB_DIR` at the populated Chroma directory.
+- `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-snap-hyre-comprehensive`
+  is a clean clone of this branch. It uses local symlinks to the populated
+  `datasets` and `chroma_db` directories, excluded via `.git/info/exclude`.
 
 ## Open Questions for the Team
 
