@@ -34,7 +34,7 @@ if [[ -n "${PROVIDERS:-}" ]]; then
   # shellcheck disable=SC2206
   PROVIDERS_ARR=(${PROVIDERS})
 else
-  PROVIDERS_ARR=(groq-llama70b or-gemma4-26b)
+  PROVIDERS_ARR=(groq-llama70b or-gemma3n-e4b or-gemma4-26b)
 fi
 
 if [[ -n "${MODES:-}" ]]; then

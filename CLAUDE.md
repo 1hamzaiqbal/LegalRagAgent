@@ -30,11 +30,11 @@ outcome.
 - Main benchmarks: BarExamQA, HousingQA, CaseHOLD, LegalBench-SCALR. HousingQA
   stays unless smoke/audit evidence shows the yes/no format is not
   interpretable for the fixed-method story.
-- Main models: Gemma 4 E4B, Gemma 4 26B, and Llama 3.3 70B Versatile.
+- Main models: Gemma E4B, Gemma 4 26B, and Llama 3.3 70B Versatile.
 - Execution default: API providers for answer/generation sweeps. Use
-  `or-gemma4-26b` for Gemma 4 26B and `groq-llama70b` for Llama 3.3 70B.
-  Exact Gemma 4 E4B currently requires vLLM; OpenRouter exposes Gemma 4
-  26B/31B, not Gemma 4 E4B.
+  `or-gemma3n-e4b` for the E4B API row, `or-gemma4-26b` for Gemma 4 26B, and
+  `groq-llama70b` for Llama 3.3 70B. Exact historical Gemma 4 E4B comparisons
+  remain vLLM-only unless an exact API endpoint is verified.
 - Main metrics: downstream accuracy, Hit/Recall@1/5/10, MRR@10, gold retrieved
   but wrong, gold missing but correct, conditional accuracy, calls, tokens,
   latency, and health status.

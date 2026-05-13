@@ -45,7 +45,7 @@ Run the same method ladder across:
 
 | Model label | Provider path | Role |
 |---|---|---|
-| Gemma 4 E4B | HPC vLLM only for exact-model rows | small/cheap open model axis |
+| Gemma E4B | OpenRouter `or-gemma3n-e4b` | small/cheap open model axis |
 | Gemma 4 26B | OpenRouter `or-gemma4-26b` | main Gemma result |
 | Llama 3.3 70B Versatile | Groq `groq-llama70b`, OpenRouter fallback | cross-family larger model |
 
@@ -54,11 +54,11 @@ dataset/method family. Do not launch broad sweeps if any provider returns
 auth/rate-limit/model-format errors.
 
 Default future launches should use API providers for answer/generation sweeps.
-The vLLM path is now a fallback for exact Gemma 4 E4B coverage or API outages,
-not the default execution path. OpenRouter's current model list exposes Gemma 4
-26B/31B but not a true Gemma 4 E4B endpoint; `or-gemma3n-e4b` and
-`or-gemma3-4b` are acceptable small-Gemma API controls only if labeled as such,
-not as Gemma 4 E4B.
+The vLLM path is now a fallback for exact historical Gemma 4 E4B coverage or
+API outages, not the default execution path. OpenRouter's E4B API endpoint is
+`google/gemma-3n-e4b-it`, exposed locally as `or-gemma3n-e4b`; label that row
+as Gemma E4B or Gemma 3n E4B rather than the exact `google/gemma-4-E4B-it`
+checkpoint used by older vLLM runs.
 
 ## Fixed Method Ladder
 
