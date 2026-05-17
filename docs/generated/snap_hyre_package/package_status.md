@@ -4,7 +4,7 @@ This file is generated from local artifacts only. Missing cells are not inferred
 
 - Experiments tag prefix: `local-snap-hyre`
 - Minimum answer-row questions: `50`
-- Latest answer rows found: 42 / 84 expected cells
+- Latest answer rows found: 43 / 84 expected cells
 - Retrieval matrix rows found: 188
 
 ## Answer Ladder
@@ -15,7 +15,7 @@ This file is generated from local artifacts only. Missing cells are not inferred
 | or-ministral-8b | housing | missing | missing | missing | missing | missing | missing | missing |
 | or-ministral-8b | casehold | missing | missing | missing | missing | missing | missing | missing |
 | or-ministral-8b | legalbench_scalr | 67.2% | 68.0% | 69.9% | 71.1% | 69.9% | 93.2% | 77.1% |
-| or-gemma4-26b | barexam | 80.8% | 78.0% | missing | 80.2% | 82.0% | 78.6% | 80.7% |
+| or-gemma4-26b | barexam | 80.8% | 78.0% | 80.7% | 80.2% | 82.0% | 78.6% | 80.7% |
 | or-gemma4-26b | housing | missing | missing | missing | missing | missing | missing | missing |
 | or-gemma4-26b | casehold | missing | missing | missing | missing | missing | missing | missing |
 | or-gemma4-26b | legalbench_scalr | 71.1% | 73.4% | 73.9% | 72.2% | 73.9% | 97.9% | 81.3% |
@@ -242,7 +242,6 @@ This file is generated from local artifacts only. Missing cells are not inferred
 | or-ministral-8b | casehold | snap_hyre |
 | or-ministral-8b | casehold | golden_passage |
 | or-ministral-8b | casehold | golden_plus_neighbors |
-| or-gemma4-26b | barexam | rag_rewrite |
 | or-gemma4-26b | housing | llm_only |
 | or-gemma4-26b | housing | rag_simple |
 | or-gemma4-26b | housing | rag_rewrite |

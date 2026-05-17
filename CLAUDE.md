@@ -254,6 +254,24 @@ outcome.
   exact-final-line issues, think tags, or empty retrieval rows. Visible
   Cloudflare 502/upstream idle retries recovered in-place under the pinned same
   provider/model and did not substitute models or methods.
+- The full BarExamQA `or-gemma4-26b` `rag_rewrite` row is 964/1195 = 80.7%.
+  It improves over strict `rag_simple` by +2.68pp (McNemar b/c=126/94,
+  p=0.0364), is tied with `golden_plus_neighbors` (b/c=98/98, p=1.000),
+  directionally above `rag_hyde` by +0.42pp (b/c=88/83, p=0.760), flat versus
+  `llm_only` (-0.17pp, b/c=102/104, p=0.944), and below `snap_hyre` by
+  -1.34pp (b/c=75/91, p=0.244). Cite with the retry/near-cap/transient caveat:
+  dynamic rewrite retrieval had 1195/1195 rewrite JSON parses, zero
+  rewrite-format retries, zero partial-JSON repairs, zero raw-question
+  fallbacks, 146/1195 gold retrieved, and retrieval exposure Hit@5 0.1222 /
+  MRR@5 0.0604 from
+  `docs/generated/retrieval_qrels_barexam_or-gemma4-26b_rag_rewrite.md`. The
+  row has 4 logged same-model answer-format retries (`mbe_501`, `mbe_763`,
+  `mbe_989`, `mbe_486`), 3 rows at >=1900 total output tokens after retry,
+  max output 2099 tokens, max final-answer chars 7618, and zero errors, missing
+  predictions, parse failures, fallback keys, exact-final-line issues, think
+  tags, long rows, empty retrieval rows, rewrite parse failures, or partial JSON
+  repairs. Visible Cloudflare upstream idle retries recovered in-place under the
+  pinned same provider/model and did not substitute models or methods.
 - The full BarExamQA `groq-llama70b` `rag_simple` row is 891/1195 = 74.6%,
   significantly below `llm_only` by -4.10pp (McNemar b/c=66/115, p=0.000334).
   It is operationally clean under strict raw retrieval-cache replay: 1195/1195
