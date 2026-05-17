@@ -240,6 +240,20 @@ outcome.
   with intact final `Answer:` lines, max output 2103 tokens, and zero errors,
   missing predictions, parse failures, fallback keys, exact-final-line issues,
   think tags, or empty retrieval rows.
+- The full BarExamQA `or-gemma4-26b` `snap_hyre` row is 980/1195 = 82.0%.
+  It is positive over strict `rag_simple` by +4.02pp (McNemar b/c=121/73,
+  p=0.000699), directionally above `rag_hyde` by +1.76pp (b/c=84/63,
+  p=0.0987), and directionally above `llm_only` by +1.17pp (b/c=103/89,
+  p=0.348). Cite with the retry/near-cap/transient caveat: strict HyRE and
+  retrieval cache replay used 1195/1195 HyRE cache hits and retrieval-cache
+  hits, retrieved list length 5 on all rows, 144/1195 gold retrieved,
+  retrieval exposure Hit@5 0.1205 / MRR@5 0.0602, 3 logged same-model
+  answer-format retries (`mbe_989`, `mbe_1131`, `mbe_288`), 4 rows at >=1900
+  output tokens with intact final `Answer:` lines, max output 2025 tokens, and
+  zero errors, missing predictions, parse failures, fallback keys,
+  exact-final-line issues, think tags, or empty retrieval rows. Visible
+  Cloudflare 502/upstream idle retries recovered in-place under the pinned same
+  provider/model and did not substitute models or methods.
 - The full BarExamQA `groq-llama70b` `rag_simple` row is 891/1195 = 74.6%,
   significantly below `llm_only` by -4.10pp (McNemar b/c=66/115, p=0.000334).
   It is operationally clean under strict raw retrieval-cache replay: 1195/1195
