@@ -16,6 +16,8 @@ Use them in this order:
 4. `run_answer_cell.sh` - one dataset/model answer ladder at a time.
 5. `build_result_package.sh` - source-gated package status tables and optional
    plots after caches/logs exist.
+6. `status_monitor.sh` - lightweight recurring refresh for `current_status.md`
+   while answer cells run.
 
 The scripts intentionally default to small or bounded runs where possible.
 Set `QUESTIONS=full` only after smokes and cache audits are clean.
@@ -41,7 +43,7 @@ export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export HF_DATASETS_OFFLINE=1
 export DISABLE_CROSS_ENCODER=0
-export LLM_MAX_COMPLETION_TOKENS=768
+export LLM_MAX_COMPLETION_TOKENS=2048
 ```
 
 Keep `DISABLE_CROSS_ENCODER=0` for any retrieval cache or answer row that may
@@ -69,8 +71,21 @@ OPENROUTER_API_KEY=...
 GROQ_API_KEY=...
 ```
 
+The exact Gemma 4 E4B axis is not an OpenRouter row in this repo. Historical
+Gemma 4 E4B rows are vLLM provenance, not a launch requirement for the current
+API-only comprehensive package. Use `or-ministral-8b` as the small-model API row.
+Do not use `or-gemma3n-e4b` as a replacement; that is `google/gemma-3n-e4b-it`.
+
 After any clean batch, rebuild the package status:
 
 ```bash
 scripts/local/build_result_package.sh
+```
+
+To keep the operational dashboard current during long runs:
+
+```bash
+scripts/local/status_monitor.sh start
+scripts/local/status_monitor.sh status
+tail -f logs/monitors/current_status_monitor.log
 ```

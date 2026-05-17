@@ -37,8 +37,32 @@ MODEL_LABEL=${MODEL_LABEL:-$PROVIDER}
 PORT=${PORT:-8013}
 QUESTIONS=${QUESTIONS:-full}
 SEED=${SEED:-42}
+CACHE_SCOPE=${CACHE_SCOPE:-}
 PARSE_FAIL_MAX=${PARSE_FAIL_MAX:-0}
-LLM_MAX_COMPLETION_TOKENS=${LLM_MAX_COMPLETION_TOKENS:-768}
+LLM_MAX_COMPLETION_TOKENS=${LLM_MAX_COMPLETION_TOKENS:-2048}
+EVAL_MIN_COMPLETION_TOKENS=${EVAL_MIN_COMPLETION_TOKENS:-2048}
+EVAL_GENERATION_FORMAT_RETRY=${EVAL_GENERATION_FORMAT_RETRY:-1}
+NO_SILENT_FALLBACK=${NO_SILENT_FALLBACK:-1}
+
+if [[ -z "$CACHE_SCOPE" ]]; then
+  CACHE_SCOPE="q${QUESTIONS}_seed${SEED}"
+fi
+if ! [[ "$LLM_MAX_COMPLETION_TOKENS" =~ ^[0-9]+$ ]]; then
+  echo "LLM_MAX_COMPLETION_TOKENS must be a positive integer, got $LLM_MAX_COMPLETION_TOKENS" >&2
+  exit 2
+fi
+if ! [[ "$EVAL_MIN_COMPLETION_TOKENS" =~ ^[0-9]+$ ]]; then
+  echo "EVAL_MIN_COMPLETION_TOKENS must be a positive integer, got $EVAL_MIN_COMPLETION_TOKENS" >&2
+  exit 2
+fi
+if (( LLM_MAX_COMPLETION_TOKENS < EVAL_MIN_COMPLETION_TOKENS )); then
+  echo "LLM_MAX_COMPLETION_TOKENS=$LLM_MAX_COMPLETION_TOKENS is below EVAL_MIN_COMPLETION_TOKENS=$EVAL_MIN_COMPLETION_TOKENS; refusing truncation-prone generation cache run" >&2
+  exit 2
+fi
+case "${NO_SILENT_FALLBACK,,}" in
+  1|true|yes|on) ;;
+  *) echo "NO_SILENT_FALLBACK must be enabled for generation cache runs, got $NO_SILENT_FALLBACK" >&2; exit 2 ;;
+esac
 
 if [[ -n "${DATASETS:-}" ]]; then
   # shellcheck disable=SC2206
@@ -74,6 +98,8 @@ export HF_DATASETS_OFFLINE=1
 export VLLM_NO_USAGE_STATS=1
 export PYTHONUNBUFFERED=1
 export LLM_MAX_COMPLETION_TOKENS
+export EVAL_GENERATION_FORMAT_RETRY
+export NO_SILENT_FALLBACK
 
 cleanup() {
   if [[ -n "${VLLM_PID:-}" ]]; then
@@ -84,7 +110,10 @@ trap cleanup EXIT
 
 echo "[$(date -Is)] repo=$REPO commit=$(git rev-parse --short HEAD)"
 echo "[$(date -Is)] backend=$BACKEND provider=$PROVIDER model=${MODEL:-none} model_label=$MODEL_LABEL"
-echo "[$(date -Is)] datasets=${DATASETS_ARR[*]} modes=${MODES_ARR[*]} questions=$QUESTIONS cache_dir=$CACHE_DIR"
+echo "[$(date -Is)] datasets=${DATASETS_ARR[*]} modes=${MODES_ARR[*]} questions=$QUESTIONS cache_scope=$CACHE_SCOPE cache_dir=$CACHE_DIR"
+echo "[$(date -Is)] no_silent_fallback=$NO_SILENT_FALLBACK"
+echo "[$(date -Is)] llm_max_completion_tokens=$LLM_MAX_COMPLETION_TOKENS eval_min_completion_tokens=$EVAL_MIN_COMPLETION_TOKENS"
+echo "[$(date -Is)] eval_generation_format_retry=$EVAL_GENERATION_FORMAT_RETRY"
 git status --short --branch
 
 if [[ "$BACKEND" == "vllm" ]]; then
@@ -132,11 +161,12 @@ python -m py_compile \
 
 for dataset in "${DATASETS_ARR[@]}"; do
   for mode in "${MODES_ARR[@]}"; do
-    out="$CACHE_DIR/${dataset}_${MODEL_LABEL}_${mode}.jsonl"
+    out="$CACHE_DIR/${dataset}_${CACHE_SCOPE}_${MODEL_LABEL}_${mode}.jsonl"
     tag="snap-hyre-gen-cache-${MODEL_LABEL}-${dataset}-${mode}"
     echo
     echo "[$(date -Is)] build generation cache dataset=$dataset mode=$mode out=$out"
     set +e
+    NO_SILENT_FALLBACK="$NO_SILENT_FALLBACK" \
     python scripts/build_generation_cache.py \
       --mode "$mode" \
       --provider "$PROVIDER" \
@@ -161,12 +191,18 @@ with open(path) as f:
             rows.append(json.loads(line))
 errors = [r for r in rows if r.get("error")]
 missing = [r for r in rows if not r.get("hyde_passage")]
+fallbacks = [r for r in rows if r.get("hyde_used_fallback") is True or any(k.endswith("_used_fallback") and v for k, v in r.items())]
 parse_fail = [r for r in rows if mode == "snap_hyre" and r.get("snap_hyre_parse_ok") is False]
-print(f"[postcheck] path={path} rows={len(rows)} errors={len(errors)} missing_hyde={len(missing)} parse_fail={len(parse_fail)}")
+missing_snap = [r for r in rows if mode == "snap_hyre" and not r.get("snap_letter")]
+print(f"[postcheck] path={path} rows={len(rows)} errors={len(errors)} missing_hyde={len(missing)} fallbacks={len(fallbacks)} parse_fail={len(parse_fail)} missing_snap_letter={len(missing_snap)}")
 if errors:
     raise SystemExit("generation errors: " + ",".join(str(r.get("label")) for r in errors[:10]))
 if missing:
     raise SystemExit("missing hyde_passage: " + ",".join(str(r.get("label")) for r in missing[:10]))
+if fallbacks:
+    raise SystemExit("generation fallback rows: " + ",".join(str(r.get("label")) for r in fallbacks[:10]))
+if missing_snap:
+    raise SystemExit("missing snap_letter: " + ",".join(str(r.get("label")) for r in missing_snap[:10]))
 if len(parse_fail) > parse_fail_max:
     raise SystemExit(f"parse_failures={len(parse_fail)} > {parse_fail_max}")
 PY

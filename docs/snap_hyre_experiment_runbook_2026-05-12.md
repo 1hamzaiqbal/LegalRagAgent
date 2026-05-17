@@ -320,7 +320,7 @@ Provider smoke status:
   model before a parseable final answer. The row is rejected as a smoke result.
 - `scripts/hpc/slurm_snap_hyre_api_smoke.sh` and
   `scripts/hpc/slurm_snap_hyre_vllm_smoke.sh` now default to
-  `LLM_MAX_COMPLETION_TOKENS=768` and fail hard if any detail row has missing
+  `LLM_MAX_COMPLETION_TOKENS=2048` and fail hard if any detail row has missing
   `predicted_answer`.
 - Hardened API smoke job `68372` completed cleanly on 2026-05-12 in 6:23.
   It validated `llm_only` and `snap_hyre` for `groq-llama70b` and

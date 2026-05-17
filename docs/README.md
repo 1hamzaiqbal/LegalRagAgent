@@ -21,11 +21,24 @@ Updated 2026-05-12 for branch `snap_hyre_comprehensive`.
    to complete before launching the full comprehensive eval grid.
 8. `snap_hyre_completion_audit_2026-05-12.md` - objective-to-artifact checklist
    showing what is present, missing, and still unverified.
-9. `signoff_log.md` - cite-or-not gate for any reported result.
-10. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
+9. `snap_hyre_prelaunch_readiness_2026-05-13.md` - current strict-provider,
+   cache, top-k, LegalSearchQA feasibility, and launch-readiness note.
+10. `choice_aware_retrieval_probe_2026-05-13.md` - probe-only q20 retrieval
+   diagnostics separating raw retrieval, choice exposure, generated legal
+   query style, Snap-HyRE, and choice-conditioned Snap-HyRE.
+11. `choice_aware_retrieval_q50_2026-05-14.md` - probe-only q50 follow-up on
+   SCALR and CaseHOLD for blind/choice-aware HyDE, Snap-HyRE, diverse HyDE,
+   and choice-conditioned Snap-HyRE.
+12. `top_k_prelaunch_probe_2026-05-14.md` - q100 retrieval k=1..10 curve plus
+   limited BarExam downstream k=5 vs k=10 gate for the shared answer `k`.
+13. `comprehensive_run_status_2026-05-14.md` - live status for full-corpus
+   comprehensive cells, active jobs, blocked rows, cache status, and signoff
+   progress.
+14. `signoff_log.md` - cite-or-not gate for any reported result.
+15. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
    and machine-readable summaries.
-11. `method_index.md` - local harness mode names.
-12. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
+16. `method_index.md` - local harness mode names.
+17. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
    notes, and operational caveats.
 
 ## Current Branch Narrative
@@ -96,6 +109,9 @@ entrypoints.
   tests, retrieval-cache construction, and one-cell answer sweeps.
 - `../scripts/audit_retrieval_cache.py` - audit cache integrity and Hit/Recall,
   MRR at multiple k values before answer generation.
+- `../scripts/run_choice_aware_retrieval_probe.py` - probe-only retrieval
+  diagnostics for blind/choice-aware HyDE, Snap-HyRE anchors, diverse HyDE, and
+  choice-conditioned Snap-HyRE before promoting variants.
 - `../scripts/audit_retrieval_id_alignment.py` - verify dataset gold ids are
   actual Chroma document ids before promoting Hit@k/MRR claims.
 - `../scripts/compile_retrieval_cache_matrix.py` - compile cache audits into

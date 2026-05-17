@@ -17,14 +17,17 @@ SEED="${SEED:-42}"
 SAMPLE_START="${SAMPLE_START:-0}"
 SAMPLE_END="${SAMPLE_END:-}"
 RETRIEVAL_K="${RETRIEVAL_K:-3}"
-LLM_MAX_COMPLETION_TOKENS="${LLM_MAX_COMPLETION_TOKENS:-768}"
+ENV_LLM_MAX_COMPLETION_TOKENS="${LLM_MAX_COMPLETION_TOKENS:-}"
+LLM_MAX_COMPLETION_TOKENS="${LLM_MAX_COMPLETION_TOKENS:-2048}"
+EVAL_MIN_COMPLETION_TOKENS="${EVAL_MIN_COMPLETION_TOKENS:-2048}"
+EVAL_FINAL_FORMAT_RETRY="${EVAL_FINAL_FORMAT_RETRY:-1}"
 BAREXAM_COLLECTION="${BAREXAM_COLLECTION:-}"
 
 if [[ -n "${PROVIDERS:-}" ]]; then
   # shellcheck disable=SC2206
   PROVIDERS_ARR=(${PROVIDERS})
 else
-  PROVIDERS_ARR=(or-gemma3n-e4b or-gemma4-26b groq-llama70b)
+  PROVIDERS_ARR=(or-ministral-8b or-gemma4-26b groq-llama70b)
 fi
 
 if [[ -n "${MODES:-}" ]]; then
@@ -40,6 +43,26 @@ if [[ -f .env ]]; then
   source .env
   set +a
 fi
+if [[ -n "$ENV_LLM_MAX_COMPLETION_TOKENS" ]]; then
+  LLM_MAX_COMPLETION_TOKENS="$ENV_LLM_MAX_COMPLETION_TOKENS"
+fi
+if ! [[ "$LLM_MAX_COMPLETION_TOKENS" =~ ^[0-9]+$ ]]; then
+  echo "LLM_MAX_COMPLETION_TOKENS must be a positive integer, got $LLM_MAX_COMPLETION_TOKENS" >&2
+  exit 2
+fi
+if ! [[ "$EVAL_MIN_COMPLETION_TOKENS" =~ ^[0-9]+$ ]]; then
+  echo "EVAL_MIN_COMPLETION_TOKENS must be a positive integer, got $EVAL_MIN_COMPLETION_TOKENS" >&2
+  exit 2
+fi
+if (( LLM_MAX_COMPLETION_TOKENS < EVAL_MIN_COMPLETION_TOKENS )); then
+  echo "LLM_MAX_COMPLETION_TOKENS=$LLM_MAX_COMPLETION_TOKENS is below EVAL_MIN_COMPLETION_TOKENS=$EVAL_MIN_COMPLETION_TOKENS; refusing truncation-prone smoke run" >&2
+  exit 2
+fi
+NO_SILENT_FALLBACK="${NO_SILENT_FALLBACK:-1}"
+case "${NO_SILENT_FALLBACK,,}" in
+  1|true|yes|on) ;;
+  *) echo "NO_SILENT_FALLBACK must be enabled for API smoke, got $NO_SILENT_FALLBACK" >&2; exit 2 ;;
+esac
 
 need_key_for_provider() {
   local provider="$1"
@@ -62,6 +85,12 @@ export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
 export HF_DATASETS_OFFLINE="${HF_DATASETS_OFFLINE:-1}"
 export DISABLE_CROSS_ENCODER="${DISABLE_CROSS_ENCODER:-0}"
 export LLM_MAX_COMPLETION_TOKENS
+export EVAL_FINAL_FORMAT_RETRY
+export NO_SILENT_FALLBACK
+if printf '%s\n' "${PROVIDERS_ARR[@]}" | grep -q '^or-'; then
+  export LLM_CALL_MIN_INTERVAL_SEC="${LLM_CALL_MIN_INTERVAL_SEC:-2.0}"
+  export LLM_CALL_RATE_LIMIT_COOLDOWN_SEC="${LLM_CALL_RATE_LIMIT_COOLDOWN_SEC:-8.0}"
+fi
 export PYTHONUNBUFFERED=1
 
 sample_args=(--sample-start "$SAMPLE_START")
@@ -82,6 +111,11 @@ mkdir -p logs
 echo "[$(ts)] local API smoke root=$ROOT commit=$(git rev-parse --short HEAD)"
 echo "[$(ts)] dataset=$DATASET questions=$QUESTIONS seed=$SEED sample=${SAMPLE_START}:${SAMPLE_END:-end} retrieval_k=$RETRIEVAL_K"
 echo "[$(ts)] providers=${PROVIDERS_ARR[*]} modes=${MODES_ARR[*]}"
+echo "[$(ts)] no_silent_fallback=$NO_SILENT_FALLBACK"
+echo "[$(ts)] llm_max_completion_tokens=$LLM_MAX_COMPLETION_TOKENS eval_min_completion_tokens=$EVAL_MIN_COMPLETION_TOKENS eval_final_format_retry=$EVAL_FINAL_FORMAT_RETRY"
+if [[ -n "${LLM_CALL_MIN_INTERVAL_SEC:-}" || -n "${LLM_CALL_RATE_LIMIT_COOLDOWN_SEC:-}" ]]; then
+  echo "[$(ts)] llm_call_min_interval=${LLM_CALL_MIN_INTERVAL_SEC:-0} rate_limit_cooldown=${LLM_CALL_RATE_LIMIT_COOLDOWN_SEC:-0}"
+fi
 if [[ "$DATASET" == "barexam" && -n "${EVAL_COLLECTION_OVERRIDE:-}" ]]; then
   echo "[$(ts)] barexam_collection=$EVAL_COLLECTION_OVERRIDE"
 fi
@@ -96,9 +130,10 @@ for provider in "${PROVIDERS_ARR[@]}"; do
     echo "[$(ts)] run provider=$provider mode=$mode tag=$tag"
     set +e
     LLM_PROVIDER="$provider" \
+    NO_SILENT_FALLBACK="$NO_SILENT_FALLBACK" \
     EVAL_TRACE_CALLS=1 \
     EVAL_TRACE_EVENTS=1 \
-    EVAL_TRACE_MAX_CHARS=1200 \
+    EVAL_TRACE_MAX_CHARS="${EVAL_TRACE_MAX_CHARS:-1200}" \
     "$UV" run python eval/eval_harness.py \
       --mode "$mode" \
       --provider "$provider" \
@@ -123,6 +158,10 @@ import sys
 
 path = sys.argv[1]
 bad = []
+errors = []
+fallbacks = []
+parse_fallbacks = []
+think_tags = []
 with open(path) as f:
     for line_no, line in enumerate(f, 1):
         if not line.strip():
@@ -131,8 +170,30 @@ with open(path) as f:
         pred = row.get("predicted_answer")
         if pred is None or str(pred).strip() == "":
             bad.append(str(row.get("label") or row.get("idx") or line_no))
+        row_id = str(row.get("label") or row.get("idx") or line_no)
+        if row.get("error"):
+            errors.append(row_id)
+        routed_to = str(row.get("routed_to") or "")
+        if "fallback" in routed_to.lower():
+            fallbacks.append(f"{row_id}:routed_to={routed_to}")
+        for key, value in row.items():
+            if (key.endswith("_fallback") or key.endswith("_used_fallback")) and value:
+                fallbacks.append(f"{row_id}:{key}={value}")
+        for key in ("hyde_parse_ok", "snap_hyre_parse_ok", "snap_hyde_2call_parse_ok", "choice_hyre_parse_ok", "route_parse_ok", "passage_parse_ok", "adaptive_parse_ok"):
+            if row.get(key) is False:
+                parse_fallbacks.append(f"{row_id}:{key}")
+        if "<think>" in str(row.get("final_answer") or "").lower():
+            think_tags.append(row_id)
 if bad:
     raise SystemExit("missing predicted_answer rows: " + ",".join(bad[:10]))
+if errors:
+    raise SystemExit("error rows: " + ",".join(errors[:10]))
+if fallbacks:
+    raise SystemExit("fallback marker rows: " + " | ".join(fallbacks[:10]))
+if parse_fallbacks:
+    raise SystemExit("parse fallback rows: " + ",".join(parse_fallbacks[:10]))
+if think_tags:
+    raise SystemExit("unclosed think tag rows: " + ",".join(think_tags[:10]))
 PY
     fi
 

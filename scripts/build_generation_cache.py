@@ -24,10 +24,11 @@ sys.path.insert(0, str(ROOT / "eval"))
 from eval_config import EvalConfig, load_questions  # noqa: E402
 from eval_harness import (  # noqa: E402
     _contains_answer_artifact,
-    _extract_answer,
+    _extract_required_final_line_prediction,
     _fmt,
     _fmt_intermediate,
     _generate_hyde,
+    _generate_snap_hyre_blocks,
     _get_call_trace,
     _get_metrics,
     _get_trace_events,
@@ -37,8 +38,6 @@ from eval_harness import (  # noqa: E402
     _reset_trace_events,
     _row_label,
     _setup_provider,
-    _snap_hyde_2call_system,
-    _split_snap_and_hyde,
     _llm_call,
 )
 
@@ -71,6 +70,27 @@ def _row_idx(row: Any, fallback_i: int) -> str:
     return str(value)
 
 
+def _no_silent_fallback_enabled() -> bool:
+    return os.getenv("NO_SILENT_FALLBACK", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _strict_generation_violations(record: dict[str, Any], mode: str) -> list[str]:
+    violations: list[str] = []
+    if record.get("error"):
+        violations.append(f"error={str(record.get('error'))[:160]}")
+    if not record.get("hyde_passage"):
+        violations.append("missing_hyde_passage")
+    if record.get("hyde_used_fallback") is True:
+        violations.append("hyde_used_fallback=True")
+    if record.get("hyde_contains_answer_artifact") is True:
+        violations.append("hyde_contains_answer_artifact=True")
+    if mode == "snap_hyre" and record.get("snap_hyre_parse_ok") is False:
+        violations.append("snap_hyre_parse_ok=False")
+    if mode == "snap_hyre" and not record.get("snap_letter"):
+        violations.append("snap_letter missing required final answer line")
+    return violations
+
+
 def _build_rag_hyde(row, config: EvalConfig) -> dict[str, Any]:
     question_intermediate = _fmt_intermediate(row, config)
     hyde = _generate_hyde(
@@ -85,6 +105,7 @@ def _build_rag_hyde(row, config: EvalConfig) -> dict[str, Any]:
         "hyde_passage": hyde["text"],
         "hyde_passage_raw": hyde["raw"],
         "hyde_contains_answer_artifact": hyde["contains_answer"],
+        "hyde_used_fallback": hyde.get("used_fallback", False),
         "hyde_parse_ok": bool(hyde["text"]),
     }
 
@@ -92,17 +113,22 @@ def _build_rag_hyde(row, config: EvalConfig) -> dict[str, Any]:
 def _build_snap_hyre(row, config: EvalConfig) -> dict[str, Any]:
     question = _fmt(row, config)
     question_intermediate = _fmt_intermediate(row, config)
-    raw = _llm_call(_snap_hyde_2call_system(config), question, label="snap_hyre/snap_and_hyre")
-    snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(raw, fallback_passage=question_intermediate)
+    raw, snap_block, hyre_passage, parse_ok, retry_meta = _generate_snap_hyre_blocks(
+        config,
+        question=question,
+        fallback_passage=question_intermediate,
+        label="snap_hyre/snap_and_hyre",
+    )
     return {
         "source_mode": "snap_hyre",
         "snap_answer": snap_block,
-        "snap_letter": _extract_answer(snap_block, config),
+        "snap_letter": _extract_required_final_line_prediction(snap_block, config),
         "snap_and_hyre_raw": raw,
         "snap_hyre_parse_ok": parse_ok,
         "hyde_passage": hyre_passage,
         "hyde_passage_raw": raw,
         "hyde_contains_answer_artifact": _contains_answer_artifact(hyre_passage),
+        **retry_meta,
     }
 
 
@@ -203,6 +229,13 @@ def main() -> None:
             if args.trace_events:
                 record["trace_events"] = _get_trace_events()
                 record["trace_schema_version"] = 1
+            if _no_silent_fallback_enabled():
+                violations = _strict_generation_violations(record, args.mode)
+                if violations:
+                    raise SystemExit(
+                        f"NO_SILENT_FALLBACK blocked generation row {label}: "
+                        + "; ".join(violations)
+                    )
             f.write(json.dumps(record, sort_keys=True) + "\n")
             f.flush()
             wrote += 1

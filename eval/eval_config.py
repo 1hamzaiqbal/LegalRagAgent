@@ -45,6 +45,7 @@ EVAL_MODES = {
     "rag_snap_hyde":            "Snap-informed HyDE: answer first, then targeted retrieval",
     "rag_snap_hyde_1call":      "1-call ablation: retrieve on bare question (rag_simple style), then 1 LLM call producing snap reasoning + final answer (tests whether 2nd LLM call is necessary)",
     "snap_hyre":                "Snap-HyRE: snap reasoning + HyRE passage in one LLM call, then retrieve + final synth",
+    "snap_choice_hyre":         "Choice-conditioned Snap-HyRE probe: one call predicts a primary/alternative and emits diverse candidate-theory HyRE passages, then retrieve + final synth",
     "rag_snap_hyde_2call":      "2-call snap+HyDE: snap reasoning + HyDE passage in one LLM call, then retrieve + final synth (efficiency variant of rag_snap_hyde)",
     "adaptive_snap_route":      "Bottleneck-adaptive routing: 1 LLM call produces snap + ROUTE (SUFFICIENT|NEEDS_RETRIEVAL) + HyDE; if SUFFICIENT return snap (1 call), else retrieve + synth (2 calls). Per-question bottleneck-aware variant of snap_hyde_2call.",
     "snap_hyde_aligned":        "Snap-HyDE aligned: HyDE for dense retrieval, raw question for cross-encoder reranking",

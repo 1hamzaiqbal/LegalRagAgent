@@ -148,6 +148,8 @@ class MetricsState:
 
 
 _metrics_state = MetricsState()
+_LLM_LAST_CALL_START = 0.0
+_LLM_COOLDOWN_UNTIL = 0.0
 
 
 def _get_metrics():
@@ -156,6 +158,40 @@ def _get_metrics():
 
 def _reset_llm_call_counter():
     _metrics_state.llm_call_counter = {"count": 0, "input_tokens": 0, "output_tokens": 0}
+
+
+def _float_env(name: str, default: float = 0.0) -> float:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        value = float(raw)
+    except ValueError:
+        return default
+    return max(0.0, value)
+
+
+def _pace_llm_call() -> None:
+    """Optional provider pacing to avoid upstream 429 retries without changing prompts."""
+    global _LLM_LAST_CALL_START
+    min_interval = _float_env("LLM_CALL_MIN_INTERVAL_SEC")
+    now = time.monotonic()
+    wait = max(0.0, _LLM_COOLDOWN_UNTIL - now)
+    if min_interval > 0 and _LLM_LAST_CALL_START > 0:
+        wait = max(wait, (_LLM_LAST_CALL_START + min_interval) - now)
+    if wait > 0:
+        time.sleep(wait)
+    _LLM_LAST_CALL_START = time.monotonic()
+
+
+def _mark_rate_limit_cooldown(err: str) -> None:
+    """Extend cooldown after visible upstream rate-limit signals."""
+    global _LLM_COOLDOWN_UNTIL
+    if not any(token in err for token in ("429", "rate", "temporarily")):
+        return
+    cooldown = _float_env("LLM_CALL_RATE_LIMIT_COOLDOWN_SEC")
+    if cooldown > 0:
+        _LLM_COOLDOWN_UNTIL = max(_LLM_COOLDOWN_UNTIL, time.monotonic() + cooldown)
 
 
 def _get_deepseek_balance() -> Dict[str, Any]:
@@ -188,10 +224,23 @@ def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
     they are automatically merged into a single HumanMessage.
     """
     llm = get_llm()
-    TRANSIENT = ("429", "connection", "timeout", "rate", "overloaded", "unavailable")
+    TRANSIENT = (
+        "429",
+        "500",
+        "502",
+        "503",
+        "504",
+        "connection",
+        "timeout",
+        "rate",
+        "overloaded",
+        "unavailable",
+        "temporarily",
+    )
 
     for attempt in range(3):
         try:
+            _pace_llm_call()
             model_name = getattr(llm, "model_name", "") or ""
             if "gemma" in model_name.lower():
                 combined = f"[Instructions]\n{system_prompt}\n\n[Query]\n{user_prompt}"
@@ -227,6 +276,7 @@ def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
             err = str(exc).lower()
             is_transient = any(t in err for t in TRANSIENT)
             if is_transient and attempt < 2:
+                _mark_rate_limit_cooldown(err)
                 wait = 5 * (attempt + 1)
                 m = re.search(r"retry.after['\"]:\s*(\d+)", err)
                 if m:

@@ -145,8 +145,21 @@ def rerank_with_cross_encoder(
         return result
 
     cross_encoder = get_cross_encoder()
-    pairs = [(query, doc.page_content) for doc in docs]
-    scores = cross_encoder.predict(pairs)
+    max_chars_raw = os.getenv("CROSS_ENCODER_MAX_CHARS", "4096").strip()
+    max_chars = int(max_chars_raw) if max_chars_raw else 0
+    rerank_query = query[:max_chars] if max_chars and len(query) > max_chars else query
+    pairs = []
+    for doc in docs:
+        doc_text = doc.page_content
+        if max_chars and len(doc_text) > max_chars:
+            doc_text = doc_text[:max_chars]
+            doc.metadata["cross_encoder_doc_truncated"] = True
+        if max_chars and len(query) > max_chars:
+            doc.metadata["cross_encoder_query_truncated"] = True
+        pairs.append((rerank_query, doc_text))
+    batch_size_raw = os.getenv("CROSS_ENCODER_BATCH_SIZE", "8").strip()
+    batch_size = int(batch_size_raw) if batch_size_raw else 8
+    scores = cross_encoder.predict(pairs, batch_size=batch_size)
 
     scored = sorted(zip(docs, scores), key=lambda x: x[1], reverse=True)
     result = []

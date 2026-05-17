@@ -19,8 +19,8 @@ only with source-gated clean evidence.
 
 Move to comprehensive full-corpus evals only after all of these are true:
 
-- API smoke passes for `or-gemma3n-e4b`, `or-gemma4-26b`, and
-  `groq-llama70b`.
+- Provider smoke passes for the API-only three-model grid: `or-ministral-8b`,
+  `or-gemma4-26b`, and `groq-llama70b`.
 - `scripts/local/build_retrieval_caches.sh` writes a retrieval matrix and qrel
   alignment reports for the four legal datasets.
 - The chosen `RETRIEVAL_K` is recorded with a short justification.
@@ -33,15 +33,18 @@ full-corpus runs.
 
 ## Status - 2026-05-13
 
-Passed for local alignment/cache readiness; comprehensive model grid still
-blocked on the Llama provider.
+Passed for local alignment/cache readiness; comprehensive model grid is now
+API-only and no longer waits on a vLLM Gemma 4 E4B launch gate.
 
 - Local WSL checkout, `.env`, datasets, Chroma collections, GTE embeddings, and
   MiniLM reranker are set up.
-- API smoke passed for `or-gemma3n-e4b` and `or-gemma4-26b`.
-- API smoke did not pass for `groq-llama70b`: Groq returned 401 invalid API
-  key. `or-llama70b` fallback reached preflight but failed answer calls with
-  upstream OpenRouter 429 rate limits.
+- API smoke passed for `or-gemma4-26b`.
+- The earlier `or-gemma3n-e4b` smoke is not a comprehensive-model gate:
+  `google/gemma-3n-e4b-it` is not the historical `google/gemma-4-E4B-it`
+  checkpoint.
+- The small-model API row is `or-ministral-8b`, not historical Gemma 4 E4B.
+- `groq-llama70b` initially failed with a Groq 401 invalid-key preflight; after
+  replacing the key on 2026-05-13, a one-question strict smoke passed.
 - `legal_passages` was patched from 686,324 train passages to the full
   856,835-passage BarExam corpus by appending validation/test passages with the
   same GTE 1.5 large encoder.
@@ -61,6 +64,6 @@ blocked on the Llama provider.
   `docs/generated/snap_hyre_package/package_status.md` and companion CSV/plot
   artifacts.
 
-Do not start broad comprehensive sweeps until the Llama provider is repaired or
-the third model axis is explicitly marked blocked. BarExam alignment and
-golden-control hydration are resolved locally.
+Do not start broad comprehensive sweeps until `or-ministral-8b`, `or-gemma4-26b`,
+and `groq-llama70b` all pass strict API smoke checks. BarExam alignment, Llama
+callability, and golden-control hydration are resolved locally.

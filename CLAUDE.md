@@ -17,6 +17,10 @@ outcome.
   cache workflow, validation gate, launch order, and open questions.
 - `docs/literature_snap_hyre_2026-05-12.md` - notes from L-MARS /
   LegalSearchQA, Zheng et al. BarExamQA/HousingQA, and LRAGE.
+- `docs/top_k_prelaunch_probe_2026-05-14.md` - current shared-k decision:
+  use k=5 for main answer sweeps, with k=1..10 retrieval curves as analysis.
+- `docs/comprehensive_run_status_2026-05-14.md` - live comprehensive-run ledger
+  with completed rows, blocked rows, cache health, and current launch gates.
 - `docs/README.md` - current documentation map and archive locations.
 - `docs/signoff_log.md` - cite-or-not gate for any reported result.
 - `docs/compiled_results.md` and `logs/experiments.jsonl` - historical ledger
@@ -30,14 +34,24 @@ outcome.
 - Main benchmarks: BarExamQA, HousingQA, CaseHOLD, LegalBench-SCALR. HousingQA
   stays unless smoke/audit evidence shows the yes/no format is not
   interpretable for the fixed-method story.
-- Main models: Gemma E4B, Gemma 4 26B, and Llama 3.3 70B Versatile.
-- Execution default: API providers for answer/generation sweeps. Use
-  `or-gemma3n-e4b` for the E4B API row, `or-gemma4-26b` for Gemma 4 26B, and
-  `groq-llama70b` for Llama 3.3 70B. Exact historical Gemma 4 E4B comparisons
-  remain vLLM-only unless an exact API endpoint is verified.
+- Current launch priority is LegalBench-SCALR, then BarExamQA and CaseHOLD.
+  HousingQA remains in scope but should be deferred behind those three unless
+  a specific comparison needs it.
+- Main models: API-only small-model replacement, Gemma 4 26B, and Llama 3.3
+  70B Versatile.
+- Execution default: use API providers for all three current comprehensive axes:
+  `or-ministral-8b` for the small-model row, `or-gemma4-26b` for Gemma 4 26B,
+  and `groq-llama70b` for Llama 3.3 70B. Historical Gemma 4 E4B provenance used
+  `cluster-vllm` with `LLM_MODEL=google/gemma-4-E4B-it`; keep those rows as
+  historical evidence, but do not make vLLM a launch requirement for the current
+  API-only comprehensive package. Do not substitute `or-gemma3n-e4b`; that is
+  Gemma 3n E4B, not the historical Gemma 4 E4B checkpoint.
 - Main metrics: downstream accuracy, Hit/Recall@1/5/10, MRR@10, gold retrieved
   but wrong, gold missing but correct, conditional accuracy, calls, tokens,
   latency, and health status.
+- Shared answer depth: `RETRIEVAL_K=5` for the comprehensive answer grid. Use
+  k=1..10 retrieval-cache curves for retrieval exposure analysis; reserve k=10
+  answer runs for later targeted ablation, not as a launch blocker.
 
 **Run-control rules**:
 - Do not launch broad method sweeps. Keep at most 2-3 active jobs.
@@ -58,6 +72,394 @@ outcome.
 - Full-corpus means every available row. If provider budget or rate limits
   block a full row, mark it as blocked/provisional rather than substituting an
   unannounced cap.
+- Local answer cells must use `LLM_MAX_COMPLETION_TOKENS>=2048`; the local
+  runner fails closed below `EVAL_MIN_COMPLETION_TOKENS` so stale `.env` caps
+  cannot silently truncate answer runs.
+- Answer wrappers default `EVAL_FINAL_FORMAT_RETRY=1`; this is a logged
+  same-model/same-evidence retry only for malformed final answer formatting.
+  When the prior response already produced a parseable prediction, the retry
+  is format-only and must preserve that prediction instead of reopening the
+  full reasoning task.
+- For discrete answer tasks, the exact last non-empty final answer line is the
+  scoring source of truth. If it is exactly `Answer: (X)` or `Answer: Yes/No`,
+  that value overrides earlier answer mentions. If it is absent, the same-model
+  final-answer retry must repair the row before it can pass
+  `NO_SILENT_FALLBACK`.
+- Generation-cache wrappers default `EVAL_GENERATION_FORMAT_RETRY=1`; this is
+  a logged same-model retry only for malformed generated answer/passage blocks.
+  It must not change the intended provider, method, cache scope, question set,
+  or model label.
+- Snap-HyRE generation is strict about both blocks: the generated passage must
+  parse and the snap block must contain an exact required final answer line
+  (`Answer: (X)` or dataset-specific equivalent). With `NO_SILENT_FALLBACK=1`,
+  missing snap final lines are blockers, not harmless metadata.
+- `rag_rewrite` validates query-rewriter JSON and logs `rewrite_parse_ok` plus
+  rewrite-format retry metadata. With `NO_SILENT_FALLBACK=1`, malformed rewrite
+  JSON that is not repaired by the same-model format retry fails before
+  retrieval instead of becoming raw-question RAG.
+- `rag_rewrite` also has an explicit partial-JSON repair for malformed rewrite
+  outputs that contain parseable model-generated `primary` / `alternatives`
+  strings but fail to close as valid JSON. This is logged as
+  `rewrite_parse_kind=partial_json` and `rewrite_partial_json_repair=true`; it
+  is not a raw-question fallback and must be cited as a repair caveat when used.
+- Answer wrappers require `NO_SILENT_FALLBACK` to be truthy and fail before
+  launch if it is disabled.
+- HousingQA full golden-neighbor cache uses the explicit
+  `retrieval_backend=stored_gold_embedding` path plus
+  `CROSS_ENCODER_MAX_CHARS=4096` for cross-encoder-only reranking inputs. This
+  avoided local OOM on the 1.8M-document Chroma index and is recorded in the
+  cache metadata; do not describe it as arbitrary text re-embedding of the gold
+  passage.
+- As of 2026-05-15, all three full-corpus SCALR `llm_only` rows are signed off
+  clean: `groq-llama70b` 425/571, `or-gemma4-26b` 417/571, and
+  `or-ministral-8b` 384/571.
+- The full SCALR `groq-llama70b` `rag_simple` row is 416/571 = 72.9%, below
+  `llm_only` 425/571 = 74.4% by -1.58pp (McNemar p=0.328). It used 571/571
+  raw retrieval-cache hits, retrieved gold on 283/571 rows, and has raw
+  retrieval Hit@5 0.4956 / MRR@5 0.3447. The row is clean: zero errors,
+  missing predictions, parse failures, fallback keys, exact-final-line issues,
+  empty retrieval rows, answer retries, long rows, or near-cap outputs.
+- The full SCALR `groq-llama70b` `golden_passage` oracle row is 534/571 =
+  93.5%, +20.67pp over `rag_simple` (McNemar p=1.82e-34) and +19.09pp over
+  `llm_only` (p=8.63e-32). Cite with the retry caveat: 8 explicit same-model
+  final-answer repairs, all 5-token repairs and none near the 2048-token cap.
+- The full SCALR `groq-llama70b` `golden_plus_neighbors` row is 474/571 =
+  83.0%, +10.16pp over `rag_simple` (McNemar p=2.56e-10) and +8.58pp over
+  `llm_only` (p=1.41e-08), but -10.51pp versus `golden_passage`
+  (p=2.73e-17). Cite with the retry caveat: 2 explicit same-model final-answer
+  repairs, both 5-token repairs and none near the 2048-token cap. This repeats
+  the SCALR pattern that adding retrieved neighbors can dilute the gold-only
+  oracle.
+- As of 2026-05-15, the full SCALR `groq-llama70b` `rag_hyde` and
+  `snap_hyre` generation/retrieval caches are signed off for answer replay.
+  Both have 571/571 generated rows with zero errors, missing passages,
+  fallbacks, parse failures, answer-artifact passages, or retries. Retrieval
+  metrics: `rag_hyde` Hit@5 0.6147 / Hit@10 0.6953 / MRR@10 0.5015;
+  `snap_hyre` Hit@5 0.5517 / Hit@10 0.6462 / MRR@10 0.4126. On Groq SCALR,
+  `snap_hyre` improves over raw question Hit@5 0.4956 but is below `rag_hyde`.
+- The full SCALR `groq-llama70b` `rag_hyde` answer row is 402/571 = 70.4%,
+  below `rag_simple` 416/571 = 72.9% (-2.45pp, McNemar p=0.0925) and below
+  `llm_only` 425/571 = 74.4% (-4.03pp, p=0.00140). It used 571/571 HyDE and
+  retrieval-cache hits and retrieved gold on 351/571 rows. The row is clean:
+  zero errors, missing predictions, parse failures, fallback keys,
+  exact-final-line issues, answer retries, empty retrieval rows, long rows, or
+  near-cap outputs. Cite as retrieval-positive but answer-negative.
+- The full SCALR `groq-llama70b` `snap_hyre` answer row is 407/571 = 71.3%,
+  below `rag_simple` 416/571 = 72.9% (-1.58pp, McNemar p=0.281) and below
+  `llm_only` 425/571 = 74.4% (-3.15pp, p=0.0222), but slightly above
+  `rag_hyde` 402/571 = 70.4% (+0.88pp, p=0.542). It used 571/571 HyRE and
+  retrieval-cache hits and retrieved gold on 315/571 rows. The row is clean:
+  zero errors, missing predictions, parse failures, fallback keys,
+  exact-final-line issues, answer retries, empty retrieval rows, long rows, or
+  near-cap outputs. Cite as retrieval-positive over raw but answer-negative.
+- The full SCALR `groq-llama70b` `rag_rewrite` answer row is 409/571 = 71.6%,
+  below `rag_simple` 416/571 = 72.9% (-1.23pp, McNemar p=0.450) and below
+  `llm_only` 425/571 = 74.4% (-2.80pp, p=0.0365), but slightly above
+  `snap_hyre` 407/571 = 71.3% (+0.35pp, p=0.890) and `rag_hyde` 402/571 =
+  70.4% (+1.23pp, p=0.382). The row is clean with a retry caveat: 571/571
+  rewrite JSON parses, zero rewrite retries, zero partial-JSON repairs, zero
+  fallback keys, zero exact-final-line issues, 5 explicit same-model
+  final-answer repairs, and no near-cap repairs. Dynamic rewrite retrieval
+  exposure is Hit@5 0.5762 / MRR@5 0.4327, above raw retrieval but below Groq
+  `rag_hyde`.
+- As of 2026-05-16, the full CaseHOLD `groq-llama70b` `rag_hyde` and
+  `snap_hyre` generation/retrieval caches are signed off for answer replay.
+  Both have 3600/3600 generated rows with zero errors, missing passages,
+  fallbacks, parse failures, answer-artifact passages, or think artifacts.
+  `snap_hyre` initially had two malformed snap final-line metadata rows
+  (`ch_test_1108`, `ch_test_3118`); they were regenerated with the same
+  provider/model and merged under the stricter no-silent-fallback guard before
+  signoff. Retrieval metrics: `rag_hyde` Hit@5 0.5122 / Hit@10 0.5914 /
+  MRR@10 0.4090; `snap_hyre` Hit@5 0.4497 / Hit@10 0.5289 / MRR@10 0.3390.
+  Both are far above raw CaseHOLD question retrieval Hit@5 0.1794, but
+  `rag_hyde` is stronger than `snap_hyre` on this retrieval-only check.
+- As of 2026-05-16, the full BarExamQA `groq-llama70b` `rag_hyde` and
+  `snap_hyre` generation/retrieval caches are signed off for answer replay.
+  Both generation caches have 1195/1195 rows with zero errors, missing
+  passages, fallback keys, parse failures, or answer-artifact passages. The
+  retrieval caches are clean with zero duplicate keys, missing indices, empty
+  rows, short rows, or rows without gold. `rag_hyde` retrieval is Hit@5 0.1046
+  / Hit@10 0.1757 / MRR@10 0.0609; `snap_hyre` retrieval is Hit@5 0.1105 /
+  Hit@10 0.1849 / MRR@10 0.0663. Compared with BarExamQA raw retrieval
+  Hit@5 0.0142 / MRR@5 0.0068, both are retrieval-positive, with `snap_hyre`
+  slightly above `rag_hyde`.
+- The full BarExamQA `groq-llama70b` `llm_only` row is 940/1195 = 78.7% and
+  clean: zero errors, missing predictions, parse failures, fallback keys,
+  exact-final-line issues, answer retries, long rows, or near-cap outputs. The
+  `or-gemma4-26b` BarExam `llm_only` partial log from 2026-05-16 stopped at
+  9/1195 rows as an explicit pacing probe and is not citable.
+- The full BarExamQA `or-gemma4-26b` `llm_only` row is 966/1195 = 80.8%.
+  It has an explicit same-model route caveat: a clean 51-row OpenRouter prefix
+  was merged with a 1144-row `OPENROUTER_PROVIDER_ONLY=Cloudflare` tail on
+  `google/gemma-4-26b-a4b-it`. The failed DekaLLM 401 row `mbe_60` is excluded
+  and superseded after `NO_SILENT_FALLBACK` blocked it. The merged row is clean:
+  1195 rows, zero errors, missing predictions, parse failures, fallback keys,
+  exact-final-line issues, think-tag artifacts, or long-answer rows. There are
+  3 valid answer-format retries and 4 rows at >=1900 output tokens, all with
+  intact final `Answer:` lines; one naive fallback-text hit is incidental legal
+  explanation text, not provider/method fallback.
+- The full BarExamQA `or-gemma4-26b` `rag_simple` row is 932/1195 = 78.0%,
+  below its `llm_only` row by -2.85pp (McNemar b/c=78/112, p=0.0164). It used
+  strict raw retrieval-cache replay with 1195/1195 cache hits, 0 empty
+  retrieval rows, and 17/1195 gold retrieved. Retrieval exposure is Hit@5
+  0.0142 / MRR@5 0.0068 from
+  `docs/generated/retrieval_qrels_barexam_or-gemma4-26b_rag_simple.md`. Cite
+  with the retry caveat: 3 logged same-model answer-format retries
+  (`mbe_576`, `mbe_989`, `mbe_1124`), all with intact final `Answer:` lines;
+  zero errors, missing predictions, parse failures, fallback keys,
+  exact-final-line issues, or think tags.
+- The full BarExamQA `or-gemma4-26b` `golden_passage` row is 939/1195 =
+  78.6%. It is answer-flat versus strict `rag_simple` (+0.59pp, McNemar
+  b/c=102/95, p=0.669) and directionally below `llm_only` (-2.26pp,
+  b/c=78/105, p=0.0543), despite oracle gold retrieval on 1195/1195 rows.
+  Cite with the retry/near-cap caveat: 4 logged same-model answer-format
+  retries (`mbe_83`, `mbe_312`, `mbe_625`, `mbe_989`), 4 original outputs at
+  >=1900 tokens with intact final `Answer:` lines, max output 2023 tokens, and
+  zero errors, missing predictions, parse failures, fallback keys,
+  exact-final-line issues, think tags, or long rows.
+- The full BarExamQA `or-gemma4-26b` `golden_plus_neighbors` row is 964/1195 =
+  80.7%. It improves over strict `rag_simple` by +2.68pp (McNemar b/c=116/84,
+  p=0.0281), is flat versus `llm_only` (-0.17pp, b/c=91/93, p=0.941), and is
+  directionally above `golden_passage` (+2.09pp, b/c=91/66, p=0.0551). Cite
+  with the retry/near-cap caveat: strict golden-neighbor cache replay retrieved
+  gold on 1195/1195 rows, 5 logged same-model answer-format retries
+  (`mbe_532`, `mbe_562`, `mbe_989`, `mbe_1131`, `mbe_563`), 3 rows at >=1900
+  output tokens with intact final `Answer:` lines, max output 2007 tokens, and
+  zero errors, missing predictions, parse failures, fallback keys,
+  exact-final-line issues, think tags, or empty retrieval rows.
+- The full BarExamQA `or-gemma4-26b` `rag_hyde` row is 959/1195 = 80.3%.
+  It is directionally above strict `rag_simple` by +2.26pp (McNemar b/c=113/86,
+  p=0.0650), flat versus `llm_only` (-0.59pp, b/c=94/101, p=0.668), flat
+  versus `golden_plus_neighbors` (-0.42pp, b/c=94/99, p=0.773), and
+  directionally above `golden_passage` (+1.67pp, b/c=113/93, p=0.185). Cite
+  with the retry/near-cap caveat: strict HyDE/retrieval cache replay used
+  1195/1195 HyDE cache hits and retrieval-cache hits, retrieved list length 5
+  on all rows, 136/1195 gold retrieved, retrieval exposure Hit@5 0.1138 /
+  MRR@5 0.0542, 5 logged same-model answer-format retries (`mbe_141`,
+  `mbe_291`, `mbe_576`, `mbe_899`, `mbe_989`), 5 rows at >=1900 output tokens
+  with intact final `Answer:` lines, max output 2103 tokens, and zero errors,
+  missing predictions, parse failures, fallback keys, exact-final-line issues,
+  think tags, or empty retrieval rows.
+- The full BarExamQA `groq-llama70b` `rag_simple` row is 891/1195 = 74.6%,
+  significantly below `llm_only` by -4.10pp (McNemar b/c=66/115, p=0.000334).
+  It is operationally clean under strict raw retrieval-cache replay: 1195/1195
+  cache hits, zero empty retrieval rows, zero errors, missing predictions, parse
+  failures, fallback keys, or exact-final-line issues. Cite with the retry
+  caveat: two explicit same-model final-answer repairs (`mbe_272`, `mbe_202`),
+  retry max 5 tokens, no near-cap repairs, max output 1169 tokens. Exact-gold
+  retrieval exposure is very low: Hit@5/Recall@5 0.0142 and MRR@5 0.0068.
+- The full BarExamQA `groq-llama70b` `golden_plus_neighbors` row is 930/1195 =
+  77.8%. It improves over `rag_simple` by +3.26pp (McNemar b/c=136/97,
+  p=0.0126), but remains slightly below `llm_only` by -0.84pp (b/c=97/107,
+  p=0.529). This is a clean answer row with a retry caveat: 1195/1195
+  golden-neighbor cache hits, 1195/1195 gold retrieved, zero errors, missing
+  predictions, parse failures, fallback keys, exact-final-line issues, empty
+  retrieval rows, or near-cap repairs; two explicit same-model final-answer
+  repairs (`mbe_273`, `mbe_1098`). Retrieval exposure is oracle by construction
+  at Hit@5/MRR@5 1.0000.
+- The full BarExamQA `groq-llama70b` `golden_passage` row is 946/1195 = 79.2%.
+  It improves over `rag_simple` by +4.60pp (McNemar b/c=137/82, p=0.000246),
+  is flat versus `llm_only` at +0.50pp (b/c=100/94, p=0.720), and is
+  directionally above `golden_plus_neighbors` by +1.34pp (b/c=76/60,
+  p=0.198). This is a clean oracle row with a retry caveat: 1195/1195 rows had
+  gold injected/retrieved, zero errors, missing predictions, parse failures,
+  fallback keys, exact-final-line issues, empty retrieval rows, or near-cap
+  repairs; three explicit same-model final-answer repairs (`mbe_2`, `mbe_197`,
+  `mbe_1125`), retry max 5 tokens, max output 1029 tokens.
+- The full BarExamQA `groq-llama70b` `rag_hyde` row is 958/1195 = 80.2%, now
+  the best signed BarExamQA Llama 70B row in this comprehensive pass. It is
+  significantly above strict `rag_simple` by +5.61pp (McNemar b/c=137/70,
+  p=3.73e-06), directionally above `llm_only` by +1.51pp (b/c=101/83,
+  p=0.210), and directionally above `golden_passage` by +1.00pp (b/c=106/94,
+  p=0.437). This is a clean generated-cache replay row with a retry caveat:
+  1195/1195 HyDE cache hits, 1195/1195 retrieval-cache hits, 125/1195 gold
+  retrieved, zero errors, missing predictions, parse failures, fallback keys,
+  exact-final-line issues, empty retrieval rows, or near-cap repairs; three
+  explicit same-model final-answer repairs (`mbe_90`, `mbe_95`, `mbe_131`),
+  retry max 5 tokens, max output 1061 tokens.
+- The full BarExamQA `groq-llama70b` `snap_hyre` row is 953/1195 = 79.7%.
+  It is significantly above strict `rag_simple` by +5.19pp (McNemar
+  b/c=138/76, p=2.70e-05), directionally above `llm_only` by +1.09pp
+  (b/c=103/90, p=0.388), and statistically flat/slightly below `rag_hyde` by
+  -0.42pp (b/c=79/84, p=0.754). It is also directionally above
+  `golden_passage` by +0.59pp (p=0.681) and `golden_plus_neighbors` by
+  +1.92pp (p=0.124). The row is clean with a retry caveat: 1195/1195 HyRE
+  cache hits, 1195/1195 retrieval-cache hits, 132/1195 gold retrieved, zero
+  errors, missing predictions, parse failures, fallback keys,
+  exact-final-line issues, empty retrieval rows, answer artifacts, or near-cap
+  outputs; one explicit same-model final-answer repair (`mbe_2`), retry max
+  5 tokens, max output 1265 tokens.
+- The full BarExamQA `groq-llama70b` `rag_rewrite` row is 923/1195 = 77.2%.
+  It improves over strict `rag_simple` by +2.68pp (McNemar b/c=133/101,
+  p=0.0425), but is directionally below `llm_only` by -1.42pp (b/c=102/119,
+  p=0.282), below `rag_hyde` by -2.93pp (b/c=84/119, p=0.0168), below
+  `snap_hyre` by -2.51pp (b/c=85/115, p=0.0400), and directionally below
+  `golden_passage` by -1.92pp (b/c=105/128, p=0.149). The row is clean with a
+  retry/repair caveat: 1195/1195 rewrite JSON parses, zero rewrite-format
+  retries, one logged partial-JSON repair, zero fallback keys, zero
+  exact-final-line issues, 11 explicit same-model final-answer repairs, and no
+  near-cap repairs. Dynamic rewrite retrieval exposure is Hit@5 0.1222 /
+  MRR@5 0.0565, above raw BarExamQA retrieval but still a low absolute
+  exact-gold-recall regime.
+- The full CaseHOLD `groq-llama70b` `llm_only` row is 2585/3600 = 71.8%.
+  It is signed with an explicit retry caveat: zero errors, missing
+  predictions, parse failures, fallback keys, exact-final-line issues, long
+  rows, or near-cap outputs; 39 logged same-model final-answer repairs, all
+  `missing_marker` and 5-token repair outputs; max output 774 tokens and max
+  final-answer chars 3845. This is the current CaseHOLD no-retrieval anchor
+  for the priority benchmark set.
+- The full CaseHOLD `groq-llama70b` `rag_simple` row is 2547/3600 = 70.8%,
+  directionally below `llm_only` by -1.06pp (McNemar b/c=215/253, p=0.0871).
+  It is signed with an explicit retry caveat: 3600/3600 raw retrieval-cache
+  hits, 0 empty retrieval rows, retrieved list length 5 on every row, 646/3600
+  gold retrieved, retrieval exposure Hit@5 0.1794 / MRR@5 0.1015; zero errors,
+  missing predictions, parse failures, fallback keys, exact-final-line issues,
+  long rows, or near-cap outputs; 23 logged same-model final-answer repairs,
+  max output 935 tokens and max final-answer chars 4850. This establishes the
+  strict raw-RAG CaseHOLD comparator for the remaining CaseHOLD methods.
+- The full CaseHOLD `groq-llama70b` `golden_passage` row is 3511/3600 = 97.5%.
+  It is strongly above `rag_simple` by +26.78pp (McNemar b/c=968/4,
+  p=1.86e-282) and above `llm_only` by +25.72pp (b/c=927/1, p=8.19e-277).
+  This is a clean oracle row with a retry caveat: 3600/3600 rows had gold
+  injected/retrieved, retrieved list length 1 on every row, zero empty evidence
+  rows, zero errors, missing predictions, parse failures, fallback keys, or
+  final-line prediction issues; 46 explicit same-model final-answer repairs,
+  max output 878 tokens, max final-answer chars 4845, and no near-cap repairs.
+  Retrieval exposure is oracle by construction at Hit@1/Hit@5/MRR@5 1.0000.
+- The full CaseHOLD `groq-llama70b` `golden_plus_neighbors` row is
+  2859/3600 = 79.4%. It is significantly above strict `rag_simple` by +8.67pp
+  (McNemar b/c=459/147, p=2.70e-38) and above `llm_only` by +7.61pp
+  (b/c=411/137, p=8.67e-33), but far below `golden_passage` by -18.11pp
+  (b/c=5/657, p=1.10e-187). This is a clean golden-neighbor replay row with a
+  retry caveat: 3600/3600 cache hits, retrieved list length 5 and neighbor list
+  length 4 on every row, 3600/3600 gold retrieved, zero empty evidence rows,
+  zero errors, missing predictions, parse failures, fallback keys, or
+  final-line prediction issues; 19 explicit same-model final-answer repairs,
+  max output 943 tokens, max final-answer chars 4989, and no near-cap repairs.
+  `call_trace.response` previews were clipped on 2794/3600 rows by
+  `EVAL_TRACE_MAX_CHARS=800`, but full `final_answer` values were stored
+  separately and ended with exact `Answer: (X)` lines on all rows. Retrieval
+  exposure is oracle by construction at Hit@1/Hit@5/MRR@5 1.0000, while the
+  downstream drop versus gold-only is a clear CaseHOLD neighbor-dilution signal.
+- The full CaseHOLD `groq-llama70b` `rag_hyde` row is 2532/3600 = 70.3%.
+  It has an explicit mixed same-model provider caveat: Groq produced 2639
+  valid rows, then stopped on a spend-alert threshold; `ch_test_2639` plus
+  960 tail rows were replayed through OpenRouter paid
+  `meta-llama/llama-3.3-70b-instruct`, with the final 667-row segment pinned
+  to `OPENROUTER_PROVIDER_ONLY=AkashML`. This was an explicit recovery, not a
+  silent fallback. The merged row is clean under strict generated/retrieval
+  cache replay: 3600/3600 HyDE and retrieval-cache hits, 0 empty retrieval
+  rows, 1844/3600 gold retrieved, retrieval exposure Hit@5 0.5122 / MRR@5
+  0.3983, 21 logged answer-format retries, and zero errors, missing
+  predictions, parse failures, fallback keys, exact-final-line issues,
+  think-tag artifacts, or near-cap outputs. Downstream is retrieval-positive
+  but answer-flat/negative: -0.42pp vs `rag_simple` (p=0.535) and -1.47pp vs
+  `llm_only` (p=0.0169).
+- The full CaseHOLD `groq-llama70b` `snap_hyre` row is 2538/3600 = 70.5%.
+  It has explicit mixed same-model provider and cache-repair caveats:
+  OpenRouter paid same-model prefix supplied 581 rows while Groq spend was
+  blocked; after the user reset Groq spend, repaired `ch_test_581` and rows
+  `ch_test_582`-`ch_test_3599` ran on Groq, for provider mix
+  `or-llama70b-paid` 581 / `groq-llama70b` 3019. The invalid OpenRouter
+  `ch_test_581` answer row was excluded, and generation-cache row
+  `ch_test_581` had only a formatting repair to standalone `Answer: (A)`.
+  The merged row is clean under strict generated/retrieval cache replay:
+  3600/3600 HyRE and retrieval-cache hits, 0 empty retrieval rows, retrieved
+  list length 5 on every row, 1619/3600 gold retrieved, answer-log retrieval
+  Hit@5 0.4497 / MRR@5 0.3286, 16 logged answer-format retries, and zero
+  errors, missing predictions, parse failures, fallback keys,
+  exact-final-line issues, think-tag artifacts, or near-cap outputs. Downstream
+  is flat vs strict raw RAG (-0.25pp, p=0.722), below `llm_only` (-1.31pp,
+  p=0.0295), and flat/slightly above `rag_hyde` (+0.17pp, p=0.812).
+- The full CaseHOLD `groq-llama70b` `rag_rewrite` row is 2542/3600 = 70.6%.
+  It is a clean all-Groq dynamic rewrite row with 3600/3600 rewrite parses,
+  zero rewrite retries, zero partial-JSON repairs, 0 empty retrieval rows, and
+  1623/3600 gold retrieved. Retrieval exposure is Hit@5 0.4508 / MRR@5
+  0.3319 from `docs/generated/retrieval_qrels_casehold_groq-llama70b_rag_rewrite.md`.
+  The answer log has 88 explicit same-model answer-format retries and zero
+  errors, missing predictions, parse failures, fallback keys, exact-final-line
+  issues, think-tag artifacts, or near-cap outputs. Downstream is flat vs
+  strict raw RAG (-0.14pp, p=0.859), flat vs `snap_hyre` (+0.11pp, p=0.890),
+  flat vs `rag_hyde` (+0.28pp, p=0.675), and below `llm_only` (-1.19pp,
+  p=0.0589).
+- The full SCALR `or-ministral-8b` `rag_simple` strict rerun is 388/571 =
+  68.0%, versus `llm_only` 384/571 = 67.3% (McNemar p=0.752). It used 571/571
+  raw retrieval-cache hits and has raw retrieval Hit@5 0.4956 / MRR@5 0.3447.
+  Cite with the retry caveat: 16 explicit same-model final-answer repairs,
+  including 11 original responses at >=2000 output tokens. The earlier
+  `20260515_082923` row is superseded because exact-final-line audit found six
+  source-safety failures.
+- The full SCALR `or-ministral-8b` `golden_passage` oracle row is 532/571 =
+  93.2%, +25.22pp over strict `rag_simple` and +25.92pp over `llm_only`
+  (both p < 1e-40). Cite with the retry caveat: 22 explicit same-model
+  final-answer repairs, four with original responses at >=2000 output tokens.
+- The full SCALR `or-ministral-8b` `golden_plus_neighbors` row is 440/571 =
+  77.1%, +9.11pp over strict `rag_simple` and +9.81pp over `llm_only`, but
+  -16.11pp versus `golden_passage`. Cite with the retry caveat: 5 explicit
+  same-model final-answer repairs, three with original responses at >=2000
+  output tokens. This supports the emerging SCALR read that extra neighbors can
+  dilute gold-only evidence rather than improve the oracle control.
+- As of 2026-05-15, the full SCALR `or-ministral-8b` `rag_hyde` and
+  `snap_hyre` generation/retrieval caches are signed off for answer replay.
+  Both have 571/571 generated rows with zero errors, missing passages,
+  fallbacks, parse failures, answer-artifact passages, or retries.
+  Retrieval metrics: `rag_hyde` Hit@5 0.6025 / Hit@10 0.6865 / MRR@10 0.4506;
+  `snap_hyre` Hit@5 0.6200 / Hit@10 0.7040 / MRR@10 0.5110.
+- The full SCALR `or-ministral-8b` `rag_hyde` answer row is 406/571 = 71.1%,
+  +3.15pp over strict `rag_simple` (McNemar p=0.0385) and +3.85pp over
+  `llm_only` (McNemar p=0.0230). It used 571/571 HyDE and retrieval-cache hits
+  and retrieved gold on 344/571 rows. Cite with the retry caveat: 18 explicit
+  same-model final-answer repairs, 14 with original responses at >=2000 output
+  tokens.
+- The full SCALR `or-ministral-8b` `snap_hyre` answer row is 399/571 = 69.9%,
+  +1.93pp over strict `rag_simple` (McNemar p=0.260), +2.63pp over `llm_only`
+  (p=0.110), and -1.23pp versus small-model `rag_hyde` (p=0.457). It used
+  571/571 HyRE and retrieval-cache hits and retrieved gold on 354/571 rows.
+  Retrieval exposure is positive versus raw question retrieval and above
+  `rag_hyde`, but downstream answer accuracy is weaker than `rag_hyde`. Cite
+  with the retry caveat: 9 explicit same-model final-answer repairs, 7 with
+  original responses at >=2000 output tokens. A naive fallback-string scan found
+  one incidental use of the legal word "fallback" in a generated CERCLA query;
+  targeted fallback-key audit found zero fallback keys or provider/method
+  substitution markers.
+- The full SCALR `or-ministral-8b` `rag_rewrite` row is 399/571 = 69.9%,
+  tied with `snap_hyre`, +1.93pp over strict `rag_simple` (McNemar p=0.228),
+  +2.63pp over `llm_only` (p=0.119), and -1.23pp versus `rag_hyde` (p=0.470).
+  Dynamic rewrite retrieval is positive over raw question retrieval:
+  Hit@5 0.6497 / MRR@5 0.5185, with gold retrieved on 371/571 rows. Cite with
+  the retry/repair caveat: 5 same-model rewrite-format retries, 1 explicit
+  partial-JSON repair on `scalr_538`, and 31 same-model final-answer repairs.
+  Three failed partial logs are superseded by the merged clean detail log:
+  `scalr_110`, `scalr_431`, and `scalr_538`.
+- As of 2026-05-15, the full SCALR `or-gemma4-26b` `snap_hyre`
+  generation/retrieval cache is signed off for answer replay: generation is
+  571/571 with one explicit same-model format retry on `scalr_273`, and
+  retrieval improves over raw question retrieval from Hit@5 0.4956 to 0.7268.
+- The corresponding full SCALR `or-gemma4-26b` `snap_hyre` answer row is
+  422/571 = 73.9%, versus `rag_simple` 419/571 = 73.4% and `llm_only` 417/571
+  = 73.0%; paired deltas are not significant. Cite this as a strong retrieval
+  lift with answer-flat downstream behavior. Caveat: 10 explicit same-model
+  answer-format retries occurred, including five original responses at
+  >=2000/2048 output tokens before final-line repair.
+- The full SCALR `or-gemma4-26b` `rag_hyde` row is 412/571 = 72.2%, below
+  `rag_simple` and `snap_hyre` downstream despite clean generated/retrieval
+  caches. Retrieval is still strongly positive over raw question retrieval:
+  Hit@5 0.7075 vs raw 0.4956. Cite as retrieval-positive but answer-flat/weak,
+  with the retry caveat: 8 explicit same-model answer-format retries, including
+  three original responses at >=2000/2048 output tokens.
+- The full SCALR `or-gemma4-26b` `rag_rewrite` row is 422/571 = 73.9%, tied
+  with `snap_hyre` and +0.53pp over `rag_simple` downstream. The rewrite path
+  had 571/571 valid rewrite JSON parses, 0 rewrite retries/fallbacks, and
+  Hit@5 0.6743 / MRR@5 0.5212, so it is retrieval-positive over raw question
+  retrieval but below `snap_hyre`/`rag_hyde` generated retrieval. Cite with the
+  retry caveat: 9 explicit same-model final-answer format repairs, all valid
+  same-prediction final-line repairs.
+- The full HousingQA `groq-llama70b` `llm_only` row is 3067/6853 = 44.8%.
+  It is a clean no-retrieval anchor: zero errors, missing predictions, parse
+  failures, fallback keys, exact-final-line issues, think tags, answer retries,
+  long rows, or near-cap outputs; all rows used provider/mode/dataset
+  `groq-llama70b`/`llm_only`/`housing`, had retrieved list length 0 by design,
+  and ended with exact `Answer: Yes/No` lines.
 - LegalSearchQA is related work unless converted into a frozen corpus task.
 
 **Archived pivot**: the May 9-11 diagnostic/adaptive-controller package was

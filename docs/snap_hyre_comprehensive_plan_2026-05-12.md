@@ -45,20 +45,21 @@ Run the same method ladder across:
 
 | Model label | Provider path | Role |
 |---|---|---|
-| Gemma E4B | OpenRouter `or-gemma3n-e4b` | small/cheap open model axis |
+| Ministral 3 8B 2512 | OpenRouter `or-ministral-8b` | API-only small-model replacement; do not label as Gemma 4 E4B |
 | Gemma 4 26B | OpenRouter `or-gemma4-26b` | main Gemma result |
-| Llama 3.3 70B Versatile | Groq `groq-llama70b`, OpenRouter fallback | cross-family larger model |
+| Llama 3.3 70B Versatile | Groq `groq-llama70b` | cross-family larger model |
 
 Before full launches, run a provider smoke and one N=5 harness smoke per
 dataset/method family. Do not launch broad sweeps if any provider returns
 auth/rate-limit/model-format errors.
 
-Default future launches should use API providers for answer/generation sweeps.
-The vLLM path is now a fallback for exact historical Gemma 4 E4B coverage or
-API outages, not the default execution path. OpenRouter's E4B API endpoint is
-`google/gemma-3n-e4b-it`, exposed locally as `or-gemma3n-e4b`; label that row
-as Gemma E4B or Gemma 3n E4B rather than the exact `google/gemma-4-E4B-it`
-checkpoint used by older vLLM runs.
+Default future launches should use API providers for all three current axes.
+Historical Gemma 4 E4B rows remain provenance for older comparisons, but they
+require vLLM unless an exact API endpoint is verified. Do not use
+`or-gemma3n-e4b` as a substitute for Gemma 4 E4B; it is
+`google/gemma-3n-e4b-it`, a different model family/checkpoint. Qwen3-style
+models and Nemotron Nano 9B V2 reasoning-trace models are not main-grid
+defaults unless a separate smoke proves they produce clean answer-only outputs.
 
 ## Fixed Method Ladder
 

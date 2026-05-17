@@ -22,6 +22,10 @@ KS="${KS:-1,3,5,10}"
 RESUME="${RESUME:-1}"
 TRACE_CALLS="${TRACE_CALLS:-1}"
 TRACE_EVENTS="${TRACE_EVENTS:-1}"
+ENV_LLM_MAX_COMPLETION_TOKENS="${LLM_MAX_COMPLETION_TOKENS:-}"
+LLM_MAX_COMPLETION_TOKENS="${LLM_MAX_COMPLETION_TOKENS:-2048}"
+EVAL_MIN_COMPLETION_TOKENS="${EVAL_MIN_COMPLETION_TOKENS:-2048}"
+EVAL_GENERATION_FORMAT_RETRY="${EVAL_GENERATION_FORMAT_RETRY:-1}"
 HYRE_CACHE_ROOT="${HYRE_CACHE_ROOT:-$ROOT/caches/hyre/full}"
 RETRIEVAL_CACHE_ROOT="${RETRIEVAL_CACHE_ROOT:-$ROOT/caches/retrieval/full}"
 BAREXAM_COLLECTION="${BAREXAM_COLLECTION:-}"
@@ -47,6 +51,26 @@ if [[ -f .env ]]; then
   source .env
   set +a
 fi
+if [[ -n "$ENV_LLM_MAX_COMPLETION_TOKENS" ]]; then
+  LLM_MAX_COMPLETION_TOKENS="$ENV_LLM_MAX_COMPLETION_TOKENS"
+fi
+if ! [[ "$LLM_MAX_COMPLETION_TOKENS" =~ ^[0-9]+$ ]]; then
+  echo "LLM_MAX_COMPLETION_TOKENS must be a positive integer, got $LLM_MAX_COMPLETION_TOKENS" >&2
+  exit 2
+fi
+if ! [[ "$EVAL_MIN_COMPLETION_TOKENS" =~ ^[0-9]+$ ]]; then
+  echo "EVAL_MIN_COMPLETION_TOKENS must be a positive integer, got $EVAL_MIN_COMPLETION_TOKENS" >&2
+  exit 2
+fi
+if (( LLM_MAX_COMPLETION_TOKENS < EVAL_MIN_COMPLETION_TOKENS )); then
+  echo "LLM_MAX_COMPLETION_TOKENS=$LLM_MAX_COMPLETION_TOKENS is below EVAL_MIN_COMPLETION_TOKENS=$EVAL_MIN_COMPLETION_TOKENS; refusing truncation-prone generation cache run" >&2
+  exit 2
+fi
+NO_SILENT_FALLBACK="${NO_SILENT_FALLBACK:-1}"
+case "${NO_SILENT_FALLBACK,,}" in
+  1|true|yes|on) ;;
+  *) echo "NO_SILENT_FALLBACK must be enabled for generation cache runs, got $NO_SILENT_FALLBACK" >&2; exit 2 ;;
+esac
 
 case "$PROVIDER" in
   or-*) [[ -n "${OPENROUTER_API_KEY:-}" ]] || { echo "missing OPENROUTER_API_KEY for $PROVIDER" >&2; exit 2; } ;;
@@ -72,13 +96,25 @@ export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
 export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
 export HF_DATASETS_OFFLINE="${HF_DATASETS_OFFLINE:-1}"
 export DISABLE_CROSS_ENCODER="${DISABLE_CROSS_ENCODER:-0}"
-export LLM_MAX_COMPLETION_TOKENS="${LLM_MAX_COMPLETION_TOKENS:-768}"
+export LLM_MAX_COMPLETION_TOKENS
+export EVAL_GENERATION_FORMAT_RETRY
+export NO_SILENT_FALLBACK
+if [[ "$PROVIDER" == or-* ]]; then
+  export LLM_CALL_MIN_INTERVAL_SEC="${LLM_CALL_MIN_INTERVAL_SEC:-2.0}"
+  export LLM_CALL_RATE_LIMIT_COOLDOWN_SEC="${LLM_CALL_RATE_LIMIT_COOLDOWN_SEC:-8.0}"
+fi
 export PYTHONUNBUFFERED=1
 
 echo "[$(ts)] local generation cache root=$ROOT commit=$(git rev-parse --short HEAD)"
 echo "[$(ts)] provider=$PROVIDER model_label=$MODEL_LABEL questions=$QUESTIONS seed=$SEED sample=${SAMPLE_START}:${SAMPLE_END:-end} max_k=$MAX_K"
 echo "[$(ts)] cache_scope=$CACHE_SCOPE"
 echo "[$(ts)] datasets=${DATASETS_ARR[*]} modes=${MODES_ARR[*]}"
+echo "[$(ts)] no_silent_fallback=$NO_SILENT_FALLBACK"
+echo "[$(ts)] llm_max_completion_tokens=$LLM_MAX_COMPLETION_TOKENS eval_min_completion_tokens=$EVAL_MIN_COMPLETION_TOKENS"
+echo "[$(ts)] eval_generation_format_retry=$EVAL_GENERATION_FORMAT_RETRY"
+if [[ -n "${LLM_CALL_MIN_INTERVAL_SEC:-}" || -n "${LLM_CALL_RATE_LIMIT_COOLDOWN_SEC:-}" ]]; then
+  echo "[$(ts)] llm_call_min_interval=${LLM_CALL_MIN_INTERVAL_SEC:-0} rate_limit_cooldown=${LLM_CALL_RATE_LIMIT_COOLDOWN_SEC:-0}"
+fi
 if [[ -n "$BAREXAM_COLLECTION" ]]; then
   echo "[$(ts)] barexam_collection=$BAREXAM_COLLECTION"
 fi
@@ -133,7 +169,47 @@ for dataset in "${DATASETS_ARR[@]}"; do
       gen_cmd+=(--trace-events)
     fi
     LLM_PROVIDER="$PROVIDER" \
+    NO_SILENT_FALLBACK="$NO_SILENT_FALLBACK" \
     "${gen_cmd[@]}"
+
+    "$UV" run python - "$gen_out" "$mode" <<'PY'
+import json
+import sys
+
+path, mode = sys.argv[1], sys.argv[2]
+rows = []
+with open(path) as f:
+    for line in f:
+        if line.strip():
+            rows.append(json.loads(line))
+errors = [r for r in rows if r.get("error")]
+missing = [r for r in rows if not r.get("hyde_passage")]
+fallbacks = [
+    r for r in rows
+    if r.get("hyde_used_fallback") is True
+    or any(k.endswith("_used_fallback") and v for k, v in r.items())
+]
+parse_fail = [
+    r for r in rows
+    if (mode == "snap_hyre" and r.get("snap_hyre_parse_ok") is False)
+    or r.get("hyde_parse_ok") is False
+]
+missing_snap = [r for r in rows if mode == "snap_hyre" and not r.get("snap_letter")]
+artifacts = [r for r in rows if r.get("hyde_contains_answer_artifact") is True]
+print(f"[postcheck] generation path={path} rows={len(rows)} errors={len(errors)} missing_hyde={len(missing)} fallbacks={len(fallbacks)} parse_fail={len(parse_fail)} missing_snap_letter={len(missing_snap)} answer_artifacts={len(artifacts)}")
+if errors:
+    raise SystemExit("generation errors: " + ",".join(str(r.get("label")) for r in errors[:10]))
+if missing:
+    raise SystemExit("missing hyde_passage: " + ",".join(str(r.get("label")) for r in missing[:10]))
+if fallbacks:
+    raise SystemExit("generation fallback rows: " + ",".join(str(r.get("label")) for r in fallbacks[:10]))
+if parse_fail:
+    raise SystemExit("generation parse failures: " + ",".join(str(r.get("label")) for r in parse_fail[:10]))
+if missing_snap:
+    raise SystemExit("missing snap_letter: " + ",".join(str(r.get("label")) for r in missing_snap[:10]))
+if artifacts:
+    raise SystemExit("generation answer-artifact rows: " + ",".join(str(r.get("label")) for r in artifacts[:10]))
+PY
 
     echo "[$(ts)] build retrieval-from-generation dataset=$dataset mode=$mode out=$ret_out"
     "$UV" run python scripts/build_retrieval_cache.py \

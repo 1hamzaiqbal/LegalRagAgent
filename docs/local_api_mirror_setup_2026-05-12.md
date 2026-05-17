@@ -30,7 +30,10 @@ unless space is cleared first.
 
 - First-time embedding can be slower on CPU-only local hardware.
 - Exact historical `google/gemma-4-E4B-it` rows still need vLLM or another
-  exact provider; the API E4B row is `or-gemma3n-e4b`.
+  exact provider. For the current API-only comprehensive package, use the
+  small-model replacement row instead of trying to force this historical axis.
+  Do not use OpenRouter `or-gemma3n-e4b` for this row; it is Gemma 3n E4B, not
+  Gemma 4 E4B.
 
 ## Data Population
 
@@ -50,11 +53,11 @@ export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export HF_DATASETS_OFFLINE=1
 export DISABLE_CROSS_ENCODER=0
-export LLM_MAX_COMPLETION_TOKENS=768
+export LLM_MAX_COMPLETION_TOKENS=2048
 
 uv run python eval/eval_harness.py \
   --mode snap_hyre \
-  --provider or-gemma3n-e4b \
+  --provider or-gemma4-26b \
   --dataset barexam \
   --questions 1 \
   --retrieval-k 3 \

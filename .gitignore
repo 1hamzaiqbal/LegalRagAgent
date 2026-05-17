@@ -19,11 +19,13 @@ uv.lock
 agentic_ideas/
 
 # Generated artifacts
+caches/
 case_studies/
 logs/
 .pytest_cache/
 
 # Editor / OS
+.vscode/
 *~
 *.swp
 .DS_Store

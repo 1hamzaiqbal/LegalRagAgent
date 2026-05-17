@@ -7,8 +7,8 @@ complete.
 ## Objective Restated As Deliverables
 
 Goal: produce a full-corpus, retrieval-first Snap-HyRE evaluation package across
-BarExamQA, HousingQA, CaseHOLD, and LegalBench-SCALR using Gemma E4B, Gemma 4
-26B, and Llama 3.3 70B. Select a universal top-k from cached retrieval
+BarExamQA, HousingQA, CaseHOLD, and LegalBench-SCALR using an API-only
+small-model replacement, Gemma 4 26B, and Llama 3.3 70B. Select a universal top-k from cached retrieval
 diagnostics, run the canonical ablation ladder with source-gated logs, and
 produce verified tables, plots, and concise analysis showing where Snap-HyRE
 improves retrieval exposure and whether that transfers to downstream accuracy.
@@ -16,8 +16,8 @@ improves retrieval exposure and whether that transfers to downstream accuracy.
 Concrete success criteria:
 
 1. Four legal benchmarks are set up with populated corpora/collections.
-2. Three API-backed model labels are smoke-tested: `or-gemma3n-e4b`,
-   `or-gemma4-26b`, and `groq-llama70b`.
+2. Three model labels are smoke-tested without substituting checkpoints:
+   `or-ministral-8b`, `or-gemma4-26b`, and `groq-llama70b`.
 3. Retrieval caches exist for full-corpus raw-question retrieval and relevant
    replayable generated-query methods.
 4. Qrel alignment audits exist before any Hit@k/MRR claim is promoted.
@@ -68,7 +68,8 @@ signoff entry for the local validation gate.
 The actual comprehensive package is still incomplete because most
 dataset/model/method answer cells are missing, HyDE/Snap-HyRE generation caches
 exist only for `legalbench_scalr` × `gemma4-26b` N=50 plus a partial BarExam
-cache, and the Llama 70B API axis is blocked by provider/key issues.
+cache, and the replacement small-model API axis still needs strict smoke
+validation.
 
 ## Local Validation Snapshot - 2026-05-13
 
@@ -82,9 +83,12 @@ cache, and the Llama 70B API axis is blocked by provider/key issues.
   `legalbench_scalr_holdings` 1,733 docs.
 - Local runner defaults were hardened so `DISABLE_CROSS_ENCODER=0` unless a
   dense-only speed smoke is explicitly requested.
-- API smoke passed for `or-gemma3n-e4b` and `or-gemma4-26b`; `groq-llama70b`
-  failed with a Groq 401 invalid-key preflight, and `or-llama70b` fallback hit
-  upstream OpenRouter 429 rate limits.
+- API smoke passed for `or-gemma4-26b`.
+- `or-gemma3n-e4b` was smoke-tested, but it is Gemma 3n E4B and should not be
+  counted as the Gemma 4 E4B comprehensive axis. The current API-only small row
+  is `or-ministral-8b`.
+- `groq-llama70b` initially failed with a Groq 401 invalid-key preflight; after
+  replacing the key on 2026-05-13, a one-question strict smoke passed.
 - BarExamQA was repaired by appending 170,511 validation/test passages to the
   existing GTE-large `legal_passages` collection. Qrel alignment now passes at
   100% for BarExamQA, HousingQA, CaseHOLD, and LegalBench-SCALR.
@@ -104,8 +108,8 @@ cache, and the Llama 70B API axis is blocked by provider/key issues.
 
 ## Next Concrete Gates
 
-1. Replace or repair the Groq key, or configure a non-rate-limited Llama 70B
-   fallback before launching the third model axis.
+1. Run strict API smokes for `or-ministral-8b`, `or-gemma4-26b`, and
+   `groq-llama70b` before launching broad answer cells.
 2. Continue generation-cache construction one provider/dataset at a time,
    using `--resume`; the partial BarExam `gemma4-26b` `rag_hyde` cache can be
    resumed.

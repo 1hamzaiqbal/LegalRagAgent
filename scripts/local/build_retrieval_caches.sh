@@ -56,12 +56,14 @@ export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
 export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
 export HF_DATASETS_OFFLINE="${HF_DATASETS_OFFLINE:-1}"
 export DISABLE_CROSS_ENCODER="${DISABLE_CROSS_ENCODER:-0}"
+export NO_SILENT_FALLBACK="${NO_SILENT_FALLBACK:-1}"
 export PYTHONUNBUFFERED=1
 
 echo "[$(ts)] local retrieval cache root=$ROOT commit=$(git rev-parse --short HEAD)"
 echo "[$(ts)] chroma=$CHROMA_DB_DIR cache_dir=$CACHE_DIR questions=$QUESTIONS seed=$SEED sample=${SAMPLE_START}:${SAMPLE_END:-end} max_k=$MAX_K"
 echo "[$(ts)] cache_scope=$CACHE_SCOPE"
 echo "[$(ts)] datasets=${DATASETS_ARR[*]} query_types=${QUERY_TYPES_ARR[*]}"
+echo "[$(ts)] no_silent_fallback=$NO_SILENT_FALLBACK"
 if [[ -n "$BAREXAM_COLLECTION" ]]; then
   echo "[$(ts)] barexam_collection=$BAREXAM_COLLECTION"
 fi
@@ -103,6 +105,9 @@ for dataset in "${DATASETS_ARR[@]}"; do
   else
     echo "[$(ts)] WARNING: alignment failed dataset=$dataset; Hit/MRR is not promotable without repair"
     cat "$alignment_report"
+    if [[ "$NO_SILENT_FALLBACK" == "1" ]]; then
+      exit 2
+    fi
   fi
 
   for query_type in "${QUERY_TYPES_ARR[@]}"; do
@@ -129,6 +134,9 @@ for dataset in "${DATASETS_ARR[@]}"; do
       outputs+=("$out")
     else
       echo "[$(ts)] WARNING: empty cache dataset=$dataset query_type=$query_type out=$out; skipping audit/matrix entry"
+      if [[ "$NO_SILENT_FALLBACK" == "1" ]]; then
+        exit 2
+      fi
     fi
   done
 done

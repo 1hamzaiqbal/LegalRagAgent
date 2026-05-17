@@ -7,7 +7,7 @@ from diagnostic adaptation to a fixed Snap-HyRE method evaluation. The May 11
 diagnostic/controller docs and scripts were archived for traversibility, but
 their validated rows remain source-gated here.
 
-Last updated: 2026-05-13
+Last updated: 2026-05-16
 Branch: `snap_hyre_comprehensive`
 
 Current active planning docs:
@@ -26,6 +26,104 @@ Do not treat the archived diagnostic-controller framing as the active paper
 story. Treat the rows below as historical, source-gated evidence that may be
 reused in the new fixed-method Snap-HyRE tables only when the method, dataset,
 model, `k`, detail log, and caveat still match.
+
+## Update 2026-05-14 ~comprehensive launch/cache gate
+
+Scope: fixed-method comprehensive launch prep at `RETRIEVAL_K=5` with
+full-corpus deterministic retrieval caches and strict no-silent-fallback
+guards.
+
+Retrieval cache signoff:
+
+| Dataset | Cache evidence | Health | Sign-off |
+|---|---|---|---|
+| LegalBench-SCALR | `caches/retrieval/full/legalbench_scalr_qfull_seed42_raw_question_k10.jsonl`; `caches/retrieval/full/legalbench_scalr_qfull_seed42_golden_neighbors_k10.jsonl` | 571 rows each; raw Hit@5 0.4956, Hit@10 0.5937; golden-neighbor injected-gold Hit/MRR 1.0000 | ✅ RETRIEVAL-CACHE-CLEAN |
+| CaseHOLD | `caches/retrieval/full/casehold_qfull_seed42_raw_question_k10.jsonl`; `caches/retrieval/full/casehold_qfull_seed42_golden_neighbors_k10.jsonl` | 3600 rows each; raw Hit@5 0.1794, Hit@10 0.2639; golden-neighbor injected-gold Hit/MRR 1.0000 | ✅ RETRIEVAL-CACHE-CLEAN |
+| HousingQA | `caches/retrieval/full/housing_qfull_seed42_raw_question_k10.jsonl`; `caches/retrieval/full/housing_qfull_seed42_golden_neighbors_k10.jsonl` | 6853 rows each; golden-neighbor final audit has duplicate_keys=0, missing_idx=0, empty_retrieval=0, rows_shorter_than_min_k=0, rows_without_gold=0, Hit@5 1.0000, MRR@10 1.0000 | ✅ RETRIEVAL-CACHE-CLEAN |
+| LegalBench-SCALR `or-gemma4-26b` `snap_hyre` | `caches/hyre/full/legalbench_scalr_qfull_seed42_or-gemma4-26b_snap_hyre.jsonl`; `caches/retrieval/full/legalbench_scalr_qfull_seed42_or-gemma4-26b_snap_hyre_k10.jsonl` | generation rows 571/571, zero errors/missing passages/parse failures/answer-artifact passages, one logged same-model generation-format retry on `scalr_273`; retrieval duplicate_keys=0, missing_idx=0, empty=0, short=0, no_gold=0, Hit@5 0.7268, Hit@10 0.7828, MRR@10 0.6242 | ✅ GENERATED-CACHE-CLEAN |
+| LegalBench-SCALR `or-gemma4-26b` `rag_hyde` | `caches/hyre/full/legalbench_scalr_qfull_seed42_or-gemma4-26b_rag_hyde.jsonl`; `caches/retrieval/full/legalbench_scalr_qfull_seed42_or-gemma4-26b_rag_hyde_k10.jsonl` | generation rows 571/571, zero errors/missing passages/parse failures/answer-artifact passages/retries, compact passage lengths max 551 chars; retrieval duplicate_keys=0, missing_idx=0, empty=0, short=0, no_gold=0, Hit@5 0.7075, Hit@10 0.7688, MRR@10 0.6383 | ✅ GENERATED-CACHE-CLEAN |
+| LegalBench-SCALR `or-ministral-8b` `rag_hyde` | `caches/hyre/full/legalbench_scalr_qfull_seed42_or-ministral-8b_rag_hyde.jsonl`; `caches/retrieval/full/legalbench_scalr_qfull_seed42_or-ministral-8b_rag_hyde_k10.jsonl` | generation rows 571/571, zero errors/missing passages/fallbacks/parse failures/answer-artifact passages/retries, passage chars min/p50/p95/max 439/667/872/1043; retrieval duplicate_keys=0, missing_idx=0, empty=0, short=0, no_gold=0, Hit@5 0.6025, Hit@10 0.6865, MRR@10 0.4506 | ✅ GENERATED-CACHE-CLEAN |
+| LegalBench-SCALR `or-ministral-8b` `snap_hyre` | `caches/hyre/full/legalbench_scalr_qfull_seed42_or-ministral-8b_snap_hyre.jsonl`; `caches/retrieval/full/legalbench_scalr_qfull_seed42_or-ministral-8b_snap_hyre_k10.jsonl` | generation rows 571/571, zero errors/missing passages/fallbacks/parse failures/answer-artifact passages/retries, passage chars min/p50/p95/max 290/466/605/686; retrieval duplicate_keys=0, missing_idx=0, empty=0, short=0, no_gold=0, Hit@5 0.6200, Hit@10 0.7040, MRR@10 0.5110 | ✅ GENERATED-CACHE-CLEAN |
+| LegalBench-SCALR `groq-llama70b` `rag_hyde` | `caches/hyre/full/legalbench_scalr_qfull_seed42_groq-llama70b_rag_hyde.jsonl`; `caches/retrieval/full/legalbench_scalr_qfull_seed42_groq-llama70b_rag_hyde_k10.jsonl` | generation rows 571/571, zero errors/missing passages/fallbacks/parse failures/answer-artifact passages/retries, passage chars min/p50/p95/max 437/695/846/957; retrieval duplicate_keys=0, missing_idx=0, empty=0, short=0, no_gold=0, Hit@5 0.6147, Hit@10 0.6953, MRR@10 0.5015 | ✅ GENERATED-CACHE-CLEAN |
+| LegalBench-SCALR `groq-llama70b` `snap_hyre` | `caches/hyre/full/legalbench_scalr_qfull_seed42_groq-llama70b_snap_hyre.jsonl`; `caches/retrieval/full/legalbench_scalr_qfull_seed42_groq-llama70b_snap_hyre_k10.jsonl` | generation rows 571/571, zero errors/missing passages/fallbacks/parse failures/answer-artifact passages/retries, passage chars min/p50/p95/max 244/461/582/714; retrieval duplicate_keys=0, missing_idx=0, empty=0, short=0, no_gold=0, Hit@5 0.5517, Hit@10 0.6462, MRR@10 0.4126 | ✅ GENERATED-CACHE-CLEAN |
+| BarExamQA `groq-llama70b` `rag_hyde` | `caches/hyre/full/barexam_qfull_seed42_groq-llama70b_rag_hyde.jsonl`; `caches/retrieval/full/barexam_qfull_seed42_groq-llama70b_rag_hyde_k10.jsonl` | generation rows 1195/1195, zero errors/missing passages/fallback keys/parse failures/answer-artifact passages, passage chars min/p50/p95/max 466/703/866/1169; retrieval duplicate_keys=0, missing_idx=0, empty=0, short=0, no_gold=0, Hit@5 0.1046, Hit@10 0.1757, MRR@10 0.0609 | ✅ GENERATED-CACHE-CLEAN |
+| BarExamQA `groq-llama70b` `snap_hyre` | `caches/hyre/full/barexam_qfull_seed42_groq-llama70b_snap_hyre.jsonl`; `caches/retrieval/full/barexam_qfull_seed42_groq-llama70b_snap_hyre_k10.jsonl` | generation rows 1195/1195, zero errors/missing passages/fallback keys/parse failures/answer-artifact passages, passage chars min/p50/p95/max 281/447/562/666; retrieval duplicate_keys=0, missing_idx=0, empty=0, short=0, no_gold=0, Hit@5 0.1105, Hit@10 0.1849, MRR@10 0.0663 | ✅ GENERATED-CACHE-CLEAN |
+| CaseHOLD `groq-llama70b` `rag_hyde` | `caches/hyre/full/casehold_qfull_seed42_groq-llama70b_rag_hyde.jsonl`; `caches/retrieval/full/casehold_qfull_seed42_groq-llama70b_rag_hyde_k10.jsonl` | generation rows 3600/3600, zero errors/missing passages/fallbacks/parse failures/answer-artifact passages/think artifacts, one call per row, max output 193 tokens; retrieval duplicate_keys=0, missing_idx=0, empty=0, short=0, no_gold=0, Hit@5 0.5122, Hit@10 0.5914, MRR@10 0.4090 | ✅ GENERATED-CACHE-CLEAN |
+| CaseHOLD `groq-llama70b` `snap_hyre` | `caches/hyre/full/casehold_qfull_seed42_groq-llama70b_snap_hyre.jsonl`; `caches/retrieval/full/casehold_qfull_seed42_groq-llama70b_snap_hyre_k10.jsonl` | generation rows 3600/3600 after strict snap-final-line repair, zero errors/missing passages/missing snap letters/fallbacks/parse failures/answer-artifact passages/think artifacts, one call per row, max output 304 tokens; two malformed snap metadata rows (`ch_test_1108`, `ch_test_3118`) were regenerated with the same provider/model and merged before signoff; retrieval duplicate_keys=0, missing_idx=0, empty=0, short=0, no_gold=0, Hit@5 0.4497, Hit@10 0.5289, MRR@10 0.3390 | ✅ GENERATED-CACHE-CLEAN |
+
+HousingQA cache caveat: the golden-neighbor full cache was rebuilt with
+`retrieval_backend=stored_gold_embedding` for all 6853 rows because the
+canonical local text-embedding path OOM-killed on the 1.8M-document Housing
+Chroma index. The neighbor query uses the persisted embedding for the gold
+statute id(s), then keeps MiniLM cross-encoder reranking enabled. A
+cross-encoder-only `CROSS_ENCODER_MAX_CHARS=4096` cap prevents OOM on very long
+statute text; this cap is recorded in cache metadata and does not truncate final
+LLM evidence.
+
+Full answer rows:
+
+| Dataset | Provider | Mode | Detail log | Accuracy | Health | Sign-off |
+|---|---|---|---|---:|---|---|
+| LegalBench-SCALR | `groq-llama70b` | `llm_only` | `logs/eval_llm_only_groq-llama70b_20260514_1414_legalbench_scalr_local-snap-hyre-groq-llama70b-legalbench_scalr-llm_only-nfull-k5_detail.jsonl` | 425/571 = 74.4% | `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0, near-cap rows 0 | ✅ COMPREHENSIVE-CLEAN |
+| LegalBench-SCALR | `groq-llama70b` | `rag_simple` | `logs/eval_rag_simple_groq-llama70b_20260515_171203_legalbench_scalr_local-snap-hyre-groq-llama70b-legalbench_scalr-rag_simple-nfull-k5_detail.jsonl` | 416/571 = 72.9% | strict raw retrieval-cache replay: 571/571 cache hits, 0 empty evidence rows, 283/571 gold retrieved; retrieval exposure from `docs/generated/retrieval_qrels_scalr_groq-llama70b_rag_simple.md`: Hit@5 0.4956, MRR@5 0.3447; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, fallback keys 0, answer retries 0, max output 760 tokens, near-cap violations 0; paired vs `llm_only`: -1.58pp, b/c=29/38, p=0.328 | ✅ COMPREHENSIVE-CLEAN |
+| LegalBench-SCALR | `groq-llama70b` | `golden_passage` | `logs/eval_golden_passage_groq-llama70b_20260515_173003_legalbench_scalr_local-snap-hyre-groq-llama70b-legalbench_scalr-golden_passage-nfull-k5_detail.jsonl` | 534/571 = 93.5% | oracle gold injected on 571/571 rows with 571/571 evidence rows; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, fallback keys 0, 8 valid same-model final-answer retries, retry max 5 tokens, max output 603 tokens, near-cap violations 0; paired vs `rag_simple`: +20.67pp, b/c=119/1, p=1.82e-34; paired vs `llm_only`: +19.09pp, b/c=110/1, p=8.63e-32 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| LegalBench-SCALR | `groq-llama70b` | `golden_plus_neighbors` | `logs/eval_golden_plus_neighbors_groq-llama70b_20260515_174642_legalbench_scalr_local-snap-hyre-groq-llama70b-legalbench_scalr-golden_plus_neighbors-nfull-k5_detail.jsonl` | 474/571 = 83.0% | strict golden-neighbor retrieval-cache replay: 571/571 cache hits, 571/571 gold retrieved, 571/571 evidence rows; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, fallback keys 0, 2 valid same-model final-answer retries, retry max 5 tokens, max output 750 tokens, near-cap violations 0; paired vs `rag_simple`: +10.16pp, b/c=73/15, p=2.56e-10; paired vs `golden_passage`: -10.51pp, b/c=1/61, p=2.73e-17; paired vs `llm_only`: +8.58pp, b/c=63/14, p=1.41e-08 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| LegalBench-SCALR | `groq-llama70b` | `rag_hyde` | `logs/eval_rag_hyde_groq-llama70b_20260515_181837_legalbench_scalr_local-snap-hyre-groq-llama70b-legalbench_scalr-rag_hyde-nfull-k5_detail.jsonl` | 402/571 = 70.4% | strict generated/retrieval-cache replay: 571/571 HyDE cache hits, 571/571 retrieval-cache hits, 0 empty evidence rows, 351/571 gold retrieved; retrieval exposure from signed cache: Hit@5 0.6147, MRR@10 0.5015; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, fallback keys 0, answer retries 0, max output 724 tokens, near-cap violations 0; paired vs `rag_simple`: -2.45pp, b/c=23/37, p=0.0925; paired vs `llm_only`: -4.03pp, b/c=13/36, p=0.00140; paired vs `golden_plus_neighbors`: -12.61pp, b/c=8/80, p=4.60e-16 | ✅ COMPREHENSIVE-CLEAN |
+| LegalBench-SCALR | `groq-llama70b` | `snap_hyre` | `logs/eval_snap_hyre_groq-llama70b_20260515_183326_legalbench_scalr_local-snap-hyre-groq-llama70b-legalbench_scalr-snap_hyre-nfull-k5_detail.jsonl` | 407/571 = 71.3% | strict generated/retrieval-cache replay: 571/571 HyRE cache hits, 571/571 retrieval-cache hits, 0 empty evidence rows, 315/571 gold retrieved; retrieval exposure from signed cache: Hit@5 0.5517, MRR@10 0.4126; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, fallback keys 0, answer retries 0, max output 789 tokens, near-cap violations 0; paired vs `rag_simple`: -1.58pp, b/c=23/32, p=0.281; paired vs `llm_only`: -3.15pp, b/c=19/37, p=0.0222; paired vs `rag_hyde`: +0.88pp, b/c=24/19, p=0.542; paired vs `golden_plus_neighbors`: -11.73pp, b/c=10/77, p=5.92e-14 | ✅ COMPREHENSIVE-CLEAN |
+| LegalBench-SCALR | `groq-llama70b` | `rag_rewrite` | `logs/eval_rag_rewrite_groq-llama70b_20260515_184842_legalbench_scalr_local-snap-hyre-groq-llama70b-legalbench_scalr-rag_rewrite-nfull-k5_detail.jsonl` | 409/571 = 71.6% | dynamic rewrite retrieval: 571/571 rewrite JSON parses, 0 rewrite retries, 0 partial-JSON repairs, 0 empty evidence rows, 329/571 gold retrieved; retrieval exposure from `docs/generated/retrieval_qrels_scalr_groq-llama70b_rag_rewrite.md`: Hit@5 0.5762, MRR@5 0.4327; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, fallback keys 0, 5 valid same-model final-answer retries, retry max 5 tokens, max output 859 tokens, near-cap violations 0; paired vs `rag_simple`: -1.23pp, b/c=28/35, p=0.450; paired vs `snap_hyre`: +0.35pp, b/c=27/25, p=0.890; paired vs `rag_hyde`: +1.23pp, b/c=27/20, p=0.382; paired vs `llm_only`: -2.80pp, b/c=18/34, p=0.0365; paired vs `golden_plus_neighbors`: -11.38pp, b/c=13/78, p=1.85e-12 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| BarExamQA | `groq-llama70b` | `llm_only` | `logs/eval_llm_only_groq-llama70b_20260515_191548_barexam_local-snap-hyre-groq-llama70b-barexam-llm_only-nfull-k5_detail.jsonl` | 940/1195 = 78.7% | `scripts/analyze_detail_flags.py`: rows 1195, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, fallback keys 0, answer retries 0, max output 738 tokens, max final-answer chars 3681, near-cap violations 0 | ✅ COMPREHENSIVE-CLEAN |
+| BarExamQA | `groq-llama70b` | `rag_simple` | `logs/eval_rag_simple_groq-llama70b_20260515_194919_barexam_local-snap-hyre-groq-llama70b-barexam-rag_simple-nfull-k5_detail.jsonl` | 891/1195 = 74.6% | strict raw retrieval-cache replay: 1195/1195 cache hits, 0 empty evidence rows, 17/1195 gold retrieved; retrieval exposure from `docs/generated/retrieval_qrels_barexam_groq-llama70b_rag_simple.md`: Hit@5 0.0142, MRR@5 0.0068; `scripts/analyze_detail_flags.py`: rows 1195, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, fallback keys 0, 2 valid same-model final-answer retries (`mbe_272`, `mbe_202`), retry max 5 tokens, max output 1169 tokens, near-cap violations 0; paired vs `llm_only`: -4.10pp, b/c=66/115, p=0.000334 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| BarExamQA | `groq-llama70b` | `golden_plus_neighbors` | `logs/eval_golden_plus_neighbors_groq-llama70b_20260515_202827_barexam_local-snap-hyre-groq-llama70b-barexam-golden_plus_neighbors-nfull-k5_detail.jsonl` | 930/1195 = 77.8% | strict golden-neighbor cache replay: 1195/1195 cache hits, 1195/1195 gold retrieved; retrieval exposure from `docs/generated/retrieval_qrels_barexam_groq-llama70b_golden_plus_neighbors.md`: Hit@5 1.0000, MRR@5 1.0000; `scripts/analyze_detail_flags.py`: rows 1195, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, fallback keys 0, 2 valid same-model final-answer retries (`mbe_273`, `mbe_1098`), retry max 5 tokens, max output 1112 tokens, near-cap violations 0; paired vs `rag_simple`: +3.26pp, b/c=136/97, p=0.0126; paired vs `llm_only`: -0.84pp, b/c=97/107, p=0.529 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| BarExamQA | `groq-llama70b` | `golden_passage` | `logs/eval_golden_passage_groq-llama70b_20260515_210741_barexam_local-snap-hyre-groq-llama70b-barexam-golden_passage-nfull-k5_detail.jsonl` | 946/1195 = 79.2% | oracle gold injected/retrieved on 1195/1195 rows, 0 empty evidence rows; `scripts/analyze_detail_flags.py`: rows 1195, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, fallback keys 0, 3 valid same-model final-answer retries (`mbe_2`, `mbe_197`, `mbe_1125`), retry max 5 tokens, max output 1029 tokens, near-cap violations 0; paired vs `rag_simple`: +4.60pp, b/c=137/82, p=0.000246; paired vs `llm_only`: +0.50pp, b/c=100/94, p=0.720; paired vs `golden_plus_neighbors`: +1.34pp, b/c=76/60, p=0.198 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| BarExamQA | `groq-llama70b` | `rag_hyde` | `logs/eval_rag_hyde_groq-llama70b_20260515_222654_barexam_local-snap-hyre-groq-llama70b-barexam-rag_hyde-nfull-k5_detail.jsonl` | 958/1195 = 80.2% | strict generated/retrieval-cache replay: 1195/1195 HyDE cache hits, 1195/1195 retrieval-cache hits, 0 empty evidence rows, 125/1195 gold retrieved; retrieval exposure from signed cache: Hit@5 0.1046, MRR@10 0.0609; `scripts/analyze_detail_flags.py`: rows 1195, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, fallback keys 0, 3 valid same-model final-answer retries (`mbe_90`, `mbe_95`, `mbe_131`), retry max 5 tokens, max output 1061 tokens, near-cap violations 0; paired vs `rag_simple`: +5.61pp, b/c=137/70, p=3.73e-06; paired vs `llm_only`: +1.51pp, b/c=101/83, p=0.210; paired vs `golden_passage`: +1.00pp, b/c=106/94, p=0.437 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| BarExamQA | `groq-llama70b` | `snap_hyre` | `logs/eval_snap_hyre_groq-llama70b_20260515_230504_barexam_local-snap-hyre-groq-llama70b-barexam-snap_hyre-nfull-k5_detail.jsonl` | 953/1195 = 79.7% | strict generated/retrieval-cache replay: 1195/1195 HyRE cache hits, 1195/1195 retrieval-cache hits, 0 empty evidence rows, 132/1195 gold retrieved; retrieval exposure from signed cache: Hit@5 0.1105, MRR@10 0.0663; `scripts/analyze_detail_flags.py`: rows 1195, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, fallback keys 0, 1 valid same-model final-answer retry (`mbe_2`), retry max 5 tokens, max output 1265 tokens, max final-answer chars 6534, near-cap violations 0; paired vs `rag_simple`: +5.19pp, b/c=138/76, p=2.70e-05; paired vs `llm_only`: +1.09pp, b/c=103/90, p=0.388; paired vs `rag_hyde`: -0.42pp, b/c=79/84, p=0.754; paired vs `golden_passage`: +0.59pp, b/c=110/103, p=0.681; paired vs `golden_plus_neighbors`: +1.92pp, b/c=114/91, p=0.124 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| BarExamQA | `groq-llama70b` | `rag_rewrite` | `logs/eval_rag_rewrite_groq-llama70b_20260515_234357_barexam_local-snap-hyre-groq-llama70b-barexam-rag_rewrite-nfull-k5_detail.jsonl` | 923/1195 = 77.2% | dynamic rewrite retrieval, no deterministic retrieval cache; 1195/1195 rewrite JSON parses, 0 rewrite-format retries, 1 logged partial-JSON repair, 0 empty retrieval rows, 146/1195 gold retrieved; retrieval exposure from `docs/generated/retrieval_qrels_barexam_groq-llama70b_rag_rewrite.md`: Hit@5 0.1222, MRR@5 0.0565; `scripts/analyze_detail_flags.py`: rows 1195, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, fallback keys 0, 11 valid same-model final-answer retries (`mbe_19`, `mbe_450`, `mbe_606`, `mbe_716`, `mbe_724`, `mbe_754`, `mbe_1081`, `mbe_1106`, `mbe_890`, `mbe_956`, `mbe_1141`), retry max 5 tokens, max output 1004 tokens, near-cap violations 0; paired vs `rag_simple`: +2.68pp, b/c=133/101, p=0.0425; paired vs `llm_only`: -1.42pp, b/c=102/119, p=0.282; paired vs `rag_hyde`: -2.93pp, b/c=84/119, p=0.0168; paired vs `snap_hyre`: -2.51pp, b/c=85/115, p=0.0400; paired vs `golden_passage`: -1.92pp, b/c=105/128, p=0.149 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY/REPAIR-CAVEAT |
+| BarExamQA | `or-gemma4-26b` | `llm_only` | `logs/merged/eval_llm_only_or-gemma4-26b_cloudflare_tail_20260516_barexam_nfull_k5_detail.jsonl` | 966/1195 = 80.8% | signed with explicit same-model Cloudflare tail caveat: clean first 51 rows from the initial OpenRouter prefix were merged with a 1144-row `OPENROUTER_PROVIDER_ONLY=Cloudflare` tail on `google/gemma-4-26b-a4b-it`; the failed DekaLLM 401 row `mbe_60` is excluded and superseded after `NO_SILENT_FALLBACK` blocked it. `scripts/analyze_detail_flags.py`: rows 1195, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: provider all `or-gemma4-26b`, exact-final-line issues 0, fallback keys 0, think tags 0, 3 valid same-model answer-format retries (`mbe_14`, `mbe_586`, `mbe_989`), 4 rows at >=1900 output tokens with intact final `Answer:` lines, max output 2062 tokens, max final-answer chars 7959; one naive fallback-text hit on `mbe_608` is incidental legal explanation text, not provider/method fallback | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY/SAME-MODEL-ROUTE-CAVEAT |
+| BarExamQA | `or-gemma4-26b` | `rag_simple` | `logs/eval_rag_simple_or-gemma4-26b_20260516_164128_barexam_local-snap-hyre-or-gemma4-26b-barexam-rag_simple-nfull-k5_detail.jsonl` | 932/1195 = 78.0% | strict raw retrieval-cache replay: 1195/1195 cache hits, retrieved list length 5 on all rows, 0 empty evidence rows, 17/1195 gold retrieved; retrieval exposure from `docs/generated/retrieval_qrels_barexam_or-gemma4-26b_rag_simple.md`: Hit@5 0.0142, MRR@5 0.0068; `scripts/analyze_detail_flags.py`: rows 1195, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: provider all `or-gemma4-26b`, exact-final-line issues 0, fallback keys 0, think tags 0, 3 valid same-model answer-format retries (`mbe_576`, `mbe_989`, `mbe_1124`), 3 rows at >=1900 output tokens with intact final `Answer:` lines, max output 2052 tokens, max final-answer chars 7739; paired vs `llm_only`: -2.85pp, b/c=78/112, p=0.0164 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| BarExamQA | `or-gemma4-26b` | `golden_passage` | `logs/eval_golden_passage_or-gemma4-26b_20260516_200935_barexam_local-snap-hyre-or-gemma4-26b-barexam-golden_passage-nfull-k5_detail.jsonl` | 939/1195 = 78.6% | oracle gold injected/retrieved on 1195/1195 rows, retrieved list length 1 on all rows; `scripts/analyze_detail_flags.py`: rows 1195, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: provider/mode/dataset exactly `or-gemma4-26b`/`golden_passage`/`barexam`, 1195/1195 gold retrieved, exact-final-line issues 0, fallback keys 0, think tags 0, 4 valid same-model answer-format retries (`mbe_83`, `mbe_312`, `mbe_625`, `mbe_989`), 4 rows at >=1900 output tokens with intact final `Answer:` lines, max output 2023 tokens, max final-answer chars 8849; paired vs `rag_simple`: +0.59pp, b/c=102/95, p=0.669; paired vs `llm_only`: -2.26pp, b/c=78/105, p=0.0543 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY/NEAR-CAP-CAVEAT |
+| BarExamQA | `or-gemma4-26b` | `golden_plus_neighbors` | `logs/eval_golden_plus_neighbors_or-gemma4-26b_20260516_233647_barexam_local-snap-hyre-or-gemma4-26b-barexam-golden_plus_neighbors-nfull-k5_detail.jsonl` | 964/1195 = 80.7% | strict golden-neighbor retrieval-cache replay: retrieved list length 5 on all rows, 1195/1195 gold retrieved, retrieval exposure Hit@5 1.0000 / MRR@5 1.0000; `scripts/analyze_detail_flags.py`: rows 1195, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0, max output 2007 tokens, max final-answer chars 9033; custom no-silent audit: provider/mode/dataset exactly `or-gemma4-26b`/`golden_plus_neighbors`/`barexam`, exact-final-line issues 0, fallback keys 0, think tags 0, 5 valid same-model answer-format retries (`mbe_532`, `mbe_562`, `mbe_989`, `mbe_1131`, `mbe_563`), 3 rows at >=1900 output tokens with intact final `Answer:` lines (`mbe_713`, `mbe_989`, `mbe_563`); paired vs `rag_simple`: +2.68pp, b/c=116/84, p=0.0281; paired vs `llm_only`: -0.17pp, b/c=91/93, p=0.941; paired vs `golden_passage`: +2.09pp, b/c=91/66, p=0.0551 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY/NEAR-CAP-CAVEAT |
+| BarExamQA | `or-gemma4-26b` | `rag_hyde` | `logs/eval_rag_hyde_or-gemma4-26b_20260517_040742_barexam_local-snap-hyre-or-gemma4-26b-barexam-rag_hyde-nfull-k5_detail.jsonl` | 959/1195 = 80.3% | strict HyDE generation/retrieval-cache replay: 1195/1195 HyDE cache hits, 1195/1195 retrieval-cache hits, retrieved list length 5 on all rows, 136/1195 gold retrieved, retrieval exposure Hit@5 0.1138 / MRR@5 0.0542; `scripts/analyze_detail_flags.py`: rows 1195, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0, max output 2103 tokens, max final-answer chars 8665; custom no-silent audit: exact-final-line issues 0, fallback keys 0, think tags 0, 5 valid same-model answer-format retries (`mbe_141`, `mbe_291`, `mbe_576`, `mbe_899`, `mbe_989`), 5 rows at >=1900 output tokens with intact final `Answer:` lines; paired vs `rag_simple`: +2.26pp, b/c=113/86, p=0.0650; paired vs `llm_only`: -0.59pp, b/c=94/101, p=0.668; paired vs `golden_plus_neighbors`: -0.42pp, b/c=94/99, p=0.773; paired vs `golden_passage`: +1.67pp, b/c=113/93, p=0.185 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY/NEAR-CAP-CAVEAT |
+| CaseHOLD | `groq-llama70b` | `llm_only` | `logs/eval_llm_only_groq-llama70b_20260516_003945_casehold_local-snap-hyre-groq-llama70b-casehold-llm_only-nfull-k5_detail.jsonl` | 2585/3600 = 71.8% | no retrieval evidence by design; `scripts/analyze_detail_flags.py`: rows 3600, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: providers all `groq-llama70b`, exact-final-line issues 0, fallback keys 0, 39 valid same-model final-answer retries, all `missing_marker`, retry max 5 tokens, max output 774 tokens, max final-answer chars 3845, near-cap violations 0, avg calls 1.01 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| CaseHOLD | `groq-llama70b` | `rag_simple` | `logs/eval_rag_simple_groq-llama70b_20260516_020605_casehold_local-snap-hyre-groq-llama70b-casehold-rag_simple-nfull-k5_detail.jsonl` | 2547/3600 = 70.8% | strict raw retrieval-cache replay: 3600/3600 cache hits, retrieved list length 5 on 3600/3600 rows, 0 empty evidence rows, 646/3600 gold retrieved; retrieval exposure from `docs/generated/retrieval_qrels_casehold_groq-llama70b_rag_simple.md`: Hit@5 0.1794, MRR@5 0.1015; `scripts/analyze_detail_flags.py`: rows 3600, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: provider/mode/dataset exactly `groq-llama70b`/`rag_simple`/`casehold`, exact-final-line issues 0, fallback keys 0, 23 valid same-model final-answer retries, max output 935 tokens, max final-answer chars 4850, near-cap violations 0, avg calls 1.01; paired vs `llm_only`: -1.06pp, b/c=215/253, p=0.0871 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| CaseHOLD | `groq-llama70b` | `golden_passage` | `logs/eval_golden_passage_groq-llama70b_20260516_032635_casehold_local-snap-hyre-groq-llama70b-casehold-golden_passage-nfull-k5_detail.jsonl` | 3511/3600 = 97.5% | oracle gold injected/retrieved on 3600/3600 rows, retrieved list length 1 on 3600/3600 rows, 0 empty evidence rows; retrieval exposure from `docs/generated/retrieval_qrels_casehold_groq-llama70b_golden_passage.md`: Hit@1 1.0000, Hit@5 1.0000, MRR@5 1.0000; `scripts/analyze_detail_flags.py`: rows 3600, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: provider/mode/dataset exactly `groq-llama70b`/`golden_passage`/`casehold`, final-line prediction issues 0, fallback keys 0, 46 valid same-model final-answer retries, max output 878 tokens, max final-answer chars 4845, near-cap violations 0, avg calls 1.01; paired vs `rag_simple`: +26.78pp, b/c=968/4, p=1.86e-282; paired vs `llm_only`: +25.72pp, b/c=927/1, p=8.19e-277 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| CaseHOLD | `groq-llama70b` | `golden_plus_neighbors` | `logs/eval_golden_plus_neighbors_groq-llama70b_20260516_045222_casehold_local-snap-hyre-groq-llama70b-casehold-golden_plus_neighbors-nfull-k5_detail.jsonl` | 2859/3600 = 79.4% | strict golden-neighbor retrieval-cache replay: 3600/3600 cache hits, retrieved list length 5 and neighbor list length 4 on 3600/3600 rows, 0 empty evidence rows, 3600/3600 gold retrieved; retrieval exposure from `docs/generated/retrieval_qrels_casehold_groq-llama70b_golden_plus_neighbors.md`: Hit@1 1.0000, Hit@5 1.0000, MRR@5 1.0000; `scripts/analyze_detail_flags.py`: rows 3600, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: provider/mode/dataset exactly `groq-llama70b`/`golden_plus_neighbors`/`casehold`, final-line prediction issues 0, fallback keys 0, 19 valid same-model final-answer retries, max output 943 tokens, max final-answer chars 4989, near-cap violations 0, avg calls 1.01; trace response previews clipped on 2794/3600 rows by `EVAL_TRACE_MAX_CHARS=800`, but full final answers were stored separately and exact; paired vs `rag_simple`: +8.67pp, b/c=459/147, p=2.70e-38; paired vs `llm_only`: +7.61pp, b/c=411/137, p=8.67e-33; paired vs `golden_passage`: -18.11pp, b/c=5/657, p=1.10e-187 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| CaseHOLD | `groq-llama70b` | `rag_hyde` | `logs/merged/eval_rag_hyde_llama70b_mixed_20260516_casehold_nfull_k5_detail.jsonl` | 2532/3600 = 70.3% | signed with explicit mixed same-model provider caveat: Groq produced 2639 valid rows, then stopped on spend alert; `ch_test_2639` plus 960 tail rows were replayed through OpenRouter paid `meta-llama/llama-3.3-70b-instruct`, with the final 667-row segment pinned to `OPENROUTER_PROVIDER_ONLY=AkashML`; strict generated/retrieval-cache replay, 3600/3600 HyDE cache hits and retrieval-cache hits, 0 empty evidence rows, 1844/3600 gold retrieved, retrieval exposure Hit@5 0.5122 / MRR@5 0.3983 from `docs/generated/retrieval_qrels_casehold_groq-llama70b_rag_hyde_mixed.md`; 21 logged answer-format retries, zero errors/missing predictions/parse failures/fallback keys/exact-final-line issues/think tags/near-cap outputs; max output 742 tokens; paired vs `rag_simple`: -0.42pp, b/c=247/262, p=0.535; paired vs `llm_only`: -1.47pp, b/c=211/264, p=0.0169; paired vs `golden_plus_neighbors`: -9.08pp, b/c=119/446, p=1.91e-45 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY/MIXED-PROVIDER-CAVEAT |
+| CaseHOLD | `groq-llama70b` | `snap_hyre` | `logs/merged/eval_snap_hyre_llama70b_mixed_20260516_casehold_nfull_k5_detail.jsonl` | 2538/3600 = 70.5% | signed with explicit mixed same-model provider and repair caveat: OpenRouter paid same-model prefix supplied 581 rows while Groq spend alert was active; after user reset, repaired `ch_test_581` plus rows `ch_test_582`-`ch_test_3599` ran on Groq; invalid OpenRouter answer row `ch_test_581` is excluded from the merged log. Generation cache row `ch_test_581` had a formatting-only repair from inline snap answer to standalone `Answer: (A)` before replay. Strict generated/retrieval-cache replay: 3600/3600 HyRE cache hits and retrieval-cache hits, retrieved list length 5 on all rows, 0 empty evidence rows, 1619/3600 gold retrieved; retrieval exposure from `docs/generated/retrieval_qrels_casehold_groq-llama70b_snap_hyre_mixed.md`: Hit@5 0.4497 / MRR@5 0.3286; `scripts/analyze_detail_flags.py`: rows 3600, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: provider mix `or-llama70b-paid` 581 / `groq-llama70b` 3019, exact-final-line issues 0, fallback keys 0, think tags 0, 16 valid same-model answer-format retries, max output 826 tokens, max final-answer chars 4651, near-cap violations 0; paired vs `rag_simple`: -0.25pp, b/c=249/258, p=0.722; paired vs `llm_only`: -1.31pp, b/c=200/247, p=0.0295; paired vs `rag_hyde`: +0.17pp, b/c=225/219, p=0.812; paired vs `golden_plus_neighbors`: -8.92pp, b/c=118/439, p=1.98e-44 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY/REPAIR/MIXED-PROVIDER-CAVEAT |
+| CaseHOLD | `groq-llama70b` | `rag_rewrite` | `logs/eval_rag_rewrite_groq-llama70b_20260516_130926_casehold_local-snap-hyre-groq-llama70b-casehold-rag_rewrite-nfull-k5_detail.jsonl` | 2542/3600 = 70.6% | signed with explicit retry caveat: dynamic rewrite retrieval, 3600/3600 rewrite JSON parses, 0 rewrite-format retries, 0 partial-JSON repairs, 0 empty retrieval rows, 1623/3600 gold retrieved, retrieval exposure Hit@5 0.4508 / MRR@5 0.3319 from `docs/generated/retrieval_qrels_casehold_groq-llama70b_rag_rewrite.md`; `scripts/analyze_detail_flags.py`: rows 3600, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: provider all `groq-llama70b`, exact-final-line issues 0, fallback keys 0, think tags 0, 88 valid same-model answer-format retries, max output 899 tokens, max final-answer chars 4618, near-cap violations 0; paired vs `rag_simple`: -0.14pp, b/c=251/256, p=0.859; paired vs `snap_hyre`: +0.11pp, b/c=237/233, p=0.890; paired vs `rag_hyde`: +0.28pp, b/c=236/226, p=0.675; paired vs `llm_only`: -1.19pp, b/c=226/269, p=0.0589; paired vs `golden_plus_neighbors`: -8.81pp, b/c=134/451, p=4.62e-41 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| HousingQA | `groq-llama70b` | `llm_only` | `logs/eval_llm_only_groq-llama70b_20260516_203552_housing_local-snap-hyre-groq-llama70b-housing-llm_only-nfull-k5_detail.jsonl` | 3067/6853 = 44.8% | no retrieval evidence by design; `scripts/analyze_detail_flags.py`: rows 6853, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: provider/mode/dataset exactly `groq-llama70b`/`llm_only`/`housing`, retrieved list length 0 on all rows, exact final `Answer: Yes/No` lines on all rows, fallback keys 0, think tags 0, answer retries 0, max output 518 tokens, max final-answer chars 2730, near-cap violations 0, avg calls 1.00 | ✅ COMPREHENSIVE-CLEAN |
+| LegalBench-SCALR | `or-gemma4-26b` | `llm_only` | `logs/eval_llm_only_or-gemma4-26b_20260515_0056_legalbench_scalr_local-snap-hyre-or-gemma4-26b-legalbench_scalr-llm_only-nfull-k5_merged_detail.jsonl` | 417/571 = 73.0% | merged clean from rows 0-420, repaired row 421, and rows 422-570; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: missing markers 0, near-cap violations 0 | ✅ COMPREHENSIVE-CLEAN |
+| LegalBench-SCALR | `or-ministral-8b` | `llm_only` | `logs/eval_llm_only_or-ministral-8b_20260514_195855_legalbench_scalr_local-snap-hyre-or-ministral-8b-legalbench_scalr-llm_only-nfull-k5_detail.jsonl` | 384/571 = 67.3% | `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: missing markers 0, retry rows 0, near-cap violations 0 | ✅ COMPREHENSIVE-CLEAN |
+| LegalBench-SCALR | `or-ministral-8b` | `rag_simple` | `logs/eval_rag_simple_or-ministral-8b_20260515_093406_legalbench_scalr_local-snap-hyre-or-ministral-8b-legalbench_scalr-rag_simple-nfull-k5_detail.jsonl` | 388/571 = 68.0% | strict raw retrieval-cache replay: 571/571 cache hits, 0 empty evidence rows, 283/571 gold retrieved; retrieval exposure from `docs/generated/retrieval_qrels_scalr_or-ministral-8b_rag_simple.md`: Hit@5 0.4956, MRR@5 0.3447; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, 16 valid same-model final-answer retries, retry max 5 tokens, 11 original responses at >=2000 output tokens before repair, near-cap violations 0; paired vs `llm_only`: +0.70pp, b/c=47/43, p=0.752 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| LegalBench-SCALR | `or-ministral-8b` | `golden_passage` | `logs/eval_golden_passage_or-ministral-8b_20260515_102620_legalbench_scalr_local-snap-hyre-or-ministral-8b-legalbench_scalr-golden_passage-nfull-k5_detail.jsonl` | 532/571 = 93.2% | oracle gold injected on 571/571 rows with 571/571 evidence rows; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, 22 valid same-model final-answer retries, retry max 5 tokens, four original responses at >=2000 output tokens before repair, near-cap violations 0; paired vs `rag_simple`: +25.22pp, b/c=145/1, p=3.30e-42; paired vs `llm_only`: +25.92pp, b/c=151/3, p=5.33e-41 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| LegalBench-SCALR | `or-ministral-8b` | `golden_plus_neighbors` | `logs/eval_golden_plus_neighbors_or-ministral-8b_20260515_112849_legalbench_scalr_local-snap-hyre-or-ministral-8b-legalbench_scalr-golden_plus_neighbors-nfull-k5_detail.jsonl` | 440/571 = 77.1% | strict golden-neighbor retrieval-cache replay: 571/571 cache hits, 571/571 gold retrieved, 571/571 evidence rows; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, 5 valid same-model final-answer retries, retry max 5 tokens, three original responses at >=2000 output tokens before repair, near-cap violations 0; paired vs `rag_simple`: +9.11pp, b/c=72/20, p=4.61e-08; paired vs `golden_passage`: -16.11pp, b/c=4/96, p=6.45e-24; paired vs `llm_only`: +9.81pp, b/c=78/22, p=1.59e-08 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| LegalBench-SCALR | `or-ministral-8b` | `rag_hyde` | `logs/eval_rag_hyde_or-ministral-8b_20260515_130224_legalbench_scalr_local-snap-hyre-or-ministral-8b-legalbench_scalr-rag_hyde-nfull-k5_detail.jsonl` | 406/571 = 71.1% | strict generated/retrieval-cache replay: 571/571 HyDE cache hits, 571/571 retrieval-cache hits, 0 empty evidence rows, 344/571 gold retrieved; retrieval exposure from signed cache: Hit@5 0.6025, MRR@10 0.4506; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, 18 valid same-model answer-format retries, retry max 5 tokens, 14 original responses at >=2000 output tokens before repair, near-cap violations 0; paired vs `rag_simple`: +3.15pp, b/c=43/25, p=0.0385; paired vs `llm_only`: +3.85pp, b/c=54/32, p=0.0230 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| LegalBench-SCALR | `or-ministral-8b` | `snap_hyre` | `logs/eval_snap_hyre_or-ministral-8b_20260515_140203_legalbench_scalr_local-snap-hyre-or-ministral-8b-legalbench_scalr-snap_hyre-nfull-k5_detail.jsonl` | 399/571 = 69.9% | strict generated/retrieval-cache replay: 571/571 HyRE cache hits, 571/571 retrieval-cache hits, 0 empty evidence rows, 354/571 gold retrieved; retrieval exposure from signed cache: Hit@5 0.6200, MRR@10 0.5110; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, 9 valid same-model answer-format retries, retry max 5 tokens, 7 original responses at >=2000 output tokens before repair, near-cap violations 0, targeted fallback-key audit 0; one naive fallback-string hit was incidental legal text in a generated CERCLA query, not a provider/method fallback; paired vs `rag_simple`: +1.93pp, b/c=45/34, p=0.260; paired vs `rag_hyde`: -1.23pp, b/c=29/36, p=0.457; paired vs `llm_only`: +2.63pp, b/c=46/31, p=0.110; paired vs `golden_plus_neighbors`: -7.18pp, b/c=20/61, p=5.66e-06 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| LegalBench-SCALR | `or-ministral-8b` | `rag_rewrite` | `logs/eval_rag_rewrite_or-ministral-8b_20260515_145614_legalbench_scalr_local-snap-hyre-or-ministral-8b-legalbench_scalr-rag_rewrite-nfull-k5_merged_detail.jsonl` | 399/571 = 69.9% | dynamic rewrite retrieval, no deterministic retrieval cache; merged from clean non-overlapping slices after superseding no-silent failures on `scalr_110`, `scalr_431`, and `scalr_538`; 571/571 rows, 0 empty retrieval rows, 371/571 gold retrieved; retrieval exposure from `docs/generated/retrieval_qrels_scalr_or-ministral-8b_rag_rewrite.md`: Hit@5 0.6497, MRR@5 0.5185; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: exact-final-line issues 0, rewrite parse false 0, fallback keys 0, 5 valid same-model rewrite-format retries, 1 logged partial-JSON repair on `scalr_538`, 31 valid answer-format retries, 27 original responses at >=2000 output tokens before repair; paired vs `rag_simple`: +1.93pp, b/c=40/29, p=0.228; paired vs `snap_hyre`: tied, b/c=33/33, p=1.000; paired vs `rag_hyde`: -1.23pp, b/c=31/38, p=0.470; paired vs `llm_only`: +2.63pp, b/c=48/33, p=0.119; paired vs `golden_plus_neighbors`: -7.18pp, b/c=20/61, p=5.66e-06 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY/REPAIR-CAVEAT |
+| LegalBench-SCALR | `or-gemma4-26b` | `rag_simple` | `logs/eval_rag_simple_or-gemma4-26b_20260514_204706_legalbench_scalr_local-snap-hyre-or-gemma4-26b-legalbench_scalr-rag_simple-nfull-k5_detail.jsonl` | 419/571 = 73.4% | strict raw retrieval-cache replay: 571/571 cache hits, 0 empty evidence rows, 283/571 gold retrieved; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: missing markers 0, 12 format-only retries, retry max 5 tokens, near-cap violations 0 | ✅ COMPREHENSIVE-CLEAN |
+| LegalBench-SCALR | `or-gemma4-26b` | `golden_plus_neighbors` | `logs/eval_golden_plus_neighbors_or-gemma4-26b_20260514_221537_legalbench_scalr_local-snap-hyre-or-gemma4-26b-legalbench_scalr-golden_plus_neighbors-nfull-k5_detail.jsonl` | 464/571 = 81.3% | strict golden-neighbor retrieval-cache replay: 571/571 cache hits, 571/571 gold retrieved; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: missing markers 0, 7 retries, retry max 5 tokens, near-cap violations 0; paired vs `rag_simple`: 58 fixes, 13 regressions, exact McNemar p=6.27e-08 | ✅ COMPREHENSIVE-CLEAN |
+| LegalBench-SCALR | `or-gemma4-26b` | `golden_passage` | `logs/eval_golden_passage_or-gemma4-26b_20260514_235919_legalbench_scalr_local-snap-hyre-or-gemma4-26b-legalbench_scalr-golden_passage-nfull-k5_detail.jsonl` | 559/571 = 97.9% | oracle gold injected on 571/571 rows; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; custom no-silent audit: missing markers 0, 1 format-only retry, retry max 5 tokens, near-cap violations 0; paired vs `golden_plus_neighbors`: plus-neighbor fixes 1, regressions 96, exact McNemar p=1.24e-27 | ✅ COMPREHENSIVE-CLEAN |
+| LegalBench-SCALR | `or-gemma4-26b` | `snap_hyre` | `logs/eval_snap_hyre_or-gemma4-26b_20260515_020525_legalbench_scalr_local-snap-hyre-or-gemma4-26b-legalbench_scalr-snap_hyre-nfull-k5_detail.jsonl` | 422/571 = 73.9% | strict generated/retrieval-cache replay: 571/571 HyRE cache hits, 571/571 retrieval-cache hits, 0 empty evidence rows, 415/571 gold retrieved; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; retry caveat: 10 logged same-model answer-format retries, 9 preserving existing predictions and 1 retry after an empty first response, with five original responses at >=2000 output tokens and max 2046/2048 before final-line repair; paired vs `rag_simple`: +0.53pp, b/c=27/24, p=0.780; paired vs `llm_only`: +0.88pp, b/c=26/21, p=0.560; paired vs `golden_plus_neighbors`: -7.36pp, b/c=9/51, p=3.09e-08 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| LegalBench-SCALR | `or-gemma4-26b` | `rag_hyde` | `logs/eval_rag_hyde_or-gemma4-26b_20260515_042731_legalbench_scalr_local-snap-hyre-or-gemma4-26b-legalbench_scalr-rag_hyde-nfull-k5_detail.jsonl` | 412/571 = 72.2% | strict generated/retrieval-cache replay: 571/571 HyDE cache hits, 571/571 retrieval-cache hits, 0 empty evidence rows, 404/571 gold retrieved; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; retry caveat: 8 logged same-model answer-format retries, all preserving existing predictions, with three original responses at >=2000 output tokens and max 2047/2048 before final-line repair; paired vs `rag_simple`: -1.23pp, b/c=30/37, p=0.464; paired vs `snap_hyre`: -1.75pp, b/c=22/32, p=0.220; paired vs `llm_only`: -0.88pp, b/c=25/30, p=0.590 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+| LegalBench-SCALR | `or-gemma4-26b` | `rag_rewrite` | `logs/eval_rag_rewrite_or-gemma4-26b_20260515_062250_legalbench_scalr_local-snap-hyre-or-gemma4-26b-legalbench_scalr-rag_rewrite-nfull-k5_detail.jsonl` | 422/571 = 73.9% | dynamic rewrite retrieval, no deterministic retrieval cache; 571/571 rewrite JSON parses, 0 rewrite retries/fallbacks, 0 empty evidence rows, 385/571 gold retrieved; retrieval exposure from `docs/generated/retrieval_qrels_scalr_or-gemma4-26b_rag_rewrite.md`: Hit@5 0.6743, MRR@5 0.5212; `scripts/analyze_detail_flags.py`: rows 571, errors 0, missing predictions 0, parse failures 0, long rows 0, fallback markers 0; retry caveat: 9 logged same-model answer-format retries, all valid format-existing-prediction repairs with max retry 5 tokens and max pre-repair answer 9105 chars; paired vs `rag_simple`: +0.53pp, b/c=34/31, p=0.804; paired vs `snap_hyre`: 0.00pp, b/c=30/30, p=1.000; paired vs `rag_hyde`: +1.75pp, b/c=40/30, p=0.282; paired vs `llm_only`: +0.88pp, b/c=42/37, p=0.653 | ⚠️ COMPREHENSIVE-CITE-WITH-RETRY-CAVEAT |
+
+Blocked comprehensive rows under the fixed 2048-token launch contract:
+
+No current blocked SCALR `llm_only` comprehensive row. The initial
+`or-ministral-8b` blocker was superseded by the clean full rerun listed above.
+
+Superseded comprehensive row: the initial `or-ministral-8b` SCALR `rag_simple`
+run at
+`logs/eval_rag_simple_or-ministral-8b_20260515_082923_legalbench_scalr_local-snap-hyre-or-ministral-8b-legalbench_scalr-rag_simple-nfull-k5_detail.jsonl`
+is rejected for citation. A stricter exact-final-line audit found six
+source-safety failures: three stored predictions disagreed with the exact final
+line and three rows lacked an exact final line after verbose/truncated output.
+Use the 2026-05-15T09:34:06 strict rerun listed in the full-answer table.
+
+Superseded blocker: the initial `or-gemma4-26b` SCALR `llm_only` partial at
+`logs/eval_llm_only_or-gemma4-26b_20260514_141502_legalbench_scalr_local-snap-hyre-or-gemma4-26b-legalbench_scalr-llm_only-nfull-k5_detail.jsonl`
+is no longer the cite gate. It was replaced by the merged clean full detail log
+listed above after the retry path was tightened to format existing predictions
+instead of asking the same model to answer the whole question again.
 
 ## Update 2026-05-13 ~local WSL validation gate
 
@@ -118,6 +216,155 @@ Cache/alignment hardening follow-up on 2026-05-13:
   with strict cache requirements: all seven ladder modes were 5/5 with zero
   errors, missing predictions, parse failures, and empty retrieval rows for
   retrieval modes. This is a cache-path smoke only, not a result claim.
+
+## Update 2026-05-13 ~strict API grid and q100 top-k preflight
+
+Change reason: provider configuration was hardened to prevent silent fallback,
+the active three-model API grid was revalidated, q20 oracle controls were
+rerun after golden-reference hydration, and q100 retrieval exposure matrices
+were built before launching long answer sweeps.
+
+Provider grid and strictness:
+
+| Provider label | Upstream model | Evidence | Sign-off |
+|---|---|---|---|
+| `or-ministral-8b` | `mistralai/ministral-8b-2512` | `logs/eval_llm_only_or-ministral-8b_20260513_1524_legalbench_scalr_local-api-smoke-or-ministral-8b-llm_only-n1-k3_detail.jsonl` | ✅ SMOKE-CLEAN |
+| `or-gemma4-26b` | `google/gemma-4-26b-a4b-it` | `logs/eval_llm_only_or-gemma4-26b_20260513_1525_legalbench_scalr_local-api-smoke-or-gemma4-26b-llm_only-n1-k3_detail.jsonl` | ✅ SMOKE-CLEAN |
+| `groq-llama70b` | `llama-3.3-70b-versatile` | `logs/eval_llm_only_groq-llama70b_20260513_1525_legalbench_scalr_local-api-smoke-groq-llama70b-llm_only-n1-k3_detail.jsonl` | ✅ SMOKE-CLEAN |
+
+Implementation gate:
+
+- `NO_SILENT_FALLBACK=1` is required by the local cache/answer runners.
+- Unknown `LLM_PROVIDER` values fail closed, and OpenRouter requests are sent
+  with provider fallback disabled.
+- OpenRouter local runners now pace calls with
+  `LLM_CALL_MIN_INTERVAL_SEC=2.0` and
+  `LLM_CALL_RATE_LIMIT_COOLDOWN_SEC=8.0` by default. This is an operational
+  guard only; it does not alter prompts, retrieval, token caps, or model labels.
+- Historical `or-gemma3n-e4b` smoke rows are no longer part of the active grid.
+  Historical local-vLLM small-Gemma work used `google/gemma-4-E4B-it`, not
+  Gemma 3n.
+
+LegalBench-SCALR N=20 golden-reference control rerun at `k=5`:
+
+| Provider | `golden_passage` | `golden_plus_neighbors` | Health | Sign-off |
+|---|---:|---:|---|---|
+| `or-ministral-8b` | 17/20 = 85.0% | 18/20 = 90.0% | zero errors/fallbacks/parse failures; oracle evidence present | ✅ CONTROL-CLEAN |
+| `or-gemma4-26b` | 20/20 = 100.0% | 18/20 = 90.0% | zero errors/fallbacks/parse failures; oracle evidence present | ✅ CONTROL-CLEAN |
+| `groq-llama70b` | 20/20 = 100.0% | 18/20 = 90.0% | zero errors/fallbacks/parse failures; oracle evidence present | ✅ CONTROL-CLEAN |
+
+Interpretation: golden-plus-neighbors is not universally better than
+gold-only on this q20 SCALR control; it helped the small model by +1 row and
+hurt both stronger models by -2 rows. Use it as a diagnostic control, not as a
+settled default.
+
+Q100 retrieval exposure, raw question cache:
+
+| Source | Macro Hit@5 | Macro Hit@10 | Macro MRR@5 | Macro MRR@10 | Sign-off |
+|---|---:|---:|---:|---:|---|
+| `docs/generated/retrieval_cache_matrix_q100_raw.md` | 0.1775 | 0.2150 | 0.1135 | 0.1184 | ✅ CACHE-CLEAN |
+
+Q100 retrieval exposure, `or-gemma4-26b` generated caches:
+
+| Method | Macro Hit@5 | Macro Hit@10 | Macro MRR@5 | Macro MRR@10 | Source | Sign-off |
+|---|---:|---:|---:|---:|---|---|
+| `rag_hyde` | 0.4050 | 0.4575 | 0.3078 | 0.3152 | `docs/generated/retrieval_cache_matrix_or-gemma4-26b_generated.md` | ✅ CACHE-CLEAN |
+| `snap_hyre` | 0.3700 | 0.4125 | 0.2956 | 0.3010 | `docs/generated/retrieval_cache_matrix_or-gemma4-26b_generated.md` | ✅ CACHE-CLEAN |
+
+Per-dataset caveat: generated queries are not uniformly better by method. On
+HousingQA q100, `rag_hyde` Hit@10 is 0.2100 while `snap_hyre` Hit@10 is
+0.0500; on LegalBench-SCALR q100, `snap_hyre` Hit@10 is 0.7800 and
+`rag_hyde` Hit@10 is 0.7600. Do not promote a universal method claim from
+retrieval exposure alone.
+
+Downstream answer status:
+
+| Dataset | Provider | Mode | k | Accuracy | Detail log | Sign-off |
+|---|---|---|---:|---:|---|---|
+| BarExamQA q100 | `or-gemma4-26b` | `llm_only` | 5 | 86/100 = 86.0% | `logs/eval_llm_only_or-gemma4-26b_20260513_1707_barexam_local-snap-hyre-or-gemma4-26b-barexam-llm_only-n100-k5_detail.jsonl` | ✅ BASELINE-CLEAN |
+
+The attempted broad q100 answer sweep was stopped immediately after this
+baseline because the baseline alone took 1278 seconds at 12.8 seconds/query.
+No q100 downstream top-k winner has been signed off yet. The next clean gate is
+a deliberate `or-gemma4-26b` answer sweep comparing `k=5` vs `k=10` with
+strict replay caches, scoped narrowly enough that it is not confused with the
+full comprehensive run.
+
+## Update 2026-05-14 ~top-k prelaunch gate and truncation guard
+
+Change reason: avoid over-tuning top-k before the comprehensive grid while
+still answering whether k=10 looks worth promoting over the predeclared k=5
+default.
+
+Source artifacts:
+
+- `docs/top_k_prelaunch_probe_2026-05-14.md`
+- `docs/generated/retrieval_cache_matrix_or-gemma4-26b_q100_k1_to_k10.md`
+- `docs/generated/retrieval_cache_matrix_or-gemma4-26b_q100_k1_to_k10.csv`
+
+Current provider callability smoke, LegalBench-SCALR q1 `llm_only`:
+
+| Provider label | Upstream model | Detail log | Health | Sign-off |
+|---|---|---|---|---|
+| `or-ministral-8b` | `mistralai/ministral-8b-2512` | `logs/eval_llm_only_or-ministral-8b_20260514_1340_legalbench_scalr_local-api-smoke-or-ministral-8b-llm_only-n1-k3_detail.jsonl` | 1/1, zero errors, missing predictions, parse failures, long rows | ✅ SMOKE-CLEAN |
+| `or-gemma4-26b` | `google/gemma-4-26b-a4b-it` | `logs/eval_llm_only_or-gemma4-26b_20260514_1342_legalbench_scalr_local-api-smoke-or-gemma4-26b-llm_only-n1-k3_detail.jsonl` | 1/1, zero errors, missing predictions, parse failures, long rows | ✅ SMOKE-CLEAN |
+| `groq-llama70b` | `llama-3.3-70b-versatile` | `logs/eval_llm_only_groq-llama70b_20260514_1342_legalbench_scalr_local-api-smoke-groq-llama70b-llm_only-n1-k3_detail.jsonl` | 1/1, zero errors, missing predictions, parse failures, long rows | ✅ SMOKE-CLEAN |
+
+Fine-grained q100 retrieval exposure, macro over `rag_simple`, `rag_hyde`, and
+`snap_hyre` caches for `or-gemma4-26b`:
+
+| k | Macro Hit@k | Macro MRR@k | Sign-off |
+|---:|---:|---:|---|
+| 5 | 0.3175 | 0.2389 | ✅ CACHE-CLEAN |
+| 6 | 0.3300 | 0.2410 | ✅ CACHE-CLEAN |
+| 7 | 0.3367 | 0.2420 | ✅ CACHE-CLEAN |
+| 8 | 0.3508 | 0.2438 | ✅ CACHE-CLEAN |
+| 9 | 0.3542 | 0.2441 | ✅ CACHE-CLEAN |
+| 10 | 0.3617 | 0.2449 | ✅ CACHE-CLEAN |
+
+Interpretation: k=10 improves retrieval exposure, but most of the post-k5
+gain is recall rather than earlier-rank evidence. Use the k=1..10 retrieval
+curve for analysis/figures; do not treat it as a reason to delay the answer
+grid.
+
+Default-model BarExamQA q100 downstream k=5 vs k=10:
+
+| Provider | Mode | k | Accuracy | Detail log | Health | Sign-off |
+|---|---|---:|---:|---|---|---|
+| `or-gemma4-26b` | `rag_simple` | 5 | 83/100 = 83.0% | `logs/merged/barexam_or-gemma4-26b_rag_simple_q100_k5_20260514_detail.jsonl` | zero errors, missing predictions, parse failures, empty retrieval rows, long rows | ✅ TOPK-GATE-CLEAN |
+| `or-gemma4-26b` | `rag_simple` | 10 | 81/100 = 81.0% | `logs/merged/barexam_or-gemma4-26b_rag_simple_q100_k10_20260514_detail.jsonl` | zero errors, missing predictions, parse failures, empty retrieval rows, long rows | ✅ TOPK-GATE-CLEAN |
+| `or-gemma4-26b` | `rag_hyde` | 5 | 87/100 = 87.0% | `logs/merged/barexam_or-gemma4-26b_rag_hyde_q100_k5_20260514_detail.jsonl` | zero errors, missing predictions, parse failures, empty retrieval rows, long rows; one same-model answer-format retry | ✅ TOPK-GATE-CLEAN |
+| `or-gemma4-26b` | `rag_hyde` | 10 | 84/100 = 84.0% | `logs/merged/barexam_or-gemma4-26b_rag_hyde_q100_k10_20260514_detail.jsonl` | zero errors, missing predictions, parse failures, empty retrieval rows, long rows | ✅ TOPK-GATE-CLEAN |
+
+Launch decision: keep `RETRIEVAL_K=5` as the shared comprehensive answer
+setting. Do not run a broader per-model/per-k downstream search before the main
+grid unless a later result specifically motivates it.
+
+Implementation guardrail:
+
+- `scripts/local/run_answer_cell.sh` now defaults answer cells to
+  `LLM_MAX_COMPLETION_TOKENS=2048`.
+- Explicit environment overrides still win.
+- The runner fails closed if `LLM_MAX_COMPLETION_TOKENS` is below
+  `EVAL_MIN_COMPLETION_TOKENS` (default 2048), preventing stale `.env` values
+  such as 768 from silently creating truncation-prone answer runs.
+- Local and HPC answer runners default `EVAL_FINAL_FORMAT_RETRY=1`; format
+  retries use the same model and same evidence and are logged per row.
+- Local and HPC answer runners require `NO_SILENT_FALLBACK` to be truthy and
+  fail before launch if it is disabled.
+
+First full comprehensive row from the 2026-05-14 launch pass:
+
+| Dataset | Provider | Mode | k | Accuracy | Detail log | Health | Sign-off |
+|---|---|---|---:|---:|---|---|---|
+| LegalBench-SCALR full | `groq-llama70b` | `llm_only` | 5 | 425/571 = 74.4% | `logs/eval_llm_only_groq-llama70b_20260514_1414_legalbench_scalr_local-snap-hyre-groq-llama70b-legalbench_scalr-llm_only-nfull-k5_detail.jsonl` | zero errors, missing predictions, parse failures, long rows, fallback markers, and near-cap outputs; `analyze_detail_flags.py` PASS | ✅ COMPREHENSIVE-CLEAN |
+
+Blocked under the current fixed launch contract:
+
+| Dataset | Provider | Mode | Blocker | Evidence | Sign-off |
+|---|---|---|---|---|---|
+| LegalBench-SCALR full | `or-ministral-8b` | `llm_only` | row `qa_unknown_scalr_7` reached 2046 output tokens under `LLM_MAX_COMPLETION_TOKENS=2048`, tripping the no-silent-fallback near-cap guard before a complete row could be promoted | local run started 2026-05-14T19:02Z with tag `local-snap-hyre-or-ministral-8b-legalbench_scalr-llm_only-nfull-k5` | ⛔ BLOCKED-PENDING-CAP-OR-PROMPT-DECISION |
+| LegalBench-SCALR full | `or-gemma4-26b` | `llm_only` | row `qa_unknown_scalr_10` reached 2043 output tokens under `LLM_MAX_COMPLETION_TOKENS=2048` and missed the required final `Answer:` marker | `logs/eval_llm_only_or-gemma4-26b_20260514_141502_legalbench_scalr_local-snap-hyre-or-gemma4-26b-legalbench_scalr-llm_only-nfull-k5_detail.jsonl` partial 11-row strict-guard log | ⛔ BLOCKED-PENDING-CAP-OR-PROMPT-DECISION |
 
 ## Update 2026-05-11 ~meeting package
 
@@ -835,3 +1082,48 @@ Scope: Llama 70B Groq x MuSiQue x N=200 paired top-1 vs top-5 retrieval-depth ab
 | `multi_hyde_diverse` | `logs/eval_multi_hyde_diverse_groq-llama70b_20260427_1010_detail.jsonl` | `logs/eval_multi_hyde_diverse_groq-llama70b_20260428_0019_detail.jsonl` | 200 | 35.5% | 19.0% | -16.5pp | 5.417768989e-07 | MINOR; `retrieval_k=1` proof clean, no obvious final truncation, but 20/200 abstention-like predictions; see `docs/audits/2026-04-28_top1_ablation_audit.md` | ⚠️ APPROVED-WITH-CAVEAT |
 
 Citation guidance: cite as a clean retrieval-depth ablation with caveat that top-1 is an under-context stress test and materially increases abstention-like predictions. Do not frame the lower top-1 EM as a harness/retrieval-k failure; the audit proves top-1 retrieval was applied on 800/800 top-1 rows.
+
+---
+
+## Section I — Choice-aware retrieval probes (2026-05-13)
+
+Scope: `or-gemma4-26b`, q20 seed-42 retrieval-only diagnostics for
+LegalBench-SCALR, CaseHOLD, and BarExamQA. These rows are probe-only and are not
+paper-facing result claims. Use them to decide q50/q100 follow-ups, not as final
+method comparisons.
+
+| Dataset | Detail log | Health | Sign-off |
+|---|---|---|---|
+| LegalBench-SCALR | `logs/choice_aware_retrieval_legalbench_scalr_or-gemma4-26b_q20_k10_tuned.jsonl` | 140 rows; 0 errors; 0 parse failures; 0 answer-artifact rows; 0 empty retrieval rows | ⚠️ PROBE-ONLY |
+| CaseHOLD | `logs/choice_aware_retrieval_casehold_or-gemma4-26b_q20_k10_explicit.jsonl` | 160 rows; 0 errors; 0 parse failures; 0 answer-artifact rows; 0 empty retrieval rows | ⚠️ PROBE-ONLY |
+| BarExamQA | `logs/choice_aware_retrieval_barexam_or-gemma4-26b_q20_k10_combined.jsonl` | 160 combined rows; 0 errors; 0 parse failures; 0 answer-artifact rows; 0 empty retrieval rows | ⚠️ PROBE-ONLY |
+
+Provider note: the first BarExam `snap_choice_hyre` attempt hit an OpenRouter
+upstream DekaLLM 401 and stopped under `NO_SILENT_FALLBACK=1`. The completed
+BarExam `snap_choice_hyre` rows were rerun with
+`OPENROUTER_PROVIDER_IGNORE=dekallm`; OpenRouter fallback remained disabled.
+
+Summary and interpretation: `docs/choice_aware_retrieval_probe_2026-05-13.md`.
+
+---
+
+## Section J - Choice-aware retrieval q50 follow-up (2026-05-14)
+
+Scope: `or-gemma4-26b`, q50 seed-42 retrieval-only diagnostics for
+LegalBench-SCALR and CaseHOLD. These rows are probe-only and are not
+paper-facing result claims. Use them to decide method selection and downstream
+q20/q50 checks, not as final comprehensive comparisons.
+
+| Dataset | Detail log | Health | Qrel alignment | Sign-off |
+|---|---|---|---|---|
+| LegalBench-SCALR | `logs/choice_aware_retrieval_legalbench_scalr_or-gemma4-26b_q50_k10_combined.jsonl` | 300 rows; 0 errors; 0 parse failures; 0 fallback rows; 0 answer-artifact rows; 0 empty retrieval rows; 0 think-tag rows | 50/50 unique gold ids found | ⚠️ PROBE-ONLY |
+| CaseHOLD | `logs/choice_aware_retrieval_casehold_or-gemma4-26b_q50_k10_combined.jsonl` | 300 rows; 0 errors; 0 parse failures; 0 fallback rows; 0 answer-artifact rows; 0 empty retrieval rows; 0 think-tag rows | 50/50 unique gold ids found | ⚠️ PROBE-ONLY |
+
+Provider note: q50 OpenRouter runs fixed the model id at
+`google/gemma-4-26b-a4b-it` and used
+`OPENROUTER_PROVIDER_IGNORE=dekallm,deepinfra` for the successful continuation
+chunks. OpenRouter model fallback remained disabled. Future retries may route
+across same-model OpenRouter providers if explicit and logged; silent changes
+to model id, method, prompt, or cache are still invalid.
+
+Summary and interpretation: `docs/choice_aware_retrieval_q50_2026-05-14.md`.

@@ -56,7 +56,7 @@ Required for the planned API-first runs:
 ```env
 OPENROUTER_API_KEY=...
 GROQ_API_KEY=...
-LLM_MAX_COMPLETION_TOKENS=768
+LLM_MAX_COMPLETION_TOKENS=2048
 ```
 
 Optional:
@@ -67,13 +67,14 @@ HF_TOKEN=...
 
 Use these providers unless a smoke test proves one is broken:
 
-- `or-gemma3n-e4b`: API E4B row via OpenRouter.
+- `or-ministral-8b`: API-only small-model replacement via OpenRouter.
 - `or-gemma4-26b`: Gemma 4 26B via OpenRouter.
 - `groq-llama70b`: Llama 3.3 70B Versatile via Groq.
 
 Exact historical `google/gemma-4-E4B-it` is not the same as
-`or-gemma3n-e4b`. Use the API row for the comprehensive package unless the
-exact E4B endpoint becomes available.
+`or-gemma3n-e4b`. Use the API-only small-model replacement for the
+comprehensive package unless the exact E4B endpoint becomes available and we
+intentionally add it as a vLLM/provenance row.
 
 ## Local Environment
 
@@ -91,7 +92,7 @@ export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export HF_DATASETS_OFFLINE=1
 export DISABLE_CROSS_ENCODER=0
-export LLM_MAX_COMPLETION_TOKENS=768
+export LLM_MAX_COMPLETION_TOKENS=2048
 ```
 
 Keep the cross-encoder enabled for any retrieval cache or answer row that may
@@ -295,7 +296,7 @@ scripts/local/run_api_smoke.sh
 Equivalent explicit command:
 
 ```bash
-for provider in or-gemma3n-e4b or-gemma4-26b groq-llama70b; do
+for provider in or-ministral-8b or-gemma4-26b groq-llama70b; do
   for mode in rag_simple snap_hyre; do
     uv run python eval/eval_harness.py \
       --mode "$mode" --provider "$provider" --dataset legalbench_scalr \

@@ -31,7 +31,8 @@ from eval_harness import (  # noqa: E402
     _row_label,
     _where_from_config,
 )
-from rag_utils import get_vectorstore, retrieve_documents_multi_query  # noqa: E402
+from langchain_core.documents import Document  # noqa: E402
+from rag_utils import get_vectorstore, rerank_with_cross_encoder, retrieve_documents_multi_query  # noqa: E402
 
 
 QUERY_TYPE_TO_LABEL_PREFIX = {
@@ -75,6 +76,103 @@ def _score_from_doc(doc) -> float:
 
 def _dedupe(values: list[str]) -> list[str]:
     return list(dict.fromkeys(str(value) for value in values if str(value) != ""))
+
+
+def _no_silent_fallback_enabled() -> bool:
+    return os.getenv("NO_SILENT_FALLBACK", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_truthy(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _direct_chroma_collection(collection_name: str):
+    import chromadb
+
+    chroma_dir = os.getenv("CHROMA_DB_DIR", str(ROOT / "chroma_db"))
+    client = chromadb.PersistentClient(path=chroma_dir)
+    return client.get_collection(collection_name)
+
+
+def _direct_lookup_by_doc_ids(collection, idxs: list[str], include: list[str]) -> dict[str, Any]:
+    unique_idxs = _dedupe(idxs)
+    if not unique_idxs:
+        return {"ids": [], "documents": [], "metadatas": [], "embeddings": []}
+    return collection.get(
+        ids=[f"doc_{idx}" for idx in unique_idxs],
+        include=include,
+    )
+
+
+def _docs_from_chroma_result(result: dict[str, Any]) -> list[Document]:
+    documents = result.get("documents") or []
+    metadatas = result.get("metadatas") or []
+    return [
+        Document(page_content=text or "", metadata=dict(metadata or {}))
+        for text, metadata in zip(documents, metadatas)
+    ]
+
+
+def _golden_neighbors_from_stored_embeddings(
+    *,
+    collection,
+    gold_text: str,
+    gold_ids: list[str],
+    retrieve_k: int,
+) -> tuple[list[Document], list[str]]:
+    """Retrieve around stored gold-document embeddings without loading an embedder.
+
+    HousingQA's 1.8M-document Chroma index is close to the local memory limit.
+    For gold-neighbor cache construction, the query text is the gold corpus
+    document itself, so using its persisted Chroma embedding preserves the
+    retrieval intent while avoiding a second sentence-transformer resident in
+    memory.
+    """
+    unique_gold_ids = _dedupe(gold_ids)
+    batch = _direct_lookup_by_doc_ids(
+        collection,
+        unique_gold_ids,
+        include=["embeddings", "metadatas"],
+    )
+    embeddings = batch.get("embeddings")
+    if embeddings is None:
+        embeddings = []
+    metadatas = batch.get("metadatas") or []
+    found_embedding_ids = [
+        str((metadata or {}).get("idx") or chroma_id).removeprefix("doc_")
+        for chroma_id, metadata in zip(batch.get("ids") or [], metadatas)
+    ]
+    missing = [idx for idx in unique_gold_ids if idx not in set(found_embedding_ids)]
+    if missing and _no_silent_fallback_enabled():
+        raise SystemExit(
+            "NO_SILENT_FALLBACK blocked stored-gold-embedding retrieval: "
+            f"missing embeddings for gold_ids={missing[:10]}"
+        )
+    if len(embeddings) == 0:
+        raise RuntimeError("no stored gold embeddings found")
+
+    fetch_k = retrieve_k * 3
+    pooled: list[Document] = []
+    seen: set[str] = set()
+    for embedding in embeddings:
+        result = collection.query(
+            query_embeddings=[embedding],
+            n_results=fetch_k,
+            include=["documents", "metadatas", "distances"],
+        )
+        result_docs = result.get("documents") or [[]]
+        result_metas = result.get("metadatas") or [[]]
+        result_distances = result.get("distances") or [[]]
+        for text, metadata, distance in zip(result_docs[0], result_metas[0], result_distances[0]):
+            metadata = dict(metadata or {})
+            idx = str(metadata.get("idx", "") or "")
+            if not idx or idx in seen:
+                continue
+            seen.add(idx)
+            metadata["dense_distance"] = float(distance)
+            pooled.append(Document(page_content=text or "", metadata=metadata))
+
+    return rerank_with_cross_encoder(gold_text, pooled, top_k=retrieve_k), found_embedding_ids
 
 
 def parse_args() -> argparse.Namespace:
@@ -128,7 +226,12 @@ def main() -> None:
     embedding_model = os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or ""
     label_prefix = args.label_prefix or QUERY_TYPE_TO_LABEL_PREFIX[args.query_type]
     hyre_cache = _load_hyre_cache(args.hyre_cache_path) if args.hyre_cache_path else {}
-    vectorstore = get_vectorstore(collection, embedding_model=embedding_model or None)
+    use_stored_gold_embeddings = (
+        args.query_type == "golden_neighbors"
+        and _env_truthy("GOLDEN_NEIGHBORS_STORED_EMBEDDING")
+    )
+    vectorstore = None if use_stored_gold_embeddings else get_vectorstore(collection, embedding_model=embedding_model or None)
+    direct_collection = _direct_chroma_collection(collection) if use_stored_gold_embeddings else None
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     wrote = 0
@@ -153,18 +256,36 @@ def main() -> None:
                 queries = [str(cache_entry["hyde_passage"])]
 
             retrieve_k = args.max_k
+            retrieval_backend = "langchain_chroma"
+            stored_gold_embedding_ids: list[str] = []
             if args.query_type == "golden_neighbors":
                 retrieve_k = args.max_k + max(args.max_k, len(_gold_ids(row)))
 
-            docs = retrieve_documents_multi_query(
-                queries=queries,
-                k=retrieve_k,
-                vectorstore=vectorstore,
-                where=where,
-                rerank_query=None,
-            )
+            if use_stored_gold_embeddings:
+                docs, stored_gold_embedding_ids = _golden_neighbors_from_stored_embeddings(
+                    collection=direct_collection,
+                    gold_text=queries[0],
+                    gold_ids=_gold_ids(row),
+                    retrieve_k=retrieve_k,
+                )
+                retrieval_backend = "stored_gold_embedding"
+            else:
+                docs = retrieve_documents_multi_query(
+                    queries=queries,
+                    k=retrieve_k,
+                    vectorstore=vectorstore,
+                    where=where,
+                    rerank_query=None,
+                )
             doc_ids = [str(doc.metadata.get("idx", "")) for doc in docs]
             scores = [_score_from_doc(doc) for doc in docs]
+            cross_encoder_max_chars = os.getenv("CROSS_ENCODER_MAX_CHARS", "4096").strip()
+            cross_encoder_query_truncated = any(
+                bool(doc.metadata.get("cross_encoder_query_truncated")) for doc in docs
+            )
+            cross_encoder_doc_truncated_count = sum(
+                1 for doc in docs if doc.metadata.get("cross_encoder_doc_truncated")
+            )
             if args.query_type == "golden_neighbors":
                 gold_ids = _gold_ids(row)
                 neighbor_ids = [idx for idx in doc_ids if idx not in set(gold_ids)]
@@ -194,16 +315,26 @@ def main() -> None:
                 "effective_retrieved_ids": effective_retrieved_ids,
                 "query_hash": _hash_texts(queries),
                 "question_hash": _hash_texts([_fmt_intermediate(row, config)]),
+                "retrieval_backend": retrieval_backend,
+                "cross_encoder_max_chars": cross_encoder_max_chars,
+                "cross_encoder_query_truncated": cross_encoder_query_truncated,
+                "cross_encoder_doc_truncated_count": cross_encoder_doc_truncated_count,
             }
             if args.query_type == "golden_neighbors":
                 record["injected_gold_ids"] = _gold_ids(row)
                 record["gold_injected"] = bool(_gold_ids(row))
+                if stored_gold_embedding_ids:
+                    record["stored_gold_embedding_ids"] = stored_gold_embedding_ids
             f.write(json.dumps(record, sort_keys=True) + "\n")
             wrote += 1
 
     print(f"wrote {wrote} retrieval-cache rows to {args.out}")
     if skipped:
         print(f"skipped {skipped} rows without required query material")
+        if _no_silent_fallback_enabled():
+            raise SystemExit(
+                f"NO_SILENT_FALLBACK blocked retrieval cache with skipped_rows={skipped}"
+            )
 
 
 if __name__ == "__main__":

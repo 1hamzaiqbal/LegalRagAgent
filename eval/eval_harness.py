@@ -17,7 +17,7 @@ import os
 import re
 import subprocess
 import sys
-from typing import List
+from typing import Any, List
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -276,6 +276,16 @@ def _env_truthy(name: str) -> bool:
     return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be an integer, got {raw!r}") from exc
+
+
 def _lexical_overlap_score(query: str, text: str) -> float:
     query_tokens = set(re.findall(r"[a-z0-9]+", str(query).lower()))
     text_tokens = set(re.findall(r"[a-z0-9]+", str(text).lower()))
@@ -403,6 +413,39 @@ def _contains_answer_artifact(text: str) -> bool:
     return bool(re.search(r"(?im)^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:", text))
 
 
+def _has_explicit_answer_marker(text: str) -> bool:
+    """Whether a discrete-task final answer used the required Answer: marker."""
+    if not text:
+        return False
+    return bool(re.search(r"(?im)^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:", text))
+
+
+def _has_required_final_answer_line(text: str, predicted: str | None, config: EvalConfig) -> bool:
+    """Whether the last non-empty line is exactly the required final answer."""
+    final_line_prediction = _extract_required_final_line_prediction(text, config)
+    if final_line_prediction is not None:
+        return _required_answer_line_from_prediction(final_line_prediction, config) == (
+            _required_answer_line_from_prediction(predicted, config)
+        )
+    target_line = _required_answer_line_from_prediction(predicted, config)
+    if not target_line:
+        return False
+    lines = [line.strip() for line in str(text or "").splitlines() if line.strip()]
+    if not lines:
+        return False
+    return lines[-1] == target_line
+
+
+def _extract_predicted_answer(text: str, config: EvalConfig) -> str | None:
+    """Extract the answer from a leading PREDICTED line, if present."""
+    if not text:
+        return None
+    match = re.search(r"(?im)^\s*PREDICTED\s*:\s*(.+?)\s*$", text)
+    if not match:
+        return _extract_answer(text, config)
+    return _extract_answer(match.group(1), config)
+
+
 def _sanitize_intermediate_text(text: str, fallback: str = "") -> str:
     """Strip answer-label artifacts and prompt-ish headers from intermediate text."""
     cleaned = text or ""
@@ -517,6 +560,15 @@ def _json_key(value) -> str:
     return json.dumps(value or {}, sort_keys=True, separators=(",", ":"))
 
 
+def _hash_texts(values: list[str]) -> str:
+    """Stable short hash used to bind retrieval caches to the exact query text."""
+    h = hashlib.sha256()
+    for value in values:
+        h.update(str(value).encode("utf-8", errors="ignore"))
+        h.update(b"\0")
+    return h.hexdigest()[:16]
+
+
 def _row_idx_for_cache(row: pd.Series) -> str:
     value = row.get("idx", "")
     if value is None:
@@ -600,10 +652,19 @@ def _documents_from_retrieval_cache(
     where: dict | None,
     embedding_model: str | None,
     k: int,
+    queries: List[str] | None = None,
 ):
     entry = _retrieval_cache_entry(row, label_prefix, collection, where, embedding_model)
     if entry is None:
         return None
+    if queries is not None and entry.get("query_hash"):
+        expected_hash = _hash_texts([str(q) for q in queries])
+        if str(entry.get("query_hash")) != expected_hash:
+            raise ValueError(
+                f"retrieval cache query_hash mismatch for idx={_row_idx_for_cache(row)} "
+                f"label_prefix={label_prefix}: cache={entry.get('query_hash')} "
+                f"current={expected_hash}"
+            )
     retrieved_ids = [str(idx) for idx in entry.get("retrieved_ids", [])]
     if len(retrieved_ids) < k:
         raise ValueError(
@@ -685,10 +746,13 @@ def _snap_hyde_user(question_text: str, snap_answer: str, gap_focus: str = "") -
 def _generate_hyde(config: EvalConfig, role: str, user: str, label: str, fallback: str) -> dict:
     """Generate and sanitize a HyDE-style intermediate passage."""
     raw = _llm_call(_system_prompt(config, role), user, label=label)
+    cleaned = _sanitize_intermediate_text(raw, fallback="")
+    fallback_text = (fallback or "").strip()
     return {
-        "text": _sanitize_intermediate_text(raw, fallback=fallback),
+        "text": cleaned or fallback_text,
         "raw": raw,
         "contains_answer": _contains_answer_artifact(raw),
+        "used_fallback": not bool(cleaned),
     }
 
 
@@ -795,6 +859,206 @@ def _option_table_selector_system(config: EvalConfig) -> str:
     )
 
 
+def _final_answer_contract(config: EvalConfig) -> str:
+    """User-level output contract for strict final-answer postchecks."""
+    if config.dataset == "housing":
+        return (
+            "## Required Output\n"
+            "End your response with exactly one final line, either:\n"
+            "Answer: Yes\n"
+            "Answer: No\n"
+            "Do not put any text after that final Answer line."
+        )
+    if config.dataset in {"barexam", "casehold", "legalbench_scalr"}:
+        choices = ", ".join(f"Answer: ({letter})" for letter in _mc_choice_letters(config.dataset))
+        return (
+            "## Required Output\n"
+            "End your response with exactly one final line in this form: Answer: (X)\n"
+            f"Valid final lines are: {choices}\n"
+            "Do not put any text after that final Answer line."
+        )
+    return ""
+
+
+def _required_answer_line_from_prediction(predicted: str | None, config: EvalConfig) -> str:
+    """Convert an already-extracted prediction into the required final line."""
+    if not predicted:
+        return ""
+    value = str(predicted).strip()
+    if not value:
+        return ""
+    if config.dataset == "housing":
+        lowered = value.lower()
+        if lowered == "yes":
+            return "Answer: Yes"
+        if lowered == "no":
+            return "Answer: No"
+        return ""
+    letters = set(_mc_choice_letters(config.dataset))
+    letter = value.upper()
+    if letter in letters:
+        return f"Answer: ({letter})"
+    return ""
+
+
+def _extract_required_final_line_prediction(text: str, config: EvalConfig) -> str | None:
+    """Extract a prediction only when the last non-empty line exactly matches the contract."""
+    lines = [line.strip() for line in str(text or "").splitlines() if line.strip()]
+    if not lines:
+        return None
+    last = lines[-1]
+    if config.dataset == "housing":
+        if last == "Answer: Yes":
+            return "Yes"
+        if last == "Answer: No":
+            return "No"
+        return None
+    if config.dataset in {"barexam", "casehold", "legalbench_scalr"}:
+        letters = re.escape(_mc_choice_letters(config.dataset))
+        match = re.fullmatch(rf"Answer: \(([{letters}])\)", last)
+        if match:
+            return match.group(1)
+    return None
+
+
+def _retrieved_answer_user(config: EvalConfig, passage_block: str, question: str) -> str:
+    parts = [
+        f"## Retrieved Passages\n{passage_block}",
+        f"## Question\n{question}",
+    ]
+    contract = _final_answer_contract(config)
+    if contract:
+        parts.append(contract)
+    return "\n\n".join(parts)
+
+
+def _evidence_passage_block(result: dict) -> str:
+    passages: list[str] = []
+    for item in result.get("evidence_store") or []:
+        if not isinstance(item, dict):
+            continue
+        idx = str(item.get("idx") or "").strip()
+        text = str(item.get("text") or item.get("snippet") or "").strip()
+        if not text:
+            continue
+        prefix = f"[{idx}] " if idx else ""
+        passages.append(prefix + text)
+    return "\n\n".join(passages)
+
+
+def _near_completion_cap(output_tokens: int) -> bool:
+    max_completion_tokens = _env_int("LLM_MAX_COMPLETION_TOKENS", 0)
+    output_token_margin = _env_int("EVAL_OUTPUT_TOKEN_MARGIN", 16)
+    return (
+        max_completion_tokens > 0
+        and output_tokens >= max(1, max_completion_tokens - output_token_margin)
+    )
+
+
+def _maybe_retry_final_answer_format(
+    row: pd.Series,
+    config: EvalConfig,
+    result: dict,
+    answer_text: str,
+    predicted: str | None,
+) -> tuple[str, str | None]:
+    """Retry only malformed final-answer formatting, with the same evidence."""
+    if not _env_truthy("EVAL_FINAL_FORMAT_RETRY"):
+        return answer_text, predicted
+    if config.dataset not in {"barexam", "housing", "casehold", "legalbench_scalr"}:
+        return answer_text, predicted
+
+    final_line_prediction = _extract_required_final_line_prediction(answer_text, config)
+    if final_line_prediction is not None:
+        predicted = final_line_prediction
+
+    metrics_before_retry = _get_metrics()
+    output_tokens_before_retry = int(metrics_before_retry.get("output_tokens") or 0)
+    malformed = final_line_prediction is None
+    near_cap = (
+        int(metrics_before_retry.get("count") or 0) <= 1
+        and _near_completion_cap(output_tokens_before_retry)
+    )
+    if not malformed and not near_cap:
+        return answer_text, predicted
+
+    reasons = []
+    if malformed:
+        reasons.append("missing_marker" if predicted else "missing_prediction")
+    if near_cap:
+        reasons.append("near_completion_cap")
+
+    retry_system = (
+        "You are a strict final-answer formatter. Do not reason, explain, or solve "
+        "the task. Return exactly one final Answer line in the required format."
+    )
+    retry_mode = "select_final_line"
+    target_line = _required_answer_line_from_prediction(predicted, config)
+    if target_line:
+        retry_mode = "format_existing_prediction"
+        retry_user = "\n\n".join([
+            "## Required Output",
+            f"Return exactly this line and nothing else:\n{target_line}",
+            "## Retry Instruction",
+            "The previous response already contained a parseable prediction but did not satisfy "
+            "the output contract or was too close to the token cap. Preserve that prediction; "
+            "only repair the final-answer format.",
+        ])
+    else:
+        passage_block = _evidence_passage_block(result)
+        if passage_block:
+            retry_user = _retrieved_answer_user(config, passage_block, _fmt(row, config))
+            same_context = "same evidence"
+        else:
+            retry_user = "\n\n".join([
+                "## Question",
+                _fmt(row, config),
+                _final_answer_contract(config),
+            ])
+            same_context = "same question"
+        retry_user = (
+            retry_user
+            + "\n\n## Retry Instruction\n"
+            "Your previous response did not contain a parseable final answer. "
+            f"Using the {same_context}, return only the required final Answer line. "
+            "Do not include reasoning, citations, markdown, or any text after the Answer line."
+        )
+    retry_answer = _llm_call(
+        retry_system,
+        retry_user,
+        label=f"{config.mode}/answer_format_retry",
+    )
+    retry_predicted = _extract_required_final_line_prediction(retry_answer, config)
+    if retry_predicted is None:
+        retry_predicted = _extract_answer(retry_answer, config)
+    metrics_after_retry = _get_metrics()
+    retry_output_tokens = max(
+        0,
+        int(metrics_after_retry.get("output_tokens") or 0) - output_tokens_before_retry,
+    )
+
+    result["answer_format_retry"] = True
+    result["answer_format_retry_reason"] = ",".join(reasons)
+    result["answer_format_retry_reasons"] = reasons
+    result["answer_format_retry_mode"] = retry_mode
+    result["answer_format_retry_input_prediction"] = predicted
+    if target_line:
+        result["answer_format_retry_target_line"] = target_line
+    result["answer_format_retry_output_tokens"] = retry_output_tokens
+    result["answer_format_retry_near_cap"] = _near_completion_cap(retry_output_tokens)
+    result["final_answer_before_format_retry"] = answer_text
+    result["final_answer"] = retry_answer
+    if (
+        not retry_predicted
+        or not _has_required_final_answer_line(retry_answer, retry_predicted, config)
+        or result["answer_format_retry_near_cap"]
+    ):
+        result["answer_format_retry_valid"] = False
+        return retry_answer, retry_predicted
+    result["answer_format_retry_valid"] = True
+    return retry_answer, retry_predicted
+
+
 def _adaptive_hyre_route(row: pd.Series, config: EvalConfig) -> str:
     """Task-shape route for the one-policy HyRE runner."""
     if config.dataset == "housing" and _housing_state_where(row, config):
@@ -826,19 +1090,23 @@ def _snap_hyre_retrieve_and_answer(
         snap_block = str(cache_entry.get("snap_answer") or "")
         hyre_passage = str(cache_entry.get("hyde_passage") or "")
         parse_ok = bool(cache_entry.get("snap_hyre_parse_ok", True))
+        snap_hyre_generation_meta = {}
         if not hyre_passage:
             snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(
                 combined_raw,
                 fallback_passage=question_intermediate,
             )
     else:
-        combined_raw = _llm_call(
-            _snap_hyde_2call_system(config),
-            question,
-            label=f"{label_prefix}/snap_and_hyre",
-        )
-        snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(
+        (
             combined_raw,
+            snap_block,
+            hyre_passage,
+            parse_ok,
+            snap_hyre_generation_meta,
+        ) = _generate_snap_hyre_blocks(
+            config,
+            label=f"{label_prefix}/snap_and_hyre",
+            question=question,
             fallback_passage=question_intermediate,
         )
     snap_letter = _extract_answer(snap_block, config)
@@ -862,7 +1130,7 @@ def _snap_hyre_retrieve_and_answer(
     )
     passage_block = "\n\n".join(retrieval["passages"])
 
-    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    user = _retrieved_answer_user(config, passage_block, question)
     answer = _llm_call(final_system or _system_prompt(config, "rag"), user, label=f"{label_prefix}/answer")
 
     out = {
@@ -875,6 +1143,8 @@ def _snap_hyre_retrieve_and_answer(
         "snap_hyre_parse_ok": parse_ok,
         "hyre_cache_hit": bool(cache_entry),
         "hyre_cache_label": _row_label(row, config) if cache_entry else "",
+        "logical_llm_calls": 2,
+        "cached_generation_calls": 1 if cache_entry else 0,
         "hyde_passage": hyre_passage,
         "hyde_passage_raw": combined_raw,
         "hyde_contains_answer_artifact": hyre_contains_answer,
@@ -886,6 +1156,7 @@ def _snap_hyre_retrieve_and_answer(
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
+        **_retrieval_cache_audit_fields(retrieval),
     }
     if not parse_ok:
         out["routed_to"] = f"{label_prefix}_parse_failed_fallback_to_question"
@@ -925,10 +1196,13 @@ def _report_prompt(max_words: int = 100, include_model_knowledge: bool = False) 
 def _generate_report(system: str, user: str, label: str, fallback: str) -> dict:
     """Generate and sanitize a report-style intermediate artifact."""
     raw = _llm_call(system, user, label=label)
+    cleaned = _sanitize_intermediate_text(raw, fallback="")
+    fallback_text = (fallback or "").strip()
     return {
-        "text": _sanitize_intermediate_text(raw, fallback=fallback),
+        "text": cleaned or fallback_text,
         "raw": raw,
         "contains_answer": _contains_answer_artifact(raw),
+        "used_fallback": not bool(cleaned),
     }
 
 
@@ -938,19 +1212,19 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
         prompts = {
             "answer": (
                 "You are a legal expert specializing in housing law. Answer the Yes/No question below. "
-                "Reason step by step, then give your final answer as: Answer: Yes or Answer: No"
+                "Reason step by step, then end with exactly one final line: Answer: Yes or Answer: No"
             ),
             "rag": (
                 "You are a legal expert specializing in housing law. Reason through the question "
                 "step by step. Retrieved passages are provided — use them to verify or "
                 "refine your reasoning, but think through the problem independently first. "
-                "Give your final answer as: Answer: Yes or Answer: No"
+                "End with exactly one final line: Answer: Yes or Answer: No"
             ),
             "research": (
                 "You are a legal expert specializing in housing law. Reason through the question "
                 "step by step. Research findings are provided — use them to verify or "
                 "refine your reasoning, but think through the problem independently first. "
-                "Give your final answer as: Answer: Yes or Answer: No"
+                "End with exactly one final line: Answer: Yes or Answer: No"
             ),
             "hyde": (
                 "You are a legal textbook author specializing in housing law. Given a legal question, "
@@ -976,7 +1250,7 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
             "You are a legal expert specializing in housing law. Answer the Yes/No question below. "
             "Reason step by step. Identify what your FIRST choice answer is, and also what the ALTERNATIVE "
             "answer would be and why someone might argue for it. "
-            "Give your final answer as: Answer: Yes or Answer: No"
+            "End with exactly one final line: Answer: Yes or Answer: No"
         )
         prompts["top2_hyde"] = (
             "You are a legal textbook author specializing in housing law. A student has answered a legal question. "
@@ -990,29 +1264,33 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
             "answer": (
                 "You are a legal expert specializing in case law. Read the citing context from a court opinion "
                 "and determine which holding is most likely being referenced. "
-                "Reason step by step, then give your final answer as: Answer: (X)"
+                "Reason step by step, then end with exactly one final line in the form: Answer: (X)"
             ),
             "rag": (
                 "You are a legal expert specializing in case law. Reason through the question "
                 "step by step. Retrieved holdings are provided — use them to verify or "
                 "refine your reasoning, but think through the problem independently first. "
-                "Give your final answer as: Answer: (X)"
+                "End with exactly one final line in the form: Answer: (X)"
             ),
             "research": (
                 "You are a legal expert specializing in case law. Reason through the question "
                 "step by step. Research findings are provided — use them to verify or "
                 "refine your reasoning, but think through the problem independently first. "
-                "Give your final answer as: Answer: (X)"
+                "End with exactly one final line in the form: Answer: (X)"
             ),
             "hyde": (
                 "You are a legal textbook author. Given a court opinion excerpt that cites a holding, "
                 "write a short passage (2-3 sentences) stating the likely holding being referenced. "
-                "Write in the style of a case holding — state the rule directly."
+                "Write in the style of a case holding — state the rule directly. Do not choose an "
+                "answer letter, do not mention candidate labels, and do not output a final answer."
             ),
             "snap_hyde": (
                 "You are a legal textbook author. A student has identified what they think is the correct "
                 "holding for a citation. Write a short passage (2-3 sentences) from a legal reference "
-                "that would be most relevant to verifying this holding. Write in reference style."
+                "that would be most relevant to verifying or correcting the student's reasoning. Use "
+                "the reasoning to target the discriminating legal issue, but write only a neutral case "
+                "holding/reference passage. Do not choose an answer letter, do not mention candidate "
+                "labels, and do not output a final answer."
             ),
         }
         return prompts.get(role, prompts["answer"])
@@ -1051,7 +1329,7 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
     prompts = {
         "answer": (
             "You are a legal expert. Answer the multiple-choice question below. "
-            "Reason step by step, then give your final answer as: Answer: (X)"
+            "Reason step by step, then end with exactly one final line in the form: Answer: (X)"
         ),
         "rag": _RAG_SYSTEM,
         "hyde": (
@@ -1100,7 +1378,7 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
             "You are a legal expert. Answer the multiple-choice question below. "
             "Reason step by step. Identify what your FIRST choice answer is, and also what your SECOND choice "
             "would be and why it's a plausible alternative. "
-            "Give your final answer as: Answer: (X)"
+            "End with exactly one final line in the form: Answer: (X)"
         ),
         "top2_hyde": (
             "You are a legal textbook author. A student has answered a legal question and kept a "
@@ -1270,7 +1548,9 @@ def run_golden_passage(row: pd.Series, config: EvalConfig) -> dict:
     question = _fmt(row, config)
     gold = _gold_reference_text(row, config)
     if not gold:
-        return run_llm_only(row, config)
+        raise RuntimeError(
+            f"golden_passage missing gold reference for idx={_row_idx_for_cache(row)}"
+        )
 
     system = _system_prompt(config, "rag")
     user = f"## Reference Passage\n{gold}\n\n## Question\n{question}"
@@ -1298,9 +1578,9 @@ def run_golden_plus_neighbors(row: pd.Series, config: EvalConfig) -> dict:
     question = _fmt(row, config)
     gold = _gold_reference_text(row, config)
     if not gold:
-        result = run_llm_only(row, config)
-        result["golden_plus_neighbors_fallback"] = "missing_gold_passage"
-        return result
+        raise RuntimeError(
+            f"golden_plus_neighbors missing gold reference for idx={_row_idx_for_cache(row)}"
+        )
 
     gold_ids = _gold_ids(row)
     gold_idx = ",".join(gold_ids)
@@ -1335,7 +1615,7 @@ def run_golden_plus_neighbors(row: pd.Series, config: EvalConfig) -> dict:
         for i, ev in enumerate(evidence_store, 1)
     ]
     passage_block = "\n\n".join(passages)
-    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    user = _retrieved_answer_user(config, passage_block, question)
     answer = _llm_call(_system_prompt(config, "rag"), user, label="golden_plus_neighbors")
 
     retrieved_ids = list(gold_ids)
@@ -1346,7 +1626,7 @@ def run_golden_plus_neighbors(row: pd.Series, config: EvalConfig) -> dict:
         "retrieved_ids": retrieved_ids,
         "evidence_store": evidence_store,
         "neighbor_retrieved_ids": [str(ev.get("idx", "")) for ev in neighbor_evidence],
-        "retrieval_cache_hit": retrieval.get("retrieval_cache_hit", False),
+        **_retrieval_cache_audit_fields(retrieval),
         "final_context_fields": ["gold_passage", "retrieved_neighbors", "question"],
         "final_prompt_preview": _preview_text(user),
     }
@@ -1387,7 +1667,7 @@ def run_golden_arbitration(row: pd.Series, config: EvalConfig) -> dict:
         "You are a legal expert. You previously answered a question based on your knowledge. "
         "Now you are given a reference passage that may contain relevant legal authority. "
         "Review the passage carefully against your previous reasoning. "
-        "Reason step by step, then give your final answer as: Answer: (X)"
+        "Reason step by step, then end with exactly one final line in the form: Answer: (X)"
     )
     return _golden_arb_common(row, config, arb_system, "golden_arb")
 
@@ -1400,7 +1680,7 @@ def run_golden_arb_conservative(row: pd.Series, config: EvalConfig) -> dict:
         "Review the passage carefully. If the evidence supports your original answer, keep it. "
         "If the evidence clearly points to a different answer, change it. "
         "Do not change your answer unless the evidence gives you a strong reason to. "
-        "Reason step by step, then give your final answer as: Answer: (X)"
+        "Reason step by step, then end with exactly one final line in the form: Answer: (X)"
     )
     return _golden_arb_common(row, config, arb_system, "golden_arb_cons")
 
@@ -1524,6 +1804,7 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
         where=where,
         embedding_model=embedding_model,
         k=k,
+        queries=queries,
     )
     retrieval_cache_hit = cached is not None
     retrieval_cache_entry = cached[1] if cached is not None else None
@@ -1546,6 +1827,8 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
             "text": text,
             "source": doc.metadata.get("source", "unknown"),
             "cross_encoder_score": ce_score,
+            "cross_encoder_query_truncated": bool(doc.metadata.get("cross_encoder_query_truncated", False)),
+            "cross_encoder_doc_truncated": bool(doc.metadata.get("cross_encoder_doc_truncated", False)),
         })
 
     gold_idx = _gold_idx_string(row)
@@ -1564,6 +1847,8 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
         embedding_model=embedding_model or "",
         retrieval_cache_hit=retrieval_cache_hit,
         retrieval_cache_label=(retrieval_cache_entry or {}).get("label", ""),
+        retrieval_cache_query_hash=(retrieval_cache_entry or {}).get("query_hash", ""),
+        retrieval_query_hash=_hash_texts([str(q) for q in queries]),
         results=evidence_store,
         retrieved_ids=retrieved_ids,
         gold_idx=gold_idx,
@@ -1578,11 +1863,97 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
         "gold_retrieved": gold_retrieved,
         "max_ce_score": max_ce_score,
         "retrieval_cache_hit": retrieval_cache_hit,
+        "retrieval_cache_query_hash": (retrieval_cache_entry or {}).get("query_hash", ""),
+        "retrieval_query_hash": _hash_texts([str(q) for q in queries]),
     }
 
 
-def _rewrite_query(question: str, label: str = "rag_rewrite/rewrite") -> List[str]:
-    """LLM query rewrite → list of queries (primary + alternatives)."""
+def _retrieval_cache_audit_fields(retrieval: dict) -> dict:
+    """Top-level retrieval-cache fields for detail logs."""
+    return {
+        "retrieval_cache_hit": retrieval.get("retrieval_cache_hit", False),
+        "retrieval_cache_query_hash": retrieval.get("retrieval_cache_query_hash", ""),
+        "retrieval_query_hash": retrieval.get("retrieval_query_hash", ""),
+    }
+
+
+def _coerce_rewrite_queries(parsed: Any) -> List[str]:
+    """Validate query-rewriter JSON and return non-empty unique queries."""
+    if not isinstance(parsed, dict):
+        return []
+    primary = str(parsed.get("primary") or "").strip()
+    if not primary:
+        return []
+    queries = [primary]
+    alternatives = parsed.get("alternatives") or []
+    if isinstance(alternatives, list):
+        queries.extend(str(item).strip() for item in alternatives if str(item).strip())
+    deduped: List[str] = []
+    seen: set[str] = set()
+    for query in queries:
+        key = query.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(query)
+    return deduped
+
+
+def _json_string_literals(text: str) -> list[str]:
+    """Extract JSON string literals from a partial JSON fragment."""
+    values: list[str] = []
+    for match in re.finditer(r'"(?:\\.|[^"\\])*"', text):
+        try:
+            values.append(json.loads(match.group(0)))
+        except json.JSONDecodeError:
+            continue
+    return values
+
+
+def _parse_rewrite_json(text: str) -> tuple[Any, str]:
+    """Parse query-rewriter JSON, with explicit recovery for partial objects."""
+    parsed = _parse_json(text)
+    if parsed is not None:
+        return parsed, "json"
+
+    raw = str(text or "")
+    primary_match = re.search(r'"primary"\s*:\s*("(?:\\.|[^"\\])*")', raw)
+    if not primary_match:
+        return None, "invalid_json"
+    try:
+        primary = json.loads(primary_match.group(1)).strip()
+    except json.JSONDecodeError:
+        return None, "invalid_json"
+    if not primary:
+        return None, "invalid_json"
+
+    alternatives: list[str] = []
+    alt_match = re.search(r'"alternatives"\s*:\s*\[([\s\S]*)', raw)
+    if alt_match:
+        for value in _json_string_literals(alt_match.group(1)):
+            value = str(value).strip()
+            if value:
+                alternatives.append(value)
+            if len(alternatives) >= 2:
+                break
+    return {"primary": primary, "alternatives": alternatives}, "partial_json"
+
+
+def _rewrite_parse_failure_reason(parsed: Any) -> str:
+    if parsed is None:
+        return "invalid_json"
+    if not isinstance(parsed, dict):
+        return f"json_{type(parsed).__name__}"
+    if not str(parsed.get("primary") or "").strip():
+        return "missing_primary"
+    return "empty_queries"
+
+
+def _rewrite_query_with_meta(
+    question: str,
+    label: str = "rag_rewrite/rewrite",
+) -> tuple[List[str], dict]:
+    """LLM query rewrite with explicit retry/fallback metadata."""
     rewrite_prompt = (
         f"Original legal research question: {question}\n\n"
         f"Sub-question: {question}\n"
@@ -1590,11 +1961,74 @@ def _rewrite_query(question: str, label: str = "rag_rewrite/rewrite") -> List[st
         f"Retrieval hints: none"
     )
     raw_rewrite = _llm_call(load_skill("query_rewriter"), rewrite_prompt, label=label)
-    parsed = _parse_json(raw_rewrite)
+    parsed, parse_kind = _parse_rewrite_json(raw_rewrite)
+    queries = _coerce_rewrite_queries(parsed)
+    meta = {
+        "rewrite_raw": raw_rewrite,
+        "rewrite_parse_ok": bool(queries),
+        "rewrite_parse_kind": parse_kind if queries else "",
+        "rewrite_partial_json_repair": parse_kind == "partial_json" and bool(queries),
+        "rewrite_format_retry": False,
+        "rewrite_format_retry_reasons": [],
+        "rewrite_used_fallback": False,
+    }
+    if queries:
+        return queries, meta
 
-    if parsed and "primary" in parsed:
-        return [parsed["primary"]] + parsed.get("alternatives", [])
-    return [question]
+    reasons = [_rewrite_parse_failure_reason(parsed)]
+    if _env_truthy("EVAL_GENERATION_FORMAT_RETRY"):
+        retry_system = (
+            load_skill("query_rewriter")
+            + "\n\nYou are repairing a malformed query rewrite. Return ONLY valid JSON "
+            "with string field `primary` and list field `alternatives`. Do not include "
+            "markdown fences, prose, comments, or any other keys."
+        )
+        retry_prompt = "\n\n".join([
+            "## Original legal research question",
+            question,
+            "## Previous malformed output",
+            raw_rewrite or "",
+            "## Required Output",
+            (
+                "Return only JSON in this exact shape:\n"
+                '{"primary":"main search query","alternatives":["alternate query 1","alternate query 2"]}'
+            ),
+        ])
+        retry_raw = _llm_call(retry_system, retry_prompt, label=f"{label}/format_retry")
+        retry_parsed, retry_parse_kind = _parse_rewrite_json(retry_raw)
+        retry_queries = _coerce_rewrite_queries(retry_parsed)
+        meta.update({
+            "rewrite_raw_before_format_retry": raw_rewrite,
+            "rewrite_raw": retry_raw,
+            "rewrite_parse_ok": bool(retry_queries),
+            "rewrite_parse_kind": retry_parse_kind if retry_queries else "",
+            "rewrite_format_retry_parse_kind": retry_parse_kind if retry_queries else "",
+            "rewrite_partial_json_repair": retry_parse_kind == "partial_json" and bool(retry_queries),
+            "rewrite_format_retry": True,
+            "rewrite_format_retry_reason": ",".join(reasons),
+            "rewrite_format_retry_reasons": reasons,
+            "rewrite_format_retry_valid": bool(retry_queries),
+        })
+        if retry_queries:
+            return retry_queries, meta
+        reasons.append(_rewrite_parse_failure_reason(retry_parsed))
+        meta["rewrite_format_retry_reasons"] = reasons
+        meta["rewrite_format_retry_reason"] = ",".join(reasons)
+
+    meta["rewrite_used_fallback"] = True
+    meta["rewrite_parse_ok"] = False
+    if _no_silent_fallback_enabled():
+        raise RuntimeError(
+            "NO_SILENT_FALLBACK blocked rag_rewrite query rewrite parse failure: "
+            + ",".join(reasons)
+        )
+    return [question], meta
+
+
+def _rewrite_query(question: str, label: str = "rag_rewrite/rewrite") -> List[str]:
+    """LLM query rewrite -> list of queries (primary + alternatives)."""
+    queries, _ = _rewrite_query_with_meta(question, label=label)
+    return queries
 
 
 def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
@@ -1609,6 +2043,7 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
             "text": str(cache_entry.get("hyde_passage") or ""),
             "raw": str(cache_entry.get("hyde_passage_raw") or cache_entry.get("hyde_passage") or ""),
             "contains_answer": bool(cache_entry.get("hyde_contains_answer_artifact", False)),
+            "used_fallback": bool(cache_entry.get("hyde_used_fallback", False)),
         }
     else:
         hyde = _generate_hyde(
@@ -1626,7 +2061,7 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
     passage_block = "\n\n".join(retrieval["passages"])
 
     # Step 3: Answer with evidence
-    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    user = _retrieved_answer_user(config, passage_block, question)
     answer = _llm_call(_system_prompt(config, "rag"), user, label="hyde/answer")
 
     return {
@@ -1636,9 +2071,12 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
         "hyde_passage": hyde["text"],
         "hyde_passage_raw": hyde["raw"],
         "hyde_contains_answer_artifact": hyde["contains_answer"],
+        "hyde_used_fallback": hyde.get("used_fallback", False),
         "hyde_cache_hit": bool(cache_entry),
         "hyre_cache_hit": bool(cache_entry),
         "hyre_cache_label": _row_label(row, config) if cache_entry else "",
+        "logical_llm_calls": 2,
+        "cached_generation_calls": 1 if cache_entry else 0,
         "retrieval_queries": [hyde["text"]],
         "rerank_query": "",
         "final_context_fields": ["retrieved_passages", "question"],
@@ -1646,6 +2084,7 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
+        **_retrieval_cache_audit_fields(retrieval),
     }
 
 
@@ -1681,7 +2120,7 @@ def run_rag_multi_hyde(row: pd.Series, config: EvalConfig) -> dict:
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
-    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    user = _retrieved_answer_user(config, passage_block, question)
     answer = _llm_call(_system_prompt(config, "rag"), user, label="multi_hyde/answer")
 
     return {
@@ -1692,6 +2131,7 @@ def run_rag_multi_hyde(row: pd.Series, config: EvalConfig) -> dict:
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
+        **_retrieval_cache_audit_fields(retrieval),
     }
 
 
@@ -1711,14 +2151,14 @@ def run_multi_hyde_diverse(row: pd.Series, config: EvalConfig) -> dict:
     question_intermediate = _fmt_intermediate(row, config)
 
     system = (
-        "You are a research assistant. Given a question, write THREE different "
-        "short hypothetical answer-passages (2-3 sentences each).\n\n"
+        "You are a legal research assistant. Given a legal question, write THREE different "
+        "short hypothetical legal-reference passages (2-3 sentences each).\n\n"
         "Diversity rules:\n"
         "- Each passage must give a DIFFERENT plausible answer or focus on a "
         "DIFFERENT entity/aspect/sub-question\n"
         "- Do NOT label them with numbers, headers, or bullets\n"
-        "- Do NOT pick a multiple-choice letter (A/B/C/D) or commit to a single answer\n"
-        "- Write each passage in factual encyclopedia/textbook style\n"
+        "- Do NOT pick a multiple-choice letter (A/B/C/D/E), Yes/No, or any final answer\n"
+        "- Write each passage in legal reference, case holding, or treatise style\n"
         "- Separate the three passages with one blank line"
     )
     raw = _llm_call(system, question_intermediate, label="multi_hyde_diverse/generate")
@@ -1747,13 +2187,15 @@ def run_multi_hyde_diverse(row: pd.Series, config: EvalConfig) -> dict:
     )
     passage_block = "\n\n".join(retrieval["passages"])
 
-    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    user = _retrieved_answer_user(config, passage_block, question)
     answer = _llm_call(_system_prompt(config, "rag"), user, label="multi_hyde_diverse/answer")
 
     out = {
         "final_answer": answer,
         "formatted_question": question,
-        "retrieval_queries": hyde_passages,
+        "logical_llm_calls": 2,
+        "cached_generation_calls": 0,
+        "retrieval_queries": queries,
         "rerank_query": "",
         "hyde_passages": hyde_passages,
         "hyde_passages_raw": raw_hyde_passages,
@@ -1762,6 +2204,7 @@ def run_multi_hyde_diverse(row: pd.Series, config: EvalConfig) -> dict:
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
+        **_retrieval_cache_audit_fields(retrieval),
     }
     if routed_to:
         out["routed_to"] = routed_to
@@ -1812,6 +2255,7 @@ def run_rag_snap_hyde(row: pd.Series, config: EvalConfig) -> dict:
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
+        **_retrieval_cache_audit_fields(retrieval),
     }
 
 
@@ -2062,8 +2506,9 @@ def _snap_hyde_2call_system(config: EvalConfig) -> str:
         "After your final 'Answer:' line, append a blank line, then a header line that reads exactly:\n"
         "## Passage\n"
         "Followed by a 2-3 sentence reference passage that states the controlling rule, doctrine, "
-        "fact, or principle most relevant to this question. The passage will be used to retrieve "
-        "supporting context from a corpus. Constraints for the passage block:\n"
+        "fact, or principle most relevant to this question. Use the reasoning you just did to target "
+        "the discriminating legal issue, not to advocate for an answer label. The passage will be used "
+        "to retrieve supporting context from a corpus. Constraints for the passage block:\n"
         "- Do NOT mention any answer choice (no '(A)', '(B)', 'Yes', 'No', etc.) in the passage.\n"
         "- Do NOT use 'Answer:', 'Passage:' headers inside the block, no bold, no bullets.\n"
         "- Write in plain reference / encyclopedia / treatise style — state the relevant fact "
@@ -2089,6 +2534,188 @@ def _split_snap_and_hyde(raw: str, fallback_passage: str) -> tuple[str, str, boo
             if hyde_passage:
                 return snap_block, hyde_passage, True
     return text.strip(), fallback_passage, False
+
+
+def _generate_snap_hyre_blocks(
+    config: EvalConfig,
+    question: str,
+    fallback_passage: str,
+    label: str,
+) -> tuple[str, str, str, bool, dict]:
+    """Generate Snap-HyRE snap + passage blocks with one logged format retry."""
+    raw = _llm_call(_snap_hyde_2call_system(config), question, label=label)
+    snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(raw, fallback_passage=fallback_passage)
+    contains_answer = _contains_answer_artifact(hyre_passage)
+    snap_prediction = _extract_required_final_line_prediction(snap_block, config)
+    retry_meta: dict = {
+        "snap_hyre_format_retry": False,
+        "snap_hyre_format_retry_reasons": [],
+    }
+    if parse_ok and hyre_passage and not contains_answer and snap_prediction:
+        return raw, snap_block, hyre_passage, parse_ok, retry_meta
+    if not _env_truthy("EVAL_GENERATION_FORMAT_RETRY"):
+        return raw, snap_block, hyre_passage, parse_ok, retry_meta
+
+    reasons = []
+    if not parse_ok or not hyre_passage:
+        reasons.append("missing_passage_block")
+    if contains_answer:
+        reasons.append("passage_contains_answer_artifact")
+    if not snap_prediction:
+        reasons.append("missing_snap_answer_line")
+
+    previous_prediction = snap_prediction or _extract_answer(snap_block or raw, config)
+    target_line = _required_answer_line_from_prediction(previous_prediction, config)
+    retry_instruction = [
+        "## Question",
+        question,
+        "## Retry Instruction",
+        "Your previous Snap-HyRE generation did not satisfy the required two-block format. "
+        "Return a concise response with: legal reasoning, one final Answer line, a blank line, "
+        "then exactly the header `## Passage` followed by a 2-3 sentence neutral reference passage. "
+        "Do not include answer labels, choice letters, or `Answer:` inside the passage block.",
+    ]
+    if target_line:
+        retry_instruction.append(
+            "The previous response had this parseable final prediction; preserve it exactly:\n"
+            f"{target_line}"
+        )
+    retry_raw = _llm_call(
+        _snap_hyde_2call_system(config),
+        "\n\n".join(retry_instruction),
+        label=f"{label}/format_retry",
+    )
+    retry_snap, retry_passage, retry_parse_ok = _split_snap_and_hyde(
+        retry_raw,
+        fallback_passage=fallback_passage,
+    )
+    retry_contains_answer = _contains_answer_artifact(retry_passage)
+    retry_snap_prediction = _extract_required_final_line_prediction(retry_snap, config)
+    retry_parse_ok = bool(retry_parse_ok and retry_passage and not retry_contains_answer and retry_snap_prediction)
+    retry_meta = {
+        "snap_hyre_format_retry": True,
+        "snap_hyre_format_retry_reason": ",".join(reasons),
+        "snap_hyre_format_retry_reasons": reasons,
+        "snap_hyre_format_retry_input_prediction": previous_prediction,
+        "snap_and_hyre_raw_before_format_retry": raw,
+    }
+    if target_line:
+        retry_meta["snap_hyre_format_retry_target_line"] = target_line
+    return retry_raw, retry_snap, retry_passage, retry_parse_ok, retry_meta
+
+
+def _split_choice_hyre(raw: str, fallback_passage: str = "") -> tuple[str, list[str], bool]:
+    """Parse choice-conditioned HyRE generation into a snap block and passages."""
+    text = raw or ""
+    marker_re = re.compile(
+        r"(?im)^\s*(?:#{1,3}\s*)?(?:\*\*)?Passage\s*[1-3]\s*:?\s*(?:\*\*)?\s*$"
+    )
+    matches = list(marker_re.finditer(text))
+    if matches:
+        snap_block = text[:matches[0].start()].strip()
+        passages: list[str] = []
+        for i, match in enumerate(matches):
+            start = match.end()
+            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            passage = _sanitize_intermediate_text(text[start:end].strip(), fallback="")
+            if passage:
+                passages.append(passage)
+        return snap_block, passages[:3], len(passages) >= 3
+
+    # Format-tolerant fallback for probes: use blank-line paragraphs only when
+    # there are at least three passage-sized chunks. The strict guard records
+    # parse_ok=False if this did not recover all three passages.
+    chunks = [
+        _sanitize_intermediate_text(chunk.strip(), fallback="")
+        for chunk in re.split(r"\n\s*\n", text)
+        if len(chunk.strip()) > 40
+    ]
+    passages = [chunk for chunk in chunks if chunk][:3]
+    return text.strip() or fallback_passage, passages, len(passages) >= 3
+
+
+def _snap_choice_hyre_system(config: EvalConfig) -> str:
+    """One-call snap plus choice-conditioned retrieval-passage generator."""
+    answer_shape = "Answer: Yes or Answer: No" if config.dataset == "housing" else "Answer: (X)"
+    return (
+        "You are a legal research assistant preparing retrieval queries for a legal QA task. "
+        "First identify the most likely answer and one strongest alternative. Then use that prior "
+        "reasoning to identify the legal issue and closest competing distinction. Write THREE short "
+        "legal-reference passages for evidence retrieval. These passages are not advocacy for the "
+        "answer; they are neutral retrieval targets designed to find the corpus evidence that would "
+        "verify or correct the prior reasoning.\n\n"
+        "Output exactly this structure:\n"
+        "PREDICTED: <use the final-answer format, e.g. "
+        f"{answer_shape}>\n"
+        "ALTERNATIVE: <the strongest competing answer in the same format>\n\n"
+        "## Passage 1\n"
+        "<2-3 sentence passage about the controlling issue implied by the predicted answer>\n\n"
+        "## Passage 2\n"
+        "<2-3 sentence passage about the closest competing legal issue or distinction>\n\n"
+        "## Passage 3\n"
+        "<2-3 sentence neutral passage about the broader governing doctrine tying the two together>\n\n"
+        "Passage rules:\n"
+        "- Do not include answer letters, Yes/No labels, or 'Answer:' inside any passage.\n"
+        "- Do not mention option labels or candidate letters inside any passage.\n"
+        "- Do not copy the candidate answer text verbatim; abstract it into corpus-search language.\n"
+        "- Write passages in legal reference, case holding, or treatise style.\n"
+        "- Stop immediately after Passage 3."
+    )
+
+
+def run_snap_choice_hyre(row: pd.Series, config: EvalConfig) -> dict:
+    """Choice-conditioned Snap-HyRE probe with three candidate-theory passages."""
+    question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
+
+    raw = _llm_call(
+        _snap_choice_hyre_system(config),
+        question,
+        label="snap_choice_hyre/snap_and_choice_hyre",
+    )
+    snap_block, passages, parse_ok = _split_choice_hyre(raw, fallback_passage=question_intermediate)
+    if not parse_ok:
+        raise RuntimeError(
+            f"snap_choice_hyre expected 3 passages, parsed {len(passages)}"
+        )
+
+    queries = passages + [question_intermediate]
+    retrieval = _retrieve_and_format(
+        row,
+        queries,
+        k=config.retrieval_k,
+        label_prefix="snap_choice_hyre",
+        where=_where_from_config(config),
+        collection=_collection_for_config(config),
+    )
+    passage_block = "\n\n".join(retrieval["passages"])
+    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="snap_choice_hyre/answer")
+
+    return {
+        "final_answer": answer,
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
+        "snap_answer": snap_block,
+        "snap_letter": _extract_predicted_answer(snap_block, config),
+        "choice_hyre_generation_raw": raw,
+        "choice_hyre_parse_ok": parse_ok,
+        "logical_llm_calls": 2,
+        "cached_generation_calls": 0,
+        "choice_hyre_passages": passages,
+        "hyde_passages": passages,
+        "n_choice_hyre_passages": len(passages),
+        "hyde_contains_answer_artifact": any(_contains_answer_artifact(p) for p in passages),
+        "retrieval_queries": queries,
+        "rerank_query": "",
+        "raw_anchor_included": True,
+        "final_context_fields": ["retrieved_passages", "question"],
+        "final_prompt_preview": _preview_text(user),
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+        **_retrieval_cache_audit_fields(retrieval),
+    }
 
 
 def _snap_hyde_1call_system(config: EvalConfig) -> str:
@@ -2156,6 +2783,7 @@ def run_rag_snap_hyde_1call(row: pd.Series, config: EvalConfig) -> dict:
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
+        **_retrieval_cache_audit_fields(retrieval),
     }
 
 
@@ -2202,7 +2830,7 @@ def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
     passage_block = "\n\n".join(retrieval["passages"])
 
     # Step 3: Final synthesis (call #2). Snap letter NOT shown — same final-context contract as rag_snap_hyde.
-    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    user = _retrieved_answer_user(config, passage_block, question)
     answer = _llm_call(_system_prompt(config, "rag"), user, label=answer_label)
 
     out = {
@@ -2217,6 +2845,8 @@ def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
         "snap_hyde_2call_parse_ok": parse_ok,
         "hyre_cache_hit": bool(cache_entry),
         "hyre_cache_label": _row_label(row, config) if cache_entry else "",
+        "logical_llm_calls": 2,
+        "cached_generation_calls": 1 if cache_entry else 0,
         "hyde_passage": hyde_passage,
         "hyde_passage_raw": combined_raw,
         "hyde_contains_answer_artifact": hyde_contains_answer,
@@ -2227,6 +2857,7 @@ def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
+        **_retrieval_cache_audit_fields(retrieval),
     }
     if not parse_ok:
         out["routed_to"] = f"{label_prefix}_parse_failed_fallback_to_question"
@@ -2979,6 +3610,7 @@ def run_snap_hyde_aligned(row: pd.Series, config: EvalConfig) -> dict:
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
+        **snap_hyre_generation_meta,
     }
 
 
@@ -3799,7 +4431,7 @@ _VECTORLESS_FINAL = (
     "Generated legal reference notes are provided — use them to verify, refine, or challenge "
     "your reasoning, but do not treat them as automatically correct. "
     "If a note is generic, circular, or contradicted by stronger reasoning, ignore it. "
-    "Give your final answer as: Answer: (X)"
+    "End with exactly one final line in the form: Answer: (X)"
 )
 
 _VECTORLESS_STRICT = (
@@ -4816,7 +5448,7 @@ def run_rag_hyde_arb(row: pd.Series, config: EvalConfig) -> dict:
         "Review the passages carefully. If the evidence supports your original answer, keep it. "
         "If the evidence clearly points to a different answer, change it. "
         "Do not change your answer unless the evidence gives you a strong reason to. "
-        "Reason step by step, then give your final answer as: Answer: (X)"
+        "Reason step by step, then end with exactly one final line in the form: Answer: (X)"
     )
     arb_user = (
         f"## Your Previous Reasoning\n{_strip_answer_line(snap_answer)}\n\n"
@@ -4845,7 +5477,7 @@ _RAG_SYSTEM = (
     "You are a legal expert. Reason through the multiple-choice question "
     "step by step. Retrieved passages are provided — use them to verify or "
     "refine your reasoning, but think through the problem independently first. "
-    "Give your final answer as: Answer: (X)"
+    "End with exactly one final line in the form: Answer: (X)"
 )
 
 
@@ -4874,7 +5506,7 @@ def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
     """Query rewrite → retrieval → answer with evidence."""
     question = _fmt(row, config)
     question_intermediate = _fmt_intermediate(row, config)
-    queries = _rewrite_query(question_intermediate)
+    queries, rewrite_meta = _rewrite_query_with_meta(question_intermediate)
 
     retrieval = _retrieve_and_format(row, queries, k=config.retrieval_k, label_prefix="rewrite",
                                      where=_where_from_config(config),
@@ -4890,6 +5522,7 @@ def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
         "rewrite_queries": queries,
+        **rewrite_meta,
     }
 
 
@@ -4903,7 +5536,7 @@ def run_rag_simple(row: pd.Series, config: EvalConfig) -> dict:
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
-    user = f"## Retrieved Passages\n{passage_block}\n\n## Question\n{question}"
+    user = _retrieved_answer_user(config, passage_block, question)
     answer = _llm_call(_system_prompt(config, "rag"), user, label="rag_simple/answer")
 
     return {
@@ -4911,6 +5544,7 @@ def run_rag_simple(row: pd.Series, config: EvalConfig) -> dict:
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
+        **_retrieval_cache_audit_fields(retrieval),
     }
 
 
@@ -4944,6 +5578,7 @@ def run_rag_state_filter(row: pd.Series, config: EvalConfig) -> dict:
         "evidence_store": retrieval["evidence_store"],
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
+        **_retrieval_cache_audit_fields(retrieval),
     }
 
 
@@ -4970,7 +5605,7 @@ def run_rag_arbitration(row: pd.Series, config: EvalConfig) -> dict:
         "Review the passages carefully. If the evidence supports your original answer, keep it. "
         "If the evidence clearly points to a different answer, change it. "
         "Do not change your answer unless the evidence gives you a strong reason to. "
-        "Reason step by step, then give your final answer as: Answer: (X)"
+        "Reason step by step, then end with exactly one final line in the form: Answer: (X)"
     )
     arb_user = (
         f"## Your Previous Reasoning\n{_strip_answer_line(snap_answer)}\n\n"
@@ -6442,6 +7077,7 @@ MODE_RUNNERS = {
     "rag_snap_hyde": run_rag_snap_hyde,
     "rag_snap_hyde_1call": run_rag_snap_hyde_1call,
     "snap_hyre": run_rag_snap_hyde_2call,
+    "snap_choice_hyre": run_snap_choice_hyre,
     "rag_snap_hyde_2call": run_rag_snap_hyde_2call,
     "adaptive_snap_route": run_adaptive_snap_route,
     "snap_hyde_aligned": run_snap_hyde_aligned,
@@ -6552,6 +7188,127 @@ def _serialize_result(result: dict) -> dict:
     return out
 
 
+def _detail_log_path(config: EvalConfig, ts: str) -> str:
+    detail_suffix = f"{config.dataset}_{config.tag}" if config.tag else config.dataset
+    detail_suffix = re.sub(r"[^A-Za-z0-9_.-]+", "-", detail_suffix).strip("-")
+    return os.path.join("logs", f"eval_{config.mode}_{config.provider}_{ts}_{detail_suffix}_detail.jsonl")
+
+
+def _append_detail_record(detail_path: str, record: dict) -> None:
+    os.makedirs(os.path.dirname(detail_path) or ".", exist_ok=True)
+    with open(detail_path, "a") as f:
+        f.write(json.dumps(_serialize_result(record)) + "\n")
+
+
+def _no_silent_fallback_enabled() -> bool:
+    return os.getenv("NO_SILENT_FALLBACK", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _fallback_guard_violations(record: dict, config: EvalConfig) -> list[str]:
+    """Return fallback/cache/oracle violations that must not pass as normal rows."""
+    violations: list[str] = []
+
+    if record.get("error"):
+        violations.append(f"row_error={str(record.get('error'))[:160]}")
+
+    routed_to = str(record.get("routed_to") or "")
+    if "fallback" in routed_to.lower():
+        violations.append(f"routed_to={routed_to}")
+
+    hyre_route = str(record.get("hyre_route") or "")
+    if "fallback" in hyre_route.lower():
+        violations.append(f"hyre_route={hyre_route}")
+
+    for key, value in record.items():
+        if (key.endswith("_fallback") or key.endswith("_used_fallback")) and value:
+            violations.append(f"{key}={value}")
+        if key.endswith("_contains_answer_artifact") and value:
+            violations.append(f"{key}=True")
+
+    for key in (
+        "hyde_parse_ok",
+        "snap_hyre_parse_ok",
+        "snap_hyde_2call_parse_ok",
+        "snap_hyde_1call_parse_ok",
+        "choice_hyre_parse_ok",
+        "rewrite_parse_ok",
+        "route_parse_ok",
+        "passage_parse_ok",
+        "adaptive_parse_ok",
+    ):
+        if record.get(key) is False:
+            violations.append(f"{key}=False")
+
+    if "<think>" in str(record.get("final_answer") or "").lower():
+        violations.append("unclosed_think_or_reasoning_tag_in_final_answer")
+
+    if config.dataset in {"barexam", "housing", "casehold", "legalbench_scalr"}:
+        final_answer = str(record.get("final_answer") or "")
+        predicted = record.get("predicted_answer")
+        if not _has_explicit_answer_marker(final_answer):
+            violations.append("missing_explicit_answer_marker")
+        elif not _has_required_final_answer_line(final_answer, predicted, config):
+            violations.append("missing_required_final_answer_line")
+
+    max_answer_chars = _env_int("EVAL_MAX_FINAL_ANSWER_CHARS", 20_000)
+    final_answer_chars = len(str(record.get("final_answer") or ""))
+    if max_answer_chars > 0 and final_answer_chars > max_answer_chars:
+        violations.append(
+            f"final_answer_chars={final_answer_chars}>EVAL_MAX_FINAL_ANSWER_CHARS={max_answer_chars}"
+        )
+
+    max_completion_tokens = _env_int("LLM_MAX_COMPLETION_TOKENS", 0)
+    output_token_margin = _env_int("EVAL_OUTPUT_TOKEN_MARGIN", 16)
+    output_tokens = int(record.get("output_tokens") or 0)
+    llm_calls = int(record.get("llm_calls") or 0)
+    if (
+        max_completion_tokens > 0
+        and llm_calls <= 1
+        and _near_completion_cap(output_tokens)
+    ):
+        violations.append(
+            f"output_tokens={output_tokens} near LLM_MAX_COMPLETION_TOKENS={max_completion_tokens}"
+        )
+    retry_output_tokens = int(record.get("answer_format_retry_output_tokens") or 0)
+    if max_completion_tokens > 0 and retry_output_tokens and _near_completion_cap(retry_output_tokens):
+        violations.append(
+            "answer_format_retry_output_tokens="
+            f"{retry_output_tokens} near LLM_MAX_COMPLETION_TOKENS={max_completion_tokens}"
+        )
+
+    if config.retrieval_cache_path and config.mode in {
+        "rag_simple",
+        "rag_hyde",
+        "snap_hyre",
+        "rag_snap_hyde_2call",
+        "golden_plus_neighbors",
+    }:
+        if record.get("retrieval_cache_hit") is not True:
+            violations.append("retrieval_cache_hit!=True")
+
+    if config.hyre_cache_path and config.mode in {"rag_hyde", "snap_hyre", "rag_snap_hyde_2call"}:
+        if record.get("hyre_cache_hit") is not True and record.get("hyde_cache_hit") is not True:
+            violations.append("hyre_cache_hit!=True")
+
+    if config.mode in {"snap_hyre", "rag_snap_hyde_2call"} and config.dataset in {
+        "barexam",
+        "housing",
+        "casehold",
+        "legalbench_scalr",
+    }:
+        snap_answer = str(record.get("snap_answer") or "")
+        if not _extract_required_final_line_prediction(snap_answer, config):
+            violations.append("snap_answer_missing_required_final_line")
+
+    if config.mode in {"golden_passage", "golden_plus_neighbors"}:
+        if record.get("gold_retrieved") is not True:
+            violations.append("oracle_gold_not_injected")
+        if not record.get("evidence_store"):
+            violations.append("oracle_evidence_store_empty")
+
+    return violations
+
+
 def run_eval(config: EvalConfig):
     """Run evaluation with the given config."""
     if config.mode not in MODE_RUNNERS:
@@ -6631,6 +7388,13 @@ def run_eval(config: EvalConfig):
         except Exception as exc:
             print(f"[preflight] WARNING: could not verify collection: {exc}")
 
+    run_ts = time.strftime("%Y%m%d_%H%M%S")
+    detail_path = _detail_log_path(config, run_ts)
+    os.makedirs("logs", exist_ok=True)
+    if os.path.exists(detail_path):
+        raise SystemExit(f"Refusing to overwrite existing detail log: {detail_path}")
+    print(f"[detail-log] streaming rows to {detail_path}")
+
     results = []
     correct = 0
     total_start = time.time()
@@ -6673,6 +7437,16 @@ def run_eval(config: EvalConfig):
             result = runner(row, config)
             answer_text = result.get("final_answer", "")
             predicted = _extract_answer(answer_text, config)
+            final_line_prediction = _extract_required_final_line_prediction(answer_text, config)
+            if final_line_prediction is not None:
+                predicted = final_line_prediction
+            answer_text, predicted = _maybe_retry_final_answer_format(
+                row,
+                config,
+                result,
+                answer_text,
+                predicted,
+            )
 
             if is_open_ended:
                 is_correct = _judge_open_answer(row["question"], gold, answer_text, config)
@@ -6795,7 +7569,22 @@ def run_eval(config: EvalConfig):
         if "letter1" in record:
             record.setdefault("snap_letter", record["letter1"])
 
-        results.append(_serialize_result(record))
+        if _no_silent_fallback_enabled():
+            violations = _fallback_guard_violations(record, config)
+            if violations:
+                record["tag"] = config.tag
+                record["no_silent_fallback_violations"] = violations
+                _append_detail_record(detail_path, record)
+                print(
+                    f"\n[no-silent-fallback] blocked {label}: "
+                    + "; ".join(violations[:10])
+                )
+                raise SystemExit(5)
+
+        record["tag"] = config.tag
+        serialized_record = _serialize_result(record)
+        results.append(serialized_record)
+        _append_detail_record(detail_path, serialized_record)
 
     total_time = time.time() - total_start
     accuracy = correct / n if n > 0 else 0
@@ -6823,22 +7612,15 @@ def run_eval(config: EvalConfig):
     print(f"{'=' * 70}")
 
     # --- Save detail log ---
-    ts = time.strftime("%Y%m%d_%H%M")
     question_set = config.questions if config.questions in ("curated", "full") else f"n{config.questions}"
-    detail_suffix = f"{config.dataset}_{config.tag}" if config.tag else config.dataset
-    detail_suffix = re.sub(r"[^A-Za-z0-9_.-]+", "-", detail_suffix).strip("-")
-    detail_filename = f"eval_{config.mode}_{config.provider}_{ts}_{detail_suffix}_detail.jsonl"
-    detail_path = os.path.join("logs", detail_filename)
-    os.makedirs("logs", exist_ok=True)
 
     with open(detail_path, "w") as f:
         for r in results:
-            r.setdefault("tag", config.tag)
             f.write(json.dumps(r) + "\n")
     print(f"\nDetail log: {detail_path}")
 
     # --- Append to experiments.jsonl ---
-    run_id = f"{ts}_{config.mode}_{config.provider}"
+    run_id = f"{run_ts}_{config.mode}_{config.provider}"
     if config.tag:
         run_id += f"_{config.tag}"
 

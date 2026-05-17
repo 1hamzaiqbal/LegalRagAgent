@@ -26,13 +26,24 @@ HF_CACHE=${HF_CACHE:-/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache}
 XDG_CACHE_HOME=${XDG_CACHE_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/cache}
 TORCH_HOME=${TORCH_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/cache/torch}
 CACHE_DIR=${CACHE_DIR:-$REPO/caches/retrieval/full}
-HYRE_CACHE_ROOT=${HYRE_CACHE_ROOT:-$REPO/caches/hyre}
-HYRE_CACHE_PATTERN=${HYRE_CACHE_PATTERN:-"$HYRE_CACHE_ROOT/{dataset}_{model}_{mode}.jsonl"}
+HYRE_CACHE_ROOT=${HYRE_CACHE_ROOT:-$REPO/caches/hyre/full}
+HYRE_CACHE_PATTERN=${HYRE_CACHE_PATTERN:-"$HYRE_CACHE_ROOT/{dataset}_{scope}_{model}_{mode}.jsonl"}
 QUESTIONS=${QUESTIONS:-full}
+SEED=${SEED:-42}
+CACHE_SCOPE=${CACHE_SCOPE:-}
 MAX_K=${MAX_K:-10}
 KS=${KS:-1,3,5,10}
 ALIGN_MIN_EXISTS=${ALIGN_MIN_EXISTS:-0.95}
 ALIGN_METADATA_FALLBACK=${ALIGN_METADATA_FALLBACK:-0}
+NO_SILENT_FALLBACK=${NO_SILENT_FALLBACK:-1}
+
+if [[ -z "$CACHE_SCOPE" ]]; then
+  CACHE_SCOPE="q${QUESTIONS}_seed${SEED}"
+fi
+case "${NO_SILENT_FALLBACK,,}" in
+  1|true|yes|on) ;;
+  *) echo "NO_SILENT_FALLBACK must be enabled for retrieval cache runs, got $NO_SILENT_FALLBACK" >&2; exit 2 ;;
+esac
 
 if [[ -n "${DATASETS:-}" ]]; then
   # shellcheck disable=SC2206
@@ -73,12 +84,14 @@ export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export HF_DATASETS_OFFLINE=1
 export PYTHONUNBUFFERED=1
+export NO_SILENT_FALLBACK
 
 source "$EVAL_VENV/bin/activate"
 
 echo "[$(date -Is)] repo=$REPO commit=$(git rev-parse --short HEAD)"
-echo "[$(date -Is)] chroma=$CHROMA_DB_DIR cache_dir=$CACHE_DIR questions=$QUESTIONS max_k=$MAX_K"
+echo "[$(date -Is)] chroma=$CHROMA_DB_DIR cache_dir=$CACHE_DIR questions=$QUESTIONS seed=$SEED cache_scope=$CACHE_SCOPE max_k=$MAX_K"
 echo "[$(date -Is)] datasets=${DATASETS_ARR[*]} query_types=${QUERY_TYPES_ARR[*]} hyre_models=${HYRE_MODELS_ARR[*]:-none}"
+echo "[$(date -Is)] no_silent_fallback=$NO_SILENT_FALLBACK"
 git status --short --branch
 
 python -m py_compile \
@@ -103,23 +116,28 @@ for dataset in "${DATASETS_ARR[@]}"; do
   if python scripts/audit_retrieval_id_alignment.py \
     --dataset "$dataset" \
     --questions "$QUESTIONS" \
+    --seed "$SEED" \
     --min-exists "$ALIGN_MIN_EXISTS" \
     "${alignment_args[@]}" > "$alignment_report" 2>&1; then
     echo "[$(date -Is)] alignment OK dataset=$dataset"
   else
     echo "[$(date -Is)] WARNING: alignment failed dataset=$dataset; retrieval Hit/MRR is not promotable without a qrel fix"
     cat "$alignment_report"
+    if [[ "$NO_SILENT_FALLBACK" == "1" ]]; then
+      exit 2
+    fi
   fi
 
   for query_type in "${QUERY_TYPES_ARR[@]}"; do
     case "$query_type" in
       raw_question|golden_neighbors)
-        out="$CACHE_DIR/${dataset}_${query_type}_k${MAX_K}.jsonl"
+        out="$CACHE_DIR/${dataset}_${CACHE_SCOPE}_${query_type}_k${MAX_K}.jsonl"
         echo
         echo "[$(date -Is)] build dataset=$dataset query_type=$query_type out=$out"
         python scripts/build_retrieval_cache.py \
           --dataset "$dataset" \
           --questions "$QUESTIONS" \
+          --seed "$SEED" \
           --query-type "$query_type" \
           --max-k "$MAX_K" \
           --out "$out"
@@ -142,18 +160,20 @@ for dataset in "${DATASETS_ARR[@]}"; do
         fi
         for model in "${HYRE_MODELS_ARR[@]}"; do
           hyre_cache=${HYRE_CACHE_PATTERN//\{dataset\}/$dataset}
+          hyre_cache=${hyre_cache//\{scope\}/$CACHE_SCOPE}
           hyre_cache=${hyre_cache//\{model\}/$model}
           hyre_cache=${hyre_cache//\{mode\}/$generation_mode}
           if [[ ! -f "$hyre_cache" ]]; then
             echo "[$(date -Is)] ERROR: missing HyRE cache $hyre_cache"
             exit 2
           fi
-          out="$CACHE_DIR/${dataset}_${model}_${generation_mode}_k${MAX_K}.jsonl"
+          out="$CACHE_DIR/${dataset}_${CACHE_SCOPE}_${model}_${generation_mode}_k${MAX_K}.jsonl"
           echo
           echo "[$(date -Is)] build dataset=$dataset query_type=$query_type model=$model generation_mode=$generation_mode hyre_cache=$hyre_cache out=$out"
           python scripts/build_retrieval_cache.py \
             --dataset "$dataset" \
             --questions "$QUESTIONS" \
+            --seed "$SEED" \
             --query-type "$query_type" \
             --hyre-cache-path "$hyre_cache" \
             --max-k "$MAX_K" \

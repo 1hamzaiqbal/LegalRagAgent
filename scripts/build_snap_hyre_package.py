@@ -18,7 +18,7 @@ from typing import Any
 
 
 DATASETS = ["barexam", "housing", "casehold", "legalbench_scalr"]
-PROVIDERS = ["or-gemma3n-e4b", "or-gemma4-26b", "groq-llama70b"]
+PROVIDERS = ["or-ministral-8b", "or-gemma4-26b", "groq-llama70b"]
 MODES = [
     "llm_only",
     "rag_simple",
@@ -71,17 +71,31 @@ def _read_csvs(patterns: list[str]) -> list[dict[str, str]]:
     return rows
 
 
-def _detail_health(path: str | None, expected_total: int | None) -> dict[str, Any]:
+def _empty_health(status: str) -> dict[str, Any]:
+    return {
+        "detail_status": status,
+        "detail_rows": 0,
+        "missing_pred": 0,
+        "error_rows": 0,
+        "long_rows": 0,
+        "fallback_rows": 0,
+        "missing_oracle_rows": 0,
+    }
+
+
+def _detail_health(path: str | None, expected_total: int | None, *, mode: str, failed_tag: bool) -> dict[str, Any]:
     if not path:
-        return {"detail_status": "missing_detail_ref", "detail_rows": 0, "missing_pred": 0, "error_rows": 0, "long_rows": 0}
+        return _empty_health("missing_detail_ref")
     detail_path = Path(path)
     if not detail_path.exists():
-        return {"detail_status": "missing_detail_file", "detail_rows": 0, "missing_pred": 0, "error_rows": 0, "long_rows": 0}
+        return _empty_health("missing_detail_file")
 
     rows = _read_jsonl(detail_path)
     missing_pred = 0
     error_rows = 0
     long_rows = 0
+    fallback_rows = 0
+    missing_oracle_rows = 0
     for row in rows:
         pred = row.get("predicted_answer")
         if pred is None or str(pred).strip() == "":
@@ -91,22 +105,38 @@ def _detail_health(path: str | None, expected_total: int | None) -> dict[str, An
         answer = str(row.get("final_answer") or row.get("answer") or "")
         if len(answer) > 20000:
             long_rows += 1
+        routed_to = str(row.get("routed_to") or "")
+        if "fallback" in routed_to.lower():
+            fallback_rows += 1
+        elif any(key.endswith("_fallback") and value for key, value in row.items()):
+            fallback_rows += 1
+        elif row.get("snap_hyre_parse_ok") is False or row.get("snap_hyde_2call_parse_ok") is False:
+            fallback_rows += 1
+        if mode in {"golden_passage", "golden_plus_neighbors"}:
+            if not row.get("gold_retrieved") or not row.get("evidence_store"):
+                missing_oracle_rows += 1
 
     status = "clean"
+    if failed_tag:
+        status = "failed_tag"
     if expected_total is not None and len(rows) != expected_total:
         status = "row_count_mismatch"
-    if missing_pred or error_rows or long_rows:
+    if missing_pred or error_rows or long_rows or fallback_rows or missing_oracle_rows:
         status = "caveated"
+    if failed_tag:
+        status = "failed_tag"
     return {
         "detail_status": status,
         "detail_rows": len(rows),
         "missing_pred": missing_pred,
         "error_rows": error_rows,
         "long_rows": long_rows,
+        "fallback_rows": fallback_rows,
+        "missing_oracle_rows": missing_oracle_rows,
     }
 
 
-def _load_answer_rows(experiments_path: Path, tag_prefix: str) -> list[dict[str, Any]]:
+def _load_answer_rows(experiments_path: Path, tag_prefix: str, min_questions: int) -> list[dict[str, Any]]:
     rows = []
     for exp in _read_jsonl(experiments_path):
         dataset = str(exp.get("dataset") or "barexam")
@@ -122,7 +152,15 @@ def _load_answer_rows(experiments_path: Path, tag_prefix: str) -> list[dict[str,
             expected_total = int(total) if total is not None else None
         except (TypeError, ValueError):
             expected_total = None
-        health = _detail_health(exp.get("detail_log"), expected_total)
+        if expected_total is not None and expected_total < min_questions:
+            continue
+        failed_tag = "_FAILED" in tag or "do-not-use" in tag
+        health = _detail_health(
+            exp.get("detail_log"),
+            expected_total,
+            mode=mode,
+            failed_tag=failed_tag,
+        )
         rows.append({
             "dataset": dataset,
             "provider": provider,
@@ -201,6 +239,7 @@ def _write_markdown(
     answer_rows: list[dict[str, Any]],
     retrieval_rows: list[dict[str, str]],
     tag_prefix: str,
+    min_answer_questions: int,
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     pivot = _answer_pivot(answer_rows)
@@ -221,6 +260,7 @@ def _write_markdown(
         f.write("# Snap-HyRE Package Status\n\n")
         f.write("This file is generated from local artifacts only. Missing cells are not inferred from older docs.\n\n")
         f.write(f"- Experiments tag prefix: `{tag_prefix or '(none)'}`\n")
+        f.write(f"- Minimum answer-row questions: `{min_answer_questions}`\n")
         f.write(f"- Latest answer rows found: {len(answer_rows)} / {len(DATASETS) * len(PROVIDERS) * len(MODES)} expected cells\n")
         f.write(f"- Retrieval matrix rows found: {len(retrieval_rows)}\n\n")
 
@@ -342,16 +382,20 @@ def main() -> None:
     parser.add_argument("--retrieval-csv", action="append", default=["docs/generated/retrieval_cache_matrix*.csv"])
     parser.add_argument("--out-dir", type=Path, default=Path("docs/generated/snap_hyre_package"))
     parser.add_argument("--tag-prefix", default="local-snap-hyre")
+    parser.add_argument("--min-answer-questions", type=int, default=50)
     args = parser.parse_args()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    answer_rows = _latest_answer_rows(_load_answer_rows(args.experiments, args.tag_prefix))
+    answer_rows = _latest_answer_rows(
+        _load_answer_rows(args.experiments, args.tag_prefix, args.min_answer_questions)
+    )
     retrieval_rows = _retrieval_summary(_read_csvs(args.retrieval_csv))
 
     answer_fields = [
         "provider", "dataset", "mode", "run_id", "tag", "n_questions", "accuracy",
         "correct", "total", "avg_llm_calls", "total_input_tokens", "total_output_tokens",
-        "detail_status", "detail_rows", "missing_pred", "error_rows", "long_rows", "detail_log",
+        "detail_status", "detail_rows", "missing_pred", "error_rows", "long_rows",
+        "fallback_rows", "missing_oracle_rows", "detail_log",
     ]
     retrieval_fields = [
         "scope", "dataset", "model", "method", "k", "rows", "scored_rows", "hit", "recall", "mrr",
@@ -361,7 +405,13 @@ def main() -> None:
 
     _write_csv(args.out_dir / "answer_ladder_status.csv", answer_rows, answer_fields)
     _write_csv(args.out_dir / "retrieval_topk_status.csv", retrieval_rows, retrieval_fields)
-    _write_markdown(args.out_dir / "package_status.md", answer_rows, retrieval_rows, args.tag_prefix)
+    _write_markdown(
+        args.out_dir / "package_status.md",
+        answer_rows,
+        retrieval_rows,
+        args.tag_prefix,
+        args.min_answer_questions,
+    )
     written_plots = _maybe_write_plots(args.out_dir, answer_rows, retrieval_rows)
 
     print(f"wrote {args.out_dir / 'package_status.md'}")

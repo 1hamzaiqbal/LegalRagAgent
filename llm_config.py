@@ -3,12 +3,13 @@
 Supports multiple providers via LLM_PROVIDER env var:
   gemma, gemini-flash, gemini-flash-lite,
   groq-llama70b, groq-llama8b, groq-maverick, groq-scout, groq-gpt120b, groq-kimi, groq-qwen,
-  or-llama70b, or-gpt20b, or-gemma3n-e4b, or-gemma3-4b, or-gemma27b,
+  or-llama70b, or-gpt20b, or-ministral-8b, or-gemma3n-e4b, or-gemma3-4b, or-gemma27b,
   or-gemma4-26b, or-gemma4-31b,
   or-qwen3-coder, or-nemotron, or-mistral, or-hermes,
   ollama, cerebras
 
-Falls back to raw LLM_BASE_URL/LLM_API_KEY/LLM_MODEL if LLM_PROVIDER is not set.
+Falls back to raw LLM_BASE_URL/LLM_API_KEY/LLM_MODEL only when LLM_PROVIDER is
+unset, or when LLM_PROVIDER is explicitly custom/cluster-vllm.
 """
 
 import functools
@@ -41,17 +42,20 @@ PROVIDERS = {
     "groq-kimi":          ("https://api.groq.com/openai/v1", "GROQ_API_KEY", "moonshotai/kimi-k2-instruct",               1_000, 300_000),
     "groq-qwen":          ("https://api.groq.com/openai/v1", "GROQ_API_KEY", "qwen/qwen3-32b",                            1_000, 500_000),
     # groq-qwen8b removed — Groq doesn't carry qwen3-8b
-    # --- Qwen3 small + reasoning (OpenRouter) ---
+    # --- Qwen3 small + reasoning (OpenRouter; not a main-grid default because it can emit think traces) ---
     "or-qwen3-8b":        ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3-8b",                          None, None),
     "or-qwen3-14b":       ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3-14b",                         None, None),
     "or-qwen3-32b":       ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3-32b",                         None, None),
     "or-qwen3-30b-moe":   ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3-30b-a3b",                     None, None),
     "or-qwen35-9b":       ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3.5-9b",                        None, None),
+    # --- Small API model replacement for historical Gemma 4 E4B ---
+    "or-ministral-8b":     ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "mistralai/ministral-8b-2512",              None, None),
     # --- OpenRouter (paid) ---
     "or-phi4":            ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "microsoft/phi-4",                       None, None),
     "or-mistral-nemo":    ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "mistralai/mistral-nemo",                None, None),
     # --- OpenRouter (free tier — weekly token limits, no RPD cap) ---
     "or-llama70b":        ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "meta-llama/llama-3.3-70b-instruct:free",     None, None),
+    "or-llama70b-paid":   ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "meta-llama/llama-3.3-70b-instruct",          None, None),
     "or-gpt20b":          ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "openai/gpt-oss-20b:free",                    None, None),
     "or-gemma3n-e4b":     ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-3n-e4b-it",                 None, None),
     "or-gemma3-4b":       ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-3-4b-it",                  None, None),
@@ -64,6 +68,7 @@ PROVIDERS = {
     "or-gemma4-31b":      ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-4-31b-it",                 None, None),
     "or-gemma4-31b-free": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "google/gemma-4-31b-it:free",            None, None),
     "or-qwen3-coder":     ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3-coder-480b-a35b:free",           None, None),
+    # Reasoning-trace model; keep available for explicit experiments, not main-grid defaults.
     "or-nemotron":        ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "nvidia/nemotron-nano-9b-v2:free",            None, None),
     "or-mistral":         ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "mistralai/mistral-small-3.1-24b-instruct:free", None, None),
     "or-hermes":          ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "nousresearch/hermes-3-llama-3.1-405b:free",  None, None),
@@ -73,6 +78,30 @@ PROVIDERS = {
     "ollama":             ("http://localhost:11434/v1", None, "llama3",                                                     None,  None),
 }
 
+LEGACY_ENV_PROVIDERS = {"custom", "cluster-vllm"}
+
+
+def _legacy_env_config(provider: str):
+    """Resolve explicit raw OpenAI-compatible endpoint settings."""
+    base_url = os.getenv("LLM_BASE_URL", "").strip()
+    api_key = os.getenv("LLM_API_KEY", "").strip()
+    model = os.getenv("LLM_MODEL", "").strip()
+    missing = [
+        name
+        for name, value in (
+            ("LLM_BASE_URL", base_url),
+            ("LLM_API_KEY", api_key),
+            ("LLM_MODEL", model),
+        )
+        if not value
+    ]
+    if missing:
+        raise RuntimeError(
+            f"LLM_PROVIDER={provider!r} requires explicit "
+            + ", ".join(missing)
+        )
+    return base_url, api_key, model
+
 
 def _resolve_provider():
     """Resolve (base_url, api_key, model) from LLM_PROVIDER or legacy env vars."""
@@ -81,9 +110,18 @@ def _resolve_provider():
     if provider and provider in PROVIDERS:
         base_url, key_env, model, _, _ = PROVIDERS[provider]
         api_key = os.getenv(key_env, "") if key_env else "ollama"
+        if key_env and not api_key.strip():
+            raise RuntimeError(f"LLM_PROVIDER={provider!r} requires {key_env}")
         return base_url, api_key, model
+    if provider and provider in LEGACY_ENV_PROVIDERS:
+        return _legacy_env_config(provider)
+    if provider:
+        known = ", ".join(sorted([*PROVIDERS, *LEGACY_ENV_PROVIDERS]))
+        raise ValueError(f"Unknown LLM_PROVIDER={provider!r}. Known providers: {known}")
+    if os.getenv("NO_SILENT_FALLBACK", "").strip().lower() in {"1", "true", "yes", "on"}:
+        raise RuntimeError("NO_SILENT_FALLBACK requires explicit LLM_PROVIDER")
 
-    # Legacy fallback: raw env vars
+    # Legacy fallback for non-eval/demo entrypoints that predate LLM_PROVIDER.
     return (
         os.getenv("LLM_BASE_URL", "https://api.cerebras.ai/v1"),
         os.getenv("LLM_API_KEY", "no-key-set"),
@@ -108,12 +146,53 @@ def _uses_openrouter(base_url: str) -> bool:
     return "openrouter.ai" in base_url.lower()
 
 
+def _csv_env(name: str) -> list[str]:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return []
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _openrouter_extra_body(max_completion_tokens: int | None = None) -> dict:
+    """OpenRouter run controls that prevent implicit backend changes."""
+    provider = {
+        "allow_fallbacks": False,
+        "require_parameters": True,
+    }
+    for env_name, field in (
+        ("OPENROUTER_PROVIDER_ORDER", "order"),
+        ("OPENROUTER_PROVIDER_ONLY", "only"),
+        ("OPENROUTER_PROVIDER_IGNORE", "ignore"),
+    ):
+        values = _csv_env(env_name)
+        if values:
+            provider[field] = values
+    extra_body = {
+        "provider": provider,
+    }
+    if max_completion_tokens is not None:
+        # ChatOpenAI rewrites max_tokens to max_completion_tokens, but
+        # OpenRouter enforces the legacy max_tokens field for these models.
+        extra_body["max_tokens"] = max_completion_tokens
+    return extra_body
+
+
 def get_provider_info() -> dict:
     """Return current provider name, model, and rate limits (for eval logging)."""
     provider = os.getenv("LLM_PROVIDER", "").strip().lower()
     if provider and provider in PROVIDERS:
         base_url, key_env, model, rpd, tpd = PROVIDERS[provider]
         return {"provider": provider, "model": model, "rpd": rpd, "tpd": tpd}
+    if provider and provider in LEGACY_ENV_PROVIDERS:
+        return {
+            "provider": provider,
+            "model": os.getenv("LLM_MODEL", ""),
+            "rpd": None,
+            "tpd": None,
+        }
+    if provider:
+        known = ", ".join(sorted([*PROVIDERS, *LEGACY_ENV_PROVIDERS]))
+        raise ValueError(f"Unknown LLM_PROVIDER={provider!r}. Known providers: {known}")
     return {
         "provider": "custom",
         "model": os.getenv("LLM_MODEL", "llama-3.3-70b"),
@@ -144,11 +223,11 @@ def get_llm(temperature: float = 0.0, _provider: str = ""):
     }
     if max_completion_tokens is not None:
         if _uses_openrouter(base_url):
-            # ChatOpenAI rewrites max_tokens to max_completion_tokens, but
-            # OpenRouter enforces the legacy max_tokens field for these models.
-            kwargs["extra_body"] = {"max_tokens": max_completion_tokens}
+            kwargs["extra_body"] = _openrouter_extra_body(max_completion_tokens)
         else:
             kwargs["max_completion_tokens"] = max_completion_tokens
+    elif _uses_openrouter(base_url):
+        kwargs["extra_body"] = _openrouter_extra_body()
     return ChatOpenAI(**kwargs)
 
 
