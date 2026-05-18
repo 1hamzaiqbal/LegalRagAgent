@@ -537,6 +537,15 @@ outcome.
   exposure Hit@5 0.0282 / MRR@5 0.0148, zero errors, missing predictions, parse
   failures, fallback keys, exact-final-line issues, think tags, answer retries,
   long rows, or near-cap outputs.
+- The full HousingQA `groq-llama70b` `golden_plus_neighbors` row is 4524/6853 =
+  66.0%, +18.72pp over `rag_simple` (McNemar b/c=1702/419, p=1.17e-182) and
+  +21.26pp over `llm_only` (b/c=1829/372, p=2.91e-230). It is clean with one
+  retry caveat: strict golden-neighbor retrieval-cache replay, 6853/6853 cache
+  hits, evidence-store length 5 on all rows, 0 empty evidence rows, 6853/6853
+  gold retrieved, retrieval exposure Hit@5 1.0000 / MRR@5 1.0000, zero errors,
+  missing predictions, parse failures, fallback keys, exact-final-line issues,
+  think tags, long rows, or near-cap outputs; one same-model final-answer format
+  retry occurred on row `4192`.
 - LegalSearchQA is related work unless converted into a frozen corpus task.
 
 **Archived pivot**: the May 9-11 diagnostic/adaptive-controller package was

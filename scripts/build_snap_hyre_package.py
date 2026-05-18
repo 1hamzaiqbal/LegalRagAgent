@@ -192,7 +192,12 @@ def _latest_answer_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        writer = csv.DictWriter(
+            f,
+            fieldnames=fieldnames,
+            extrasaction="ignore",
+            lineterminator="\n",
+        )
         writer.writeheader()
         for row in rows:
             writer.writerow(row)
@@ -309,12 +314,16 @@ def _write_markdown(
 
         f.write("\n## Retrieval Coverage Notes\n\n")
         expected_methods = {"rag_simple", "rag_hyde", "snap_hyre", "golden_plus_neighbors"}
+        coverage_notes = []
         for dataset in DATASETS:
             methods = {row[2] for row in retrieval_seen if row[0] == dataset}
             missing = sorted(expected_methods - methods)
             if missing:
-                f.write(f"- `{dataset}` missing retrieval rows for: {', '.join(missing)}\n")
-        f.write("\n")
+                coverage_notes.append(f"- `{dataset}` missing retrieval rows for: {', '.join(missing)}")
+        if coverage_notes:
+            f.write("\n".join(coverage_notes) + "\n")
+        else:
+            f.write("All expected retrieval method families have at least one cache row.\n")
 
 
 def _maybe_write_plots(out_dir: Path, answer_rows: list[dict[str, Any]], retrieval_rows: list[dict[str, str]]) -> list[str]:
