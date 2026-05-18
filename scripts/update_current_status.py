@@ -103,6 +103,22 @@ class Cell:
     health: DetailStats | None = None
 
 
+@dataclass
+class CacheProgress:
+    benchmark: str
+    dataset: str
+    total: int
+    model: str
+    mode: str
+    rows: int
+    path: Path
+    errors: int = 0
+    missing_passages: int = 0
+    parse_failures: int = 0
+    missing_snap_letters: int = 0
+    fallback_rows: int = 0
+
+
 def load_jsonl(path: Path, tolerate_live_tail: bool = False) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     if not path.exists():
@@ -182,8 +198,7 @@ def fallback_flag_row(row: dict[str, Any]) -> bool:
     return False
 
 
-def detail_stats(path: Path) -> DetailStats:
-    rows = load_jsonl(path, tolerate_live_tail=True)
+def detail_stats_for_rows(rows: list[dict[str, Any]]) -> DetailStats:
     stats = DetailStats(rows=len(rows), retrieved_lens={})
     if not rows:
         return stats
@@ -239,6 +254,19 @@ def detail_stats(path: Path) -> DetailStats:
         stats.recall = sum(recalls) / evaluated
         stats.mrr = sum(reciprocal_ranks) / evaluated
     return stats
+
+
+def detail_stats(path: Path) -> DetailStats:
+    return detail_stats_for_rows(load_jsonl(path, tolerate_live_tail=True))
+
+
+def combined_detail_rows(paths: list[Path]) -> list[dict[str, Any]]:
+    by_key: dict[str, dict[str, Any]] = {}
+    for path in sorted(paths, key=lambda p: p.stat().st_mtime if p.exists() else 0):
+        for offset, row in enumerate(load_jsonl(path, tolerate_live_tail=True)):
+            key = str(row.get("idx") or row.get("label") or f"{path.name}:{offset}")
+            by_key[key] = row
+    return list(by_key.values())
 
 
 def rel_path(path: Path | str) -> str:
@@ -342,6 +370,34 @@ def make_empty_grid() -> dict[tuple[str, str, str], Cell]:
     return grid
 
 
+def apply_stats_to_cell(
+    cell: Cell,
+    stats: DetailStats,
+    *,
+    detail_log: str,
+    status: str,
+    source: str,
+    run_id: str = "",
+    timestamp: str = "",
+    signed: bool = False,
+    updated_recently: bool = False,
+) -> None:
+    cell.rows = stats.rows
+    cell.correct = stats.correct
+    cell.f_acc = stats.f_acc
+    if cell.mode != "llm_only":
+        cell.r_acc = stats.r_acc
+        cell.mrr = stats.mrr
+    cell.health = stats
+    cell.detail_log = detail_log
+    cell.status = status
+    cell.source = source
+    cell.run_id = run_id
+    cell.timestamp = timestamp
+    cell.signed = signed
+    cell.updated_recently = updated_recently
+
+
 def apply_detail_to_cell(
     cell: Cell,
     path: Path,
@@ -352,20 +408,17 @@ def apply_detail_to_cell(
     signed: bool = False,
 ) -> None:
     stats = detail_stats(path)
-    cell.rows = stats.rows
-    cell.correct = stats.correct
-    cell.f_acc = stats.f_acc
-    if cell.mode != "llm_only":
-        cell.r_acc = stats.r_acc
-        cell.mrr = stats.mrr
-    cell.health = stats
-    cell.detail_log = rel_path(path)
-    cell.status = status
-    cell.source = source
-    cell.run_id = run_id
-    cell.timestamp = timestamp
-    cell.signed = signed
-    cell.updated_recently = fresh_enough(path)
+    apply_stats_to_cell(
+        cell,
+        stats,
+        detail_log=rel_path(path),
+        status=status,
+        source=source,
+        run_id=run_id,
+        timestamp=timestamp,
+        signed=signed,
+        updated_recently=fresh_enough(path),
+    )
 
 
 def load_experiment_grid(signoff_text: str) -> dict[tuple[str, str, str], Cell]:
@@ -427,9 +480,31 @@ def apply_live_details(grid: dict[tuple[str, str, str], Cell], signoff_text: str
                 cell = grid[key]
                 if cell.rows >= total:
                     continue
+                candidates = candidate_detail_paths(dataset, model, mode)
+                if candidates:
+                    combined_rows = combined_detail_rows(candidates)
+                    combined_stats = detail_stats_for_rows(combined_rows)
+                    if combined_stats.rows > cell.rows:
+                        recent_paths = [path for path in candidates if fresh_enough(path)]
+                        status = "active" if recent_paths and combined_stats.rows < total else "partial stale"
+                        if combined_stats.rows >= total:
+                            status = "complete pending signoff"
+                        detail_label = ", ".join(rel_path(path) for path in candidates[-3:])
+                        if len(candidates) > 3:
+                            detail_label = f"{len(candidates)} detail logs; latest: {detail_label}"
+                        apply_stats_to_cell(
+                            cell,
+                            combined_stats,
+                            detail_log=detail_label,
+                            status=status,
+                            source="combined detail logs",
+                            signed=False,
+                            updated_recently=bool(recent_paths),
+                        )
+                        continue
                 best_path: Path | None = None
                 best_rows = cell.rows
-                for path in candidate_detail_paths(dataset, model, mode):
+                for path in candidates:
                     stats = detail_stats(path)
                     if stats.rows <= best_rows:
                         continue
@@ -447,6 +522,61 @@ def apply_live_details(grid: dict[tuple[str, str, str], Cell], signoff_text: str
                     source="detail log",
                     signed=is_signed(rel_path(best_path), signoff_text),
                 )
+
+
+def cache_fallback_flag(row: dict[str, Any]) -> bool:
+    for key, value in row.items():
+        if "fallback" not in str(key).lower():
+            continue
+        if value not in (False, None, "", 0, [], {}):
+            return True
+    return False
+
+
+def active_generation_caches() -> list[CacheProgress]:
+    caches: list[CacheProgress] = []
+    cache_root = REPO_ROOT / "caches" / "hyre" / "full"
+    for benchmark, dataset, total in BENCHMARKS:
+        prefix = f"{dataset}_qfull_seed42_"
+        for path in cache_root.glob(f"{prefix}*.jsonl"):
+            if not fresh_enough(path):
+                continue
+            name = path.name
+            for mode in ("rag_hyde", "snap_hyre"):
+                suffix = f"_{mode}.jsonl"
+                if not name.endswith(suffix):
+                    continue
+                model = name[len(prefix):-len(suffix)]
+                if model not in MODELS:
+                    continue
+                rows = load_jsonl(path, tolerate_live_tail=True)
+                if not rows or len(rows) >= total:
+                    continue
+                caches.append(
+                    CacheProgress(
+                        benchmark=benchmark,
+                        dataset=dataset,
+                        total=total,
+                        model=model,
+                        mode=mode,
+                        rows=len(rows),
+                        path=path,
+                        errors=sum(1 for row in rows if row.get("error")),
+                        missing_passages=sum(1 for row in rows if not row.get("hyde_passage")),
+                        parse_failures=sum(
+                            1
+                            for row in rows
+                            if row.get("hyde_parse_ok") is False
+                            or (mode == "snap_hyre" and row.get("snap_hyre_parse_ok") is False)
+                        ),
+                        missing_snap_letters=sum(
+                            1 for row in rows if mode == "snap_hyre" and not row.get("snap_letter")
+                        ),
+                        fallback_rows=sum(1 for row in rows if cache_fallback_flag(row)),
+                    )
+                )
+                break
+    return sorted(caches, key=lambda item: (item.dataset, item.model, item.mode))
 
 
 def apply_cache_metrics(grid: dict[tuple[str, str, str], Cell]) -> None:
@@ -620,6 +750,26 @@ def build_markdown(grid: dict[tuple[str, str, str], Cell], interval: int | None)
                     health=health_summary(cell),
                     detail=cell.detail_log,
                 )
+            )
+        lines.append("")
+
+    active_caches = active_generation_caches()
+    if active_caches:
+        lines.extend([
+            "## Active Generation Caches",
+            "",
+            "| Benchmark | Model | Mode | Progress | Health | Cache path |",
+            "|---|---|---|---:|---|---|",
+        ])
+        for cache in active_caches:
+            health = (
+                f"{cache.rows}/{cache.total}; errors {cache.errors}; "
+                f"missing passages {cache.missing_passages}; parse failures {cache.parse_failures}; "
+                f"missing snap letters {cache.missing_snap_letters}; fallback rows {cache.fallback_rows}"
+            )
+            lines.append(
+                f"| {cache.benchmark} | `{cache.model}` | `{cache.mode}` | "
+                f"{100 * cache.rows / cache.total:.1f}% active | {health} | `{rel_path(cache.path)}` |"
             )
         lines.append("")
 
