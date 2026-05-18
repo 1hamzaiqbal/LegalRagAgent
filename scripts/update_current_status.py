@@ -12,9 +12,11 @@ import argparse
 import csv
 import json
 import os
+import subprocess
 import time
 from dataclasses import dataclass
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -355,6 +357,33 @@ def fresh_enough(path: Path) -> bool:
         return False
 
 
+@lru_cache(maxsize=1)
+def active_process_text() -> str:
+    try:
+        result = subprocess.run(
+            ["ps", "-eo", "cmd"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except Exception:
+        return ""
+    return result.stdout
+
+
+def process_mentions(dataset: str, model: str, mode: str) -> bool:
+    text = active_process_text()
+    return (
+        f"--dataset {dataset}" in text
+        and f"--provider {model}" in text
+        and f"--mode {mode}" in text
+    ) or (
+        f"{dataset}_{'qfull_seed42'}_{model}_{mode}.jsonl" in text
+        and "--mode " + mode in text
+    )
+
+
 def make_empty_grid() -> dict[tuple[str, str, str], Cell]:
     grid: dict[tuple[str, str, str], Cell] = {}
     for benchmark, dataset, total in BENCHMARKS:
@@ -486,7 +515,8 @@ def apply_live_details(grid: dict[tuple[str, str, str], Cell], signoff_text: str
                     combined_stats = detail_stats_for_rows(combined_rows)
                     if combined_stats.rows > cell.rows:
                         recent_paths = [path for path in candidates if fresh_enough(path)]
-                        status = "active" if recent_paths and combined_stats.rows < total else "partial stale"
+                        is_live = bool(recent_paths) and process_mentions(dataset, model, mode)
+                        status = "active" if is_live and combined_stats.rows < total else "partial stale"
                         if combined_stats.rows >= total:
                             status = "complete pending signoff"
                         detail_label = ", ".join(rel_path(path) for path in candidates[-3:])
@@ -499,7 +529,7 @@ def apply_live_details(grid: dict[tuple[str, str, str], Cell], signoff_text: str
                             status=status,
                             source="combined detail logs",
                             signed=False,
-                            updated_recently=bool(recent_paths),
+                            updated_recently=is_live,
                         )
                         continue
                 best_path: Path | None = None
@@ -512,7 +542,8 @@ def apply_live_details(grid: dict[tuple[str, str, str], Cell], signoff_text: str
                     best_rows = stats.rows
                 if best_path is None:
                     continue
-                status = "active" if fresh_enough(best_path) and best_rows < total else "partial stale"
+                is_live = fresh_enough(best_path) and process_mentions(dataset, model, mode)
+                status = "active" if is_live and best_rows < total else "partial stale"
                 if best_rows >= total:
                     status = "signed" if is_signed(rel_path(best_path), signoff_text) else "complete pending signoff"
                 apply_detail_to_cell(
@@ -548,6 +579,8 @@ def active_generation_caches() -> list[CacheProgress]:
                     continue
                 model = name[len(prefix):-len(suffix)]
                 if model not in MODELS:
+                    continue
+                if not process_mentions(dataset, model, mode):
                     continue
                 rows = load_jsonl(path, tolerate_live_tail=True)
                 if not rows or len(rows) >= total:
