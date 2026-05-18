@@ -281,6 +281,15 @@ outcome.
   final `Answer:` line and non-retried near-cap rows retaining intact final
   `Answer:` lines. Max output is 2070 total tokens after retry accounting, max
   final-answer length is 9911 chars at `mbe_266`, and average calls are 1.06.
+- The full BarExamQA `or-ministral-8b` `rag_simple` row is 680/1195 = 56.9%,
+  answer-flat versus `llm_only` (+0.08pp, McNemar b/c=156/155, p=1.000). It
+  used strict raw retrieval-cache replay with 1195/1195 cache hits, retrieved
+  list length 5 on all rows, 0 empty evidence rows, and 17/1195 gold retrieved;
+  retrieval exposure is Hit@5 0.0142 / MRR@5 0.0068. Cite with a retry/near-cap
+  caveat: 27 valid same-model answer-format retries, 22 rows at >=1900 total
+  output tokens, all near-cap rows were retry rows ending with short exact
+  final `Answer:` lines, and there were zero errors, missing predictions, parse
+  failures, fallback keys, exact-final-line issues, think tags, or long rows.
 - The full BarExamQA `groq-llama70b` `rag_simple` row is 891/1195 = 74.6%,
   significantly below `llm_only` by -4.10pp (McNemar b/c=66/115, p=0.000334).
   It is operationally clean under strict raw retrieval-cache replay: 1195/1195
