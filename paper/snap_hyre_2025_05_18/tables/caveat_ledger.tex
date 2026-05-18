@@ -1,0 +1,20 @@
+\begin{table*}[!htbp]
+\centering
+\caption{Caveats that should travel with exact row claims. Detailed provenance remains in the signoff log.}
+\label{tab:caveat_ledger}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{lllY}
+\toprule
+Dataset & Model & Row & Caveat \\
+\midrule
+BarExamQA & Gemma 4 26B & Snap-HyRE & OpenRouter upstream retries recovered in place; 3 answer-format retries; 4 near-cap rows. \\
+BarExamQA & Llama 70B & Snap-HyRE & Clean row with one final-answer repair. \\
+SCALR & Ministral 8B & Snap-HyRE & Retry caveat; 9 final-answer repairs; no fallback keys. \\
+SCALR & Gemma 4 26B & Snap-HyRE & 10 answer-format retries; 5 near-cap pre-repair rows. \\
+SCALR & Llama 70B & Snap-HyRE & Clean signed row. \\
+CaseHOLD & Llama 70B & Snap-HyRE & Mixed same-model provider recovery and repaired cache row; 16 answer-format retries. \\
+HousingQA & All & Generated methods & Full generated-method answer rows are TBD in the current package. \\
+\bottomrule
+\end{tabularx}
+\end{table*}

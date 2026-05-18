@@ -1,0 +1,16 @@
+\begin{table}[!htbp]
+\centering
+\caption{q100 prelaunch top-$k$ probe. Retrieval exposure rises after $k=5$, but MRR changes little and BarExamQA downstream accuracy did not favor $k=10$.}
+\label{tab:q100_topk_probe}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{rrrr}
+\toprule
+$k$ & Macro Hit@k & Macro MRR@k & BarExam q100 acc. \\
+\midrule
+1 & 19.5 & 0.195 & \textsc{n/a} \\
+5 & 31.7 & 0.239 & raw 83, HyDE 87 \\
+10 & 36.2 & 0.245 & raw 81, HyDE 84 \\
+\bottomrule
+\end{tabular}
+\end{table}

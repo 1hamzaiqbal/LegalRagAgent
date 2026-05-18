@@ -1,0 +1,20 @@
+\begin{table*}[!htbp]
+\centering
+\caption{Paired McNemar comparisons for Snap-HyRE against selected controls. Deltas are percentage points in answer accuracy.}
+\label{tab:snap_significance}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrrrr}
+\toprule
+Dataset & Model & $\Delta$ raw & $p$ raw & $\Delta$ LLM & $p$ LLM & $\Delta$ HyDE & $p$ HyDE \\
+\midrule
+BarExamQA & Gemma 4 26B & +4.02 & 0.000699 & +1.17 & 0.348 & +1.76 & 0.0987 \\
+BarExamQA & Llama 70B & +5.19 & 2.70e-05 & +1.09 & 0.388 & -0.42 & 0.754 \\
+SCALR & Ministral 8B & +1.93 & 0.260 & +2.63 & 0.110 & -1.23 & 0.457 \\
+SCALR & Gemma 4 26B & +0.53 & 0.780 & +0.88 & 0.560 & +1.75 & 0.220 \\
+SCALR & Llama 70B & -1.58 & 0.281 & -3.15 & 0.0222 & +0.88 & 0.542 \\
+CaseHOLD & Llama 70B & -0.25 & 0.722 & -1.31 & 0.0295 & +0.17 & 0.812 \\
+\bottomrule
+\end{tabular}}
+\end{table*}

@@ -1,42 +1,43 @@
-# Final Class Report Draft
+# Snap-HyRE Paper Draft
 
-This folder contains the NeurIPS-style class report draft centered on
-snap-conditioned HyDE and bottleneck-typed legal RAG. The main report uses a
-legal-only four-benchmark set: BarExamQA, HousingQA, LegalBench-SCALR, and
-CaseHOLD. MuSiQue is treated as an internal non-legal mechanism check, not a
-main-table benchmark.
+This folder contains the NeurIPS-style paper draft for the fixed-method
+Snap-HyRE comprehensive branch. It evaluates one Snap-HyRE method across
+BarExamQA, LegalBench-SCALR, CaseHOLD, and HousingQA, reporting retrieval
+exposure alongside downstream answer accuracy.
 
 ## Files
 
-- `main.tex` - report source.
-- `references.bib` - BibTeX references used by the report.
-- `evidence_snapshot.md` - local validation notes for the headline rows.
-- `build_figures.py` - regenerates report-specific plots from detail logs.
+- `main.tex` - paper source.
+- `main.pdf` - latest compiled PDF.
+- `build_figures.py` - regenerates paper-local plots and LaTeX table
+  fragments from current result package CSVs and signed qrel facts.
+- `tables/` - generated LaTeX result tables included by `main.tex`.
 - `figures/` - generated plots and `figure_metrics.csv`.
+- `figures/archive_pre_fixed_snap_hyre_2026-05-18/` - unused plots from the
+  older routing/framing draft, preserved for provenance.
+- `references.bib` - BibTeX references used by the paper.
+- `neurips_2024.sty` - local style file.
+
+## Evidence Sources
+
+Treat these as read-only inputs while eval/signoff jobs are running:
+
+- `docs/signoff_log.md`
+- `docs/compiled_results.md`
+- `docs/generated/snap_hyre_package/`
+- `docs/generated/retrieval_qrels_*.md`
+- `logs/experiments.jsonl`
+
+The paper directory is the writable surface for prose and paper-local figures.
 
 ## Build
 
 From the repository root:
 
 ```bash
-tectonic reports/final_class_report/main.tex
+python3 paper/snap_hyre_2025_05_18/build_figures.py
+cd paper/snap_hyre_2025_05_18
+tectonic main.tex
 ```
 
-The source uses the local `neurips_2024.sty` template and figures under
-`docs/presentation/figures/` plus generated figures under this folder.
-
-To rebuild the generated figures first:
-
-```bash
-python reports/final_class_report/build_figures.py
-```
-
-## Run Surface
-
-Cluster follow-up scripts used for report validation live under `scripts/hpc/`.
-The current targeted additions are HousingQA state filtering via
-`scripts/hpc/slurm_housing_state_filter.sh` plus the chunked recovery script
-`scripts/hpc/slurm_housing_state_filter_chunks.sh`, and SCALR snap/HyDE
-ablations via `scripts/hpc/slurm_scalr_snap_ablation.sh`. Promote rows into
-the report only after pulling the detail logs and re-running the local sanity
-checks in `evidence_snapshot.md`.
+If `tectonic` is unavailable, use `pdflatex`/`bibtex` in the paper directory.
