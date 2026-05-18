@@ -910,6 +910,110 @@ def write_method_conversion_table(answers: dict[tuple[str, str, str], dict[str, 
     write_text(TABLES / "method_conversion.tex", lines)
 
 
+def write_current_snap_hyde_decomposition_table(answers: dict[tuple[str, str, str], dict[str, str]]) -> None:
+    clean = clean_answer_rows(answers)
+    cell_order = [
+        ("barexam", "or-gemma4-26b"),
+        ("barexam", "groq-llama70b"),
+        ("legalbench_scalr", "or-ministral-8b"),
+        ("legalbench_scalr", "or-gemma4-26b"),
+        ("legalbench_scalr", "groq-llama70b"),
+        ("casehold", "groq-llama70b"),
+    ]
+    lines = [
+        r"\begin{table*}[!htbp]",
+        r"\centering",
+        r"\caption{Current-package Snap-HyRE versus HyDE answer comparison. The current fixed-method package does not include signed \method{snap_only_in_final} rows, so snap-only is left as \textsc{tbd}. ``Parity'' means within 0.25 percentage points of HyDE.}",
+        r"\label{tab:current_snap_hyde_decomposition}",
+        r"\scriptsize",
+        r"\setlength{\tabcolsep}{4pt}",
+        r"\begin{tabularx}{\textwidth}{llrrrrY}",
+        r"\toprule",
+        r"Dataset & Model & \method{snap_only_in_final} & \method{rag_hyde} & \method{snap_hyre} & Snap-HyRE $-$ HyDE & Reading \\",
+        r"\midrule",
+    ]
+    for dataset, provider in cell_order:
+        hyde = clean.get((provider, dataset, "rag_hyde"))
+        snap_hyre = clean.get((provider, dataset, "snap_hyre"))
+        if hyde is None or snap_hyre is None:
+            continue
+        delta = snap_hyre - hyde
+        if delta > 0.25:
+            reading = "beats HyDE"
+        elif delta < -0.25:
+            reading = "below HyDE"
+        else:
+            reading = "near parity"
+        lines.append(
+            " & ".join(
+                [
+                    DATASET_LABEL[dataset],
+                    MODEL_LABEL[provider],
+                    r"\textsc{tbd}",
+                    fmt_half_up(hyde),
+                    fmt_half_up(snap_hyre),
+                    fmt_half_up(delta, digits=2, signed=True),
+                    reading,
+                ]
+            )
+            + r" \\"
+        )
+    lines.extend([r"\bottomrule", r"\end{tabularx}", r"\end{table*}"])
+    write_text(TABLES / "current_snap_hyde_decomposition.tex", lines)
+
+
+def write_legacy_snap_only_decomposition_table() -> None:
+    rows = [
+        {
+            "model": "Gemma 4 26B-A4B",
+            "snap_only": 80.59,
+            "hyde": 78.91,
+            "combo": 81.17,
+            "source": r"\method{docs/compiled_results.md}",
+        },
+        {
+            "model": "Gemma 4 E4B",
+            "snap_only": 57.82,
+            "hyde": 60.59,
+            "combo": 62.18,
+            "source": r"\method{docs/compiled_results.md}",
+        },
+    ]
+    lines = [
+        r"\begin{table}[!htbp]",
+        r"\centering",
+        r"\caption{Legacy BarExamQA snap-only decomposition from the older audited \method{rag_snap_hyde} ladder. This is a mechanism probe, not a current-package \method{snap_hyre} result.}",
+        r"\label{tab:legacy_snap_only_decomposition}",
+        r"\scriptsize",
+        r"\setlength{\tabcolsep}{4pt}",
+        r"\resizebox{\columnwidth}{!}{%",
+        r"\begin{tabular}{lrrrrl}",
+        r"\toprule",
+        r"Model & \method{snap_only_in_final} & \method{rag_hyde} & \method{rag_snap_hyde} & Combo beats & Source \\",
+        r"\midrule",
+    ]
+    for row in rows:
+        combo = float(row["combo"])
+        snap_only = float(row["snap_only"])
+        hyde = float(row["hyde"])
+        beats = f"snap {fmt_half_up(combo - snap_only, digits=2, signed=True)}, HyDE {fmt_half_up(combo - hyde, digits=2, signed=True)}"
+        lines.append(
+            " & ".join(
+                [
+                    str(row["model"]),
+                    fmt_half_up(snap_only, digits=2),
+                    fmt_half_up(hyde, digits=2),
+                    fmt_half_up(combo, digits=2),
+                    beats,
+                    str(row["source"]),
+                ]
+            )
+            + r" \\"
+        )
+    lines.extend([r"\bottomrule", r"\end{tabular}}", r"\end{table}"])
+    write_text(TABLES / "legacy_snap_only_decomposition.tex", lines)
+
+
 def write_significance_table() -> None:
     rows = [
         ("BarExamQA", "Gemma 4 26B", "+4.02", "0.000699", "+1.17", "0.348", "+1.76", "0.0987"),
@@ -999,6 +1103,8 @@ def write_all_tables(answers: dict[tuple[str, str, str], dict[str, str]], q100_r
     write_completion_matrix_table(answers)
     write_completed_cell_means_table(answers)
     write_method_conversion_table(answers)
+    write_current_snap_hyde_decomposition_table(answers)
+    write_legacy_snap_only_decomposition_table()
     write_significance_table()
     write_caveat_ledger_table()
     write_q100_probe_table(q100_rows)

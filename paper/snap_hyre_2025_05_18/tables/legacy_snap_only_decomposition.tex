@@ -1,0 +1,16 @@
+\begin{table}[!htbp]
+\centering
+\caption{Legacy BarExamQA snap-only decomposition from the older audited \method{rag_snap_hyde} ladder. This is a mechanism probe, not a current-package \method{snap_hyre} result.}
+\label{tab:legacy_snap_only_decomposition}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrrl}
+\toprule
+Model & \method{snap_only_in_final} & \method{rag_hyde} & \method{rag_snap_hyde} & Combo beats & Source \\
+\midrule
+Gemma 4 26B-A4B & 80.59 & 78.91 & 81.17 & snap +0.58, HyDE +2.26 & \method{docs/compiled_results.md} \\
+Gemma 4 E4B & 57.82 & 60.59 & 62.18 & snap +4.36, HyDE +1.59 & \method{docs/compiled_results.md} \\
+\bottomrule
+\end{tabular}}
+\end{table}

@@ -1,0 +1,19 @@
+\begin{table*}[!htbp]
+\centering
+\caption{Current-package Snap-HyRE versus HyDE answer comparison. The current fixed-method package does not include signed \method{snap_only_in_final} rows, so snap-only is left as \textsc{tbd}. ``Parity'' means within 0.25 percentage points of HyDE.}
+\label{tab:current_snap_hyde_decomposition}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\textwidth}{llrrrrY}
+\toprule
+Dataset & Model & \method{snap_only_in_final} & \method{rag_hyde} & \method{snap_hyre} & Snap-HyRE $-$ HyDE & Reading \\
+\midrule
+BarExamQA & Gemma 4 26B & \textsc{tbd} & 80.3 & 82.0 & +1.76 & beats HyDE \\
+BarExamQA & Llama 3.3 70B & \textsc{tbd} & 80.2 & 79.8 & -0.42 & below HyDE \\
+SCALR & Ministral 8B & \textsc{tbd} & 71.1 & 69.9 & -1.22 & below HyDE \\
+SCALR & Gemma 4 26B & \textsc{tbd} & 72.2 & 73.9 & +1.76 & beats HyDE \\
+SCALR & Llama 3.3 70B & \textsc{tbd} & 70.4 & 71.3 & +0.88 & beats HyDE \\
+CaseHOLD & Llama 3.3 70B & \textsc{tbd} & 70.3 & 70.5 & +0.17 & near parity \\
+\bottomrule
+\end{tabularx}
+\end{table*}

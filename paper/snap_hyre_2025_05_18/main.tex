@@ -189,6 +189,24 @@ generated retrieval handles improve RAG-simple retrieval exposure and
 Hit@5 often fails to become higher final accuracy. This is the main reason the
 paper should avoid a simple retrieval-win narrative.
 
+\input{tables/current_snap_hyde_decomposition.tex}
+
+Table~\ref{tab:current_snap_hyde_decomposition} isolates the current
+\method{rag_hyde} versus \method{snap_hyre} question. \snaphyre{} beats or
+reaches near parity with HyDE in four of six signed cells, but it is not
+uniformly better. The missing piece is \method{snap_only_in_final}: that row is
+not in the current fixed-method package, so the table leaves it as
+\textsc{tbd}.
+
+\input{tables/legacy_snap_only_decomposition.tex}
+
+The only complete snap-only decomposition currently available is the older
+audited BarExamQA \method{rag_snap_hyde} ladder in
+Table~\ref{tab:legacy_snap_only_decomposition}. It is useful mechanism
+evidence, but should not be treated as a current-package result because the
+method name, provider stack, and run vintage differ from the signed
+\method{snap_hyre} package.
+
 \begin{figure}[!htbp]
   \centering
   \includegraphics[width=0.88\textwidth]{02_accuracy_vs_hit5.png}
