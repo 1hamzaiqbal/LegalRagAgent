@@ -228,8 +228,14 @@ def detail_stats_for_rows(rows: list[dict[str, Any]]) -> DetailStats:
         output_tokens = row.get("output_tokens")
         if isinstance(output_tokens, int):
             stats.max_output_tokens = max(stats.max_output_tokens, output_tokens)
-            if output_tokens >= 1900:
+            # The row-level output token count is cumulative across all LLM
+            # calls. Treat it as a truncation-risk signal only for single-call
+            # rows, matching scripts/local/run_answer_cell.sh.
+            if int(row.get("llm_calls") or 0) <= 1 and output_tokens >= 1900:
                 stats.near_cap_rows += 1
+        retry_output_tokens = row.get("answer_format_retry_output_tokens")
+        if isinstance(retry_output_tokens, int) and retry_output_tokens >= 1900:
+            stats.near_cap_rows += 1
         retrieved = coerce_ids(row.get("retrieved_ids"))
         if retrieved:
             stats.retrieved_lens[len(retrieved)] = stats.retrieved_lens.get(len(retrieved), 0) + 1
