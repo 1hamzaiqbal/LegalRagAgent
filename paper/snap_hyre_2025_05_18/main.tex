@@ -180,8 +180,11 @@ conversion, and HousingQA generated-method answer rows remain \textsc{tbd}.
 
 \input{tables/method_conversion.tex}
 
-Table~\ref{tab:method_conversion} is the central failure-analysis table. On
-BarExamQA, generated retrieval handles improve raw retrieval exposure and
+Table~\ref{tab:method_conversion} is the central failure-analysis table. It
+compares \method{rag_simple}, \method{rag_hyde}, \method{snap_hyre}, and
+\method{rag_rewrite}; the generated-method deltas are answer-accuracy changes
+relative to \method{rag_simple} in the same dataset/model cell. On BarExamQA,
+generated retrieval handles improve RAG-simple retrieval exposure and
 \snaphyre{} improves answer accuracy. On SCALR and CaseHOLD, higher exact
 Hit@5 often fails to become higher final accuracy. This is the main reason the
 paper should avoid a simple retrieval-win narrative.

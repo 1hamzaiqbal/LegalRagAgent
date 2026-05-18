@@ -875,14 +875,16 @@ def write_method_conversion_table(answers: dict[tuple[str, str, str], dict[str, 
     lines = [
         r"\begin{table*}[!htbp]",
         r"\centering",
-        r"\caption{Retrieval exposure and answer conversion at $k=5$ for generated-query cells with signed full answer and retrieval rows. Deltas are method accuracy minus raw-RAG accuracy.}",
+        r"\caption{Retrieval exposure and answer conversion at $k=5$ for RAG-simple, HyDE, Snap-HyRE, and RAG-rewrite rows with signed full answer and retrieval results. Deltas are method answer accuracy minus the RAG-simple answer accuracy in the same dataset/model cell.}",
         r"\label{tab:method_conversion}",
         r"\scriptsize",
         r"\setlength{\tabcolsep}{4pt}",
         r"\resizebox{\textwidth}{!}{%",
         r"\begin{tabular}{llrrrrrrrr}",
         r"\toprule",
-        r"Dataset & Model & Raw Hit & Raw Acc. & HyDE Hit & HyDE $\Delta$ & Snap Hit & Snap $\Delta$ & Rewrite Hit & Rewrite $\Delta$ \\",
+        r"Dataset & Model & \multicolumn{2}{c}{\method{rag_simple}} & \multicolumn{2}{c}{\method{rag_hyde}} & \multicolumn{2}{c}{\method{snap_hyre}} & \multicolumn{2}{c}{\method{rag_rewrite}} \\",
+        r"\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}\cmidrule(lr){9-10}",
+        r" & & Hit@5 & Acc. & Hit@5 & $\Delta$ Acc. & Hit@5 & $\Delta$ Acc. & Hit@5 & $\Delta$ Acc. \\",
         r"\midrule",
     ]
     for dataset, provider in cell_order:
