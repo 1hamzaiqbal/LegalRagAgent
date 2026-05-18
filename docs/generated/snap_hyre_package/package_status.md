@@ -4,21 +4,21 @@ This file is generated from local artifacts only. Missing cells are not inferred
 
 - Experiments tag prefix: `local-snap-hyre`
 - Minimum answer-row questions: `50`
-- Latest answer rows found: 43 / 84 expected cells
+- Latest answer rows found: 44 / 84 expected cells
 - Retrieval matrix rows found: 188
 
 ## Answer Ladder
 
 | provider | dataset | llm_only | rag_simple | rag_rewrite | rag_hyde | snap_hyre | golden_passage | golden_plus_neighbors |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| or-ministral-8b | barexam | missing | missing | missing | missing | missing | missing | missing |
+| or-ministral-8b | barexam | 56.8% | missing | missing | missing | missing | missing | missing |
 | or-ministral-8b | housing | missing | missing | missing | missing | missing | missing | missing |
 | or-ministral-8b | casehold | missing | missing | missing | missing | missing | missing | missing |
 | or-ministral-8b | legalbench_scalr | 67.2% | 68.0% | 69.9% | 71.1% | 69.9% | 93.2% | 77.1% |
 | or-gemma4-26b | barexam | 80.8% | 78.0% | 80.7% | 80.2% | 82.0% | 78.6% | 80.7% |
 | or-gemma4-26b | housing | missing | missing | missing | missing | missing | missing | missing |
 | or-gemma4-26b | casehold | missing | missing | missing | missing | missing | missing | missing |
-| or-gemma4-26b | legalbench_scalr | 71.1% | 73.4% | 73.9% | 72.2% | 73.9% | 97.9% | 81.3% |
+| or-gemma4-26b | legalbench_scalr | 73.0% | 73.4% | 73.9% | 72.2% | 73.9% | 97.9% | 81.3% |
 | groq-llama70b | barexam | 78.7% | 74.6% | 77.2% | 80.2% | 79.8% | 79.2% | 77.8% |
 | groq-llama70b | housing | 44.8% | missing | missing | missing | missing | missing | missing |
 | groq-llama70b | casehold | 71.8% | 70.8% | 70.6% | 70.3% | 70.5% | 97.5% | 79.4% |
@@ -221,7 +221,6 @@ This file is generated from local artifacts only. Missing cells are not inferred
 
 | provider | dataset | mode |
 |---|---|---|
-| or-ministral-8b | barexam | llm_only |
 | or-ministral-8b | barexam | rag_simple |
 | or-ministral-8b | barexam | rag_rewrite |
 | or-ministral-8b | barexam | rag_hyde |

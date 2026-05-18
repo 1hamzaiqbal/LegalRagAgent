@@ -272,6 +272,15 @@ outcome.
   tags, long rows, empty retrieval rows, rewrite parse failures, or partial JSON
   repairs. Visible Cloudflare upstream idle retries recovered in-place under the
   pinned same provider/model and did not substitute models or methods.
+- The full BarExamQA `or-ministral-8b` `llm_only` row is 679/1195 = 56.8%.
+  It has no retrieval evidence by design and is signed with a retry/near-cap
+  caveat rather than as a fully clean row: 1195 rows, zero errors, missing
+  predictions, parse failures, fallback keys, exact-final-line issues, think
+  tags, or long rows; 74 logged same-model answer-format retries; 9 rows at
+  >=1900 total output tokens, with retried near-cap rows ending in a short exact
+  final `Answer:` line and non-retried near-cap rows retaining intact final
+  `Answer:` lines. Max output is 2070 total tokens after retry accounting, max
+  final-answer length is 9911 chars at `mbe_266`, and average calls are 1.06.
 - The full BarExamQA `groq-llama70b` `rag_simple` row is 891/1195 = 74.6%,
   significantly below `llm_only` by -4.10pp (McNemar b/c=66/115, p=0.000334).
   It is operationally clean under strict raw retrieval-cache replay: 1195/1195
