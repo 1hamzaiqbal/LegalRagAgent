@@ -537,6 +537,15 @@ outcome.
   exposure Hit@5 0.0282 / MRR@5 0.0148, zero errors, missing predictions, parse
   failures, fallback keys, exact-final-line issues, think tags, answer retries,
   long rows, or near-cap outputs.
+- The full HousingQA `groq-llama70b` `golden_passage` row is 4611/6853 =
+  67.3%, +19.99pp over `rag_simple` (McNemar b/c=1817/447, p=5.25e-195),
+  +22.53pp over `llm_only` (b/c=1929/385, p=3.09e-246), and +1.27pp over
+  `golden_plus_neighbors` (b/c=540/453, p=0.00632). Cite with the explicit
+  retry caveat: oracle gold injected/retrieved on 6853/6853 rows,
+  evidence-store length 1 on all rows, retrieval exposure Hit@5/MRR@5 1.0000,
+  zero errors, missing predictions, parse failures, fallback keys,
+  exact-final-line issues, think tags, long rows, or near-cap outputs; 18
+  same-model final-answer format retries occurred.
 - The full HousingQA `groq-llama70b` `golden_plus_neighbors` row is 4524/6853 =
   66.0%, +18.72pp over `rag_simple` (McNemar b/c=1702/419, p=1.17e-182) and
   +21.26pp over `llm_only` (b/c=1829/372, p=2.91e-230). It is clean with one
