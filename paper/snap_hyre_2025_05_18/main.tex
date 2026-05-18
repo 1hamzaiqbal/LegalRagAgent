@@ -1,0 +1,665 @@
+\documentclass{article}
+
+\usepackage[preprint]{neurips_2024}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{placeins}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
+\hypersetup{hidelinks}
+
+\graphicspath{{figures/}}
+
+\makeatletter
+\renewcommand{\@notice}{}
+\makeatother
+
+\newcommand{\method}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\dataset}[1]{\textsc{#1}}
+\newcommand{\hyre}{HyRE}
+\newcommand{\pp}{\mathrm{pp}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\title{Snap HyRE for Legal RAG: Reasoning-Conditioned Retrieval Across Legal Tasks}
+
+\author{%
+  Hamza Iqbal \\
+  Washington University in St.\ Louis \\
+  \texttt{hiqbal@wustl.edu}
+  \And
+  Hanson Li \\
+  Washington University in St.\ Louis \\
+  \texttt{hanson.l@wustl.edu}
+  \And
+  Josh Li \\
+  Washington University in St.\ Louis \\
+  \texttt{josh.l@wustl.edu}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Legal retrieval-augmented generation is usually summarized as one accuracy
+number, but legal QA failures are not one phenomenon. We study \hyre{}
+(Hypothetical Reasoning Embeddings), a snap-first variant of HyDE in which a
+model first reasons toward an answer and then generates the hypothetical
+retrieval text from that reasoning. We evaluate \hyre{} across BarExamQA
+(bar questions), HousingQA (state statutes), LegalBench-SCALR (holding
+selection), and CaseHOLD (holding options), using one full-corpus legal result
+and paired $N=200$ diagnostics to probe RAG bottlenecks. On full-corpus
+BarExamQA, \method{rag_snap_hyde} improves Gemma 4 26B from 78.08\% to
+81.17\% (+3.09pp, McNemar $p=0.0130$) and Gemma 4 E4B from 58.49\% to
+62.18\% (+3.68pp, $p=0.0129$). The remaining evidence is heterogeneous in a
+structured way: SCALR is candidate-depth sensitive then saturates at top-5,
+HousingQA improves with metadata-filtered retrieval, and CaseHOLD improves
+gold-option retrieval without yet converting that into a reliable answer lift.
+We interpret this heterogeneity as evidence for adaptive \hyre{}: a
+controller that places snap-first reasoning on the active bottleneck. The
+resulting agenda is generalizable in form, even where current experiments are
+$N=200$: diagnose whether a legal task needs more candidates, better query
+generation, answer anchoring, metadata filtering, or stronger
+evidence-to-option conversion, then spend the reasoning budget there.
+\end{abstract}
+
+\section{Introduction}
+
+Legal QA is a natural target for retrieval augmentation. Many questions
+depend on statutes, holdings, jurisdiction, procedural posture, and precise
+rule exceptions that may not be reliably stored in a model's parameters.
+However, legal RAG is also a setting where more retrieved text can easily
+hurt. A passage can be topically related but legally incomplete; a holding can
+mention the same doctrine while being the wrong option; a state statute can be
+right in subject matter but wrong in jurisdiction. These errors are not just
+retrieval failures or generation failures. They are interactions between
+retrieval, reasoning, and answer selection.
+
+Our initial project pursued a broader agentic legal RAG system: route the
+question, decompose the issue, retrieve per gap, judge sufficiency, and
+replan. That design matches legal research practice, but it is difficult to
+evaluate scientifically because any gain could come from retrieval, extra
+tokens, a second reasoning pass, or prompt luck. We therefore moved from
+full-system complexity to atomic retrieval interventions.
+
+The central method family is \hyre{}. A ``snap'' is a first-pass answer or
+reasoning trace. \hyre{} then generates a hypothetical legal passage from that
+snap and embeds it for retrieval. The distinction from standard HyDE is that
+the model's reasoning about how to solve the question is baked into the
+hypothetical snippet before retrieval happens. In the core sequential and
+two-call modes, the final answer sees the question and retrieved evidence; the
+snap shapes retrieval rather than being handed directly to final synthesis.
+Separate snap-only and one-call ablations test what happens when visible snap
+reasoning is itself part of the final answer path. The intuition is legal:
+before asking the model to read external authority, ask it to state the issue
+and likely rule. Retrieval is then shaped by that legal frame rather than by
+the raw question alone.
+
+The current legal-only evidence varies by task, but it varies in a structured
+way.
+BarExamQA shows a real full-corpus \hyre{} lift, but top-1 versus top-5
+retrieval is flat, so the lift should not be described as ``more documents
+help.'' LegalBench-SCALR shows a strong top-1 collapse and top-5 saturation,
+which suggests candidate-set size matters more than pseudo-document query
+formulation. HousingQA shows that jurisdiction-aware retrieval can outperform
+generic retrieval, reaching 62.5\% at k=10. CaseHOLD exposes a
+retrieval-to-answer gap: \hyre{} raises gold-option retrieval from 16.0\% to
+47.0\%, but answer accuracy only moves from 69.5\% to 72.0\% with
+$p=0.4421$.
+
+The forward hypothesis is that \hyre{} should become adaptive: it should
+choose whether to spend its reasoning budget on query framing, query diversity,
+candidate expansion, metadata filtering, or answer-option conversion depending
+on what the problem appears to need. This is the generalization claim we can
+defend now: not that one prompt wins every benchmark, but that the limiting
+stage of a legal RAG pipeline can often be diagnosed and targeted directly.
+
+\section{Related Work}
+
+Retrieval-augmented generation combines parametric generation with retrieved
+non-parametric evidence \citep{lewis2020rag}. HyDE generates a hypothetical
+document and embeds it for zero-shot retrieval \citep{gao2023hyde}, while
+Query2Doc expands queries with LLM-generated pseudo-documents
+\citep{wang2023query2doc}. FLARE retrieves during generation by using
+predicted future content as a query \citep{jiang2023flare}. Our method family
+inherits directly from this line: generated text is used as a retrieval
+handle, not as trusted evidence.
+
+Adaptive RAG work asks when or how retrieval should be invoked. Self-RAG
+learns to retrieve and critique through reflection tokens
+\citep{asai2024selfrag}. Corrective RAG grades retrieved evidence and triggers
+correction when retrieval is unreliable \citep{yan2024crag}. Adaptive-RAG
+routes questions by complexity \citep{jeong2024adaptive}. Speculative RAG
+drafts multiple answers from retrieved subsets and verifies them with a larger
+model \citep{wang2025specrag}. These systems motivate the main design lesson
+we adopt: retrieval should be conditional on observed failure mode.
+
+Legal NLP benchmarks increasingly show that legal RAG cannot be reduced to
+generic open-domain QA. LegalBench provides a broad suite of legal reasoning
+tasks, including SCALR holding selection \citep{guha2023legalbench}.
+CaseHOLD evaluates whether a model can select the holding referenced by a
+court-opinion context \citep{zheng2021casehold}. Zheng et al.\ introduce
+BarExamQA and Housing Statute QA to evaluate realistic legal retrieval and
+answering workflows \citep{zheng2025legalretrieval}. LegalBench-RAG focuses on
+retrieving minimal relevant legal snippets \citep{pipitone2024legalbenchrag},
+and Legal RAG Bench provides an end-to-end legal RAG benchmark with factorial
+retriever/generator decomposition \citep{butler2026legalragbench}. RAGChecker
+similarly argues for fine-grained separation of retrieval and generation
+errors \citep{ru2024ragchecker}. Our work follows this diagnostic turn: the
+same RAG method should be judged differently depending on whether the active
+failure is retrieval depth, candidate-set selection, metadata filtering, or
+evidence conversion.
+
+HyQE ranks contexts with hypothetical query embeddings \citep{zhou2024hyqe}.
+\hyre{} follows the same broader pattern that generated representations can
+serve as retrieval handles, but it makes the representation explicitly
+reasoning-conditioned: the hypothetical snippet is generated after a snap
+answer, so the embedding reflects a proposed legal solution rather than a
+generic pseudo-document.
+
+\section{Framework Design}
+
+\subsection{Method ladder}
+
+The report uses an inheritance-style method ladder. Each method adds one
+capability where possible, so negative results remain interpretable. Call
+counts refer to LLM generation calls per question; retrieval, embedding, and
+reranking are not counted. Thus top-$k$ and state-filter comparisons keep the
+same one-call answer budget, while HyDE and \hyre{} spend extra calls to
+generate retrieval text or snap reasoning.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{lcY}
+\toprule
+Method & Calls & What it isolates \\
+\midrule
+\method{llm_only} & 1 & Parametric legal answer without retrieval. \\
+\method{snap_only_in_final} & 2 & Whether a first-pass answer/reasoning trace helps without retrieval. \\
+\method{golden_passage} & 1 & One labeled passage supplied as a diagnostic control, not deployable retrieval. \\
+\method{rag_simple} & 1 & Standard retrieval plus answer generation. \\
+\method{rag_state_filter} & 1 & Standard retrieval constrained by jurisdiction metadata before final answer generation. \\
+\method{rag_hyde} & 2 & Question-conditioned hypothetical document retrieval. \\
+\method{rag_snap_hyde} & 3 & Sequential \hyre{} retrieval plus final synthesis. \\
+\method{rag_snap_hyde_1call} & 1 & Ordinary retrieval, then one answer call that includes snap-style reasoning. \\
+\method{rag_snap_hyde_2call} & 2 & Fixed-cost snap and \hyre{} passage in one first call, final synthesis in a second. \\
+\method{multi_hyde_diverse} & 2 & Multiple generated retrieval passages for query diversity. \\
+\method{subagent_rag} & var. & Gap-routed report generation; currently used as a negative over-abstention control. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{HyRE: snap-conditioned hypothetical reasoning}
+
+Figure~\ref{fig:method_diagram} shows the core method. The model first writes
+a snap answer or legal analysis. It then writes a hypothetical passage that
+states the likely controlling rule, fact, or holding. That passage is embedded
+and used for retrieval. The final model sees retrieved passages along with
+the original question; the snap is mediated through the retrieval query unless
+the run is an explicit snap-visible ablation.
+
+\begin{figure}[!htbp]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  node distance=0.85cm and 0.95cm,
+  box/.style={draw, rounded corners=2pt, minimum width=2.35cm, minimum height=0.72cm, align=center, font=\small},
+  data/.style={draw, trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=2.3cm, minimum height=0.72cm, align=center, font=\small},
+  arr/.style={-{Latex[length=2mm]}, thick}
+]
+\node[data] (q) {Legal\\question};
+\node[box, right=of q] (snap) {Snap answer\\and issue frame};
+\node[box, right=of snap] (hyde) {Hypothetical\\legal passage};
+\node[data, right=of hyde] (ret) {Top-$k$\\retrieval};
+\node[box, right=of ret] (final) {Final\\answer};
+\draw[arr] (q) -- (snap);
+\draw[arr] (snap) -- (hyde);
+\draw[arr] (hyde) -- (ret);
+\draw[arr] (ret) -- (final);
+\node[box, below=0.95cm of hyde, minimum width=3.4cm] (twocall) {Two-call version:\\snap + passage in call 1};
+\draw[arr, dashed] (snap.south) -- (twocall.west);
+\draw[arr, dashed] (twocall.east) -- (ret.south);
+\end{tikzpicture}}
+\caption{\hyre{} retrieval. The generated passage shapes retrieval; the
+retrieved corpus passages remain the external evidence used by final
+synthesis.}
+\label{fig:method_diagram}
+\end{figure}
+
+\subsection{Bottleneck diagnostics}
+
+We use ``bottleneck'' to mean the pipeline stage where extra effort most changes
+the final answer. Three diagnostics locate that stage. First, top-$k$
+sensitivity tests whether answer accuracy depends on retrieving more than the
+single best passage. This is a retrieval-policy stress test, not pure context
+truncation, because the cross-encoder reranks a first-stage candidate pool
+before selecting the final top-$k$. Second, snap-only and HyDE-only ablations
+ask whether the gain comes from answer anchoring, generated-query retrieval, or
+their combination. Third, gold-retrieval and disagreement analyses ask whether
+better retrieval actually converts into better final answers.
+
+The four legal benchmarks map naturally onto different bottleneck hypotheses:
+BarExamQA tests answer anchoring under strong legal priors, HousingQA tests
+state-specific legal retrieval, LegalBench-SCALR tests small
+candidate-set holding selection, and CaseHOLD tests whether a retrieved
+holding can be converted into the correct answer option. For the newer
+benchmarks, $N=200$ diagnostic subsets let us compare mechanisms under a
+common evidence budget before scaling the most informative routes.
+
+\section{Experimental Setup}
+
+\paragraph{Benchmarks.}
+BarExamQA contains 1,195 bar-exam multiple-choice questions with fact patterns
+and legal passages. HousingQA contains yes/no housing-law questions over state
+statutes. LegalBench-SCALR contains 571 Supreme Court holding-selection
+questions. CaseHOLD contains court-opinion contexts and five candidate
+holdings.
+
+\paragraph{Models.}
+The full-corpus BarExamQA experiments use Gemma 4 26B-A4B and Gemma 4 E4B.
+LegalBench-SCALR and CaseHOLD use Llama 70B, and HousingQA uses Gemma 4 26B.
+Paired comparisons use the same model and question subset. Except for
+BarExamQA, results should be read as diagnostic subsets rather than
+model-independent benchmark rankings.
+
+\paragraph{Metrics.}
+We report accuracy for multiple-choice and yes/no datasets. Paired deltas use
+exact McNemar tests with b/c discordance counts. Retrieval diagnostics report
+gold retrieval when the benchmark provides aligned gold identifiers.
+
+\section{Results and Analysis}
+
+\begin{table*}[t]
+  \centering
+  \footnotesize
+  \setlength{\tabcolsep}{5pt}
+  \resizebox{\columnwidth}{!}{
+  \begin{tabular}{l|cc|cc|cc|cc|cc}
+  \toprule
+              & \multicolumn{2}{c|}{BarExam}
+              & \multicolumn{2}{c|}{CaseHOLD}
+              & \multicolumn{2}{c|}{LegalBench-SCALR}
+              & \multicolumn{2}{c}{HousingQA}
+              & \multicolumn{2}{c}{Average} \\
+              & $\mathrm{R\_Acc}$ & $\mathrm{F\_Acc}$
+              & $\mathrm{R\_Acc}$ & $\mathrm{F\_Acc}$
+              & $\mathrm{R\_Acc}$ & $\mathrm{F\_Acc}$
+              & $\mathrm{R\_Acc}$ & $\mathrm{F\_Acc}$
+              & $\mathrm{R\_Acc}$ & $\mathrm{F\_Acc}$ \\
+  \midrule
+  \method{llm_only}             & --             & 79.75\textsuperscript{a}
+                                & --             & --
+                                & --             & --
+                                & --             & --              \\
+  \method{golden_passage}       & 100.0          & 78.66\textsuperscript{a}
+                                & --             & --
+                                & --             & --
+                                & --             & --              \\
+  \method{rag_simple}           & \dagger        & 80.0
+                                & 16.0           & 73.0
+                                & 54.0           & 74.0
+                                & 5.5/40.5\textsuperscript{b} & 58.0/60.5\textsuperscript{b} \\
+  \method{rag_hyde}             & \dagger        & 82.0
+                                & 52.0\textsuperscript{c}        & 71.5
+                                & --             & 74.0
+                                & 0.0\textsuperscript{d}         & 50.0            \\
+  \hyre{} (\method{rag_snap_hyde_2call})
+                                & \dagger        & 84.5
+                                & 47.0\textsuperscript{c}        & 72.0
+                                & 55.0\textsuperscript{c}        & 76.0
+                                & 0.0\textsuperscript{d}         & 51.5            \\
+  \bottomrule
+  \end{tabular}
+  }
+  \caption{$\mathrm{R\_Acc}$ = gold-passage retrieval rate at $k{=}5$ (\%);
+  $\mathrm{F\_Acc}$ = final downstream accuracy (\%). Gemma~4~26B-A4B on
+  OpenRouter, $N{=}200$ per benchmark (calibration slice, rows 0--199).
+  \textsuperscript{a}\,Run on Gemma~4~26B vLLM cluster at full BarExam
+  ($N{=}1{,}195$); not available for the other three benchmarks.
+  \textsuperscript{b}\,Generic top-5 / state-filtered $k{=}5$.
+  \textsuperscript{c}\,R\_Acc measured on Groq Llama~3.3~70B (Gemma~4~26B
+  reruns did not populate the gold-retrieval field); F\_Acc is Gemma~4~26B.
+  \textsuperscript{d}\,HyDE passages did not differentiate per-question
+  retrieval on HousingQA, yielding 0 gold-passage hits.
+  $\dagger$\,BarExam's QA \texttt{gold\_idx} scheme (\texttt{mbe\_*}) is
+  disjoint from the corpus index scheme (\texttt{caselaw\_*}), so set-based
+  gold-retrieval rate is undefined for corpus-retrieval routes on BarExam.}
+  \label{tab:retrieval_vs_accuracy}
+  \end{table*}
+
+\subsection{BarExamQA: full-corpus HyRE lift}
+
+BarExamQA is the strongest legal positive result. On Gemma 4 26B-A4B,
+\method{rag_snap_hyde} reaches 81.17\%, compared with 78.08\% for
+\method{rag_simple} (+3.09pp, b/c=124/87, $p=0.0130$). On Gemma 4 E4B, the
+same method improves 58.49\% to 62.18\% (+3.68pp, b/c=172/128,
+$p=0.0129$).
+
+
+\begin{table}[!htbp]
+\centering
+\caption{BarExamQA full-corpus Gemma 4 26B-A4B method matrix, $N=1195$.}
+\label{tab:barexam}
+\small
+\begin{tabular}{lcc}
+\toprule
+Method & Accuracy & $\Delta$ vs \method{rag_simple} \\
+\midrule
+\method{rag_simple} & 78.08\% & -- \\
+\method{golden_passage} & 78.66\% & +0.58pp \\
+\method{rag_hyde} & 78.91\% & +0.83pp \\
+\method{llm_only} & 79.75\% & +1.67pp \\
+\method{snap_only_in_final} & 80.59\% & +2.51pp \\
+\textbf{\method{rag_snap_hyde}} & \textbf{81.17\%} & \textbf{+3.09pp} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The mechanism is not pure retrieval depth. On a paired $N=200$ diagnostic,
+\method{rag_simple} top-5 is 82.5\% and top-1 is 83.0\% ($p=1.0$). The
+full-corpus lift is consistent with snap-conditioned answer framing plus
+retrieval, with model-size dependence: the 26B result suggests much of the gain
+may come from strong first-pass legal priors rather than retrieval depth alone,
+while retrieval/synthesis appears more useful on the smaller E4B model. A
+legal MC model can have strong prior knowledge of the rule; retrieval then
+helps only if it is framed in a way that does not overwrite the right legal
+analysis with a partial snippet.
+Figure~\ref{fig:barexam_cross_size} shows this cross-size pattern.
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.95\textwidth]{02_barexam_cross_size.png}
+  \caption{BarExamQA cross-size result. \method{rag_snap_hyde}, our \hyre{}
+  implementation, improves over \method{rag_simple} on both Gemma 4 model
+  sizes. The snap conditions retrieval; visible snap reasoning is tested by
+  separate controls.}
+  \label{fig:barexam_cross_size}
+\end{figure}
+
+\subsection{Four-benchmark legal bottleneck matrix}
+
+Table~\ref{tab:legal_matrix} is the compact result summary. It intentionally
+includes negative and directional results because those results identify where the
+next adaptive route should spend budget. The current evidence is therefore
+more promising as a bottleneck map than as a single leaderboard: it shows which
+legal bottleneck each dataset is probing.
+
+\begin{table}[!htbp]
+\centering
+\caption{Legal benchmark matrix.}
+\label{tab:legal_matrix}
+\footnotesize
+\begin{tabularx}{\textwidth}{P{0.16\textwidth}P{0.21\textwidth}P{0.36\textwidth}Y}
+\toprule
+Benchmark & Active bottleneck & Best current evidence & Caveat \\
+\midrule
+BarExamQA, Gemma 4 &
+Answer framing; retrieval depth is flat &
+Full $N=1195$: \hyre{} is +3.09pp at 26B and +3.68pp at E4B; top-5 82.5\%
+vs top-1 83.0\% on $N=200$ &
+Single gold passage is a noisy control, not an oracle ceiling. \\
+\addlinespace
+HousingQA, Gemma 4 &
+Jurisdiction filtering &
+$N=200$: top-1 50.5\% to top-10 58.0\% (+7.5pp, $p=0.0722$); state filter
+reaches 61.5\% at k=5 and 62.5\% at k=10 &
+Generic depth helps directionally; state filtering is the cleaner signal. \\
+\addlinespace
+SCALR, Llama 70B &
+Top-5 candidate recall, then saturation &
+$N=200$: top-1 59.5\%, top-5 77.0\%, top-10 77.0\%; HyDE 77.5\%; diverse
+HyDE 75.5\% &
+Generated queries do not yet add answer lift. \\
+\addlinespace
+CaseHOLD, Llama 70B &
+Evidence-to-option mapping &
+$N=200$: top-1 64.5\%, top-5 69.5\%, top-10 68.0\%; HyDE and two-call both
+72.0\% &
+Gold retrieval improves faster than answer accuracy. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+SCALR and CaseHOLD are both holding-selection tasks, but they fail differently:
+SCALR becomes much stronger once the useful candidate set is present, while
+CaseHOLD can retrieve the gold holding more often without reliably selecting
+its answer label.
+
+Figure~\ref{fig:depth_conversion} summarizes the key diagnostic split: the
+same top-$k$ or HyDE intervention has different meaning depending on whether
+accuracy and gold retrieval move together.
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\textwidth]{01_depth_and_conversion.png}
+  \caption{Legal benchmarks expose different bottlenecks. BarExamQA is
+  depth-flat, SCALR benefits sharply from top-5 candidates, HousingQA improves
+  with state-filtered retrieval, and CaseHOLD shows that gold-option retrieval can
+  improve faster than answer accuracy.}
+  \label{fig:depth_conversion}
+\end{figure}
+
+The most important negative result is CaseHOLD. Top-1 \method{rag_simple}
+reaches 64.5\% with 9.0\% gold retrieval, while top-5 reaches 69.5\% with
+16.0\% gold retrieval
+(+5.0pp, $p=0.0525$). Top-10 retrieves more gold options (19.0\%) but drops
+to 68.0\%. HyDE retrieves the gold option in 52.0\% of questions and two-call
+\hyre{} in 47.0\%, but both answer at 72.0\%; neither is a significant lift
+over top-5 \method{rag_simple}. If exact-gold retrieval were the only binding
+bottleneck, we would expect a clearer answer lift. Instead, the flat answer
+result points to an evidence-to-option bottleneck: retrieved holdings can still
+be paraphrased distractors, overly generic, or hard to map back to the exact
+candidate label.
+
+SCALR gives a different holding-selection story. It is sensitive to retrieval
+policy: top-1 is too narrow, top-5 supplies the useful candidate set, top-10
+adds recall without net answer gain, and \method{rag_hyde} is also flat at
+77.5\% despite retrieving the gold holding in 66.0\% of questions. A one-call
+snap-final variant drops to 70.5\% ($p=0.00235$ versus top-5), so simply
+adding a snap rationale to the final answer is not a free improvement on this
+task. Diverse HyDE also stays below top-5 at 75.5\%. This is not a generic
+``legal holdings ignore retrieval'' result. It says two apparently similar
+holding-selection tasks diverge: SCALR needs a compact candidate set, while
+CaseHOLD needs better evidence conversion.
+
+HousingQA is the strongest current evidence in this project that legally
+salient metadata can be a first-order retrieval variable. Generic retrieval
+improves from 50.5\% at top-1 to 58.0\% at top-10. State-filtered retrieval
+reaches 61.5\% at k=5 and 62.5\% at k=10, which is +9.0pp over generic top-5
+\method{rag_simple} (b/c=34/16, $p=0.015$) and +4.5pp over generic top-10
+($p=0.306$). The k=10 state-filtered setting adds only +1.0pp over
+state-filtered k=5 ($p=0.815$), so the useful signal is jurisdiction
+filtering rather than deeper retrieval by itself.
+
+\subsection{BarExam single gold passage is a noisy control}
+
+The BarExamQA golden-passage control appears paradoxical: providing one gold
+passage reaches only 78.66\%, below \method{llm_only} at 79.75\% and
+\method{snap_only_in_final} at 80.59\%. The reason is legal evidence
+granularity. A labeled passage can be topically correct but not decisive for
+the fact pattern; it can also highlight a distractor doctrine. Snap-first
+reasoning gives the model an initial legal frame before evidence
+reconciliation, which partly protects against over-reading one snippet. This
+claim is specific to the BarExamQA single-passage control; SCALR behaves
+differently, with high conditional accuracy when the gold holding is retrieved.
+Figure~\ref{fig:golden_mechanism} visualizes the paired flips behind this
+control.
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.82\textwidth]{11_barexam_golden_snap_mechanism.png}
+  \caption{BarExamQA mechanism comparison. A single gold passage is a noisy control
+  rather than an oracle ceiling; snap-first reasoning can recover some cases
+  where forced context distracts the model.}
+  \label{fig:golden_mechanism}
+\end{figure}
+
+\subsection{Cost and budget behavior}
+
+The ablations also expose when extra calls and tokens are worth spending.
+Figure~\ref{fig:cost_accuracy} plots paired $N=200$ legal subsets with marker
+size proportional to total tokens per question. Same-call controls are the
+cleanest budget comparisons: top-$k$ and state-filter rows keep one final
+answer call, while HyDE and \hyre{} rows spend one or two additional reasoning
+or pseudo-document calls. On the $N=200$ BarExam cost
+subset, two-call \hyre{} is the cleanest budget tradeoff: it reaches 85.5\%,
+nearly matching sequential \hyre{} at 86.0\%, though the paired lift
+over \method{rag_simple} is directional rather than significant. HousingQA
+behaves differently: generic
+top-10 retrieval is one call but expensive in total tokens (4.6k tokens per
+question), while two-call \hyre{} is slightly lower accuracy at a smaller
+3.2k tokens per question. State-filtered retrieval is now the stronger Housing
+candidate because it uses jurisdiction metadata directly rather than spending
+generic depth; k=10 state filtering is 62.5\%, only +1.0pp above k=5. The
+generic top-10 result also reduces a top-1 tendency to
+over-predict ``Yes'' on a dataset whose gold labels are mostly ``No,'' so the
+generic depth gain should not be over-described as jurisdiction-specific retrieval. SCALR and
+CaseHOLD show the main caution: two-call
+reasoning roughly doubles calls and tokens, but SCALR does not improve and
+CaseHOLD improves only modestly. This is why we frame method choice as
+budgeted routing, not as always-on \hyre{}.
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.90\textwidth]{02_cost_accuracy.png}
+  \caption{Calls and tokens per question matter. Bubble size is total tokens
+  per question. Extra reasoning budget is useful on BarExamQA, ambiguous on
+  HousingQA and CaseHOLD, and not currently justified on SCALR.}
+  \label{fig:cost_accuracy}
+\end{figure}
+
+\section{Discussion: From Method Search to Bottleneck Routing}
+
+The most useful interpretation of these results is not that \hyre{} is the
+final method. It is that reasoning-conditioned hypothetical generation gives
+RAG a place to reason about the problem before retrieval, and each dataset
+reveals a different way that representation step should be aimed. Sometimes
+the right move is a more
+legally framed query; sometimes it is more query diversity, a larger candidate
+set, a metadata filter, or an answer-option mapper after retrieval. This matters
+because many RAG papers collapse several different phenomena into one
+comparison: retrieval versus no retrieval. In these experiments, that
+comparison is too coarse.
+LegalBench-SCALR loses heavily at top-1 and recovers at top-5, so a route that
+expands the candidate set is plausible. BarExamQA is top-$k$ flat but improves
+with \hyre{}, so the route should preserve an answer frame
+rather than simply retrieve more passages. HousingQA likely requires
+metadata-constrained retrieval checks, because the question state is part of
+the legal problem and a normalized state filter now beats generic top-5
+retrieval. CaseHOLD improves gold retrieval under two-call
+\hyre{} but not answer accuracy, so the route should focus on mapping
+retrieved holdings back to answer options.
+
+This gives a feasible version of the ``agentic'' idea without making the
+agent itself the unit of evaluation. The method we are working toward is an
+adaptive \hyre{} controller: keep the snap-first reasoning step, but decide
+how it should sit on top of the problem's bottleneck. Instead of asking a
+planner to invent an open-ended research workflow, we can ask a controller to
+choose among a small set of evidence-budgeted interventions. The controller
+would observe cheap
+features before or during retrieval: question type, answer format, available
+metadata, top-score margin, retrieved-document agreement, candidate-option
+similarity, and whether the snap answer agrees with retrieval. It would then
+choose how to use the \hyre{} reasoning budget: ordinary RAG when retrieval is
+already adequate, top-$k$ expansion when candidate recall is binding,
+\hyre{} when query framing is binding, diverse HyDE passages when
+one generated representation is too narrow, state-filtered retrieval when
+metadata is legally decisive, or option-aware reranking when retrieved evidence
+is not mapping back to choices. The result is still agentic in the sense that
+method adaptation happens on the fly, but it is experimentally cleaner because
+every route corresponds to a measured ablation cell.
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\textwidth]{03_adaptive_snap_hyde_controller.png}
+  \caption{Conceptual adaptive \hyre{} routes. The route changes with the
+  observed failure mode: answer framing, candidate-set expansion, metadata
+  filtering, or option mapping. Figure~\ref{fig:route_map} grounds these routes
+  in the current benchmark evidence.}
+  \label{fig:adaptive_routes}
+\end{figure}
+
+This framing also explains why the current negative results are useful. A
+negative CaseHOLD answer delta after a positive gold-hit delta is not just a
+negative method comparison; it identifies a downstream conversion problem. A flat
+BarExamQA top-$k$ sweep does not make retrieval irrelevant; it says that
+retrieval depth is not the active lever for that task. HousingQA shows that
+jurisdiction metadata can matter as much as semantic similarity, while SCALR
+and CaseHOLD show that holding-selection tasks can be candidate-limited or
+conversion-limited in different ways. These are the hooks for a stronger final
+project: tune \hyre{} quality where query formulation is binding, tune query
+number or diversity where one hypothetical passage is too narrow, tune metadata
+filters where jurisdiction is binding, and tune verifier or option-mapping
+logic where evidence conversion is binding. The stubborn cases are therefore
+not outside the framing; they define which HyDE-adjacent component still needs
+to be designed.
+The current evidence does not yet instantiate the full adaptive controller, but
+it shows why that controller is the right next object to build: different
+legal tasks need different forms of retrieval-time reasoning, and the harness
+can measure which form is helping.
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.78\textwidth]{04_bottleneck_route_map.png}
+  \caption{Route map implied by current evidence. Green cells are supported by
+  observed route evidence; amber cells are plausible next interventions. The
+  diagnostic protocol generalizes, while the current effects remain scoped to
+  the model, task, and sample sizes reported above.}
+  \label{fig:route_map}
+\end{figure}
+\FloatBarrier
+
+The resulting claim is deliberately scoped but optimistic. Across
+several legal benchmarks, we found one full-corpus legal \hyre{} lift on
+BarExamQA and several $N=200$ diagnostic signals that expose reusable
+bottlenecks; those signals define a routing agenda. That is a
+better foundation for future work than another broad sweep over loosely
+comparable prompts, because it says what should change when a method fails.
+
+\section{Limitations and Future Work}
+
+The main limitation is statistical scope. Only BarExamQA has a full-corpus
+legal result; HousingQA, SCALR, and CaseHOLD are paired $N=200$ diagnostic
+subsets for mechanism discovery rather than final benchmark rankings. These
+subsets are sufficient to motivate route choices, but larger evaluations are
+needed to test whether the same bottleneck patterns persist.
+
+Future work should compare against full Self-RAG, CRAG, and Speculative RAG
+implementations once the legal routing policy is more stable. The next
+experiments should stay legal-only: test SCALR option grounding or reranking,
+test CaseHOLD option-aware synthesis, and add LegalBench-RAG or Legal RAG
+Bench for broader legal coverage.
+The adaptive \hyre{} controller should be evaluated by scaling the strongest
+routes first: run larger HousingQA state-filter evaluations, add SCALR option
+reranking after top-5 retrieval, and test CaseHOLD option-aware conversion.
+
+\section{Conclusion}
+
+The legal-only evidence supports a bottleneck-typed view of RAG. \hyre{}
+helps BarExamQA at full corpus, but BarExamQA is not retrieval-depth limited.
+SCALR is candidate-depth limited, HousingQA shows a real metadata-filtering
+signal, and CaseHOLD shows that better generated-query retrieval does not
+automatically convert to better answers. This is the project signal: adaptive
+legal RAG should not ask whether HyDE is globally good or bad; it should ask
+where the task's bottleneck is and apply the \hyre{} reasoning budget there.
+That gives us a concrete and testable path from the current report to a more
+general method: diagnose the bottleneck, select the route, and scale the
+paired evaluation once the route has signal.
+
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
