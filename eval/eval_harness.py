@@ -1911,7 +1911,7 @@ def _json_string_literals(text: str) -> list[str]:
 
 
 def _loads_json_string_literal(literal: str) -> str | None:
-    """Load a JSON string, escaping raw control chars some models put inside it."""
+    """Load a JSON string, repairing narrow model-output string literal errors."""
     try:
         return str(json.loads(literal))
     except json.JSONDecodeError:
@@ -1919,15 +1919,24 @@ def _loads_json_string_literal(literal: str) -> str | None:
     if not (isinstance(literal, str) and len(literal) >= 2 and literal[0] == literal[-1] == '"'):
         return None
     fixed_chars: list[str] = []
-    for char in literal[1:-1]:
+    index = 0
+    inner = literal[1:-1]
+    while index < len(inner):
+        char = inner[index]
         if char == "\n":
             fixed_chars.append("\\n")
         elif char == "\r":
             fixed_chars.append("\\r")
         elif char == "\t":
             fixed_chars.append("\\t")
+        elif char == "\\" and index + 1 < len(inner) and inner[index + 1] == "'":
+            # JSON permits apostrophes unescaped inside double-quoted strings;
+            # some models emit Python/SQL-style \' escapes in generated queries.
+            fixed_chars.append("'")
+            index += 1
         else:
             fixed_chars.append(char)
+        index += 1
     try:
         return str(json.loads('"' + "".join(fixed_chars) + '"'))
     except json.JSONDecodeError:
