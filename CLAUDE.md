@@ -290,6 +290,15 @@ outcome.
   output tokens, all near-cap rows were retry rows ending with short exact
   final `Answer:` lines, and there were zero errors, missing predictions, parse
   failures, fallback keys, exact-final-line issues, think tags, or long rows.
+- The full BarExamQA `or-ministral-8b` `golden_passage` row is 772/1195 =
+  64.6%, +7.70pp over strict `rag_simple` (McNemar b/c=205/113,
+  p=2.78e-07) and +7.78pp over `llm_only` (b/c=206/113, p=2.14e-07).
+  It is an oracle-gold row with caveats: 1195/1195 gold retrieved, retrieved
+  list length 1 on all rows, zero errors, missing predictions, parse failures,
+  fallback keys, exact-final-line issues, think tags, or analyzer long rows;
+  37 valid same-model answer-format retries; 34 rows at >=1900 output tokens;
+  max output 2112 tokens; and one verbose non-retried row `mbe_233` at 10173
+  final-answer chars with intact final `Answer: (C)`.
 - The full BarExamQA `groq-llama70b` `rag_simple` row is 891/1195 = 74.6%,
   significantly below `llm_only` by -4.10pp (McNemar b/c=66/115, p=0.000334).
   It is operationally clean under strict raw retrieval-cache replay: 1195/1195

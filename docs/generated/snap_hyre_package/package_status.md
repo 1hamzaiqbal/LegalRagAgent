@@ -4,14 +4,14 @@ This file is generated from local artifacts only. Missing cells are not inferred
 
 - Experiments tag prefix: `local-snap-hyre`
 - Minimum answer-row questions: `50`
-- Latest answer rows found: 45 / 84 expected cells
+- Latest answer rows found: 46 / 84 expected cells
 - Retrieval matrix rows found: 188
 
 ## Answer Ladder
 
 | provider | dataset | llm_only | rag_simple | rag_rewrite | rag_hyde | snap_hyre | golden_passage | golden_plus_neighbors |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| or-ministral-8b | barexam | 56.8% | 56.9% | missing | missing | missing | missing | missing |
+| or-ministral-8b | barexam | 56.8% | 56.9% | missing | missing | missing | 64.6% | missing |
 | or-ministral-8b | housing | missing | missing | missing | missing | missing | missing | missing |
 | or-ministral-8b | casehold | missing | missing | missing | missing | missing | missing | missing |
 | or-ministral-8b | legalbench_scalr | 67.2% | 68.0% | 69.9% | 71.1% | 69.9% | 93.2% | 77.1% |
@@ -224,7 +224,6 @@ This file is generated from local artifacts only. Missing cells are not inferred
 | or-ministral-8b | barexam | rag_rewrite |
 | or-ministral-8b | barexam | rag_hyde |
 | or-ministral-8b | barexam | snap_hyre |
-| or-ministral-8b | barexam | golden_passage |
 | or-ministral-8b | barexam | golden_plus_neighbors |
 | or-ministral-8b | housing | llm_only |
 | or-ministral-8b | housing | rag_simple |
