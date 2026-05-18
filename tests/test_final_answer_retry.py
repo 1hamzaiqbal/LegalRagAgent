@@ -353,6 +353,49 @@ def test_rag_rewrite_partial_json_repair_uses_model_queries(monkeypatch) -> None
     assert [call[2] for call in calls] == ["rag_rewrite/rewrite"]
 
 
+def test_rag_rewrite_partial_json_repair_handles_multiline_strings(monkeypatch) -> None:
+    calls: list[tuple[str, str, str]] = []
+
+    def fake_llm_call(system: str, user: str, label: str = "") -> str:
+        calls.append((system, user, label))
+        return (
+            "```json\n"
+            "{\n"
+            '  "primary": "(\n'
+            "    police arrest warrant AND deadly force justification\n"
+            "  )\",\n"
+            '  "alternatives": [\n'
+            '    "(\n'
+            "      felony arrest resistance AND necessity defense\n"
+            "    )\",\n"
+            '    "Fourth Amendment excessive force standards"\n'
+            "  ]\n"
+            "}\n"
+            "```"
+        )
+
+    monkeypatch.setenv("EVAL_GENERATION_FORMAT_RETRY", "1")
+    monkeypatch.setenv("NO_SILENT_FALLBACK", "1")
+    monkeypatch.setattr(eval_harness, "_llm_call", fake_llm_call)
+
+    queries, meta = eval_harness._rewrite_query_with_meta(
+        "Was deadly force justified during an arrest?",
+        label="rag_rewrite/rewrite",
+    )
+
+    assert queries == [
+        "(\n    police arrest warrant AND deadly force justification\n  )",
+        "(\n      felony arrest resistance AND necessity defense\n    )",
+        "Fourth Amendment excessive force standards",
+    ]
+    assert meta["rewrite_parse_ok"] is True
+    assert meta["rewrite_parse_kind"] == "partial_json"
+    assert meta["rewrite_partial_json_repair"] is True
+    assert meta["rewrite_format_retry"] is False
+    assert meta["rewrite_used_fallback"] is False
+    assert [call[2] for call in calls] == ["rag_rewrite/rewrite"]
+
+
 def test_rag_rewrite_retry_partial_json_repair_is_logged(monkeypatch) -> None:
     calls: list[tuple[str, str, str]] = []
 

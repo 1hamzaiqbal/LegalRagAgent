@@ -1903,11 +1903,35 @@ def _json_string_literals(text: str) -> list[str]:
     """Extract JSON string literals from a partial JSON fragment."""
     values: list[str] = []
     for match in re.finditer(r'"(?:\\.|[^"\\])*"', text):
-        try:
-            values.append(json.loads(match.group(0)))
-        except json.JSONDecodeError:
+        value = _loads_json_string_literal(match.group(0))
+        if value is None:
             continue
+        values.append(value)
     return values
+
+
+def _loads_json_string_literal(literal: str) -> str | None:
+    """Load a JSON string, escaping raw control chars some models put inside it."""
+    try:
+        return str(json.loads(literal))
+    except json.JSONDecodeError:
+        pass
+    if not (isinstance(literal, str) and len(literal) >= 2 and literal[0] == literal[-1] == '"'):
+        return None
+    fixed_chars: list[str] = []
+    for char in literal[1:-1]:
+        if char == "\n":
+            fixed_chars.append("\\n")
+        elif char == "\r":
+            fixed_chars.append("\\r")
+        elif char == "\t":
+            fixed_chars.append("\\t")
+        else:
+            fixed_chars.append(char)
+    try:
+        return str(json.loads('"' + "".join(fixed_chars) + '"'))
+    except json.JSONDecodeError:
+        return None
 
 
 def _parse_rewrite_json(text: str) -> tuple[Any, str]:
@@ -1920,10 +1944,10 @@ def _parse_rewrite_json(text: str) -> tuple[Any, str]:
     primary_match = re.search(r'"primary"\s*:\s*("(?:\\.|[^"\\])*")', raw)
     if not primary_match:
         return None, "invalid_json"
-    try:
-        primary = json.loads(primary_match.group(1)).strip()
-    except json.JSONDecodeError:
+    primary = _loads_json_string_literal(primary_match.group(1))
+    if primary is None:
         return None, "invalid_json"
+    primary = primary.strip()
     if not primary:
         return None, "invalid_json"
 
