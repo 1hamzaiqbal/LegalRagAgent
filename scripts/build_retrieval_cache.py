@@ -9,6 +9,8 @@ answer-generation runs can then slice top-k without re-running embedding search.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import fcntl
 import hashlib
 import json
 import os
@@ -84,6 +86,26 @@ def _no_silent_fallback_enabled() -> bool:
 
 def _env_truthy(name: str) -> bool:
     return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+@contextlib.contextmanager
+def _optional_retrieval_lock():
+    """Serialize Chroma-backed retrieval cache builds on local machines."""
+    if os.getenv("RETRIEVAL_CACHE_LOCK", "1").strip().lower() not in {"1", "true", "yes", "on"}:
+        yield
+        return
+
+    lock_path = Path(os.getenv("RETRIEVAL_CACHE_LOCK_PATH", str(ROOT / ".locks" / "retrieval_cache.lock")))
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("w") as lock_file:
+        print(f"[retrieval-lock] waiting path={lock_path}", flush=True)
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        print(f"[retrieval-lock] acquired path={lock_path}", flush=True)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+            print(f"[retrieval-lock] released path={lock_path}", flush=True)
 
 
 def _direct_chroma_collection(collection_name: str):
@@ -200,6 +222,11 @@ def main() -> None:
     args = parse_args()
     if args.max_k <= 0:
         raise SystemExit("--max-k must be positive")
+    with _optional_retrieval_lock():
+        _main_locked(args)
+
+
+def _main_locked(args: argparse.Namespace) -> None:
     if args.embedding_model:
         os.environ["EVAL_EMBEDDING_MODEL"] = args.embedding_model
     if args.query_type in {"hyde_cache", "hyre_cache"} and not args.hyre_cache_path:
