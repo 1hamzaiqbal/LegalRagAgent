@@ -23,6 +23,7 @@ caches/
 case_studies/
 logs/
 .pytest_cache/
+.locks/
 
 # Editor / OS
 .vscode/
