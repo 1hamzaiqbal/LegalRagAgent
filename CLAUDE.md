@@ -378,6 +378,14 @@ outcome.
   `missing_marker` and 5-token repair outputs; max output 774 tokens and max
   final-answer chars 3845. This is the current CaseHOLD no-retrieval anchor
   for the priority benchmark set.
+- The full CaseHOLD `or-gemma4-26b` `llm_only` row is 2614/3600 = 72.6%,
+  directionally above the Llama 70B `llm_only` row by +0.81pp (McNemar
+  b/c=356/327, p=0.284). Cite with the explicit retry/near-cap caveat: no
+  retrieval evidence by design, provider/mode/dataset exactly
+  `or-gemma4-26b`/`llm_only`/`casehold`, exact final `Answer: (X)` lines on
+  all rows, zero errors, missing predictions, parse failures, fallback keys,
+  think tags, or long rows; 24 same-model answer-format retries and 19 rows at
+  >=1900 total output tokens had intact final answer lines.
 - The full CaseHOLD `groq-llama70b` `rag_simple` row is 2547/3600 = 70.8%,
   directionally below `llm_only` by -1.06pp (McNemar b/c=215/253, p=0.0871).
   It is signed with an explicit retry caveat: 3600/3600 raw retrieval-cache
