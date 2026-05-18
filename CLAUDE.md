@@ -299,6 +299,17 @@ outcome.
   37 valid same-model answer-format retries; 34 rows at >=1900 output tokens;
   max output 2112 tokens; and one verbose non-retried row `mbe_233` at 10173
   final-answer chars with intact final `Answer: (C)`.
+- The full BarExamQA `or-ministral-8b` `golden_plus_neighbors` row is
+  755/1195 = 63.2%, +6.28pp over strict `rag_simple` (McNemar b/c=205/130,
+  p=4.93e-05), +6.36pp over `llm_only` (b/c=199/123, p=2.70e-05), and
+  -1.42pp versus `golden_passage` (b/c=111/128, p=0.301). It used strict
+  golden-neighbor retrieval-cache replay with 1195/1195 cache hits, retrieved
+  list length 5 on all rows, and 1195/1195 gold retrieved. Cite with a
+  retry/near-cap caveat: 30 valid same-model answer-format retries, 28 rows at
+  >=1900 total output tokens, zero runner near-cap failures under the 2048-token
+  margin, max output 2087 tokens, max final-answer chars 9848, and zero errors,
+  missing predictions, parse failures, fallback keys, exact-final-line issues,
+  think tags, or long rows.
 - The full BarExamQA `groq-llama70b` `rag_simple` row is 891/1195 = 74.6%,
   significantly below `llm_only` by -4.10pp (McNemar b/c=66/115, p=0.000334).
   It is operationally clean under strict raw retrieval-cache replay: 1195/1195
