@@ -519,6 +519,13 @@ outcome.
   long rows, or near-cap outputs; all rows used provider/mode/dataset
   `groq-llama70b`/`llm_only`/`housing`, had retrieved list length 0 by design,
   and ended with exact `Answer: Yes/No` lines.
+- The full HousingQA `groq-llama70b` `rag_simple` row is 3241/6853 = 47.3%,
+  +2.54pp over `llm_only` (McNemar b/c=894/720, p=1.63e-05). It is clean under
+  strict raw retrieval-cache replay: 6853/6853 cache hits, retrieved list length
+  5 on all rows, 0 empty evidence rows, 193/6853 gold retrieved, retrieval
+  exposure Hit@5 0.0282 / MRR@5 0.0148, zero errors, missing predictions, parse
+  failures, fallback keys, exact-final-line issues, think tags, answer retries,
+  long rows, or near-cap outputs.
 - LegalSearchQA is related work unless converted into a frozen corpus task.
 
 **Archived pivot**: the May 9-11 diagnostic/adaptive-controller package was
