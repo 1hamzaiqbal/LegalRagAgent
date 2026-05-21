@@ -1,0 +1,14 @@
+\begin{table*}[t]
+\centering
+\caption{Dataset-level result anatomy. Deltas are mean percentage-point differences over included row pairs where both methods exist.}
+\label{tab:result_anatomy}
+\scriptsize
+\begin{tabularx}{\textwidth}{lYcccY}
+\toprule
+Dataset & Raw evidence regime & Snap vs. raw pp & HyDE vs. Snap pp & Gold vs. raw pp & Interpretation \\
+\midrule
+BarExamQA & Very low raw evidence exposure; generated legal text supplies missing vocabulary. & +3.8 (n=3) & -0.7 (n=3) & +3.6 (n=3) & Snap-HyRE clearest here. \\
+HousingQA & Jurisdiction must be fixed before retrieval methods are compared; available state-filtered rows favor raw questions. & -2.9 (n=2) & +1.4 (n=2) & +3.6 (n=2) & Jurisdiction scope changes the comparison. \\
+\bottomrule
+\end{tabularx}
+\end{table*}

@@ -1,0 +1,13 @@
+\section{What Snap-HyRE Does and Does Not Fix}\label{sec:conclusion}
+
+\hyre{} is a fixed generated-query intervention, not a universal replacement
+for raw retrieval. It is strongest on BarExamQA, where draft-guided legal
+passages improve both Hit@5 and final answer accuracy. HousingQA marks the
+boundary: once retrieval is scoped to the correct state, raw questions can
+already be strong search queries.
+
+The failures are stage-specific: a draft can choose the wrong frame, a passage
+can drop anchors, and an answer model can misuse good evidence. Legal RAG
+papers should report retrieval exposure, answer use, and corpus-interface
+assumptions. \hyre{} helps when a question must be rewritten into authority
+language before retrieval begins.

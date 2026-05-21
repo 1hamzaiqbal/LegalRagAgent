@@ -1,0 +1,56 @@
+\section{Introduction}\label{sec:intro}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.90\textwidth]{20_snap_hyre_pipeline_art.png}
+  \caption{Snap-HyRE (ours). Call 1 drafts privately and writes search text;
+  only the search text is retrieved. Call 2 answers from the original question
+  and retrieved evidence.}
+  \label{fig:pipeline_art}
+\end{figure*}
+
+Legal RAG should work well for legal question answering: many answers turn on
+statutes, regulations, holdings, or compact doctrinal rules, and retrieval can
+put that text in front of a language model \citep{lewis2020rag}. The hard part
+is often the first query. A bar-exam fact pattern may mention a driver,
+crutches, and a banana peel, while the support passage states a black-letter
+rule about proximate cause. A housing question may name a state, while an
+unscoped national corpus can return a plausible statute from the wrong
+jurisdiction. Final answer accuracy alone hides these failures.
+
+Generated-query retrieval attacks this query mismatch. HyDE embeds a
+hypothetical document rather than the user's original query \citep{gao2023hyde};
+query expansion and rewriting use related generated search text
+\citep{wang2023query2doc}. These methods are attractive in law because a model
+can often infer the legal category behind a fact pattern before retrieval sees
+the corpus. They can also fail by abstracting away anchors, choosing the wrong
+legal frame, or retrieving plausible but irrelevant authority.
+
+We introduce \hyre{}, a fixed two-call generated-query method. The first model
+call writes two objects: a draft answer and a separate legal search passage.
+The draft answer is private. It can guide the vocabulary of the search passage,
+but it is not embedded, retrieved, or shown to the final answer call. The
+second call answers the original question from the retrieved legal text. The
+method uses model priors for query formation while keeping answer selection
+tied to corpus evidence.
+
+We report a two-benchmark study. BarExamQA tests the
+weak-query regime, where fact-heavy questions need to be translated into
+rule-shaped retrieval queries. HousingQA tests the corpus-interface regime,
+where retrieval is not meaningful until every method searches only the
+jurisdiction named in the question.
+
+The main result is sharpest on BarExamQA. Across Llama 3.1 8B, Gemma 4 26B,
+and Llama 3.3 70B, \hyre{} improves raw-question RAG by +2.4, +4.0, and +5.1
+percentage points. It also raises BarExamQA Hit@5 from 1.4\% for raw-question
+retrieval to 9.5--12.1\% for the three \hyre{} generators. HousingQA gives a
+different lesson: adding the jurisdiction state filter raises raw Hit@5 from
+2.8\% to 36.9\%, making state-filtered raw retrieval a strong baseline rather
+than a method to beat by default.
+
+This paper makes three contributions: it defines \hyre{} as a fixed two-call
+legal RAG method; it compares raw-question RAG, HyDE, \hyre{}, and oracle
+evidence controls on BarExamQA and HousingQA; and it analyzes when the method
+helps by reporting both answer accuracy and gold evidence in the top five
+retrieved passages. Structured query rewriting and additional diagnostics are
+reported in the appendix.

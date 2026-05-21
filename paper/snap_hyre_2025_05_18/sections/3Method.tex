@@ -1,0 +1,90 @@
+\section{Snap-HyRE}\label{sec:method}
+
+\subsection{Design Rationale}
+
+\hyre{} makes a narrow design bet: a model's first instinct can be useful for
+search, but unsafe as evidence. Legal questions often hide the useful retrieval
+target behind facts. A model may recognize that target before seeing the corpus:
+proximate cause, a hearsay exception, a notice rule, or a state-specific
+statutory remedy. \hyre{} uses that prior to write a legal search passage, then
+forces the final answer to come from retrieved text.
+
+This gives the method two guardrails. First, the initial answer is private. It
+can shape the search passage, but it is not passed to the retriever as an
+answer label and is not shown to the final answer call. Second, the search
+passage is written like legal authority rather than like chain-of-thought
+reasoning: it names the rule or statutory condition that would resolve the
+question.
+
+\subsection{What We Compare}
+
+The main comparison keeps the retrieval and answer interface fixed within each
+dataset. All non-oracle retrieval rows answer from $k=5$ passages. The gold
+passage row is an evidence-use control, not a deployable retrieval method.
+
+\begin{table*}[t]
+\centering
+\caption{Methods in the main comparison. The retrieval-query column names what
+is embedded or otherwise used to find context; the answer-context column names
+what the final answer call receives.}
+\label{tab:method_ladder}
+\footnotesize
+\begin{tabularx}{\textwidth}{lccYY}
+\toprule
+Method & Calls & Retrieval query & Answer context & Purpose \\
+\midrule
+LLM only & 1 & none & original question & Parametric baseline. \\
+Raw question RAG & 1 & raw question text & question plus top-$k$ evidence & Baseline retrieval interface. \\
+HyDE & 2 & generated legal passage & question plus evidence retrieved by that passage & Generated prose without a draft-answer prior. \\
+\hyre{} (ours) & 2 & draft-guided legal search passage & question plus evidence retrieved by that passage & Proposed method; the draft answer is private. \\
+Gold passage & 1 & none; labeled evidence is supplied & question plus gold passage & Oracle control for evidence use. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\subsection{Two Calls, One Retrieval Query}\label{sec:method:snaphyre}
+
+\hyre{} separates query formation from final answering. Given a formatted legal
+question $q$, the first call produces a private draft answer $a_0$ and a legal
+search passage $p$:
+
+\begin{equation}
+(a_0, p) = G_{\theta}^{\mathrm{snap}}(q).
+\end{equation}
+
+The retriever embeds only $p$ and returns top-$k$ evidence $E_k = R_k(p)$. The
+final answer is then
+
+\begin{equation}
+\hat{a} = G_{\theta}^{\mathrm{answer}}(q, E_k),
+\end{equation}
+
+with $a_0$ withheld from the final answer context. The first call can use model
+priors to choose legal vocabulary, but the second call must answer from the
+retrieved corpus text.
+
+The retrieval passage is constrained to be short and reference-like. It should
+describe the controlling rule, statutory condition, legal relationship, or
+doctrinal test without answer labels or an \texttt{Answer:} header. Outputs
+that omit the required draft answer or clean passage are excluded from reported
+rows rather than silently replaced with raw-question retrieval.
+
+The difference from HyDE is narrow. HyDE writes a legal passage directly from
+the question. \hyre{} first forms a tentative legal answer and uses that private
+judgment only to decide what kind of passage to search with. For a torts fact
+pattern about a broken leg, crutches, and a later fall, this can turn an
+accident-heavy query into a passage about proximate cause and foreseeable
+subsequent injury.
+
+\subsection{Keeping Retrieval Interfaces Fair}
+
+BarExamQA retrieval uses the shared fact pattern and question stem; generated
+methods may see option text, but no correctness marker. HousingQA retrieval
+uses the question text under a jurisdiction state filter derived from the
+dataset metadata. That filter is not a \hyre{} feature. It is the benchmark
+interface used by every HousingQA retrieval row in the main paper.
+
+A structured rewrite baseline is kept as an appendix control. It is useful for
+checking whether generic query rewriting explains the gains, but it is not the
+main contrast: the paper asks whether a private draft answer helps generate a
+better legal retrieval passage than HyDE or the raw question.

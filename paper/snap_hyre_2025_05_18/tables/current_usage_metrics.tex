@@ -1,0 +1,19 @@
+\begin{table*}[t]
+\centering
+\caption{Token and scored-answer call accounting for included BarExamQA/HousingQA answer rows. Values cover rows with token fields and count only the call that produces the submitted answer from the original question and any supplied context, including format retries. First-stage query-generation usage is not included, so conceptual end-to-end call counts remain those in Table~\ref{tab:method_ladder}.}
+\label{tab:usage_metrics}
+\scriptsize
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrr}
+\toprule
+Method & Cells & Tok./q & Input tok./q & Output tok./q & Scored calls/q & Correct / 1M tok. \\
+\midrule
+LLM & 5 & 368 & 131 & 237 & 1.00 & 1487.2 \\
+Raw question RAG & 5 & 2634 & 2295 & 339 & 1.00 & 241.5 \\
+HyDE & 5 & 2577 & 2237 & 340 & 1.00 & 244.5 \\
+Snap-HyRE (ours) & 4 & 2377 & 2001 & 376 & 1.00 & 268.3 \\
+Gold & 5 & 1661 & 1447 & 215 & 1.00 & 404.5 \\
+Rewrite & 3 & 2524 & 1969 & 555 & 2.00 & 284.2 \\
+\bottomrule
+\end{tabular}}
+\end{table*}

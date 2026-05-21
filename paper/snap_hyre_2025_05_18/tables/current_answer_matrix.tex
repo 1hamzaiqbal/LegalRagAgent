@@ -1,0 +1,18 @@
+\begin{table*}[t]
+\centering
+\caption{Main answer accuracy (\%). Bold marks the best non-oracle row within each dataset/model slice; averages are descriptive over available cells.}
+\label{tab:answer_matrix}
+\scriptsize
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Method & BarExam 8B & 26B & 70B & Avg. & Housing 8B & 26B & 70B & Avg. \\
+\midrule
+LLM & \textbf{57.3} & 80.8 & 78.7 & 72.3 & 55.4 & -- & 44.8 & 50.1 \\
+Raw question RAG & 54.5 & 78.0 & 74.6 & 69.0 & \textbf{62.3} & -- & 62.1 & 62.2 \\
+HyDE & 56.1 & 80.3 & \textbf{80.2} & 72.2 & 59.1 & -- & \textbf{62.2} & 60.7 \\
+Snap-HyRE (ours) & 56.9 & \textbf{82.0} & 79.7 & 72.9 & 59.0 & -- & 59.6 & 59.3 \\
+Gold & 60.0 & 78.6 & 79.2 & 72.6 & 64.3 & -- & 67.3 & 65.8 \\
+\bottomrule
+\end{tabular}}
+\end{table*}

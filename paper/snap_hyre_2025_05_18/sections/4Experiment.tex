@@ -1,0 +1,63 @@
+\section{Evaluation}\label{sec:experiment}
+
+\subsection{Two Legal Retrieval Regimes}
+
+The main paper reports two exact-scored legal QA benchmarks.
+
+\input{tables/benchmark_role.tex}
+
+\paragraph{BarExamQA.}
+BarExamQA contains 1,195 multiple-choice bar-exam questions in the evaluation
+split used here. The retrieval corpus is a frozen support-passage collection
+with official gold passage ids. Hit@5 and MRR@5 therefore measure whether the
+retriever exposes the labeled rule passage before the answer model chooses an
+option.
+
+\paragraph{HousingQA.}
+HousingQA contains 6,853 yes/no statutory entailment questions over state
+housing statutes. The corpus contains many jurisdictions, and each question
+names the relevant state. All main HousingQA retrieval rows apply that state as
+a metadata filter before ranking. Rows that do not use this filter are excluded
+from the main HousingQA comparison.
+
+\subsection{Models, Baselines, and Retrieval Stack}
+
+We evaluate three hosted model configurations: Llama 3.1 8B Instant
+(\method{groq-llama8b}), Gemma 4 26B through OpenRouter
+(\method{or-gemma4-26b}), and Llama 3.3 70B Versatile
+(\method{groq-llama70b}). The main deployed comparisons are LLM-only, raw
+question RAG, HyDE, and \hyre{}. Gold-passage rows are oracle controls for
+evidence use. Structured rewrite and gold-plus-neighbor diagnostics appear in
+the appendix.
+
+All non-oracle retrieval rows answer from $k=5$ retrieved passages. Runs use
+seed 42, temperature 0, strict no-silent-fallback execution, and a 2048-token
+answer cap unless a row note says otherwise. Retrieval uses Chroma collections
+built with \method{Alibaba-NLP/gte-large-en-v1.5} embeddings and
+\method{cross-encoder/ms-marco-MiniLM-L-6-v2} reranking before top-$k$
+truncation.
+
+Generated-query rows are evaluated in two stages. First, the query-generation
+call writes the HyDE passage or \hyre{} search passage. Then retrieval stores
+the ranked document ids. The answer run replays those ids strictly; an invalid
+generated passage or missing cache entry is not replaced with raw-question
+retrieval. This keeps the comparison about the method's actual search text.
+
+\subsection{Answer and Evidence Metrics}
+
+The downstream metric is exact answer accuracy. BarExamQA uses the last valid
+multiple-choice answer line, and HousingQA uses \texttt{Answer: Yes} or
+\texttt{Answer: No}. Retrieval is measured by Hit@5 and MRR@5: whether any
+labeled support passage appears in the top five, and how early it appears.
+
+We also report efficiency as logical LLM calls, answer-stage tokens per
+question, scored-answer calls per question, and correct answers per million
+answer-stage tokens. These values do not make two-call methods free: the
+first-stage query-generation call is counted in the logical method footprint
+and logged separately. They show how much context the final answer call sees
+once retrieval has selected evidence.
+
+The main tables include only validated full rows. Missing cells are not
+imputed. Appendix~\ref{sec:appendix:policy} lists the inclusion rule, coverage
+grid, supplemental controls, top-$k$ diagnostics, efficiency table, and
+reproducibility details.

@@ -1,0 +1,79 @@
+\section{Results}\label{sec:analysis}
+
+\subsection{When Snap-HyRE Helps Answers}
+
+\input{tables/current_answer_matrix.tex}
+
+BarExamQA is the clearest positive setting for \hyre{}. Raw-question RAG is a
+weak retrieval handle: its Hit@5 is 1.4\%. \hyre{} raises Hit@5 to 9.5\%,
+12.1\%, and 11.1\% across the 8B, 26B, and 70B model slices. Those retrieval
+gains convert to final answer gains over raw-question RAG: 54.5\% to 56.9\%
+for Llama 3.1 8B, 78.0\% to 82.0\% for Gemma 4 26B, and 74.6\% to 79.7\% for
+Llama 3.3 70B. Averaged across the three BarExamQA model slices, \hyre{}
+reaches 72.9\% accuracy, compared with 69.0\% for raw-question RAG and 72.2\%
+for HyDE.
+
+HousingQA tells a different story. The unfiltered national corpus made
+retrieval mostly a wrong-jurisdiction problem; adding the state filter raises
+raw Hit@5 from 2.8\% to 36.9\%. On the included state-filtered rows,
+raw-question RAG is strong: 62.3\% for 8B and 62.1\% for 70B. HyDE reaches
+59.1\% on the 8B row, and \hyre{} reaches 59.6\% on the 70B row. This is a
+useful negative boundary: if the question already names the jurisdiction and
+issue, state-filtered raw retrieval can be hard to improve.
+
+\subsection{Did the Right Evidence Appear?}
+
+\input{tables/current_retrieval_matrix.tex}
+
+Table~\ref{tab:retrieval_matrix} separates retrieval from answer selection. On
+BarExamQA, generated legal passages improve exact evidence exposure: raw
+retrieval averages 1.4\% Hit@5, HyDE averages 10.0\%, and \hyre{} averages
+10.9\%. MRR@5 moves in the same direction, from 0.7\% for raw-question
+retrieval to 5.0\% for HyDE and 5.4\% for \hyre{}.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{25_barexam_retrieval_deltas.png}
+  \caption{Mean BarExamQA retrieval gains over raw-question RAG. Generated
+  search passages improve both top-five exposure and rank.}
+  \label{fig:barexam_retrieval_deltas}
+\end{figure}
+
+On HousingQA, the state filter is the dominant retrieval correction. Raw
+state-filtered retrieval reaches 37.0\% Hit@5, while the included generated
+rows retrieve less exact labeled evidence. The appendix reports Hit@1/3/5/10
+and MRR@10 from full top-10 retrieval runs.
+
+The extra evidence is useful but incomplete. \hyre{} converts a +9.5\pp{}
+Hit@5 and +4.7\pp{} MRR@5 retrieval shift into +3.9\pp{} average BarExamQA
+answer accuracy over raw-question RAG, while exact gold evidence still appears
+in only about one in nine top-five lists. The remaining gap points to ranking,
+option mapping, and evidence use.
+
+\subsection{How the Win Happens}
+
+The case study shows the intended design pattern. The raw query is dominated by
+surface accident facts. HyDE moves toward legal language but remains broad.
+\hyre{} first forms the private draft judgment that the later fall is foreseeable
+because the original injury required crutches; retrieval from that frame
+surfaces compact proximate-cause rule passages. The final answerer still sees
+only the original question and retrieved legal text, so the win is a
+retrieval-query win, not answer leakage. Appendix~\ref{sec:appendix:examples}
+lists the compact worked examples used to sanity-check this mechanism.
+
+\subsection{Cost and Context}
+
+\hyre{} and HyDE both add a first call before retrieval, so their end-to-end
+footprint is two logical model calls. The answer-stage token logs ask a
+narrower question: after retrieval, how much text does the scored answer call
+process? On rows with token logs, \hyre{} averages 1,762 answer-stage tokens
+per question, compared with 2,634 for raw-question RAG and 2,442 for HyDE. The
+query-generation call is separate and reported in Appendix~\ref{tab:usage_metrics}.
+
+\subsection{Evidence Is Not the Only Bottleneck}
+
+Oracle rows show what remains after retrieval is removed. On BarExamQA, gold
+passage accuracy is only modestly above the best generated-query rows, so
+option mapping and evidence use still bind. On HousingQA, gold passages remain
+far above LLM-only, showing headroom when the correct statute is supplied.
+Appendix~\ref{sec:appendix:additional} reports the oracle and rewrite controls.

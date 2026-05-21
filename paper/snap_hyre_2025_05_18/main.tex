@@ -1,319 +1,95 @@
+%%%%%%%% Snap-HyRE for Legal Retrieval-Augmented Generation %%%%%%%%
+
 \documentclass{article}
 
-\usepackage[preprint]{neurips_2024}
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage{hyperref}
-\usepackage{url}
-\usepackage{booktabs}
+\usepackage{microtype}
 \usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Internal preprint/export version. Remove [preprint] for blind ICML review, or
+% switch to [accepted] for camera-ready.
+\usepackage[preprint]{icml2026}
+
 \usepackage{amsmath}
-\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
 \usepackage{xcolor}
-\usepackage{enumitem}
-\usepackage{multirow}
 \usepackage{tabularx}
 \usepackage{array}
+\usepackage{multirow}
+\usepackage{float}
 \usepackage{placeins}
-\usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
-\hypersetup{hidelinks}
+\usepackage{enumitem}
+\usepackage{xspace}
+\usepackage{algorithm}
+\usepackage{algorithmic}
 
-\graphicspath{{figures/}}
+\usepackage[capitalize,noabbrev]{cleveref}
 
-\makeatletter
-\renewcommand{\@notice}{}
-\makeatother
-
+\newcommand{\pending}[1]{\textcolor{gray}{\textit{#1}}}
 \newcommand{\method}[1]{\texttt{\detokenize{#1}}}
 \newcommand{\dataset}[1]{\textsc{#1}}
-\newcommand{\hyre}{HyRE}
-\newcommand{\snaphyre}{Snap-\hyre{}}
+\newcommand{\hyre}{Snap-HyRE\xspace}
+\newcommand{\pp}{\ensuremath{\mathrm{pp}}}
+
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
 
-\title{\snaphyre{} for Legal RAG: A Source-Gated Results Packet}
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{6pt plus 2pt minus 2pt}
+\setlength{\intextsep}{6pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{3pt}
+\setlength{\belowcaptionskip}{1pt}
+\setlist[itemize]{leftmargin=*, itemsep=1pt, topsep=2pt}
 
-\author{%
-  Hamza Iqbal \\
-  Washington University in St.\ Louis \\
-  \texttt{hiqbal@wustl.edu}
-  \And
-  Hanson Li \\
-  Washington University in St.\ Louis \\
-  \texttt{hanson.l@wustl.edu}
-  \And
-  Josh Li \\
-  Washington University in St.\ Louis \\
-  \texttt{josh.l@wustl.edu}
-}
+\graphicspath{{figures/}}
+
+\icmltitlerunning{\protect\smash{Snap-HyRE for Legal RAG}}
 
 \begin{document}
 
-\maketitle
+\twocolumn[
+  \icmltitle{Snap-HyRE: When Generated Legal Queries Help Legal RAG}
 
-\begin{abstract}
-This draft reports the current fixed-method \snaphyre{} evaluation package for
-legal retrieval-augmented generation. \snaphyre{} is a two-call generated-query
-method: first produce a tentative legal issue frame and hypothetical reasoning
-passage, retrieve with that passage, then answer from the original question and
-retrieved corpus evidence. The current signed package is incomplete
-(51/84 expected answer cells), so missing rows are left as \textsc{tbd}. In
-the signed full-corpus cells, \snaphyre{} improves BarExamQA answer accuracy
-over raw RAG for Gemma 4 26B (78.0\% to 82.0\%, $p=0.000699$) and Llama
-3.3 70B (74.6\% to 79.8\%, $p=2.70{\times}10^{-5}$). On SCALR and CaseHOLD,
-generated retrieval often improves exact Hit@5 while final answer accuracy is
-flat or lower. HousingQA currently has raw and oracle rows but no signed
-generated-method answer rows. The main claim is therefore intentionally narrow:
-retrieval exposure and legal answer accuracy must be reported together, and
-\snaphyre{} is currently positive on BarExamQA, mixed on SCALR/CaseHOLD, and
-unfinished on HousingQA.
-\end{abstract}
+  \icmlsetsymbol{equal}{*}
 
-\section{Draft Status}
+  \begin{icmlauthorlist}
+    \icmlauthor{Hamza Iqbal}{wustl}
+    \icmlauthor{Hanson Li}{wustl}
+    \icmlauthor{Josh Li}{wustl}
+  \end{icmlauthorlist}
 
-This is a sparse, source-gated paper draft. It treats the current generated
-package as the paper's unit of evidence and leaves missing cells visible. The
-active framing is a fixed-method \snaphyre{} evaluation, not a dataset-specific
-route-selection story. Result claims should continue to be checked against
-\method{docs/signoff_log.md}, \method{docs/compiled_results.md},
-\method{logs/experiments.jsonl}, and the generated package before submission.
+  \icmlaffiliation{wustl}{Department of Computer Science and Engineering, Washington University in St.\ Louis, St.\ Louis, MO, USA}
 
-\input{tables/coverage_matrix.tex}
+  \icmlcorrespondingauthor{Hamza Iqbal}{hiqbal@wustl.edu}
 
-\section{Method}
+  \icmlkeywords{retrieval-augmented generation, legal NLP, HyDE, generated queries, legal evaluation}
 
-\subsection{Evaluation Contract}
-
-The method under test is fixed across datasets and models. We evaluate the same
-answer setting at $k=5$ on BarExamQA, HousingQA, CaseHOLD, and
-LegalBench-SCALR. We compare seven rows: \method{llm_only},
-\method{rag_simple}, \method{rag_hyde}, \method{snap_hyre},
-\method{rag_rewrite}, \method{golden_passage}, and
-\method{golden_plus_neighbors}. The oracle rows are controls for evidence use,
-not deployable methods.
-
-\subsection{Fixed Snap-HyRE}
-
-For each question, the first model call writes a tentative legal issue frame
-and a hypothetical reasoning passage. The passage is embedded and used as the
-retrieval query. The second model call receives the original question and the
-retrieved corpus passages, then emits the final answer. The hypothetical
-passage is not treated as evidence in the final call. Older logs may use
-\method{rag_snap_hyde_2call}; in this paper that is only a legacy alias for
-the same two-call family.
-
-\begin{figure}[!htbp]
-\centering
-\resizebox{\textwidth}{!}{%
-\begin{tikzpicture}[
-  node distance=0.9cm and 1.0cm,
-  box/.style={draw, rounded corners=2pt, minimum width=2.45cm, minimum height=0.75cm, align=center, font=\small},
-  data/.style={draw, trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=2.35cm, minimum height=0.75cm, align=center, font=\small},
-  arr/.style={-{Latex[length=2mm]}, thick}
+  \vskip 0.3in
 ]
-\node[data] (q) {Legal\\question};
-\node[box, right=of q] (snap) {Tentative\\issue frame};
-\node[box, right=of snap] (hyde) {Hypothetical\\reasoning passage};
-\node[data, right=of hyde] (ret) {Top-$k$\\retrieval};
-\node[box, right=of ret] (final) {Final answer\\from evidence};
-\draw[arr] (q) -- (snap);
-\draw[arr] (snap) -- (hyde);
-\draw[arr] (hyde) -- (ret);
-\draw[arr] (ret) -- (final);
-\draw[arr, bend left=28] (q.north) to (final.north);
-\end{tikzpicture}}
-\caption{\snaphyre{} retrieval. Generated text shapes retrieval; final answer
-generation is grounded in the original question and retrieved corpus passages.}
-\label{fig:method_diagram}
-\end{figure}
 
-\subsection{Run Accounting}
+\printAffiliationsAndNotice{}
 
-Conceptually, \method{rag_hyde}, \method{snap_hyre}, and
-\method{rag_rewrite} are two-call methods when run end-to-end. Some answer rows
-replay already-built generation and retrieval caches, so answer-package
-\method{avg_llm_calls} can show one answer call even for a two-call method.
-That field is an answer-run accounting statistic, not the conceptual method
-cost.
-
-\subsection{Metrics}
-
-The answer metric is task accuracy. Retrieval exposure is exact-qrel Hit@k and
-MRR@k over labeled gold evidence ids or legal holdings. Exact-qrel metrics are
-useful but incomplete: they can miss legally equivalent retrieved passages, and
-they can overstate usefulness when the gold id appears among strong distractors.
-For that reason, the paper reports retrieval metrics, answer accuracy, oracle
-evidence controls, and paired McNemar tests together.
-
-This evaluation follows the retrieval-augmented generation and generated-query
-line of work \citep{lewis2020rag,gao2023hyde,wang2023query2doc}, applied to
-legal benchmarks including LegalBench-SCALR, CaseHOLD, BarExamQA, and
-HousingQA \citep{guha2023legalbench,zheng2021casehold,zheng2025legalretrieval}.
-
-\section{Results}
-
-\subsection{Answer Grid}
-
-\input{tables/answer_matrix.tex}
-
-\input{tables/completed_cell_means.tex}
-
-The completed-cell means are only an orientation check because the grid is
-unbalanced. The safer result object is Table~\ref{tab:answer_matrix}: BarExamQA
-has two signed positive \snaphyre{} cells, SCALR has mixed generated-query
-answer behavior, CaseHOLD has a signed Llama 70B row with little answer
-conversion, and HousingQA generated-method answer rows remain \textsc{tbd}.
-
-\begin{figure}[!htbp]
-  \centering
-  \includegraphics[width=\textwidth]{01_answer_ladder_by_dataset.png}
-  \caption{Answer ladders for currently signed cells. This figure is a visual
-  companion to Table~\ref{tab:answer_matrix}; missing cells are omitted rather
-  than filled from older runs.}
-  \label{fig:answer_ladder}
-\end{figure}
-
+\input{sections/0Abstract}
+\input{sections/1Introduction}
+\input{sections/2Preliminary}
+\input{sections/3Method}
+\input{sections/4Experiment}
+\input{sections/5Analysis}
+\FloatBarrier
+\input{sections/6Conclusion}
 \FloatBarrier
 
-\subsection{Retrieval and Answer Conversion}
-
-\input{tables/method_conversion.tex}
-
-Table~\ref{tab:method_conversion} is the central failure-analysis table. It
-compares \method{rag_simple}, \method{rag_hyde}, \method{snap_hyre}, and
-\method{rag_rewrite}; the generated-method deltas are answer-accuracy changes
-relative to \method{rag_simple} in the same dataset/model cell. On BarExamQA,
-generated retrieval handles improve RAG-simple retrieval exposure and
-\snaphyre{} improves answer accuracy. On SCALR and CaseHOLD, higher exact
-Hit@5 often fails to become higher final accuracy. This is the main reason the
-paper should avoid a simple retrieval-win narrative.
-
-\input{tables/current_snap_hyde_decomposition.tex}
-
-Table~\ref{tab:current_snap_hyde_decomposition} isolates the current
-\method{rag_hyde} versus \method{snap_hyre} question. \snaphyre{} beats or
-reaches near parity with HyDE in four of six signed cells, but it is not
-uniformly better. The missing piece is \method{snap_only_in_final}: that row is
-not in the current fixed-method package, so the table leaves it as
-\textsc{tbd}.
-
-\input{tables/legacy_snap_only_decomposition.tex}
-
-The only complete snap-only decomposition currently available is the older
-audited BarExamQA \method{rag_snap_hyde} ladder in
-Table~\ref{tab:legacy_snap_only_decomposition}. It is useful mechanism
-evidence, but should not be treated as a current-package result because the
-method name, provider stack, and run vintage differ from the signed
-\method{snap_hyre} package.
-
-\begin{figure}[!htbp]
-  \centering
-  \includegraphics[width=0.88\textwidth]{02_accuracy_vs_hit5.png}
-  \caption{Final answer accuracy versus exact-qrel Hit@5 for signed
-  generated-query cells and their raw-RAG baselines. The same retrieval lift can
-  correspond to positive, flat, or negative answer movement.}
-  \label{fig:accuracy_vs_hit5}
-\end{figure}
-
-\input{tables/snap_hyre_significance.tex}
-
-\FloatBarrier
-
-\subsection{Oracle Evidence Controls}
-
-Oracle rows separate retrieval failure from evidence-use failure. Gold-only
-accuracy is very high on SCALR and CaseHOLD, but gold-plus-neighbors is lower
-than gold-only, showing that extra plausible legal text can dilute the signal.
-HousingQA also has a large oracle gap: Llama 70B raw RAG is 47.3\%, while
-gold-only is 67.3\%.
-
-\begin{figure}[!htbp]
-  \centering
-  \includegraphics[width=0.90\textwidth]{03_oracle_gap.png}
-  \caption{Oracle evidence controls expose remaining context-use headroom.
-  Gold-plus-neighbor rows should not be read as an oracle ceiling; they also
-  test distractor sensitivity.}
-  \label{fig:oracle_gap}
-\end{figure}
-
-\FloatBarrier
-
-\subsection{Top-k Analyses}
-
-The main answer grid uses $k=5$. Retrieval curves through $k=10$ are still
-reported because they show whether generated-query methods move gold evidence
-into the candidate set. The q100 prelaunch probe is not a final top-k
-benchmark; it only justifies using $k=5$ as the shared answer setting while
-retaining k-curves for analysis.
-
-\input{tables/q100_topk_probe.tex}
-
-\begin{figure}[!htbp]
-  \centering
-  \includegraphics[width=\textwidth]{04_retrieval_hit_mrr_curves_full.png}
-  \caption{Full-row retrieval curves for signed caches with at least 500 rows.
-  Hit@k and MRR@k are shown separately; raw full curves are available in this
-  package for CaseHOLD and are otherwise summarized at k=5 in
-  Table~\ref{tab:method_conversion}.}
-  \label{fig:retrieval_hit_mrr}
-\end{figure}
-
-\begin{figure}[!htbp]
-  \centering
-  \includegraphics[width=0.78\textwidth]{05_q100_macro_topk_probe.png}
-  \caption{q100 prelaunch retrieval probe over supplied Gemma 4 26B caches.
-  Macro Hit@k rises after k=5, while MRR changes little; the small downstream
-  BarExamQA check did not favor k=10.}
-  \label{fig:q100_probe}
-\end{figure}
-
-\FloatBarrier
-
-\subsection{Row Caveats}
-
-\input{tables/caveat_ledger.tex}
-
-\section{Current Reading}
-
-The current evidence supports three narrow statements. First, \snaphyre{} is a
-real BarExamQA answer improvement over raw RAG in two signed full-corpus model
-cells. Second, retrieval exposure is not a sufficient proxy for legal answer
-quality: SCALR and CaseHOLD have generated-query retrieval gains without
-reliable answer gains. Third, oracle controls remain essential because they
-show whether the final model can use isolated gold evidence and how much
-performance is lost when that evidence is mixed with neighboring legal text.
-
-\section{Limitations and TBD}
-
-The grid is incomplete. The headline missing cells are HousingQA generated
-methods, CaseHOLD generated methods for Gemma 4 26B and Ministral 8B, and
-BarExamQA generated methods for Ministral 8B. The current package has 51/84
-expected answer cells, so averages across completed cells are unbalanced.
-
-The retrieval metrics are exact-qrel metrics. They should be kept, but they
-should not be the only mechanism claim. Exact gold ids can miss useful
-equivalent evidence, while a hit can be surrounded by distractors that make the
-answer harder. The oracle and gold-plus-neighbor rows are the current guardrail
-against over-reading Hit@k.
-
-The top-k evidence is also deliberately limited. The q100 prelaunch probe says
-$k=10$ raises retrieval exposure but does not justify changing the main answer
-grid from $k=5$. It should be cited as a launch gate and analysis prompt, not
-as a global top-k optimum.
-
-\section{Conclusion}
-
-\snaphyre{} is best presented as a fixed generated-query legal-RAG method with
-mixed but informative results. It improves BarExamQA in the current signed
-cells, does not reliably convert larger retrieval exposure into better answers
-on SCALR or CaseHOLD, and still lacks generated-method answer rows on
-HousingQA. The paper's durable contribution is the evaluation pattern:
-answer accuracy, retrieval exposure, oracle evidence controls, coverage, and
-row caveats should travel together.
+\bibliographystyle{icml2026}
+\bibliography{references}
 
 \clearpage
-\bibliographystyle{plainnat}
-\bibliography{references}
+\appendix
+\input{sections/Appendix}
 
 \end{document}

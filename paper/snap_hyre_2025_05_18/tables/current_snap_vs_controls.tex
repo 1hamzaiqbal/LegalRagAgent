@@ -1,0 +1,20 @@
+\begin{table*}[t]
+\centering
+\caption{Snap-HyRE compared with non-oracle controls. Cells are accuracy percentages; bold marks the strongest non-oracle row for that dataset/model slice. Rewrite is supplemental.}
+\label{tab:snap_vs_controls}
+\scriptsize
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrrrrl}
+\toprule
+Dataset & Model & LLM & Raw question RAG & HyDE & Snap-HyRE & Rewrite & Snap vs. raw pp & Best main non-oracle \\
+\midrule
+BarExamQA & Llama 3.1 8B & \textbf{57.3} & 54.5 & 56.1 & 56.9 & 57.3 & +2.4 & LLM (57.3) \\
+BarExamQA & Gemma 4 26B & 80.8 & 78.0 & 80.3 & \textbf{82.0} & 80.7 & +4.0 & Snap-HyRE (ours) (82.0) \\
+BarExamQA & Llama 3.3 70B & 78.7 & 74.6 & \textbf{80.2} & 79.7 & 77.2 & +5.1 & HyDE (80.2) \\
+\addlinespace
+HousingQA & Llama 3.1 8B & 55.4 & \textbf{62.3} & 59.1 & 59.0 & -- & -3.3 & Raw question RAG (62.3) \\
+HousingQA & Llama 3.3 70B & 44.8 & 62.1 & \textbf{62.2} & 59.6 & -- & -2.5 & HyDE (62.2) \\
+\addlinespace
+\bottomrule
+\end{tabular}}
+\end{table*}
