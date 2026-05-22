@@ -24,7 +24,7 @@ from rag_utils import CHROMA_DB_DIR  # noqa: E402
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", required=True, choices=[
-        "barexam", "housing", "legal_rag", "australian", "casehold",
+        "barexam", "housing", "legal_rag", "legal_rag_bench", "mas_legal_bench", "legal_link_eu", "australian", "casehold",
         "musique", "legalbench_scalr",
     ])
     parser.add_argument("--questions", default="full")

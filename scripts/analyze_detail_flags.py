@@ -27,7 +27,16 @@ def _load_rows(path: Path) -> list[dict]:
 
 def _contains_answer_artifact(text: str | None) -> bool:
     text = text or ""
-    return bool(re.search(r"(?im)^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:", text))
+    artifact_patterns = [
+        r"(?im)^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:",
+        r"(?i)\b(?:answer|option|choice)\s+(?:is|must be|would be)\s*\(?[A-E]\)?\b",
+        # Avoid flagging ordinary prose like "it is a fair representation" as
+        # option-letter leakage.
+        r"(?i)\b(?:it'?s|it is)\s*(?:\([A-E]\)|[A-E](?=\s*(?:$|[.,;:!?])))",
+        r"(?i)\bself-correction\b",
+        r"(?im)^\s*wait[,:\s]",
+    ]
+    return any(re.search(pattern, text) for pattern in artifact_patterns)
 
 
 def _first_text(row: dict, *keys: str) -> str:

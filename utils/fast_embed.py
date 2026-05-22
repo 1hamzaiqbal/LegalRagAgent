@@ -10,6 +10,9 @@ Usage:
   uv run python utils/fast_embed.py housing            # Full housing statutes (1.84M)
   uv run python utils/fast_embed.py housing 200000     # First 200K housing statutes
   uv run python utils/fast_embed.py housing --resume   # Resume interrupted embedding
+  uv run python utils/fast_embed.py legal_rag_bench    # Legal RAG Bench corpus (4,876)
+  uv run python utils/fast_embed.py mas_legal_bench    # MASLegalBench context corpus
+  uv run python utils/fast_embed.py legal_link_eu       # Legal-Link-EU evidence contexts
   uv run python utils/fast_embed.py status             # Check collection sizes
 
   # Embedding model A/B testing:
@@ -109,6 +112,24 @@ CORPORA = {
         "text_col": "text",
         "idx_col": "idx",
     },
+    "legal_rag_bench": {
+        "csv": "datasets/legal_rag_bench/passages.csv",
+        "collection": "legal_rag_bench_passages",
+        "text_col": "text",
+        "idx_col": "idx",
+    },
+    "mas_legal_bench": {
+        "csv": "datasets/mas_legal_bench/passages.csv",
+        "collection": "mas_legal_bench_passages",
+        "text_col": "text",
+        "idx_col": "idx",
+    },
+    "legal_link_eu": {
+        "csv": "datasets/legal_link_eu/passages.csv",
+        "collection": "legal_link_eu_passages",
+        "text_col": "text",
+        "idx_col": "idx",
+    },
     "australian": {
         "csv": "datasets/australian_legal_qa/passages.csv",
         "collection": "australian_legal",
@@ -141,8 +162,8 @@ CORPORA = {
     },
 }
 
-# Process in chunks of this size to avoid OOM
-EMBED_CHUNK = 10000
+# Process in chunks of this size to avoid OOM. Override for tight local memory.
+EMBED_CHUNK = int(os.environ.get("EMBED_CHUNK", "10000"))
 
 
 def embed_corpus(corpus_name: str, max_passages: int = 0, resume: bool = False,
@@ -227,7 +248,7 @@ def embed_corpus(corpus_name: str, max_passages: int = 0, resume: bool = False,
         )
 
     # Process in chunks: embed → insert → free
-    gpu_batch = 128
+    gpu_batch = int(os.environ.get("EMBED_GPU_BATCH", "128"))
     total_embed_time = 0
     total_insert_time = 0
     start_time = time.time()
@@ -248,7 +269,7 @@ def embed_corpus(corpus_name: str, max_passages: int = 0, resume: bool = False,
         metadatas = []
         for _, row in chunk_df.iterrows():
             meta = {"idx": str(row[idx_col])}
-            for col in ["source", "state", "citation"]:
+            for col in ["source", "state", "citation", "context_type", "role", "context_title"]:
                 if col in row and pd.notna(row[col]):
                     meta[col] = str(row[col])
             metadatas.append(meta)

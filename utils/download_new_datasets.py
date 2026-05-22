@@ -1,11 +1,12 @@
-"""Download and prepare legal-rag-qa, open-australian-legal-qa, and casehold datasets."""
+"""Download and prepare supplemental legal QA/RAG datasets."""
 import hashlib
 import json
 import os
 import sys
+import urllib.request
 
 import pandas as pd
-from datasets import load_dataset
+from datasets import Dataset, load_dataset
 
 
 def stable_holding_id(text: str, prefix: str = "holding") -> str:
@@ -353,6 +354,238 @@ def prep_mleb_scalr():
     print(f"mleb_scalr qrels: {len(qrels_df)} rows -> {out_dir}/qrels.csv")
 
 
+def prep_mas_legal_bench():
+    """MASLegalBench: GDPR legal reasoning with provided context rows.
+
+    Upstream packages all data in one Arrow split with mixed row types:
+    questions and context items. The paper/code evaluates exact answer accuracy
+    after retrieving context rows from the same case source. For our harness we
+    keep the main question file to the four-way MC subset only, because the
+    comprehensive grid assumes lettered choices for MC benchmarks. The Yes/No
+    rows are retained in ``questions_all.csv`` for later if we want a separate
+    binary-answer variant.
+
+    Corpus note: this is an independent context corpus, not answer choices. It
+    contains background/legal-framework/entity/relation/inferred-alignment rows.
+    MASLegalBench does not provide per-question gold passage IDs, so
+    ``gold_idx`` is intentionally left empty; downstream logs can still report
+    same-source evidence exposure from passage metadata.
+    """
+    out_dir = "datasets/mas_legal_bench"
+    raw_dir = os.path.join(out_dir, "raw")
+    os.makedirs(raw_dir, exist_ok=True)
+
+    raw_arrow = os.path.join(raw_dir, "data-00000-of-00001.arrow")
+    if not os.path.exists(raw_arrow):
+        url = (
+            "https://raw.githubusercontent.com/HKUST-KnowComp/MASLegalBench/"
+            "main/dataset/train/data-00000-of-00001.arrow"
+        )
+        print(f"downloading MASLegalBench Arrow from {url}")
+        urllib.request.urlretrieve(url, raw_arrow)
+
+    ds = Dataset.from_file(raw_arrow)
+
+    def type_slug(value: str) -> str:
+        return "_".join(str(value or "").strip().lower().split())
+
+    context_rows = []
+    question_rows_all = []
+    source_to_context_ids: dict[str, list[str]] = {}
+    seen_context_ids: set[str] = set()
+    question_counter: dict[str, int] = {}
+
+    for row in ds:
+        source = str(row.get("source") or "").strip()
+        row_type = str(row.get("type") or "").strip()
+        content = str(row.get("content") or "")
+        if row_type == "question":
+            payload = json.loads(content)
+            options = payload.get("options") or {}
+            if not isinstance(options, dict):
+                options = {}
+            qn = question_counter.get(source, 0)
+            question_counter[source] = qn + 1
+            idx = f"maslb_{hashlib.sha1((source + ':q:' + str(qn)).encode()).hexdigest()[:16]}"
+
+            # Preserve native A-D/Yes-No labels in the all-questions export.
+            row_out = {
+                "idx": idx,
+                "source": source,
+                "question": payload.get("question", ""),
+                "answer": str(payload.get("correct_answer", "")).strip(),
+                "whether_contains_decision": payload.get("whether_contains_decision", ""),
+                "option_count": len(options),
+                "gold_idx": "",
+                "source_context_ids": "",
+            }
+            for label, text in options.items():
+                label_norm = str(label).strip()
+                if len(label_norm) == 1 and label_norm.upper() in {"A", "B", "C", "D"}:
+                    row_out[f"choice_{label_norm.lower()}"] = text
+                elif label_norm.lower() == "yes":
+                    row_out["choice_a"] = "Yes"
+                elif label_norm.lower() == "no":
+                    row_out["choice_b"] = "No"
+            question_rows_all.append(row_out)
+            continue
+
+        context_type = type_slug(row_type)
+        digest = hashlib.sha1(
+            (source + "\n" + context_type + "\n" + content).encode("utf-8", errors="ignore")
+        ).hexdigest()[:20]
+        idx = f"maslb_ctx_{digest}"
+        if idx in seen_context_ids:
+            continue
+        seen_context_ids.add(idx)
+        context_rows.append({
+            "idx": idx,
+            "text": content,
+            "source": source,
+            "context_type": context_type,
+        })
+        source_to_context_ids.setdefault(source, []).append(idx)
+
+    for row in question_rows_all:
+        ids = source_to_context_ids.get(str(row.get("source") or ""), [])
+        row["source_context_ids"] = ",".join(ids)
+
+    qa_all = pd.DataFrame(question_rows_all)
+    qa_mc = qa_all[qa_all["option_count"] == 4].copy()
+
+    corpus_df = pd.DataFrame(context_rows)
+    corpus_df.to_csv(os.path.join(out_dir, "passages.csv"), index=False)
+    qa_all.to_csv(os.path.join(out_dir, "questions_all.csv"), index=False)
+    qa_mc.to_csv(os.path.join(out_dir, "questions.csv"), index=False)
+
+    print(f"MASLegalBench corpus: {len(corpus_df)} context rows -> {out_dir}/passages.csv")
+    print(f"MASLegalBench questions_all: {len(qa_all)} rows -> {out_dir}/questions_all.csv")
+    print(f"MASLegalBench questions.csv: {len(qa_mc)} four-way MC rows -> {out_dir}/questions.csv")
+
+
+def prep_legal_link_eu():
+    """Legal-Link-EU: four-way MC over provided EUR-Lex evidence contexts.
+
+    The dataset ships row-level evidence, not a separate global corpus. We build
+    a fixed retrieval corpus from the original ``contexts`` field only and keep
+    the adversarial ``perturbed_contexts`` out of the default corpus. Gold
+    retrieval labels are the five original context IDs for each question.
+    """
+    out_dir = "datasets/legal_link_eu"
+    os.makedirs(out_dir, exist_ok=True)
+
+    ds = load_dataset("disi-unibo-nlp/legal-link-eu", split="test")
+    relation_types = [
+        "extends_application",
+        "rendered_obsolete_by",
+        "implicitly_repeals",
+        "extends_validity",
+        "completes",
+        "corrects",
+        "repeals",
+    ]
+
+    def parse_id(example_id: str) -> tuple[str, str, str]:
+        for relation in relation_types:
+            suffix = "_" + relation
+            if example_id.endswith(suffix):
+                pair = example_id[: -len(suffix)].removeprefix("complex_legallink_")
+                parts = pair.split("_", 1)
+                if len(parts) == 2:
+                    return parts[0], parts[1], relation
+                return "", "", relation
+        return "", "", "unknown"
+
+    def stable_context_id(title: str, text: str) -> str:
+        digest = hashlib.sha1((title + "\n" + text).encode("utf-8", errors="ignore")).hexdigest()[:20]
+        return f"lle_ctx_{digest}"
+
+    def celex_from_title(title: str) -> str:
+        if "(" in title and title.endswith(")"):
+            return title[title.find("(") + 1:-1]
+        return title
+
+    passages: dict[str, dict] = {}
+    qa_rows = []
+    perturbed_rows = []
+
+    for row_number, row in enumerate(ds):
+        example_id = str(row["id"])
+        question_id = f"{example_id}__row{row_number:04d}"
+        source_doc, target_doc, relation = parse_id(example_id)
+        gold_ids = []
+        gold_texts = []
+        for position, (title, text) in enumerate(zip(row["context_titles"], row["contexts"])):
+            title = str(title)
+            text = str(text)
+            if not text.strip():
+                perturbed_rows.append({
+                    "idx": f"{question_id}_perturbed_{position}",
+                    "example_id": example_id,
+                    "question_idx": question_id,
+                    "context_title": title,
+                    "text": row["perturbed_contexts"][position],
+                    "relation_type": relation,
+                    "original_context_empty": True,
+                })
+                continue
+            passage_id = stable_context_id(title, text)
+            gold_ids.append(passage_id)
+            gold_texts.append(f"## {title}\n{text}")
+            if passage_id not in passages:
+                role = "source" if title.startswith("Source") else "target" if title.startswith("Target") else "context"
+                celex_id = celex_from_title(title)
+                passages[passage_id] = {
+                    "idx": passage_id,
+                    "text": text,
+                    "title": title,
+                    "source": celex_id,
+                    "citation": celex_id,
+                    "role": role,
+                    "context_title": title,
+                }
+            perturbed_rows.append({
+                "idx": f"{question_id}_perturbed_{position}",
+                "example_id": example_id,
+                "question_idx": question_id,
+                "context_title": title,
+                "text": row["perturbed_contexts"][position],
+                "relation_type": relation,
+                "original_context_empty": False,
+            })
+
+        options = list(row["options"])
+        qa_rows.append({
+            "idx": question_id,
+            "example_id": example_id,
+            "question": row["question"],
+            "choice_a": options[0],
+            "choice_b": options[1],
+            "choice_c": options[2],
+            "choice_d": options[3],
+            "answer": row["correct_label"],
+            "correct_index": row["correct_index"],
+            "gold_idx": ",".join(gold_ids),
+            "gold_passage": "\n\n".join(gold_texts),
+            "relation_type": relation,
+            "source_doc": source_doc,
+            "target_doc": target_doc,
+            "subject": relation,
+        })
+
+    passages_df = pd.DataFrame(list(passages.values())).sort_values("idx")
+    qa_df = pd.DataFrame(qa_rows)
+    perturbed_df = pd.DataFrame(perturbed_rows)
+
+    passages_df.to_csv(os.path.join(out_dir, "passages.csv"), index=False)
+    qa_df.to_csv(os.path.join(out_dir, "questions.csv"), index=False)
+    perturbed_df.to_json(os.path.join(out_dir, "perturbed_contexts.jsonl"), orient="records", lines=True)
+
+    print(f"Legal-Link-EU corpus: {len(passages_df)} unique context rows -> {out_dir}/passages.csv")
+    print(f"Legal-Link-EU questions: {len(qa_df)} rows -> {out_dir}/questions.csv")
+    print(f"Legal-Link-EU perturbed contexts: {len(perturbed_df)} rows -> {out_dir}/perturbed_contexts.jsonl")
+
+
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else "all"
 
@@ -368,3 +601,7 @@ if __name__ == "__main__":
         prep_legalbench_scalr()
     if target in ("mleb_scalr", "mleb-scalr", "all"):
         prep_mleb_scalr()
+    if target in ("mas_legal_bench", "maslegalbench", "mas", "all"):
+        prep_mas_legal_bench()
+    if target in ("legal_link_eu", "legallink", "legal-link-eu", "lle", "all"):
+        prep_legal_link_eu()

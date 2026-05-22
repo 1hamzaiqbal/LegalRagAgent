@@ -21,7 +21,7 @@ from eval_config import EvalConfig, load_questions  # noqa: E402
 from eval_harness import (  # noqa: E402
     _collection_for_config,
     _documents_from_retrieval_cache,
-    _where_from_config,
+    _retrieval_where_for_row,
 )
 
 
@@ -39,6 +39,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--limit", type=int, default=5,
                         help="Number of question rows to hydrate; 0 means all")
     parser.add_argument("--source-filter", default="")
+    parser.add_argument("--housing-state-filter", action="store_true",
+                        help="Validate row-dependent HousingQA state-filter cache keys")
+    parser.add_argument("--require-doc-cache", action="store_true",
+                        help="Fail unless hydrated documents come from RETRIEVAL_DOC_CACHE_PATH")
     return parser.parse_args()
 
 
@@ -58,6 +62,7 @@ def main() -> None:
         sample_end=args.sample_end,
         retrieval_k=args.retrieval_k,
         source_filter=args.source_filter,
+        housing_state_filter=args.housing_state_filter,
     )
     questions = load_questions(config)
     if args.sample_start or args.sample_end is not None:
@@ -68,12 +73,16 @@ def main() -> None:
         questions = questions.head(args.limit)
 
     collection = _collection_for_config(config)
-    where = _where_from_config(config)
     embedding_model = os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or ""
 
     checked = 0
     cache_hits = 0
+    doc_cache_hits = 0
+    first_where = None
     for _, row in questions.iterrows():
+        where = _retrieval_where_for_row(row, config)
+        if first_where is None:
+            first_where = where
         docs, entry = _documents_from_retrieval_cache(
             row,
             args.label_prefix,
@@ -84,15 +93,18 @@ def main() -> None:
         )
         checked += 1
         cache_hits += 1 if entry else 0
+        doc_cache_hits += 1 if entry and entry.get("_doc_cache_hit") is True else 0
         if len(docs) < args.retrieval_k:
             raise SystemExit(f"hydrated only {len(docs)} docs, need {args.retrieval_k}")
 
     print(f"cache={args.cache}")
     print(f"dataset={args.dataset} label_prefix={args.label_prefix}")
-    print(f"collection={collection} embedding_model={embedding_model!r} where={where or {}}")
-    print(f"checked={checked} cache_hits={cache_hits} retrieval_k={args.retrieval_k}")
+    print(f"collection={collection} embedding_model={embedding_model!r} first_where={first_where or {}}")
+    print(f"checked={checked} cache_hits={cache_hits} doc_cache_hits={doc_cache_hits} retrieval_k={args.retrieval_k}")
     if checked == 0 or cache_hits != checked:
         raise SystemExit(1)
+    if args.require_doc_cache and doc_cache_hits != checked:
+        raise SystemExit("document cache was not used for every checked row")
 
 
 if __name__ == "__main__":

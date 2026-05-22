@@ -23,6 +23,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
+from langchain_core.documents import Document
 from eval_config import EvalConfig, EVAL_MODES, load_questions, extract_answer_mc, extract_answer_mc5, extract_answer_yn, format_question_prompt, extract_answer_musique, musique_em_f1
 from main import (
     run as run_pipeline,
@@ -38,6 +39,8 @@ from rag_utils import retrieve_documents_multi_query, get_documents_by_idx, get_
 
 _CALL_TRACE: list[dict] = []
 _TRACE_EVENTS: list[dict] = []
+_RETRIEVAL_DOC_CACHE: dict[tuple[str, str], Document] | None = None
+_RETRIEVAL_DOC_CACHE_PATH: str | None = None
 
 
 def _trace_calls_enabled() -> bool:
@@ -209,7 +212,7 @@ def _extract_answer(text: str, config: EvalConfig) -> str | None:
     if config.dataset == "musique":
         # Short-answer span — extract the post-Answer span, EM/F1 scored downstream
         return extract_answer_musique(text)
-    if config.dataset in ("legal_rag", "australian"):
+    if config.dataset in ("legal_rag", "legal_rag_bench", "australian"):
         return text  # open-ended: return full text, scored by LLM judge
     return extract_answer_mc(text)
 
@@ -253,7 +256,7 @@ def _gold_reference_text(row: pd.Series, config: EvalConfig) -> str:
     gold_ids = _gold_ids(row)
     if gold_ids:
         try:
-            docs = get_documents_by_idx(
+            docs = _get_documents_by_idx_for_replay(
                 _collection_for_config(config),
                 gold_ids,
                 embedding_model=os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or None,
@@ -360,7 +363,7 @@ def _fmt_intermediate(row: pd.Series, config: EvalConfig) -> str:
     removes answer letters from the choices so intermediate generators are not
     pushed toward emitting `Answer: (X)` artifacts.
     """
-    if config.dataset in ("legal_rag", "australian", "musique"):
+    if config.dataset in ("legal_rag", "legal_rag_bench", "australian", "musique"):
         return str(row["question"])
 
     if config.dataset == "housing":
@@ -382,6 +385,36 @@ def _fmt_intermediate(row: pd.Series, config: EvalConfig) -> str:
         if holdings:
             parts.append("## Candidate Holdings\n" + "\n".join(holdings))
         return "\n\n".join(parts)
+
+    if config.dataset == "mas_legal_bench":
+        choices = []
+        for letter in ["A", "B", "C", "D"]:
+            col = f"choice_{letter.lower()}"
+            if col in row and pd.notna(row[col]) and str(row[col]).strip():
+                choices.append(f"- {row[col]}")
+        parts = [
+            "The following question asks about GDPR/data-protection enforcement and legal reasoning.",
+            f"## Question\n{row['question']}",
+        ]
+        if choices:
+            parts.append("## Candidate Answer Framing\n" + "\n".join(choices))
+        return "\n\n".join(parts)
+
+    if config.dataset == "legal_link_eu":
+        choices = []
+        for letter in ["A", "B", "C", "D"]:
+            col = f"choice_{letter.lower()}"
+            if col in row and pd.notna(row[col]) and str(row[col]).strip():
+                choices.append(f"- {row[col]}")
+        relation = str(row.get("relation_type", "") or "").replace("_", " ")
+        parts = [
+            "The following question asks about the legal relationship between EU legal acts.",
+            f"Relation type: {relation}" if relation else "",
+            f"## Question\n{row['question']}",
+        ]
+        if choices:
+            parts.append("## Candidate Answer Framing\n" + "\n".join(choices))
+        return "\n\n".join(part for part in parts if part)
 
     # Pull the shared fact pattern from 'prompt' column when present; same fix
     # as format_question_prompt (37% of BarExam rows need this context).
@@ -410,7 +443,17 @@ def _contains_answer_artifact(text: str) -> bool:
     """Detect explicit answer labels leaking into intermediate artifacts."""
     if not text:
         return False
-    return bool(re.search(r"(?im)^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:", text))
+    artifact_patterns = [
+        r"(?im)^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:",
+        r"(?i)\b(?:answer|option|choice)\s+(?:is|must be|would be)\s*\(?[A-E]\)?\b",
+        # Keep this stricter than the answer/option patterns above so ordinary
+        # legal prose such as "it is a fair representation" is not treated as
+        # an option-letter leak.
+        r"(?i)\b(?:it'?s|it is)\s*(?:\([A-E]\)|[A-E](?=\s*(?:$|[.,;:!?])))",
+        r"(?i)\bself-correction\b",
+        r"(?im)^\s*wait[,:\s]",
+    ]
+    return any(re.search(pattern, text) for pattern in artifact_patterns)
 
 
 def _has_explicit_answer_marker(text: str) -> bool:
@@ -518,6 +561,14 @@ def _row_label(row: pd.Series, config: EvalConfig, fallback_i: int | None = None
         return f"ch_{i}"
     if config.dataset == "legal_rag":
         return f"lrq_{i}"
+    if config.dataset == "legal_rag_bench":
+        return f"lrb_{i}"
+    if config.dataset == "mas_legal_bench":
+        i_str = str(i)
+        return i_str if i_str.startswith("maslb_") else f"maslb_{i_str}"
+    if config.dataset == "legal_link_eu":
+        i_str = str(i)
+        return i_str if i_str.startswith("complex_legallink_") else f"lle_{i_str}"
     if config.dataset == "australian":
         return f"aus_{row.get('jurisdiction', 'unknown')}_{i}"
     if config.dataset == "musique":
@@ -552,7 +603,59 @@ def _hyre_cache_entry(row: pd.Series, config: EvalConfig) -> dict | None:
     path = (config.hyre_cache_path or os.getenv("HYRE_CACHE_PATH", "")).strip()
     if not path:
         return None
-    return _load_hyre_cache(path).get(_row_label(row, config))
+    entry = _load_hyre_cache(path).get(_row_label(row, config))
+    if entry is not None:
+        _validate_hyre_cache_entry(entry, config, path)
+    return entry
+
+
+def _expected_hyre_source_modes(config: EvalConfig) -> set[str]:
+    """Generation-cache modes that may legally feed the current answer mode."""
+    mode = config.mode
+    if mode == "rag_hyde":
+        return {"rag_hyde"}
+    if mode in {"snap_hyre", "rag_snap_hyde_2call"}:
+        # `rag_snap_hyde_2call` is the historical alias for the current
+        # two-call Snap-HyRE structure.
+        return {"snap_hyre", "rag_snap_hyde_2call"}
+    if mode in {"rag_hyde_exemplar", "snap_hyre_exemplar"}:
+        return {mode}
+    return {mode}
+
+
+def _allow_cross_provider_generation_cache() -> bool:
+    return os.getenv("EVAL_ALLOW_CROSS_PROVIDER_GENERATION_CACHE", "").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+
+
+def _validate_hyre_cache_entry(entry: dict, config: EvalConfig, path: str) -> None:
+    """Fail closed when a generation cache belongs to a different method/model."""
+    violations: list[str] = []
+    source_mode = str(entry.get("source_mode") or entry.get("mode") or "").strip()
+    expected_modes = _expected_hyre_source_modes(config)
+    if not source_mode:
+        violations.append("missing source_mode/mode")
+    elif source_mode not in expected_modes:
+        violations.append(f"source_mode={source_mode!r} not in {sorted(expected_modes)!r}")
+
+    dataset = str(entry.get("dataset") or "").strip()
+    if dataset and dataset != config.dataset:
+        violations.append(f"dataset={dataset!r} != expected {config.dataset!r}")
+
+    provider = str(entry.get("provider") or "").strip()
+    if provider and provider != config.provider and not _allow_cross_provider_generation_cache():
+        violations.append(
+            f"provider={provider!r} != expected {config.provider!r}; "
+            "set EVAL_ALLOW_CROSS_PROVIDER_GENERATION_CACHE=1 only for an intentional reuse"
+        )
+
+    if violations:
+        label = str(entry.get("label") or "")
+        raise RuntimeError(
+            "generation cache provenance mismatch "
+            f"path={path} label={label}: " + "; ".join(violations)
+        )
 
 
 def _json_key(value) -> str:
@@ -641,8 +744,78 @@ def _retrieval_cache_entry(
             "retrieval cache miss for "
             f"idx={key[0]} label_prefix={label_prefix} collection={collection} "
             f"embedding_model={embedding_model or ''} where={where or {}} path={path}"
-        )
+    )
     return cache[key]
+
+
+def _load_retrieval_doc_cache(path: str) -> dict[tuple[str, str], Document]:
+    """Load a collection/id -> Document cache for strict retrieval replay.
+
+    Retrieval caches intentionally store ordered passage IDs. This optional
+    cache stores the corresponding Chroma text/metadata snapshot so answer
+    replay can hydrate cached IDs without opening a large local Chroma
+    collection.
+    """
+    global _RETRIEVAL_DOC_CACHE, _RETRIEVAL_DOC_CACHE_PATH
+    if not path:
+        return {}
+    if _RETRIEVAL_DOC_CACHE is not None and _RETRIEVAL_DOC_CACHE_PATH == path:
+        return _RETRIEVAL_DOC_CACHE
+
+    cache: dict[tuple[str, str], Document] = {}
+    with open(path) as f:
+        for line_no, line in enumerate(f, 1):
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            collection = str(entry.get("collection") or "")
+            idx = str(entry.get("idx") or "")
+            text = str(entry.get("text") or "")
+            metadata = dict(entry.get("metadata") or {})
+            if not collection:
+                raise ValueError(f"{path}:{line_no}: missing collection")
+            if not idx:
+                raise ValueError(f"{path}:{line_no}: missing idx")
+            metadata.setdefault("idx", idx)
+            cache[(collection, idx)] = Document(page_content=text, metadata=metadata)
+    _RETRIEVAL_DOC_CACHE = cache
+    _RETRIEVAL_DOC_CACHE_PATH = path
+    return cache
+
+
+def _documents_from_doc_cache(
+    collection: str,
+    retrieved_ids: list[str],
+) -> list[Document] | None:
+    path = os.getenv("RETRIEVAL_DOC_CACHE_PATH", "").strip()
+    if not path:
+        return None
+    cache = _load_retrieval_doc_cache(path)
+    missing = [idx for idx in retrieved_ids if (collection, idx) not in cache]
+    if missing:
+        if _no_silent_fallback_enabled() or os.getenv("RETRIEVAL_DOC_CACHE_STRICT", "").strip().lower() in {"1", "true", "yes", "on"}:
+            raise ValueError(
+                f"retrieval document cache miss in {path} for collection={collection}: {missing[:5]}"
+            )
+        return None
+    docs = []
+    for idx in retrieved_ids:
+        doc = cache[(collection, idx)]
+        docs.append(Document(page_content=doc.page_content, metadata=dict(doc.metadata or {})))
+    return docs
+
+
+def _get_documents_by_idx_for_replay(
+    collection: str,
+    idxs: list[str],
+    embedding_model: str | None = None,
+    return_cache_hit: bool = False,
+) -> list[Document] | tuple[list[Document], bool]:
+    cached = _documents_from_doc_cache(collection, [str(idx) for idx in idxs])
+    if cached is not None:
+        return (cached, True) if return_cache_hit else cached
+    docs = get_documents_by_idx(collection, idxs, embedding_model=embedding_model)
+    return (docs, False) if return_cache_hit else docs
 
 
 def _documents_from_retrieval_cache(
@@ -671,9 +844,15 @@ def _documents_from_retrieval_cache(
             f"retrieval cache row idx={_row_idx_for_cache(row)} label_prefix={label_prefix} "
             f"has {len(retrieved_ids)} ids, need k={k}"
         )
-    docs = get_documents_by_idx(collection, retrieved_ids[:k], embedding_model=embedding_model)
+    requested_ids = retrieved_ids[:k]
+    docs, doc_cache_hit = _get_documents_by_idx_for_replay(
+        collection,
+        requested_ids,
+        embedding_model=embedding_model,
+        return_cache_hit=True,
+    )
     got_ids = {str(doc.metadata.get("idx", "")) for doc in docs}
-    missing = [idx for idx in retrieved_ids[:k] if idx not in got_ids]
+    missing = [idx for idx in requested_ids if idx not in got_ids]
     if missing:
         raise ValueError(
             f"retrieval cache row idx={_row_idx_for_cache(row)} label_prefix={label_prefix} "
@@ -687,20 +866,110 @@ def _documents_from_retrieval_cache(
         idx = str(doc.metadata.get("idx", ""))
         if "cross_encoder_score" not in doc.metadata:
             doc.metadata["cross_encoder_score"] = float(score_by_id.get(idx, 0.0) or 0.0)
+        doc.metadata["retrieval_doc_cache_hit"] = doc_cache_hit
+    entry["_doc_cache_hit"] = doc_cache_hit
     return docs, entry
 
 
-def _question_only_hyde_user(question_text: str) -> str:
+def _hyre_passage_style_signal(config: EvalConfig) -> str:
+    """Dataset-specific style signal for probe-only HyRE exemplar modes.
+
+    The examples are real corpus-style passages with the associated question,
+    answer, and document id removed. They are meant to align passage shape to
+    each corpus without providing row-specific evidence for the current
+    question.
+    """
+    style_by_dataset = {
+        "barexam": (
+            "A useful BarExamQA retrieval passage names the doctrine first, then "
+            "states the operative element, exception, or admissibility rule in "
+            "neutral black-letter form. It does not restate the fact pattern or "
+            "argue for an answer choice.\n\n"
+            "Corpus passage excerpt: The res ipsa loquitur doctrine enables a "
+            "jury presented only with circumstantial evidence to infer negligence "
+            "simply from the fact that an event happened. The criteria for "
+            "applying res ipsa loquitur include that the event must be of a kind "
+            "which ordinarily does not occur in the absence of negligence, must "
+            "be caused by an agency or instrumentality within the exclusive "
+            "control of the defendant, and must not be due to any voluntary "
+            "action or contribution by the plaintiff."
+        ),
+        "housing": (
+            "A useful HousingQA retrieval passage sounds like a state statutory "
+            "definition or landlord-tenant procedure section. It should preserve "
+            "the state or territory named in the question, preserve "
+            "legal terms from the question, name the actor and authority when "
+            "relevant, and avoid guessing a yes/no answer.\n\n"
+            "Corpus passage excerpt: In an eviction action, if the court finds "
+            "that the plaintiff is entitled to possession, the court shall "
+            "immediately enter an order for judgment for the restitution of the "
+            "premises to the plaintiff. At the time of ordering judgment for the "
+            "restitution of premises, the court shall immediately order that a "
+            "writ of restitution be issued, and the writ may be delivered to the "
+            "sheriff for execution."
+        ),
+        "legal_link_eu": (
+            "A useful Legal-Link-EU retrieval passage resembles EU legal text: it "
+            "names the source act, target act, article or annex, and legal "
+            "relationship such as amends, repeals, corrects, extends application, "
+            "or extends validity. It should include dates, entities, and thresholds "
+            "when they are central.\n\n"
+            "Corpus passage excerpt: Council Regulation (EU) No 833/2014 "
+            "concerning restrictive measures in view of Russia's actions "
+            "destabilising the situation in Ukraine applies restrictions on "
+            "certain dual-use goods and technology, related services, and certain "
+            "technologies for the oil industry. The measures are kept under "
+            "review and may be suspended, withdrawn, or supplemented in light of "
+            "developments on the ground."
+        ),
+        "mas_legal_bench": (
+            "A useful MASLegalBench retrieval passage resembles a GDPR enforcement "
+            "notice or legal basis summary. It should identify the processing "
+            "actor, data category, legal basis, obligation, sanction factor, or "
+            "authority finding without predicting the answer label.\n\n"
+            "Corpus passage excerpt: Article 32 UK GDPR provides that, taking "
+            "into account the state of the art, the costs of implementation, and "
+            "the nature, scope, context and purposes of processing, as well as "
+            "the risk of varying likelihood and severity for the rights and "
+            "freedoms of natural persons, the controller and processor shall "
+            "implement appropriate technical and organisational measures to "
+            "ensure a level of security appropriate to the risk."
+        ),
+    }
+    return style_by_dataset.get(
+        config.dataset,
+        (
+            "A useful retrieval passage states the controlling legal rule in "
+            "neutral reference style, names the key actor or legal relationship, "
+            "and avoids answer labels or advocacy."
+        ),
+    )
+
+
+def _style_signal_block(config: EvalConfig) -> str:
+    return (
+        "## Passage Style Signal (probe only; not evidence)\n"
+        "Use this signal only to match the shape and specificity of a useful "
+        "retrieval passage for this dataset. Do not copy it, do not treat it as "
+        "evidence, and do not use it to answer the current question.\n\n"
+        f"{_hyre_passage_style_signal(config)}\n\n"
+    )
+
+
+def _question_only_hyde_user(question_text: str, config: EvalConfig | None = None, use_style_signal: bool = False) -> str:
     """Structured user payload for question-only HyDE generation."""
+    style_signal = _style_signal_block(config) if use_style_signal and config is not None else ""
     return (
         "## Task\n"
         "Write a passage that would appear in a legal treatise or casebook — the kind of "
         "passage a researcher would find when looking up the doctrine behind the scenario "
         "below. This is NOT a multiple-choice task; do not pick an option.\n\n"
+        f"{style_signal}"
         "## Scenario (for context only)\n"
         f"{question_text}\n\n"
         "## Passage Requirements\n"
         "- 2-3 sentences, legal reference style\n"
+        "- 120 words maximum; do not repeat phrases or sentences\n"
         "- State the controlling rule, doctrine, holding, exception, or principle directly\n"
         "- Focus on the legal issue most likely controlling the scenario\n"
         "- Start with the doctrinal text itself — no 'Answer:', no letter labels, "
@@ -737,6 +1006,7 @@ def _snap_hyde_user(question_text: str, snap_answer: str, gap_focus: str = "") -
         f"## Scenario (for context only)\n{question_text}\n\n"
         "## Passage Requirements\n"
         "- 2-3 sentences, legal reference style\n"
+        "- 120 words maximum; do not repeat phrases or sentences\n"
         "- State the controlling rule, doctrine, holding, exception, or principle directly\n"
         "- Start with the doctrinal text itself — no 'Answer:', no letter labels, "
         "no '**Passage:**' header, no bold or markdown\n"
@@ -869,7 +1139,7 @@ def _final_answer_contract(config: EvalConfig) -> str:
             "Answer: No\n"
             "Do not put any text after that final Answer line."
         )
-    if config.dataset in {"barexam", "casehold", "legalbench_scalr"}:
+    if config.dataset in {"barexam", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"}:
         choices = ", ".join(f"Answer: ({letter})" for letter in _mc_choice_letters(config.dataset))
         return (
             "## Required Output\n"
@@ -913,7 +1183,7 @@ def _extract_required_final_line_prediction(text: str, config: EvalConfig) -> st
         if last == "Answer: No":
             return "No"
         return None
-    if config.dataset in {"barexam", "casehold", "legalbench_scalr"}:
+    if config.dataset in {"barexam", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"}:
         letters = re.escape(_mc_choice_letters(config.dataset))
         match = re.fullmatch(rf"Answer: \(([{letters}])\)", last)
         if match:
@@ -965,7 +1235,7 @@ def _maybe_retry_final_answer_format(
     """Retry only malformed final-answer formatting, with the same evidence."""
     if not _env_truthy("EVAL_FINAL_FORMAT_RETRY"):
         return answer_text, predicted
-    if config.dataset not in {"barexam", "housing", "casehold", "legalbench_scalr"}:
+    if config.dataset not in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"}:
         return answer_text, predicted
 
     final_line_prediction = _extract_required_final_line_prediction(answer_text, config)
@@ -1005,23 +1275,29 @@ def _maybe_retry_final_answer_format(
             "only repair the final-answer format.",
         ])
     else:
-        passage_block = _evidence_passage_block(result)
-        if passage_block:
-            retry_user = _retrieved_answer_user(config, passage_block, _fmt(row, config))
-            same_context = "same evidence"
-        else:
-            retry_user = "\n\n".join([
-                "## Question",
-                _fmt(row, config),
-                _final_answer_contract(config),
-            ])
-            same_context = "same question"
+        retry_mode = "force_discrete_same_evidence"
+        evidence_block = _evidence_passage_block(result)
+        if not evidence_block:
+            evidence_block = "(No retrieved evidence was available in the previous attempt.)"
         retry_user = (
-            retry_user
-            + "\n\n## Retry Instruction\n"
-            "Your previous response did not contain a parseable final answer. "
-            f"Using the {same_context}, return only the required final Answer line. "
-            "Do not include reasoning, citations, markdown, or any text after the Answer line."
+            "\n\n".join([
+                "## Original Question",
+                _fmt(row, config),
+                "## Evidence Used In Previous Attempt",
+                evidence_block,
+                "## Previous Response",
+                answer_text,
+                "## Required Output",
+                _final_answer_contract(config),
+                "## Retry Instruction",
+                "Your previous response did not contain a parseable final answer line. "
+                "This is a same-model, same-evidence repair for a required discrete-answer task. "
+                "Using only the original question, the evidence above, and your previous response, "
+                "choose the best-supported allowed answer label. Unknown, indeterminate, and "
+                "insufficient-evidence outputs are invalid for this benchmark. Return exactly one "
+                "required final Answer line and nothing else. Do not add reasoning, cite evidence, "
+                "or write any text after the Answer line.",
+            ])
         )
     retry_answer = _llm_call(
         retry_system,
@@ -1212,23 +1488,27 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
         prompts = {
             "answer": (
                 "You are a legal expert specializing in housing law. Answer the Yes/No question below. "
+                "Apply the state or territory named in the question; do not substitute law from another jurisdiction. "
                 "Reason step by step, then end with exactly one final line: Answer: Yes or Answer: No"
             ),
             "rag": (
                 "You are a legal expert specializing in housing law. Reason through the question "
                 "step by step. Retrieved passages are provided — use them to verify or "
                 "refine your reasoning, but think through the problem independently first. "
+                "Apply the state or territory named in the question; do not treat another jurisdiction's passage as controlling. "
                 "End with exactly one final line: Answer: Yes or Answer: No"
             ),
             "research": (
                 "You are a legal expert specializing in housing law. Reason through the question "
                 "step by step. Research findings are provided — use them to verify or "
                 "refine your reasoning, but think through the problem independently first. "
+                "Apply the state or territory named in the question; do not treat another jurisdiction's passage as controlling. "
                 "End with exactly one final line: Answer: Yes or Answer: No"
             ),
             "hyde": (
                 "You are a legal textbook author specializing in housing law. Given a legal question, "
                 "write a short passage (2-3 sentences) that would appear in a reference guide as the answer. "
+                "If the question names a state or territory, preserve that jurisdiction and write as though describing that jurisdiction's statute. "
                 "Write in the style of a legal reference — state the statute, rule, or "
                 "regulation directly. Do not discuss the question itself or say 'the answer is'."
             ),
@@ -1236,6 +1516,7 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
                 "You are a legal textbook author specializing in housing law. A student has answered a legal question "
                 "and provided their reasoning. Write a short passage (2-3 sentences) from a legal reference that "
                 "would be most relevant to verifying or correcting this answer. Focus on the specific "
+                "state or territory named in the question and the specific "
                 "statute, regulation, or rule at the heart of the question. Write in reference style — "
                 "state the law directly."
             ),
@@ -1243,7 +1524,7 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
         prompts["devil_hyde"] = (
             "You are a legal textbook author specializing in housing law. A student has answered a legal question. "
             "Your job is to play DEVIL'S ADVOCATE: write a short passage (2-3 sentences) from a legal reference "
-            "that would CHALLENGE or CONTRADICT the student's answer. Focus on the rule, exception, or statute "
+            "that would CHALLENGE or CONTRADICT the student's answer. Focus on the state or territory named in the question and the rule, exception, or statute "
             "that supports the OPPOSITE conclusion. Write in reference style — state the law directly."
         )
         prompts["top2_snap"] = (
@@ -1255,7 +1536,7 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
         prompts["top2_hyde"] = (
             "You are a legal textbook author specializing in housing law. A student has answered a legal question. "
             "Write a short passage (2-3 sentences) from a legal reference that would support the ALTERNATIVE "
-            "or SECOND-CHOICE answer — the answer the student considered but rejected. Focus on the specific "
+            "or SECOND-CHOICE answer — the answer the student considered but rejected. Focus on the state or territory named in the question and the specific "
             "statute, regulation, or rule that would support that alternative. Write in reference style."
         )
         return prompts.get(role, prompts["answer"])
@@ -1294,8 +1575,84 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
             ),
         }
         return prompts.get(role, prompts["answer"])
-    if config.dataset in ("legal_rag", "australian"):
-        domain = "criminal law" if config.dataset == "legal_rag" else "Australian law"
+    if config.dataset == "mas_legal_bench":
+        prompts = {
+            "answer": (
+                "You are a legal expert specializing in GDPR and data-protection enforcement. "
+                "Answer the multiple-choice question below. Reason from the legal facts and "
+                "rules, then end with exactly one final line in the form: Answer: (X)"
+            ),
+            "rag": (
+                "You are a legal expert specializing in GDPR and data-protection enforcement. "
+                "Reason through the question step by step. Retrieved context passages are "
+                "provided — use them to verify or refine your reasoning, but do not assume "
+                "every passage is dispositive. End with exactly one final line in the form: "
+                "Answer: (X)"
+            ),
+            "research": (
+                "You are a legal expert specializing in GDPR and data-protection enforcement. "
+                "Research findings are provided — use them to verify or refine your reasoning. "
+                "End with exactly one final line in the form: Answer: (X)"
+            ),
+            "hyde": (
+                "You are a legal reference author specializing in GDPR and data-protection "
+                "enforcement. Given a legal question, write a short passage (2-3 sentences) "
+                "that would help locate the controlling facts, legal framework, or enforcement "
+                "principle. Do not choose an answer letter, do not mention candidate labels, "
+                "and do not output a final answer."
+            ),
+            "snap_hyde": (
+                "You are a legal reference author specializing in GDPR and data-protection "
+                "enforcement. A student has reasoned through a legal question. Write a short "
+                "neutral reference passage (2-3 sentences) that would be most relevant to "
+                "verifying or correcting the student's reasoning. Use the reasoning to target "
+                "the legal issue, but do not choose an answer letter, mention candidate labels, "
+                "or output a final answer."
+            ),
+        }
+        return prompts.get(role, prompts["answer"])
+    if config.dataset == "legal_link_eu":
+        prompts = {
+            "answer": (
+                "You are a legal expert specializing in European Union law and EUR-Lex legal "
+                "authority relationships. Answer the multiple-choice question below. Track "
+                "whether one act repeals, corrects, completes, extends, or renders another "
+                "act obsolete. Reason from the legal materials and end with exactly one final "
+                "line in the form: Answer: (X)"
+            ),
+            "rag": (
+                "You are a legal expert specializing in European Union law and EUR-Lex legal "
+                "authority relationships. Retrieved EUR-Lex passages are provided. Use them "
+                "to determine the operative relationship between the legal acts and choose "
+                "the best option. End with exactly one final line in the form: Answer: (X)"
+            ),
+            "research": (
+                "You are a legal expert specializing in European Union law and EUR-Lex legal "
+                "authority relationships. Research findings are provided. Use them to verify "
+                "the legal relationship between the acts and end with exactly one final line "
+                "in the form: Answer: (X)"
+            ),
+            "hyde": (
+                "You are a legal reference author specializing in European Union law. Given "
+                "a question about the relationship between legal acts, write a short neutral "
+                "reference passage (2-3 sentences) that would help locate the controlling "
+                "source, target act, amendment, repeal, correction, obsolescence, or validity "
+                "extension. Do not choose an answer letter or mention candidate labels."
+            ),
+            "snap_hyde": (
+                "You are a legal reference author specializing in European Union law. A "
+                "student has reasoned through a question about legal authority relationships. "
+                "Write a short neutral reference passage (2-3 sentences) that would be most "
+                "relevant to verifying or correcting that reasoning. Do not choose an answer "
+                "letter, mention candidate labels, or output a final answer."
+            ),
+        }
+        return prompts.get(role, prompts["answer"])
+    if config.dataset in ("legal_rag", "legal_rag_bench", "australian"):
+        if config.dataset == "legal_rag_bench":
+            domain = "Victorian criminal law and procedure"
+        else:
+            domain = "criminal law" if config.dataset == "legal_rag" else "Australian law"
         prompts = {
             "answer": (
                 f"You are a legal expert specializing in {domain}. Answer the question below "
@@ -1402,6 +1759,9 @@ DATASET_COLLECTIONS = {
     "barexam": "legal_passages",
     "housing": "housing_statutes",
     "legal_rag": "legal_rag_passages",
+    "legal_rag_bench": "legal_rag_bench_passages",
+    "mas_legal_bench": "mas_legal_bench_passages",
+    "legal_link_eu": "legal_link_eu_passages",
     "australian": "australian_legal",
     "casehold": "casehold_holdings",
     "musique": "musique_passages",
@@ -1590,7 +1950,7 @@ def run_golden_plus_neighbors(row: pd.Series, config: EvalConfig) -> dict:
         [gold],
         k=max(config.retrieval_k, 1),
         label_prefix="golden_plus_neighbors",
-        where=_where_from_config(config),
+        where=_retrieval_where_for_row(row, config),
         collection=_collection_for_config(config),
     )
 
@@ -1808,6 +2168,11 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
     )
     retrieval_cache_hit = cached is not None
     retrieval_cache_entry = cached[1] if cached is not None else None
+    retrieval_doc_cache_hit = bool((retrieval_cache_entry or {}).get("_doc_cache_hit"))
+    cross_encoder_max_chars = (retrieval_cache_entry or {}).get(
+        "cross_encoder_max_chars",
+        os.getenv("CROSS_ENCODER_MAX_CHARS", ""),
+    )
     if cached is not None:
         docs = cached[0]
     else:
@@ -1819,22 +2184,59 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
     evidence_store = []
     for i, doc in enumerate(docs, 1):
         text = doc.page_content
+        metadata = dict(doc.metadata or {})
         idx = str(doc.metadata.get("idx", f"{label_prefix}_{i}"))
         ce_score = doc.metadata.get("cross_encoder_score", 0.0)
-        passages.append(f"[Source {i}]\n{text}")
+        header = _format_evidence_header(i, idx, metadata)
+        passages.append(f"{header}\n{text}")
         evidence_store.append({
             "idx": idx,
             "text": text,
-            "source": doc.metadata.get("source", "unknown"),
+            "source": metadata.get("source", "unknown"),
+            "citation": metadata.get("citation", ""),
+            "role": metadata.get("role", ""),
+            "context_title": metadata.get("context_title", ""),
             "cross_encoder_score": ce_score,
-            "cross_encoder_query_truncated": bool(doc.metadata.get("cross_encoder_query_truncated", False)),
-            "cross_encoder_doc_truncated": bool(doc.metadata.get("cross_encoder_doc_truncated", False)),
+            "cross_encoder_query_truncated": bool(metadata.get("cross_encoder_query_truncated", False)),
+            "cross_encoder_doc_truncated": bool(metadata.get("cross_encoder_doc_truncated", False)),
         })
 
     gold_idx = _gold_idx_string(row)
     retrieved_ids = [ev["idx"] for ev in evidence_store]
     gold_retrieved = _is_gold_retrieved(row, retrieved_ids)
     max_ce_score = max((ev["cross_encoder_score"] for ev in evidence_store), default=0.0)
+    row_source = str(row.get("source", "") or "").strip()
+    same_source_retrieved_ids = [
+        ev["idx"] for ev in evidence_store
+        if row_source and str(ev.get("source", "") or "").strip() == row_source
+    ]
+    same_source_retrieved = bool(same_source_retrieved_ids)
+    cross_encoder_doc_truncated_count = sum(
+        1 for ev in evidence_store if ev.get("cross_encoder_doc_truncated")
+    )
+    cross_encoder_query_truncated = any(
+        bool(ev.get("cross_encoder_query_truncated")) for ev in evidence_store
+    )
+    if retrieval_cache_entry:
+        cross_encoder_doc_truncated_count = int(
+            retrieval_cache_entry.get("cross_encoder_doc_truncated_count") or cross_encoder_doc_truncated_count
+        )
+        cross_encoder_query_truncated = bool(
+            retrieval_cache_entry.get("cross_encoder_query_truncated") or cross_encoder_query_truncated
+        )
+    source_doc = str(row.get("source_doc", "") or "").strip()
+    target_doc = str(row.get("target_doc", "") or "").strip()
+    source_doc_retrieved_ids: list[str] = []
+    target_doc_retrieved_ids: list[str] = []
+    if source_doc or target_doc:
+        for ev in evidence_store:
+            ev_source = str(ev.get("source", "") or "").strip()
+            ev_citation = str(ev.get("citation", "") or "").strip()
+            ev_text_id = ev_source or ev_citation
+            if source_doc and (ev_text_id == source_doc or ev_source == source_doc or ev_citation == source_doc):
+                source_doc_retrieved_ids.append(ev["idx"])
+            if target_doc and (ev_text_id == target_doc or ev_source == target_doc or ev_citation == target_doc):
+                target_doc_retrieved_ids.append(ev["idx"])
 
     _record_trace_event(
         "retrieval",
@@ -1846,6 +2248,7 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
         collection=collection,
         embedding_model=embedding_model or "",
         retrieval_cache_hit=retrieval_cache_hit,
+        retrieval_doc_cache_hit=retrieval_doc_cache_hit,
         retrieval_cache_label=(retrieval_cache_entry or {}).get("label", ""),
         retrieval_cache_query_hash=(retrieval_cache_entry or {}).get("query_hash", ""),
         retrieval_query_hash=_hash_texts([str(q) for q in queries]),
@@ -1853,6 +2256,18 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
         retrieved_ids=retrieved_ids,
         gold_idx=gold_idx,
         gold_retrieved=gold_retrieved,
+        row_source=row_source,
+        same_source_retrieved=same_source_retrieved,
+        same_source_retrieved_ids=same_source_retrieved_ids,
+        cross_encoder_doc_truncated_count=cross_encoder_doc_truncated_count,
+        cross_encoder_query_truncated=cross_encoder_query_truncated,
+        cross_encoder_max_chars=cross_encoder_max_chars,
+        source_doc=source_doc,
+        target_doc=target_doc,
+        source_doc_retrieved=bool(source_doc_retrieved_ids),
+        source_doc_retrieved_ids=source_doc_retrieved_ids,
+        target_doc_retrieved=bool(target_doc_retrieved_ids),
+        target_doc_retrieved_ids=target_doc_retrieved_ids,
         max_ce_score=max_ce_score,
     )
 
@@ -1861,19 +2276,62 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
         "evidence_store": evidence_store,
         "retrieved_ids": retrieved_ids,
         "gold_retrieved": gold_retrieved,
+        "same_source_retrieved": same_source_retrieved,
+        "same_source_retrieved_ids": same_source_retrieved_ids,
+        "source_doc_retrieved": bool(source_doc_retrieved_ids),
+        "source_doc_retrieved_ids": source_doc_retrieved_ids,
+        "target_doc_retrieved": bool(target_doc_retrieved_ids),
+        "target_doc_retrieved_ids": target_doc_retrieved_ids,
+        "cross_encoder_doc_truncated_count": cross_encoder_doc_truncated_count,
+        "cross_encoder_query_truncated": cross_encoder_query_truncated,
+        "cross_encoder_max_chars": cross_encoder_max_chars,
         "max_ce_score": max_ce_score,
         "retrieval_cache_hit": retrieval_cache_hit,
+        "retrieval_doc_cache_hit": retrieval_doc_cache_hit,
+        "retrieval_where": where or {},
         "retrieval_cache_query_hash": (retrieval_cache_entry or {}).get("query_hash", ""),
         "retrieval_query_hash": _hash_texts([str(q) for q in queries]),
     }
+
+
+def _format_evidence_header(i: int, idx: str, metadata: dict) -> str:
+    """Human-readable metadata header for retrieved evidence shown to the final LLM."""
+    role = str(metadata.get("role", "") or "").strip()
+    context_title = str(metadata.get("context_title", "") or "").strip()
+    citation = str(metadata.get("citation", "") or "").strip()
+    source = str(metadata.get("source", "") or "").strip()
+    if role or context_title or citation:
+        lines = [f"[Evidence {i}]", f"passage_id: {idx}"]
+        if role:
+            lines.append(f"legal_link_role: {role}")
+        if context_title:
+            lines.append(f"title: {context_title}")
+        if citation:
+            lines.append(f"citation: {citation}")
+        elif source:
+            lines.append(f"source: {source}")
+        return "\n".join(lines)
+    return f"[Source {i}]"
 
 
 def _retrieval_cache_audit_fields(retrieval: dict) -> dict:
     """Top-level retrieval-cache fields for detail logs."""
     return {
         "retrieval_cache_hit": retrieval.get("retrieval_cache_hit", False),
+        "retrieval_doc_cache_hit": retrieval.get("retrieval_doc_cache_hit", False),
+        "retrieval_where": retrieval.get("retrieval_where", {}),
         "retrieval_cache_query_hash": retrieval.get("retrieval_cache_query_hash", ""),
         "retrieval_query_hash": retrieval.get("retrieval_query_hash", ""),
+        "same_source_retrieved": retrieval.get("same_source_retrieved", False),
+        "same_source_retrieved_ids": retrieval.get("same_source_retrieved_ids", []),
+        "source_doc_retrieved": retrieval.get("source_doc_retrieved", False),
+        "source_doc_retrieved_ids": retrieval.get("source_doc_retrieved_ids", []),
+        "target_doc_retrieved": retrieval.get("target_doc_retrieved", False),
+        "target_doc_retrieved_ids": retrieval.get("target_doc_retrieved_ids", []),
+        "cross_encoder_doc_truncated_count": retrieval.get("cross_encoder_doc_truncated_count", 0),
+        "cross_encoder_query_truncated": retrieval.get("cross_encoder_query_truncated", False),
+        "cross_encoder_max_chars": retrieval.get("cross_encoder_max_chars", ""),
+        "max_ce_score": retrieval.get("max_ce_score", 0.0),
     }
 
 
@@ -2089,7 +2547,7 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
 
     # Step 2: Retrieve using the hypothetical passage as query
     retrieval = _retrieve_and_format(row, [hyde["text"]], k=config.retrieval_k, label_prefix="hyde",
-                                     where=_where_from_config(config),
+                                     where=_retrieval_where_for_row(row, config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
@@ -2108,6 +2566,74 @@ def run_rag_hyde(row: pd.Series, config: EvalConfig) -> dict:
         "hyde_cache_hit": bool(cache_entry),
         "hyre_cache_hit": bool(cache_entry),
         "hyre_cache_label": _row_label(row, config) if cache_entry else "",
+        "logical_llm_calls": 2,
+        "cached_generation_calls": 1 if cache_entry else 0,
+        "retrieval_queries": [hyde["text"]],
+        "rerank_query": "",
+        "final_context_fields": ["retrieved_passages", "question"],
+        "final_prompt_preview": _preview_text(user),
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+        **_retrieval_cache_audit_fields(retrieval),
+    }
+
+
+def run_rag_hyde_exemplar(row: pd.Series, config: EvalConfig) -> dict:
+    """Probe-only HyDE with dataset-specific passage-style guidance.
+
+    This does not provide answer evidence. It only gives the generator a
+    fixed real-passage style signal for the target dataset so we can isolate whether
+    passage-shape alignment helps retrieval independently of snap reasoning.
+    """
+    question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
+
+    cache_entry = _hyre_cache_entry(row, config)
+    if cache_entry:
+        raw = str(cache_entry.get("hyde_passage_raw") or cache_entry.get("raw") or "")
+        text = str(cache_entry.get("hyde_passage") or cache_entry.get("text") or "")
+        if not text:
+            text = _sanitize_intermediate_text(raw, fallback=question_intermediate)
+        hyde = {
+            "raw": raw,
+            "text": text,
+            "contains_answer": _contains_answer_artifact(text),
+            "used_fallback": False,
+        }
+    else:
+        hyde = _generate_hyde(
+            config,
+            "hyde",
+            _question_only_hyde_user(question_intermediate, config=config, use_style_signal=True),
+            label="hyde_exemplar/generate",
+            fallback=question_intermediate,
+        )
+
+    retrieval = _retrieve_and_format(
+        row,
+        [hyde["text"]],
+        k=config.retrieval_k,
+        label_prefix="hyde_exemplar",
+        where=_retrieval_where_for_row(row, config),
+        collection=_collection_for_config(config),
+    )
+    passage_block = "\n\n".join(retrieval["passages"])
+    user = _retrieved_answer_user(config, passage_block, question)
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="hyde_exemplar/answer")
+
+    return {
+        "final_answer": answer,
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
+        "hyde_passage": hyde["text"],
+        "hyde_passage_raw": hyde["raw"],
+        "hyde_contains_answer_artifact": hyde["contains_answer"],
+        "hyde_used_fallback": hyde.get("used_fallback", False),
+        "hyde_cache_hit": bool(cache_entry),
+        "hyre_cache_hit": bool(cache_entry),
+        "hyre_cache_label": _row_label(row, config) if cache_entry else "",
+        "passage_style_signal_used": True,
         "logical_llm_calls": 2,
         "cached_generation_calls": 1 if cache_entry else 0,
         "retrieval_queries": [hyde["text"]],
@@ -2527,12 +3053,21 @@ def run_adaptive_snap_route(row: pd.Series, config: EvalConfig) -> dict:
     return out_base
 
 
-def _snap_hyde_2call_system(config: EvalConfig) -> str:
+def _snap_hyde_2call_system(config: EvalConfig, use_style_signal: bool = False) -> str:
     """Compose a dataset-aware 2call system prompt: dataset's normal 'answer'
     system prompt + an additional requirement to emit a '## Passage' block
     after the answer. Keeps dataset-appropriate answer formatting (MC letter,
     Yes/No, open-ended) while adding the passage block for retrieval."""
     base_answer = _system_prompt(config, "answer")
+    style_signal = (
+        "\n\nPASSAGE STYLE SIGNAL (probe only; not evidence):\n"
+        "Use the following dataset-specific signal only to shape the retrieval passage. "
+        "Do not copy it, do not treat it as evidence, and do not use it as a source of "
+        "the answer.\n"
+        f"{_hyre_passage_style_signal(config)}"
+        if use_style_signal
+        else ""
+    )
     passage_instruction = (
         "\n\nADDITIONAL OUTPUT REQUIREMENT (REQUIRED, do not skip):\n"
         "Keep the entire response under 180 words. Do not repeat sentences.\n"
@@ -2548,7 +3083,7 @@ def _snap_hyde_2call_system(config: EvalConfig) -> str:
         "or rule directly so it could appear verbatim in a knowledge source.\n"
         "Both the answer block AND the '## Passage' block are required. Stop immediately after the passage."
     )
-    return base_answer + passage_instruction
+    return base_answer + style_signal + passage_instruction
 
 
 def _split_snap_and_hyde(raw: str, fallback_passage: str) -> tuple[str, str, bool]:
@@ -2561,11 +3096,24 @@ def _split_snap_and_hyde(raw: str, fallback_passage: str) -> tuple[str, str, boo
     text = raw or ""
     for marker in ("## Passage", "##Passage", "## passage", "**Passage:**", "Passage:"):
         if marker in text:
-            head, _, tail = text.partition(marker)
+            head, _, tail = text.rpartition(marker)
             snap_block = head.strip()
             hyde_passage = _sanitize_intermediate_text(tail.strip(), fallback=fallback_passage)
             if hyde_passage:
                 return snap_block, hyde_passage, True
+    bare_header = re.search(
+        r"(?ims)^(?P<head>.*?^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:\s*"
+        r"(?:\([A-E]\)|[A-E]|yes|no)\s*$)\s*\n+\s*#{1,6}\s*$\s*(?P<tail>.+)$",
+        text,
+    )
+    if bare_header:
+        snap_block = bare_header.group("head").strip()
+        hyde_passage = _sanitize_intermediate_text(
+            bare_header.group("tail").strip(),
+            fallback=fallback_passage,
+        )
+        if hyde_passage:
+            return snap_block, hyde_passage, True
     return text.strip(), fallback_passage, False
 
 
@@ -2574,17 +3122,28 @@ def _generate_snap_hyre_blocks(
     question: str,
     fallback_passage: str,
     label: str,
+    use_style_signal: bool = False,
 ) -> tuple[str, str, str, bool, dict]:
     """Generate Snap-HyRE snap + passage blocks with one logged format retry."""
-    raw = _llm_call(_snap_hyde_2call_system(config), question, label=label)
+    metrics_before_initial = _get_metrics()
+    raw = _llm_call(_snap_hyde_2call_system(config, use_style_signal=use_style_signal), question, label=label)
+    metrics_after_initial = _get_metrics()
+    initial_output_tokens = max(
+        0,
+        int(metrics_after_initial.get("output_tokens") or 0)
+        - int(metrics_before_initial.get("output_tokens") or 0),
+    )
     snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(raw, fallback_passage=fallback_passage)
     contains_answer = _contains_answer_artifact(hyre_passage)
+    max_hyre_chars = int(os.getenv("EVAL_HYDE_MAX_CHARS", "2500"))
+    passage_too_long = max_hyre_chars > 0 and len(str(hyre_passage or "")) > max_hyre_chars
     snap_prediction = _extract_required_final_line_prediction(snap_block, config)
     retry_meta: dict = {
         "snap_hyre_format_retry": False,
         "snap_hyre_format_retry_reasons": [],
+        "snap_hyre_initial_output_tokens": initial_output_tokens,
     }
-    if parse_ok and hyre_passage and not contains_answer and snap_prediction:
+    if parse_ok and hyre_passage and not contains_answer and not passage_too_long and snap_prediction:
         return raw, snap_block, hyre_passage, parse_ok, retry_meta
     if not _env_truthy("EVAL_GENERATION_FORMAT_RETRY"):
         return raw, snap_block, hyre_passage, parse_ok, retry_meta
@@ -2594,10 +3153,16 @@ def _generate_snap_hyre_blocks(
         reasons.append("missing_passage_block")
     if contains_answer:
         reasons.append("passage_contains_answer_artifact")
+    if passage_too_long:
+        reasons.append(f"hyde_passage_chars>{max_hyre_chars}")
     if not snap_prediction:
         reasons.append("missing_snap_answer_line")
 
-    previous_prediction = snap_prediction or _extract_answer(snap_block or raw, config)
+    previous_prediction = (
+        snap_prediction
+        or _extract_answer(snap_block, config)
+        or _extract_answer(raw, config)
+    )
     target_line = _required_answer_line_from_prediction(previous_prediction, config)
     retry_instruction = [
         "## Question",
@@ -2613,10 +3178,17 @@ def _generate_snap_hyre_blocks(
             "The previous response had this parseable final prediction; preserve it exactly:\n"
             f"{target_line}"
         )
+    metrics_before_retry = _get_metrics()
     retry_raw = _llm_call(
-        _snap_hyde_2call_system(config),
+        _snap_hyde_2call_system(config, use_style_signal=use_style_signal),
         "\n\n".join(retry_instruction),
         label=f"{label}/format_retry",
+    )
+    metrics_after_retry = _get_metrics()
+    retry_output_tokens = max(
+        0,
+        int(metrics_after_retry.get("output_tokens") or 0)
+        - int(metrics_before_retry.get("output_tokens") or 0),
     )
     retry_snap, retry_passage, retry_parse_ok = _split_snap_and_hyde(
         retry_raw,
@@ -2624,12 +3196,44 @@ def _generate_snap_hyre_blocks(
     )
     retry_contains_answer = _contains_answer_artifact(retry_passage)
     retry_snap_prediction = _extract_required_final_line_prediction(retry_snap, config)
-    retry_parse_ok = bool(retry_parse_ok and retry_passage and not retry_contains_answer and retry_snap_prediction)
+    retry_line_repair = False
+    retry_line_repair_source = ""
+    retry_line_repair_prediction = ""
+    if not retry_snap_prediction:
+        retry_fallback_prediction = (
+            previous_prediction
+            or _extract_answer(retry_snap, config)
+            or _extract_answer(retry_raw, config)
+        )
+        if retry_fallback_prediction:
+            retry_snap_prediction = retry_fallback_prediction
+            retry_line_repair_prediction = retry_fallback_prediction
+            retry_line_repair_source = "previous_prediction" if previous_prediction else "retry_parseable_prediction"
+            retry_snap = retry_snap.rstrip()
+            repaired_line = _required_answer_line_from_prediction(retry_fallback_prediction, config)
+            if repaired_line:
+                retry_snap = f"{retry_snap}\n\n{repaired_line}" if retry_snap else repaired_line
+                retry_line_repair = True
+    retry_passage_too_long = max_hyre_chars > 0 and len(str(retry_passage or "")) > max_hyre_chars
+    retry_parse_ok = bool(
+        retry_parse_ok
+        and retry_passage
+        and not retry_contains_answer
+        and not retry_passage_too_long
+        and retry_snap_prediction
+    )
     retry_meta = {
         "snap_hyre_format_retry": True,
         "snap_hyre_format_retry_reason": ",".join(reasons),
         "snap_hyre_format_retry_reasons": reasons,
         "snap_hyre_format_retry_input_prediction": previous_prediction,
+        "snap_hyre_initial_output_tokens": initial_output_tokens,
+        "snap_hyre_format_retry_output_tokens": retry_output_tokens,
+        "snap_hyre_format_retry_line_repair": retry_line_repair,
+        "snap_hyre_format_retry_line_repair_source": retry_line_repair_source,
+        "snap_hyre_format_retry_line_repair_prediction": retry_line_repair_prediction,
+        "snap_hyre_format_retry_passage_chars": len(str(retry_passage or "")),
+        "snap_hyre_format_retry_passage_too_long": retry_passage_too_long,
         "snap_and_hyre_raw_before_format_retry": raw,
     }
     if target_line:
@@ -2858,7 +3462,7 @@ def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
 
     # Step 2: Retrieve using parsed HyDE passage (same retrieval as rag_snap_hyde).
     retrieval = _retrieve_and_format(row, [hyde_passage], k=config.retrieval_k, label_prefix=label_prefix,
-                                     where=_where_from_config(config),
+                                     where=_retrieval_where_for_row(row, config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
@@ -2891,6 +3495,86 @@ def run_rag_snap_hyde_2call(row: pd.Series, config: EvalConfig) -> dict:
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
         **_retrieval_cache_audit_fields(retrieval),
+    }
+    if not parse_ok:
+        out["routed_to"] = f"{label_prefix}_parse_failed_fallback_to_question"
+    return out
+
+
+def run_snap_hyre_exemplar(row: pd.Series, config: EvalConfig) -> dict:
+    """Probe-only Snap-HyRE with dataset-specific passage-style guidance.
+
+    This keeps the canonical two-call Snap-HyRE structure but adds a fixed real-passage
+    style signal to the snap+passage generation prompt. The final answerer sees
+    only retrieved passages plus the original question, matching canonical
+    `snap_hyre`.
+    """
+    label_prefix = "snap_hyre_exemplar"
+    question = _fmt(row, config)
+    question_intermediate = _fmt_intermediate(row, config)
+
+    cache_entry = _hyre_cache_entry(row, config)
+    if cache_entry:
+        combined_raw = str(cache_entry.get("snap_and_hyre_raw") or cache_entry.get("hyde_passage_raw") or "")
+        snap_block = str(cache_entry.get("snap_answer") or "")
+        hyde_passage = str(cache_entry.get("hyde_passage") or "")
+        parse_ok = bool(cache_entry.get("snap_hyre_parse_ok", True))
+        retry_meta = {}
+        if not hyde_passage:
+            snap_block, hyde_passage, parse_ok = _split_snap_and_hyde(
+                combined_raw,
+                fallback_passage=question_intermediate,
+            )
+    else:
+        combined_raw, snap_block, hyde_passage, parse_ok, retry_meta = _generate_snap_hyre_blocks(
+            config,
+            question,
+            question_intermediate,
+            label="snap_hyre_exemplar/snap_and_hyre",
+            use_style_signal=True,
+        )
+    snap_letter = _extract_answer(snap_block, config)
+    hyde_contains_answer = _contains_answer_artifact(hyde_passage)
+
+    retrieval = _retrieve_and_format(
+        row,
+        [hyde_passage],
+        k=config.retrieval_k,
+        label_prefix=label_prefix,
+        where=_retrieval_where_for_row(row, config),
+        collection=_collection_for_config(config),
+    )
+    passage_block = "\n\n".join(retrieval["passages"])
+    user = _retrieved_answer_user(config, passage_block, question)
+    answer = _llm_call(_system_prompt(config, "rag"), user, label="snap_hyre_exemplar/answer")
+
+    out = {
+        "final_answer": answer,
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
+        "snap_answer": snap_block,
+        "snap_letter": snap_letter,
+        "snap_and_hyre_raw": combined_raw,
+        "snap_and_hyde_raw": combined_raw,
+        "snap_hyre_parse_ok": parse_ok,
+        "snap_hyde_2call_parse_ok": parse_ok,
+        "passage_style_signal_used": True,
+        "hyre_cache_hit": bool(cache_entry),
+        "hyre_cache_label": _row_label(row, config) if cache_entry else "",
+        "logical_llm_calls": 2,
+        "cached_generation_calls": 1 if cache_entry else 0,
+        "hyde_passage": hyde_passage,
+        "hyde_passage_raw": combined_raw,
+        "hyde_contains_answer_artifact": hyde_contains_answer,
+        "retrieval_queries": [hyde_passage],
+        "rerank_query": "",
+        "final_context_fields": ["retrieved_passages", "question"],
+        "final_prompt_preview": _preview_text(user),
+        "evidence_store": retrieval["evidence_store"],
+        "retrieved_ids": retrieval["retrieved_ids"],
+        "gold_retrieved": retrieval["gold_retrieved"],
+        **_retrieval_cache_audit_fields(retrieval),
+        **retry_meta,
     }
     if not parse_ok:
         out["routed_to"] = f"{label_prefix}_parse_failed_fallback_to_question"
@@ -5535,6 +6219,18 @@ def _housing_state_where(row: pd.Series, config: EvalConfig) -> dict | None:
     return {"state": state}
 
 
+def _housing_state_filter_enabled(config: EvalConfig) -> bool:
+    value = os.getenv("EVAL_HOUSING_STATE_FILTER", "").strip().lower()
+    return bool(getattr(config, "housing_state_filter", False)) or value in {"1", "true", "yes", "on"}
+
+
+def _retrieval_where_for_row(row: pd.Series, config: EvalConfig) -> dict | None:
+    """Canonical retrieval filter for rows whose metadata can safely constrain search."""
+    if config.dataset == "housing" and _housing_state_filter_enabled(config):
+        return _housing_state_where(row, config)
+    return _where_from_config(config)
+
+
 def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
     """Query rewrite → retrieval → answer with evidence."""
     question = _fmt(row, config)
@@ -5542,7 +6238,7 @@ def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
     queries, rewrite_meta = _rewrite_query_with_meta(question_intermediate)
 
     retrieval = _retrieve_and_format(row, queries, k=config.retrieval_k, label_prefix="rewrite",
-                                     where=_where_from_config(config),
+                                     where=_retrieval_where_for_row(row, config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
@@ -5555,6 +6251,7 @@ def run_rag_rewrite(row: pd.Series, config: EvalConfig) -> dict:
         "retrieved_ids": retrieval["retrieved_ids"],
         "gold_retrieved": retrieval["gold_retrieved"],
         "rewrite_queries": queries,
+        **_retrieval_cache_audit_fields(retrieval),
         **rewrite_meta,
     }
 
@@ -5565,7 +6262,7 @@ def run_rag_simple(row: pd.Series, config: EvalConfig) -> dict:
     raw_question = _retrieval_question(row)
 
     retrieval = _retrieve_and_format(row, [raw_question], k=config.retrieval_k, label_prefix="simple",
-                                     where=_where_from_config(config),
+                                     where=_retrieval_where_for_row(row, config),
                                      collection=_collection_for_config(config))
     passage_block = "\n\n".join(retrieval["passages"])
 
@@ -7093,6 +7790,26 @@ _NO_CHROMA_MODES = {
 }
 
 
+def _housing_retrieval_mode(mode: str) -> bool:
+    return mode not in _NO_CHROMA_MODES
+
+
+def _allow_unfiltered_housing_retrieval() -> bool:
+    return _env_truthy("EVAL_ALLOW_UNFILTERED_HOUSING_RETRIEVAL")
+
+
+def _canonical_answer_mode(mode: str) -> bool:
+    return mode in {
+        "llm_only",
+        "rag_simple",
+        "golden_passage",
+        "golden_plus_neighbors",
+        "rag_hyde",
+        "snap_hyre",
+        "rag_rewrite",
+    }
+
+
 MODE_RUNNERS = {
     "full_pipeline": run_full_pipeline,
     "llm_only": run_llm_only,
@@ -7105,11 +7822,13 @@ MODE_RUNNERS = {
     "golden_arb_conservative": run_golden_arb_conservative,
     "rag_arbitration": run_rag_arbitration,
     "rag_hyde": run_rag_hyde,
+    "rag_hyde_exemplar": run_rag_hyde_exemplar,
     "rag_hyde_arb": run_rag_hyde_arb,
     "rag_multi_hyde": run_rag_multi_hyde,
     "rag_snap_hyde": run_rag_snap_hyde,
     "rag_snap_hyde_1call": run_rag_snap_hyde_1call,
     "snap_hyre": run_rag_snap_hyde_2call,
+    "snap_hyre_exemplar": run_snap_hyre_exemplar,
     "snap_choice_hyre": run_snap_choice_hyre,
     "rag_snap_hyde_2call": run_rag_snap_hyde_2call,
     "adaptive_snap_route": run_adaptive_snap_route,
@@ -7185,10 +7904,17 @@ MODE_RUNNERS = {
 def _setup_provider(config: EvalConfig):
     """Set env vars and clear caches for provider/skill switching."""
     os.environ["LLM_PROVIDER"] = config.provider
+    allow_env_caches = os.getenv("EVAL_ALLOW_ENV_CACHE_PATHS", "").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
     if config.hyre_cache_path:
         os.environ["HYRE_CACHE_PATH"] = config.hyre_cache_path
+    elif not allow_env_caches:
+        os.environ.pop("HYRE_CACHE_PATH", None)
     if config.retrieval_cache_path:
         os.environ["RETRIEVAL_CACHE_PATH"] = config.retrieval_cache_path
+    elif not allow_env_caches:
+        os.environ.pop("RETRIEVAL_CACHE_PATH", None)
     _get_llm_cached.cache_clear()
 
     if config.skill_dir != "skills":
@@ -7237,6 +7963,20 @@ def _no_silent_fallback_enabled() -> bool:
     return os.getenv("NO_SILENT_FALLBACK", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _provider_route_metadata() -> dict:
+    """Provider route controls that affect which backend serves a model."""
+    route = {}
+    for key in (
+        "OPENROUTER_PROVIDER_ONLY",
+        "OPENROUTER_PROVIDER_ORDER",
+        "OPENROUTER_PROVIDER_IGNORE",
+    ):
+        value = os.getenv(key, "").strip()
+        if value:
+            route[key.lower()] = value
+    return route
+
+
 def _fallback_guard_violations(record: dict, config: EvalConfig) -> list[str]:
     """Return fallback/cache/oracle violations that must not pass as normal rows."""
     violations: list[str] = []
@@ -7275,7 +8015,7 @@ def _fallback_guard_violations(record: dict, config: EvalConfig) -> list[str]:
     if "<think>" in str(record.get("final_answer") or "").lower():
         violations.append("unclosed_think_or_reasoning_tag_in_final_answer")
 
-    if config.dataset in {"barexam", "housing", "casehold", "legalbench_scalr"}:
+    if config.dataset in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"}:
         final_answer = str(record.get("final_answer") or "")
         predicted = record.get("predicted_answer")
         if not _has_explicit_answer_marker(final_answer):
@@ -7312,22 +8052,32 @@ def _fallback_guard_violations(record: dict, config: EvalConfig) -> list[str]:
     if config.retrieval_cache_path and config.mode in {
         "rag_simple",
         "rag_hyde",
+        "rag_hyde_exemplar",
         "snap_hyre",
+        "snap_hyre_exemplar",
         "rag_snap_hyde_2call",
         "golden_plus_neighbors",
     }:
         if record.get("retrieval_cache_hit") is not True:
             violations.append("retrieval_cache_hit!=True")
 
-    if config.hyre_cache_path and config.mode in {"rag_hyde", "snap_hyre", "rag_snap_hyde_2call"}:
+    if config.hyre_cache_path and config.mode in {
+        "rag_hyde",
+        "rag_hyde_exemplar",
+        "snap_hyre",
+        "snap_hyre_exemplar",
+        "rag_snap_hyde_2call",
+    }:
         if record.get("hyre_cache_hit") is not True and record.get("hyde_cache_hit") is not True:
             violations.append("hyre_cache_hit!=True")
 
-    if config.mode in {"snap_hyre", "rag_snap_hyde_2call"} and config.dataset in {
+    if config.mode in {"snap_hyre", "snap_hyre_exemplar", "rag_snap_hyde_2call"} and config.dataset in {
         "barexam",
         "housing",
         "casehold",
         "legalbench_scalr",
+        "mas_legal_bench",
+        "legal_link_eu",
     }:
         snap_answer = str(record.get("snap_answer") or "")
         if not _extract_required_final_line_prediction(snap_answer, config):
@@ -7348,9 +8098,33 @@ def run_eval(config: EvalConfig):
         print(f"Unknown mode '{config.mode}'. Available: {', '.join(MODE_RUNNERS)}")
         sys.exit(1)
 
+    if (
+        config.dataset == "housing"
+        and _housing_retrieval_mode(config.mode)
+        and not _housing_state_filter_enabled(config)
+        and not _allow_unfiltered_housing_retrieval()
+    ):
+        raise SystemExit(
+            "HousingQA retrieval modes must use --housing-state-filter. "
+            "The national HousingQA corpus contains every state, so unfiltered retrieval "
+            "is a provenance/ablation path only. Set "
+            "EVAL_ALLOW_UNFILTERED_HOUSING_RETRIEVAL=1 for an explicit unfiltered run."
+        )
+
+    if (
+        _canonical_answer_mode(config.mode)
+        and not _no_silent_fallback_enabled()
+        and not _env_truthy("EVAL_ALLOW_SILENT_FALLBACK")
+    ):
+        raise SystemExit(
+            "NO_SILENT_FALLBACK=1 is required for canonical answer modes. "
+            "Set EVAL_ALLOW_SILENT_FALLBACK=1 only for exploratory debugging."
+        )
+
     _setup_provider(config)
     runner = MODE_RUNNERS[config.mode]
     provider_info = get_provider_info()
+    provider_route = _provider_route_metadata()
     embedding_model = os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or None
 
     qa = load_questions(config)
@@ -7364,6 +8138,8 @@ def run_eval(config: EvalConfig):
 
     print(f"\n{'=' * 70}")
     filter_str = f" | filter={config.source_filter}" if config.source_filter else ""
+    if config.dataset == "housing" and _housing_state_filter_enabled(config):
+        filter_str += " | housing_state_filter=on"
     dataset_str = f" | dataset={config.dataset}" if config.dataset != "barexam" else ""
     print(f"EVAL: {config.mode} | {provider_info['provider']} ({provider_info['model']}) | {n} questions{dataset_str}{filter_str}")
     if config.skill_dir != "skills":
@@ -7433,7 +8209,7 @@ def run_eval(config: EvalConfig):
     total_start = time.time()
     consecutive_errors = 0
 
-    is_open_ended = config.dataset in ("legal_rag", "australian")
+    is_open_ended = config.dataset in ("legal_rag", "legal_rag_bench", "australian")
     is_short_span = config.dataset == "musique"
 
     for i, row in qa.iterrows():
@@ -7449,6 +8225,12 @@ def run_eval(config: EvalConfig):
             subject = "casehold"
         elif config.dataset == "legal_rag":
             subject = "crim_law"
+        elif config.dataset == "legal_rag_bench":
+            subject = "victorian_crim_law"
+        elif config.dataset == "mas_legal_bench":
+            subject = str(row.get("source", "mas_legal_bench"))
+        elif config.dataset == "legal_link_eu":
+            subject = str(row.get("relation_type", "legal_link_eu"))
         elif config.dataset == "australian":
             subject = str(row.get("jurisdiction", "unknown"))
         elif config.dataset == "musique":
@@ -7462,7 +8244,7 @@ def run_eval(config: EvalConfig):
         gold = str(row["answer"]).strip()
         if config.dataset == "housing":
             gold = gold.capitalize()
-        elif config.dataset in ("barexam", "casehold", "legalbench_scalr"):
+        elif config.dataset in ("barexam", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"):
             gold = gold.upper()
         # open-ended: gold stays as-is
 
@@ -7560,6 +8342,7 @@ def run_eval(config: EvalConfig):
             "final_answer": answer_text[:500] if is_open_ended else answer_text,
             "mode": config.mode,
             "provider": config.provider,
+            "provider_route": provider_route,
             "dataset": config.dataset,
             "embedding_model": embedding_model,
         }
@@ -7570,12 +8353,27 @@ def run_eval(config: EvalConfig):
             record["trace_schema_version"] = 1
         if config.dataset == "housing":
             record["state"] = str(row.get("state", ""))
+            if _housing_state_filter_enabled(config):
+                record["housing_state_filter"] = True
         elif config.dataset in ("casehold", "legalbench_scalr"):
             record["choices"] = _record_choices(row, config.dataset)
             record["gold_passage"] = _gold_choice_text(row, gold)
+        elif config.dataset == "mas_legal_bench":
+            record["choices"] = _record_choices(row, config.dataset)
+            record["source"] = str(row.get("source", ""))
+            source_context_ids = _coerce_gold_ids(row.get("source_context_ids", ""))
+            record["source_context_count"] = len(source_context_ids)
+            record["source_context_ids_preview"] = source_context_ids[:20]
+            record["gold_passage"] = ""
+        elif config.dataset == "legal_link_eu":
+            record["choices"] = _record_choices(row, config.dataset)
+            record["relation_type"] = str(row.get("relation_type", ""))
+            record["source_doc"] = str(row.get("source_doc", ""))
+            record["target_doc"] = str(row.get("target_doc", ""))
+            record["gold_passage"] = str(row.get("gold_passage", ""))[:500]
         elif config.dataset == "australian":
             record["jurisdiction"] = str(row.get("jurisdiction", ""))
-        elif config.dataset == "legal_rag":
+        elif config.dataset in ("legal_rag", "legal_rag_bench"):
             record["relevant_passages"] = str(row.get("relevant_passages", ""))
         else:
             record["choices"] = _record_choices(row, config.dataset)
@@ -7664,6 +8462,7 @@ def run_eval(config: EvalConfig):
         "dataset": config.dataset,
         "provider": provider_info["provider"],
         "model": provider_info["model"],
+        "provider_route": provider_route,
         "embedding_model": embedding_model,
         "question_set": question_set,
         "n_questions": n,
@@ -7678,6 +8477,7 @@ def run_eval(config: EvalConfig):
         "skill_dir": config.skill_dir,
         "tag": config.tag,
         "source_filter": config.source_filter,
+        "housing_state_filter": bool(config.dataset == "housing" and _housing_state_filter_enabled(config)),
         "detail_log": detail_path,
         "git_commit": _git_commit_short(),
     }
@@ -7762,7 +8562,7 @@ def main():
     parser.add_argument("--source-filter", default="",
                         help="Metadata source filter for retrieval, e.g. 'mbe' (default: none)")
     parser.add_argument("--dataset", default="barexam",
-                        choices=["barexam", "housing", "legal_rag", "australian", "casehold", "musique", "legalbench_scalr"],
+                        choices=["barexam", "housing", "legal_rag", "legal_rag_bench", "mas_legal_bench", "legal_link_eu", "australian", "casehold", "musique", "legalbench_scalr"],
                         help="Dataset to evaluate on (default: barexam)")
     parser.add_argument("--retrieval-k", type=int, default=5,
                         help="Final top-k after rerank for retrieval modes (default 5; meeting ask: top-1 vs top-5 ablation)")
@@ -7774,6 +8574,8 @@ def main():
                         help="Optional JSONL cache of snap/HyRE generations keyed by detail-log label")
     parser.add_argument("--retrieval-cache-path", default="",
                         help="Optional JSONL cache of retrieved passage ids for top-k replay")
+    parser.add_argument("--housing-state-filter", action="store_true",
+                        help="For HousingQA retrieval modes, constrain Chroma retrieval to the question state")
 
     args = parser.parse_args()
 
@@ -7795,6 +8597,7 @@ def main():
         sample_end=args.sample_end,
         hyre_cache_path=args.hyre_cache_path,
         retrieval_cache_path=args.retrieval_cache_path,
+        housing_state_filter=args.housing_state_filter,
     )
 
     run_eval(config)

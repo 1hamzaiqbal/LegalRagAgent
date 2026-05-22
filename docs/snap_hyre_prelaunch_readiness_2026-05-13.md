@@ -1,5 +1,10 @@
 # Snap-HyRE Prelaunch Readiness - 2026-05-13
 
+> Superseded/pre-current benchmark-set note. This document preserves the
+> CaseHOLD/LegalBench-SCALR prelaunch state and strictness decisions, but the
+> active main paper matrix is now BarExamQA, HousingQA, Legal-Link-EU, and
+> MASLegalBench with `groq-llama8b`, `or-gemma4-26b`, and `groq-llama70b`.
+
 Purpose: preserve the current prelaunch state before full comprehensive runs.
 The north star is a simple fixed Snap-HyRE method, reported primarily as a
 retrieval-exposure improvement and secondarily as downstream answer accuracy.

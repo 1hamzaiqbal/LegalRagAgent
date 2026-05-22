@@ -21,24 +21,64 @@ Updated 2026-05-12 for branch `snap_hyre_comprehensive`.
    to complete before launching the full comprehensive eval grid.
 8. `snap_hyre_completion_audit_2026-05-12.md` - objective-to-artifact checklist
    showing what is present, missing, and still unverified.
-9. `snap_hyre_prelaunch_readiness_2026-05-13.md` - current strict-provider,
-   cache, top-k, LegalSearchQA feasibility, and launch-readiness note.
+9. `snap_hyre_prelaunch_readiness_2026-05-13.md` - pre-current benchmark-set
+   launch-readiness provenance; useful for strict-provider/cache decisions, but
+   not the active CaseHOLD/SCALR-inclusive launch plan.
 10. `choice_aware_retrieval_probe_2026-05-13.md` - probe-only q20 retrieval
    diagnostics separating raw retrieval, choice exposure, generated legal
    query style, Snap-HyRE, and choice-conditioned Snap-HyRE.
 11. `choice_aware_retrieval_q50_2026-05-14.md` - probe-only q50 follow-up on
-   SCALR and CaseHOLD for blind/choice-aware HyDE, Snap-HyRE, diverse HyDE,
-   and choice-conditioned Snap-HyRE.
-12. `top_k_prelaunch_probe_2026-05-14.md` - q100 retrieval k=1..10 curve plus
-   limited BarExam downstream k=5 vs k=10 gate for the shared answer `k`.
-13. `comprehensive_run_status_2026-05-14.md` - live status for full-corpus
-   comprehensive cells, active jobs, blocked rows, cache status, and signoff
-   progress.
-14. `signoff_log.md` - cite-or-not gate for any reported result.
-15. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
+   historical SCALR and CaseHOLD slices for blind/choice-aware HyDE, Snap-HyRE,
+   diverse HyDE, and choice-conditioned Snap-HyRE.
+12. `top_k_prelaunch_probe_2026-05-14.md` - q100 retrieval k=1..10 provenance
+   plus limited BarExam downstream k=5 vs k=10 gate for the shared answer `k`;
+   the source slice predates the current Legal-Link-EU / MASLegalBench matrix.
+13. `comprehensive_run_status_2026-05-14.md` - superseded run-status ledger for
+   the earlier CaseHOLD/SCALR-inclusive comprehensive queue; use
+   `current_status.md`, `paper_iteration_signal_2026-05-20.md`, and
+   `signoff_log.md` for current paper-facing status.
+14. `candidate_benchmark_feasibility_2026-05-18.md` - feasibility note for
+   Legal RAG Bench, LegalSearchQA, LEXam, MLEB retrieval sets,
+   Legal-Link-EU, MASLegalBench, and other possible replacement or
+   supplemental legal benchmarks.
+15. `snap_hyre_failure_audit_2026-05-20.md` - current failure analysis for
+   Snap-HyRE vs raw/simple retrieval, including anchor-loss, jurisdiction-loss,
+   and harness-health checks.
+16. `housingqa_state_filtered_process_2026-05-20.md` - HousingQA-specific
+   state-filter process contract, cache naming, and reporting split for the
+   national-corpus vs jurisdiction-corpus views.
+17. `benchmark_paradigm_audit_2026-05-20.md` - fairness/paradigm audit
+   confirming active benchmarks use real reference corpora, and explaining why
+   CaseHOLD/LegalBench-SCALR remain excluded from the main matrix.
+18. `paper_iteration_signal_2026-05-20.md` - paper/eval-agent handoff note for
+   provisional rows, live tmux/log checks, and non-citable probe status.
+19. `paper_meeting_handoff_2026-05-20.md` - meeting/writing handoff for the
+   strongest current Snap-HyRE narrative, caveats, and provisional exemplar /
+   state-filter context.
+20. `snap_hyre_paper_agent_handoff_2026-05-20.md` - focused paper-agent handoff
+   for positive Snap-HyRE claims, Gemma 26B emphasis, starred active/probe
+   rows, and exact files to inspect.
+21. `snap_hyre_good_example_handoff_2026-05-20.md` - concrete positive
+   BarExamQA row where canonical Snap-HyRE fixes raw RAG/HyDE/rewrite, plus
+   the current exemplar-worth-it read.
+22. `barexam_housing_core_focus_2026-05-20.md` - narrowed operating note for
+   finishing BarExamQA and state-filtered HousingQA on the three required core
+   methods: `rag_simple`, `rag_hyde`, and `snap_hyre`.
+23. `housingqa_statefilter_goal_checklist_2026-05-21.md` - explicit
+   prompt-to-artifact checklist for the active HousingQA state-filter/exemplar
+   goal, including required rows, queued jobs, validation gates, and exemplar
+   promotion rule.
+24. `housingqa_handoff_to_next_agent_2026-05-21.md` - concise HousingQA
+   takeover message with current 6/9 core status, Gemma blockers, exact
+   continuation commands, and files another agent should inspect.
+25. `latest_results_handoff_2026-05-21.md` - current results/navigation
+   handoff for another agent, including where to read first, what is signed,
+   current Housing blockers, and continuation commands.
+26. `signoff_log.md` - cite-or-not gate for any reported result.
+27. `compiled_results.md` and `../logs/experiments.jsonl` - historical ledger
    and machine-readable summaries.
-16. `method_index.md` - local harness mode names.
-17. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
+28. `method_index.md` - local harness mode names.
+29. `cluster_workflow.md` and `hpc_setup_log.md` - cluster paths, environment
    notes, and operational caveats.
 
 ## Current Branch Narrative
@@ -68,8 +108,12 @@ Primary benchmarks:
 
 - BarExamQA
 - HousingQA
-- CaseHOLD
-- LegalBench-SCALR
+- Legal-Link-EU
+- MASLegalBench
+
+CaseHOLD and LegalBench-SCALR are historical/superseded for the active main
+matrix unless explicitly re-added. Legal RAG Bench is tracked as a retrieval /
+open-answer appendix candidate, not part of the exact-scored grid.
 
 MuSiQue and other non-legal datasets are not active main-report benchmarks on
 this branch.
@@ -105,8 +149,23 @@ entrypoints.
 - `../scripts/build_retrieval_cache.py` - build deterministic passage-id
   retrieval caches for raw question, HyDE, Snap-HyRE, and golden-neighbor
   queries.
+- `../scripts/build_retrieval_doc_cache.py` - hydrate retrieval-cache passage
+  IDs into a strict document-text cache for replaying large cached cells
+  without reopening a large Chroma collection.
 - `../scripts/local/` - API-first local runner scripts for provider smoke
   tests, retrieval-cache construction, and one-cell answer sweeps.
+- `../scripts/check_expected_provider_model.py`,
+  `../scripts/check_openrouter_key_status.py`, and
+  `../scripts/check_openrouter_chat_route.py` - fail-closed provider/model,
+  OpenRouter budget, and tiny exact-route chat-completion guards before long
+  API-backed rows.
+- `../scripts/local/watch_housing_gemma_until_ready.sh` - optional
+  non-launching-by-default Housing Gemma watcher for OpenRouter reset windows;
+  set `LAUNCH_ON_READY=1` only when the canonical continuation should start
+  automatically after the exact route/budget preflight passes.
+- `../scripts/local/housing_gemma_budget_watcher.sh` - status/start/stop
+  manager for the detached Housing Gemma watcher, including stale lock/process
+  checks; non-launching by default unless `LAUNCH_ON_READY=1` is set.
 - `../scripts/audit_retrieval_cache.py` - audit cache integrity and Hit/Recall,
   MRR at multiple k values before answer generation.
 - `../scripts/run_choice_aware_retrieval_probe.py` - probe-only retrieval
@@ -116,6 +175,9 @@ entrypoints.
   actual Chroma document ids before promoting Hit@k/MRR claims.
 - `../scripts/compile_retrieval_cache_matrix.py` - compile cache audits into
   top-k selection tables.
+- `../scripts/compile_efficiency_metrics.py` - compile offline token, latency,
+  actual/logical-call, and cache-health efficiency snapshots from detail JSONL
+  logs.
 - `../scripts/merge_detail_logs.py` - merge chunked detail logs.
 - `../scripts/compute_mcnemar.py` - paired significance tests.
 - `../scripts/audit_golden_paradox.py` - BarExam golden-passage paradox audit.

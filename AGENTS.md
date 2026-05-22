@@ -28,8 +28,10 @@ As of the 2026-05-12 branch pivot, the live framing is a fixed-method
 Snap-HyRE evaluation, not a diagnostic adaptive-controller story. The primary
 harness mode is `snap_hyre`; `rag_snap_hyde_2call` remains a legacy alias for
 older logs. The branch goal is to evaluate one straightforward Snap-HyRE method
-across BarExamQA, HousingQA, CaseHOLD, and LegalBench-SCALR, with retrieval
-exposure metrics reported alongside downstream answer accuracy. See `CLAUDE.md` and
-`docs/snap_hyre_comprehensive_plan_2026-05-12.md` plus
-`docs/snap_hyre_experiment_runbook_2026-05-12.md` for the current mission,
-method ladder, caching workflow, and launch gates.
+across BarExamQA, HousingQA, Legal-Link-EU, and MASLegalBench, with retrieval
+exposure metrics reported alongside downstream answer accuracy. CaseHOLD and
+LegalBench-SCALR are historical/superseded for the active exact-scored main
+matrix unless explicitly re-added under the current fixed-method contract. See
+`CLAUDE.md`, `docs/README.md`, `docs/snap_hyre_comprehensive_plan_2026-05-12.md`,
+and `docs/paper_iteration_signal_2026-05-20.md` for the current mission, method
+ladder, caching workflow, launch gates, and paper-facing caveats.

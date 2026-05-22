@@ -8,7 +8,7 @@ the comprehensive full-corpus eval grid.
 Validate the local Snap-HyRE execution stack before comprehensive full-corpus
 evals: pull `snap_hyre_comprehensive`, configure `OPENROUTER_API_KEY` and
 `GROQ_API_KEY`, verify datasets and local Chroma collections for BarExamQA,
-HousingQA, CaseHOLD, and LegalBench-SCALR, run API smoke tests, build
+HousingQA, Legal-Link-EU, and MASLegalBench, run API smoke tests, build
 raw/golden retrieval caches, audit qrel alignment, select or justify the
 universal top-k from the retrieval matrix, build N=50 HyDE/Snap-HyRE generation
 caches, run one N=50 answer-cell ladder end-to-end, and update
@@ -19,7 +19,7 @@ only with source-gated clean evidence.
 
 Move to comprehensive full-corpus evals only after all of these are true:
 
-- Provider smoke passes for the API-only three-model grid: `or-ministral-8b`,
+- Provider smoke passes for the API-only three-model grid: `groq-llama8b`,
   `or-gemma4-26b`, and `groq-llama70b`.
 - `scripts/local/build_retrieval_caches.sh` writes a retrieval matrix and qrel
   alignment reports for the four legal datasets.
@@ -42,14 +42,16 @@ API-only and no longer waits on a vLLM Gemma 4 E4B launch gate.
 - The earlier `or-gemma3n-e4b` smoke is not a comprehensive-model gate:
   `google/gemma-3n-e4b-it` is not the historical `google/gemma-4-E4B-it`
   checkpoint.
-- The small-model API row is `or-ministral-8b`, not historical Gemma 4 E4B.
+- The current small-model API row is `groq-llama8b`; earlier `or-ministral-8b`
+  rows remain provenance rather than active paper-grid requirements.
 - `groq-llama70b` initially failed with a Groq 401 invalid-key preflight; after
   replacing the key on 2026-05-13, a one-question strict smoke passed.
 - `legal_passages` was patched from 686,324 train passages to the full
   856,835-passage BarExam corpus by appending validation/test passages with the
   same GTE 1.5 large encoder.
-- Qrel alignment now passes at 100% for all four datasets: BarExamQA,
-  HousingQA, CaseHOLD, and LegalBench-SCALR.
+- Qrel alignment passed for the then-active validation set: BarExamQA,
+  HousingQA, CaseHOLD, and LegalBench-SCALR. The current main paper matrix has
+  since moved to BarExamQA, HousingQA, Legal-Link-EU, and MASLegalBench.
 - `scripts/local/build_retrieval_caches.sh` now writes question-scoped cache
   filenames and produced clean BarExam full caches plus q5 raw/golden cache
   smokes for all four datasets.
@@ -64,6 +66,6 @@ API-only and no longer waits on a vLLM Gemma 4 E4B launch gate.
   `docs/generated/snap_hyre_package/package_status.md` and companion CSV/plot
   artifacts.
 
-Do not start broad comprehensive sweeps until `or-ministral-8b`, `or-gemma4-26b`,
+Do not start broad comprehensive sweeps until `groq-llama8b`, `or-gemma4-26b`,
 and `groq-llama70b` all pass strict API smoke checks. BarExam alignment, Llama
 callability, and golden-control hydration are resolved locally.

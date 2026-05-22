@@ -99,7 +99,7 @@ Total: `2` LLM calls.
 
 **Pipeline:**
 
-1. If `gold_passage` is missing, fall back to `llm_only`.
+1. If `gold_passage` is missing, fail closed instead of falling back.
 2. Otherwise answer once with `_system_prompt(config, "rag")` over the gold passage plus the formatted question.
 Total: `1` LLM call.
 
@@ -117,7 +117,7 @@ Total: `1` LLM call.
 
 **Pipeline:**
 
-1. If `gold_passage` is missing, fall back to `llm_only`.
+1. If `gold_passage` is missing, fail closed instead of falling back.
 2. Keep the gold passage as Source 1.
 3. Retrieve neighboring corpus passages using the gold passage as the query.
 4. Fill the remaining `retrieval_k - 1` context slots with non-gold neighbors.

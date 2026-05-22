@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 
-CLOSED_SET_DATASETS = {"barexam", "housing", "casehold", "legalbench_scalr"}
+CLOSED_SET_DATASETS = {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"}
 GENERATED_CONTEXT_FIELDS = (
     "hyde_passage",
     "hyde_passage_raw",

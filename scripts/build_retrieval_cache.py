@@ -15,6 +15,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -30,8 +31,8 @@ from eval_harness import (  # noqa: E402
     _gold_reference_text,
     _is_gold_retrieved,
     _retrieval_question,
+    _retrieval_where_for_row,
     _row_label,
-    _where_from_config,
 )
 from langchain_core.documents import Document  # noqa: E402
 from rag_utils import get_vectorstore, rerank_with_cross_encoder, retrieve_documents_multi_query  # noqa: E402
@@ -42,6 +43,11 @@ QUERY_TYPE_TO_LABEL_PREFIX = {
     "raw_question": "simple",
     "hyre_cache": "snap_hyre",
     "golden_neighbors": "golden_plus_neighbors",
+}
+
+EXPECTED_GENERATION_SOURCE_MODES = {
+    "hyde_cache": {"rag_hyde"},
+    "hyre_cache": {"snap_hyre", "snap_hyre_exemplar", "rag_snap_hyde_2call"},
 }
 
 
@@ -59,6 +65,57 @@ def _load_hyre_cache(path: Path) -> dict[str, dict[str, Any]]:
     if not cache:
         raise SystemExit(f"{path}: no HyRE cache rows loaded")
     return cache
+
+
+def _validate_generation_cache_entry(
+    *,
+    entry: dict[str, Any],
+    path: Path,
+    label: str,
+    dataset: str,
+    query_type: str,
+    expected_provider: str = "",
+) -> None:
+    violations: list[str] = []
+    source_mode = str(entry.get("source_mode") or entry.get("mode") or "").strip()
+    expected_modes = EXPECTED_GENERATION_SOURCE_MODES.get(query_type, set())
+    if expected_modes:
+        if not source_mode:
+            violations.append("missing source_mode/mode")
+        elif source_mode not in expected_modes:
+            violations.append(f"source_mode={source_mode!r} not in {sorted(expected_modes)!r}")
+
+    entry_dataset = str(entry.get("dataset") or "").strip()
+    if entry_dataset and entry_dataset != dataset:
+        violations.append(f"dataset={entry_dataset!r} != expected {dataset!r}")
+
+    entry_provider = str(entry.get("provider") or "").strip()
+    if expected_provider and entry_provider and entry_provider != expected_provider:
+        violations.append(f"provider={entry_provider!r} != expected {expected_provider!r}")
+
+    if violations:
+        raise SystemExit(
+            "generation cache provenance mismatch "
+            f"path={path} label={label}: " + "; ".join(violations)
+        )
+
+
+def _load_existing_labels(path: Path) -> set[str]:
+    if not path.exists():
+        return set()
+    labels: set[str] = set()
+    with path.open() as f:
+        for line_no, line in enumerate(f, 1):
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise SystemExit(f"{path}:{line_no}: invalid JSON in existing retrieval cache: {exc}") from exc
+            label = row.get("label")
+            if label:
+                labels.add(str(label))
+    return labels
 
 
 def _hash_texts(values: list[str]) -> str:
@@ -141,6 +198,7 @@ def _golden_neighbors_from_stored_embeddings(
     gold_text: str,
     gold_ids: list[str],
     retrieve_k: int,
+    where: dict | None = None,
 ) -> tuple[list[Document], list[str]]:
     """Retrieve around stored gold-document embeddings without loading an embedder.
 
@@ -180,6 +238,7 @@ def _golden_neighbors_from_stored_embeddings(
         result = collection.query(
             query_embeddings=[embedding],
             n_results=fetch_k,
+            where=where,
             include=["documents", "metadatas", "distances"],
         )
         result_docs = result.get("documents") or [[]]
@@ -200,7 +259,7 @@ def _golden_neighbors_from_stored_embeddings(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", required=True, choices=[
-        "barexam", "housing", "legal_rag", "australian", "casehold",
+        "barexam", "housing", "legal_rag", "legal_rag_bench", "mas_legal_bench", "legal_link_eu", "australian", "casehold",
         "musique", "legalbench_scalr",
     ])
     parser.add_argument("--questions", default="full", help="'full' or integer N")
@@ -210,11 +269,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--query-type", required=True, choices=sorted(QUERY_TYPE_TO_LABEL_PREFIX))
     parser.add_argument("--label-prefix", help="Override cache label_prefix")
     parser.add_argument("--hyre-cache-path", type=Path, help="Required for --query-type hyde_cache or hyre_cache")
+    parser.add_argument("--expected-provider", default="",
+                        help="Optional provider label expected inside generation cache rows")
     parser.add_argument("--max-k", type=int, default=10)
     parser.add_argument("--source-filter", default="")
+    parser.add_argument("--housing-state-filter", action="store_true",
+                        help="For HousingQA, constrain retrieval to each question's state metadata")
     parser.add_argument("--collection", help="Override dataset collection")
     parser.add_argument("--embedding-model", default="", help="Override EVAL_EMBEDDING_MODEL")
     parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--resume", action="store_true", help="Append missing labels if the output already exists")
+    parser.add_argument("--progress-interval", type=int, default=25,
+                        help="Print progress every N newly written rows")
     return parser.parse_args()
 
 
@@ -231,6 +297,16 @@ def _main_locked(args: argparse.Namespace) -> None:
         os.environ["EVAL_EMBEDDING_MODEL"] = args.embedding_model
     if args.query_type in {"hyde_cache", "hyre_cache"} and not args.hyre_cache_path:
         raise SystemExit("--hyre-cache-path is required for --query-type hyde_cache or hyre_cache")
+    if (
+        args.dataset == "housing"
+        and not args.housing_state_filter
+        and not _env_truthy("EVAL_ALLOW_UNFILTERED_HOUSING_RETRIEVAL")
+    ):
+        raise SystemExit(
+            "HousingQA retrieval-cache builds must pass --housing-state-filter. "
+            "Set EVAL_ALLOW_UNFILTERED_HOUSING_RETRIEVAL=1 only for an explicit "
+            "unfiltered provenance/ablation cache."
+        )
 
     config = EvalConfig(
         mode="rag_simple",
@@ -241,6 +317,7 @@ def _main_locked(args: argparse.Namespace) -> None:
         sample_start=args.sample_start,
         sample_end=args.sample_end,
         retrieval_k=args.max_k,
+        housing_state_filter=args.housing_state_filter,
     )
     questions = load_questions(config)
     if args.sample_start or args.sample_end is not None:
@@ -249,7 +326,6 @@ def _main_locked(args: argparse.Namespace) -> None:
         questions = questions.iloc[start:end].reset_index(drop=True)
 
     collection = args.collection or _collection_for_config(config)
-    where = _where_from_config(config)
     embedding_model = os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or ""
     label_prefix = args.label_prefix or QUERY_TYPE_TO_LABEL_PREFIX[args.query_type]
     hyre_cache = _load_hyre_cache(args.hyre_cache_path) if args.hyre_cache_path else {}
@@ -261,12 +337,20 @@ def _main_locked(args: argparse.Namespace) -> None:
     direct_collection = _direct_chroma_collection(collection) if use_stored_gold_embeddings else None
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
+    done = _load_existing_labels(args.out) if args.resume else set()
+    open_mode = "a" if args.resume else "w"
     wrote = 0
     skipped = 0
-    with args.out.open("w") as f:
+    already_done = 0
+    start_time = time.time()
+    with args.out.open(open_mode) as f:
         for fallback_i, row in questions.iterrows():
             label = _row_label(row, config, fallback_i=fallback_i)
+            if label in done:
+                already_done += 1
+                continue
             row_idx = str(row.get("idx", fallback_i))
+            cache_entry: dict[str, Any] | None = None
             if args.query_type == "raw_question":
                 queries = [_retrieval_question(row)]
             elif args.query_type == "golden_neighbors":
@@ -280,11 +364,20 @@ def _main_locked(args: argparse.Namespace) -> None:
                 if not cache_entry or not cache_entry.get("hyde_passage"):
                     skipped += 1
                     continue
+                _validate_generation_cache_entry(
+                    entry=cache_entry,
+                    path=args.hyre_cache_path,
+                    label=label,
+                    dataset=args.dataset,
+                    query_type=args.query_type,
+                    expected_provider=args.expected_provider,
+                )
                 queries = [str(cache_entry["hyde_passage"])]
 
             retrieve_k = args.max_k
             retrieval_backend = "langchain_chroma"
             stored_gold_embedding_ids: list[str] = []
+            where = _retrieval_where_for_row(row, config)
             if args.query_type == "golden_neighbors":
                 retrieve_k = args.max_k + max(args.max_k, len(_gold_ids(row)))
 
@@ -294,6 +387,7 @@ def _main_locked(args: argparse.Namespace) -> None:
                     gold_text=queries[0],
                     gold_ids=_gold_ids(row),
                     retrieve_k=retrieve_k,
+                    where=where,
                 )
                 retrieval_backend = "stored_gold_embedding"
             else:
@@ -305,6 +399,30 @@ def _main_locked(args: argparse.Namespace) -> None:
                     rerank_query=None,
                 )
             doc_ids = [str(doc.metadata.get("idx", "")) for doc in docs]
+            row_source = str(row.get("source", "") or "").strip()
+            source_doc = str(row.get("source_doc", "") or "").strip()
+            target_doc = str(row.get("target_doc", "") or "").strip()
+            same_source_retrieved_ids = [
+                str(doc.metadata.get("idx", ""))
+                for doc in docs
+                if row_source and str(doc.metadata.get("source", "") or "").strip() == row_source
+            ][:args.max_k]
+            source_doc_retrieved_ids = [
+                str(doc.metadata.get("idx", ""))
+                for doc in docs
+                if source_doc and (
+                    str(doc.metadata.get("source", "") or "").strip() == source_doc
+                    or str(doc.metadata.get("citation", "") or "").strip() == source_doc
+                )
+            ][:args.max_k]
+            target_doc_retrieved_ids = [
+                str(doc.metadata.get("idx", ""))
+                for doc in docs
+                if target_doc and (
+                    str(doc.metadata.get("source", "") or "").strip() == target_doc
+                    or str(doc.metadata.get("citation", "") or "").strip() == target_doc
+                )
+            ][:args.max_k]
             scores = [_score_from_doc(doc) for doc in docs]
             cross_encoder_max_chars = os.getenv("CROSS_ENCODER_MAX_CHARS", "4096").strip()
             cross_encoder_query_truncated = any(
@@ -331,15 +449,28 @@ def _main_locked(args: argparse.Namespace) -> None:
                 "dataset": args.dataset,
                 "query_type": args.query_type,
                 "label_prefix": label_prefix,
+                "generation_source_mode": str(cache_entry.get("source_mode") or cache_entry.get("mode") or "") if cache_entry else "",
+                "generation_provider": str(cache_entry.get("provider") or "") if cache_entry else "",
+                "generation_cache_path": str(args.hyre_cache_path or ""),
                 "collection": collection,
                 "embedding_model": embedding_model,
                 "where": where or {},
+                "housing_state_filter": bool(args.dataset == "housing" and args.housing_state_filter),
                 "max_k": args.max_k,
                 "retrieved_ids": retrieved_ids,
                 "scores": scores,
                 "gold_ids": _gold_ids(row),
                 "gold_retrieved": _is_gold_retrieved(row, effective_retrieved_ids),
                 "effective_retrieved_ids": effective_retrieved_ids,
+                "row_source": row_source,
+                "same_source_retrieved": bool(same_source_retrieved_ids),
+                "same_source_retrieved_ids": same_source_retrieved_ids,
+                "source_doc": source_doc,
+                "source_doc_retrieved": bool(source_doc_retrieved_ids),
+                "source_doc_retrieved_ids": source_doc_retrieved_ids,
+                "target_doc": target_doc,
+                "target_doc_retrieved": bool(target_doc_retrieved_ids),
+                "target_doc_retrieved_ids": target_doc_retrieved_ids,
                 "query_hash": _hash_texts(queries),
                 "question_hash": _hash_texts([_fmt_intermediate(row, config)]),
                 "retrieval_backend": retrieval_backend,
@@ -353,9 +484,22 @@ def _main_locked(args: argparse.Namespace) -> None:
                 if stored_gold_embedding_ids:
                     record["stored_gold_embedding_ids"] = stored_gold_embedding_ids
             f.write(json.dumps(record, sort_keys=True) + "\n")
+            f.flush()
             wrote += 1
+            if args.progress_interval > 0 and wrote % args.progress_interval == 0:
+                elapsed = max(time.time() - start_time, 1e-6)
+                rate = wrote / elapsed
+                remaining = max(len(questions) - already_done - wrote, 0)
+                eta_min = remaining / rate / 60 if rate > 0 else 0
+                print(
+                    f"[{wrote}] {label:<35} OK "
+                    f"({rate:.2f} rows/s, eta={eta_min:.1f}m)",
+                    flush=True,
+                )
 
     print(f"wrote {wrote} retrieval-cache rows to {args.out}")
+    if already_done:
+        print(f"skipped {already_done} existing rows from {args.out}")
     if skipped:
         print(f"skipped {skipped} rows without required query material")
         if _no_silent_fallback_enabled():

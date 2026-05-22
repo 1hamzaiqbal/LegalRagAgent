@@ -19,13 +19,14 @@ class EvalConfig:
     verbose: bool = False
     tag: str = ""                     # optional label for the run
     source_filter: str = ""           # optional metadata filter, e.g. "mbe" to search MBE docs only
-    dataset: str = "barexam"          # "barexam" | "housing" | "legal_rag" | "australian" | "casehold" | "musique" | "legalbench_scalr"
+    dataset: str = "barexam"          # "barexam" | "housing" | "legal_rag" | "legal_rag_bench" | "mas_legal_bench" | "legal_link_eu" | "australian" | "casehold" | "musique" | "legalbench_scalr"
     embedding_model: str = ""         # override embedding model for retrieval (e.g., "BAAI/bge-m3")
     retrieval_k: int = 5              # final top-k after rerank for retrieval modes
     sample_start: int = 0             # optional slice start after deterministic sampling
     sample_end: int | None = None     # optional slice end after deterministic sampling
     hyre_cache_path: str = ""         # optional JSONL cache for replaying snap/HyRE generations
     retrieval_cache_path: str = ""    # optional JSONL cache of retrieved passage ids for top-k replay
+    housing_state_filter: bool = False  # constrain HousingQA retrieval to the question state
 
 
 EVAL_MODES = {
@@ -40,11 +41,13 @@ EVAL_MODES = {
     "golden_arb_conservative":  "LLM answers naive, then reviews golden passage (biased toward keeping)",
     "rag_arbitration":          "LLM answers naive, then reviews retrieved passages (conservative)",
     "rag_hyde":                 "HyDE: LLM generates hypothetical answer, embeds it to retrieve",
+    "rag_hyde_exemplar":        "Probe-only HyDE with dataset-specific passage-style guidance, no answer evidence",
     "rag_hyde_arb":             "HyDE retrieval + snap-then-review arbitration (conservative)",
     "rag_multi_hyde":           "Multi-HyDE: 3 hypothetical passages (rule/exception/application)",
     "rag_snap_hyde":            "Snap-informed HyDE: answer first, then targeted retrieval",
     "rag_snap_hyde_1call":      "1-call ablation: retrieve on bare question (rag_simple style), then 1 LLM call producing snap reasoning + final answer (tests whether 2nd LLM call is necessary)",
     "snap_hyre":                "Snap-HyRE: snap reasoning + HyRE passage in one LLM call, then retrieve + final synth",
+    "snap_hyre_exemplar":       "Probe-only Snap-HyRE with dataset-specific passage-style guidance, no retrieved exemplar evidence",
     "snap_choice_hyre":         "Choice-conditioned Snap-HyRE probe: one call predicts a primary/alternative and emits diverse candidate-theory HyRE passages, then retrieve + final synth",
     "rag_snap_hyde_2call":      "2-call snap+HyDE: snap reasoning + HyDE passage in one LLM call, then retrieve + final synth (efficiency variant of rag_snap_hyde)",
     "adaptive_snap_route":      "Bottleneck-adaptive routing: 1 LLM call produces snap + ROUTE (SUFFICIENT|NEEDS_RETRIEVAL) + HyDE; if SUFFICIENT return snap (1 call), else retrieve + synth (2 calls). Per-question bottleneck-aware variant of snap_hyde_2call.",
@@ -119,6 +122,12 @@ def load_questions(config: EvalConfig) -> pd.DataFrame:
         return _load_housing_questions(config)
     if config.dataset == "legal_rag":
         return _load_generic_questions(config, "datasets/legal_rag_qa/questions.csv")
+    if config.dataset == "legal_rag_bench":
+        return _load_generic_questions(config, "datasets/legal_rag_bench/questions.csv")
+    if config.dataset == "mas_legal_bench":
+        return _load_generic_questions(config, "datasets/mas_legal_bench/questions.csv")
+    if config.dataset == "legal_link_eu":
+        return _load_generic_questions(config, "datasets/legal_link_eu/questions.csv")
     if config.dataset == "australian":
         return _load_generic_questions(config, "datasets/australian_legal_qa/questions.csv")
     if config.dataset == "casehold":
@@ -241,7 +250,11 @@ def format_question_prompt(row: pd.Series, dataset: str = "barexam") -> str:
         return format_casehold_prompt(row)
     if dataset == "legalbench_scalr":
         return format_casehold_prompt(row)  # same 5-way MC schema as CaseHOLD
-    if dataset in ("legal_rag", "australian"):
+    if dataset == "mas_legal_bench":
+        return format_mas_legal_bench_prompt(row)
+    if dataset == "legal_link_eu":
+        return format_legal_link_eu_prompt(row)
+    if dataset in ("legal_rag", "legal_rag_bench", "australian"):
         return format_open_prompt(row)
     if dataset == "musique":
         return format_musique_prompt(row)
@@ -294,6 +307,46 @@ def format_casehold_prompt(row: pd.Series) -> str:
         f"\n\nProvide your answer as: Answer: (X)"
     )
     return prompt
+
+
+def format_mas_legal_bench_prompt(row: pd.Series) -> str:
+    """Format a MASLegalBench four-way GDPR/legal reasoning MC question."""
+    question = str(row["question"])
+    choices = []
+    for letter in ["A", "B", "C", "D"]:
+        col = f"choice_{letter.lower()}"
+        if col in row and pd.notna(row[col]) and str(row[col]).strip():
+            choices.append(f"  ({letter}) {row[col]}")
+
+    return (
+        "Answer the following legal question using the provided choices.\n\n"
+        f"## Question\n{question}\n\n"
+        "## Choices\n"
+        + "\n".join(choices)
+        + "\n\nProvide your answer as: Answer: (X)"
+    )
+
+
+def format_legal_link_eu_prompt(row: pd.Series) -> str:
+    """Format a Legal-Link-EU four-way MC question."""
+    question = str(row["question"])
+    relation = str(row.get("relation_type", "") or "").replace("_", " ")
+    choices = []
+    for letter in ["A", "B", "C", "D"]:
+        col = f"choice_{letter.lower()}"
+        if col in row and pd.notna(row[col]) and str(row[col]).strip():
+            choices.append(f"  ({letter}) {row[col]}")
+
+    prefix = "Answer the following EU legal authority question"
+    if relation:
+        prefix += f" about {relation}"
+    return (
+        f"{prefix} using the provided choices.\n\n"
+        f"## Question\n{question}\n\n"
+        "## Choices\n"
+        + "\n".join(choices)
+        + "\n\nProvide your answer as: Answer: (X)"
+    )
 
 
 def format_open_prompt(row: pd.Series) -> str:

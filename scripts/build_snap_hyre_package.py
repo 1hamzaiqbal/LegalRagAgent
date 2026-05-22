@@ -18,7 +18,7 @@ from typing import Any
 
 
 DATASETS = ["barexam", "housing", "casehold", "legalbench_scalr"]
-PROVIDERS = ["or-ministral-8b", "or-gemma4-26b", "groq-llama70b"]
+PROVIDERS = ["groq-llama8b", "or-gemma4-26b", "groq-llama70b"]
 MODES = [
     "llm_only",
     "rag_simple",

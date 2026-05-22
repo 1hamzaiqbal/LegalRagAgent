@@ -23,11 +23,17 @@ USE_CACHES="${USE_CACHES:-1}"
 REQUIRE_RETRIEVAL_CACHES="${REQUIRE_RETRIEVAL_CACHES:-1}"
 STOP_ON_FAILURE="${STOP_ON_FAILURE:-1}"
 ENV_LLM_MAX_COMPLETION_TOKENS="${LLM_MAX_COMPLETION_TOKENS:-}"
+ENV_EVAL_MIN_COMPLETION_TOKENS="${EVAL_MIN_COMPLETION_TOKENS:-}"
+ENV_NO_SILENT_FALLBACK="${NO_SILENT_FALLBACK:-}"
+ENV_OPENROUTER_PROVIDER_ONLY="${OPENROUTER_PROVIDER_ONLY:-}"
+ENV_OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-}"
+ENV_GROQ_API_KEY="${GROQ_API_KEY:-}"
 LLM_MAX_COMPLETION_TOKENS="${LLM_MAX_COMPLETION_TOKENS:-2048}"
 EVAL_MIN_COMPLETION_TOKENS="${EVAL_MIN_COMPLETION_TOKENS:-2048}"
 EVAL_FINAL_FORMAT_RETRY="${EVAL_FINAL_FORMAT_RETRY:-1}"
 EVAL_GENERATION_FORMAT_RETRY="${EVAL_GENERATION_FORMAT_RETRY:-1}"
 HYRE_CACHE_ROOT="${HYRE_CACHE_ROOT:-$ROOT/caches/hyre/full}"
+GENERATION_CACHE_ROOT="${GENERATION_CACHE_ROOT:-$ROOT/caches/generation/full}"
 RETRIEVAL_CACHE_ROOT="${RETRIEVAL_CACHE_ROOT:-$ROOT/caches/retrieval/full}"
 BAREXAM_COLLECTION="${BAREXAM_COLLECTION:-}"
 CACHE_SCOPE="${CACHE_SCOPE:-}"
@@ -47,6 +53,21 @@ if [[ -f .env ]]; then
 fi
 if [[ -n "$ENV_LLM_MAX_COMPLETION_TOKENS" ]]; then
   LLM_MAX_COMPLETION_TOKENS="$ENV_LLM_MAX_COMPLETION_TOKENS"
+fi
+if [[ -n "$ENV_EVAL_MIN_COMPLETION_TOKENS" ]]; then
+  EVAL_MIN_COMPLETION_TOKENS="$ENV_EVAL_MIN_COMPLETION_TOKENS"
+fi
+if [[ -n "$ENV_NO_SILENT_FALLBACK" ]]; then
+  NO_SILENT_FALLBACK="$ENV_NO_SILENT_FALLBACK"
+fi
+if [[ -n "$ENV_OPENROUTER_PROVIDER_ONLY" ]]; then
+  OPENROUTER_PROVIDER_ONLY="$ENV_OPENROUTER_PROVIDER_ONLY"
+fi
+if [[ -n "$ENV_OPENROUTER_API_KEY" ]]; then
+  OPENROUTER_API_KEY="$ENV_OPENROUTER_API_KEY"
+fi
+if [[ -n "$ENV_GROQ_API_KEY" ]]; then
+  GROQ_API_KEY="$ENV_GROQ_API_KEY"
 fi
 if ! [[ "$LLM_MAX_COMPLETION_TOKENS" =~ ^[0-9]+$ ]]; then
   echo "LLM_MAX_COMPLETION_TOKENS must be a positive integer, got $LLM_MAX_COMPLETION_TOKENS" >&2
@@ -86,11 +107,43 @@ if [[ "$PROVIDER" == or-* ]]; then
 fi
 export PYTHONUNBUFFERED=1
 
+HOUSING_STATE_FILTER_ENABLED=0
+HOUSING_RETRIEVAL_REQUESTED=0
+if [[ "$DATASET" == "housing" ]]; then
+  for requested_mode in "${MODES_ARR[@]}"; do
+    case "$requested_mode" in
+      llm_only|golden_passage|golden_arbitration|golden_arb_conservative)
+        ;;
+      *)
+        HOUSING_RETRIEVAL_REQUESTED=1
+        ;;
+    esac
+  done
+fi
+ALLOW_UNFILTERED_HOUSING="${EVAL_ALLOW_UNFILTERED_HOUSING_RETRIEVAL:-0}"
+if [[ "$HOUSING_RETRIEVAL_REQUESTED" == "1" && ! "$ALLOW_UNFILTERED_HOUSING" =~ ^(1|true|TRUE|yes|YES|on|ON)$ ]]; then
+  if [[ -n "${EVAL_HOUSING_STATE_FILTER+x}" && ! "${EVAL_HOUSING_STATE_FILTER:-0}" =~ ^(1|true|TRUE|yes|YES|on|ON)$ ]]; then
+    echo "HousingQA retrieval modes require EVAL_HOUSING_STATE_FILTER=1; set EVAL_ALLOW_UNFILTERED_HOUSING_RETRIEVAL=1 only for an explicit unfiltered ablation" >&2
+    exit 2
+  fi
+  export EVAL_HOUSING_STATE_FILTER=1
+fi
+if [[ "$DATASET" == "housing" && "${EVAL_HOUSING_STATE_FILTER:-0}" =~ ^(1|true|TRUE|yes|YES|on|ON)$ ]]; then
+  HOUSING_STATE_FILTER_ENABLED=1
+fi
+
 if [[ -z "$CACHE_SCOPE" ]]; then
   CACHE_SCOPE="q${QUESTIONS}_seed${SEED}"
+  if [[ "$HOUSING_STATE_FILTER_ENABLED" == "1" ]]; then
+    CACHE_SCOPE="${CACHE_SCOPE}_statefilter"
+  fi
   if [[ "$SAMPLE_START" != "0" || -n "$SAMPLE_END" ]]; then
     CACHE_SCOPE="${CACHE_SCOPE}_s${SAMPLE_START}_e${SAMPLE_END:-end}"
   fi
+fi
+if [[ "$HOUSING_STATE_FILTER_ENABLED" == "1" && "$CACHE_SCOPE" != *statefilter* ]]; then
+  echo "EVAL_HOUSING_STATE_FILTER=1 requires CACHE_SCOPE to include 'statefilter' to avoid unfiltered Housing cache ambiguity; got CACHE_SCOPE=$CACHE_SCOPE" >&2
+  exit 2
 fi
 
 sample_args=(--sample-start "$SAMPLE_START")
@@ -113,10 +166,16 @@ echo "[$(ts)] provider=$PROVIDER model_label=$MODEL_LABEL dataset=$DATASET quest
 echo "[$(ts)] cache_scope=$CACHE_SCOPE"
 echo "[$(ts)] modes=${MODES_ARR[*]} use_caches=$USE_CACHES require_retrieval_caches=$REQUIRE_RETRIEVAL_CACHES"
 echo "[$(ts)] no_silent_fallback=$NO_SILENT_FALLBACK"
+if [[ "$HOUSING_STATE_FILTER_ENABLED" == "1" ]]; then
+  echo "[$(ts)] housing_state_filter=on"
+fi
 echo "[$(ts)] llm_max_completion_tokens=$LLM_MAX_COMPLETION_TOKENS"
 echo "[$(ts)] eval_min_completion_tokens=$EVAL_MIN_COMPLETION_TOKENS"
 echo "[$(ts)] eval_final_format_retry=$EVAL_FINAL_FORMAT_RETRY"
 echo "[$(ts)] eval_generation_format_retry=$EVAL_GENERATION_FORMAT_RETRY"
+if [[ -n "${RETRIEVAL_DOC_CACHE_PATH:-}" ]]; then
+  echo "[$(ts)] retrieval_doc_cache_path=$RETRIEVAL_DOC_CACHE_PATH"
+fi
 if [[ -n "${LLM_CALL_MIN_INTERVAL_SEC:-}" || -n "${LLM_CALL_RATE_LIMIT_COOLDOWN_SEC:-}" ]]; then
   echo "[$(ts)] llm_call_min_interval=${LLM_CALL_MIN_INTERVAL_SEC:-0} rate_limit_cooldown=${LLM_CALL_RATE_LIMIT_COOLDOWN_SEC:-0}"
 fi
@@ -130,19 +189,58 @@ add_cache_args_for_mode() {
   local mode="$1"
   local hyre_cache=""
   local retrieval_cache=""
+  skip_collection_preflight_for_mode=0
   extra_args=()
 
   case "$mode" in
     rag_simple)
       retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_raw_question_k10.jsonl"
+      if [[ "$DATASET" == "legal_link_eu" && ! -s "$retrieval_cache" ]]; then
+        retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_raw_question_ce22000_k10.jsonl"
+      fi
       ;;
     rag_hyde)
       hyre_cache="$HYRE_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_rag_hyde.jsonl"
       retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_rag_hyde_k10.jsonl"
+      if [[ "$DATASET" == "legal_link_eu" && ! -s "$retrieval_cache" ]]; then
+        retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_rag_hyde_ce22000_k10.jsonl"
+      fi
+      ;;
+    rag_hyde_exemplar)
+      hyre_cache="$GENERATION_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_rag_hyde_exemplar.jsonl"
+      retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_rag_hyde_exemplar_k10.jsonl"
+      if [[ "$DATASET" == "legal_link_eu" && ! -s "$retrieval_cache" ]]; then
+        retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_rag_hyde_exemplar_ce22000_k10.jsonl"
+      fi
       ;;
     snap_hyre)
       hyre_cache="$HYRE_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_snap_hyre.jsonl"
       retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_snap_hyre_k10.jsonl"
+      if [[ "$DATASET" == "legal_link_eu" && ! -s "$retrieval_cache" ]]; then
+        retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_snap_hyre_ce22000_k10.jsonl"
+      fi
+      ;;
+    snap_hyre_exemplar)
+      hyre_cache="$GENERATION_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_snap_hyre_exemplar_realpassage.jsonl"
+      retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_snap_hyre_exemplar_realpassage_k10.jsonl"
+      if [[ "$DATASET" == "legal_link_eu" && ! -s "$retrieval_cache" ]]; then
+        retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_snap_hyre_exemplar_realpassage_ce22000_k10.jsonl"
+      fi
+      if [[ ! -s "$hyre_cache" && "$HOUSING_STATE_FILTER_ENABLED" == "1" ]]; then
+        unfiltered_realpassage_hyre="${hyre_cache/_statefilter/}"
+        if [[ "$unfiltered_realpassage_hyre" != "$hyre_cache" && -s "$unfiltered_realpassage_hyre" ]]; then
+          hyre_cache="$unfiltered_realpassage_hyre"
+        fi
+      fi
+      if [[ ! -s "$hyre_cache" ]]; then
+        hyre_cache="$GENERATION_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_snap_hyre_exemplar.jsonl"
+      fi
+      if [[ ! -s "$retrieval_cache" ]]; then
+        retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_snap_hyre_exemplar_k10.jsonl"
+        if [[ "$DATASET" == "legal_link_eu" && ! -s "$retrieval_cache" ]]; then
+          retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_snap_hyre_exemplar_ce22000_k10.jsonl"
+        fi
+      fi
       ;;
     golden_plus_neighbors)
       retrieval_cache="$RETRIEVAL_CACHE_ROOT/${DATASET}_${CACHE_SCOPE}_golden_neighbors_k10.jsonl"
@@ -153,12 +251,32 @@ add_cache_args_for_mode() {
     return 0
   fi
   if [[ -n "$hyre_cache" ]]; then
+    if [[ ! -s "$hyre_cache" && "$HOUSING_STATE_FILTER_ENABLED" == "1" ]]; then
+      local unfiltered_hyre="${hyre_cache/_statefilter/}"
+      if [[ "$unfiltered_hyre" != "$hyre_cache" && -s "$unfiltered_hyre" ]]; then
+        hyre_cache="$unfiltered_hyre"
+      fi
+    fi
+    if [[ ! -s "$hyre_cache" && "$HYRE_CACHE_ROOT" != "$GENERATION_CACHE_ROOT" ]]; then
+      local alt_cache="${GENERATION_CACHE_ROOT}/${DATASET}_${CACHE_SCOPE}_${MODEL_LABEL}_${mode}.jsonl"
+      if [[ -s "$alt_cache" ]]; then
+        hyre_cache="$alt_cache"
+      elif [[ "$HOUSING_STATE_FILTER_ENABLED" == "1" ]]; then
+        local unfiltered_alt_cache="${alt_cache/_statefilter/}"
+        if [[ "$unfiltered_alt_cache" != "$alt_cache" && -s "$unfiltered_alt_cache" ]]; then
+          hyre_cache="$unfiltered_alt_cache"
+        fi
+      fi
+    fi
     [[ -s "$hyre_cache" ]] || { echo "missing or empty hyre cache $hyre_cache" >&2; return 2; }
     extra_args+=(--hyre-cache-path "$hyre_cache")
   fi
   if [[ -n "$retrieval_cache" ]]; then
     if [[ -s "$retrieval_cache" ]]; then
       extra_args+=(--retrieval-cache-path "$retrieval_cache")
+      # Strict retrieval-cache replay only hydrates persisted passage ids.
+      # Avoid loading the embedding/vectorstore preflight for large cached runs.
+      skip_collection_preflight_for_mode=1
     elif [[ "$REQUIRE_RETRIEVAL_CACHES" == "1" ]]; then
       echo "missing or empty retrieval cache $retrieval_cache" >&2
       return 2
@@ -170,6 +288,9 @@ add_cache_args_for_mode() {
 
 for mode in "${MODES_ARR[@]}"; do
   tag="local-snap-hyre-${MODEL_LABEL}-${DATASET}-${mode}-n${QUESTIONS}-k${RETRIEVAL_K}"
+  if [[ "$SAMPLE_START" != "0" || -n "$SAMPLE_END" ]]; then
+    tag="${tag}-s${SAMPLE_START}-e${SAMPLE_END:-end}"
+  fi
   echo
   echo "[$(ts)] run dataset=$DATASET provider=$PROVIDER mode=$mode tag=$tag"
 
@@ -193,11 +314,15 @@ for mode in "${MODES_ARR[@]}"; do
     --retrieval-k "$RETRIEVAL_K"
     --tag "$tag"
   )
+  if [[ "$HOUSING_STATE_FILTER_ENABLED" == "1" ]]; then
+    eval_cmd+=(--housing-state-filter)
+  fi
   if [[ "${#extra_args[@]}" -gt 0 ]]; then
     eval_cmd+=("${extra_args[@]}")
   fi
   LLM_PROVIDER="$PROVIDER" \
   NO_SILENT_FALLBACK="$NO_SILENT_FALLBACK" \
+  SKIP_EVAL_COLLECTION_PREFLIGHT="$skip_collection_preflight_for_mode" \
   EVAL_TRACE_CALLS=1 \
   EVAL_TRACE_EVENTS=1 \
   EVAL_TRACE_MAX_CHARS="${EVAL_TRACE_MAX_CHARS:-1200}" \
@@ -230,8 +355,8 @@ near_cap_outputs = []
 missing_retrieval_cache = []
 missing_hyre_cache = []
 oracle_missing = []
-cache_required_modes = {"rag_simple", "rag_hyde", "snap_hyre", "golden_plus_neighbors"}
-hyre_required_modes = {"rag_hyde", "snap_hyre"}
+cache_required_modes = {"rag_simple", "rag_hyde", "rag_hyde_exemplar", "snap_hyre", "snap_hyre_exemplar", "golden_plus_neighbors"}
+hyre_required_modes = {"rag_hyde", "rag_hyde_exemplar", "snap_hyre", "snap_hyre_exemplar"}
 oracle_modes = {"golden_passage", "golden_plus_neighbors"}
 use_caches = os.getenv("USE_CACHES", "1") == "1"
 max_final_answer_chars = int(os.getenv("EVAL_MAX_FINAL_ANSWER_CHARS", "20000"))
@@ -249,7 +374,7 @@ def has_required_final_line(row, text):
             target = "Answer: No"
         else:
             return False
-    elif dataset in {"barexam", "housing", "casehold", "legalbench_scalr"}:
+    elif dataset in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"}:
         pred = pred.upper()
         if pred not in {"A", "B", "C", "D", "E"}:
             return False
@@ -283,9 +408,9 @@ with open(path) as f:
         if "<think>" in final_answer.lower():
             think_tags.append(row_id)
         dataset = str(row.get("dataset") or "")
-        if dataset in {"barexam", "housing", "casehold", "legalbench_scalr"} and not answer_marker.search(final_answer):
+        if dataset in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"} and not answer_marker.search(final_answer):
             missing_answer_marker.append(row_id)
-        elif dataset in {"barexam", "housing", "casehold", "legalbench_scalr"} and not has_required_final_line(row, final_answer):
+        elif dataset in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"} and not has_required_final_line(row, final_answer):
             missing_answer_marker.append(f"{row_id}:missing_required_final_answer_line")
         if max_final_answer_chars > 0 and len(final_answer) > max_final_answer_chars:
             long_answers.append(f"{row_id}:{len(final_answer)}")

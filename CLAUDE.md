@@ -17,10 +17,13 @@ outcome.
   cache workflow, validation gate, launch order, and open questions.
 - `docs/literature_snap_hyre_2026-05-12.md` - notes from L-MARS /
   LegalSearchQA, Zheng et al. BarExamQA/HousingQA, and LRAGE.
-- `docs/top_k_prelaunch_probe_2026-05-14.md` - current shared-k decision:
-  use k=5 for main answer sweeps, with k=1..10 retrieval curves as analysis.
-- `docs/comprehensive_run_status_2026-05-14.md` - live comprehensive-run ledger
-  with completed rows, blocked rows, cache health, and current launch gates.
+- `docs/top_k_prelaunch_probe_2026-05-14.md` - shared-k provenance: use k=5 for
+  main answer sweeps, but the q100 source slice predates the Legal-Link-EU /
+  MASLegalBench benchmark swap.
+- `current_status.md`, `docs/paper_iteration_signal_2026-05-20.md`, and
+  `docs/signoff_log.md` - current operational/paper-facing status and cite gates.
+- `docs/comprehensive_run_status_2026-05-14.md` - superseded run ledger retained
+  for provenance; it is not the current launch gate.
 - `docs/README.md` - current documentation map and archive locations.
 - `docs/signoff_log.md` - cite-or-not gate for any reported result.
 - `docs/compiled_results.md` and `logs/experiments.jsonl` - historical ledger
@@ -31,21 +34,18 @@ outcome.
   alias/provenance name.
 - Main controls: `llm_only`, `rag_simple`, `rag_hyde`, `golden_passage`,
   `golden_plus_neighbors`, and `rag_rewrite`.
-- Main benchmarks: BarExamQA, HousingQA, CaseHOLD, LegalBench-SCALR. HousingQA
-  stays unless smoke/audit evidence shows the yes/no format is not
-  interpretable for the fixed-method story.
-- Current launch priority is LegalBench-SCALR, then BarExamQA and CaseHOLD.
-  HousingQA remains in scope but should be deferred behind those three unless
-  a specific comparison needs it.
+- Main benchmarks: BarExamQA, HousingQA, Legal-Link-EU, and MASLegalBench.
+  CaseHOLD and LegalBench-SCALR are historical/superseded for the current
+  exact-scored main matrix unless explicitly re-added.
 - Main models: API-only small-model replacement, Gemma 4 26B, and Llama 3.3
   70B Versatile.
 - Execution default: use API providers for all three current comprehensive axes:
-  `or-ministral-8b` for the small-model row, `or-gemma4-26b` for Gemma 4 26B,
-  and `groq-llama70b` for Llama 3.3 70B. Historical Gemma 4 E4B provenance used
-  `cluster-vllm` with `LLM_MODEL=google/gemma-4-E4B-it`; keep those rows as
-  historical evidence, but do not make vLLM a launch requirement for the current
-  API-only comprehensive package. Do not substitute `or-gemma3n-e4b`; that is
-  Gemma 3n E4B, not the historical Gemma 4 E4B checkpoint.
+  `groq-llama8b` for the small-model row, `or-gemma4-26b` for Gemma 4 26B,
+  and `groq-llama70b` for Llama 3.3 70B. `groq-llama8b` maps to
+  `llama-3.1-8b-instant` and replaces the earlier `or-ministral-8b` launch
+  row. Historical Ministral and Gemma 4 E4B rows remain provenance, not active
+  launch requirements. Do not substitute `or-gemma3n-e4b`; that is Gemma 3n
+  E4B, not the historical Gemma 4 E4B checkpoint.
 - Main metrics: downstream accuracy, Hit/Recall@1/5/10, MRR@10, gold retrieved
   but wrong, gold missing but correct, conditional accuracy, calls, tokens,
   latency, and health status.
@@ -58,9 +58,28 @@ outcome.
 - Use generation caching (`scripts/build_generation_cache.py` for new full
   caches, or `scripts/build_hyre_cache.py` for older detail-log extraction, plus
   `--hyre-cache-path`) before repeated HyDE/Snap-HyRE answer runs.
+- Groq Batch API is allowed for Groq chat-completion rows when the exported
+  manifest preserves the exact row labels, prompts, model ids, completion
+  settings, and method/provider labels, and the import path applies the same
+  `NO_SILENT_FALLBACK`, parse, answer-format, near-cap, and long-output gates as
+  synchronous runs. Batch does not replace Chroma embedding/reranking caches.
+  For the small-model axis, use `groq-llama8b` /
+  `llama-3.1-8b-instant`; Groq's listed 12B Llama Guard model is a moderation
+  model, not a valid answer-model substitute for the comprehensive grid.
 - Use retrieval-id caches (`scripts/build_retrieval_cache.py`,
   `scripts/audit_retrieval_cache.py`, and `--retrieval-cache-path`) before
   large top-k sweeps where possible.
+- For large cached HousingQA answer replays, prefer a hydrated document-text
+  cache (`scripts/build_retrieval_doc_cache.py` plus
+  `RETRIEVAL_DOC_CACHE_PATH`) after cache construction. This preserves the
+  retrieval-cache passage IDs but avoids opening the full Housing Chroma
+  collection during answer replay.
+- HousingQA retrieval rows in the active main matrix must use the jurisdiction
+  state filter. The local answer runner auto-enables `EVAL_HOUSING_STATE_FILTER=1`
+  for Housing retrieval modes; direct harness and retrieval-cache builds fail
+  without `--housing-state-filter`. Use
+  `EVAL_ALLOW_UNFILTERED_HOUSING_RETRIEVAL=1` only for an explicit
+  provenance/ablation run.
 - Run `scripts/audit_retrieval_id_alignment.py` before treating Hit@k/MRR as
   valid retrieval-exposure claims; some datasets may have gold labels that are
   not Chroma document ids for the active collection.
@@ -110,6 +129,12 @@ outcome.
   avoided local OOM on the 1.8M-document Chroma index and is recorded in the
   cache metadata; do not describe it as arbitrary text re-embedding of the gold
   passage.
+
+**Historical/provenance rows below**: the following CaseHOLD, LegalBench-SCALR,
+and older Ministral rows are source-gated history, not active main-matrix
+requirements. Do not import them into the current paper except as explicitly
+labeled historical or appendix context.
+
 - As of 2026-05-15, all three full-corpus SCALR `llm_only` rows are signed off
   clean: `groq-llama70b` 425/571, `or-gemma4-26b` 417/571, and
   `or-ministral-8b` 384/571.
@@ -371,13 +396,15 @@ outcome.
   near-cap repairs. Dynamic rewrite retrieval exposure is Hit@5 0.1222 /
   MRR@5 0.0565, above raw BarExamQA retrieval but still a low absolute
   exact-gold-recall regime.
+- Historical CaseHOLD block: the following CaseHOLD rows are provenance only for
+  the current paper matrix.
 - The full CaseHOLD `groq-llama70b` `llm_only` row is 2585/3600 = 71.8%.
   It is signed with an explicit retry caveat: zero errors, missing
   predictions, parse failures, fallback keys, exact-final-line issues, long
   rows, or near-cap outputs; 39 logged same-model final-answer repairs, all
   `missing_marker` and 5-token repair outputs; max output 774 tokens and max
-  final-answer chars 3845. This is the current CaseHOLD no-retrieval anchor
-  for the priority benchmark set.
+  final-answer chars 3845. This was the CaseHOLD no-retrieval anchor for the
+  prior priority benchmark set.
 - The full CaseHOLD `or-gemma4-26b` `llm_only` row is 2614/3600 = 72.6%,
   directionally above the Llama 70B `llm_only` row by +0.81pp (McNemar
   b/c=356/327, p=0.284). Cite with the explicit retry/near-cap caveat: no
@@ -572,7 +599,7 @@ as the active branch narrative.
 
 ## Archived Update 2026-05-11 (diagnostic-adaptation meeting package)
 
-**Current north star**: source-gated diagnostic adaptation for legal RAG. The
+**Superseded north star**: source-gated diagnostic adaptation for legal RAG. The
 meeting package frames Snap-HyRE/HyRE as one intervention family inside a
 bottleneck-aware controller: calibration traces route each benchmark toward
 baseline RAG, legal query rewrite, Snap-HyRE/HyRE, state metadata filtering,

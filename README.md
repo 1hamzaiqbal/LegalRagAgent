@@ -7,19 +7,19 @@ flat, and when it hurts.
 
 The current navigation path, in priority order:
 
-1. [`paper/main.pdf`](paper/main.pdf) and
-   [`paper/main.tex`](paper/main.tex) - **ICML 2026 submission draft**.
-   Headline: a bottleneck-aware diagnostic controller routes among baseline
-   RAG, query rewrite, Snap-HyRE/HyRE, state-filter, verifier, option
-   grounding, disagreement arbitration, and reject/escalate. See also
-   [`paper/README.md`](paper/README.md) and
-   [`paper/TODO_for_writers.md`](paper/TODO_for_writers.md) for build
-   instructions and outstanding decisions.
+1. [`paper/snap_hyre_2025_05_18/main.pdf`](paper/snap_hyre_2025_05_18/main.pdf)
+   and [`paper/snap_hyre_2025_05_18/main.tex`](paper/snap_hyre_2025_05_18/main.tex)
+   - **active ICML 2026 draft**.
+   Headline: a fixed Snap-HyRE generated-query method evaluated across
+   BarExamQA, HousingQA, Legal-Link-EU, and MASLegalBench, with retrieval
+   exposure, answer accuracy, oracle controls, coverage, and row caveats
+   reported together. See also [`paper/README.md`](paper/README.md) for build
+   instructions and active scope.
 2. [`docs/README.md`](docs/README.md) - documentation map; evidence
    ledgers, validation rules, current meeting state.
-3. [`docs/meeting_prep_2026-05-11_diagnostic_adaptation.md`](docs/meeting_prep_2026-05-11_diagnostic_adaptation.md)
-   - May 11 meeting brief: bottleneck taxonomy, calibration/held-out tables,
-   north-star goal.
+3. [`docs/paper_iteration_signal_2026-05-20.md`](docs/paper_iteration_signal_2026-05-20.md)
+   - paper/eval handoff for provisional rows, live checks, and non-citable
+   probe status.
 4. [`docs/signoff_log.md`](docs/signoff_log.md) - cite-or-not gate for result
    claims.
 5. [`docs/compiled_results.md`](docs/compiled_results.md) and
@@ -34,18 +34,24 @@ robustness check for the BarExam route.
 
 ## Current Research Frame
 
-The active framing is a bottleneck taxonomy, not a universal new RAG recipe.
-The work asks which failure mode a dataset is exposing:
+The active framing is a fixed-method Snap-HyRE evaluation, not a diagnostic
+adaptive-controller story. The work asks where one snap-conditioned
+generated-query method changes retrieval exposure and whether that converts to
+downstream answer accuracy:
 
-- MuSiQue x Llama 70B is retrieval-depth sensitive and benefits from
-  `snap_hyde_2call` at N=200.
-- BarExam x Gemma 4 26B is retrieval-depth flat, so its RAG lift is better read
-  as answer anchoring or evidence-use behavior rather than simple top-k recall.
-- CaseHOLD and LegalBench-SCALR are option-disambiguation replicates, with
-  CaseHOLD now repaired enough to show gold-retrieval movement without a
-  significant answer-accuracy lift.
-- HousingQA is the active metadata/filtering stress test; the first state-filter
-  run failed empty retrieval and was resubmitted after a casing fix.
+- BarExamQA is the cleanest positive Snap-HyRE setting: raw retrieval is very
+  weak, generated legal-reference passages improve exposure, and answer gains
+  appear across audited model rows.
+- HousingQA shows generated-query value but method sensitivity: HyDE and rewrite
+  controls can beat Snap-HyRE on the current national-corpus rows.
+- Legal-Link-EU is the main anchor-loss negative: raw questions already carry
+  strong source/target document anchors, and generated passages can move away
+  from them.
+- MASLegalBench is high-accuracy and source-proxy-only for retrieval exposure.
+
+CaseHOLD and LegalBench-SCALR are historical/superseded for the active
+exact-scored main matrix unless explicitly re-added under the current
+fixed-method contract.
 
 For numbers, p-values, and caveats, use
 [`docs/signoff_log.md`](docs/signoff_log.md), not this README.
@@ -196,9 +202,11 @@ chroma_db/                 # Local vector stores
 |---|---|---|
 | BarExam QA | `legal_passages` | Multiple choice A-D |
 | HousingQA | `housing_statutes` | Yes/No |
-| CaseHOLD | `casehold_holdings` | Multiple choice A-E |
+| CaseHOLD | `casehold_holdings` | Multiple choice A-E; historical/superseded for active paper matrix |
 | MuSiQue | in-row BM25 / `musique_passages` on cluster | Short-answer multi-hop |
-| LegalBench-SCALR | `legalbench_scalr_holdings` | Multiple choice A-E |
+| LegalBench-SCALR | `legalbench_scalr_holdings` | Multiple choice A-E; historical/superseded for active paper matrix |
+| Legal-Link-EU | frozen EUR-Lex evidence corpus | Multiple choice A-D; active paper matrix |
+| MASLegalBench | frozen source corpus | Multiple choice A-D; active paper matrix, source-proxy retrieval |
 | Legal-RAG-QA | `legal_rag_passages` | Open-ended |
 | Australian Legal QA | `australian_legal` | Open-ended |
 

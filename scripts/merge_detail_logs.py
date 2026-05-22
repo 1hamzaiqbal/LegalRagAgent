@@ -39,11 +39,21 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--key", help="Unique record key, default: idx then label")
+    parser.add_argument(
+        "--on-duplicate",
+        choices=("error", "first", "last"),
+        default="error",
+        help=(
+            "How to handle duplicate merge keys. Default preserves historical "
+            "strict behavior; 'last' is useful for merging a failed prefix with "
+            "a repair tail."
+        ),
+    )
     parser.add_argument("inputs", nargs="+", type=Path)
     args = parser.parse_args()
 
     merged: list[dict[str, Any]] = []
-    seen: set[str] = set()
+    seen: dict[str, int] = {}
     key_name: str | None = None
 
     for path in args.inputs:
@@ -55,8 +65,13 @@ def main() -> None:
                 raise SystemExit(f"{path}: row missing merge key {key_name!r}")
             key = str(row[key_name])
             if key in seen:
-                raise SystemExit(f"duplicate {key_name}={key!r} while merging {path}")
-            seen.add(key)
+                if args.on_duplicate == "error":
+                    raise SystemExit(f"duplicate {key_name}={key!r} while merging {path}")
+                if args.on_duplicate == "first":
+                    continue
+                merged[seen[key]] = row
+                continue
+            seen[key] = len(merged)
             merged.append(row)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

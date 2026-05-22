@@ -7,14 +7,16 @@ result validation. This machine is not expected to have WUSTL/HPC access.
 ## Mission
 
 Produce a full-corpus, retrieval-first Snap-HyRE evaluation package across four
-legal benchmarks: BarExamQA, HousingQA, CaseHOLD, and LegalBench-SCALR. Use the
-same fixed method ladder across datasets and report retrieval exposure metrics
-alongside downstream answer accuracy.
+legal benchmarks: BarExamQA, HousingQA, Legal-Link-EU, and MASLegalBench. Use
+the same fixed method ladder across datasets and report retrieval exposure
+metrics alongside downstream answer accuracy. CaseHOLD and LegalBench-SCALR are
+historical/superseded for the active main matrix unless explicitly re-added.
 
 Primary claim target:
 
-- Snap-HyRE should improve retrieval exposure over standard RAG: Hit/Recall@1,
-  Hit/Recall@5, Hit/Recall@10, and MRR@10 where gold ids are aligned.
+- Snap-HyRE should be evaluated for retrieval exposure versus standard RAG:
+  Hit/Recall@1, Hit/Recall@5, Hit/Recall@10, and MRR@10 where gold ids are
+  aligned, with MASLegalBench labeled as a same-source proxy.
 - Downstream answer accuracy is the harder transfer target. Report it honestly
   and do not contort dataset-specific harnesses to force a positive result.
 
@@ -67,7 +69,7 @@ HF_TOKEN=...
 
 Use these providers unless a smoke test proves one is broken:
 
-- `or-ministral-8b`: API-only small-model replacement via OpenRouter.
+- `groq-llama8b`: API-only small-model replacement via Groq.
 - `or-gemma4-26b`: Gemma 4 26B via OpenRouter.
 - `groq-llama70b`: Llama 3.3 70B Versatile via Groq.
 
@@ -296,7 +298,7 @@ scripts/local/run_api_smoke.sh
 Equivalent explicit command:
 
 ```bash
-for provider in or-ministral-8b or-gemma4-26b groq-llama70b; do
+for provider in groq-llama8b or-gemma4-26b groq-llama70b; do
   for mode in rag_simple snap_hyre; do
     uv run python eval/eval_harness.py \
       --mode "$mode" --provider "$provider" --dataset legalbench_scalr \

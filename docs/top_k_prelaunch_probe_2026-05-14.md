@@ -1,5 +1,9 @@
 # Top-K Prelaunch Probe - 2026-05-14
 
+> Provenance note: the k=5 decision remains the current main answer-depth
+> default, but this q100 source slice predates the Legal-Link-EU/MASLegalBench
+> benchmark swap and includes CaseHOLD/LegalBench-SCALR.
+
 Purpose: choose a shared evidence depth for the comprehensive API answer
 sweeps without spending another full day on top-k tuning. This is a prelaunch
 gate, not a final per-model top-k benchmark.

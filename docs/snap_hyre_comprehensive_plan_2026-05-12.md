@@ -31,8 +31,13 @@ with the fixed-method story.
 |---|---:|---|---|
 | BarExamQA | yes | Full-corpus prior evidence and direct related-work comparability. | Reasoning-heavy; retrieval lift may not convert to accuracy. |
 | HousingQA | yes, replacement-eligible | Statutory retrieval and yes/no legal entailment; related-work benchmark. | Yes/no format and jurisdiction filtering can make it feel unlike the other MC tasks. |
-| CaseHOLD | yes | Holding-option task; exposes retrieval-vs-answer conversion. | Gold retrieval may improve faster than answer accuracy. |
-| LegalBench-SCALR | yes | Legal holding-selection task with local Chroma coverage and full-ish runs. | Candidate depth saturates quickly; Snap-HyRE may only match baseline. |
+| Legal-Link-EU | yes | English legal-link prediction converted to exact MC over a frozen embedded EU-law corpus, with gold target documents for retrieval exposure. | Long source/target documents require the audited CE truncation cap and careful evidence headers. |
+| MASLegalBench | yes | Exact MC GDPR/DPA penalty-notice questions over a frozen local source corpus; closer to the desired "question + choices + embedded corpus" paradigm than CaseHOLD/SCALR. | No official per-question qrels, so retrieval exposure is reported as source-document proxy rather than gold-passage Hit@k. |
+
+CaseHOLD and LegalBench-SCALR are historical/superseded for the current
+exact-scored main matrix unless explicitly re-added. Their older runs remain
+useful provenance, but they should not steer active completion percentages or
+new comprehensive launch order.
 
 LegalSearchQA should stay related work or a separate current-law web-search
 diagnostic for now. It has only 50 questions and no frozen local corpus/qrels,
@@ -45,7 +50,7 @@ Run the same method ladder across:
 
 | Model label | Provider path | Role |
 |---|---|---|
-| Ministral 3 8B 2512 | OpenRouter `or-ministral-8b` | API-only small-model replacement; do not label as Gemma 4 E4B |
+| Llama 3.1 8B Instant | Groq `groq-llama8b` | API-only small-model replacement; supersedes the earlier OpenRouter Ministral row |
 | Gemma 4 26B | OpenRouter `or-gemma4-26b` | main Gemma result |
 | Llama 3.3 70B Versatile | Groq `groq-llama70b` | cross-family larger model |
 
@@ -60,6 +65,16 @@ require vLLM unless an exact API endpoint is verified. Do not use
 `google/gemma-3n-e4b-it`, a different model family/checkpoint. Qwen3-style
 models and Nemotron Nano 9B V2 reasoning-trace models are not main-grid
 defaults unless a separate smoke proves they produce clean answer-only outputs.
+
+Groq async batch processing is permitted for Groq chat-completion rows as an
+execution transport, not as a method change. Batch manifests must preserve exact
+row labels, prompts, model ids, completion settings, cache paths, method labels,
+and provider labels, and imported results must pass the same no-silent-fallback,
+parse, answer-format, near-cap, and long-output gates as synchronous runs. Batch
+does not replace Chroma embedding or cross-encoder retrieval caches. For the
+small-model axis, the batch-compatible Groq answer model is
+`llama-3.1-8b-instant` via `groq-llama8b`; Groq's listed 12B Llama Guard model is
+a moderation/safety model and is not a substitute answerer for this grid.
 
 ## Fixed Method Ladder
 

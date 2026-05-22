@@ -4,30 +4,34 @@
 
 Produce one clean, fixed-method Snap-HyRE comparison across four legal
 benchmarks and three model families. The main claim is retrieval-first:
-Snap-HyRE should improve gold-evidence exposure versus raw-question retrieval.
-Downstream accuracy lift is desirable, but negative or flat accuracy is still
-interpretable if retrieval improves and the answer-conversion failure is shown.
+evaluate where Snap-HyRE changes gold-evidence exposure versus raw-question
+retrieval, then report whether that exposure converts to downstream answer
+accuracy. Downstream accuracy lift is desirable, but negative or flat rows are
+still interpretable when the retrieval, oracle, and answer-conversion failure
+are shown.
 
 ## Canonical Benchmarks
 
 | Dataset | Primary reason to keep | Main reported retrieval metric |
 |---|---|---|
 | BarExamQA | Legal exam MC task with full-corpus prior results. | Hit@1/5/10 and MRR over gold passage ids. |
-| CaseHOLD | Holding-option task that separates retrieval from option mapping. | Hit@1/5/10 and MRR over gold holding ids. |
-| LegalBench-SCALR | Legal holding-selection task with populated local/HPC Chroma. | Hit@1/5/10 and MRR where gold ids are available. |
 | HousingQA | Statutory yes/no entailment benchmark from the same Zheng line. | Any-gold and all-gold statute retrieval when multiple statutes are labeled. |
+| Legal-Link-EU | Legal-link prediction converted to exact MC over a frozen EUR-Lex corpus. | Hit@1/5/10 and MRR over source/target document golds. |
+| MASLegalBench | Exact MC penalty-notice questions over a frozen source corpus. | Same-source-document retrieval proxy; no official per-question passage qrels. |
 
-HousingQA stays in the first pass because it is legal and related-work aligned.
-If yes/no entailment keeps dominating and obscures the retrieval story, replace
-it only after a documented smoke/audit says the fixed method table is not
-interpretable. State filtering can remain an analysis/control row, not a
-headline requirement.
+CaseHOLD and LegalBench-SCALR were useful development benchmarks, but they are
+historical/superseded for the current exact-scored main matrix unless explicitly
+re-added under the fixed-method contract. HousingQA stays in the active matrix
+because it is legal and related-work aligned. As of the 2026-05-20 hardening
+pass, HousingQA retrieval rows in the main matrix require jurisdiction state
+filtering; unfiltered national-corpus rows are provenance/ablation evidence
+only.
 
 ## Canonical Models
 
 | Label | Preferred provider | Fallback | Role |
 |---|---|---|---|
-| Gemma E4B | OpenRouter `or-gemma3n-e4b` | HPC vLLM for exact historical Gemma 4 E4B | small Gemma axis |
+| Llama 3.1 8B Instant | Groq `groq-llama8b` | none; do not substitute moderation models | small-model axis |
 | Gemma 4 26B | OpenRouter `or-gemma4-26b` | HPC vLLM | main Gemma axis |
 | Llama 3.3 70B Versatile | Groq `groq-llama70b` | OpenRouter `or-llama70b` | cross-family large model |
 
@@ -36,12 +40,11 @@ same table cell unless the provider is explicitly labeled.
 
 Provider policy: use API-backed runs by default for answer and generation
 sweeps. They avoid vLLM startup, GPU memory failures, and long cluster
-reservation costs while still using the populated HPC Chroma collections. vLLM
-is retained only for exact historical Gemma 4 E4B rows or if API access blocks
-a needed cell. OpenRouter's E4B API endpoint is `google/gemma-3n-e4b-it`,
-exposed locally as `or-gemma3n-e4b`; label that row as Gemma E4B or Gemma 3n
-E4B rather than the exact `google/gemma-4-E4B-it` checkpoint used by older vLLM
-runs.
+reservation costs while still using populated Chroma collections. vLLM is
+retained only for provenance rows or if API access blocks a needed cell.
+OpenRouter's E4B API endpoint is `google/gemma-3n-e4b-it`; do not treat it as
+the exact historical `google/gemma-4-E4B-it` checkpoint or as a replacement for
+the current `groq-llama8b` small-model axis.
 
 ## Method Ladder
 
@@ -244,8 +247,8 @@ Do not promote a result row unless all of these pass:
 ## Immediate Launch Order
 
 1. Local/HPC corpus check: confirm Chroma collections exist for BarExamQA,
-   CaseHOLD, LegalBench-SCALR, and HousingQA on the machine we will use.
-2. Provider smoke: confirm `or-gemma3n-e4b`, `or-gemma4-26b`, and
+   HousingQA, Legal-Link-EU, and MASLegalBench on the machine we will use.
+2. Provider smoke: confirm `groq-llama8b`, `or-gemma4-26b`, and
    `groq-llama70b` return parseable answers on one question each.
 3. Method smoke: `--questions 5` for each dataset on `rag_simple`,
    `rag_hyde`, `snap_hyre`, `golden_plus_neighbors`, and `rag_rewrite`.
@@ -274,10 +277,12 @@ Completed locally on 2026-05-12:
   `--retrieval-cache-path` are visible from `eval/eval_harness.py --help`.
 - CLI smoke confirmed both retrieval-cache scripts expose expected arguments.
 - Local SCALR raw-question retrieval-cache smoke wrote one row and
-  `scripts/audit_retrieval_cache.py` validated it with no duplicate, missing,
-  empty, or too-short rows.
+	  `scripts/audit_retrieval_cache.py` validated it with no duplicate, missing,
+	  empty, or too-short rows. This was a historical smoke before SCALR was
+	  removed from the active main matrix.
 - Cached retrieval hydration smoke returned `cache_hit=True` and one SCALR
-  passage id without launching an LLM call.
+	  passage id without launching an LLM call; keep this as provenance, not as a
+	  current benchmark requirement.
 - Unit tests passed: `tests/test_score_retrieval_qrels.py`,
   `tests/test_eval_metrics.py`, `tests/test_formatter.py`, and
   `tests/test_sanitizer.py` (`27 passed`).
@@ -304,8 +309,10 @@ Compute-node cache smoke:
 - SLURM job `68366` completed cleanly on 2026-05-12 in 5:55 using
   `scripts/hpc/slurm_snap_hyre_cache_smoke.sh`.
 - The smoke validated imports, populated Chroma access, `snap_hyre` runner
-  registration, and one raw-question retrieval-cache row for BarExamQA,
-  HousingQA, CaseHOLD, and LegalBench-SCALR.
+  registration, and one raw-question retrieval-cache row for the then-active
+  BarExamQA, HousingQA, CaseHOLD, and LegalBench-SCALR set. The active main
+  matrix has since moved to BarExamQA, HousingQA, Legal-Link-EU, and
+  MASLegalBench.
 - Each smoke cache passed `scripts/audit_retrieval_cache.py` with zero
   duplicate keys, missing idxs, empty retrieval rows, or rows shorter than
   `min_k=3`.

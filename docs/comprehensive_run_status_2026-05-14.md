@@ -1,5 +1,11 @@
 # Comprehensive Run Status - 2026-05-14
 
+> Superseded status ledger. This file preserves the earlier
+> CaseHOLD/LegalBench-SCALR-inclusive comprehensive queue for provenance. The
+> active main paper matrix is BarExamQA, HousingQA, Legal-Link-EU, and
+> MASLegalBench; use `current_status.md`, `docs/paper_iteration_signal_2026-05-20.md`,
+> and `docs/signoff_log.md` for current paper-facing status.
+
 Purpose: live checkpoint for the Snap-HyRE comprehensive evaluation. This file
 tracks launch decisions, active cells, blocked rows, and signed-off rows so the
 run does not drift while long API jobs execute.

@@ -31,10 +31,11 @@ case "$ACTION" in
       exit 0
     fi
     rm -f "$PID_FILE"
+    loop='echo "$$" > "$1"; while true; do CURRENT_STATUS_MONITOR=1 python3 scripts/update_current_status.py --interval "$2"; sleep "$2"; done'
     if command -v setsid >/dev/null 2>&1; then
-      setsid bash -c 'echo "$$" > "$1"; exec python3 scripts/update_current_status.py --watch --interval "$2"' monitor "$PID_FILE" "$INTERVAL" >> "$LOG_FILE" 2>&1 < /dev/null &
+      setsid bash -c "$loop" monitor "$PID_FILE" "$INTERVAL" >> "$LOG_FILE" 2>&1 < /dev/null &
     else
-      nohup bash -c 'echo "$$" > "$1"; exec python3 scripts/update_current_status.py --watch --interval "$2"' monitor "$PID_FILE" "$INTERVAL" >> "$LOG_FILE" 2>&1 < /dev/null &
+      nohup bash -c "$loop" monitor "$PID_FILE" "$INTERVAL" >> "$LOG_FILE" 2>&1 < /dev/null &
     fi
     for _ in {1..20}; do
       pid="$(read_pid || true)"

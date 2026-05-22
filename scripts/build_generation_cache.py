@@ -33,9 +33,12 @@ from eval_harness import (  # noqa: E402
     _get_metrics,
     _get_trace_events,
     _question_only_hyde_user,
+    _provider_route_metadata,
     _reset_call_trace,
     _reset_llm_call_counter,
     _reset_trace_events,
+    _sanitize_intermediate_text,
+    _system_prompt,
     _row_label,
     _setup_provider,
     _llm_call,
@@ -84,43 +87,173 @@ def _strict_generation_violations(record: dict[str, Any], mode: str) -> list[str
         violations.append("hyde_used_fallback=True")
     if record.get("hyde_contains_answer_artifact") is True:
         violations.append("hyde_contains_answer_artifact=True")
-    if mode == "snap_hyre" and record.get("snap_hyre_parse_ok") is False:
+    near_cap = int(os.getenv("EVAL_GENERATION_NEAR_CAP_TOKENS", "1900"))
+    if int(record.get("output_tokens") or 0) >= near_cap and not _generation_retry_resolved_near_cap(
+        record,
+        mode,
+        near_cap,
+    ):
+        violations.append(f"generation_output_tokens_near_cap>={near_cap}")
+    max_hyde_chars = int(os.getenv("EVAL_HYDE_MAX_CHARS", "2500"))
+    if len(str(record.get("hyde_passage") or "")) > max_hyde_chars:
+        violations.append(f"hyde_passage_chars>{max_hyde_chars}")
+    if mode in {"snap_hyre", "snap_hyre_exemplar"} and record.get("snap_hyre_parse_ok") is False:
         violations.append("snap_hyre_parse_ok=False")
-    if mode == "snap_hyre" and not record.get("snap_letter"):
+    if mode in {"snap_hyre", "snap_hyre_exemplar"} and not record.get("snap_letter"):
         violations.append("snap_letter missing required final answer line")
     return violations
 
 
+def _generation_retry_resolved_near_cap(record: dict[str, Any], mode: str, near_cap: int) -> bool:
+    """Accept only explicit same-model format repairs that replace a near-cap generation."""
+    if mode in {"snap_hyre", "snap_hyre_exemplar"}:
+        return _snap_hyre_retry_resolved_near_cap(record, near_cap)
+    if mode in {"rag_hyde", "rag_hyde_exemplar"}:
+        return _hyde_retry_resolved_near_cap(record)
+    return False
+
+
+def _hyde_retry_resolved_near_cap(record: dict[str, Any]) -> bool:
+    if record.get("hyde_format_retry") is not True:
+        return False
+    if record.get("hyde_format_retry_valid") is not True:
+        return False
+    if not record.get("hyde_passage"):
+        return False
+    if record.get("hyde_contains_answer_artifact") is True:
+        return False
+    if record.get("hyde_used_fallback") is True:
+        return False
+    return True
+
+
+def _snap_hyre_retry_resolved_near_cap(record: dict[str, Any], near_cap: int) -> bool:
+    """Accept only a logged same-model retry that produced the usable Snap-HyRE text."""
+    if record.get("snap_hyre_format_retry") is not True:
+        return False
+    if record.get("snap_hyre_parse_ok") is not True:
+        return False
+    if not record.get("snap_letter") or not record.get("hyde_passage"):
+        return False
+    if record.get("hyde_contains_answer_artifact") is True:
+        return False
+    retry_tokens = record.get("snap_hyre_format_retry_output_tokens")
+    if retry_tokens is None:
+        return False
+    try:
+        return int(retry_tokens) < near_cap
+    except (TypeError, ValueError):
+        return False
+
+
+def _env_truthy(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _max_hyde_chars() -> int:
+    return int(os.getenv("EVAL_HYDE_MAX_CHARS", "2500"))
+
+
+def _retry_excerpt(text: str, limit: int = 4000) -> str:
+    text = str(text or "")
+    if len(text) <= limit:
+        return text
+    head = max(0, limit - 700)
+    return text[:head] + "\n\n[... previous output truncated for retry prompt ...]\n\n" + text[-500:]
+
+
+def _repair_hyde_payload(row: Any, config: EvalConfig, payload: dict[str, Any]) -> dict[str, Any]:
+    """Run a logged same-model format repair for malformed/overlong HyDE text."""
+    reasons: list[str] = []
+    hyde_passage = str(payload.get("hyde_passage") or "")
+    if not hyde_passage:
+        reasons.append("missing_hyde_passage")
+    if payload.get("hyde_used_fallback") is True:
+        reasons.append("hyde_used_fallback")
+    if payload.get("hyde_contains_answer_artifact") is True:
+        reasons.append("passage_contains_answer_artifact")
+    max_chars = _max_hyde_chars()
+    if max_chars > 0 and len(hyde_passage) > max_chars:
+        reasons.append(f"hyde_passage_chars>{max_chars}")
+    if not reasons or not _env_truthy("EVAL_GENERATION_FORMAT_RETRY"):
+        return payload
+
+    question_intermediate = _fmt_intermediate(row, config)
+    previous = str(payload.get("hyde_passage_raw") or payload.get("hyde_passage") or "")
+    repair_user = (
+        "## Original Scenario\n"
+        f"{question_intermediate}\n\n"
+        "## Previous Malformed Passage\n"
+        f"{_retry_excerpt(previous)}\n\n"
+        "## Repair Instruction\n"
+        "Rewrite the previous passage as a valid HyDE retrieval passage. Preserve the same legal "
+        "issue and doctrine, but return only 2-3 concise sentences in neutral legal reference "
+        "style. Maximum 120 words. Do not repeat phrases or sentences. Do not include answer "
+        "labels, choice letters, markdown, bullets, or an `Answer:` line."
+    )
+    retry_raw = _llm_call(
+        _system_prompt(config, "hyde"),
+        repair_user,
+        label="hyde/generate/format_retry",
+    )
+    retry_text = _sanitize_intermediate_text(retry_raw, fallback="")
+    retry_contains_answer = _contains_answer_artifact(retry_text)
+    repaired = {
+        **payload,
+        "hyde_passage": retry_text,
+        "hyde_passage_raw": retry_raw,
+        "hyde_contains_answer_artifact": retry_contains_answer,
+        "hyde_used_fallback": not bool(retry_text),
+        "hyde_parse_ok": bool(retry_text),
+        "hyde_format_retry": True,
+        "hyde_format_retry_reason": ",".join(reasons),
+        "hyde_format_retry_reasons": reasons,
+        "hyde_format_retry_valid": (
+            bool(retry_text)
+            and not retry_contains_answer
+            and (max_chars <= 0 or len(retry_text) <= max_chars)
+        ),
+        "hyde_passage_before_format_retry": payload.get("hyde_passage", ""),
+        "hyde_raw_before_format_retry": payload.get("hyde_passage_raw", ""),
+    }
+    return repaired
+
+
 def _build_rag_hyde(row, config: EvalConfig) -> dict[str, Any]:
     question_intermediate = _fmt_intermediate(row, config)
+    use_style_signal = config.mode == "rag_hyde_exemplar"
     hyde = _generate_hyde(
         config,
         "hyde",
-        _question_only_hyde_user(question_intermediate),
-        label="hyde/generate",
+        _question_only_hyde_user(question_intermediate, config=config, use_style_signal=use_style_signal),
+        label="hyde_exemplar/generate" if use_style_signal else "hyde/generate",
         fallback=question_intermediate,
     )
-    return {
-        "source_mode": "rag_hyde",
+    payload = {
+        "source_mode": config.mode,
         "hyde_passage": hyde["text"],
         "hyde_passage_raw": hyde["raw"],
         "hyde_contains_answer_artifact": hyde["contains_answer"],
         "hyde_used_fallback": hyde.get("used_fallback", False),
         "hyde_parse_ok": bool(hyde["text"]),
+        "passage_style_signal_used": use_style_signal,
     }
+    return _repair_hyde_payload(row, config, payload)
 
 
 def _build_snap_hyre(row, config: EvalConfig) -> dict[str, Any]:
     question = _fmt(row, config)
     question_intermediate = _fmt_intermediate(row, config)
+    use_style_signal = config.mode == "snap_hyre_exemplar"
     raw, snap_block, hyre_passage, parse_ok, retry_meta = _generate_snap_hyre_blocks(
         config,
         question=question,
         fallback_passage=question_intermediate,
-        label="snap_hyre/snap_and_hyre",
+        label="snap_hyre_exemplar/snap_and_hyre" if use_style_signal else "snap_hyre/snap_and_hyre",
+        use_style_signal=use_style_signal,
     )
     return {
-        "source_mode": "snap_hyre",
+        "source_mode": config.mode,
         "snap_answer": snap_block,
         "snap_letter": _extract_required_final_line_prediction(snap_block, config),
         "snap_and_hyre_raw": raw,
@@ -128,16 +261,19 @@ def _build_snap_hyre(row, config: EvalConfig) -> dict[str, Any]:
         "hyde_passage": hyre_passage,
         "hyde_passage_raw": raw,
         "hyde_contains_answer_artifact": _contains_answer_artifact(hyre_passage),
+        "passage_style_signal_used": use_style_signal,
         **retry_meta,
     }
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mode", required=True, choices=["rag_hyde", "snap_hyre"])
+    parser.add_argument("--mode", required=True, choices=[
+        "rag_hyde", "snap_hyre", "rag_hyde_exemplar", "snap_hyre_exemplar",
+    ])
     parser.add_argument("--provider", required=True)
     parser.add_argument("--dataset", required=True, choices=[
-        "barexam", "housing", "legal_rag", "australian", "casehold",
+        "barexam", "housing", "legal_rag", "legal_rag_bench", "mas_legal_bench", "legal_link_eu", "australian", "casehold",
         "musique", "legalbench_scalr",
     ])
     parser.add_argument("--questions", default="full", help="'full' or integer N")
@@ -197,7 +333,7 @@ def main() -> None:
             error = ""
             payload: dict[str, Any] = {}
             try:
-                if args.mode == "rag_hyde":
+                if args.mode in {"rag_hyde", "rag_hyde_exemplar"}:
                     payload = _build_rag_hyde(row, config)
                 else:
                     payload = _build_snap_hyre(row, config)
@@ -216,6 +352,7 @@ def main() -> None:
                 "dataset": args.dataset,
                 "mode": args.mode,
                 "provider": args.provider,
+                "provider_route": _provider_route_metadata(),
                 "tag": args.tag,
                 "elapsed_sec": round(time.time() - start_time, 1),
                 "error": error,

@@ -73,8 +73,32 @@ GROQ_API_KEY=...
 
 The exact Gemma 4 E4B axis is not an OpenRouter row in this repo. Historical
 Gemma 4 E4B rows are vLLM provenance, not a launch requirement for the current
-API-only comprehensive package. Use `or-ministral-8b` as the small-model API row.
+API-only comprehensive package. Use `groq-llama8b` as the small-model API row.
 Do not use `or-gemma3n-e4b` as a replacement; that is `google/gemma-3n-e4b-it`.
+
+For the remaining HousingQA Gemma 26B state-filtered rows, use
+`scripts/local/check_housing_gemma_readiness.sh` first, then the one-command
+continuation `scripts/local/run_housing_gemma_after_key_reset.sh` only after the
+network preflight passes. The Gemma launchers fail closed on exact model
+identity, OpenRouter budget, and a tiny OpenRouter chat-route smoke via
+`scripts/check_expected_provider_model.py`,
+`scripts/check_openrouter_key_status.py`, and
+`scripts/check_openrouter_chat_route.py`; do not bypass those guards for
+paper-facing rows.
+The chat-route smoke disables OpenRouter provider fallbacks by default and
+honors `OPENROUTER_PROVIDER_ONLY`, `OPENROUTER_PROVIDER_ORDER`, and
+`OPENROUTER_PROVIDER_IGNORE` when an operator needs to pin or exclude a
+same-model serving route explicitly.
+If nobody will be watching the key reset window, run
+`scripts/local/watch_housing_gemma_until_ready.sh` in tmux/screen. It is
+non-launching by default; set `LAUNCH_ON_READY=1` only when you want it to run
+the canonical continuation and final completion gate automatically after the
+same preflight succeeds.
+Use `scripts/local/housing_gemma_budget_watcher.sh status|start|stop` for
+detached watcher management; it records and checks the watcher lock/PID and
+removes stale watcher locks on start. The manager is non-launching by default;
+set `LAUNCH_ON_READY=1` explicitly only when automatic launch after a successful
+preflight is intended.
 
 After any clean batch, rebuild the package status:
 

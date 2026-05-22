@@ -1,5 +1,13 @@
 # Snap-HyRE Completion Audit - 2026-05-12
 
+> **Superseded benchmark-set note (2026-05-20):** this file is retained as the
+> original completion-gate audit for the May 12 branch pivot. The active paper
+> matrix is now BarExamQA, HousingQA, Legal-Link-EU, and MASLegalBench; CaseHOLD
+> and LegalBench-SCALR are historical/provenance unless explicitly re-added. For
+> current result claims, prefer `docs/signoff_log.md`,
+> `docs/compiled_results.md`, `current_status.md`, and
+> `docs/paper_iteration_signal_2026-05-20.md`.
+
 This audit maps the active branch goal to concrete artifacts. It is not a
 result summary; it is a gate for deciding what remains before the goal is
 complete.
@@ -7,17 +15,17 @@ complete.
 ## Objective Restated As Deliverables
 
 Goal: produce a full-corpus, retrieval-first Snap-HyRE evaluation package across
-BarExamQA, HousingQA, CaseHOLD, and LegalBench-SCALR using an API-only
-small-model replacement, Gemma 4 26B, and Llama 3.3 70B. Select a universal top-k from cached retrieval
+BarExamQA, HousingQA, Legal-Link-EU, and MASLegalBench using Groq Llama 3.1 8B,
+Gemma 4 26B, and Llama 3.3 70B. Select a universal top-k from cached retrieval
 diagnostics, run the canonical ablation ladder with source-gated logs, and
 produce verified tables, plots, and concise analysis showing where Snap-HyRE
 improves retrieval exposure and whether that transfers to downstream accuracy.
 
 Concrete success criteria:
 
-1. Four legal benchmarks are set up with populated corpora/collections.
+1. Four active legal benchmarks are set up with populated corpora/collections.
 2. Three model labels are smoke-tested without substituting checkpoints:
-   `or-ministral-8b`, `or-gemma4-26b`, and `groq-llama70b`.
+   `groq-llama8b`, `or-gemma4-26b`, and `groq-llama70b`.
 3. Retrieval caches exist for full-corpus raw-question retrieval and relevant
    replayable generated-query methods.
 4. Qrel alignment audits exist before any Hit@k/MRR claim is promoted.
@@ -85,13 +93,14 @@ validation.
   dense-only speed smoke is explicitly requested.
 - API smoke passed for `or-gemma4-26b`.
 - `or-gemma3n-e4b` was smoke-tested, but it is Gemma 3n E4B and should not be
-  counted as the Gemma 4 E4B comprehensive axis. The current API-only small row
-  is `or-ministral-8b`.
+  counted as the Gemma 4 E4B comprehensive axis. This older note predates the
+  current `groq-llama8b` small-model row.
 - `groq-llama70b` initially failed with a Groq 401 invalid-key preflight; after
   replacing the key on 2026-05-13, a one-question strict smoke passed.
 - BarExamQA was repaired by appending 170,511 validation/test passages to the
   existing GTE-large `legal_passages` collection. Qrel alignment now passes at
-  100% for BarExamQA, HousingQA, CaseHOLD, and LegalBench-SCALR.
+  100% for the then-active BarExamQA, HousingQA, CaseHOLD, and
+  LegalBench-SCALR set.
 - Scoped cache filenames were added to prevent N=50/sample caches from being
   replayed as full-corpus caches. Full BarExam raw/golden caches and q5
   raw/golden cache smokes across all four datasets hydrate cleanly through the
@@ -108,7 +117,7 @@ validation.
 
 ## Next Concrete Gates
 
-1. Run strict API smokes for `or-ministral-8b`, `or-gemma4-26b`, and
+1. Run strict API smokes for `groq-llama8b`, `or-gemma4-26b`, and
    `groq-llama70b` before launching broad answer cells.
 2. Continue generation-cache construction one provider/dataset at a time,
    using `--resume`; the partial BarExam `gemma4-26b` `rag_hyde` cache can be
