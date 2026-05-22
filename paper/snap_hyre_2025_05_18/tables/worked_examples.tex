@@ -1,28 +1,21 @@
-\begin{table}[t]
+\begin{table}[H]
 \centering
-\caption{Worked BarExamQA example (\texttt{mbe\_1175}, Gemma 4 26B). The
-question describes a negligent driver, a broken leg, crutches, a banana peel,
-and a later fall. The gold answer is that the driver remains liable for both
-injuries.}
+\caption{Worked BarExamQA example (\texttt{mbe\_1175}, Gemma 4 26B). Gold
+answer: \texttt{B} (driver liable for both injuries).}
 \label{tab:worked_examples}
 \footnotesize
-\begin{tabularx}{\columnwidth}{lY}
+\begin{tabularx}{\columnwidth}{lcY}
 \toprule
-Method & What changes \\
+Method & Pred. & Top-5 retrieval \\
 \midrule
-Raw question RAG
-& Search stays at accident surface facts: driver, crutches, banana peel,
-market fall. Retrieval returns generic accident and intervening-cause material;
-the gold passage is not retrieved. Predicts \texttt{D}; wrong. \\
+Raw question RAG & \texttt{D} \ding{55}
+& Generic accident and intervening-cause material; gold rule passage missed. \\
 \addlinespace
-HyDE
-& Generated passage moves toward proximate cause but stays broad. Retrieval
-still misses the gold rule passage. Predicts \texttt{D}; wrong. \\
+HyDE & \texttt{D} \ding{55}
+& Drifts toward proximate cause but stays broad; gold rule passage missed. \\
 \addlinespace
-\hyre{} (ours)
-& Private draft identifies the hinge: the first injury made the crutch-related
-fall foreseeable. The search passage retrieves MBE rule passages on proximate
-cause and foreseeable subsequent injury. Predicts \texttt{B}; correct. \\
+\hyre{} (ours) & \texttt{B} \ding{51}
+& Anchored on foreseeable subsequent injury; surfaces MBE proximate-cause rule passages. \\
 \bottomrule
 \end{tabularx}
 \end{table}

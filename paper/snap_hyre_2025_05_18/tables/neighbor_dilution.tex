@@ -1,9 +1,8 @@
-\begin{table}[t]
+\begin{table}[H]
 \centering
-\caption{Supplemental neighbor-dilution diagnostic. Values are answer accuracy percentages for oracle rows only; positive deltas mean adding nearby retrieved legal text helped relative to the gold passage alone.}
+\caption{Neighbor-dilution diagnostic for oracle rows. Positive deltas mean nearby retrieved text helped beyond the gold passage alone.}
 \label{tab:neighbor_dilution}
-\scriptsize
-\resizebox{\columnwidth}{!}{%
+\footnotesize
 \begin{tabular}{llrrr}
 \toprule
 Dataset & Model & Gold & Gold + neighbors & $\Delta$ pp \\
@@ -12,5 +11,5 @@ BarExamQA & Llama 3.1 8B & 60.0 & 61.8 & +1.8 \\
 BarExamQA & Gemma 4 26B & 78.6 & 80.7 & +2.1 \\
 BarExamQA & Llama 3.3 70B & 79.2 & 77.8 & -1.4 \\
 \bottomrule
-\end{tabular}}
+\end{tabular}
 \end{table}

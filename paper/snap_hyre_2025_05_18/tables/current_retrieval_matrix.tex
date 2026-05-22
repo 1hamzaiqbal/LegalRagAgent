@@ -1,16 +1,18 @@
 \begin{table*}[t]
 \centering
-\caption{Evidence exposure at $k=5$ (\%). Generated-query rows average available model-specific generators; HousingQA uses state-filtered retrieval.}
+\caption{Evidence exposure at $k=5$ (\%). Bold marks the largest value in each column. Generated-query rows average available model-specific generators; HousingQA uses state-filtered retrieval.}
 \label{tab:retrieval_matrix}
 \scriptsize
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lrrrr}
 \toprule
-Method & BarExam Hit@5 & BarExam MRR@5 & Housing Hit@5 & Housing MRR@5 \\
+ & \multicolumn{2}{c}{BarExamQA} & \multicolumn{2}{c}{HousingQA} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+Method & Hit@5 & MRR@5 & Hit@5 & MRR@5 \\
 \midrule
-Raw question RAG & 1.4 & 0.7 & 37.0 & 23.3 \\
+Raw question RAG & 1.4 & 0.7 & \textbf{36.9} & \textbf{23.3} \\
 HyDE & 10.0 & 5.0 & 30.9 & 19.7 \\
-Snap-HyRE (ours) & 10.9 & 5.4 & 26.3 & 16.6 \\
+Snap-HyRE (ours) & \textbf{10.9} & \textbf{5.4} & 26.3 & 16.6 \\
 \bottomrule
 \end{tabular}}
 \end{table*}

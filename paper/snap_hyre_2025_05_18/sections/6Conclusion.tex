@@ -1,13 +1,26 @@
-\section{What Snap-HyRE Does and Does Not Fix}\label{sec:conclusion}
+\section{Conclusion}\label{sec:conclusion}
 
-\hyre{} is a fixed generated-query intervention, not a universal replacement
-for raw retrieval. It is strongest on BarExamQA, where draft-guided legal
-passages improve both Hit@5 and final answer accuracy. HousingQA marks the
-boundary: once retrieval is scoped to the correct state, raw questions can
-already be strong search queries.
+\hyre{} encodes a small piece of expert legal reasoning into a fixed two-call
+pipeline: form an intuition about the controlling doctrine, retrieve evidence
+by that frame, then judge the evidence on its own without anchoring to the
+intuition. The lift over raw-question RAG tracks the question-corpus
+vocabulary gap because that gap is precisely the regime where the intuition
+step matters --- when the question's surface words don't yet point to the
+right authority. On BarExamQA, where fact-pattern questions barely share
+words with the doctrinal corpus, \hyre{} improves Hit@5 and final accuracy
+across all three model sizes, matches or exceeds the labeled gold-passage
+oracle on Gemma 4 26B and Llama 3.3 70B, and delivers the best correct-answer
+count per million answer-stage tokens among non-oracle methods. On
+HousingQA, where statutory-entailment questions already share vocabulary
+with the housing statutes, \hyre{} reaches answer parity with raw-question
+RAG; adding one real statute as an example in the first-call prompt then
+raises Hit@5 above the raw baseline on a 500-question slice while holding
+answer accuracy at parity. Pooled across all five evaluated model--dataset
+configurations, \hyre{} averages +1.1\pp{} over raw-question RAG and is at
+parity with HyDE.
 
-The failures are stage-specific: a draft can choose the wrong frame, a passage
-can drop anchors, and an answer model can misuse good evidence. Legal RAG
-papers should report retrieval exposure, answer use, and corpus-interface
-assumptions. \hyre{} helps when a question must be rewritten into authority
-language before retrieval begins.
+The takeaway is practical: when the raw question is a poor retrieval handle,
+let the model form an intuition before it searches, but force the final
+answer back to the corpus. \hyre{} is the right tool in that regime and a
+clean parity baseline when the question already reads like a passage from
+the corpus.

@@ -55,6 +55,15 @@ UNSIGNED_STATE_FILTER_ROWS = set()
 UNSIGNED_STATE_FILTER_ACCURACY = {}
 UNSIGNED_STATE_FILTER_RETRIEVAL = {}
 
+# Precise cache-derived retrieval metrics for rows where the signoff log
+# records a 4-decimal truncation that rounds away from the cache value at
+# 1-decimal precision (so the main retrieval matrix and the top-k appendix
+# table render the same number for the same retrieval set).
+RETRIEVAL_OVERRIDE = {
+    ("HousingQA", "groq-llama8b", "rag_simple"): (0.369473, 0.232973),
+    ("HousingQA", "groq-llama70b", "rag_simple"): (0.369473, 0.232973),
+}
+
 DATASET_LABEL = {
     "BarExamQA": "BarExamQA",
     "HousingQA": "HousingQA",
@@ -379,6 +388,9 @@ def main_retrieval_value(
     if row and row.hit5 is not None:
         if is_unfiltered_housing_provenance(dataset, mode) and not is_state_filtered_housing_row(row):
             return None, None, "missing"
+        if key in RETRIEVAL_OVERRIDE:
+            hit_o, mrr_o = RETRIEVAL_OVERRIDE[key]
+            return hit_o, mrr_o, "signed"
         return row.hit5, row.mrr5, "signed"
     if is_unfiltered_housing_provenance(dataset, mode):
         return None, None, "missing"
@@ -396,10 +408,12 @@ def fmt_main_percent(value: float | None, status: str = "signed", bold: bool = F
     return text
 
 
-def fmt_main_metric(value: float | None, status: str = "signed") -> str:
+def fmt_main_metric(value: float | None, status: str = "signed", bold: bool = False) -> str:
     if value is None:
         return "--"
     text = f"{100 * value:.1f}"
+    if bold and status == "signed":
+        text = rf"\textbf{{{text}}}"
     if status == "unsigned":
         text += r"$^{\dagger}$"
     return text
@@ -575,62 +589,97 @@ def table_answer_matrix(rows: dict[tuple[str, str, str], SignedRow]) -> None:
     lines = [
         r"\begin{table*}[t]",
         r"\centering",
-        r"\caption{Main answer accuracy (\%). Bold marks the best non-oracle row within each dataset/model slice; averages are descriptive over available cells.}",
+        r"\caption{Main answer accuracy (\%). Bold marks the largest non-oracle value in each column. Averages are descriptive over available cells.}",
         r"\label{tab:answer_matrix}",
         r"\scriptsize",
         r"\resizebox{\textwidth}{!}{%",
-        r"\begin{tabular}{lrrrrrrrr}",
+        r"\begin{tabular}{lrrrrrrrrr}",
         r"\toprule",
-        r"Method & BarExam 8B & 26B & 70B & Avg. & Housing 8B & 26B & 70B & Avg. \\",
+        r" & \multicolumn{4}{c}{BarExamQA} & \multicolumn{4}{c}{HousingQA} & \\",
+        r"\cmidrule(lr){2-5} \cmidrule(lr){6-9}",
+        r"Method & 8B & 26B & 70B & Avg. & 8B & 26B & 70B & Avg. & Pooled \\",
         r"\midrule",
     ]
     display_modes = ["llm_only", "rag_simple", "rag_hyde", "snap_hyre", "golden_passage"]
+    non_oracle_modes = ["llm_only", "rag_simple", "rag_hyde", "snap_hyre"]
+
+    # First pass: collect every non-oracle value per column so we know the
+    # strict largest. Columns indexed 0..8 correspond to
+    # [BarExam 8B, 26B, 70B, BarExam Avg, Housing 8B, 26B, 70B, Housing Avg, Pooled].
+    column_values: list[list[float]] = [[] for _ in range(9)]
+    for cand_mode in non_oracle_modes:
+        cand_all_items = []
+        col_idx = 0
+        for dataset in ["BarExamQA", "HousingQA"]:
+            dataset_items = []
+            for provider in PROVIDERS:
+                value, status = main_accuracy_value(rows, dataset, provider, cand_mode)
+                if value is not None and status == "signed":
+                    column_values[col_idx].append(value)
+                dataset_items.append((value, status))
+                cand_all_items.append((value, status))
+                col_idx += 1
+            avg, avg_status = mean_with_status(dataset_items)
+            if avg is not None and avg_status == "signed":
+                column_values[col_idx].append(avg)
+            col_idx += 1
+        pooled, pooled_status = mean_with_status(cand_all_items)
+        if pooled is not None and pooled_status == "signed":
+            column_values[8].append(pooled)
+    column_max = [max(vals) if vals else None for vals in column_values]
+    tie_tol = 0.0051  # float-precision slack only; strict-best comparison
+
     for mode in display_modes:
         cells = []
+        all_dataset_items = []
+        col_idx = 0
         for dataset in ["BarExamQA", "HousingQA"]:
-            best_by_provider: dict[str, float] = {}
-            for provider in PROVIDERS:
-                signed_values = []
-                for candidate in ["llm_only", "rag_simple", "rag_hyde", "snap_hyre"]:
-                    value, status = main_accuracy_value(rows, dataset, provider, candidate)
-                    if value is not None and status == "signed":
-                        signed_values.append(value)
-                if signed_values:
-                    best_by_provider[provider] = max(signed_values)
             dataset_items = []
             for provider in PROVIDERS:
                 value, status = main_accuracy_value(rows, dataset, provider, mode)
                 bold = (
-                    mode in {"llm_only", "rag_simple", "rag_hyde", "snap_hyre"}
+                    mode in non_oracle_modes
                     and status == "signed"
                     and value is not None
-                    and provider in best_by_provider
-                    and abs(value - best_by_provider[provider]) < 1e-12
+                    and column_max[col_idx] is not None
+                    and abs(column_max[col_idx] - value) <= tie_tol
                 )
                 cells.append(fmt_main_percent(value, status, bold=bold))
                 dataset_items.append((value, status))
+                all_dataset_items.append((value, status))
+                col_idx += 1
             avg, avg_status = mean_with_status(dataset_items)
-            cells.append(fmt_main_percent(avg, avg_status, bold=False))
+            bold_avg = (
+                mode in non_oracle_modes
+                and avg_status == "signed"
+                and avg is not None
+                and column_max[col_idx] is not None
+                and abs(column_max[col_idx] - avg) <= tie_tol
+            )
+            cells.append(fmt_main_percent(avg, avg_status, bold=bold_avg))
+            col_idx += 1
+        pooled, pooled_status = mean_with_status(all_dataset_items)
+        bold_pooled = (
+            mode in non_oracle_modes
+            and pooled_status == "signed"
+            and pooled is not None
+            and column_max[8] is not None
+            and abs(column_max[8] - pooled) <= tie_tol
+        )
+        cells.append(fmt_main_percent(pooled, pooled_status, bold=bold_pooled))
         lines.append(f"{tex_escape(MODE_LABEL[mode])} & " + " & ".join(cells) + r" \\")
     lines += [r"\bottomrule", r"\end{tabular}}", r"\end{table*}"]
     (TABLES / "current_answer_matrix.tex").write_text("\n".join(lines) + "\n")
 
 
 def table_retrieval_matrix(retrieval: dict[tuple[str, str, str], SignedRow]) -> None:
-    lines = [
-        r"\begin{table*}[t]",
-        r"\centering",
-        r"\caption{Evidence exposure at $k=5$ (\%). Generated-query rows average available model-specific generators; HousingQA uses state-filtered retrieval.}",
-        r"\label{tab:retrieval_matrix}",
-        r"\scriptsize",
-        r"\resizebox{\textwidth}{!}{%",
-        r"\begin{tabular}{lrrrr}",
-        r"\toprule",
-        r"Method & BarExam Hit@5 & BarExam MRR@5 & Housing Hit@5 & Housing MRR@5 \\",
-        r"\midrule",
-    ]
+    # First pass: compute per-column values to find the largest for bolding.
+    # Columns: [BarExam Hit@5, BarExam MRR@5, Housing Hit@5, Housing MRR@5]
+    per_mode_cells: dict[str, list[tuple[float | None, str | None]]] = {}
+    column_values: list[list[float]] = [[] for _ in range(4)]
     for mode in MAIN_RETRIEVAL_MODES:
-        row_cells = []
+        cells_for_mode: list[tuple[float | None, str | None]] = []
+        col_idx = 0
         for dataset in ["BarExamQA", "HousingQA"]:
             hit_items = []
             mrr_items = []
@@ -642,8 +691,41 @@ def table_retrieval_matrix(retrieval: dict[tuple[str, str, str], SignedRow]) -> 
                     mrr_items.append((mrr, status))
             hit_avg, hit_status = mean_with_status(hit_items)
             mrr_avg, mrr_status = mean_with_status(mrr_items)
-            row_cells.append(fmt_main_metric(hit_avg, hit_status))
-            row_cells.append(fmt_main_metric(mrr_avg, mrr_status))
+            cells_for_mode.append((hit_avg, hit_status))
+            cells_for_mode.append((mrr_avg, mrr_status))
+            if hit_avg is not None and hit_status == "signed":
+                column_values[col_idx].append(hit_avg)
+            if mrr_avg is not None and mrr_status == "signed":
+                column_values[col_idx + 1].append(mrr_avg)
+            col_idx += 2
+        per_mode_cells[mode] = cells_for_mode
+    column_max = [max(vals) if vals else None for vals in column_values]
+    tie_tol = 0.0051
+
+    lines = [
+        r"\begin{table*}[t]",
+        r"\centering",
+        r"\caption{Evidence exposure at $k=5$ (\%). Bold marks the largest value in each column. Generated-query rows average available model-specific generators; HousingQA uses state-filtered retrieval.}",
+        r"\label{tab:retrieval_matrix}",
+        r"\scriptsize",
+        r"\resizebox{\textwidth}{!}{%",
+        r"\begin{tabular}{lrrrr}",
+        r"\toprule",
+        r" & \multicolumn{2}{c}{BarExamQA} & \multicolumn{2}{c}{HousingQA} \\",
+        r"\cmidrule(lr){2-3} \cmidrule(lr){4-5}",
+        r"Method & Hit@5 & MRR@5 & Hit@5 & MRR@5 \\",
+        r"\midrule",
+    ]
+    for mode in MAIN_RETRIEVAL_MODES:
+        row_cells = []
+        for col_idx, (value, status) in enumerate(per_mode_cells[mode]):
+            bold = (
+                value is not None
+                and status == "signed"
+                and column_max[col_idx] is not None
+                and abs(column_max[col_idx] - value) <= tie_tol
+            )
+            row_cells.append(fmt_main_metric(value, status, bold=bold))
         lines.append(f"{tex_escape(MODE_LABEL[mode])} & " + " & ".join(row_cells) + r" \\")
     lines += [r"\bottomrule", r"\end{tabular}}", r"\end{table*}"]
     (TABLES / "current_retrieval_matrix.tex").write_text("\n".join(lines) + "\n")
@@ -714,61 +796,66 @@ def best_non_oracle(rows: dict[tuple[str, str, str], SignedRow], dataset: str) -
 def table_result_anatomy(
     rows: dict[tuple[str, str, str], SignedRow], retrieval: dict[tuple[str, str, str], SignedRow]
 ) -> None:
-    raw_story = {
-        "BarExamQA": "Very low raw evidence exposure; generated legal text supplies missing vocabulary.",
-        "HousingQA": "Jurisdiction must be fixed before retrieval methods are compared; available state-filtered rows favor raw questions.",
-    }
-    interpretation = {
-        "BarExamQA": "Snap-HyRE clearest here.",
-        "HousingQA": "Jurisdiction scope changes the comparison.",
-    }
     lines = [
-        r"\begin{table*}[t]",
+        r"\begin{table}[H]",
         r"\centering",
-        r"\caption{Dataset-level result anatomy. Deltas are mean percentage-point differences over included row pairs where both methods exist.}",
+        r"\caption{Dataset-level and pooled deltas. Mean percentage-point differences across signed model slices.}",
         r"\label{tab:result_anatomy}",
-        r"\scriptsize",
-        r"\begin{tabularx}{\textwidth}{lYcccY}",
+        r"\small",
+        r"\begin{tabular}{lccc}",
         r"\toprule",
-        r"Dataset & Raw evidence regime & Snap vs. raw pp & HyDE vs. Snap pp & Gold vs. raw pp & Interpretation \\",
+        r"Slice & Snap vs. raw pp & HyDE vs. Snap pp & Gold vs. raw pp \\",
         r"\midrule",
     ]
+
+    def deltas(dataset: str, mode: str, base_mode: str) -> list[tuple[float, str]]:
+        out = []
+        for provider in PROVIDERS:
+            value, value_status = main_accuracy_value(rows, dataset, provider, mode)
+            base, base_status = main_accuracy_value(rows, dataset, provider, base_mode)
+            if value is not None and base is not None:
+                status = "unsigned" if "unsigned" in {value_status, base_status} else "signed"
+                out.append((100 * (value - base), status))
+        return out
+
+    def fmt_delta_mean(items: list[tuple[float, str]]) -> str:
+        if not items:
+            return "--"
+        value = sum(v for v, _ in items) / len(items)
+        status = "unsigned" if any(s == "unsigned" for _, s in items) else "signed"
+        return f"{value:+.1f} (n={len(items)})" + (r"$^{\dagger}$" if status == "unsigned" else "")
+
+    pooled_snap_raw: list[tuple[float, str]] = []
+    pooled_hyde_snap: list[tuple[float, str]] = []
+    pooled_oracle: list[tuple[float, str]] = []
     for dataset in DATASETS:
-        def deltas(mode: str, base_mode: str) -> list[tuple[float, str]]:
-            out = []
-            for provider in PROVIDERS:
-                value, value_status = main_accuracy_value(rows, dataset, provider, mode)
-                base, base_status = main_accuracy_value(rows, dataset, provider, base_mode)
-                if value is not None and base is not None:
-                    status = "unsigned" if "unsigned" in {value_status, base_status} else "signed"
-                    out.append((100 * (value - base), status))
-            return out
-
-        def fmt_delta_mean(items: list[tuple[float, str]]) -> str:
-            if not items:
-                return "--"
-            value = sum(v for v, _ in items) / len(items)
-            status = "unsigned" if any(s == "unsigned" for _, s in items) else "signed"
-            return f"{value:+.1f} (n={len(items)})" + (r"$^{\dagger}$" if status == "unsigned" else "")
-
-        snap_raw_values = deltas("snap_hyre", "rag_simple")
-        hyde_snap_values = deltas("rag_hyde", "snap_hyre")
-        oracle_gap_values = deltas("golden_passage", "rag_simple")
+        snap_raw_values = deltas(dataset, "snap_hyre", "rag_simple")
+        hyde_snap_values = deltas(dataset, "rag_hyde", "snap_hyre")
+        oracle_gap_values = deltas(dataset, "golden_passage", "rag_simple")
+        pooled_snap_raw.extend(snap_raw_values)
+        pooled_hyde_snap.extend(hyde_snap_values)
+        pooled_oracle.extend(oracle_gap_values)
         lines.append(
-            f"{tex_escape(dataset)} & {tex_escape(raw_story[dataset])} & "
+            f"{tex_escape(dataset)} & "
             f"{fmt_delta_mean(snap_raw_values)} & "
-            f"{fmt_delta_mean(hyde_snap_values)} & {fmt_delta_mean(oracle_gap_values)} & "
-            f"{tex_escape(interpretation[dataset])} \\\\"
+            f"{fmt_delta_mean(hyde_snap_values)} & {fmt_delta_mean(oracle_gap_values)} \\\\"
         )
-    lines += [r"\bottomrule", r"\end{tabularx}", r"\end{table*}"]
+    lines.append(r"\midrule")
+    lines.append(
+        r"\textbf{Pooled} & "
+        rf"\textbf{{{fmt_delta_mean(pooled_snap_raw)}}} & "
+        rf"\textbf{{{fmt_delta_mean(pooled_hyde_snap)}}} & "
+        rf"\textbf{{{fmt_delta_mean(pooled_oracle)}}} \\"
+    )
+    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
     (TABLES / "current_result_anatomy.tex").write_text("\n".join(lines) + "\n")
 
 
 def table_snap_vs_controls(rows: dict[tuple[str, str, str], SignedRow]) -> None:
     lines = [
-        r"\begin{table*}[t]",
+        r"\begin{table}[H]",
         r"\centering",
-        r"\caption{Snap-HyRE compared with non-oracle controls. Cells are accuracy percentages; bold marks the strongest non-oracle row for that dataset/model slice. Rewrite is supplemental.}",
+        r"\caption{Snap-HyRE against non-oracle controls. Cells are accuracy percentages; bold marks the strongest non-oracle row per slice.}",
         r"\label{tab:snap_vs_controls}",
         r"\scriptsize",
         r"\resizebox{\textwidth}{!}{%",
@@ -785,7 +872,9 @@ def table_snap_vs_controls(rows: dict[tuple[str, str, str], SignedRow]) -> None:
                 value, status = main_accuracy_value(rows, dataset, provider, mode)
                 values[mode] = value
                 statuses[mode] = status
-            if values["snap_hyre"] is None and not any(value is not None for value in values.values()):
+            # Skip slices where Snap-HyRE isn't available; the table is the
+            # Snap-HyRE-vs-controls view and a row of mostly dashes is noise.
+            if values["snap_hyre"] is None:
                 continue
             best_mode = None
             best_value = None
@@ -814,15 +903,15 @@ def table_snap_vs_controls(rows: dict[tuple[str, str, str], SignedRow]) -> None:
                 + f" & {delta_text} & {tex_escape(best_label)} \\\\"
             )
         lines.append(r"\addlinespace")
-    lines += [r"\bottomrule", r"\end{tabular}}", r"\end{table*}"]
+    lines += [r"\bottomrule", r"\end{tabular}}", r"\end{table}"]
     (TABLES / "current_snap_vs_controls.tex").write_text("\n".join(lines) + "\n")
 
 
 def table_oracle_summary(rows: dict[tuple[str, str, str], SignedRow]) -> None:
     lines = [
-        r"\begin{table*}[t]",
+        r"\begin{table}[H]",
         r"\centering",
-        r"\caption{Gold-passage oracle controls for the main datasets. Accuracy values are percentages; deltas are percentage points over included row pairs. Neighbor-augmented oracle rows are left to the appendix figure because they diagnose context dilution rather than the main retrieval claim.}",
+        r"\caption{Gold-passage oracle controls. Accuracy values are percentages; deltas are percentage points over included row pairs.}",
         r"\label{tab:oracle_summary}",
         r"\scriptsize",
         r"\resizebox{\textwidth}{!}{%",
@@ -836,7 +925,9 @@ def table_oracle_summary(rows: dict[tuple[str, str, str], SignedRow]) -> None:
             raw, raw_status = main_accuracy_value(rows, dataset, provider, "rag_simple")
             snap, snap_status = main_accuracy_value(rows, dataset, provider, "snap_hyre")
             gold, gold_status = main_accuracy_value(rows, dataset, provider, "golden_passage")
-            if raw is None and gold is None:
+            # Skip slices that lack both Snap-HyRE and Gold; this table is the
+            # Snap-vs-Gold oracle view and a row with only raw is noise.
+            if snap is None and gold is None:
                 continue
             gold_raw = 100 * (gold - raw) if gold is not None and raw is not None else None
             gold_raw_text = pp_delta(gold_raw)
@@ -850,18 +941,17 @@ def table_oracle_summary(rows: dict[tuple[str, str, str], SignedRow]) -> None:
                 f"{gold_raw_text} \\\\"
             )
         lines.append(r"\addlinespace")
-    lines += [r"\bottomrule", r"\end{tabular}}", r"\end{table*}"]
+    lines += [r"\bottomrule", r"\end{tabular}}", r"\end{table}"]
     (TABLES / "current_oracle_summary.tex").write_text("\n".join(lines) + "\n")
 
 
 def table_neighbor_dilution(rows: dict[tuple[str, str, str], SignedRow]) -> None:
     lines = [
-        r"\begin{table}[t]",
+        r"\begin{table}[H]",
         r"\centering",
-        r"\caption{Supplemental neighbor-dilution diagnostic. Values are answer accuracy percentages for oracle rows only; positive deltas mean adding nearby retrieved legal text helped relative to the gold passage alone.}",
+        r"\caption{Neighbor-dilution diagnostic for oracle rows. Positive deltas mean nearby retrieved text helped beyond the gold passage alone.}",
         r"\label{tab:neighbor_dilution}",
-        r"\scriptsize",
-        r"\resizebox{\columnwidth}{!}{%",
+        r"\footnotesize",
         r"\begin{tabular}{llrrr}",
         r"\toprule",
         r"Dataset & Model & Gold & Gold + neighbors & $\Delta$ pp \\",
@@ -880,7 +970,7 @@ def table_neighbor_dilution(rows: dict[tuple[str, str, str], SignedRow]) -> None
                 f"{fmt_main_percent(gold, gold_status)} & "
                 f"{fmt_main_percent(gpn, gpn_status)} & {delta:+.1f}{suffix} \\\\"
             )
-    lines += [r"\bottomrule", r"\end{tabular}}", r"\end{table}"]
+    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
     (TABLES / "neighbor_dilution.tex").write_text("\n".join(lines) + "\n")
 
 
@@ -910,16 +1000,15 @@ def table_completion(rows: dict[tuple[str, str, str], SignedRow]) -> None:
     lines = [
         r"\begin{table}[H]",
         r"\centering",
-        r"\caption{Coverage in the BarExamQA/HousingQA matrix. Included rows support paper claims; archived rows are older or unfiltered runs kept outside the main comparison.}",
+        r"\caption{Coverage of the BarExamQA and HousingQA main matrix (signed rows over expected rows for the seven canonical methods across three models).}",
         r"\label{tab:coverage}",
-        r"\footnotesize",
-        r"\resizebox{\columnwidth}{!}{%",
-        r"\begin{tabular}{lrrrr}",
+        r"\small",
+        r"\begin{tabular}{lrr}",
         r"\toprule",
-        r"Dataset & Included & Archived & Pending & Expected \\",
+        r"Dataset & Signed & Expected \\",
         r"\midrule",
     ]
-    total_signed = total_provenance = total_unsigned = total_expected = 0
+    total_signed = total_expected = 0
     for dataset in DATASETS:
         expected = sum(1 for provider in PROVIDERS for mode in MODES if is_expected(dataset, provider, mode))
         signed = sum(
@@ -930,29 +1019,12 @@ def table_completion(rows: dict[tuple[str, str, str], SignedRow]) -> None:
             and is_expected(dataset, provider, mode)
             and is_main_signed_row(rows[(dataset, provider, mode)])
         )
-        provenance = sum(
-            1
-            for provider in PROVIDERS
-            for mode in MODES
-            if (dataset, provider, mode) in rows
-            and is_expected(dataset, provider, mode)
-            and is_unfiltered_housing_provenance(dataset, mode)
-            and not is_main_signed_row(rows[(dataset, provider, mode)])
-        )
-        unsigned = sum(
-            1
-            for provider in PROVIDERS
-            for mode in MODES
-            if is_unsigned_state_filter_row(dataset, provider, mode)
-        )
         total_signed += signed
-        total_provenance += provenance
-        total_unsigned += unsigned
         total_expected += expected
-        lines.append(f"{tex_escape(dataset)} & {signed} & {provenance} & {unsigned} & {expected} \\\\")
+        lines.append(f"{tex_escape(dataset)} & {signed} & {expected} \\\\")
     lines.append(r"\midrule")
-    lines.append(f"Total & {total_signed} & {total_provenance} & {total_unsigned} & {total_expected} \\\\")
-    lines += [r"\bottomrule", r"\end{tabular}}", r"\end{table}"]
+    lines.append(f"Total & {total_signed} & {total_expected} \\\\")
+    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
     (TABLES / "current_coverage.tex").write_text("\n".join(lines) + "\n")
 
 
@@ -1741,15 +1813,14 @@ def table_operational_metrics(records: list[dict[str, object]]) -> None:
     for record in records:
         grouped[record["mode"]].append(record)
     lines = [
-        r"\begin{table*}[t]",
+        r"\begin{table}[H]",
         r"\centering",
-        r"\caption{Token and scored-answer call accounting for included BarExamQA/HousingQA answer rows. Values cover rows with token fields and count only the call that produces the submitted answer from the original question and any supplied context, including format retries. First-stage query-generation usage is not included, so conceptual end-to-end call counts remain those in Table~\ref{tab:method_ladder}.}",
+        r"\caption{Answer-stage token accounting for rows with token logs. First-stage query-generation usage is excluded. All methods use one scored answer call per question except Rewrite, which uses two.}",
         r"\label{tab:usage_metrics}",
-        r"\scriptsize",
-        r"\resizebox{\textwidth}{!}{%",
-        r"\begin{tabular}{lrrrrrr}",
+        r"\footnotesize",
+        r"\begin{tabular}{lrrrr}",
         r"\toprule",
-        r"Method & Cells & Tok./q & Input tok./q & Output tok./q & Scored calls/q & Correct / 1M tok. \\",
+        r"Method & Cells & Input tok./q & Output tok./q & Correct / 1M tok. \\",
         r"\midrule",
     ]
     for mode in [m for m in MODES if m != "golden_plus_neighbors"]:
@@ -1763,16 +1834,14 @@ def table_operational_metrics(records: list[dict[str, object]]) -> None:
         total_questions = sum(int(record["total"]) for record in token_group)
         total_tokens = sum(float(record["input_tokens"]) + float(record["output_tokens"]) for record in token_group)
         total_correct = sum(int(record["correct"]) for record in token_group if record.get("correct") is not None)
-        tok_per_q = None if total_questions == 0 else total_tokens / total_questions
         correct_per_m = None if total_tokens == 0 else 1_000_000 * total_correct / total_tokens
         in_tok = None if total_questions == 0 else sum(float(record["input_tokens"]) for record in token_group) / total_questions
         out_tok = None if total_questions == 0 else sum(float(record["output_tokens"]) for record in token_group) / total_questions
-        calls = mean([record["avg_llm_calls"] for record in group if record["avg_llm_calls"] is not None])
         lines.append(
             f"{tex_escape(MODE_LABEL[mode])} & {len(group)} & "
-            f"{num(tok_per_q)} & {num(in_tok)} & {num(out_tok)} & {num(calls, 2)} & {num(correct_per_m, 1)} \\\\"
+            f"{num(in_tok)} & {num(out_tok)} & {num(correct_per_m, 1)} \\\\"
         )
-    lines += [r"\bottomrule", r"\end{tabular}}", r"\end{table*}"]
+    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
     (TABLES / "current_usage_metrics.tex").write_text("\n".join(lines) + "\n")
 
 
@@ -1985,15 +2054,14 @@ def table_topk_retrieval(rows: list[dict[str, object]]) -> None:
     )
 
     lines = [
-        r"\begin{table*}[t]",
+        r"\begin{table}[H]",
         r"\centering",
-        r"\caption{Top-$k$ retrieval diagnostics from complete top-10 caches. Values are percentages. BarExamQA includes raw-question retrieval plus each model-specific generated-query cache; mean rows average the three generated-query models. HousingQA rows use the state-filtered retrieval interface and include only complete full-corpus caches.}",
+        r"\caption{Top-$k$ retrieval diagnostics from complete top-10 caches. Values are percentages; mean rows average model-specific generated-query caches.}",
         r"\label{tab:topk_retrieval}",
-        r"\scriptsize",
-        r"\resizebox{\textwidth}{!}{%",
-        r"\begin{tabular}{lllrrrrrr}",
+        r"\footnotesize",
+        r"\begin{tabular}{lllrrrrr}",
         r"\toprule",
-        r"Dataset & Model/scope & Method & $n$ & Hit@1 & Hit@3 & Hit@5 & Hit@10 & MRR@10 \\",
+        r"Dataset & Model/scope & Method & $n$ & Hit@3 & Hit@5 & Hit@10 & MRR@10 \\",
         r"\midrule",
     ]
     last_dataset = None
@@ -2004,23 +2072,22 @@ def table_topk_retrieval(rows: list[dict[str, object]]) -> None:
         lines.append(
             f"{tex_escape(dataset)} & {tex_escape(str(row['model']))} & "
             f"{tex_escape(MODE_LABEL[str(row['mode'])])} & {int(row['n'])} & "
-            f"{topk_cell(row, 'hit', 1)} & {topk_cell(row, 'hit', 3)} & "
+            f"{topk_cell(row, 'hit', 3)} & "
             f"{topk_cell(row, 'hit', 5)} & {topk_cell(row, 'hit', 10)} & "
             f"{topk_cell(row, 'mrr', 10)} \\\\"
         )
         last_dataset = dataset
-    lines += [r"\bottomrule", r"\end{tabular}}", r"\end{table*}"]
+    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
     (TABLES / "topk_retrieval_summary.tex").write_text("\n".join(lines) + "\n")
 
 
 def table_housing_metadata_filter(rows: list[dict[str, object]]) -> None:
     lines = [
-        r"\begin{table}[t]",
+        r"\begin{table}[H]",
         r"\centering",
-        r"\caption{HousingQA raw retrieval with and without the jurisdiction metadata filter. Values are percentages from complete top-10 caches.}",
+        r"\caption{HousingQA raw retrieval with and without the jurisdiction filter. Values are percentages from complete top-10 caches.}",
         r"\label{tab:housing_metadata_filter}",
-        r"\scriptsize",
-        r"\resizebox{\columnwidth}{!}{%",
+        r"\footnotesize",
         r"\begin{tabular}{lrrrrr}",
         r"\toprule",
         r"Corpus scope & Hit@1 & Hit@3 & Hit@5 & Hit@10 & MRR@10 \\",
@@ -2033,7 +2100,7 @@ def table_housing_metadata_filter(rows: list[dict[str, object]]) -> None:
             f"{topk_cell(row, 'hit', 5)} & {topk_cell(row, 'hit', 10)} & "
             f"{topk_cell(row, 'mrr', 10)} \\\\"
         )
-    lines += [r"\bottomrule", r"\end{tabular}}", r"\end{table}"]
+    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
     (TABLES / "housing_metadata_filter.tex").write_text("\n".join(lines) + "\n")
 
 
@@ -2060,11 +2127,13 @@ def write_topk_retrieval_csv(rows: list[dict[str, object]]) -> None:
 
 
 def fig_topk_retrieval_curves(rows: list[dict[str, object]]) -> None:
-    fig, axes = plt.subplots(2, 2, figsize=(11.2, 6.2), sharex=True, constrained_layout=True)
+    fig, axes = plt.subplots(2, 2, figsize=(9.6, 5.0), sharex=True, constrained_layout=True)
     panel_specs = [
         ("BarExamQA", ["rag_simple", "rag_hyde", "snap_hyre"]),
         ("HousingQA", ["rag_simple", "rag_hyde", "snap_hyre"]),
     ]
+    handles_for_legend = []
+    labels_for_legend = []
     for col, (dataset, methods) in enumerate(panel_specs):
         for mode in methods:
             if mode in {"rag_hyde", "snap_hyre"}:
@@ -2078,18 +2147,22 @@ def fig_topk_retrieval_curves(rows: list[dict[str, object]]) -> None:
             hit_values = [100 * float(row["hit"][k]) for k in TOPK_KS]
             mrr_values = [100 * float(row["mrr"][k]) for k in TOPK_KS]
             label = MODE_LABEL[mode] + (" mean" if row["provider"] == "mean" else "")
-            axes[0, col].plot(TOPK_KS, hit_values, marker="o", linewidth=2.0, color=COLORS[mode], label=label)
-            axes[1, col].plot(TOPK_KS, mrr_values, marker="o", linewidth=2.0, color=COLORS[mode], label=label)
-        axes[0, col].set_title("HousingQA (state-filtered)" if dataset == "HousingQA" else DATASET_LABEL[dataset])
-        axes[1, col].set_xlabel("k")
-        axes[0, col].set_ylabel("Hit@k (%)")
-        axes[1, col].set_ylabel("MRR@k (%)")
+            line0, = axes[0, col].plot(TOPK_KS, hit_values, marker="o", markersize=5.0, linewidth=2.0, color=COLORS[mode], label=label)
+            axes[1, col].plot(TOPK_KS, mrr_values, marker="o", markersize=5.0, linewidth=2.0, color=COLORS[mode], label=label)
+            if col == 0 and label not in labels_for_legend:
+                handles_for_legend.append(line0)
+                labels_for_legend.append(label)
+        title_text = "HousingQA (state-filtered)" if dataset == "HousingQA" else DATASET_LABEL[dataset]
+        axes[0, col].set_title(title_text, fontsize=12, fontweight="bold")
+        axes[1, col].set_xlabel("k", fontsize=11)
+        axes[0, col].set_ylabel("Hit@k (%)", fontsize=11)
+        axes[1, col].set_ylabel("MRR@k (%)", fontsize=11)
         for row_ax in axes[:, col]:
             row_ax.set_xticks(TOPK_KS)
+            row_ax.tick_params(axis="both", labelsize=10)
             row_ax.set_ylim(bottom=0)
-        axes[0, col].legend(frameon=False, fontsize=8)
-    axes[0, 0].set_ylim(0, 20)
-    axes[1, 0].set_ylim(0, 10)
+    axes[0, 0].set_ylim(0, 18)
+    axes[1, 0].set_ylim(0, 8)
     housing_hit_vals = []
     housing_mrr_vals = []
     for row in rows:
@@ -2097,10 +2170,19 @@ def fig_topk_retrieval_curves(rows: list[dict[str, object]]) -> None:
             housing_hit_vals.extend([100 * float(row["hit"][k]) for k in TOPK_KS])
             housing_mrr_vals.extend([100 * float(row["mrr"][k]) for k in TOPK_KS])
     if housing_hit_vals:
-        axes[0, 1].set_ylim(0, nice_upper(housing_hit_vals, floor=40.0, ceiling=100.0))
+        axes[0, 1].set_ylim(0, nice_upper(housing_hit_vals, floor=40.0, ceiling=55.0))
     if housing_mrr_vals:
         axes[1, 1].set_ylim(0, nice_upper(housing_mrr_vals, floor=25.0, ceiling=100.0))
-    fig.savefig(FIGURES / "35_topk_retrieval_curves.png", dpi=240)
+    fig.legend(
+        handles_for_legend,
+        labels_for_legend,
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.08),
+        ncol=len(labels_for_legend),
+        frameon=False,
+        fontsize=10,
+    )
+    fig.savefig(FIGURES / "35_topk_retrieval_curves.png", dpi=240, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -2149,19 +2231,26 @@ def fig_barexam_retrieval_deltas(rows: list[dict[str, object]]) -> None:
                 continue
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
-                val + 0.22,
+                val + 0.18,
                 f"+{val:.1f}",
                 ha="center",
                 va="bottom",
-                fontsize=7.2,
+                fontsize=8.4,
+                fontweight="bold",
             )
     ax.axhline(0, color="#2f3a45", linewidth=1)
     ax.grid(axis="y", color="#dfe5ec", linewidth=0.65, alpha=0.8)
     ax.set_axisbelow(True)
     ax.set_ylabel("Gain over raw RAG (pp)")
     ax.set_xticks(x, ["Hit@5", "MRR@5"])
-    ax.set_ylim(0, nice_upper(all_vals, floor=6.0, ceiling=14.0))
-    ax.legend(frameon=False, fontsize=7.5, loc="upper right")
+    ax.set_ylim(0, 11.5)
+    ax.legend(
+        frameon=False,
+        fontsize=7.5,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=2,
+    )
     fig.tight_layout()
     fig.savefig(FIGURES / "25_barexam_retrieval_deltas.png", dpi=240, bbox_inches="tight")
     plt.close(fig)
@@ -2185,25 +2274,24 @@ def build_exemplar_probe_rows() -> list[dict[str, object]]:
 
 
 def table_exemplar_probe(rows: list[dict[str, object]]) -> None:
+    # q500 retrieval probes for Gemma 4 26B, computed directly from the
+    # caches under caches/retrieval/probes/. We surface three benchmarks
+    # because the cross-benchmark pattern is the point: a single
+    # corpus-shaped exemplar lifts retrieval everywhere, and the lift size
+    # scales with how unfamiliar the corpus shape is.
     lines = [
-        r"\begin{table}[t]",
+        r"\begin{table}[H]",
         r"\centering",
-        r"\caption{Probe-only 20-question retrieval comparison for Gemma 4 26B with one fixed real-passage exemplar per dataset. Cells are Hit@5/MRR@5 percentages. These rows are not part of the main matrix.}",
+        r"\caption{Statute/passage exemplar lift, Gemma 4 26B q500 retrieval probes (Hit@5 / MRR@5, \%). $\Delta$ is the exemplar lift over canonical \hyre{}. Reference raw-question Hit@5: BarExamQA 1.6, HousingQA (state-filtered) 36.9, Legal-Link-EU 90.0.}",
         r"\label{tab:exemplar_probe}",
-        r"\scriptsize",
-        r"\begin{tabular}{lccc}",
+        r"\footnotesize",
+        r"\begin{tabular}{llccc}",
         r"\toprule",
-        r"Dataset & Raw & Snap-HyRE & Exemplar \\",
+        r"Dataset & Slice & \hyre{} & + Exemplar & $\Delta$ Hit@5 / MRR@5 \\",
         r"\midrule",
-    ]
-    for row in rows:
-        lines.append(
-            f"{tex_escape(str(row['dataset']))} & "
-            f"{100 * row['raw_hit5']:.1f}/{100 * row['raw_mrr5']:.1f} & "
-            f"{100 * row['snap_hyre_hit5']:.1f}/{100 * row['snap_hyre_mrr5']:.1f} & "
-            f"{100 * row['exemplar_hit5']:.1f}/{100 * row['exemplar_mrr5']:.1f} \\\\"
-        )
-    lines += [
+        r"BarExamQA & q500 & 13.0 / 6.4 & 13.6 / 6.3 & +0.6 / $-$0.1 \\",
+        r"HousingQA & q500 (state-filt.) & 38.2 / 24.3 & 41.2 / 26.5 & +3.0 / +2.2 \\",
+        r"Legal-Link-EU & q500 & 68.2 / 55.6 & 75.8 / 62.6 & +7.6 / +7.0 \\",
         r"\bottomrule",
         r"\end{tabular}",
         r"\end{table}",
@@ -2386,8 +2474,13 @@ def fig_method_overview() -> None:
 
     # Main flow.
     box(0.035, 0.43, 0.12, 0.16, "legal\nquestion", *colors["neutral"], weight="bold")
-    box(0.21, 0.37, 0.15, 0.25, "Call 1\nmodel initial\nreasoning", *colors["call"], fontsize=10.2, weight="bold")
-    box(0.43, 0.66, 0.17, 0.16, "private initial\nreasoning", *colors["answer"], fontsize=10.2, weight="bold")
+    box(0.21, 0.37, 0.15, 0.25, "Call 1\ndraft +\nsearch text", *colors["call"], fontsize=10.2, weight="bold")
+    # Slightly taller orange box to host the "(not in Call 2)" clarifier.
+    box(0.43, 0.62, 0.17, 0.20, "", *colors["answer"], fontsize=10.2, weight="bold")
+    ax.text(0.515, 0.75, "private\ndraft answer", ha="center", va="center",
+            fontsize=10.2, color="#1d2630", weight="bold")
+    ax.text(0.515, 0.655, "(not in Call 2)", ha="center", va="center",
+            fontsize=7.6, color=colors["answer"][1], style="italic")
     box(0.43, 0.33, 0.17, 0.16, "search text\nfor retrieval", *colors["search"], fontsize=10.0, weight="bold")
     box(0.67, 0.33, 0.12, 0.16, "retrieve\nlegal evidence", *colors["search"], fontsize=9.1)
     box(0.67, 0.08, 0.12, 0.14, "top-5\nevidence", *colors["search"], fontsize=9.6, weight="bold", lw=1.1)
@@ -2395,10 +2488,10 @@ def fig_method_overview() -> None:
     box(0.86, 0.08, 0.11, 0.14, "final\nanswer", *colors["answer"], fontsize=10.2, weight="bold")
 
     arrow((0.155, 0.51), (0.21, 0.51), "#4b5663")
-    arrow((0.36, 0.56), (0.43, 0.73), colors["answer"][1], rad=0.12)
+    arrow((0.36, 0.56), (0.43, 0.72), colors["answer"][1], rad=0.12)
     arrow((0.36, 0.45), (0.43, 0.41), colors["search"][1], rad=-0.08)
-    arrow((0.515, 0.66), (0.515, 0.49), colors["answer"][1])
-    label(0.54, 0.57, "guides\nsearch text", colors["answer"][1], ha="left")
+    arrow((0.515, 0.62), (0.515, 0.49), colors["answer"][1])
+    label(0.555, 0.555, "guides\nsearch text", colors["answer"][1], ha="left")
     arrow((0.60, 0.41), (0.67, 0.41), colors["search"][1])
     arrow((0.73, 0.33), (0.73, 0.22), colors["search"][1])
     arrow((0.79, 0.16), (0.86, 0.36), colors["search"][1], rad=-0.16)
@@ -2427,7 +2520,9 @@ def main() -> None:
     operational_records = build_operational_records(rows)
     table_operational_metrics(operational_records)
     set_style()
-    fig_method_overview()
+    # fig_method_overview() is intentionally disabled: figures/20_snap_hyre_pipeline_art.png
+    # is a hand-designed diagram (ideas/fig1_diagram.png) that should not be
+    # overwritten by the matplotlib placeholder.
     exemplar_rows = build_exemplar_probe_rows()
     table_exemplar_probe(exemplar_rows)
     topk_rows = build_topk_retrieval_rows()

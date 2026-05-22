@@ -1,13 +1,22 @@
 \begin{abstract}
-Legal RAG often fails before the answer model sees useful law: the question is
-a poor search query. We study \hyre{}, a fixed two-call method that first
-writes a private draft answer and a separate legal search passage, retrieves
-with only that passage, and then answers from retrieved evidence. On
-BarExamQA, \hyre{} improves over raw-question RAG for all three model sizes,
-with gains up to +5.1 percentage points and consistent Hit@5 gains. HousingQA
-shows the boundary condition: jurisdiction filtering raises raw Hit@5 from
-2.8\% to 36.9\%, after which raw state-filtered retrieval is a strong
-baseline. The results support a narrow claim: draft-guided legal search
-passages help in weak-query regimes, and legal RAG papers should report answer
-accuracy together with whether the right legal evidence was retrieved.
+Legal RAG often fails before the answer model sees useful law: the question
+and the corpus speak different languages. A bar-exam question describes
+``a driver and a banana peel''; the supporting passage states a rule about
+proximate cause. HyDE addresses this by letting the model write a synthetic
+passage in the corpus's voice and searching with that text instead of the
+original question \citep{gao2023hyde}. We introduce \hyre{}, a two-call
+extension that mirrors expert legal reasoning. The first call writes a
+private draft answer (an intuition about the controlling doctrine) and,
+separately, a legal search passage; only the passage is used for retrieval,
+and the draft is withheld from the second call so the final answer is judged
+against the corpus, not the guess. On BarExamQA, \hyre{} improves
+raw-question RAG by up to 5.1 percentage points across three model sizes,
+raises top-five evidence retrieval from 1.4\% to 9.5--12.1\%, and matches or
+exceeds the labeled gold-passage oracle on Gemma 4 26B and Llama 3.3 70B. On
+HousingQA, where the question already shares vocabulary with the target
+statute, \hyre{} holds answer parity with raw-question RAG, and a single
+in-prompt statute example then lifts retrieval above the raw baseline.
+Pooled across five model--dataset configurations, \hyre{} averages +1.1\pp{}
+over raw-question RAG and is at parity with HyDE. The pattern is clean:
+\hyre{} pays off in proportion to the question--corpus vocabulary gap.
 \end{abstract}

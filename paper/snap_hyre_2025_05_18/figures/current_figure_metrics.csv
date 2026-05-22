@@ -34,4 +34,5 @@ HousingQA,groq-llama8b,rag_hyde,0.591000,0.269500,0.168800,docs/signoff_log.md
 HousingQA,groq-llama8b,rag_rewrite,0.634000,0.102400,0.060100,docs/signoff_log.md
 HousingQA,groq-llama8b,rag_simple,0.623000,0.369500,0.233000,docs/signoff_log.md
 HousingQA,groq-llama8b,snap_hyre,0.590000,0.295600,0.188800,docs/signoff_log.md
+HousingQA,or-gemma4-26b,rag_simple,0.661000,0.369500,0.233000,docs/signoff_log.md
 HousingQA,or-gemma4-26b,snap_hyre,0.628000,0.412000,0.264700,docs/signoff_log.md

@@ -9,7 +9,7 @@ main comparison rather than imputed.
 
 \begin{itemize}[leftmargin=*]
 \item Main benchmarks: BarExamQA and HousingQA.
-\item Providers: \method{groq-llama8b}, \method{or-gemma4-26b},
+\item Route labels: \method{groq-llama8b}, \method{or-gemma4-26b},
 \method{groq-llama70b}.
 \item Main modes: \method{llm_only}, \method{rag_simple},
 \method{rag_hyde}, \method{snap_hyre}, and \method{golden_passage}.
@@ -21,11 +21,15 @@ diagnostic.
 filter to count as main-interface rows.
 \end{itemize}
 
-\input{tables/current_coverage.tex}
+The main matrix has 31 signed cells out of 42 expected (BarExamQA 21/21; HousingQA 10/21).
 
 \FloatBarrier
 
 \subsection{Supplemental Controls}\label{sec:appendix:additional}
+
+The supplemental tables separate the fixed-method comparison from controls that
+are useful for interpreting failure modes: structured rewrites, oracle context,
+neighbor dilution, and answer-stage token accounting.
 
 \input{tables/current_result_anatomy.tex}
 \input{tables/current_snap_vs_controls.tex}
@@ -33,26 +37,27 @@ filter to count as main-interface rows.
 \input{tables/neighbor_dilution.tex}
 \input{tables/current_usage_metrics.tex}
 
-These tables expand the main claims with dataset-level anatomy, structured
-rewrite controls, oracle controls, and scored-answer usage accounting. The
-usage table reports answer-call accounting only; first-stage query-generation
-usage is logged separately.
+\FloatBarrier
 
 \subsection{Top-k Retrieval Diagnostics}\label{sec:appendix:topk}
+
+\Cref{tab:housing_metadata_filter,tab:topk_retrieval,fig:topk_retrieval_curves}
+show how retrieval exposure changes as the cutoff grows from one to ten
+passages.
 
 \input{tables/housing_metadata_filter.tex}
 
 \input{tables/topk_retrieval_summary.tex}
 
-\begin{figure*}[t]
+\begin{figure}[!ht]
   \centering
-  \includegraphics[width=\textwidth]{35_topk_retrieval_curves.png}
+  \includegraphics[width=0.85\textwidth]{35_topk_retrieval_curves.png}
   \caption{Top-$k$ retrieval exposure and rank quality for full top-10
-  caches. BarExamQA generated-query curves average over the three
-  model-specific query generators; HousingQA uses state-filtered retrieval
-  caches.}
+  caches. BarExamQA generated-query curves average over Llama 3.1 8B, Gemma 4
+  26B, and Llama 3.3 70B; HousingQA averages over Llama 3.1 8B and Llama 3.3
+  70B with the jurisdiction state filter.}
   \label{fig:topk_retrieval_curves}
-\end{figure*}
+\end{figure}
 
 BarExamQA generated passages raise the chance of seeing the labeled evidence
 throughout the top-10 list, although MRR remains modest because the exact
@@ -60,23 +65,23 @@ supporting passage is rarely ranked first. HousingQA behaves differently: the
 jurisdiction filter is the major retrieval correction, and raw state-filtered
 questions already retrieve relevant evidence often.
 
-\subsection{Worked Examples}\label{sec:appendix:examples}
-
-\input{tables/worked_examples.tex}
-
 \FloatBarrier
 
-\subsection{Probe-only Exemplar Details}\label{sec:appendix:exemplar}
+\subsection{Statute/Passage Exemplar Probe}\label{sec:appendix:exemplar}
 
 \input{tables/exemplar_probe_q20.tex}
 
-The retrieval-passage exemplar probe adds one fixed, sanitized
-dataset-specific real-passage-style exemplar to the generation prompt without
-providing row-specific answer evidence, answer labels, or document ids. On the
-20-question Gemma 4 26B retrieval slices, the exemplar improves over base
-\hyre{} on the two main datasets: BarExamQA moves from Hit@5/MRR@5
-0.05/0.03 to 0.15/0.09, and HousingQA moves from 0.05/0.05 to 0.10/0.10.
-These are query-shape diagnostics rather than fixed-method results.
+The exemplar variant adds one fixed sanitized real-passage exemplar to the
+\hyre{} generation prompt --- the exemplar's own question, answer, and
+document id are stripped. The same q500 retrieval interfaces are used as
+the corresponding canonical \hyre{} rows: BarExamQA uses the shared
+support-passage collection; HousingQA uses the jurisdiction state filter;
+Legal-Link-EU uses the EUR-Lex evidence corpus with the same
+\texttt{CROSS\_ENCODER\_MAX\_CHARS=22000} setting as the main \hyre{} cache.
+The retrieval probes are computed directly from the cached
+passage-id lists; paired answer accuracy was scored only on the HousingQA
+q500 slice (62.8\% exemplar vs 63.0\% canonical \hyre{}, $-0.20$\pp{},
+$p=1.0$).
 
 \subsection{Reproducibility Statement}
 

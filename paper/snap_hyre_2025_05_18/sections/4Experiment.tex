@@ -2,9 +2,14 @@
 
 \subsection{Two Legal Retrieval Regimes}
 
-The main paper reports two exact-scored legal QA benchmarks.
-
-\input{tables/benchmark_role.tex}
+BarExamQA and HousingQA sit at opposite ends of the question-corpus
+vocabulary gap. BarExamQA questions are fact patterns in narrative prose,
+while the support corpus uses doctrinal vocabulary --- a large gap that a
+generated legal passage can close. HousingQA questions are
+statutory-entailment questions framed in landlord-tenant terms, sharing
+vocabulary with the housing statutes that answer them --- a small gap where
+raw queries are already corpus-shaped. The main paper reports both
+benchmarks, exact-scored.
 
 \paragraph{BarExamQA.}
 BarExamQA contains 1,195 multiple-choice bar-exam questions in the evaluation
@@ -16,32 +21,59 @@ option.
 \paragraph{HousingQA.}
 HousingQA contains 6,853 yes/no statutory entailment questions over state
 housing statutes. The corpus contains many jurisdictions, and each question
-names the relevant state. All main HousingQA retrieval rows apply that state as
-a metadata filter before ranking. Rows that do not use this filter are excluded
-from the main HousingQA comparison.
+names the relevant state. All main HousingQA retrieval rows apply that state
+as a metadata filter before ranking. Rows that do not use this filter are
+excluded from the main HousingQA comparison.
 
 \subsection{Models, Baselines, and Retrieval Stack}
 
-We evaluate three hosted model configurations: Llama 3.1 8B Instant
-(\method{groq-llama8b}), Gemma 4 26B through OpenRouter
-(\method{or-gemma4-26b}), and Llama 3.3 70B Versatile
-(\method{groq-llama70b}). The main deployed comparisons are LLM-only, raw
-question RAG, HyDE, and \hyre{}. Gold-passage rows are oracle controls for
-evidence use. Structured rewrite and gold-plus-neighbor diagnostics appear in
-the appendix.
+We evaluate three model configurations: Llama 3.1 8B Instant, Gemma 4 26B,
+and Llama 3.3 70B Versatile. Within each row the same model serves as both
+the query generator (when one is needed) and the final answer model, so
+accuracy lift cannot be attributed to a stronger reader.
 
-All non-oracle retrieval rows answer from $k=5$ retrieved passages. Runs use
-seed 42, temperature 0, strict no-silent-fallback execution, and a 2048-token
-answer cap unless a row note says otherwise. Retrieval uses Chroma collections
-built with \method{Alibaba-NLP/gte-large-en-v1.5} embeddings and
-\method{cross-encoder/ms-marco-MiniLM-L-6-v2} reranking before top-$k$
-truncation.
+We compare four deployable retrieval methods and one oracle control. All
+non-oracle rows answer from $k=5$ retrieved passages.
 
+\begin{itemize}
+\item \textbf{LLM only} answers the original question without retrieval.
+\item \textbf{Raw question RAG} retrieves with the question text, then
+answers from the question plus top-$k$ evidence.
+\item \textbf{HyDE} retrieves with a generated legal passage, without a
+draft answer prior.
+\item \textbf{\hyre{} (ours)} retrieves with a draft-guided legal search
+passage; the draft answer is private and is not shown to the final answer
+call.
+\item \textbf{Gold passage} supplies the labeled passage directly as an
+oracle control for evidence use (not a deployable retrieval method).
+\end{itemize}
+
+Structured rewrite and gold-plus-neighbor diagnostics appear in the
+appendix; route labels are retained in the released artifacts for
+reproducibility.
+
+\paragraph{Retrieval stack.}
+Runs use seed 42, temperature 0, and a 2048-token answer cap. If the model
+produces a malformed generated passage or no parseable final answer, the row
+fails rather than silently falling back to raw-question retrieval. Retrieval
+uses Chroma collections built with \method{Alibaba-NLP/gte-large-en-v1.5}
+embeddings; a cross-encoder (\method{ms-marco-MiniLM-L-6-v2}) then reranks
+the candidate set before the top-$k$ cut.
+
+\paragraph{Generated-query evaluation.}
 Generated-query rows are evaluated in two stages. First, the query-generation
 call writes the HyDE passage or \hyre{} search passage. Then retrieval stores
-the ranked document ids. The answer run replays those ids strictly; an invalid
-generated passage or missing cache entry is not replaced with raw-question
-retrieval. This keeps the comparison about the method's actual search text.
+the ranked document ids. The answer run replays those ids strictly; an
+invalid generated passage or missing cache entry is not replaced with
+raw-question retrieval. This keeps the comparison about the method's actual
+search text.
+
+\paragraph{Per-dataset retrieval interfaces.}
+BarExamQA retrieval uses the shared fact pattern and question stem;
+generated methods may see option text but no correctness marker. HousingQA
+retrieval applies the state metadata filter described above. The filter is
+not a \hyre{}-specific feature: it is the benchmark interface used by every
+HousingQA row in the main paper.
 
 \subsection{Answer and Evidence Metrics}
 
@@ -50,14 +82,15 @@ multiple-choice answer line, and HousingQA uses \texttt{Answer: Yes} or
 \texttt{Answer: No}. Retrieval is measured by Hit@5 and MRR@5: whether any
 labeled support passage appears in the top five, and how early it appears.
 
-We also report efficiency as logical LLM calls, answer-stage tokens per
-question, scored-answer calls per question, and correct answers per million
-answer-stage tokens. These values do not make two-call methods free: the
-first-stage query-generation call is counted in the logical method footprint
-and logged separately. They show how much context the final answer call sees
+We also report efficiency as the number of model calls per question, the
+tokens the answer call processes per question (the ``answer-stage tokens''),
+and correct answers per million answer-stage tokens. Two-call methods are
+not penalized in this count: the first-stage query-generation call is
+counted as part of the method footprint and logged separately. The
+answer-stage token count shows how much context the final answer call sees
 once retrieval has selected evidence.
 
 The main tables include only validated full rows. Missing cells are not
-imputed. Appendix~\ref{sec:appendix:policy} lists the inclusion rule, coverage
-grid, supplemental controls, top-$k$ diagnostics, efficiency table, and
-reproducibility details.
+imputed. Appendix~\ref{sec:appendix:policy} lists the inclusion rule,
+coverage grid, supplemental controls, top-$k$ diagnostics, efficiency table,
+and reproducibility details.

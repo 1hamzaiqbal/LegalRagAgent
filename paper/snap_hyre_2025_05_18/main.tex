@@ -10,9 +10,9 @@
 
 \newcommand{\theHalgorithm}{\arabic{algorithm}}
 
-% Internal preprint/export version. Remove [preprint] for blind ICML review, or
-% switch to [accepted] for camera-ready.
-\usepackage[preprint]{icml2026}
+% Anonymous double-blind submission for ICML 2026. Switch to [preprint] for
+% an internal/preprint export, or [accepted] for camera-ready.
+\usepackage{icml2026}
 
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -30,6 +30,8 @@
 \usepackage{algorithmic}
 
 \usepackage[capitalize,noabbrev]{cleveref}
+\usepackage{needspace}
+\usepackage{pifont}
 
 \newcommand{\pending}[1]{\textcolor{gray}{\textit{#1}}}
 \newcommand{\method}[1]{\texttt{\detokenize{#1}}}
@@ -68,7 +70,7 @@
 
   \icmlcorrespondingauthor{Hamza Iqbal}{hiqbal@wustl.edu}
 
-  \icmlkeywords{retrieval-augmented generation, legal NLP, HyDE, generated queries, legal evaluation}
+  \icmlkeywords{retrieval-augmented generation, legal RAG, HyDE, generated queries, legal evaluation}
 
   \vskip 0.3in
 ]
@@ -89,6 +91,7 @@
 \bibliography{references}
 
 \clearpage
+\onecolumn
 \appendix
 \input{sections/Appendix}
 
