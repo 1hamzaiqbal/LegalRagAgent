@@ -4,6 +4,10 @@ This queue is for later piecemeal edits to `paper/scope_edit_v0.zip`. The
 current Overleaf replacement pack only adds Background and Related Work; it
 does not repair the data/claim issues below.
 
+For prose to mine when expanding Background / Method / Analysis, see
+[`scope_edit_dropins/historical_drafts/`](scope_edit_dropins/historical_drafts/)
+— it has 4 older draft snapshots where those sections were 2-3x longer.
+
 ## Highest Priority Claim Repairs
 
 | Claim area | Problem | Use this framing |
