@@ -1,0 +1,7 @@
+dataset,mode,n,hit5_or_same_source5,mrr5,source
+BarExamQA,raw_question,500,0.016000,0.008200,docs/retrieval_passage_exemplar_probe_2026-05-20.md
+BarExamQA,canonical_snap_hyre,500,0.130000,0.064400,docs/retrieval_passage_exemplar_probe_2026-05-20.md
+BarExamQA,snap_hyre_exemplar_realpassage,500,0.136000,0.062800,docs/retrieval_passage_exemplar_probe_2026-05-20.md
+HousingQA,raw_question_statefiltered,500,0.369000,0.233000,docs/signoff_log.md
+HousingQA,canonical_snap_hyre,500,0.382000,0.242900,docs/signoff_log.md
+HousingQA,snap_hyre_exemplar_realpassage,500,0.412000,0.264700,docs/signoff_log.md

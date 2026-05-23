@@ -1,0 +1,15 @@
+\begin{table}[t]
+\centering
+\caption{Statute/passage exemplar lift for Gemma 4 26B $N=500$ retrieval probes (Hit@5 / MRR@5, \%). $\Delta$ is the exemplar lift over canonical \hyre{}. Bold marks the higher of \hyre{} vs.\ +Exemplar within each metric per row.}
+\label{tab:exemplar_probe}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lccc}
+\toprule
+Dataset &  \hyre{} & + Exemplar & $\Delta$ Hit@5 / MRR@5 \\
+\midrule
+BarExamQA  & 13.0 / \textbf{6.4} & \textbf{13.6} / 6.3 & +0.6 / $-$0.1 \\
+HousingQA  & 38.2 / 24.3 & \textbf{41.2} / \textbf{26.5} & +3.0 / +2.2 \\
+\bottomrule
+\end{tabular}
+\end{table}

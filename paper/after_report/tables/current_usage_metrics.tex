@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\caption{Answer-stage token accounting over five logged cells per method. First-stage query-generation usage is excluded. Bold marks the best single-call non-gold evidence retrieval method.}
+\label{tab:usage_metrics}
+\scriptsize
+\setlength{\tabcolsep}{1pt}
+\begin{tabular}{lrrr}
+\toprule
+Method & In/q & Out/q & Correct/M \\
+\midrule
+LLM & 131 & 237 & 1487.2 \\
+Raw RAG & 2295 & 339 & 241.5 \\
+HyDE & 2237 & 340 & 244.5 \\
+Snap-HyRE & 2062 & 338 & \textbf{258.8} \\
+Gold & 1447 & 215 & 404.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
