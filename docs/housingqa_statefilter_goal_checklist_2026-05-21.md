@@ -5,7 +5,18 @@ the goal complete until every required row below is full-N, audited, and either
 signed in `docs/signoff_log.md` or explicitly marked as a non-promoted failed
 diagnostic with a reason.
 
-Current 2026-05-22 13:32 CDT audit checkpoint: the focused HousingQA
+Current 2026-05-23 03:55 CDT audit checkpoint: the focused HousingQA
+state-filtered core matrix is still **8/9 signed**. `or-gemma4-26b`
+`rag_simple` and `or-gemma4-26b` `rag_hyde` are full-N, audited, and signed.
+The remaining core answer row is still `or-gemma4-26b` `snap_hyre`; its
+generation, retrieval, and document caches are complete, but the answer detail
+log is partial at 3942/6853 rows. No live HousingQA Gemma answer process is
+visible, and `/tmp/housing_gemma_core_queue.lock` is stale with non-live PID
+`3819545`. The route preflight passes for `or-gemma4-26b` pinned to
+Cloudflare. See `docs/housingqa_gemma26_completion_audit_2026-05-23.md` for
+current missing ranges and do not promote the partial answer row.
+
+Previous 2026-05-22 13:32 CDT audit checkpoint: the focused HousingQA
 state-filtered core matrix is **8/9 signed**. `or-gemma4-26b` `rag_simple` and
 `or-gemma4-26b` `rag_hyde` are now full-N, audited, and signed in
 `docs/signoff_log.md`. The remaining core row is `or-gemma4-26b` `snap_hyre`;

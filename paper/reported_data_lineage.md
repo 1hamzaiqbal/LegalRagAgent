@@ -233,3 +233,8 @@ measurements, but they are still grounded in the JSONL/cache row counts above:
   figure metrics relabel it as `snap_hyre_exemplar_q500`.
 - The final paper intentionally leaves HousingQA Gemma 26B LLM, Snap-HyRE
   answer accuracy, and Gold Evidence cells blank in Table 1.
+- A 2026-05-23 completion audit reconfirmed that choice: HousingQA Gemma 26B
+  `llm_only` has only 3680/6853 rows, `snap_hyre` has only 3942/6853 answer
+  rows, and no HousingQA Gemma `golden_passage` detail log exists. The
+  Snap-HyRE retrieval cache remains full-N and supports Table 2 retrieval
+  exposure only.
