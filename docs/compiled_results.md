@@ -1,5 +1,20 @@
 # Compiled Results — paper-grade, audit-referenced
 
+## Update 2026-05-23 HousingQA Gemma 26B completion
+
+The current citation gate is `docs/signoff_log.md`; this addendum records the
+HousingQA `or-gemma4-26b` rows promoted after the May 23 completion cycle.
+
+| Dataset | Provider | Mode | Value | Source | Audit verdict |
+|---|---|---|---:|---|---|
+| HousingQA | `or-gemma4-26b` | `llm_only` | 3846/6853 = 56.1% | `logs/merged/housing_or-gemma4-26b_llm_only_full_20260523_114720_detail.jsonl` | clean full-N canonical-order merge; no retrieval evidence by design; mixed same-model route Cloudflare/Parasail |
+| HousingQA state-filtered | `or-gemma4-26b` | `rag_simple` | 4531/6853 = 66.1% | `logs/merged/housing_or-gemma4-26b_rag_simple_statefilter_full_20260521_185315_detail.jsonl` | clean full-N state-filter row |
+| HousingQA state-filtered | `or-gemma4-26b` | `rag_hyde` | 4456/6853 = 65.0% | `logs/eval_rag_hyde_or-gemma4-26b_20260521_174454_housing_local-snap-hyre-or-gemma4-26b-housing-rag_hyde-nfull-k5_detail.jsonl` | clean full-N state-filter row |
+| HousingQA state-filtered | `or-gemma4-26b` | `snap_hyre` | 4458/6853 = 65.1% | `logs/merged/housing_or-gemma4-26b_snap_hyre_statefilter_full_20260523_113019_detail.jsonl` | clean full-N state-filter row; Hit@5 0.3807 / MRR@5 0.2452 |
+
+No HousingQA Gemma 26B `golden_passage` detail log exists locally, so the Gold
+Evidence cell remains non-citable.
+
 ## Update 2026-04-27 ~12:30 CDT
 
 Change reason: housekeeping sweep after `docs/signoff_log.md` promoted the final Llama 70b N=200 MuSiQue matrix. This update supersedes older lower-file notes that still treated `subagent_rag` as unaudited or `rag_multi_query` as pending: `subagent_rag` is now a signed significant negative (15.5%, -12.0pp, p=0.0007), and Llama `rag_multi_query` is 29.0% (+1.5pp, p=0.728 NS). Current HEAD: `a50f67a`.

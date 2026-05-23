@@ -39,6 +39,14 @@ HousingQA,groq-llama8b,State-filtered Llama 3.1 8B,snap_hyre,6853,1,0.129432,0.1
 HousingQA,groq-llama8b,State-filtered Llama 3.1 8B,snap_hyre,6853,3,0.233620,0.174717,caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama8b_snap_hyre_k10.jsonl
 HousingQA,groq-llama8b,State-filtered Llama 3.1 8B,snap_hyre,6853,5,0.295637,0.188835,caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama8b_snap_hyre_k10.jsonl
 HousingQA,groq-llama8b,State-filtered Llama 3.1 8B,snap_hyre,6853,10,0.369619,0.198629,caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama8b_snap_hyre_k10.jsonl
+HousingQA,or-gemma4-26b,State-filtered Gemma 4 26B,rag_hyde,6853,1,0.135415,0.135415,caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_rag_hyde_k10.jsonl
+HousingQA,or-gemma4-26b,State-filtered Gemma 4 26B,rag_hyde,6853,3,0.243397,0.182061,caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_rag_hyde_k10.jsonl
+HousingQA,or-gemma4-26b,State-filtered Gemma 4 26B,rag_hyde,6853,5,0.306289,0.196391,caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_rag_hyde_k10.jsonl
+HousingQA,or-gemma4-26b,State-filtered Gemma 4 26B,rag_hyde,6853,10,0.401284,0.209010,caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_rag_hyde_k10.jsonl
+HousingQA,or-gemma4-26b,State-filtered Gemma 4 26B,snap_hyre,6853,1,0.166059,0.166059,caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_snap_hyre_k10.jsonl
+HousingQA,or-gemma4-26b,State-filtered Gemma 4 26B,snap_hyre,6853,3,0.311105,0.229364,caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_snap_hyre_k10.jsonl
+HousingQA,or-gemma4-26b,State-filtered Gemma 4 26B,snap_hyre,6853,5,0.380709,0.245168,caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_snap_hyre_k10.jsonl
+HousingQA,or-gemma4-26b,State-filtered Gemma 4 26B,snap_hyre,6853,10,0.469575,0.257168,caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_snap_hyre_k10.jsonl
 HousingQA,groq-llama70b,State-filtered Llama 3.3 70B,rag_hyde,6853,1,0.157157,0.157157,caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama70b_rag_hyde_k10.jsonl
 HousingQA,groq-llama70b,State-filtered Llama 3.3 70B,rag_hyde,6853,3,0.278564,0.209811,caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama70b_rag_hyde_k10.jsonl
 HousingQA,groq-llama70b,State-filtered Llama 3.3 70B,rag_hyde,6853,5,0.349482,0.225979,caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama70b_rag_hyde_k10.jsonl

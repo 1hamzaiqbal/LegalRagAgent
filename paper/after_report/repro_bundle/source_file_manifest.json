@@ -142,9 +142,9 @@
   {
     "path": "docs/compiled_results.md",
     "kind": "source_doc",
-    "bytes": 61739,
-    "line_count": 730,
-    "sha256": "0d4649991cd5e01c6a90d32cea0c732047203492e64bad84f61942e0114d9773"
+    "bytes": 63099,
+    "line_count": 745,
+    "sha256": "b3c5545677a604fdc4e6467cb9365a8a48d637dacdf4dc414e197b43ae5f4771"
   },
   {
     "path": "docs/retrieval_passage_exemplar_probe_2026-05-20.md",
@@ -156,9 +156,9 @@
   {
     "path": "docs/signoff_log.md",
     "kind": "source_doc",
-    "bytes": 238170,
-    "line_count": 1254,
-    "sha256": "6601ec7b4818101010bcb1ea507bc0e049fbdebca1ca48e64fc2a183c4b9997c"
+    "bytes": 240466,
+    "line_count": 1268,
+    "sha256": "a9fd9dc8963b1fa6ff9d1c05e02071b349deff5f84717817be7802615a61a5fb"
   },
   {
     "path": "logs/eval_golden_passage_groq-llama70b_20260515_210741_barexam_local-snap-hyre-groq-llama70b-barexam-golden_passage-nfull-k5_detail.jsonl",
@@ -387,9 +387,9 @@
   {
     "path": "logs/experiments.jsonl",
     "kind": "answer_detail_log",
-    "bytes": 566434,
-    "line_count": 643,
-    "sha256": "248f9ef811e81b41c227db6bed239015822598b9cac937b0c0415cc1cc6e2583"
+    "bytes": 571292,
+    "line_count": 647,
+    "sha256": "80036b992afd5373a35fa0bfc3ca83cff0eb7a04d21cc17e2c50e595220ef332"
   },
   {
     "path": "logs/merged/eval_llm_only_or-gemma4-26b_cloudflare_tail_20260516_barexam_nfull_k5_detail.jsonl",
@@ -406,6 +406,13 @@
     "sha256": "0b0a93720cc186ff988f58a45191f9d4c305f77d34a74e803612e7437bfc7fe2"
   },
   {
+    "path": "logs/merged/housing_or-gemma4-26b_llm_only_full_20260523_114720_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 42494319,
+    "line_count": 6853,
+    "sha256": "8d77ea8f4e5f29e2f4cfb88bb8152cf7a42d0fde2c186aaa69e57c743bc9764b"
+  },
+  {
     "path": "logs/merged/housing_or-gemma4-26b_rag_simple_statefilter_full_20260521_185315_detail.jsonl",
     "kind": "answer_detail_log",
     "bytes": 193327977,
@@ -413,53 +420,60 @@
     "sha256": "c4b14f78619562cb401917ec966b8cc64f729e230c38311d517cb8ad1938da3b"
   },
   {
+    "path": "logs/merged/housing_or-gemma4-26b_snap_hyre_statefilter_full_20260523_113019_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 235042377,
+    "line_count": 6853,
+    "sha256": "f3373f0834bc860c476642a0d2c6f6ca14065c65ba3912fee5d5e3b5f1767a57"
+  },
+  {
     "path": "paper/after_report/damage_report.md",
     "kind": "audit_doc_or_script",
-    "bytes": 11189,
-    "line_count": 148,
-    "sha256": "133e540a9a0cde80d920450ec569803cdc93b1a9a85a1d5ed8d46206a12ef23c"
+    "bytes": 11232,
+    "line_count": 149,
+    "sha256": "43ed81a97c91b3da87e646e8f8f8e98d4263ece9c45a640d615e045fda8d3ca7"
   },
   {
     "path": "paper/after_report/data_generation_and_reproducibility.md",
     "kind": "audit_doc_or_script",
-    "bytes": 5723,
-    "line_count": 148,
-    "sha256": "1014730461894e10bead630242c3d0c6a44f92b7c60f6cd6461b8780adb13578"
+    "bytes": 5658,
+    "line_count": 147,
+    "sha256": "8e8e8d8c7a0d3533fe62782586d6066de1a390b968ee1218c981b2cfaed5edb4"
   },
   {
     "path": "paper/after_report/internal_discrepancies_and_recommendations.md",
     "kind": "audit_doc_or_script",
-    "bytes": 5853,
-    "line_count": 130,
-    "sha256": "243e50791dcd7e704c8d02a047482cb0d80e60cdf5924e0adf0aa20999d3f2c3"
+    "bytes": 5734,
+    "line_count": 127,
+    "sha256": "8b766e49bf5ab607485cf04d179b9041b13173642c682f249f66bd0a90393b86"
   },
   {
     "path": "paper/after_report/number_lineage.md",
     "kind": "audit_doc_or_script",
-    "bytes": 27069,
-    "line_count": 235,
-    "sha256": "b9c034589c532f1424697a693519f73c6fc97a8a589bb67deed54e665058378f"
+    "bytes": 28319,
+    "line_count": 242,
+    "sha256": "809f42339f817a745b05ccef27eaac36c64dae5da5d3ff3eecb8fdc918022908"
   },
   {
     "path": "paper/after_report/scripts/regenerate_figure3_from_final_csv.py",
     "kind": "audit_doc_or_script",
-    "bytes": 6433,
+    "bytes": 6409,
     "line_count": 197,
-    "sha256": "57c414cfd7d7162a2f43bac417d47bb3018025dbb6273a9a96451a0344a037a7"
+    "sha256": "8310762571df755b6c1865ef4fffa7f74d6d7135f92fcb0a56ed5a48f0bdd397"
   },
   {
     "path": "paper/after_report/tables/current_answer_matrix.tex",
     "kind": "paper_table_or_csv",
-    "bytes": 1061,
+    "bytes": 1066,
     "line_count": 21,
-    "sha256": "d8e3e51a200b4cd87956e2feae0d464c608b4e701656f691e3a6ee9403dbad48"
+    "sha256": "a861501309134d3cda9d30d6267bcba379acb014fc162d3db643795a06f42935"
   },
   {
     "path": "paper/after_report/tables/current_figure_metrics.csv",
     "kind": "paper_table_or_csv",
-    "bytes": 3045,
-    "line_count": 38,
-    "sha256": "ac9ae2e508d4875404c406f10c104fcd164c1ac2ab7d4d6a9fd9b987aa751ecd"
+    "bytes": 3233,
+    "line_count": 41,
+    "sha256": "d17810e6fdcebc068f4bfd854aa2764d07a3662573120438a0cc8baa0436ec06"
   },
   {
     "path": "paper/after_report/tables/current_retrieval_matrix.tex",
@@ -499,16 +513,16 @@
   {
     "path": "paper/after_report/tables/topk_retrieval_metrics.csv",
     "kind": "paper_table_or_csv",
-    "bytes": 7557,
-    "line_count": 49,
-    "sha256": "20cb58daf91f81b1dabeb1a96953a83f4531e49bc4a9eecdaa395a601e227402"
+    "bytes": 8902,
+    "line_count": 57,
+    "sha256": "5cbc8e77437cc7a013129c4df16867fe814795420a8253d47f06494f54453017"
   },
   {
     "path": "paper/after_report/tables/topk_retrieval_summary.tex",
     "kind": "paper_table_or_csv",
-    "bytes": 2141,
-    "line_count": 32,
-    "sha256": "48e24a2d7e7a1ab28c2f3c9a1da964cd4fae6216fb832f0945821f00731f9c35"
+    "bytes": 2357,
+    "line_count": 34,
+    "sha256": "b14ab6b2618eb91f3fc40bb610394fcf0cc7cf667d9aa1d06edc69ed84d6b814"
   },
   {
     "path": "paper/icml_submission_damage_report.md",
@@ -520,8 +534,8 @@
   {
     "path": "paper/reported_data_lineage.md",
     "kind": "audit_doc_or_script",
-    "bytes": 26966,
-    "line_count": 235,
-    "sha256": "c769456673b17fb67ae1cdee978af297f9ff9f53199e95232c19c0868b054265"
+    "bytes": 28204,
+    "line_count": 242,
+    "sha256": "e75d63bf4aee2cc6413fce03021925c62413991a0fd121503e7e93b13626738e"
   }
 ]

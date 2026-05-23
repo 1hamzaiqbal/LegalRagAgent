@@ -1,73 +1,121 @@
 # HousingQA Gemma 26B Completion Audit - 2026-05-23
 
-This is the current source-gated checkpoint for HousingQA `or-gemma4-26b`
-after the May 22/23 completion-cycle logs.
+This is the source-gated checkpoint for HousingQA `or-gemma4-26b` after the
+May 23 completion cycle. The canonical row order is
+`caches/retrieval/full/housing_qfull_seed42_statefilter_raw_question_k10.jsonl`
+with 6853 labels.
 
-## Result
+## Citable Rows
 
-No new HousingQA Gemma 26B full-N answer row can be promoted beyond the two
-already signed state-filtered rows.
-
-| Mode | Current status | Citable as full-N answer? | Source |
+| Mode | Full-N value | Retrieval exposure | Source |
 |---|---:|---:|---|
-| `rag_simple` | 4531/6853 = 66.1% | yes | `logs/merged/housing_or-gemma4-26b_rag_simple_statefilter_full_20260521_185315_detail.jsonl` |
-| `rag_hyde` | 4456/6853 = 65.0% | yes | `logs/eval_rag_hyde_or-gemma4-26b_20260521_174454_housing_local-snap-hyre-or-gemma4-26b-housing-rag_hyde-nfull-k5_detail.jsonl` |
-| `snap_hyre` | 2554/3942 = 64.8% partial | no | `logs/eval_snap_hyre_or-gemma4-26b_20260522_124028_housing_local-snap-hyre-or-gemma4-26b-housing-snap_hyre-nfull-k5_detail.jsonl` |
-| `llm_only` | 2025/3680 = 55.0% partial | no | two partial logs listed below |
-| `golden_passage` | no HousingQA Gemma detail log found | no | none |
+| `llm_only` | 3846/6853 = 56.1% | n/a | `logs/merged/housing_or-gemma4-26b_llm_only_full_20260523_114720_detail.jsonl` |
+| `rag_simple` | 4531/6853 = 66.1% | Hit@5 0.3695 / MRR@5 0.2330 | `logs/merged/housing_or-gemma4-26b_rag_simple_statefilter_full_20260521_185315_detail.jsonl` |
+| `rag_hyde` | 4456/6853 = 65.0% | Hit@5 0.3063 / MRR@5 0.1964 | `logs/eval_rag_hyde_or-gemma4-26b_20260521_174454_housing_local-snap-hyre-or-gemma4-26b-housing-rag_hyde-nfull-k5_detail.jsonl` |
+| `snap_hyre` | 4458/6853 = 65.1% | Hit@5 0.3807 / MRR@5 0.2452 | `logs/merged/housing_or-gemma4-26b_snap_hyre_statefilter_full_20260523_113019_detail.jsonl` |
 
-The full-N state-filtered retrieval cache for `snap_hyre` is valid and remains
-citable as retrieval exposure, not answer accuracy:
+`golden_passage` remains non-citable for HousingQA Gemma 26B: no matching full
+or partial detail log exists under `logs/` or `logs/merged/`.
 
-| Method | Rows | Hit@5 | Recall@5 | MRR@5 | Source |
-|---|---:|---:|---:|---:|---|
-| Raw question RAG | 6853 | 0.3695 | 0.2413 | 0.2330 | `caches/retrieval/full/housing_qfull_seed42_statefilter_raw_question_k10.jsonl` |
-| HyDE | 6853 | 0.3063 | 0.2042 | 0.1964 | `caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_rag_hyde_k10.jsonl` |
-| Snap-HyRE | 6853 | 0.3807 | 0.2505 | 0.2452 | `caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_snap_hyre_k10.jsonl` |
+## Merge Provenance
 
-## Log Inventory
+`llm_only` was merged from three clean, non-overlapping canonical spans:
 
-Relevant full or partial answer detail logs:
+| Span | Rows | Correct | Route | Source |
+|---|---:|---:|---|---|
+| 0:10 | 10 | 6 | Cloudflare | `logs/eval_llm_only_or-gemma4-26b_20260520_060947_housing_local-snap-hyre-or-gemma4-26b-housing-llm_only-nfull-k5_detail.jsonl` |
+| 10:3680 | 3670 | 2019 | Parasail | `logs/eval_llm_only_or-gemma4-26b_20260520_061243_housing_local-snap-hyre-or-gemma4-26b-housing-llm_only-nfull-k5_detail.jsonl` |
+| 3680:6853 | 3173 | 1821 | Cloudflare | `logs/eval_llm_only_or-gemma4-26b_20260523_040509_housing_local-snap-hyre-or-gemma4-26b-housing-llm_only-nfull-k5-s3680-eend_detail.jsonl` |
 
-- `logs/merged/housing_or-gemma4-26b_rag_simple_statefilter_full_20260521_185315_detail.jsonl`
-  - 6853 rows, 6853 unique labels, 4531 correct.
-- `logs/eval_rag_hyde_or-gemma4-26b_20260521_174454_housing_local-snap-hyre-or-gemma4-26b-housing-rag_hyde-nfull-k5_detail.jsonl`
-  - 6853 rows, 6853 unique labels, 4456 correct.
-- `logs/eval_snap_hyre_or-gemma4-26b_20260522_124028_housing_local-snap-hyre-or-gemma4-26b-housing-snap_hyre-nfull-k5_detail.jsonl`
-  - 3942 rows, 3942 unique labels, 2554 correct.
-- `logs/eval_llm_only_or-gemma4-26b_20260520_060947_housing_local-snap-hyre-or-gemma4-26b-housing-llm_only-nfull-k5_detail.jsonl`
-  - 10 rows, 10 unique labels, 6 correct.
-- `logs/eval_llm_only_or-gemma4-26b_20260520_061243_housing_local-snap-hyre-or-gemma4-26b-housing-llm_only-nfull-k5_detail.jsonl`
-  - 3670 rows, 3670 unique labels, 2019 correct.
+Merge command:
 
-Filesystem search found no HousingQA Gemma 26B `golden_passage` detail log.
+```bash
+python3 scripts/merge_detail_logs.py --key label --on-duplicate error \
+  --output logs/merged/housing_or-gemma4-26b_llm_only_full_20260523_114720_detail.jsonl \
+  logs/eval_llm_only_or-gemma4-26b_20260520_060947_housing_local-snap-hyre-or-gemma4-26b-housing-llm_only-nfull-k5_detail.jsonl \
+  logs/eval_llm_only_or-gemma4-26b_20260520_061243_housing_local-snap-hyre-or-gemma4-26b-housing-llm_only-nfull-k5_detail.jsonl \
+  logs/eval_llm_only_or-gemma4-26b_20260523_040509_housing_local-snap-hyre-or-gemma4-26b-housing-llm_only-nfull-k5-s3680-eend_detail.jsonl
+```
 
-## Audit Commands
+Merge output:
 
-Detail-log health:
+```text
+n=6853
+correct=3846
+accuracy=0.561214
+empty_retrieval=6853
+gold_retrieved=0
+avg_llm_calls=1.000
+avg_tokens=447.4
+```
+
+`snap_hyre` was merged earlier from canonical spans 0:3942, 3942:4793,
+4793:4845, and 4845:6853 into
+`logs/merged/housing_or-gemma4-26b_snap_hyre_statefilter_full_20260523_113019_detail.jsonl`.
+
+## Audit Commands And Results
+
+LLM-only chunk audits:
+
+```bash
+python3 scripts/audit_housing_llm_only_detail.py \
+  --canonical-cache caches/retrieval/full/housing_qfull_seed42_statefilter_raw_question_k10.jsonl \
+  --canonical-start 0 --allow-partial --expected-rows 10 \
+  logs/eval_llm_only_or-gemma4-26b_20260520_060947_housing_local-snap-hyre-or-gemma4-26b-housing-llm_only-nfull-k5_detail.jsonl
+
+python3 scripts/audit_housing_llm_only_detail.py \
+  --canonical-cache caches/retrieval/full/housing_qfull_seed42_statefilter_raw_question_k10.jsonl \
+  --canonical-start 10 --allow-partial --expected-rows 3670 \
+  logs/eval_llm_only_or-gemma4-26b_20260520_061243_housing_local-snap-hyre-or-gemma4-26b-housing-llm_only-nfull-k5_detail.jsonl
+
+python3 scripts/audit_housing_llm_only_detail.py \
+  --canonical-cache caches/retrieval/full/housing_qfull_seed42_statefilter_raw_question_k10.jsonl \
+  --canonical-start 3680 --allow-partial --expected-rows 3173 \
+  logs/eval_llm_only_or-gemma4-26b_20260523_040509_housing_local-snap-hyre-or-gemma4-26b-housing-llm_only-nfull-k5-s3680-eend_detail.jsonl
+```
+
+Key output: every chunk had `canonical_order_match=True`, wrong
+provider/mode/dataset 0, missing predictions 0, errors 0, missing exact final
+answers 0, fallback 0, think tags 0, and evidence payload 0.
+
+Full LLM-only audit:
 
 ```bash
 python3 scripts/analyze_detail_flags.py \
-  logs/merged/housing_or-gemma4-26b_rag_simple_statefilter_full_20260521_185315_detail.jsonl \
-  logs/eval_rag_hyde_or-gemma4-26b_20260521_174454_housing_local-snap-hyre-or-gemma4-26b-housing-rag_hyde-nfull-k5_detail.jsonl \
-  logs/eval_llm_only_or-gemma4-26b_20260520_060947_housing_local-snap-hyre-or-gemma4-26b-housing-llm_only-nfull-k5_detail.jsonl \
-  logs/eval_llm_only_or-gemma4-26b_20260520_061243_housing_local-snap-hyre-or-gemma4-26b-housing-llm_only-nfull-k5_detail.jsonl \
-  logs/eval_snap_hyre_or-gemma4-26b_20260522_124028_housing_local-snap-hyre-or-gemma4-26b-housing-snap_hyre-nfull-k5_detail.jsonl
+  logs/merged/housing_or-gemma4-26b_llm_only_full_20260523_114720_detail.jsonl
+
+python3 scripts/audit_housing_llm_only_detail.py \
+  --canonical-cache caches/retrieval/full/housing_qfull_seed42_statefilter_raw_question_k10.jsonl \
+  --expected-rows 6853 \
+  logs/merged/housing_or-gemma4-26b_llm_only_full_20260523_114720_detail.jsonl
 ```
 
 Key output:
 
-- `rag_simple`: rows 6853, accuracy 4531/6853, errors 0, missing predictions
-  0, empty retrieval 0.
-- `rag_hyde`: rows 6853, accuracy 4456/6853, errors 0, missing predictions 0,
-  empty retrieval 0.
-- `llm_only`: rows 10 + 3670, errors 0, missing predictions 0.
-- `snap_hyre`: rows 3942, accuracy 2554/3942, errors 0, missing predictions 0,
-  empty retrieval 0.
+```text
+rows=6853
+accuracy=3846/6853 = 0.561214
+provider_route_counts={"Cloudflare": 3183, "Parasail": 3670}
+canonical_order_match=True
+wrong_provider=0
+wrong_mode=0
+wrong_dataset=0
+missing_prediction=0
+error=0
+missing_exact_final=0
+fallback=0
+think_tag=0
+evidence_payload=0
+answer_format_retries=2
+near_cap_rows=0
+```
 
-State-filter answer-row gates:
+Full state-filter answer audits:
 
 ```bash
+python3 scripts/analyze_detail_flags.py \
+  logs/merged/housing_or-gemma4-26b_snap_hyre_statefilter_full_20260523_113019_detail.jsonl
+
 python3 scripts/audit_housing_statefilter_detail.py \
   --provider or-gemma4-26b --mode rag_simple --expected-rows 6853 \
   logs/merged/housing_or-gemma4-26b_rag_simple_statefilter_full_20260521_185315_detail.jsonl
@@ -78,166 +126,100 @@ python3 scripts/audit_housing_statefilter_detail.py \
 
 python3 scripts/audit_housing_statefilter_detail.py \
   --provider or-gemma4-26b --mode snap_hyre --expected-rows 6853 --require-hyre-cache \
-  logs/eval_snap_hyre_or-gemma4-26b_20260522_124028_housing_local-snap-hyre-or-gemma4-26b-housing-snap_hyre-nfull-k5_detail.jsonl
+  logs/merged/housing_or-gemma4-26b_snap_hyre_statefilter_full_20260523_113019_detail.jsonl
 ```
 
 Key output:
 
-- `rag_simple`: pass; wrong provider/mode/dataset 0, missing prediction 0,
-  error 0, missing state filter 0, retrieval/doc/HyRE cache misses 0,
-  bad evidence length 0, missing exact final 0, fallback 0, think tags 0.
-- `rag_hyde`: pass with the same zero-failure counters.
-- `snap_hyre`: fails only the full-N gate: `expected 6853 rows, found 3942`.
-  The 3942 present rows otherwise have zero structural failures.
+```text
+rag_simple:
+rows=6853
+accuracy=4531/6853 = 0.661170
+gold_hit@5=2532/6853 = 0.369473
+wrong_provider=0
+wrong_mode=0
+wrong_dataset=0
+missing_state_filter=0
+retrieval_cache_miss=0
+doc_cache_miss=0
+bad_evidence_len=0
+missing_exact_final=0
+fallback=0
+think_tag=0
 
-Retrieval-cache gates:
+rag_hyde:
+rows=6853
+accuracy=4456/6853 = 0.650226
+gold_hit@5=2099/6853 = 0.306289
+wrong_provider=0
+wrong_mode=0
+wrong_dataset=0
+missing_state_filter=0
+retrieval_cache_miss=0
+doc_cache_miss=0
+hyre_cache_miss=0
+bad_evidence_len=0
+missing_exact_final=0
+fallback=0
+think_tag=0
+
+snap_hyre:
+rows=6853
+accuracy=4458/6853 = 0.650518
+gold_hit@5=2609/6853 = 0.380709
+wrong_provider=0
+wrong_mode=0
+wrong_dataset=0
+missing_prediction=0
+error=0
+missing_state_filter=0
+retrieval_cache_miss=0
+doc_cache_miss=0
+hyre_cache_miss=0
+bad_evidence_len=0
+missing_exact_final=0
+fallback=0
+think_tag=0
+```
+
+Retrieval-cache audits:
 
 ```bash
-python3 scripts/audit_retrieval_cache.py \
-  --cache caches/retrieval/full/housing_qfull_seed42_statefilter_raw_question_k10.jsonl \
-  --dataset housing --min-k 5 --ks 1,3,5,10
-
-python3 scripts/audit_retrieval_cache.py \
-  --cache caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_rag_hyde_k10.jsonl \
-  --dataset housing --min-k 5 --ks 1,3,5,10
-
-python3 scripts/audit_retrieval_cache.py \
-  --cache caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_snap_hyre_k10.jsonl \
-  --dataset housing --min-k 5 --ks 1,3,5,10
+python3 scripts/audit_retrieval_cache.py --dataset housing --ks 1,3,5,10 \
+  --cache caches/retrieval/full/housing_qfull_seed42_statefilter_raw_question_k10.jsonl
+python3 scripts/audit_retrieval_cache.py --dataset housing --ks 1,3,5,10 \
+  --cache caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_rag_hyde_k10.jsonl
+python3 scripts/audit_retrieval_cache.py --dataset housing --ks 1,3,5,10 \
+  --cache caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_snap_hyre_k10.jsonl
 ```
 
 All three caches pass with 6853 rows, 0 duplicate keys, 0 missing indices, 0
 empty retrieval rows, 0 short rows, and 0 rows without gold.
 
-Provider readiness:
-
-```bash
-MODEL_LABEL=or-gemma4-26b python3 scripts/check_expected_provider_model.py \
-  --provider or-gemma4-26b \
-  --expected-model google/gemma-4-26b-a4b-it \
-  --expected-label or-gemma4-26b
-
-python3 scripts/check_openrouter_key_status.py --min-limit-remaining 0.01
-
-OPENROUTER_PROVIDER_ONLY=Cloudflare python3 scripts/check_openrouter_chat_route.py \
-  --provider or-gemma4-26b \
-  --expected-model google/gemma-4-26b-a4b-it \
-  --provider-only Cloudflare
-```
-
-These pass on 2026-05-23. The OpenRouter key status shows about 22.21 units
-remaining. The Cloudflare route smoke returns `OK`.
-
-## Coverage Gaps
-
-Coverage was checked against the 6853-label order in the signed full
-`rag_simple` log.
-
-`llm_only` currently covers 3680 labels and is missing 3173 labels:
-
-| sample start | sample end exclusive | first missing label | last missing label |
-|---:|---:|---|---|
-| 3479 | 4746 | `hqa_Ohio_734` | `hqa_Tennessee_7216` |
-| 4793 | 4845 | `hqa_Texas_4531` | `hqa_Texas_9149` |
-| 4999 | 6853 | `hqa_Nevada_5686` | `hqa_Wyoming_8829` |
-
-`snap_hyre` currently covers 3942 labels and is missing 2911 labels:
-
-| sample start | sample end exclusive | first missing label | last missing label |
-|---:|---:|---|---|
-| 3479 | 4746 | `hqa_Ohio_734` | `hqa_Tennessee_7216` |
-| 4793 | 4845 | `hqa_Texas_4531` | `hqa_Texas_9149` |
-| 5261 | 6853 | `hqa_New Jersey_3000` | `hqa_Wyoming_8829` |
-
-The stale core queue lock remains at `/tmp/housing_gemma_core_queue.lock`, with
-metadata PID `3819545`, but that PID is not live. `scripts/local/check_housing_gemma_readiness.sh`
-correctly refuses launch while the lock is present.
-
-## Continuation Commands
-
-Use the same exact route:
-
-```bash
-export PROVIDER=or-gemma4-26b
-export MODEL_LABEL=or-gemma4-26b
-export OPENROUTER_PROVIDER_ONLY=Cloudflare
-export NO_SILENT_FALLBACK=1
-export LLM_MAX_COMPLETION_TOKENS=2048
-export EVAL_MIN_COMPLETION_TOKENS=2048
-```
-
-For the missing `snap_hyre` answer spans, use the already-built full generation,
-retrieval, and document caches:
-
-```bash
-for span in "3479 4746" "4793 4845" "5261"; do
-  set -- $span
-  SAMPLE_START="$1" SAMPLE_END="${2:-}" \
-  MODE=snap_hyre QUESTIONS=full RETRIEVAL_K=5 \
-  CACHE_SCOPE=qfull_seed42_statefilter \
-  HYRE_CACHE_ROOT="$PWD/caches/hyre/full" \
-  RETRIEVAL_CACHE_ROOT="$PWD/caches/retrieval/full" \
-  scripts/local/run_housing_statefilter_rag_simple_with_doc_cache.sh
-done
-```
-
-For the missing `llm_only` answer spans:
-
-```bash
-for span in "3479 4746" "4793 4845" "4999"; do
-  set -- $span
-  SAMPLE_START="$1" SAMPLE_END="${2:-}" \
-  PROVIDER=or-gemma4-26b MODEL_LABEL=or-gemma4-26b \
-  DATASET=housing QUESTIONS=full RETRIEVAL_K=5 MODES=llm_only \
-  USE_CACHES=0 REQUIRE_RETRIEVAL_CACHES=0 \
-  scripts/local/run_answer_cell.sh
-done
-```
-
-For `golden_passage`, no HousingQA Gemma detail log exists. If that cell is
-needed, launch it as a full answer row and audit it separately:
-
-```bash
-PROVIDER=or-gemma4-26b MODEL_LABEL=or-gemma4-26b \
-DATASET=housing QUESTIONS=full RETRIEVAL_K=5 MODES=golden_passage \
-USE_CACHES=0 REQUIRE_RETRIEVAL_CACHES=0 \
-scripts/local/run_answer_cell.sh
-```
-
-After any continuation finishes, merge only clean non-overlapping logs:
-
-```bash
-python3 scripts/merge_detail_logs.py --on-duplicate last --output <merged-output.jsonl> <inputs...>
-python3 scripts/analyze_detail_flags.py <merged-output.jsonl>
-python3 scripts/audit_housing_statefilter_detail.py --provider or-gemma4-26b --mode snap_hyre --expected-rows 6853 --require-hyre-cache <merged-output.jsonl>
-```
-
-Then refresh signoff/status with the repo helpers rather than manually
-promoting a partial row.
-
 ## Paper Impact
 
-No Table 1 change is justified from the current logs. Keep HousingQA Gemma 26B
-`LLM`, `Snap-HyRE`, and `Gold Evidence` blank in the answer matrix.
+Table 1 now includes HousingQA Gemma 26B `llm_only` at 56.1% and
+`snap_hyre` at 65.1%. Raw-question RAG remains the strongest deployable answer
+row at 66.1%; Snap-HyRE is essentially tied with HyDE on answer accuracy
+(65.1% vs 65.0%) while improving retrieval exposure over raw RAG (Hit@5 38.1%
+vs 36.9%, MRR@5 24.5% vs 23.3%).
 
-Table 2 remains valid: it is full-N state-filtered retrieval exposure, not
-answer accuracy.
-
-Do not describe the partial 64.8% Snap-HyRE answer log as a full HousingQA
-Gemma 26B answer result.
+Table 2 values are unchanged because the Gemma retrieval caches were already
+full-N. Figure 3 and the top-k appendix table now include the full HousingQA
+Gemma 26B HyDE and Snap-HyRE caches in the HousingQA generated-query means.
 
 ## Prompt-To-Artifact Checklist
 
 | Requirement | Evidence |
 |---|---|
-| Find all current HousingQA Gemma 26B detail logs for the named modes | Log inventory above from `find logs logs/merged ... *housing*or-gemma4-26b*detail.jsonl`. |
-| Verify 6853 unique rows for candidate full rows | `rag_simple` and `rag_hyde` pass; `snap_hyre` and `llm_only` are partial; `golden_passage` absent. |
-| Verify provider/model/mode/dataset | `audit_housing_statefilter_detail.py` reports wrong provider/mode/dataset 0 for citable rows and for the present `snap_hyre` partial. |
-| Verify state filtering where applicable | `rag_simple`, `rag_hyde`, and present `snap_hyre` rows report missing state filter 0. |
-| Verify no missing predictions/errors | `analyze_detail_flags.py` and state-filter audit report errors 0 and missing predictions 0 for present rows. |
-| Verify exact `Answer: Yes/No` format | state-filter audit reports missing exact final 0 for citable rows and the present `snap_hyre` partial. |
-| Verify no silent fallback/think tags | state-filter audit reports fallback 0 and think tags 0. |
-| Verify retrieval/doc/HyRE cache hits where required | state-filter audit reports retrieval/doc/HyRE cache misses 0 for citable generated rows and present `snap_hyre` partial. |
-| Merge partial logs only when clean | No merge was performed; coverage gaps show partial logs cannot yet produce full-N rows. |
-| Update source-gated artifacts | This report, `docs/signoff_log.md`, paper lineage notes, and current dashboard notes now separate citable full-N rows from partial rows. |
-| Regenerate paper if Table 1/Table 2 changed | No regeneration needed because no citable full-N answer value changed and retrieval tables already match the full caches. |
+| Find current HousingQA Gemma 26B detail logs | Log inventory from `rg --files logs logs/merged | rg 'housing.*or-gemma4-26b.*detail\\.jsonl$'`; citable rows listed above. |
+| Verify 6853 unique HousingQA rows | Full LLM-only, raw RAG, HyDE, and Snap-HyRE audits show rows 6853; the LLM-only audit also reports canonical order match. |
+| Verify provider/model/mode/dataset | LLM-only and state-filter audits report wrong provider/mode/dataset 0. |
+| Verify state filtering where applicable | State-filter audit reports missing state filter 0 for `rag_simple`, `rag_hyde`, and `snap_hyre`. |
+| Verify no missing predictions/errors | `analyze_detail_flags.py` and audits report errors 0 and missing predictions 0. |
+| Verify exact `Answer: Yes/No` format | LLM-only and state-filter audits report missing exact final answers 0. |
+| Verify no silent fallback or think tags | Audits report fallback 0 and think tags 0. |
+| Verify retrieval/doc/HyRE cache hits where required | State-filter audits report retrieval/doc cache misses 0 for raw RAG, HyDE, and Snap-HyRE, and HyRE cache misses 0 for HyDE/Snap-HyRE. |
+| Merge partial logs only when clean | LLM-only and Snap-HyRE were merged from non-overlapping canonical spans; raw logs were not overwritten. |
+| Update source-gated artifacts | `docs/signoff_log.md`, `current_status.md`, paper lineage docs, and paper tables were updated after full audits. |
+| Keep retrieval exposure separate from answer accuracy | This report and the paper distinguish Table 1 answer accuracy from Table 2/Figure 3 retrieval exposure. |

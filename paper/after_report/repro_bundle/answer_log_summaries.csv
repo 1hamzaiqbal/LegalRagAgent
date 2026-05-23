@@ -31,7 +31,9 @@ logs/eval_snap_hyre_groq-llama8b_20260518_231747_barexam_local-snap-hyre-groq-ll
 logs/eval_snap_hyre_groq-llama8b_20260521_041736_housing_local-snap-hyre-groq-llama8b-housing-snap_hyre-nfull-k5_detail.jsonl,6853,4043,0.589961,0,0,2377.3750,320.6842,1.0204,0.9858,housing,0
 logs/eval_snap_hyre_or-gemma4-26b_20260517_091147_barexam_local-snap-hyre-or-gemma4-26b-barexam-snap_hyre-nfull-k5_detail.jsonl,1195,980,0.820084,0,0,1284.5381,655.3891,1.0025,10.6723,barexam,mbe_0
 logs/eval_snap_hyre_or-gemma4-26b_20260521_012744_housing_local-snap-hyre-or-gemma4-26b-housing-snap_hyre-n500-k5_detail.jsonl,500,315,0.630000,0,0,2423.8000,475.6820,1.0000,7.6340,housing,906
-logs/experiments.jsonl,643,0,0.000000,0,643,,,,,,
+logs/experiments.jsonl,647,0,0.000000,0,647,,,,,,
 logs/merged/eval_llm_only_or-gemma4-26b_cloudflare_tail_20260516_barexam_nfull_k5_detail.jsonl,1195,966,0.808368,0,0,304.3506,584.6711,1.0025,9.6047,barexam,mbe_0
 logs/merged/housing_groq-llama70b_snap_hyre_statefilter_full_20260520_detail.jsonl,6853,4087,0.596381,0,0,2156.1013,280.8576,1.0000,1.4100,housing,0
+logs/merged/housing_or-gemma4-26b_llm_only_full_20260523_114720_detail.jsonl,6853,3846,0.561214,0,0,92.7089,354.7286,1.0003,6.1430,housing,0
 logs/merged/housing_or-gemma4-26b_rag_simple_statefilter_full_20260521_185315_detail.jsonl,6853,4531,0.661170,0,0,2599.1968,480.2857,1.0019,7.2437,housing,0
+logs/merged/housing_or-gemma4-26b_snap_hyre_statefilter_full_20260523_113019_detail.jsonl,6853,4458,0.650518,0,0,2523.1831,478.1002,1.0010,5.2201,housing,0

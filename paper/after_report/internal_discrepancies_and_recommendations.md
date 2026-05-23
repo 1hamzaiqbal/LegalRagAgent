@@ -14,12 +14,12 @@ These are present in `paper/icml_submission.pdf` and fixed in `paper/main.pdf`:
   of a paired `N=500` no-detectable-change result.
 - The Gold Evidence comparison says "matches or exceeds" on 70B, where the
   difference is only +0.5pp.
-- Figure 3's HousingQA caption says it averages over three models, including
-  Gemma 26B, while the final complete full-cache generated-query mean is over
-  the two complete Llama rows.
+- Figure 3's HousingQA generated-query mean was previously inconsistent with
+  the complete retrieval-cache set; the final plotted CSV includes Llama 3.1
+  8B, Gemma 4 26B, and Llama 3.3 70B.
 - Table 4's Snap-HyRE token-efficiency row is stale: 4 cells and 268.3
   correct/M instead of five cells and 258.8 correct/M.
-- Appendix coverage says 31 signed cells instead of 32 validated cells.
+- Appendix coverage says 31 signed cells instead of 35 validated cells.
 
 Full details are in [`damage_report.md`](damage_report.md).
 
@@ -28,27 +28,24 @@ Full details are in [`damage_report.md`](damage_report.md).
 ### Table 2 vs Table 1 HousingQA Gemma 26B
 
 Table 2 reports Gemma 26B retrieval exposure for HousingQA Snap-HyRE:
-Hit@5 38.1 and MRR@5 24.5. Table 1 leaves the HousingQA Gemma 26B Snap-HyRE
-answer cell blank.
+Hit@5 38.1 and MRR@5 24.5. Table 1 reports the matching full-N answer row:
+Snap-HyRE 65.1 versus raw-question RAG 66.1.
 
-This is not a numeric contradiction. It means the retrieval cache/probe exists
-for evidence exposure, while the final answer-accuracy row is not included as
-a main full-N answer result. The final text correctly calls this an evidence
-probe/diagnostic, not an answer-accuracy win.
+This is not a numeric contradiction. It means retrieval exposure improves for
+Gemma 26B even though raw-question RAG remains the stronger answer row.
 
 Recommendation: keep the Table 2 caption's "retrieval exposure, not answer
-accuracy" wording. If there is room, add "answer cells not shown in Table 1 are
-not imputed" to the appendix rather than the main table.
+accuracy" wording and keep the surrounding prose from presenting the retrieval
+lift as an answer-accuracy win.
 
 ### Figure 3 HousingQA Mean
 
-Figure 3 uses complete HousingQA generated-query top-k rows for Llama 3.1 8B
-and Llama 3.3 70B. The Gemma 26B HousingQA retrieval row appears in Table 2
-and the exemplar/probe discussion, but not in the Figure 3 HousingQA generated
-mean.
+Figure 3 now uses complete HousingQA generated-query top-k rows for Llama 3.1
+8B, Gemma 4 26B, and Llama 3.3 70B. The plotted CSV names the corresponding
+state-filtered retrieval caches in its `source_path` column.
 
-Recommendation: the current caption is correct. Do not revert to the stale
-"three model sizes" caption.
+Recommendation: keep the current three-model caption and do not revert to the
+intermediate two-model wording.
 
 ### Table 5 Filename and CSV Name
 
@@ -93,12 +90,12 @@ looks like the final build contract.
 
 ### Current Audited Rows CSV Stale Label
 
-`paper/snap_hyre_2025_05_18/current_audited_rows.csv` has a row labeling the
-HousingQA Gemma exemplar diagnostic as `snap_hyre`. The final package corrects
-the figure metric label to `snap_hyre_exemplar_q500` and does not use it as a
-full-N answer cell.
+`paper/snap_hyre_2025_05_18/current_audited_rows.csv` previously had a row
+labeling the HousingQA Gemma exemplar diagnostic as `snap_hyre`. The final
+package now keeps the full-N `snap_hyre` answer row separate from the
+`snap_hyre_exemplar_q500` diagnostic in figure metrics.
 
-Recommendation: fix or archive the stale CSV before future audits, because it
+Recommendation: keep that separation in future generator cleanup, because this
 is the easiest file to accidentally use incorrectly.
 
 ## Final PDF Items I Did Not Find as Discrepancies

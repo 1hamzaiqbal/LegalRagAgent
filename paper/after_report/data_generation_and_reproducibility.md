@@ -108,12 +108,11 @@ See [`number_lineage.md`](number_lineage.md). It covers:
 
 Important nuance:
 
-`paper/snap_hyre_2025_05_18/current_audited_rows.csv` has a stale row where the
-HousingQA Gemma exemplar diagnostic is labeled as `snap_hyre`. The final paper
-does not use that row as a full-N Snap-HyRE answer-accuracy cell. The final
-package labels that retrieval diagnostic as `snap_hyre_exemplar_q500` in
-`figures/current_figure_metrics.csv`, copied here as
-`tables/current_figure_metrics.csv`.
+`paper/snap_hyre_2025_05_18/current_audited_rows.csv` now records the full-N
+HousingQA Gemma LLM, HyDE, raw RAG, and Snap-HyRE rows. The final package keeps
+the separate `N=500` exemplar diagnostic under the label
+`snap_hyre_exemplar_q500` in `figures/current_figure_metrics.csv`, copied here
+as `tables/current_figure_metrics.csv`.
 
 ## What I Cannot Replicate Exactly
 
