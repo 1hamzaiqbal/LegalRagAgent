@@ -17,10 +17,15 @@ reported data to JSONL/cache files, and recording what should be trusted.
   remaining source-package risks, acceptable caveats, and next cleanup steps.
 - [`scripts/regenerate_figure3_from_final_csv.py`](scripts/regenerate_figure3_from_final_csv.py):
   saved script for regenerating Figure 3 from the final package CSV.
+- [`scripts/build_repro_bundle.py`](scripts/build_repro_bundle.py):
+  rebuilds source manifests and compact answer/retrieval summaries from the
+  canonical raw JSONL paths.
 - [`plots/`](plots/): regenerated Figure 3 and rendered page snapshots used for
   visual comparison.
 - [`tables/`](tables/): copied final table `.tex` files and source CSVs used by
   the number-lineage report.
+- [`repro_bundle/`](repro_bundle/): source-file manifest, checksums, row counts,
+  answer summaries, and retrieval summaries.
 
 ## Plot Assets
 

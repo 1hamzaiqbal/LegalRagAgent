@@ -1,0 +1,527 @@
+[
+  {
+    "path": "caches/retrieval/full/barexam_qfull_seed42_groq-llama70b_rag_hyde_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 1295117,
+    "line_count": 1195,
+    "sha256": "c41b229394b74cb9801f86ce926449da385fecaaf562b55c8375a6a94628e775"
+  },
+  {
+    "path": "caches/retrieval/full/barexam_qfull_seed42_groq-llama70b_snap_hyre_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 1301198,
+    "line_count": 1195,
+    "sha256": "6e1cc171b9da260acd26ee3843549d288900877291e99183d796af4e82be57ba"
+  },
+  {
+    "path": "caches/retrieval/full/barexam_qfull_seed42_groq-llama8b_rag_hyde_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 1615357,
+    "line_count": 1195,
+    "sha256": "4cc47f6cab822e5f13cf6457f4cf89e147c62e1957ca4f7cb381f5c29a3b9ac8"
+  },
+  {
+    "path": "caches/retrieval/full/barexam_qfull_seed42_groq-llama8b_snap_hyre_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 1614022,
+    "line_count": 1195,
+    "sha256": "5418cd921c0226447389a633e88b8d7a8934144ff9ab2f6f5ada2381183c64aa"
+  },
+  {
+    "path": "caches/retrieval/full/barexam_qfull_seed42_or-gemma4-26b_rag_hyde_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 1290921,
+    "line_count": 1195,
+    "sha256": "2ae28e131e52803120e36610b9c49d4341ce6654f2064cade0583b952c7fe1d8"
+  },
+  {
+    "path": "caches/retrieval/full/barexam_qfull_seed42_or-gemma4-26b_snap_hyre_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 1301085,
+    "line_count": 1195,
+    "sha256": "6fa1f244bfd52c65432e558ba0606ad434192f4b19e6e27673d2a453b79de3d0"
+  },
+  {
+    "path": "caches/retrieval/full/barexam_qfull_seed42_raw_question_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 1232654,
+    "line_count": 1195,
+    "sha256": "32dbe7ec7b6afc1b5a2b19b6d74c301ddafa72b1d14c088dcfa7c5d11e1faba4"
+  },
+  {
+    "path": "caches/retrieval/full/housing_qfull_seed42_raw_question_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 5514121,
+    "line_count": 6853,
+    "sha256": "5a4720e0d87a42ce72f182f1b803fc1ceb6f84ffbd66f03e1f12e16aefbd3c75"
+  },
+  {
+    "path": "caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama70b_rag_hyde_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 9741220,
+    "line_count": 6853,
+    "sha256": "3779af06f5070417b215048b92247f4f19edbf9f4c58740dcb1d6bde56f7c5f9"
+  },
+  {
+    "path": "caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama70b_snap_hyre_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 9805864,
+    "line_count": 6853,
+    "sha256": "6126bece3d1fd2a8cd58a6277710258ee2adcbb1b19ea097c37570787b07328a"
+  },
+  {
+    "path": "caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama8b_rag_hyde_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 9735870,
+    "line_count": 6853,
+    "sha256": "a24872a4492240d66154dbb11f56862de0092ace7fc192edfe01ba49e0ec9c51"
+  },
+  {
+    "path": "caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama8b_snap_hyre_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 9794005,
+    "line_count": 6853,
+    "sha256": "d33393d87f7104a2e8cbfe5a8555609b702a84901c64557e2fa2724f098c5a08"
+  },
+  {
+    "path": "caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_rag_hyde_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 10017415,
+    "line_count": 6853,
+    "sha256": "af57b01f082c6ff3bc3584deddf8f2cc734bc929cd0736634f4bf5c07c81a1f9"
+  },
+  {
+    "path": "caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_snap_hyre_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 10066793,
+    "line_count": 6853,
+    "sha256": "338b49562c89bb34efc675699c05a43c3a5c4fc569c960af865f9a4f1147feae"
+  },
+  {
+    "path": "caches/retrieval/full/housing_qfull_seed42_statefilter_raw_question_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 9205901,
+    "line_count": 6853,
+    "sha256": "792ad167a40194acf626c9e8244936db8b562330e79a9911226b7cfb65356abe"
+  },
+  {
+    "path": "caches/retrieval/probes/barexam_q500_seed42_or-gemma4-26b_snap_hyre_exemplar_realpassage_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 673064,
+    "line_count": 500,
+    "sha256": "cf574e056ac92f78d38541b6adfeb9f6d7a0d514054d7f67443405443b6bf273"
+  },
+  {
+    "path": "caches/retrieval/probes/barexam_q500_seed42_or-gemma4-26b_snap_hyre_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 672976,
+    "line_count": 500,
+    "sha256": "ea2042df8b030e1963f57b0e3aa7c334cc13d3c50120320d43decb81dc274aea"
+  },
+  {
+    "path": "caches/retrieval/probes/barexam_q500_seed42_raw_question_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 726052,
+    "line_count": 500,
+    "sha256": "da86a63fd87095011d6b3535639bf38646328c49cf53cae20d47b85a846c0a43"
+  },
+  {
+    "path": "caches/retrieval/probes/housing_q500_seed42_statefilter_or-gemma4-26b_snap_hyre_exemplar_realpassage_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 740038,
+    "line_count": 500,
+    "sha256": "1fdc895c8f920154e759fd42a42a554afa88b9e1604026a4eb8c6d0adba1f5e8"
+  },
+  {
+    "path": "caches/retrieval/probes/housing_q500_seed42_statefilter_or-gemma4-26b_snap_hyre_k10.jsonl",
+    "kind": "retrieval_cache",
+    "bytes": 720406,
+    "line_count": 500,
+    "sha256": "4fe751ed3f471573afea9be8dc3bd74ed845ddf535e73769a01a618e4c3255d0"
+  },
+  {
+    "path": "docs/compiled_results.md",
+    "kind": "source_doc",
+    "bytes": 61739,
+    "line_count": 730,
+    "sha256": "0d4649991cd5e01c6a90d32cea0c732047203492e64bad84f61942e0114d9773"
+  },
+  {
+    "path": "docs/retrieval_passage_exemplar_probe_2026-05-20.md",
+    "kind": "source_doc",
+    "bytes": 13400,
+    "line_count": 254,
+    "sha256": "d0b7a4f0a8215f4adafe3c20775a58d15be0413b8332d4053b674d30a9a21080"
+  },
+  {
+    "path": "docs/signoff_log.md",
+    "kind": "source_doc",
+    "bytes": 238170,
+    "line_count": 1254,
+    "sha256": "6601ec7b4818101010bcb1ea507bc0e049fbdebca1ca48e64fc2a183c4b9997c"
+  },
+  {
+    "path": "logs/eval_golden_passage_groq-llama70b_20260515_210741_barexam_local-snap-hyre-groq-llama70b-barexam-golden_passage-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 10767150,
+    "line_count": 1195,
+    "sha256": "f5cdba1026d8c350f034b20d78e65e6ef739ffea5d2ba23e62510a7dd9302c78"
+  },
+  {
+    "path": "logs/eval_golden_passage_groq-llama70b_20260518_061249_housing_local-snap-hyre-groq-llama70b-housing-golden_passage-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 87275248,
+    "line_count": 6853,
+    "sha256": "2340c431b4c5ee0a7996861851246f9f42a3dfe3c05fbf6c8f96613f750fe4eb"
+  },
+  {
+    "path": "logs/eval_golden_passage_groq-llama8b_20260518_213011_barexam_local-snap-hyre-groq-llama8b-barexam-golden_passage-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 12336468,
+    "line_count": 1195,
+    "sha256": "0d2e15b512f514c338a08b45415d8a33c5965b92d82bd0e3bd6c6827c5b3d66f"
+  },
+  {
+    "path": "logs/eval_golden_passage_groq-llama8b_20260519_140614_housing_local-snap-hyre-groq-llama8b-housing-golden_passage-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 86421021,
+    "line_count": 6853,
+    "sha256": "fe2d5ea483aed639ca233475a59a5a60d875c3103cb577c0ac9a4c639aabcd4c"
+  },
+  {
+    "path": "logs/eval_golden_passage_or-gemma4-26b_20260516_200935_barexam_local-snap-hyre-or-gemma4-26b-barexam-golden_passage-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 11752543,
+    "line_count": 1195,
+    "sha256": "f64814ee63ac3f0b7261d1da912ff1249bd8491355485496d812e752b14bc200"
+  },
+  {
+    "path": "logs/eval_golden_plus_neighbors_groq-llama70b_20260515_202827_barexam_local-snap-hyre-groq-llama70b-barexam-golden_plus_neighbors-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 24644502,
+    "line_count": 1195,
+    "sha256": "30e0fa2db15e073b7a0ffa184eaab75a965bb8fa6a7833758598efc47620881e"
+  },
+  {
+    "path": "logs/eval_golden_plus_neighbors_groq-llama8b_20260518_215012_barexam_local-snap-hyre-groq-llama8b-barexam-golden_plus_neighbors-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 28350582,
+    "line_count": 1195,
+    "sha256": "d4e1e23cca6d62dbb394f7e30b4646b871de0495a7c47d531cdea20ad04bd26a"
+  },
+  {
+    "path": "logs/eval_golden_plus_neighbors_or-gemma4-26b_20260516_233647_barexam_local-snap-hyre-or-gemma4-26b-barexam-golden_plus_neighbors-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 25666706,
+    "line_count": 1195,
+    "sha256": "f5b3d563aeccc1cfb4bd3013f025b6abc0108fcce2a154b971e1b327f844cee6"
+  },
+  {
+    "path": "logs/eval_llm_only_groq-llama70b_20260515_191548_barexam_local-snap-hyre-groq-llama70b-barexam-llm_only-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 8964530,
+    "line_count": 1195,
+    "sha256": "b9cd76e1bc821963493cc3d31d7949d8f9b78bd4cc990536ec047ad4a5972cf7"
+  },
+  {
+    "path": "logs/eval_llm_only_groq-llama70b_20260516_203552_housing_local-snap-hyre-groq-llama70b-housing-llm_only-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 29782704,
+    "line_count": 6853,
+    "sha256": "1b1478e51a800b572ea9cfaf8387e4d840d8c2cf107c44c688251bf57036f64f"
+  },
+  {
+    "path": "logs/eval_llm_only_groq-llama8b_20260518_205159_barexam_local-snap-hyre-groq-llama8b-barexam-llm_only-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 10287597,
+    "line_count": 1195,
+    "sha256": "556d221140a2d5d24312ad4e8de63f9335c3893ed474ffd67620d99e6000c3eb"
+  },
+  {
+    "path": "logs/eval_llm_only_groq-llama8b_20260519_082209_housing_local-snap-hyre-groq-llama8b-housing-llm_only-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 31448331,
+    "line_count": 6853,
+    "sha256": "f103120297805ed11d821861c5d6c818332a0fff70acea52a6225144c74ed4cc"
+  },
+  {
+    "path": "logs/eval_rag_hyde_groq-llama70b_20260515_222654_barexam_local-snap-hyre-groq-llama70b-barexam-rag_hyde-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 29817004,
+    "line_count": 1195,
+    "sha256": "a4b013ca7c742401c2517f93148d60ca4e59e5e5480b6dee7217a91a73c24697"
+  },
+  {
+    "path": "logs/eval_rag_hyde_groq-llama70b_20260521_013539_housing_local-snap-hyre-groq-llama70b-housing-rag_hyde-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 207919711,
+    "line_count": 6853,
+    "sha256": "03c3a9020a1041277bf09b8cfb8574460c49485f3c18191fa6a9fed70dca0fb7"
+  },
+  {
+    "path": "logs/eval_rag_hyde_groq-llama8b_20260518_225428_barexam_local-snap-hyre-groq-llama8b-barexam-rag_hyde-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 32240682,
+    "line_count": 1195,
+    "sha256": "09ddc3c31e33aa1ac3baf5b0cad516781133f9950a36f05992775fef597106d9"
+  },
+  {
+    "path": "logs/eval_rag_hyde_groq-llama8b_20260520_233346_housing_local-snap-hyre-groq-llama8b-housing-rag_hyde-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 206735620,
+    "line_count": 6853,
+    "sha256": "20ce780db14c5c5bafa0d2f9fb791290cf1b2669d4bd1b79d84bfe996c799aaf"
+  },
+  {
+    "path": "logs/eval_rag_hyde_or-gemma4-26b_20260517_040742_barexam_local-snap-hyre-or-gemma4-26b-barexam-rag_hyde-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 29305708,
+    "line_count": 1195,
+    "sha256": "5e15fbd6e405d809e67fe3c4bc7269275350279ee2d417d64140605e96e6c256"
+  },
+  {
+    "path": "logs/eval_rag_hyde_or-gemma4-26b_20260521_174454_housing_local-snap-hyre-or-gemma4-26b-housing-rag_hyde-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 214322776,
+    "line_count": 6853,
+    "sha256": "103642e1a58c75bc90deda9df4adaff1a07b5e73210c9ccb89426b8e31429bf8"
+  },
+  {
+    "path": "logs/eval_rag_rewrite_groq-llama70b_20260515_234357_barexam_local-snap-hyre-groq-llama70b-barexam-rag_rewrite-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 26815945,
+    "line_count": 1195,
+    "sha256": "9643aa7b701bba61962ae84c28ac183e1312097a16b99e5f5fefcb03ac570ac7"
+  },
+  {
+    "path": "logs/eval_rag_rewrite_groq-llama8b_20260518_233753_barexam_local-snap-hyre-groq-llama8b-barexam-rag_rewrite-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 32555978,
+    "line_count": 1195,
+    "sha256": "2dc4b4c91aeead507cffb75af88bce678a44156cbb224a294935d6b4921822a2"
+  },
+  {
+    "path": "logs/eval_rag_rewrite_or-gemma4-26b_20260517_124940_barexam_local-snap-hyre-or-gemma4-26b-barexam-rag_rewrite-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 29093229,
+    "line_count": 1195,
+    "sha256": "1392cf2244a742e4d38ba83e4a9a2c88c405552ca520998045b4bf7458add781"
+  },
+  {
+    "path": "logs/eval_rag_simple_groq-llama70b_20260515_194919_barexam_local-snap-hyre-groq-llama70b-barexam-rag_simple-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 20642314,
+    "line_count": 1195,
+    "sha256": "bf7c5284a702241a85cb0c869416cfbcf59f08074693f85e7986bb82583b8623"
+  },
+  {
+    "path": "logs/eval_rag_simple_groq-llama70b_20260520_230339_housing_local-snap-hyre-groq-llama70b-housing-rag_simple-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 185122312,
+    "line_count": 6853,
+    "sha256": "0a30ce2463d16033e2e4ec3b2b3a3be079bf31727e7e22c67c1df65174a1243b"
+  },
+  {
+    "path": "logs/eval_rag_simple_groq-llama8b_20260518_211000_barexam_local-snap-hyre-groq-llama8b-barexam-rag_simple-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 23989951,
+    "line_count": 1195,
+    "sha256": "7042bfff4363047f1eb61024ae90e25ea33a23a8e7c27ccb148f27d2c92b2d91"
+  },
+  {
+    "path": "logs/eval_rag_simple_groq-llama8b_20260520_132953_housing_local-snap-hyre-groq-llama8b-housing-rag_simple-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 187067473,
+    "line_count": 6853,
+    "sha256": "20732e286fef3695680e8dd2d5779cd0b6645de1eccfce71811b97654f4c2dd5"
+  },
+  {
+    "path": "logs/eval_rag_simple_or-gemma4-26b_20260516_164128_barexam_local-snap-hyre-or-gemma4-26b-barexam-rag_simple-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 21617231,
+    "line_count": 1195,
+    "sha256": "98986c1af8713a3f1bcd81023aa3313b6686ba242afa7848399036e9f941fa60"
+  },
+  {
+    "path": "logs/eval_snap_hyre_exemplar_or-gemma4-26b_20260521_023301_housing_local-snap-hyre-or-gemma4-26b-housing-snap_hyre_exemplar-n500-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 17091675,
+    "line_count": 500,
+    "sha256": "f08647bc3241585e2de5ddecb6a27250a3aaa4aca7317084f5de07df63c6db00"
+  },
+  {
+    "path": "logs/eval_snap_hyre_groq-llama70b_20260515_230504_barexam_local-snap-hyre-groq-llama70b-barexam-snap_hyre-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 32020791,
+    "line_count": 1195,
+    "sha256": "73b5fdec1e778118b4e2cfab740756f543bace90dda95041ed5e67e06c784350"
+  },
+  {
+    "path": "logs/eval_snap_hyre_groq-llama8b_20260518_231747_barexam_local-snap-hyre-groq-llama8b-barexam-snap_hyre-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 35499146,
+    "line_count": 1195,
+    "sha256": "a1b3c55096e268f028b7d307f1e7cfdddac4952b688eaf6cf5ee8e8493b7d539"
+  },
+  {
+    "path": "logs/eval_snap_hyre_groq-llama8b_20260521_041736_housing_local-snap-hyre-groq-llama8b-housing-snap_hyre-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 219287317,
+    "line_count": 6853,
+    "sha256": "c02216305778ff0f994a78f1f17def56e2f0870605b4ca16bfa1099d116b2dcd"
+  },
+  {
+    "path": "logs/eval_snap_hyre_or-gemma4-26b_20260517_091147_barexam_local-snap-hyre-or-gemma4-26b-barexam-snap_hyre-nfull-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 33486051,
+    "line_count": 1195,
+    "sha256": "03ff283c8d0e39569db9578196d04eaf4371152876102292a3a11065aa61974f"
+  },
+  {
+    "path": "logs/eval_snap_hyre_or-gemma4-26b_20260521_012744_housing_local-snap-hyre-or-gemma4-26b-housing-snap_hyre-n500-k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 16933449,
+    "line_count": 500,
+    "sha256": "a744de38826c871486e3f1699c8e49854e333d4a2a2b7c1499adefb455fbc336"
+  },
+  {
+    "path": "logs/experiments.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 566434,
+    "line_count": 643,
+    "sha256": "248f9ef811e81b41c227db6bed239015822598b9cac937b0c0415cc1cc6e2583"
+  },
+  {
+    "path": "logs/merged/eval_llm_only_or-gemma4-26b_cloudflare_tail_20260516_barexam_nfull_k5_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 10005225,
+    "line_count": 1195,
+    "sha256": "3ed768cd759b7d94fb4654afe0fd56eb13089ec32e51f82ca44ed875cf19b44b"
+  },
+  {
+    "path": "logs/merged/housing_groq-llama70b_snap_hyre_statefilter_full_20260520_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 207619397,
+    "line_count": 6853,
+    "sha256": "0b0a93720cc186ff988f58a45191f9d4c305f77d34a74e803612e7437bfc7fe2"
+  },
+  {
+    "path": "logs/merged/housing_or-gemma4-26b_rag_simple_statefilter_full_20260521_185315_detail.jsonl",
+    "kind": "answer_detail_log",
+    "bytes": 193327977,
+    "line_count": 6853,
+    "sha256": "c4b14f78619562cb401917ec966b8cc64f729e230c38311d517cb8ad1938da3b"
+  },
+  {
+    "path": "paper/after_report/damage_report.md",
+    "kind": "audit_doc_or_script",
+    "bytes": 11189,
+    "line_count": 148,
+    "sha256": "133e540a9a0cde80d920450ec569803cdc93b1a9a85a1d5ed8d46206a12ef23c"
+  },
+  {
+    "path": "paper/after_report/data_generation_and_reproducibility.md",
+    "kind": "audit_doc_or_script",
+    "bytes": 5723,
+    "line_count": 148,
+    "sha256": "1014730461894e10bead630242c3d0c6a44f92b7c60f6cd6461b8780adb13578"
+  },
+  {
+    "path": "paper/after_report/internal_discrepancies_and_recommendations.md",
+    "kind": "audit_doc_or_script",
+    "bytes": 5853,
+    "line_count": 130,
+    "sha256": "243e50791dcd7e704c8d02a047482cb0d80e60cdf5924e0adf0aa20999d3f2c3"
+  },
+  {
+    "path": "paper/after_report/number_lineage.md",
+    "kind": "audit_doc_or_script",
+    "bytes": 27069,
+    "line_count": 235,
+    "sha256": "b9c034589c532f1424697a693519f73c6fc97a8a589bb67deed54e665058378f"
+  },
+  {
+    "path": "paper/after_report/scripts/regenerate_figure3_from_final_csv.py",
+    "kind": "audit_doc_or_script",
+    "bytes": 6433,
+    "line_count": 197,
+    "sha256": "57c414cfd7d7162a2f43bac417d47bb3018025dbb6273a9a96451a0344a037a7"
+  },
+  {
+    "path": "paper/after_report/tables/current_answer_matrix.tex",
+    "kind": "paper_table_or_csv",
+    "bytes": 1061,
+    "line_count": 21,
+    "sha256": "d8e3e51a200b4cd87956e2feae0d464c608b4e701656f691e3a6ee9403dbad48"
+  },
+  {
+    "path": "paper/after_report/tables/current_figure_metrics.csv",
+    "kind": "paper_table_or_csv",
+    "bytes": 3045,
+    "line_count": 38,
+    "sha256": "ac9ae2e508d4875404c406f10c104fcd164c1ac2ab7d4d6a9fd9b987aa751ecd"
+  },
+  {
+    "path": "paper/after_report/tables/current_retrieval_matrix.tex",
+    "kind": "paper_table_or_csv",
+    "bytes": 720,
+    "line_count": 18,
+    "sha256": "733d92c9041304d7a0ef668b86a952296f014d4b6a8427a8a82fac7ba1d20c15"
+  },
+  {
+    "path": "paper/after_report/tables/current_usage_metrics.csv",
+    "kind": "paper_table_or_csv",
+    "bytes": 6565,
+    "line_count": 32,
+    "sha256": "278fde19ffcbc7e8092716f4787e8042c36a1f90f57061f65197009360089788"
+  },
+  {
+    "path": "paper/after_report/tables/current_usage_metrics.tex",
+    "kind": "paper_table_or_csv",
+    "bytes": 561,
+    "line_count": 18,
+    "sha256": "628fa1d5cbb3dea4d0ee2998609e169c9fa154490d58f4b1b90391e93bf19e8d"
+  },
+  {
+    "path": "paper/after_report/tables/exemplar_probe_q20.tex",
+    "kind": "paper_table_or_csv",
+    "bytes": 613,
+    "line_count": 15,
+    "sha256": "58ae276e1338030026bad09f29c30b9859b2d1d76ece880a2a347ad6263bbe1b"
+  },
+  {
+    "path": "paper/after_report/tables/exemplar_probe_q20_metrics.csv",
+    "kind": "paper_table_or_csv",
+    "bytes": 598,
+    "line_count": 7,
+    "sha256": "b137a4fa9513693dc782e8b36c328fee2809f6e8c3d6ee7280ab47756fd428b7"
+  },
+  {
+    "path": "paper/after_report/tables/topk_retrieval_metrics.csv",
+    "kind": "paper_table_or_csv",
+    "bytes": 7557,
+    "line_count": 49,
+    "sha256": "20cb58daf91f81b1dabeb1a96953a83f4531e49bc4a9eecdaa395a601e227402"
+  },
+  {
+    "path": "paper/after_report/tables/topk_retrieval_summary.tex",
+    "kind": "paper_table_or_csv",
+    "bytes": 2141,
+    "line_count": 32,
+    "sha256": "48e24a2d7e7a1ab28c2f3c9a1da964cd4fae6216fb832f0945821f00731f9c35"
+  },
+  {
+    "path": "paper/icml_submission_damage_report.md",
+    "kind": "audit_doc_or_script",
+    "bytes": 11243,
+    "line_count": 148,
+    "sha256": "42269552a2ce6b58ef99c4f03e7574efbc185bc88951d255dadbcd958f7c0f0d"
+  },
+  {
+    "path": "paper/reported_data_lineage.md",
+    "kind": "audit_doc_or_script",
+    "bytes": 26966,
+    "line_count": 235,
+    "sha256": "c769456673b17fb67ae1cdee978af297f9ff9f53199e95232c19c0868b054265"
+  }
+]
