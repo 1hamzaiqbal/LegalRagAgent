@@ -1,0 +1,144 @@
+\section{Method}\label{sec:method}
+
+\subsection{Fixed Method Ladder}
+
+The current experiment evaluates an inherited method ladder rather than a
+route-selection policy. Each row changes one major source of information or one
+query-generation step. All non-oracle retrieval rows use the same final answer
+depth, $k=5$, in the main answer matrix.
+
+\begin{table*}[t]
+\centering
+\caption{Canonical method ladder. Call counts are conceptual end-to-end LLM
+calls. Cached answer replays may log only the final answer call because the
+generation and retrieval stages were precomputed under the same method label.}
+\label{tab:method_ladder}
+\small
+\begin{tabularx}{\textwidth}{llcY}
+\toprule
+Row & Mode & Calls & Purpose \\
+\midrule
+0 & \method{llm_only} & 1 & Parametric baseline with no retrieval. \\
+1 & \method{rag_simple} & 1 & Raw-question retrieval baseline. \\
+2 & \method{rag_hyde} & 2 & Question-only hypothetical legal passage, then retrieval and answer. \\
+3 & \method{snap_hyre} & 2 & Primary method: snap answer plus HyRE passage in one generation call, then answer from retrieved evidence. \\
+4 & \method{golden_passage} & 1 & Oracle diagnostic: inject the labeled gold passage directly. \\
+5 & \method{golden_plus_neighbors} & 1 & Oracle-plus-distractor diagnostic: gold passage plus nearby retrieved neighbors. \\
+6 & \method{rag_rewrite} & 2 & Non-HyDE generated-query control using a structured query rewrite. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+The oracle rows are not deployable methods. They answer a different question:
+if a model receives the labeled evidence, can it use that evidence to select
+the right answer? They are therefore diagnostic controls for answer synthesis,
+not retrieval baselines.
+
+\subsection{Snap-HyRE Mechanics}\label{sec:method:snaphyre}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.95\textwidth]{21_snap_hyre_method_flow.png}
+  \caption{Operational \hyre{} flow. The first model call produces both a snap
+  answer and a retrieval-shaped hypothetical legal reference passage. Retrieval
+  uses the passage. The second model call receives the retrieved evidence and
+  the original question; the snap answer is logged but not handed in as
+  evidence.}
+  \label{fig:method_flow}
+\end{figure*}
+
+For a formatted legal question $q$, \hyre{} performs:
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Snap and passage generation.} The model receives the dataset's
+direct-answer prompt plus instructions to emit a required final answer line and
+a separate \texttt{\#\# Passage} block. The passage must be short, neutral, and
+reference-style: it should describe the controlling rule, statutory condition,
+legal relationship, or doctrinal test without using answer labels or an
+\texttt{Answer:} header.
+\item \textbf{Parsing and repair.} The harness parses the first call into
+\texttt{snap\_block}, \texttt{snap\_letter}, and \texttt{hyde\_passage}. Under
+\method{NO\_SILENT\_FALLBACK=1}, missing snap final lines, missing passage
+blocks, answer artifacts inside the passage, parse failures, and overlong
+passages are blockers unless a logged same-model format retry repairs them.
+\item \textbf{Retrieval.} The retriever uses only the HyRE passage as the query.
+The raw snap answer is not evidence. Retrieval uses the same active corpus,
+embedding model, hybrid retrieval stack, and cross-encoder reranking path as
+the other retrieval rows.
+\item \textbf{Final answer.} The final model call receives the retrieved
+evidence and the original formatted question. It must emit the dataset-specific
+final answer line, such as \texttt{Answer: (C)} or \texttt{Answer: Yes}.
+\end{enumerate}
+
+The active harness mode is \method{snap_hyre}. Legacy logs and older docs may
+call the same two-call family \method{rag_snap_hyde_2call}; this paper treats
+that string as provenance only. The older three-call
+\method{rag_snap_hyde} mode is not the current method.
+
+\subsection{Other Rows}
+
+\paragraph{Raw RAG.}
+\method{rag_simple} retrieves with the raw question and then answers with the
+standard RAG prompt. It is the primary non-oracle baseline because it uses the
+same evidence depth and reader prompt as \hyre{} without spending a generated
+query call.
+
+\paragraph{HyDE.}
+\method{rag_hyde} generates a hypothetical legal reference passage from the
+question alone. It isolates whether any generated passage helps, independent of
+the snap-conditioned answer commitment used by \hyre{}.
+
+\paragraph{Rewrite.}
+\method{rag_rewrite} asks a query-rewriter prompt to emit structured search
+queries, then retrieves over that query set and answers from evidence. In
+strict mode, malformed rewrite JSON must be repaired by the same model or the
+row is rejected rather than silently falling back to raw-question retrieval.
+
+\paragraph{Oracle controls.}
+\method{golden_passage} injects the labeled gold passage. \method{golden_plus_neighbors}
+injects the gold passage and fills the remaining context slots with nearby
+retrieved neighbors. These rows are especially important in law because a
+single labeled passage may be under-specified, while additional legal neighbors
+may either supply needed context or introduce distracting authority.
+
+\subsection{Caching and Launch Contract}
+
+The evaluation separates generated-query construction, retrieval-id caching,
+and answer replay. Generation caches store the HyDE or HyRE passage and parse
+metadata. Retrieval caches store deterministic passage ids at max depth
+$k=10$, allowing the paper to score Hit@1/5/10 and replay answer rows at
+$k=5$ without rerunning embedding search. For large HousingQA rows, hydrated
+document caches let answer replay use cached passage ids without reopening the
+full 1.8M-document Chroma collection.
+
+Promoted rows must pass the following gates before appearing as paper-facing
+claims:
+
+\begin{itemize}[leftmargin=*]
+\item \method{NO\_SILENT\_FALLBACK=1}; no provider/method fallback hidden in a
+successful row.
+\item Exact final answer lines are present and parseable; same-model
+format-only retries are logged as caveats.
+\item Retrieval caches have unique row keys, no missing indices, no empty
+retrieval rows, enough retrieved ids for the requested $k$, and aligned qrels
+where gold ids exist.
+\item Detail logs pass health scans for errors, missing predictions, parse
+failures, fallback markers, long outputs, and near-cap rows.
+\item \claimgate names the detail log, the metric values, and any caveats.
+\end{itemize}
+
+\subsection{Metrics}
+
+The downstream metric is exact answer accuracy. Multiple-choice tasks use the
+last valid answer line, such as \texttt{Answer: (A)} through
+\texttt{Answer: (D)} or \texttt{Answer: (E)} depending on the dataset. HousingQA uses
+\texttt{Answer: Yes} or \texttt{Answer: No}. Retrieval exposure is Hit@5 and
+MRR@5 where the dataset supplies corpus-aligned gold ids. HousingQA also tracks
+multiple-gold statute recall internally, but the main table reports any-gold
+Hit@5/MRR@5. MASLegalBench has no official per-question gold passage ids, so
+retrieval exposure is reported as a same-source-document proxy.
+
+We also report paired McNemar tests when signed in the gate, but we do not
+require every signed row to have a significance comparison. Many of the most
+important findings are directional comparisons across retrieval and oracle
+diagnostics rather than a single pairwise test.

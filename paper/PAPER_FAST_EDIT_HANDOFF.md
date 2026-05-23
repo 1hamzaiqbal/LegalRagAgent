@@ -57,12 +57,11 @@ python3 paper/after_report/scripts/build_repro_bundle.py
   easy-to-misread package issues and recommendations.
 - `paper/scope_edit_dropins/DEFERRED_DATA_CLAIM_FIXES.md`: short checklist for
   the scope-edit draft.
-- `paper/scope_edit_dropins/DAMAGE_CONTROL_EDIT_QUEUE.md`: concrete edit queue
-  by claim type and paper location.
+- `paper/EDIT_QUEUE.md`: concrete edit queue by claim type and paper location.
 
 ## Current Trust Decision
 
 Use `paper/main.pdf` and `paper/FINALFINALVERSION.zip` as the corrected final
-paper artifacts. Treat `paper/icml_submission.pdf` as a stale comparison target
+paper artifacts. Treat `paper/archive/icml_submission.pdf` as a stale comparison target
 only. Treat `paper/scope_edit_v0.zip` as the live scope-edit base that still
 needs later data/claim fixes.

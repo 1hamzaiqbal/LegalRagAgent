@@ -1,7 +1,7 @@
 # `icml_submission.pdf` Damage Report
 
 This report compares the stale comparison PDF
-[`icml_submission.pdf`](../icml_submission.pdf) against the corrected upload PDF
+[`icml_submission.pdf`](../archive/icml_submission.pdf) against the corrected upload PDF
 [`main.pdf`](../main.pdf). It focuses on result-claim damage: claims that were
 wrong, stale, overbroad, or likely produced by a merge between older paper
 sources and newer tables.
@@ -13,7 +13,7 @@ For per-number JSONL lineage, see
 
 | Artifact | Status | Pages | SHA-256 |
 |---|---:|---:|---|
-| `paper/icml_submission.pdf` | stale comparison target | 10 | `8c78723c488ec7a2fd12abc584c3befdf15d1022b9137421cb3251dbc5cc43e0` |
+| `paper/archive/icml_submission.pdf` | stale comparison target | 10 | `8c78723c488ec7a2fd12abc584c3befdf15d1022b9137421cb3251dbc5cc43e0` |
 | `paper/main.pdf` | committed final PDF, byte-identical to PDF inside `FINALFINALVERSION.zip` | 11 | `641fd97574f961bceab83fdd3ed3f8cc0d07e9ce326fb6f672cc7788eaeb57ae` |
 | `paper/FINALFINALVERSION.zip` | committed final source package | n/a | `522d5ef70c24f3dbca29acbe4625a560e95f73625797219c245f65bfd76f7813` |
 

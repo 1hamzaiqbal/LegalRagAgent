@@ -12,7 +12,7 @@ sources traceable.
 - Current overwrite-only replacement pack:
   `paper/scope_edit_overleaf_replacements.zip`
 - Full handoff bundle:
-  `paper/paper_fast_edit_complete_handoff.zip`
+  `paper/archive/paper_fast_edit_complete_handoff.zip`
 - Corrected final/audit source of truth:
   `paper/after_report/`
 
@@ -149,7 +149,7 @@ Use this order for fast paper repair:
 
 For the concrete claim queue, use:
 
-- `paper/scope_edit_dropins/DAMAGE_CONTROL_EDIT_QUEUE.md`
+- `paper/EDIT_QUEUE.md`
 - `paper/scope_edit_dropins/DEFERRED_DATA_CLAIM_FIXES.md`
 - `paper/after_report/damage_report.md`
 
@@ -159,7 +159,7 @@ For the concrete claim queue, use:
   missing or contradicted.
 - Do not copy the 2.35 GiB raw logs into `paper/`; use manifests and compact
   summaries.
-- Do not rerun the older `paper/snap_hyre_2025_05_18/build_current_paper_assets.py`
+- Do not rerun the older `paper/archive/snap_hyre_2025_05_18/build_current_paper_assets.py`
   as if it exactly regenerates the current final package. It is useful
   provenance, but it is not the final-package generator.
 - Do not silently import Legal-Link-EU or MASLegalBench narrative into the

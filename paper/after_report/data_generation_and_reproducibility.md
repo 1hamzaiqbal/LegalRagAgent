@@ -7,7 +7,7 @@ what cannot currently be reproduced exactly.
 
 There are two PDFs under review:
 
-- `paper/icml_submission.pdf`: stale comparison artifact. Its exact source
+- `paper/archive/icml_submission.pdf`: stale comparison artifact. Its exact source
   tree is not present, so I cannot reproduce it byte-for-byte or rebuild it
   from a known `.tex`/`.py` pipeline.
 - `paper/main.pdf`: final committed PDF. It is byte-identical to
@@ -28,7 +28,7 @@ and `main.pdf` artifacts. The underlying JSONL evidence lives in the repository:
 
 The historical generator is:
 
-`paper/snap_hyre_2025_05_18/build_current_paper_assets.py`
+`paper/archive/snap_hyre_2025_05_18/build_current_paper_assets.py`
 
 That script can regenerate many paper assets from logs/caches, and it contains
 the original Figure 3 plotting function. However, it lives in the older
@@ -108,7 +108,7 @@ See [`number_lineage.md`](number_lineage.md). It covers:
 
 Important nuance:
 
-`paper/snap_hyre_2025_05_18/current_audited_rows.csv` has a stale row where the
+`paper/archive/snap_hyre_2025_05_18/current_audited_rows.csv` has a stale row where the
 HousingQA Gemma exemplar diagnostic is labeled as `snap_hyre`. The final paper
 does not use that row as a full-N Snap-HyRE answer-accuracy cell. The final
 package labels that retrieval diagnostic as `snap_hyre_exemplar_q500` in
@@ -117,7 +117,7 @@ package labels that retrieval diagnostic as `snap_hyre_exemplar_q500` in
 
 ## What I Cannot Replicate Exactly
 
-I cannot exactly replicate `paper/icml_submission.pdf`, because:
+I cannot exactly replicate `paper/archive/icml_submission.pdf`, because:
 
 - It was not tied to a recoverable source tree in this workspace.
 - It is not byte-identical to the pre-audit zip PDF.
@@ -126,7 +126,7 @@ I cannot exactly replicate `paper/icml_submission.pdf`, because:
   after some table updates, so it is likely a mixed artifact.
 
 I also cannot honestly say that running
-`paper/snap_hyre_2025_05_18/build_current_paper_assets.py` recreates
+`paper/archive/snap_hyre_2025_05_18/build_current_paper_assets.py` recreates
 `paper/main.pdf` exactly. It is the historical generator, not the final
 submission-package generator. The final paper is reproducible from the final
 LaTeX package, and the data are traceable to JSONL, but the generator needs a

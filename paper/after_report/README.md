@@ -1,7 +1,7 @@
 # After-Report Index
 
 This folder is a post-audit bundle for comparing the stale
-`paper/icml_submission.pdf` against the corrected `paper/main.pdf`, tracing the
+`paper/archive/icml_submission.pdf` against the corrected `paper/main.pdf`, tracing the
 reported data to JSONL/cache files, and recording what should be trusted.
 
 ## Files
@@ -44,5 +44,5 @@ reported data to JSONL/cache files, and recording what should be trusted.
 ## Trust Decision
 
 Use `paper/main.pdf` and `paper/FINALFINALVERSION.zip` as the submission
-artifacts. Treat `paper/icml_submission.pdf` as a stale comparison artifact for
+artifacts. Treat `paper/archive/icml_submission.pdf` as a stale comparison artifact for
 audit comparison only.

@@ -1,43 +1,77 @@
 # Paper Workspace
 
-The active ICML draft lives in:
+Top-level map of the paper directory after the 2026-05-22 cleanup. Use this
+file as the front door; everything else links from here.
 
-```text
-paper/snap_hyre_2025_05_18/
-```
+## Final Submission Artifacts
 
-The root `paper/` directory is now only a workspace wrapper. Older duplicate
-draft files that previously lived at the root were moved to
-`archive_pre_current_icml_2026-05-20/root_duplicate_draft/` so there is one
-clear active paper tree.
+- [`main.pdf`](main.pdf): the upload PDF. Trust this.
+- [`FINALFINALVERSION.zip`](FINALFINALVERSION.zip): final source package
+  (contains `final_icml_submission/main.tex` and supporting files).
 
-Timestamped Overleaf exports are local handoff artifacts. Older exports are
-collected under `archive_overleaf_uploads_2026-05-21/`, while the latest upload
-package remains at `overleaf_snap_hyre_20260521_100948/` with the matching zip
-beside it.
+## Active Editing Surface
 
-## Active Scope
+The scope-edit draft is the live Overleaf base. The damage-control queue
+below tracks what still has to land in that draft.
 
-- Method: fixed `snap_hyre`, not adaptive HyRE.
-- Main benchmarks: BarExamQA, HousingQA, Legal-Link-EU, MASLegalBench.
-- Historical only unless explicitly re-added: CaseHOLD and LegalBench-SCALR.
-- Main providers: `groq-llama8b`, `or-gemma4-26b`, `groq-llama70b`.
-- Main modes: `llm_only`, `rag_simple`, `rag_hyde`, `snap_hyre`,
-  `golden_passage`, `golden_plus_neighbors`, `rag_rewrite`.
-- Current audited completion: 71/78 exact-scored answer cells.
+- [`EDIT_QUEUE.md`](EDIT_QUEUE.md): claim-by-claim repair queue for the scope
+  draft (HousingQA parity wording, Gold Evidence framing on Llama 70B,
+  exemplar scope, Figure 3 caption, Table 4 efficiency, Table 13 bolding,
+  bibliography placeholders).
+- [`scope_edit_v0.zip`](scope_edit_v0.zip): current Overleaf source snapshot.
+- [`scope_edit_overleaf_replacements/`](scope_edit_overleaf_replacements/)
+  and [`scope_edit_overleaf_replacements.zip`](scope_edit_overleaf_replacements.zip):
+  overwrite-only drop-in pack for Overleaf. Only changes
+  `sections/2Preliminary.tex` and `sections/6Conclusion.tex`.
+- [`scope_edit_dropins/`](scope_edit_dropins/): standalone fragments, the
+  `DEFERRED_DATA_CLAIM_FIXES.md` checklist, and
+  [`scope_edit_dropins/historical_drafts/`](scope_edit_dropins/historical_drafts/)
+  with older draft snapshots (longer Background / Method / Analysis sections)
+  to mine prose from when expanding the trimmed scope draft.
 
-## Build
+## Workflow Docs
 
-From the repository root:
+- [`PAPER_FAST_EDIT_HANDOFF.md`](PAPER_FAST_EDIT_HANDOFF.md): top-level index of
+  upload artifacts and data sources.
+- [`OVERLEAF_FAST_ITERATION_WORKFLOW.md`](OVERLEAF_FAST_ITERATION_WORKFLOW.md):
+  how to import a newer Overleaf zip, build drop-in packs, and stay aligned
+  with the data sources.
 
-```bash
-python3 paper/snap_hyre_2025_05_18/build_current_paper_assets.py
-cd paper/snap_hyre_2025_05_18
-tectonic main.tex
-```
+## Audit and Reproducibility
 
-## Evidence Discipline
+- [`after_report/`](after_report/): post-audit bundle. Number-to-source map,
+  damage report (stale vs corrected), reproducibility notes, regenerated
+  Figure 3, and copied final tables. Start here for any "where did this
+  number come from?" question.
+- Figure 3 regenerate:
+  `python3 paper/after_report/scripts/regenerate_figure3_from_final_csv.py`
+- Refresh source manifest:
+  `python3 paper/after_report/scripts/build_repro_bundle.py`
 
-For paper-facing numerical claims, use `docs/signoff_log.md` first, then
-`docs/compiled_results.md`, then `logs/experiments.jsonl` only as supporting
-source. Keep run-status/process details in docs, not in the manuscript prose.
+## Archive
+
+[`archive/`](archive/) holds superseded artifacts kept for provenance:
+
+- `icml_submission.pdf` — stale comparison target (see
+  [`after_report/damage_report.md`](after_report/damage_report.md) for what
+  was wrong).
+- `snap_hyre_2025_05_18/` — older local LaTeX tree and `build_current_paper_assets.py`.
+  Not the final-package generator.
+- `FINAL_VERSION.zip`, `Toward_Adaptive_HyRE_*.zip` — earlier source bundles.
+- `paper_fast_edit_complete_handoff.zip` — the 14 MB bundled handoff (its
+  contents are already in this directory).
+- `reported_data_lineage.md`, `icml_submission_damage_report.md` — root
+  duplicates of files under `after_report/` (kept for provenance only).
+- `archive_overleaf_uploads_2026-05-21/` — earlier nested archive.
+
+Local-only Overleaf snapshots (~215 MB) live outside the repo at
+`~/grad/paper_local_archive/`.
+
+## Untracked Inputs at Root
+
+These are kept on disk but not tracked in git; they are feedback inputs to the
+ongoing scope edit:
+
+- `main_langlin_feedback.tex` — advisor markup of the abstract/intro.
+- `comments_w_nearby_snippets.md` — extracted reviewer comments with
+  surrounding paper text.

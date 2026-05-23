@@ -14,7 +14,7 @@ Canonical paper artifacts checked:
 - Key final table and CSV artifacts are copied into
   [`tables/`](tables/) for self-contained review.
 
-The stale comparison artifact `paper/icml_submission.pdf` is not the source of truth for the
+The stale comparison artifact `paper/archive/icml_submission.pdf` is not the source of truth for the
 numbers below. It contains stale narrative around HousingQA parity,
 Legal-Link-EU exemplar diagnostics, and older coverage wording.
 
@@ -225,9 +225,9 @@ measurements, but they are still grounded in the JSONL/cache row counts above:
 
 ## Known Stale-Source Hazards
 
-- `paper/icml_submission.pdf` contains stale claims; use
+- `paper/archive/icml_submission.pdf` contains stale claims; use
   `paper/main.pdf` and `paper/FINALFINALVERSION.zip`.
-- `paper/snap_hyre_2025_05_18/current_audited_rows.csv` includes a stale row
+- `paper/archive/snap_hyre_2025_05_18/current_audited_rows.csv` includes a stale row
   where the HousingQA Gemma exemplar diagnostic is labeled as `snap_hyre`.
   The final paper does not use that row as a full-N answer result; the final
   figure metrics relabel it as `snap_hyre_exemplar_q500`.

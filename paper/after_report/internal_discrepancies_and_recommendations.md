@@ -5,7 +5,7 @@ This note separates true paper problems from acceptable caveats in the final
 
 ## Stale PDF Problems
 
-These are present in `paper/icml_submission.pdf` and fixed in `paper/main.pdf`:
+These are present in `paper/archive/icml_submission.pdf` and fixed in `paper/main.pdf`:
 
 - HousingQA is called "parity" even though Table 1 favors raw-question RAG.
 - Exemplar prompting is described as lifting retrieval on every tested
@@ -76,7 +76,7 @@ unless the paper is expanded to report it as a boundary case.
 
 ### Historical Generator Drift
 
-`paper/snap_hyre_2025_05_18/build_current_paper_assets.py` is not fully aligned
+`paper/archive/snap_hyre_2025_05_18/build_current_paper_assets.py` is not fully aligned
 with the final source package.
 
 Recommendation: do not rerun it blindly for final submission. Patch it or build
@@ -84,8 +84,9 @@ a small final-package generator that exactly emits the final tables/figures.
 
 ### Root Paper README Drift
 
-`paper/README.md` still points readers toward `paper/snap_hyre_2025_05_18/`
-and the older generator workflow. That is stale for the final upload package.
+`paper/README.md` previously pointed readers toward `paper/snap_hyre_2025_05_18/`
+and the older generator workflow. That tree has been archived to
+`paper/archive/snap_hyre_2025_05_18/` and the root README updated.
 
 Recommendation: use this after-report and `paper/FINALFINALVERSION.zip` as the
 current package map. Update `paper/README.md` after the deadline so it no longer
@@ -93,7 +94,7 @@ looks like the final build contract.
 
 ### Current Audited Rows CSV Stale Label
 
-`paper/snap_hyre_2025_05_18/current_audited_rows.csv` has a row labeling the
+`paper/archive/snap_hyre_2025_05_18/current_audited_rows.csv` has a row labeling the
 HousingQA Gemma exemplar diagnostic as `snap_hyre`. The final package corrects
 the figure metric label to `snap_hyre_exemplar_q500` and does not use it as a
 full-N answer cell.
@@ -120,7 +121,7 @@ is the easiest file to accidentally use incorrectly.
 
 ## Recommendations Before Any Further Upload
 
-1. Upload `paper/main.pdf`, not `paper/icml_submission.pdf`.
+1. Upload `paper/main.pdf`, not `paper/archive/icml_submission.pdf`.
 2. Keep `paper/FINALFINALVERSION.zip` synchronized with the rebuilt
    `paper/main.pdf`.
 3. Include `paper/after_report/number_lineage.md` internally as the audit map;

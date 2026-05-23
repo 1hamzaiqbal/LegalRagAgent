@@ -1,0 +1,91 @@
+%%%%%%%% Snap-HyRE for Legal Retrieval-Augmented Generation %%%%%%%%
+%% ICML 2026 submission. Build with pdflatex+bibtex+pdflatex+pdflatex.
+%% Sections live in sections/. Bibliography in references.bib.
+
+\documentclass{article}
+
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Blind review version. Switch to [accepted] for camera-ready, or
+% [preprint] to expose author info for arXiv distribution.
+\usepackage{icml2026}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{placeins}
+\usepackage{enumitem}
+\usepackage{xspace}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% Pending-result placeholders. \pending{} marks cells that are intentionally
+% not promoted because the signoff log does not yet contain a signed row.
+\newcommand{\pending}[1]{\textcolor{gray}{\textit{#1}}}
+\newcommand{\method}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\dataset}[1]{\textsc{#1}}
+\newcommand{\hyre}{Snap-HyRE\xspace}
+\newcommand{\claimgate}{\texttt{docs/signoff\_log.md}\xspace}
+\newcommand{\pp}{\ensuremath{\mathrm{pp}}}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\graphicspath{{figures/}}
+
+\icmltitlerunning{\protect\smash{Snap-HyRE for Legal RAG}}
+
+\begin{document}
+
+\twocolumn[
+  \icmltitle{Snap-HyRE for Legal Retrieval-Augmented Generation:\\
+    Retrieval Exposure, Oracle Controls, and Answer Conversion}
+
+  \icmlsetsymbol{equal}{*}
+
+  \begin{icmlauthorlist}
+    \icmlauthor{Hamza Iqbal}{wustl}
+    \icmlauthor{Hanson Li}{wustl}
+    \icmlauthor{Josh Li}{wustl}
+  \end{icmlauthorlist}
+
+  \icmlaffiliation{wustl}{Department of Computer Science and Engineering, Washington University in St.\ Louis, St.\ Louis, MO, USA}
+
+  \icmlcorrespondingauthor{Hamza Iqbal}{hiqbal@wustl.edu}
+
+  \icmlkeywords{retrieval-augmented generation, legal NLP, HyDE, generated queries, legal evaluation}
+
+  \vskip 0.3in
+]
+
+\printAffiliationsAndNotice{}
+
+\input{sections/0Abstract}
+\input{sections/1Introduction}
+\input{sections/2Preliminary}
+\input{sections/3Method}
+\input{sections/4Experiment}
+\input{sections/5Analysis}
+\input{sections/6Conclusion}
+
+\bibliographystyle{icml2026}
+\bibliography{references}
+
+\newpage
+\appendix
+\input{sections/Appendix}
+
+\end{document}

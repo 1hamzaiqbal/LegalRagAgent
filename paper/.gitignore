@@ -9,13 +9,13 @@ icml2026_styles/
 overleaf_snap_hyre*/
 overleaf_snap_hyre*.zip
 snap_hyre_overleaf*.zip
-archive_overleaf_uploads_*/folders/
-archive_overleaf_uploads_*/zips/
+archive/archive_overleaf_uploads_*/folders/
+archive/archive_overleaf_uploads_*/zips/
 
-# Local pre-current snapshot payload. The active paper is
-# snap_hyre_2025_05_18/ and the historical files remain recoverable in git
-# history plus the local archive copy.
+# Pre-cleanup local snapshot payloads (now superseded by ~/grad/paper_local_archive/)
 archive_pre_current_icml_*/
+_zz_archive_*/
+_va_unzipped/
 
 # TeX intermediates
 *.aux

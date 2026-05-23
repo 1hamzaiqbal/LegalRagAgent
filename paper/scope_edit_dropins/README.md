@@ -8,8 +8,12 @@ They split the short combined `Background and Related Work` section into:
 - `main_input_snippet.tex`: minimal `main.tex` wiring.
 - `DEFERRED_DATA_CLAIM_FIXES.md`: later data/claim cleanup checklist for this
   scope draft.
-- `DAMAGE_CONTROL_EDIT_QUEUE.md`: more concrete claim-repair queue with likely
-  file locations.
+- The concrete claim-repair queue with likely file locations has been promoted
+  to `paper/EDIT_QUEUE.md`.
+- `historical_drafts/`: older paper drafts with longer Background / Method /
+  Analysis sections. Mine prose from here when expanding those parts. See
+  [`historical_drafts/README.md`](historical_drafts/README.md) for a
+  section-size comparison and which snapshot to use for which section.
 
 No result tables, figures, data values, bibliography entries, or method claims
 are changed here. The sections use citation keys already present in
