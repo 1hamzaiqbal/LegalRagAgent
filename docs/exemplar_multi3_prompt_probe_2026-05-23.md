@@ -335,6 +335,23 @@ q50 decision: parallel3 beat canonical Snap-HyRE by +10pp Hit@5, exactly
 meeting the q100 promotion bar. Row-level Hit@5 comparison: 8 wins, 3 losses,
 39 ties.
 
+q50 rows where parallel3 beat canonical Snap-HyRE at Hit@5:
+
+- `complex_legallink_31985R1672_52014XC0312(01)_rendered_obsolete_by__row0044`
+- `complex_legallink_31987R0569_31985R3143_article_5.4_completes__row0056`
+- `complex_legallink_31992R3821_31989R3390_implicitly_repeals__row0113`
+- `complex_legallink_32005D0681_32004D0566_implicitly_repeals__row0481`
+- `complex_legallink_32006R2008_52014XC0312(01)_rendered_obsolete_by__row0590`
+- `complex_legallink_32009R1135_32008D0798_repeals__row0768`
+- `complex_legallink_32011D0171_32010D0573_extends_validity__row0812`
+- `complex_legallink_32023R2835_32002R1007_implicitly_repeals__row1119`
+
+q50 rows where parallel3 lost to canonical Snap-HyRE at Hit@5:
+
+- `complex_legallink_32003R0490_32003R0301_repeals__row0319`
+- `complex_legallink_32004D0468R(01)_32004D0468_corrects__row0381`
+- `complex_legallink_32008R0950R(01)_32008R0950_corrects__row0714`
+
 q100 retrieval:
 
 | Method | Calls/row | Hit@1 | Recall@1 | MRR@1 | Hit@5 | Recall@5 | MRR@5 | Hit@10 | Recall@10 | MRR@10 |
@@ -346,6 +363,40 @@ q100 retrieval:
 q100 decision: stop before q500. Parallel3 remained above canonical Snap-HyRE
 on Hit@5 (+4pp) and Hit@10 (+6pp), but it missed the predefined q500 promotion
 bar of +5pp Hit@5. Row-level Hit@5 comparison: 16 wins, 12 losses, 72 ties.
+
+q100 rows where parallel3 beat canonical Snap-HyRE at Hit@5:
+
+- `complex_legallink_31972R2846_31969R2638_annex_1_completes__row0010`
+- `complex_legallink_31984L0643R(01)_31984L0643_corrects__row0031`
+- `complex_legallink_31985R1672_52014XC0312(01)_rendered_obsolete_by__row0044`
+- `complex_legallink_31986L0155_31969L0208_annex_1_completes__row0051`
+- `complex_legallink_31987R0569_31985R3143_article_5.4_completes__row0056`
+- `complex_legallink_31992R3821_31989R3390_implicitly_repeals__row0113`
+- `complex_legallink_31997R2616R(01)_31997R2616_corrects__row0156`
+- `complex_legallink_32004D0255_32002D0611_repeals__row0361`
+- `complex_legallink_32004R0922_32000R2348_implicitly_repeals__row0436`
+- `complex_legallink_32005D0681_32004D0566_implicitly_repeals__row0481`
+- `complex_legallink_32006R2008_52014XC0312(01)_rendered_obsolete_by__row0590`
+- `complex_legallink_32009R1135_32008D0798_repeals__row0768`
+- `complex_legallink_32011D0171_32010D0573_extends_validity__row0812`
+- `complex_legallink_32017D0381_32014D0119_extends_application__row0988`
+- `complex_legallink_32022R0994_article_2f_32014R0833_extends_application__row1098`
+- `complex_legallink_32023R2835_32002R1007_implicitly_repeals__row1119`
+
+q100 rows where parallel3 lost to canonical Snap-HyRE at Hit@5:
+
+- `complex_legallink_31990R1844_52004XC1211(01)_rendered_obsolete_by__row0088`
+- `complex_legallink_32003R0490_32003R0301_repeals__row0319`
+- `complex_legallink_32004D0039_32000D0759_repeals__row0352`
+- `complex_legallink_32004D0468R(01)_32004D0468_corrects__row0381`
+- `complex_legallink_32004R1886_32004R0275_extends_application__row0458`
+- `complex_legallink_32006E0913_32004E0847_extends_validity__row0542`
+- `complex_legallink_32006L0130_52025XC00663_rendered_obsolete_by__row0551`
+- `complex_legallink_32007L0055_31986L0362_annex_2_completes__row0613`
+- `complex_legallink_32011R0401_32011R0051_repeals__row0837`
+- `complex_legallink_32013R1420_32000R2814_repeals__row0921`
+- `complex_legallink_32015R0937_32004R0487_implicitly_repeals__row0966`
+- `complex_legallink_32017D2410_32007D0025_extends_application__row1018`
 
 Behavioral read: parallel3 is directionally useful for Legal-Link-EU, but not
 yet strong enough to justify the extra two model calls or a q500 run. Exact
