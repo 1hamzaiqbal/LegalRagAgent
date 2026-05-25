@@ -17,6 +17,11 @@ archive_pre_current_icml_*/
 _zz_archive_*/
 _va_unzipped/
 
+# Local throwaway extractions of Overleaf scope-edit zips (the canonical
+# source lives in paper/submission/)
+_scope_edit_*_unzipped/
+_scope_edit_*_formatfix/
+
 # TeX intermediates
 *.aux
 *.log

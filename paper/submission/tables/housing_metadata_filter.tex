@@ -1,0 +1,14 @@
+\begin{table}[H]
+\centering
+\caption{HousingQA raw retrieval with and without the jurisdiction filter. Values are percentages from complete top-10 caches. Bold marks the higher value in each column.}
+\label{tab:housing_metadata_filter}
+\footnotesize
+\begin{tabular}{lrrrrr}
+\toprule
+Corpus scope & Hit@1 & Hit@3 & Hit@5 & Hit@10 & MRR@10 \\
+\midrule
+National corpus & 0.8 & 1.9 & 2.8 & 5.1 & 1.8 \\
+Jurisdiction metadata filter & \textbf{15.5} & \textbf{29.5} & \textbf{36.9} & \textbf{48.1} & \textbf{24.8} \\
+\bottomrule
+\end{tabular}
+\end{table}

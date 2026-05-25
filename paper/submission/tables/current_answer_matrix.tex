@@ -1,0 +1,42 @@
+% \begin{table*}[t]
+% \centering
+% \caption{Main answer accuracy (\%). Bold marks the largest value in each column among the deployable methods. The Gold Evidence row--where we provide the model the gold passage--is set apart by a rule and is not eligible for bolding. Averages are descriptive over available cells.}
+% \label{tab:answer_matrix}
+% \footnotesize
+% \setlength{\tabcolsep}{4pt}
+% \begin{tabular}{lrrrrrrrr}
+% \toprule
+% & \multicolumn{4}{c}{BarExamQA} & \multicolumn{4}{c}{HousingQA} \\
+% \cmidrule(lr){2-5} \cmidrule(lr){6-9}
+% Method & 8B & 26B & 70B & Avg. & 8B & 26B & 70B & Avg. \\
+% \midrule
+% LLM & \textbf{57.3} & 80.8 & 78.7 & 72.3 & 55.4 & -- & 44.8 & 50.1 \\
+% Raw question RAG & 54.5 & 78.0 & 74.6 & 69.0 & \textbf{62.3} & \textbf{66.1} & 62.1 & \textbf{63.5} \\
+% HyDE & 56.1 & 80.3 & \textbf{80.2} & 72.2 & 59.1 & 65.0 & \textbf{62.2} & 62.1 \\
+% Snap-HyRE (ours) & 56.9 & \textbf{82.0} & 79.7 & \textbf{72.9} & 59.0 & -- & 59.6 & 59.3 \\
+% \midrule
+% \textit{Gold Evidence} & 60.0 & 78.6 & 79.2 & 72.6 & 64.3 & -- & 67.3 & 65.8 \\
+% \bottomrule
+% \end{tabular}
+% \end{table*}
+\begin{table*}[t]
+\centering
+\caption{Main answer accuracy (\%). Bold marks the largest value in each column among the deployable methods. The Gold Evidence row--where we provide the model the gold passage--is set apart by a rule and is not eligible for bolding. Averages are descriptive over available cells.}
+\label{tab:answer_matrix}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+& \multicolumn{4}{c}{BarExamQA} & \multicolumn{3}{c}{HousingQA} \\
+\cmidrule(lr){2-5} \cmidrule(lr){6-8}
+Method & 8B & 26B & 70B & Avg. & 8B & 70B & Avg. \\
+\midrule
+LLM & \textbf{57.3} & 80.8 & 78.7 & 72.3 & 55.4 & 44.8 & 50.2 \\
+Raw question RAG & 54.5 & 78.0 & 74.6 & 69.0 & \textbf{62.3} & 62.1 & \textbf{62.2} \\
+HyDE & 56.1 & 80.3 & \textbf{80.2} & 72.2 & 59.1 & \textbf{62.2} & 60.7 \\
+\hyre (ours) & 56.9 & \textbf{82.0} & 79.7 & \textbf{72.9} & 59.0 & 59.6 & 59.3 \\
+\midrule
+\textit{Gold Evidence} & 60.0 & 78.6 & 79.2 & 72.6 & 64.3 & 67.3 & 65.8 \\
+\bottomrule
+\end{tabular}
+\end{table*}

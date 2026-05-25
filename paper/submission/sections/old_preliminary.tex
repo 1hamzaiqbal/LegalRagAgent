@@ -1,0 +1,24 @@
+\section{Background and Related Work}\label{sec:preliminary}
+
+\paragraph{Generated search text.}
+RAG combines a generator with an evidence store: a searchable corpus of
+text that the system retrieves from before answering \citep{lewis2020rag}.
+For legal tasks the goal is to surface the controlling authority--which are the legal statues/precedents needed to resolve a dispute--for a
+given question, but the question and the corpus often use different
+language. HyDE addresses this by generating a hypothetical document and
+embedding that text for retrieval \citep{gao2023hyde}. Query2doc and related expansion methods
+similarly use a language model to turn sparse query text into richer retrieval
+handles \citep{wang2023query2doc}. For legal tasks, the useful generated text
+is usually not a longer version of the question. It is a passage in the style
+of the authority the retriever should find.
+
+\paragraph{Legal RAG evaluation.}
+Legal evaluation benchmarks and corpora have standardized many
+legal-understanding tasks
+\citep{guha2023legalbench,chalkidis2022lexglue,henderson2022pileoflaw}, and
+recent work has emphasized the risk of unsupported legal assistant answers
+\citep{magesh2024hallucinations}. Legal RAG benchmarks such as LegalBench-RAG
+and Legal RAG Bench argue for evaluating retrieval and answering together
+\citep{pipitone2024legalbenchrag,butler2026legalragbench}. We follow that joint
+evaluation but split the failure analysis into two questions: did the
+retriever miss the evidence, or did the answer model misuse it?

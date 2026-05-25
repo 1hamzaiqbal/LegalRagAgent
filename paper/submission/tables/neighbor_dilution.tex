@@ -1,0 +1,17 @@
+\begin{table}[H]
+\centering
+\caption{Neighbor-dilution diagnostic on BarExamQA. Positive deltas indicate that retrieving neighboring passages using the gold passage as the query improves over providing only the gold passage. Bold marks the higher accuracy for each model.}
+\label{tab:neighbor_dilution}
+\footnotesize
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{lrrr}
+\toprule
+Method & Llama 3.1 8B & Gemma 4 26B & Llama 3.3 70B \\
+\midrule
+Gold             & 60.0          & 78.6          & \textbf{79.2} \\
+Gold + neighbors & \textbf{61.8} & \textbf{80.7} & 77.8          \\
+\midrule
+$\Delta$ (pp)    & +1.8          & +2.1          & -1.4          \\
+\bottomrule
+\end{tabular}
+\end{table}

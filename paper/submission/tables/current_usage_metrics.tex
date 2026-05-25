@@ -1,0 +1,19 @@
+\begin{table}[!htbp]
+\centering
+\caption{Answer-stage token accounting for rows with token logs. First-stage query-generation usage is excluded. All methods use one scored answer call per question except Rewrite, which uses two. Bold marks the highest \emph{Correct / 1M tok.} among single-call non-gold evidence retrieval methods (Raw question RAG, HyDE, \hyre).}
+\label{tab:usage_metrics}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrr}
+\toprule
+Method & Cells & Input tok./q & Output tok./q & Correct / 1M tok. \\
+\midrule
+LLM & 5 & 131 & 237 & 1487.2 \\
+Raw question RAG & 5 & 2295 & 339 & 241.5 \\
+HyDE & 5 & 2237 & 340 & 244.5 \\
+\hyre (ours) & 4 & 2001 & 376 & \textbf{268.3} \\
+Gold Evidence & 5 & 1447 & 215 & 404.5 \\
+\bottomrule
+\end{tabular}}
+\end{table}

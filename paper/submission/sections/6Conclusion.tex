@@ -1,0 +1,14 @@
+\section{Conclusion}\label{sec:conclusion}
+
+\hyre{} encodes a small piece of expert legal reasoning into a fixed
+two-call pipeline: form an intuition about the controlling doctrine,
+retrieve evidence by that frame, then judge the evidence on its own
+without anchoring to the intuition. The lift over raw-question RAG tracks
+the question-corpus vocabulary gap, because that gap is precisely the
+regime in which the intuition step matters. When the raw question is a
+poor retrieval handle, letting the model form an intuition before it
+searches and forcing the final answer back to the corpus delivers both
+retrieval and answer gains; when the question already reads like a passage
+from the corpus, \hyre{} reaches parity with raw-question RAG and the
+one-example variant from
+Section~\ref{subsec:housing_promising} recovers retrieval.

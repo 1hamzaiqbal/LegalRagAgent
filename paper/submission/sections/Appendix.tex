@@ -1,0 +1,80 @@
+\section{Appendix}\label{sec:appendix}
+
+\subsection{Result Inclusion Policy}\label{sec:appendix:policy}
+
+A row is used as a paper claim only when the result record names the dataset,
+provider, method, answer depth, metric values, and any row note needed to
+interpret the result. Rows without validated full results are omitted from the
+main comparison rather than imputed.
+
+\begin{itemize}[leftmargin=*]
+\item Main benchmarks: BarExamQA and HousingQA.
+\item Route labels: \method{groq-llama8b}, \method{or-gemma4-26b},
+\method{groq-llama70b}.
+\item Main modes: \method{llm_only}, \method{rag_simple},
+\method{rag_hyde}, \method{SCOPE}, and \method{golden_passage}.
+\method{rag_rewrite} is a supplemental generated-query control, and
+\method{golden_plus_neighbors} is retained only as a neighbor-dilution
+diagnostic.
+\item Answer depth: $k=5$ for retrieval rows.
+\item HousingQA interface: retrieval rows must use the jurisdiction state
+filter to count as main-interface rows.
+\end{itemize}
+
+The main matrix has 31 signed cells out of 42 expected (BarExamQA 21/21; HousingQA 10/21).
+
+\FloatBarrier
+
+\subsection{Supplemental Controls}\label{sec:appendix:additional}
+
+The supplemental tables separate the fixed-method comparison from controls
+that are useful for interpreting failure modes: structured rewrites,
+gold evidence context, and neighbor dilution.
+
+\input{tables/current_result_anatomy.tex}
+\input{tables/current_snap_vs_controls.tex}
+\input{tables/current_oracle_summary.tex}
+\input{tables/neighbor_dilution.tex}
+
+\FloatBarrier
+
+\subsection{Top-k Retrieval Diagnostics}\label{sec:appendix:topk}
+
+Tables~\ref{tab:housing_metadata_filter} and~\ref{tab:topk_retrieval} give
+the underlying per-row retrieval exposure as the cutoff grows from one to
+ten passages; the same data drives
+Figure~\ref{fig:topk_retrieval_curves} in
+Section~\ref{sec:analysis}.
+
+\input{tables/housing_metadata_filter.tex}
+
+\input{tables/topk_retrieval_summary.tex}
+
+BarExamQA generated passages raise the chance of seeing the labeled
+evidence throughout the top-10 list, although MRR remains modest because
+the exact supporting passage is rarely ranked first. HousingQA behaves
+differently: the jurisdiction filter is the major retrieval correction,
+and raw state-filtered questions already retrieve relevant evidence often.
+
+\FloatBarrier
+
+\subsection{Statute/Passage Exemplar Probe Details}\label{sec:appendix:exemplar}
+
+The exemplar variant adds one fixed sanitized real-passage exemplar to the
+\hyre{} generation prompt, with the exemplar's own question, answer, and
+document id stripped. The same q500 retrieval interfaces are used as
+the corresponding canonical \hyre{} rows: BarExamQA uses the shared
+support-passage collection; HousingQA uses the jurisdiction state filter;
+Legal-Link-EU uses the EUR-Lex evidence corpus with the same
+\texttt{CROSS\_ENCODER\_MAX\_CHARS=22000} setting as the main \hyre{}
+cache. The retrieval probes are computed directly from the cached
+passage-id lists; paired answer accuracy was scored only on the HousingQA
+q500 slice (62.8\% exemplar vs 63.0\% canonical \hyre{}, $-0.20$\pp{},
+$p=1.0$). Table~\ref{tab:exemplar_probe} in
+Section~\ref{subsec:housing_promising} reports the lift values.
+
+\subsection{Reproducibility Statement}
+
+All tables and figures are derived from the result records used for this draft.
+The released package will include the records, plotting code, and paper sources
+needed to reproduce the reported matrices and figures.

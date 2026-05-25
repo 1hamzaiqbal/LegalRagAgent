@@ -1,0 +1,23 @@
+\begin{table}[H]
+\centering
+\caption{\hyre against non-gold evidence controls. Cells are accuracy percentages. Bold marks the strongest result among the main deployable methods for each dataset--model pair.}
+\label{tab:snap_vs_controls}
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lrrrrr}
+\toprule
+& \multicolumn{3}{c}{BarExamQA} & \multicolumn{2}{c}{HousingQA} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-6}
+Method & Llama 3.1 8B & Gemma 4 26B & Llama 3.3 70B 
+       & Llama 3.1 8B & Llama 3.3 70B \\
+\midrule
+LLM                  & \textbf{57.3} & 80.8          & 78.7          & 55.4          & 44.8 \\
+Raw question RAG     & 54.5          & 78.0          & 74.6          & \textbf{62.3} & 62.1 \\
+HyDE                 & 56.1          & 80.3          & \textbf{80.2} & 59.1          & \textbf{62.2} \\
+Rewrite              & 57.3          & 80.7          & 77.2          & --            & -- \\
+\hyre (ours)     & 56.9          & \textbf{82.0} & 79.7          & 59.0          & 59.6 \\
+\midrule
+Snap vs. raw (pp)    & +2.4          & +4.0          & +5.1          & -3.3          & -2.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
