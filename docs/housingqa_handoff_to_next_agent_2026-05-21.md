@@ -1,5 +1,18 @@
 # HousingQA Handoff To Next Agent - 2026-05-21
 
+Latest update, 2026-05-23 03:55 CDT: no HousingQA Gemma answer process is
+currently visible. The route preflight passes for `or-gemma4-26b` /
+`google/gemma-4-26b-a4b-it` pinned to Cloudflare, and the OpenRouter key has
+remaining budget, but `/tmp/housing_gemma_core_queue.lock` is stale and still
+present with non-live PID `3819545`. Do not treat the partial answer logs as
+full-N rows. Current citable HousingQA Gemma full-N answer rows remain
+`rag_simple` 4531/6853 = 66.1% and `rag_hyde` 4456/6853 = 65.0%. The current
+`snap_hyre` answer log is clean but partial at 2554/3942 = 64.8%; the full-N
+state-filter retrieval cache is clean at Hit@5 0.3807 and MRR@5 0.2452. No
+HousingQA Gemma `golden_passage` detail log was found. See
+`docs/housingqa_gemma26_completion_audit_2026-05-23.md` for the exact audit
+commands and missing sample ranges.
+
 Latest update, 2026-05-22 13:32 CDT: the focused HousingQA core state-filter
 matrix is now 8/9 signed. The completed/signed `or-gemma4-26b` rows are:
 

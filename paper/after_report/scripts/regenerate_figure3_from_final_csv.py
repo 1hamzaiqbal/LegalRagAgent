@@ -82,7 +82,7 @@ def aggregate(rows: list[dict[str, object]], dataset: str, mode: str) -> dict[st
     return {
         "dataset": dataset,
         "provider": "mean",
-        "model": f"Mean over {3 if dataset == 'BarExamQA' else 2} models",
+        "model": f"Mean over {len(group)} models",
         "mode": mode,
         "n": group[0]["n"],
         "hit": {

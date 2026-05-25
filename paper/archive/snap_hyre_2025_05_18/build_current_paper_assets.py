@@ -196,6 +196,20 @@ TOPK_RETRIEVAL_SPECS = [
     },
     {
         "dataset": "HousingQA",
+        "provider": "or-gemma4-26b",
+        "model": "State-filtered " + PROVIDER_LABEL["or-gemma4-26b"],
+        "mode": "rag_hyde",
+        "path": "caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_rag_hyde_k10.jsonl",
+    },
+    {
+        "dataset": "HousingQA",
+        "provider": "or-gemma4-26b",
+        "model": "State-filtered " + PROVIDER_LABEL["or-gemma4-26b"],
+        "mode": "snap_hyre",
+        "path": "caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_snap_hyre_k10.jsonl",
+    },
+    {
+        "dataset": "HousingQA",
         "provider": "groq-llama70b",
         "model": "State-filtered " + PROVIDER_LABEL["groq-llama70b"],
         "mode": "rag_hyde",
@@ -564,7 +578,7 @@ def parse_signoff() -> tuple[dict[tuple[str, str, str], SignedRow], dict[tuple[s
 def write_csv(rows: dict[tuple[str, str, str], SignedRow], retrieval: dict[tuple[str, str, str], SignedRow]) -> None:
     out = PAPER / "current_audited_rows.csv"
     with out.open("w", newline="") as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, lineterminator="\n")
         writer.writerow(["dataset", "provider", "mode", "correct", "total", "accuracy", "hit5", "mrr5", "detail_log", "signoff"])
         for key in sorted(set(rows) | set(retrieval)):
             row = rows.get(key)
@@ -1869,7 +1883,7 @@ def fig_logged_tokens_by_method(records: list[dict[str, object]]) -> None:
 def write_operational_csv(records: list[dict[str, object]]) -> None:
     out = FIGURES / "current_usage_metrics.csv"
     with out.open("w", newline="") as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, lineterminator="\n")
         writer.writerow(
             [
                 "dataset",
@@ -2020,6 +2034,16 @@ def aggregate_topk_rows(rows: list[dict[str, object]], dataset: str, mode: str, 
     }
 
 
+def generated_topk_model_count(rows: list[dict[str, object]], dataset: str, mode: str) -> int:
+    return len(
+        {
+            str(row["provider"])
+            for row in rows
+            if row["dataset"] == dataset and row["mode"] == mode and row["provider"] != "shared"
+        }
+    )
+
+
 def topk_cell(row: dict[str, object], metric: str, k: int) -> str:
     values = row[metric]
     assert isinstance(values, dict)
@@ -2029,8 +2053,10 @@ def topk_cell(row: dict[str, object], metric: str, k: int) -> str:
 def table_topk_retrieval(rows: list[dict[str, object]]) -> None:
     bar_hyde_mean = aggregate_topk_rows(rows, "BarExamQA", "rag_hyde", "Mean over 3 models")
     bar_snap_mean = aggregate_topk_rows(rows, "BarExamQA", "snap_hyre", "Mean over 3 models")
-    housing_hyde_mean = aggregate_topk_rows(rows, "HousingQA", "rag_hyde", "Mean over 2 full models")
-    housing_snap_mean = aggregate_topk_rows(rows, "HousingQA", "snap_hyre", "Mean over 2 full models")
+    housing_hyde_count = generated_topk_model_count(rows, "HousingQA", "rag_hyde")
+    housing_snap_count = generated_topk_model_count(rows, "HousingQA", "snap_hyre")
+    housing_hyde_mean = aggregate_topk_rows(rows, "HousingQA", "rag_hyde", f"Mean over {housing_hyde_count} full models")
+    housing_snap_mean = aggregate_topk_rows(rows, "HousingQA", "snap_hyre", f"Mean over {housing_snap_count} full models")
     display_rows = []
     display_rows.extend([row for row in rows if row["dataset"] == "BarExamQA" and row["mode"] == "rag_simple"])
     if bar_hyde_mean:
@@ -2107,7 +2133,7 @@ def table_housing_metadata_filter(rows: list[dict[str, object]]) -> None:
 def write_topk_retrieval_csv(rows: list[dict[str, object]]) -> None:
     out = FIGURES / "topk_retrieval_metrics.csv"
     with out.open("w", newline="") as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, lineterminator="\n")
         writer.writerow(["dataset", "provider", "model", "mode", "n", "k", "hit", "mrr", "source_path"])
         for row in rows:
             for k in TOPK_KS:
@@ -2137,7 +2163,7 @@ def fig_topk_retrieval_curves(rows: list[dict[str, object]]) -> None:
     for col, (dataset, methods) in enumerate(panel_specs):
         for mode in methods:
             if mode in {"rag_hyde", "snap_hyre"}:
-                model_count = 3 if dataset == "BarExamQA" else 2
+                model_count = generated_topk_model_count(rows, dataset, mode)
                 row = aggregate_topk_rows(rows, dataset, mode, f"Mean over {model_count} models")
             else:
                 candidates = [r for r in rows if r["dataset"] == dataset and r["mode"] == mode]
@@ -2335,7 +2361,7 @@ def fig_exemplar_probe(rows: list[dict[str, object]]) -> None:
 def write_exemplar_metrics_csv(rows: list[dict[str, object]]) -> None:
     out = FIGURES / "exemplar_probe_q20_metrics.csv"
     with out.open("w", newline="") as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, lineterminator="\n")
         writer.writerow(["dataset", "mode", "n", "hit5_or_same_source5", "mrr5", "source"])
         for row in rows:
             for key, label in [
@@ -2358,7 +2384,7 @@ def write_exemplar_metrics_csv(rows: list[dict[str, object]]) -> None:
 def write_metrics_csv(rows: dict[tuple[str, str, str], SignedRow], retrieval: dict[tuple[str, str, str], SignedRow]) -> None:
     out = FIGURES / "current_figure_metrics.csv"
     with out.open("w", newline="") as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, lineterminator="\n")
         writer.writerow(["dataset", "provider", "mode", "accuracy", "hit5", "mrr5", "source"])
         for key in sorted(set(rows) | set(retrieval)):
             row = rows.get(key)

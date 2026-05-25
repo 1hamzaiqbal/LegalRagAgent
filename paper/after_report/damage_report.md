@@ -34,26 +34,26 @@ but it contains several claim-level problems:
    raw search is far stronger than generated-query search.
 4. It states the Gold Evidence comparison too strongly for Llama 3.3 70B.
 5. It reports stale token-efficiency numbers for Snap-HyRE.
-6. It says Figure 3 HousingQA averages include Gemma 26B even though the final
-   figure caption should only describe complete full-cache generated-query
-   rows for 8B and 70B.
+6. It had inconsistent Figure 3 HousingQA generated-query means before the full
+   Gemma 26B retrieval caches were added to the plotted CSV.
 7. It has stale appendix coverage wording (`31 signed cells`) and weaker
    reproducibility/provider disclosure.
 
-The final PDF fixes those issues without changing the core answer-accuracy
-matrix. The actual data changes are concentrated in Table 4's token-efficiency
-aggregate and Table 5's exemplar scope.
+The final PDF fixes those issues and incorporates the May 23 full-N HousingQA
+Gemma 26B LLM and Snap-HyRE answer rows. The actual data changes are
+concentrated in Table 1, Figure 3's HousingQA mean, Table 4's token-efficiency
+aggregate, and Table 5's exemplar scope.
 
 ## Claim-Level Damage and Corrections
 
 | Area | Stale `icml_submission.pdf` claim | Problem | Final `main.pdf` correction |
 |---|---|---|---|
 | Abstract: Gold Evidence | "matches or exceeds Gold Evidence ... on Gemma 4 26B and Llama 3.3 70B" | Gemma 26B clearly exceeds Gold Evidence: 82.0 vs 78.6. Llama 70B is only 79.7 vs 79.2, a +0.5pp descriptive gap that should not be sold as a strong exceedance. | "exceeds a single labeled-gold-passage control on Gemma 4 26B, and approximately matches it on Llama 3.3 70B." |
-| Abstract: HousingQA | "trades a small answer margin for a measurable retrieval lift on the largest open-weight model" plus exemplar "lifts retrieval above the raw baseline at every size" | The answer side is not parity: complete Llama rows favor raw RAG by 3.3pp and 2.5pp. The exemplar probe is Gemma 26B `N=500`, not every size. | Raw RAG is stated as the stronger answer baseline; Snap-HyRE trails raw by 2.5-3.3pp on complete Llama rows; Gemma 26B evidence probe is described as prompt conditioning improving top-five exposure. |
-| Introduction | "Snap-HyRE delivers answer parity rather than lift" on HousingQA | False against Table 1: Snap-HyRE HousingQA avg is 59.3 vs raw RAG 63.5, and complete Llama rows are below raw. | "raw-question RAG remains strongest and Snap-HyRE trails by 2.5-3.3pp, although a Gemma 26B evidence probe shows prompt conditioning can still improve top-five exposure." |
+| Abstract: HousingQA | "trades a small answer margin for a measurable retrieval lift on the largest open-weight model" plus exemplar "lifts retrieval above the raw baseline at every size" | The answer side is not parity: raw RAG remains the strongest HousingQA answer baseline. The exemplar probe is Gemma 26B `N=500`, not every size. | Raw RAG is stated as the stronger answer baseline; Snap-HyRE trails raw by 1.1-3.3pp across the three sizes while the full Gemma 26B row improves top-five exposure over raw search. |
+| Introduction | "Snap-HyRE delivers answer parity rather than lift" on HousingQA | False against Table 1: Snap-HyRE HousingQA avg is 61.2 vs raw RAG 63.5. | "raw-question RAG remains strongest and Snap-HyRE trades a 1.1-3.3pp answer margin for higher Gemma 26B evidence exposure than raw search." |
 | Section 5.1 | "The lift grows with model size" | Answer-accuracy deltas grow (+2.4, +4.0, +5.1), but retrieval Hit@5 is not monotone: 9.5, 12.1, 11.0. | "The answer gain grows with model size, while retrieval exposure is not strictly monotone: Gemma 4 26B has the highest Hit@5." |
-| Section 5.1/5.2 HousingQA | "parity in Table 1" and "generated-query rows trade some labeled-evidence exposure for broader corpus context that the answer model still uses well" | The table does not show parity; it shows raw answer accuracy remains stronger. Retrieval is mixed, with only the Gemma 26B Snap-HyRE evidence row beating raw in Table 2. | "Most generated-query rows trail the state-filtered raw retrieval baseline; the Gemma 26B Snap-HyRE row is a small positive retrieval exception, not an answer-accuracy win." |
-| Figure 3 caption | HousingQA averages over Llama 3.1 8B, Gemma 4 26B, and Llama 3.3 70B | The final top-k figure/table uses the two complete full-cache generated-query model rows for HousingQA: 8B and 70B. Gemma 26B appears in Table 2/probe evidence, not in the Figure 3 HousingQA mean. | Caption now says HousingQA averages over the two complete generated-query models, Llama 3.1 8B and Llama 3.3 70B, with the state filter. |
+| Section 5.1/5.2 HousingQA | "parity in Table 1" and "generated-query rows trade some labeled-evidence exposure for broader corpus context that the answer model still uses well" | The table does not show parity; it shows raw answer accuracy remains stronger. Retrieval is mixed, but the full Gemma 26B Snap-HyRE row beats raw in Table 2. | "The generated-query average sits below the state-filtered raw retrieval baseline, but the Gemma 26B Snap-HyRE row is the strongest generated-query retrieval row and exceeds raw at Hit@5 and MRR@5." |
+| Figure 3 caption | HousingQA generated-query averages were previously inconsistent with which full caches were included. | The May 23 source update added the full HousingQA Gemma 26B generated-query caches to the plotted CSV/table. | Caption now says BarExamQA and HousingQA generated-query curves average over Llama 3.1 8B, Gemma 4 26B, and Llama 3.3 70B; HousingQA uses the jurisdiction state filter. |
 | BarExamQA retrieval delta prose | "+9.5pp Hit@5 / +4.8pp MRR@5" | Correct as an average, but stale phrasing read like one cell. | Adds "average" to clarify the aggregation basis. |
 | Section 5.4 | "matches or exceeds the labeled gold passage on the two larger models" | Overstates the 70B comparison by treating +0.5pp as a real exceedance. | "exceeds ... on Gemma 4 26B ... and approximately matches it on Llama 3.3 70B." |
 | Section 5.5 / Table 4 | Snap-HyRE efficiency = 2001 input tokens/q, 376 output tokens/q, 268.3 correct/M over 4 cells | Stale aggregate; it omitted the HousingQA 70B Snap-HyRE token row. | Snap-HyRE efficiency = 2062 input tokens/q, 338 output tokens/q, 258.8 correct/M over five logged cells. |
@@ -61,7 +61,7 @@ aggregate and Table 5's exemplar scope.
 | Main exemplar table | Includes Legal-Link-EU row: 68.2/55.6 -> 75.8/62.6 and references raw Legal-Link 90.0 | The Legal-Link numbers are real diagnostics, but they undermine a main-paper exemplar headline because raw search is much stronger. They are boundary evidence, not the main story. | Final Table 5 reports only BarExamQA and HousingQA main-dataset `N=500` probes. |
 | Legal-Link paragraph | Main text explains Legal-Link-EU limitations | True but stale/distracting for a two-benchmark main paper under time pressure; also forced a confusing "every benchmark" exemplar frame. | Removed from main narrative. |
 | Conclusion | "Snap-HyRE reaches parity with raw-question RAG" on corpus-shaped questions | False/overbroad for HousingQA answer accuracy. | Conclusion now says raw-question RAG remains the stronger answer baseline on HousingQA, while evidence probes show targeted prompt conditioning can recover exposure. |
-| Appendix coverage | "31 signed cells out of 42 expected" | Stale count and operational wording. | "32 validated cells out of 42 expected; missing cells are left blank rather than imputed" plus coverage and row-note tables. |
+| Appendix coverage | "31 signed cells out of 42 expected" | Stale count and operational wording. | "35 validated cells out of 42 expected; missing cells are left blank rather than imputed" plus coverage and row-note tables. |
 | Appendix exemplar details | Uses `q500` wording and still mentions Legal-Link-EU corpus settings | Carries old diagnostic scope into the final two-benchmark paper. | Uses `N=500`, restricts reported interfaces to BarExamQA and HousingQA, and removes Legal-Link-EU from the reported exemplar details. |
 | Reproducibility | Generic "released package will include records..." | Too vague for reviewer reproduction and did not name route/provider behavior. | Adds route labels, provider mapping, deterministic decoding, parse/answer retry constraints, same-route retries, and no silent fallback. |
 | References | Zheng venue placeholder: "Proceedings ... on ZZZ" | Clear bibliography placeholder. | Fixed to CS and LAW 2025 / Symposium on Computer Science and Law venue metadata. |
@@ -70,15 +70,16 @@ aggregate and Table 5's exemplar scope.
 
 ### Table 1: Main Answer Accuracy
 
-No numeric data changed between the stale PDF and final PDF. The final paper
-keeps:
+The May 23 source-gated update fills two HousingQA Gemma 26B answer cells that
+were previously blank. The final paper keeps:
 
 - BarExamQA Snap-HyRE: 56.9 / 82.0 / 79.7, average 72.9.
-- HousingQA Snap-HyRE: 59.0 / blank / 59.6, average 59.3.
+- HousingQA LLM: 55.4 / 56.1 / 44.8, average 52.1.
+- HousingQA Snap-HyRE: 59.0 / 65.1 / 59.6, average 61.2.
 - HousingQA raw-question RAG: 62.3 / 66.1 / 62.1, average 63.5.
 
 The damage was not the table; it was stale prose calling HousingQA "parity"
-despite this table.
+despite the raw row remaining stronger.
 
 ### Table 2: Gemma 26B Evidence Exposure
 
@@ -87,7 +88,7 @@ exposure, not answer accuracy.
 
 The key correction is interpretive: HousingQA Snap-HyRE at Gemma 26B has
 better evidence exposure than raw RAG in Table 2 (38.1/24.5 vs 36.9/23.3),
-but this is not a completed answer-accuracy win in Table 1.
+but the completed answer row is still below raw RAG (65.1 vs 66.1).
 
 ### Figure 3: Top-k Curves
 
@@ -97,8 +98,8 @@ which points each plotted row to a retrieval-cache JSONL. The regenerated PNG is
 
 [`plots/figure3_topk_retrieval_curves_regenerated.png`](plots/figure3_topk_retrieval_curves_regenerated.png)
 
-The caption correction matters more than the pixels: HousingQA generated-query
-means are over the two complete full-cache rows, not all three model sizes.
+The regenerated CSV and figure now include the full HousingQA Gemma 26B HyDE
+and Snap-HyRE caches in the HousingQA generated-query means.
 
 ### Table 4: Token Efficiency
 
@@ -135,7 +136,7 @@ raw search" claim.
 ### Appendix Table 13: Top-k Bolding
 
 The final source package also corrects Appendix Table 13 formatting: the
-HousingQA `Mean over 2 full models` HyDE row is now bolded on Hit@3, Hit@5,
+HousingQA `Mean over 3 full models` HyDE row is now bolded on Hit@3, Hit@5,
 Hit@10, and MRR@10 because those values are higher than the corresponding
 Snap-HyRE mean row. This changes emphasis only, not the reported numbers.
 

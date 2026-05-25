@@ -5,6 +5,16 @@ results state. It is a navigation note, not itself a citation gate.
 
 ## Latest Live Checkpoint
 
+As of 2026-05-23 03:55 CDT, no HousingQA Gemma answer process is visible.
+`current_status.md` marks the Gemma `llm_only` and `snap_hyre` answer rows as
+partial stale, not active. The current citable full-N HousingQA Gemma answer
+rows remain `rag_simple` 4531/6853 = 66.1% and `rag_hyde` 4456/6853 = 65.0%.
+The `snap_hyre` answer log is clean but partial at 2554/3942 = 64.8%; the
+full-N state-filter retrieval cache is still valid at Hit@5 0.3807 / MRR@5
+0.2452. No HousingQA Gemma `golden_passage` detail log was found. Use
+`docs/housingqa_gemma26_completion_audit_2026-05-23.md` as the current
+completion audit before acting on the older live-running notes below.
+
 As of 2026-05-22 13:32 CDT, HousingQA state-filtered core is 8/9 signed. The
 newly promoted row is `or-gemma4-26b` `rag_hyde`:
 `logs/eval_rag_hyde_or-gemma4-26b_20260521_174454_housing_local-snap-hyre-or-gemma4-26b-housing-rag_hyde-nfull-k5_detail.jsonl`,

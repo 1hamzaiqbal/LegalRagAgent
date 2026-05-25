@@ -56,8 +56,10 @@ so they do not have separate JSONL files.
 | HousingQA | Llama 3.1 8B | HyDE | 4047/6853 = 59.1% | [`../logs/eval_rag_hyde_groq-llama8b_20260520_233346_housing_local-snap-hyre-groq-llama8b-housing-rag_hyde-nfull-k5_detail.jsonl`](../logs/eval_rag_hyde_groq-llama8b_20260520_233346_housing_local-snap-hyre-groq-llama8b-housing-rag_hyde-nfull-k5_detail.jsonl) |
 | HousingQA | Llama 3.1 8B | Snap-HyRE | 4043/6853 = 59.0% | [`../logs/eval_snap_hyre_groq-llama8b_20260521_041736_housing_local-snap-hyre-groq-llama8b-housing-snap_hyre-nfull-k5_detail.jsonl`](../logs/eval_snap_hyre_groq-llama8b_20260521_041736_housing_local-snap-hyre-groq-llama8b-housing-snap_hyre-nfull-k5_detail.jsonl) |
 | HousingQA | Llama 3.1 8B | Gold Evidence | 4408/6853 = 64.3% | [`../logs/eval_golden_passage_groq-llama8b_20260519_140614_housing_local-snap-hyre-groq-llama8b-housing-golden_passage-nfull-k5_detail.jsonl`](../logs/eval_golden_passage_groq-llama8b_20260519_140614_housing_local-snap-hyre-groq-llama8b-housing-golden_passage-nfull-k5_detail.jsonl) |
+| HousingQA | Gemma 4 26B | LLM | 3846/6853 = 56.1% | [`../logs/merged/housing_or-gemma4-26b_llm_only_full_20260523_114720_detail.jsonl`](../logs/merged/housing_or-gemma4-26b_llm_only_full_20260523_114720_detail.jsonl) |
 | HousingQA | Gemma 4 26B | Raw question RAG | 4531/6853 = 66.1% | [`../logs/merged/housing_or-gemma4-26b_rag_simple_statefilter_full_20260521_185315_detail.jsonl`](../logs/merged/housing_or-gemma4-26b_rag_simple_statefilter_full_20260521_185315_detail.jsonl) |
 | HousingQA | Gemma 4 26B | HyDE | 4456/6853 = 65.0% | [`../logs/eval_rag_hyde_or-gemma4-26b_20260521_174454_housing_local-snap-hyre-or-gemma4-26b-housing-rag_hyde-nfull-k5_detail.jsonl`](../logs/eval_rag_hyde_or-gemma4-26b_20260521_174454_housing_local-snap-hyre-or-gemma4-26b-housing-rag_hyde-nfull-k5_detail.jsonl) |
+| HousingQA | Gemma 4 26B | Snap-HyRE | 4458/6853 = 65.1% | [`../logs/merged/housing_or-gemma4-26b_snap_hyre_statefilter_full_20260523_113019_detail.jsonl`](../logs/merged/housing_or-gemma4-26b_snap_hyre_statefilter_full_20260523_113019_detail.jsonl) |
 | HousingQA | Llama 3.3 70B | LLM | 3067/6853 = 44.8% | [`../logs/eval_llm_only_groq-llama70b_20260516_203552_housing_local-snap-hyre-groq-llama70b-housing-llm_only-nfull-k5_detail.jsonl`](../logs/eval_llm_only_groq-llama70b_20260516_203552_housing_local-snap-hyre-groq-llama70b-housing-llm_only-nfull-k5_detail.jsonl) |
 | HousingQA | Llama 3.3 70B | Raw question RAG | 4258/6853 = 62.1% | [`../logs/eval_rag_simple_groq-llama70b_20260520_230339_housing_local-snap-hyre-groq-llama70b-housing-rag_simple-nfull-k5_detail.jsonl`](../logs/eval_rag_simple_groq-llama70b_20260520_230339_housing_local-snap-hyre-groq-llama70b-housing-rag_simple-nfull-k5_detail.jsonl) |
 | HousingQA | Llama 3.3 70B | HyDE | 4263/6853 = 62.2% | [`../logs/eval_rag_hyde_groq-llama70b_20260521_013539_housing_local-snap-hyre-groq-llama70b-housing-rag_hyde-nfull-k5_detail.jsonl`](../logs/eval_rag_hyde_groq-llama70b_20260521_013539_housing_local-snap-hyre-groq-llama70b-housing-rag_hyde-nfull-k5_detail.jsonl) |
@@ -68,8 +70,8 @@ Derived Table 1 values:
 
 - BarExamQA Snap-HyRE answer deltas over raw RAG: +2.4, +4.0, +5.1 pp from the three BarExamQA raw/Snap-HyRE pairs above.
 - BarExamQA averages: LLM 72.3, Raw 69.0, HyDE 72.2, Snap-HyRE 72.9, Gold Evidence 72.6.
-- HousingQA averages over available cells: LLM 50.1, Raw 63.5, HyDE 62.1, Snap-HyRE 59.3, Gold Evidence 65.8.
-- HousingQA complete-Llama Snap-HyRE deficits versus raw RAG: -3.3 pp (8B) and -2.5 pp (70B).
+- HousingQA averages over available cells: LLM 52.1, Raw 63.5, HyDE 62.1, Snap-HyRE 61.2, Gold Evidence 65.8.
+- HousingQA Snap-HyRE deficits versus raw RAG: -3.3 pp (8B), -1.1 pp (26B), and -2.5 pp (70B).
 
 ## Evidence Exposure: Table 2
 
@@ -162,8 +164,8 @@ Derived appendix answer numbers:
 
 - Table 8 deltas are macro-averages over the rows above and the Table 1 rows:
   BarExamQA Snap vs raw +3.8, HyDE vs Snap -0.7, Gold vs raw +3.6;
-  HousingQA Snap vs raw -2.9, HyDE vs Snap +1.4, Gold vs raw +3.6;
-  pooled Snap vs raw +1.1, HyDE vs Snap +0.1, Gold vs raw +3.6.
+  HousingQA Snap vs raw -2.3, HyDE vs Snap +0.9, Gold vs raw +3.6;
+  pooled Snap vs raw +0.8, HyDE vs Snap +0.1, Gold vs raw +3.6.
 - Table 9 `Best main non-gold evidence` labels are row maxima over LLM, Raw,
   HyDE, Snap-HyRE, and Rewrite where Rewrite is reported.
 - Table 10 `Gold vs raw pp` values are computed from the raw-RAG and Gold
@@ -191,6 +193,8 @@ Direct cache mapping for each plotted/table row:
 | HousingQA state-filtered shared | Raw question RAG | n=6853; Hit@3 29.5, Hit@5 36.9, Hit@10 48.1, MRR@10 24.8 | [`../caches/retrieval/full/housing_qfull_seed42_statefilter_raw_question_k10.jsonl`](../caches/retrieval/full/housing_qfull_seed42_statefilter_raw_question_k10.jsonl) |
 | HousingQA Llama 3.1 8B | HyDE | n=6853; Hit@3 21.6, Hit@5 27.0, Hit@10 34.5, MRR@10 17.9 | [`../caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama8b_rag_hyde_k10.jsonl`](../caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama8b_rag_hyde_k10.jsonl) |
 | HousingQA Llama 3.1 8B | Snap-HyRE | n=6853; Hit@3 23.4, Hit@5 29.6, Hit@10 37.0, MRR@10 19.9 | [`../caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama8b_snap_hyre_k10.jsonl`](../caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama8b_snap_hyre_k10.jsonl) |
+| HousingQA Gemma 4 26B | HyDE | n=6853; Hit@3 24.3, Hit@5 30.6, Hit@10 40.1, MRR@10 20.9 | [`../caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_rag_hyde_k10.jsonl`](../caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_rag_hyde_k10.jsonl) |
+| HousingQA Gemma 4 26B | Snap-HyRE | n=6853; Hit@3 31.1, Hit@5 38.1, Hit@10 47.0, MRR@10 25.7 | [`../caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_snap_hyre_k10.jsonl`](../caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_snap_hyre_k10.jsonl) |
 | HousingQA Llama 3.3 70B | HyDE | n=6853; Hit@3 27.9, Hit@5 34.9, Hit@10 42.6, MRR@10 23.6 | [`../caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama70b_rag_hyde_k10.jsonl`](../caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama70b_rag_hyde_k10.jsonl) |
 | HousingQA Llama 3.3 70B | Snap-HyRE | n=6853; Hit@3 18.1, Hit@5 23.1, Hit@10 31.3, MRR@10 15.3 | [`../caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama70b_snap_hyre_k10.jsonl`](../caches/retrieval/full/housing_qfull_seed42_statefilter_groq-llama70b_snap_hyre_k10.jsonl) |
 
@@ -199,8 +203,8 @@ listed above:
 
 - BarExamQA HyDE mean over 3 models: Hit@3 6.4, Hit@5 10.0, Hit@10 16.7, MRR@10 5.9.
 - BarExamQA Snap-HyRE mean over 3 models: Hit@3 7.1, Hit@5 10.9, Hit@10 17.3, MRR@10 6.3.
-- HousingQA HyDE mean over 2 complete models: Hit@3 24.7, Hit@5 30.9, Hit@10 38.5, MRR@10 20.7.
-- HousingQA Snap-HyRE mean over 2 complete models: Hit@3 20.7, Hit@5 26.3, Hit@10 34.1, MRR@10 17.6.
+- HousingQA HyDE mean over 3 full models: Hit@3 24.6, Hit@5 30.8, Hit@10 39.1, MRR@10 20.8.
+- HousingQA Snap-HyRE mean over 3 full models: Hit@3 24.2, Hit@5 30.2, Hit@10 38.4, MRR@10 20.3.
 
 Appendix Table 12 uses:
 
@@ -227,9 +231,12 @@ measurements, but they are still grounded in the JSONL/cache row counts above:
 
 - `paper/icml_submission.pdf` contains stale claims; use
   `paper/main.pdf` and `paper/FINALFINALVERSION.zip`.
-- `paper/snap_hyre_2025_05_18/current_audited_rows.csv` includes a stale row
-  where the HousingQA Gemma exemplar diagnostic is labeled as `snap_hyre`.
-  The final paper does not use that row as a full-N answer result; the final
-  figure metrics relabel it as `snap_hyre_exemplar_q500`.
-- The final paper intentionally leaves HousingQA Gemma 26B LLM, Snap-HyRE
-  answer accuracy, and Gold Evidence cells blank in Table 1.
+- `paper/snap_hyre_2025_05_18/current_audited_rows.csv` now records the full-N
+  HousingQA Gemma LLM, HyDE, raw RAG, and Snap-HyRE rows; final paper figure
+  metrics keep the separate exemplar diagnostic as `snap_hyre_exemplar_q500`.
+- The final paper intentionally leaves only the HousingQA Gemma 26B Gold
+  Evidence cell blank in Table 1. No HousingQA Gemma `golden_passage` detail
+  log exists.
+- A 2026-05-23 completion audit promoted HousingQA Gemma 26B `llm_only` and
+  `snap_hyre` from partial rows to full-N rows after canonical-order merges;
+  the citable source logs are listed above and in `docs/signoff_log.md`.
