@@ -301,6 +301,120 @@ BarExamQA, scale only if we specifically care about Hit@10 or want a q50 check
 before dropping it. For Legal-Link-EU, run q50 retrieval-only next and inspect
 whether the exemplar calls preserve CELEX/source-target anchors consistently.
 
+## LLM Evidence-Judge Pivot
+
+Status: implementation smoke-test path added on 2026-05-25. The next focus is
+BarExamQA and HousingQA, not Legal-Link-EU, because those are the two paper
+benchmarks where corpus-style exemplars can be tested with clean gold-passage
+exclusions and downstream answer accuracy.
+
+The proposed SCOPE variant is:
+
+1. Put three benchmark-specific reference corpus passages in the system prompt.
+   Exclude any test question whose gold evidence uses those passage ids.
+2. For each question, generate three orthogonal hypothetical corpus passages
+   with independent exemplar-conditioned Snap-HyRE calls.
+3. Retrieve a candidate evidence pool from the three generated passages.
+4. Use a separate LLM evidence-selector call to choose the final evidence set
+   from that candidate pool.
+5. Pass only the original question and selected corpus evidence to the final
+   answerer. The prior snap answer remains withheld, as in canonical Snap-HyRE.
+
+The current probe mode is `snap_hyre_exemplar_parallel3_llm_judge`. It is a
+retrieval-only smoke test for step 4. It still uses the existing dense
+retrieval plus cross-encoder path to build a larger candidate pool, then asks
+the LLM judge to select the final evidence. That means the smoke test replaces
+the cross-encoder as the final evidence judge, but it does not yet remove the
+cross-encoder from candidate pruning. Treat this as the minimum viable test of
+whether LLM selection is worth a fuller retrieval implementation.
+
+Default judge contract:
+
+- candidate pool: 15 passages;
+- selected evidence: 5 passages;
+- prompt: selection-only strict JSON by default;
+- optional `--llm-judge-include-reasoning` records a short `reason` field, but
+  the selected evidence ids are the scored artifact.
+
+Smoke commands:
+
+```bash
+NO_SILENT_FALLBACK=1 EVAL_GENERATION_FORMAT_RETRY=1 \
+OPENROUTER_PROVIDER_ONLY=Cloudflare LLM_MAX_COMPLETION_TOKENS=2048 \
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+~/.local/bin/uv run python scripts/run_choice_aware_retrieval_probe.py \
+  --provider or-gemma4-26b \
+  --dataset barexam \
+  --questions 10 \
+  --modes rag_simple snap_hyre snap_hyre_exemplar_parallel3 snap_hyre_exemplar_parallel3_llm_judge \
+  --exclude-gold-ids-path configs/exemplar_multi3_exclusions_2026-05-23.json \
+  --max-k 10 \
+  --ks 1 5 10 \
+  --llm-judge-pool-k 15 \
+  --llm-judge-select-k 5 \
+  --out caches/retrieval/probes/barexam_q10_seed42_or-gemma4-26b_scope_parallel3_llm_judge_probe.jsonl \
+  --summary-out docs/generated/barexam_q10_scope_parallel3_llm_judge_probe.md
+```
+
+For HousingQA, use the same command with `--dataset housing` and
+`--housing-state-filter`, writing to
+`caches/retrieval/probes/housing_q10_seed42_statefilter_or-gemma4-26b_scope_parallel3_llm_judge_probe.jsonl`.
+
+q10 smoke results, run 2026-05-25:
+
+Outputs:
+
+- `caches/retrieval/probes/barexam_q10_seed42_or-gemma4-26b_scope_parallel3_llm_judge_probe.jsonl`
+- `docs/generated/barexam_q10_scope_parallel3_llm_judge_probe.md`
+- `caches/retrieval/probes/housing_q10_seed42_statefilter_or-gemma4-26b_scope_parallel3_llm_judge_probe.jsonl`
+- `docs/generated/housing_q10_statefilter_scope_parallel3_llm_judge_probe.md`
+
+Health was clean in both q10 runs: zero row errors, zero generation parse
+failures, zero LLM-judge parse failures, zero answer-artifact flags, and all
+rows scored. The judge outputs parsed as strict JSON on 20/20 judge rows.
+
+BarExamQA q10:
+
+| Method | Logical calls/row | Hit@1 | Hit@5 | MRR@5 | Hit@10 |
+|---|---:|---:|---:|---:|---:|
+| Raw question | 0 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| Canonical Snap-HyRE | 1 | 0.0000 | 0.1000 | 0.0500 | 0.1000 |
+| Parallel3 exemplar | 3 | 0.0000 | 0.2000 | 0.0700 | 0.2000 |
+| Parallel3 + LLM evidence judge | 4 | 0.1000 | 0.1000 | 0.1000 | 0.1000 |
+
+BarExamQA read: the LLM judge improved rank on the retained gold hit, but it
+discarded one gold passage that was present in the candidate pool. The clearest
+failure was `qa_nan_mbe_73`: parallel3 retrieved `mbe_58` in the pool, but the
+judge selected five other passages. This is not yet a promotion signal.
+
+HousingQA q10, state-filtered:
+
+| Method | Logical calls/row | Hit@1 | Hit@5 | MRR@5 | Hit@10 |
+|---|---:|---:|---:|---:|---:|
+| Raw question | 0 | 0.4000 | 0.6000 | 0.4750 | 0.7000 |
+| Canonical Snap-HyRE | 1 | 0.2000 | 0.6000 | 0.3667 | 0.6000 |
+| Parallel3 exemplar | 3 | 0.3000 | 0.4000 | 0.3200 | 0.4000 |
+| Parallel3 + LLM evidence judge | 4 | 0.5000 | 0.5000 | 0.5000 | 0.5000 |
+
+HousingQA read: the LLM judge is useful as a selector when the candidate pool
+already contains gold evidence. It rescued `hqa_Ohio_128`, where the gold id
+`555749` was in the 15-passage candidate pool but below the top five selected
+by the cross-encoder path. However, the variant still trails canonical
+Snap-HyRE and raw state-filtered retrieval on Hit@5, because the generated
+SCOPE passages often miss the gold candidate entirely.
+
+Promotion gate: scale only if the judge variant beats canonical Snap-HyRE by
+at least +5pp Hit@5 on q50 with zero row errors, zero generation parse
+failures, zero judge parse failures, zero answer-artifact flags, and all rows
+scored. If the q50 result is mainly a Hit@1/MRR lift without a Hit@5 lift,
+test answer-side q50 before any larger retrieval run.
+
+Current recommendation after q10: do not launch q50 for this exact
+parallel3-plus-judge variant yet. The promising part is the evidence selector,
+not the three-exemplar query generator. A better next smoke is to keep
+canonical Snap-HyRE or raw-question-plus-Snap-HyRE as the candidate generator,
+retrieve a 15-25 passage pool, then let the LLM judge choose the final five.
+
 ## Legal-Link-EU q50/q100 Results
 
 Run date: 2026-05-25. Provider: `or-gemma4-26b`, OpenRouter Cloudflare route.
