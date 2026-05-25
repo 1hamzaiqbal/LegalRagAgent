@@ -1,0 +1,14 @@
+{
+  "barexam": {
+    "variant": "multi3",
+    "exclude_gold_ids": ["mbe_4", "mbe_20", "mbe_308"],
+    "source_row_labels": ["qa_nan_mbe_7", "qa_nan_mbe_23", "qa_nan_mbe_391"],
+    "notes": "Three BarExamQA exemplar passages cover torts/res ipsa, criminal procedure/search consent, and contracts/real-property specific performance."
+  },
+  "housing": {
+    "variant": "multi3",
+    "exclude_gold_ids": ["1508532", "1038490", "1727814"],
+    "source_row_labels": ["hqa_Idaho_297", "hqa_Montana_6968", "hqa_California_3428"],
+    "notes": "Three HousingQA exemplar passages cover eviction appeal stay, essential-services tenant remedies, and foreclosure-tenancy notice/protection."
+  }
+}

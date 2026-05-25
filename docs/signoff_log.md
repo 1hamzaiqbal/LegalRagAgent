@@ -1255,8 +1255,11 @@ Full answer rows:
 
 2026-05-23 completion audit update: HousingQA `or-gemma4-26b` `snap_hyre`
 and `llm_only` are now promoted from partials to full-N citable rows after
-clean canonical-order merges. No HousingQA Gemma `golden_passage` detail log
-was found, so the Gold Evidence cell remains absent/non-citable. See
+clean canonical-order merges. No HousingQA Gemma full clean detail log was
+found for `rag_rewrite`, `golden_passage`, or `golden_plus_neighbors`, and
+`logs/experiments.jsonl` has no corresponding HousingQA `or-gemma4-26b` rows.
+Those cells remain absent/non-citable until a full-N clean detail log is
+produced and audited. See
 `docs/housingqa_gemma26_completion_audit_2026-05-23.md`.
 
 ### HousingQA Gemma state-filter finalization - 2026-05-23T11:30:36Z

@@ -50,6 +50,37 @@ EXPECTED_GENERATION_SOURCE_MODES = {
     "hyre_cache": {"snap_hyre", "snap_hyre_exemplar", "rag_snap_hyde_2call"},
 }
 
+PASSAGE_STYLE_VARIANT_ALIASES = {
+    "": "single",
+    "default": "single",
+    "realpassage": "single",
+    "single": "single",
+    "one": "single",
+    "multi": "multi3",
+    "multi3": "multi3",
+    "three": "multi3",
+    "3": "multi3",
+}
+
+
+def _normalize_passage_style_variant(value: str) -> str:
+    raw = str(value or "").strip().lower()
+    variant = PASSAGE_STYLE_VARIANT_ALIASES.get(raw)
+    if not variant:
+        raise SystemExit(
+            f"Unsupported passage-style exemplar variant {raw!r}; expected single or multi3"
+        )
+    return variant
+
+
+def _generation_entry_passage_style_variant(entry: dict[str, Any], source_mode: str) -> str:
+    variant = str(entry.get("passage_style_signal_variant") or "").strip().lower()
+    if variant:
+        return PASSAGE_STYLE_VARIANT_ALIASES.get(variant, variant)
+    if source_mode in {"rag_hyde_exemplar", "snap_hyre_exemplar"}:
+        return "single"
+    return ""
+
 
 def _load_hyre_cache(path: Path) -> dict[str, dict[str, Any]]:
     cache: dict[str, dict[str, Any]] = {}
@@ -75,6 +106,7 @@ def _validate_generation_cache_entry(
     dataset: str,
     query_type: str,
     expected_provider: str = "",
+    expected_passage_style_variant: str = "",
 ) -> None:
     violations: list[str] = []
     source_mode = str(entry.get("source_mode") or entry.get("mode") or "").strip()
@@ -92,6 +124,14 @@ def _validate_generation_cache_entry(
     entry_provider = str(entry.get("provider") or "").strip()
     if expected_provider and entry_provider and entry_provider != expected_provider:
         violations.append(f"provider={entry_provider!r} != expected {expected_provider!r}")
+
+    if source_mode in {"rag_hyde_exemplar", "snap_hyre_exemplar"}:
+        expected_variant = _normalize_passage_style_variant(expected_passage_style_variant)
+        entry_variant = _generation_entry_passage_style_variant(entry, source_mode)
+        if entry_variant != expected_variant:
+            violations.append(
+                f"passage_style_signal_variant={entry_variant!r} != expected {expected_variant!r}"
+            )
 
     if violations:
         raise SystemExit(
@@ -271,12 +311,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--hyre-cache-path", type=Path, help="Required for --query-type hyde_cache or hyre_cache")
     parser.add_argument("--expected-provider", default="",
                         help="Optional provider label expected inside generation cache rows")
+    parser.add_argument("--passage-style-variant", default="",
+                        help="Expected exemplar style variant for exemplar generation caches: single or multi3")
     parser.add_argument("--max-k", type=int, default=10)
     parser.add_argument("--source-filter", default="")
     parser.add_argument("--housing-state-filter", action="store_true",
                         help="For HousingQA, constrain retrieval to each question's state metadata")
     parser.add_argument("--collection", help="Override dataset collection")
     parser.add_argument("--embedding-model", default="", help="Override EVAL_EMBEDDING_MODEL")
+    parser.add_argument("--exclude-gold-ids", default="",
+                        help="Comma/whitespace-separated gold ids to exclude from question loading")
+    parser.add_argument("--exclude-gold-ids-path", default="",
+                        help="JSON/TXT file of gold ids to exclude from question loading")
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--resume", action="store_true", help="Append missing labels if the output already exists")
     parser.add_argument("--progress-interval", type=int, default=25,
@@ -318,6 +364,8 @@ def _main_locked(args: argparse.Namespace) -> None:
         sample_end=args.sample_end,
         retrieval_k=args.max_k,
         housing_state_filter=args.housing_state_filter,
+        exclude_gold_ids=args.exclude_gold_ids,
+        exclude_gold_ids_path=args.exclude_gold_ids_path,
     )
     questions = load_questions(config)
     if args.sample_start or args.sample_end is not None:
@@ -371,6 +419,11 @@ def _main_locked(args: argparse.Namespace) -> None:
                     dataset=args.dataset,
                     query_type=args.query_type,
                     expected_provider=args.expected_provider,
+                    expected_passage_style_variant=(
+                        args.passage_style_variant
+                        or os.getenv("EVAL_PASSAGE_STYLE_VARIANT", "")
+                        or "single"
+                    ),
                 )
                 queries = [str(cache_entry["hyde_passage"])]
 
@@ -451,6 +504,8 @@ def _main_locked(args: argparse.Namespace) -> None:
                 "label_prefix": label_prefix,
                 "generation_source_mode": str(cache_entry.get("source_mode") or cache_entry.get("mode") or "") if cache_entry else "",
                 "generation_provider": str(cache_entry.get("provider") or "") if cache_entry else "",
+                "generation_passage_style_signal_variant": str(cache_entry.get("passage_style_signal_variant") or "") if cache_entry else "",
+                "generation_passage_style_signal_ids": cache_entry.get("passage_style_signal_ids", []) if cache_entry else [],
                 "generation_cache_path": str(args.hyre_cache_path or ""),
                 "collection": collection,
                 "embedding_model": embedding_model,

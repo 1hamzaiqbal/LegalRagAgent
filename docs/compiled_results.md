@@ -12,8 +12,11 @@ HousingQA `or-gemma4-26b` rows promoted after the May 23 completion cycle.
 | HousingQA state-filtered | `or-gemma4-26b` | `rag_hyde` | 4456/6853 = 65.0% | `logs/eval_rag_hyde_or-gemma4-26b_20260521_174454_housing_local-snap-hyre-or-gemma4-26b-housing-rag_hyde-nfull-k5_detail.jsonl` | clean full-N state-filter row |
 | HousingQA state-filtered | `or-gemma4-26b` | `snap_hyre` | 4458/6853 = 65.1% | `logs/merged/housing_or-gemma4-26b_snap_hyre_statefilter_full_20260523_113019_detail.jsonl` | clean full-N state-filter row; Hit@5 0.3807 / MRR@5 0.2452 |
 
-No HousingQA Gemma 26B `golden_passage` detail log exists locally, so the Gold
-Evidence cell remains non-citable.
+No HousingQA Gemma 26B full clean detail log exists locally for
+`rag_rewrite`, `golden_passage`, or `golden_plus_neighbors`, and
+`logs/experiments.jsonl` has no corresponding HousingQA `or-gemma4-26b` rows.
+Those cells remain explicitly missing/non-citable until a full-N clean detail
+log is produced and audited.
 
 ## Update 2026-04-27 ~12:30 CDT
 
