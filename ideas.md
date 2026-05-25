@@ -53,6 +53,22 @@ generated is best. Letting the judge pick evidence regardless of which query
 found it is how you'd capture the HousingQA gold headroom that pure-SCOPE
 misses. This directly attacks Section 0's gap.
 
+> **Validated 2026-05-25 (read-only, full N)** — see
+> `docs/generated/raw_scope_pooling_ce_separability_2026-05-25.md`:
+> - **raw ∪ SCOPE pooling is complementary on HousingQA, not BarExamQA.**
+>   HousingQA union Hit@5 gain over the best single method: +10.4pp (8B),
+>   **+13.8pp (Gemma 26B: 38.1→51.9)**, +7.4pp (70B). BarExamQA: ~+1pp (raw
+>   retrieval is near-useless there, so the union ≈ SCOPE — "candidate-
+>   generation limited").
+> - **The cross-encoder buries gold.** It *does* separate gold from non-gold
+>   CE scores when gold is in the candidate set (esp. HousingQA), but it does
+>   **not rank gold first**: best-gold median rank 4-5, and gold sits below
+>   rank 5 in ~35-40% of gold-hit rows. So gold is present but not surfaced —
+>   quantitative support for replacing the CE selector with an LLM judge.
+> - Net: **pooling creates the recall headroom; the CE fails to capture it.**
+>   Post-hoc downstream-accuracy test of union → {CE-rerank, RRF, LLM-judge} →
+>   answer is queued as the next results-lane experiment.
+
 **Open knobs to test:**
 - k examples: 1 vs 3 vs 5 (diminishing returns likely; examples eat context).
 - N generated passages: 2 vs 3 vs 4.
