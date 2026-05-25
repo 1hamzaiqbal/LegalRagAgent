@@ -12,6 +12,28 @@ Repository-local instructions for coding agents.
    `logs/experiments.jsonl`, and then older source-gated result docs listed in
    `docs/README.md`.
 
+## Machine Lanes (read before touching the paper)
+
+This repo is worked from two machines with **separate lanes** to avoid
+two-writer merge conflicts on the paper:
+
+- **`hamgamelaptop` (WSL experiment box) = results lane.** Produce and commit
+  experiment artifacts only: `logs/`, `logs/merged/`, `caches/`, eval/audit
+  scripts, `docs/signoff_log.md`, `docs/*_completion_audit_*.md`, and
+  `logs/experiments.jsonl`. **Do NOT edit the paper** — specifically do not
+  modify anything under `paper/submission/` or any `paper/**/tables/*.tex`,
+  `paper/**/sections/*.tex`, figures, or PDFs. If a result implies a paper
+  change, record it in the signoff log / a dated completion audit and stop
+  there.
+- **The Mac = sole paper writer.** It pulls results from this box (via
+  `ssh hamgame-key` or git) and integrates them into `paper/submission/`.
+
+When a new result completes on the experiment box, leave it discoverable: a
+row in `docs/signoff_log.md` plus a dated `docs/<benchmark>_completion_audit_*.md`
+mapping each citable cell to its source `logs/.../*.jsonl`. That is the
+contract the paper-writer reads from — it should never need to reverse-engineer
+the paper tables from this machine.
+
 ## Scope Rules
 
 - Verify result claims against source logs or signoff docs before repeating them.
