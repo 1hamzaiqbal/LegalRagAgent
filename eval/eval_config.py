@@ -4,6 +4,8 @@ Shared by eval_harness.py and eval_analyze.py.
 """
 import os
 import re
+import json
+import sys
 from dataclasses import dataclass
 
 import pandas as pd
@@ -27,6 +29,9 @@ class EvalConfig:
     hyre_cache_path: str = ""         # optional JSONL cache for replaying snap/HyRE generations
     retrieval_cache_path: str = ""    # optional JSONL cache of retrieved passage ids for top-k replay
     housing_state_filter: bool = False  # constrain HousingQA retrieval to the question state
+    passage_style_variant: str = ""   # probe-only exemplar prompt variant; env fallback EVAL_PASSAGE_STYLE_VARIANT
+    exclude_gold_ids: str = ""        # comma-separated gold ids to drop from the loaded question set
+    exclude_gold_ids_path: str = ""   # JSON/TXT file of gold ids to drop from the loaded question set
 
 
 EVAL_MODES = {
@@ -144,15 +149,18 @@ def load_questions(config: EvalConfig) -> pd.DataFrame:
                 f"Curated question set not found at {path}. "
                 "Run eval/curate_questions.py first to generate it."
             )
-        return pd.read_csv(path)
+        return _apply_question_exclusions(pd.read_csv(path), config)
 
     qa = pd.read_csv("datasets/barexam_qa/qa/qa.csv")
 
     if config.questions == "full":
-        return qa.reset_index(drop=True)
+        return _apply_question_exclusions(qa.reset_index(drop=True), config)
 
     n = int(config.questions)
-    return qa.sample(n=min(n, len(qa)), random_state=config.seed).reset_index(drop=True)
+    return _apply_question_exclusions(
+        qa.sample(n=min(n, len(qa)), random_state=config.seed).reset_index(drop=True),
+        config,
+    )
 
 
 def _load_housing_questions(config: EvalConfig) -> pd.DataFrame:
@@ -161,10 +169,13 @@ def _load_housing_questions(config: EvalConfig) -> pd.DataFrame:
     qa = pd.read_csv(os.path.join(base, "datasets/housing_qa/questions.csv"))
 
     if config.questions == "full":
-        return qa.reset_index(drop=True)
+        return _apply_question_exclusions(qa.reset_index(drop=True), config)
 
     n = int(config.questions)
-    return qa.sample(n=min(n, len(qa)), random_state=config.seed).reset_index(drop=True)
+    return _apply_question_exclusions(
+        qa.sample(n=min(n, len(qa)), random_state=config.seed).reset_index(drop=True),
+        config,
+    )
 
 
 def _load_generic_questions(config: EvalConfig, csv_path: str) -> pd.DataFrame:
@@ -173,10 +184,105 @@ def _load_generic_questions(config: EvalConfig, csv_path: str) -> pd.DataFrame:
     qa = pd.read_csv(os.path.join(base, csv_path))
 
     if config.questions == "full":
-        return qa.reset_index(drop=True)
+        return _apply_question_exclusions(qa.reset_index(drop=True), config)
 
     n = int(config.questions)
-    return qa.sample(n=min(n, len(qa)), random_state=config.seed).reset_index(drop=True)
+    return _apply_question_exclusions(
+        qa.sample(n=min(n, len(qa)), random_state=config.seed).reset_index(drop=True),
+        config,
+    )
+
+
+def _coerce_id_list(value) -> list[str]:
+    if value is None:
+        return []
+    try:
+        if pd.isna(value):
+            return []
+    except (TypeError, ValueError):
+        pass
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped or stripped.lower() == "nan":
+            return []
+        if stripped.startswith("[") or stripped.startswith("{"):
+            try:
+                parsed = json.loads(stripped)
+            except json.JSONDecodeError:
+                parsed = None
+            if parsed is not None:
+                return _coerce_id_list(parsed)
+        return [part.strip() for part in re.split(r"[\s,]+", stripped) if part.strip()]
+    if isinstance(value, dict):
+        ids: list[str] = []
+        for item in value.values():
+            ids.extend(_coerce_id_list(item))
+        return ids
+    if isinstance(value, (list, tuple, set)):
+        ids = []
+        for item in value:
+            ids.extend(_coerce_id_list(item))
+        return ids
+    return [str(value).strip()] if str(value).strip() else []
+
+
+def _load_exclude_gold_ids_from_path(path: str, dataset: str) -> list[str]:
+    if not path:
+        return []
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"exclude gold ids file not found: {path}")
+    with open(path) as f:
+        raw = f.read()
+    stripped = raw.strip()
+    if not stripped:
+        return []
+    if path.endswith(".json"):
+        payload = json.loads(stripped)
+        if isinstance(payload, dict):
+            values = []
+            if dataset in payload:
+                values.append(payload[dataset])
+            if "exclude_gold_ids" in payload:
+                values.append(payload["exclude_gold_ids"])
+            ids: list[str] = []
+            for value in values:
+                if isinstance(value, dict) and "exclude_gold_ids" in value:
+                    value = value["exclude_gold_ids"]
+                ids.extend(_coerce_id_list(value))
+            return ids
+        return _coerce_id_list(payload)
+    return _coerce_id_list(stripped)
+
+
+def _configured_exclude_gold_ids(config: EvalConfig) -> set[str]:
+    ids: list[str] = []
+    ids.extend(_coerce_id_list(config.exclude_gold_ids))
+    ids.extend(_coerce_id_list(os.getenv("EVAL_EXCLUDE_GOLD_IDS", "")))
+    for path in (
+        config.exclude_gold_ids_path,
+        os.getenv("EVAL_EXCLUDE_GOLD_IDS_PATH", ""),
+    ):
+        ids.extend(_load_exclude_gold_ids_from_path(path.strip(), config.dataset))
+    return {str(item).strip() for item in ids if str(item).strip()}
+
+
+def _row_gold_ids(row: pd.Series) -> set[str]:
+    return set(_coerce_id_list(row.get("gold_idx", "")))
+
+
+def _apply_question_exclusions(qa: pd.DataFrame, config: EvalConfig) -> pd.DataFrame:
+    exclude = _configured_exclude_gold_ids(config)
+    if not exclude or "gold_idx" not in qa.columns:
+        return qa.reset_index(drop=True)
+    keep_mask = [not bool(_row_gold_ids(row) & exclude) for _, row in qa.iterrows()]
+    filtered = qa.loc[keep_mask].reset_index(drop=True)
+    if os.getenv("EVAL_VERBOSE_EXCLUSIONS", "").strip().lower() in {"1", "true", "yes", "on"}:
+        removed = len(qa) - len(filtered)
+        print(
+            f"EVAL_EXCLUDE_GOLD_IDS removed {removed}/{len(qa)} rows for dataset={config.dataset}",
+            file=sys.stderr,
+        )
+    return filtered
 
 
 def extract_answer_mc(text: str) -> str | None:

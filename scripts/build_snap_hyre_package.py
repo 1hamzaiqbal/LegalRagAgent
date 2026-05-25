@@ -180,11 +180,59 @@ def _load_answer_rows(experiments_path: Path, tag_prefix: str, min_questions: in
     return rows
 
 
+def _load_answer_rows_from_details(patterns: list[str], min_questions: int) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    paths: list[Path] = []
+    for pattern in patterns:
+        matches = glob.glob(pattern)
+        if matches:
+            paths.extend(Path(p) for p in matches)
+    for path in sorted(dict.fromkeys(paths)):
+        detail_rows = _read_jsonl(path)
+        if len(detail_rows) < min_questions:
+            continue
+        first = detail_rows[0]
+        dataset = str(first.get("dataset") or "")
+        provider = str(first.get("provider") or "")
+        mode = MODE_ALIASES.get(str(first.get("mode") or ""), str(first.get("mode") or ""))
+        if dataset not in DATASETS or provider not in PROVIDERS or mode not in MODES:
+            continue
+        correct = sum(1 for row in detail_rows if row.get("is_correct"))
+        total = len(detail_rows)
+        health = _detail_health(str(path), total, mode=mode, failed_tag=False)
+        rows.append({
+            "dataset": dataset,
+            "provider": provider,
+            "mode": mode,
+            "run_id": path.stem,
+            "tag": "detail-log-scan",
+            "n_questions": total,
+            "accuracy": correct / total if total else "",
+            "correct": correct,
+            "total": total,
+            "avg_llm_calls": "",
+            "total_input_tokens": "",
+            "total_output_tokens": "",
+            "detail_log": str(path),
+            **health,
+        })
+    return rows
+
+
 def _latest_answer_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     by_key: dict[tuple[str, str, str], dict[str, Any]] = {}
+
+    def sort_key(row: dict[str, Any]) -> tuple[int, str]:
+        raw_total = row.get("total") or row.get("n_questions") or row.get("detail_rows") or 0
+        try:
+            total = int(raw_total)
+        except (TypeError, ValueError):
+            total = 0
+        return total, str(row.get("run_id", ""))
+
     for row in rows:
         key = (row["dataset"], row["provider"], row["mode"])
-        if key not in by_key or str(row.get("run_id", "")) > str(by_key[key].get("run_id", "")):
+        if key not in by_key or sort_key(row) > sort_key(by_key[key]):
             by_key[key] = row
     return [by_key[key] for key in sorted(by_key)]
 
@@ -388,6 +436,7 @@ def _maybe_write_plots(out_dir: Path, answer_rows: list[dict[str, Any]], retriev
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--experiments", type=Path, default=Path("logs/experiments.jsonl"))
+    parser.add_argument("--detail-log", action="append", default=["logs/merged/*_detail.jsonl"])
     parser.add_argument("--retrieval-csv", action="append", default=["docs/generated/retrieval_cache_matrix*.csv"])
     parser.add_argument("--out-dir", type=Path, default=Path("docs/generated/snap_hyre_package"))
     parser.add_argument("--tag-prefix", default="local-snap-hyre")
@@ -397,6 +446,7 @@ def main() -> None:
     args.out_dir.mkdir(parents=True, exist_ok=True)
     answer_rows = _latest_answer_rows(
         _load_answer_rows(args.experiments, args.tag_prefix, args.min_answer_questions)
+        + _load_answer_rows_from_details(args.detail_log, args.min_answer_questions)
     )
     retrieval_rows = _retrieval_summary(_read_csvs(args.retrieval_csv))
 

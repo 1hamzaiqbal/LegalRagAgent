@@ -650,6 +650,14 @@ def _validate_hyre_cache_entry(entry: dict, config: EvalConfig, path: str) -> No
             "set EVAL_ALLOW_CROSS_PROVIDER_GENERATION_CACHE=1 only for an intentional reuse"
         )
 
+    if config.mode in {"rag_hyde_exemplar", "snap_hyre_exemplar"}:
+        expected_variant = _passage_style_signal_variant(config)
+        entry_variant = _entry_passage_style_variant(entry, source_mode)
+        if entry_variant != expected_variant:
+            violations.append(
+                f"passage_style_signal_variant={entry_variant!r} != expected {expected_variant!r}"
+            )
+
     if violations:
         label = str(entry.get("label") or "")
         raise RuntimeError(
@@ -871,6 +879,259 @@ def _documents_from_retrieval_cache(
     return docs, entry
 
 
+_PASSAGE_STYLE_VARIANT_ALIASES = {
+    "": "single",
+    "default": "single",
+    "realpassage": "single",
+    "single": "single",
+    "one": "single",
+    "multi": "multi3",
+    "multi3": "multi3",
+    "parallel": "parallel3",
+    "parallel3": "parallel3",
+    "three": "multi3",
+    "3": "multi3",
+}
+
+
+def _passage_style_signal_variant(config: EvalConfig) -> str:
+    raw = str(
+        getattr(config, "passage_style_variant", "")
+        or os.getenv("EVAL_PASSAGE_STYLE_VARIANT", "")
+        or "single"
+    ).strip().lower()
+    variant = _PASSAGE_STYLE_VARIANT_ALIASES.get(raw)
+    if not variant:
+        raise ValueError(
+            f"Unsupported passage-style exemplar variant {raw!r}; expected single, multi3, or parallel3"
+        )
+    return variant
+
+
+def _passage_style_signal_ids(config: EvalConfig) -> list[str]:
+    variant = _passage_style_signal_variant(config)
+    if variant not in {"multi3", "parallel3"}:
+        ids_by_dataset = {
+            "barexam": ["mbe_4"],
+            "housing": ["single_housing_realpassage"],
+            "legal_link_eu": ["single_legal_link_eu_realpassage"],
+            "mas_legal_bench": ["single_mas_legal_bench_realpassage"],
+        }
+        return ids_by_dataset.get(config.dataset, [])
+    ids_by_dataset = {
+        "barexam": ["mbe_4", "mbe_20", "mbe_308"],
+        "housing": ["1508532", "1038490", "1727814"],
+    }
+    return ids_by_dataset.get(config.dataset, [])
+
+
+def _passage_style_signal_metadata(config: EvalConfig) -> dict:
+    return {
+        "passage_style_signal_variant": _passage_style_signal_variant(config),
+        "passage_style_signal_ids": _passage_style_signal_ids(config),
+    }
+
+
+def _entry_passage_style_variant(entry: dict, source_mode: str) -> str:
+    variant = str(entry.get("passage_style_signal_variant") or "").strip().lower()
+    if variant:
+        return _PASSAGE_STYLE_VARIANT_ALIASES.get(variant, variant)
+    if source_mode in {"rag_hyde_exemplar", "snap_hyre_exemplar"}:
+        return "single"
+    return ""
+
+
+def _orthogonal_passage_style_signals(config: EvalConfig) -> list[dict[str, Any]]:
+    """Three independent exemplar prompts for retrieval-only parallel probes."""
+    banks: dict[str, list[dict[str, Any]]] = {
+        "barexam": [
+            {
+                "key": "torts_res_ipsa",
+                "ids": ["mbe_4"],
+                "signal": (
+                    "A useful BarExamQA retrieval passage names the doctrine first, "
+                    "then states the operative elements in neutral black-letter form. "
+                    "It does not restate the fact pattern or argue for an answer choice.\n\n"
+                    "Corpus passage excerpt: The res ipsa loquitur doctrine enables "
+                    "a jury presented only with circumstantial evidence to infer "
+                    "negligence from the fact that an event happened. The criteria "
+                    "include an event that ordinarily does not occur without "
+                    "negligence, an agency or instrumentality within the defendant's "
+                    "exclusive control, and no voluntary action or contribution by "
+                    "the plaintiff."
+                ),
+            },
+            {
+                "key": "criminal_search_consent",
+                "ids": ["mbe_20"],
+                "signal": (
+                    "A useful BarExamQA retrieval passage states the constitutional "
+                    "rule, exception, and required elements in reference style. It "
+                    "does not summarize the exam facts or select an answer.\n\n"
+                    "Corpus passage excerpt: The Fourth Amendment bars unreasonable "
+                    "searches and seizures, and a warrantless search is per se "
+                    "unreasonable unless it falls within a specifically established "
+                    "exception. One exception is valid consent, which must be knowing "
+                    "and voluntary and given by a person with authority to consent."
+                ),
+            },
+            {
+                "key": "equitable_specific_performance",
+                "ids": ["mbe_308"],
+                "signal": (
+                    "A useful BarExamQA retrieval passage identifies the remedy or "
+                    "doctrinal category, then states the legal standard and its "
+                    "usual application. It avoids answer labels and advocacy.\n\n"
+                    "Corpus passage excerpt: Specific performance is an equitable "
+                    "remedy ordered when the legal remedy, usually money damages, is "
+                    "inadequate or impracticable. When land is the subject matter of "
+                    "the agreement, the legal remedy is generally treated as "
+                    "inadequate because each parcel of land is unique."
+                ),
+            },
+        ],
+        "housing": [
+            {
+                "key": "eviction_appeal_stay",
+                "ids": ["1508532"],
+                "signal": (
+                    "A useful HousingQA retrieval passage preserves the state, the "
+                    "procedural term, and the legal consequence in statutory style. "
+                    "It does not guess a yes/no answer.\n\n"
+                    "Corpus passage excerpt: In Idaho eviction proceedings, an "
+                    "appeal taken by the defendant does not stay proceedings upon "
+                    "the judgment unless the court so directs."
+                ),
+            },
+            {
+                "key": "essential_services_remedies",
+                "ids": ["1038490"],
+                "signal": (
+                    "A useful HousingQA retrieval passage names the landlord duty, "
+                    "tenant notice requirement, and available statutory remedies. "
+                    "It preserves state-specific terms and avoids generic national "
+                    "housing-law phrasing.\n\n"
+                    "Corpus passage excerpt: In Montana, if the landlord "
+                    "purposefully or negligently fails to supply heat, running "
+                    "water, hot water, electricity, gas, or other essential "
+                    "services, the tenant may give written notice specifying the "
+                    "breach and may procure reasonable services and deduct their "
+                    "actual and reasonable cost from rent, recover damages based on "
+                    "diminished rental value, or procure reasonable substitute "
+                    "housing during the noncompliance period."
+                ),
+            },
+            {
+                "key": "foreclosure_tenancy_notice",
+                "ids": ["1727814"],
+                "signal": (
+                    "A useful HousingQA retrieval passage captures foreclosure, "
+                    "tenancy type, notice period, and statutory exceptions in the "
+                    "same form as a state code excerpt. It should preserve the "
+                    "jurisdiction named in the current question.\n\n"
+                    "Corpus passage excerpt: In California, a tenant or subtenant "
+                    "in possession of a rental housing unit under a month-to-month "
+                    "lease or periodic tenancy when the property is sold in "
+                    "foreclosure must receive 90 days' written notice to quit "
+                    "before removal. A tenant holding under a fixed-term "
+                    "residential lease entered before the foreclosure sale may "
+                    "remain until the end of the lease term unless a statutory "
+                    "exception applies."
+                ),
+            },
+        ],
+        "legal_link_eu": [
+            {
+                "key": "extends_application",
+                "ids": [],
+                "signal": (
+                    "A useful Legal-Link-EU retrieval passage preserves source and "
+                    "target act identifiers, relation words, article numbers, and "
+                    "institution names. It should read like EU legal context, not "
+                    "like an answer explanation.\n\n"
+                    "Corpus passage excerpt: A source act can extend the "
+                    "application of a target Commission decision by identifying the "
+                    "advisory committee, its membership or quorum rule, and the "
+                    "legal instrument whose procedure applies to the new sector."
+                ),
+            },
+            {
+                "key": "rendered_obsolete",
+                "ids": [],
+                "signal": (
+                    "A useful Legal-Link-EU retrieval passage states whether a "
+                    "later notice, codification, repeal, or omission from the "
+                    "active acquis changes the status of an earlier instrument. It "
+                    "keeps CELEX-style identifiers and dates when present.\n\n"
+                    "Corpus passage excerpt: A later EU notice may render an "
+                    "earlier decision obsolete by removing it from the active "
+                    "Community acquis and replacing the operative publication, "
+                    "reporting, or notification framework."
+                ),
+            },
+            {
+                "key": "annex_correction_amendment",
+                "ids": [],
+                "signal": (
+                    "A useful Legal-Link-EU retrieval passage names the amending or "
+                    "correcting act, the affected annex or article, and the exact "
+                    "legal relationship such as replaces, corrects, repeals, or "
+                    "extends validity.\n\n"
+                    "Corpus passage excerpt: An implementing regulation may amend "
+                    "annexes to an earlier regulation by replacing tables, product "
+                    "codes, quota periods, or eligibility criteria while leaving the "
+                    "underlying source act in force."
+                ),
+            },
+        ],
+        "mas_legal_bench": [
+            {
+                "key": "gdpr_security_framework",
+                "ids": [],
+                "signal": (
+                    "A useful MASLegalBench retrieval passage identifies the legal "
+                    "basis, controller or processor duty, and statutory factors "
+                    "used by the regulator. It should resemble an enforcement notice "
+                    "or legal framework paragraph.\n\n"
+                    "Corpus passage excerpt: Article 32 UK GDPR requires security "
+                    "measures appropriate to the risk, taking account of the state "
+                    "of the art, implementation costs, the nature, scope, context, "
+                    "and purposes of processing, and the risk to rights and freedoms."
+                ),
+            },
+            {
+                "key": "breach_notification",
+                "ids": [],
+                "signal": (
+                    "A useful MASLegalBench retrieval passage preserves the "
+                    "regulated actor, the breach event, the reporting timeline, and "
+                    "the authority's finding without choosing an option.\n\n"
+                    "Corpus passage excerpt: In the case of a personal data breach, "
+                    "the controller must notify the supervisory authority without "
+                    "undue delay and, where feasible, within 72 hours after becoming "
+                    "aware of the breach, unless the breach is unlikely to result in "
+                    "risk to rights and freedoms."
+                ),
+            },
+            {
+                "key": "penalty_mitigation",
+                "ids": [],
+                "signal": (
+                    "A useful MASLegalBench retrieval passage states the "
+                    "contravention, aggravating or mitigating factors, and penalty "
+                    "assessment considerations in enforcement-notice style.\n\n"
+                    "Corpus passage excerpt: When determining an administrative "
+                    "penalty, the Commissioner may consider the nature, gravity, and "
+                    "duration of the infringement, categories of personal data, "
+                    "cooperation with the investigation, prior compliance history, "
+                    "and measures taken to reduce harm."
+                ),
+            },
+        ],
+    }
+    return list(banks.get(config.dataset, []))
+
+
 def _hyre_passage_style_signal(config: EvalConfig) -> str:
     """Dataset-specific style signal for probe-only HyRE exemplar modes.
 
@@ -879,6 +1140,60 @@ def _hyre_passage_style_signal(config: EvalConfig) -> str:
     each corpus without providing row-specific evidence for the current
     question.
     """
+    variant = _passage_style_signal_variant(config)
+    if variant == "multi3":
+        multi3_by_dataset = {
+            "barexam": (
+                "A useful BarExamQA retrieval passage names the doctrine first, "
+                "then states the operative element, exception, or admissibility "
+                "rule in neutral black-letter form. It does not restate the fact "
+                "pattern or argue for an answer choice.\n\n"
+                "Corpus passage excerpt 1: The res ipsa loquitur doctrine enables "
+                "a jury presented only with circumstantial evidence to infer "
+                "negligence from the fact that an event happened. The criteria "
+                "include an event that ordinarily does not occur without "
+                "negligence, an agency or instrumentality within the defendant's "
+                "exclusive control, and no voluntary action or contribution by "
+                "the plaintiff.\n\n"
+                "Corpus passage excerpt 2: The Fourth Amendment bars unreasonable "
+                "searches and seizures, and a warrantless search is per se "
+                "unreasonable unless it falls within a specifically established "
+                "exception. One exception is valid consent, which must be knowing "
+                "and voluntary and given by a person with authority to consent.\n\n"
+                "Corpus passage excerpt 3: Specific performance is an equitable "
+                "remedy ordered when the legal remedy, usually money damages, is "
+                "inadequate or impracticable. When land is the subject matter of "
+                "the agreement, the legal remedy is generally treated as "
+                "inadequate because each parcel of land is unique."
+            ),
+            "housing": (
+                "A useful HousingQA retrieval passage sounds like a state statutory "
+                "definition or landlord-tenant procedure section. It should preserve "
+                "the state or territory named in the question, preserve legal terms "
+                "from the question, name the actor and authority when relevant, and "
+                "avoid guessing a yes/no answer.\n\n"
+                "Corpus passage excerpt 1: In Idaho eviction proceedings, an appeal "
+                "taken by the defendant does not stay proceedings upon the judgment "
+                "unless the court so directs.\n\n"
+                "Corpus passage excerpt 2: In Montana, if the landlord purposefully "
+                "or negligently fails to supply heat, running water, hot water, "
+                "electricity, gas, or other essential services, the tenant may give "
+                "written notice specifying the breach and may procure reasonable "
+                "services and deduct their actual and reasonable cost from rent, "
+                "recover damages based on diminished rental value, or procure "
+                "reasonable substitute housing during the noncompliance period.\n\n"
+                "Corpus passage excerpt 3: In California, a tenant or subtenant in "
+                "possession of a rental housing unit under a month-to-month lease "
+                "or periodic tenancy when the property is sold in foreclosure must "
+                "receive 90 days' written notice to quit before removal. A tenant "
+                "holding under a fixed-term residential lease entered before the "
+                "foreclosure sale may remain until the end of the lease term unless "
+                "a statutory exception applies."
+            ),
+        }
+        if config.dataset in multi3_by_dataset:
+            return multi3_by_dataset[config.dataset]
+
     style_by_dataset = {
         "barexam": (
             "A useful BarExamQA retrieval passage names the doctrine first, then "
@@ -2634,6 +2949,7 @@ def run_rag_hyde_exemplar(row: pd.Series, config: EvalConfig) -> dict:
         "hyre_cache_hit": bool(cache_entry),
         "hyre_cache_label": _row_label(row, config) if cache_entry else "",
         "passage_style_signal_used": True,
+        **_passage_style_signal_metadata(config),
         "logical_llm_calls": 2,
         "cached_generation_calls": 1 if cache_entry else 0,
         "retrieval_queries": [hyde["text"]],
@@ -3058,14 +3374,22 @@ def _snap_hyde_2call_system(config: EvalConfig, use_style_signal: bool = False) 
     system prompt + an additional requirement to emit a '## Passage' block
     after the answer. Keeps dataset-appropriate answer formatting (MC letter,
     Yes/No, open-ended) while adding the passage block for retrieval."""
+    return _snap_hyde_2call_system_with_signal(
+        config,
+        style_signal_text=_hyre_passage_style_signal(config) if use_style_signal else "",
+    )
+
+
+def _snap_hyde_2call_system_with_signal(config: EvalConfig, style_signal_text: str = "") -> str:
+    """Compose the 2-call system prompt with an optional explicit style signal."""
     base_answer = _system_prompt(config, "answer")
     style_signal = (
         "\n\nPASSAGE STYLE SIGNAL (probe only; not evidence):\n"
         "Use the following dataset-specific signal only to shape the retrieval passage. "
         "Do not copy it, do not treat it as evidence, and do not use it as a source of "
         "the answer.\n"
-        f"{_hyre_passage_style_signal(config)}"
-        if use_style_signal
+        f"{style_signal_text}"
+        if style_signal_text
         else ""
     )
     passage_instruction = (
@@ -3123,10 +3447,16 @@ def _generate_snap_hyre_blocks(
     fallback_passage: str,
     label: str,
     use_style_signal: bool = False,
+    style_signal_override: str = "",
 ) -> tuple[str, str, str, bool, dict]:
     """Generate Snap-HyRE snap + passage blocks with one logged format retry."""
     metrics_before_initial = _get_metrics()
-    raw = _llm_call(_snap_hyde_2call_system(config, use_style_signal=use_style_signal), question, label=label)
+    system_prompt = (
+        _snap_hyde_2call_system_with_signal(config, style_signal_override)
+        if style_signal_override
+        else _snap_hyde_2call_system(config, use_style_signal=use_style_signal)
+    )
+    raw = _llm_call(system_prompt, question, label=label)
     metrics_after_initial = _get_metrics()
     initial_output_tokens = max(
         0,
@@ -3180,7 +3510,7 @@ def _generate_snap_hyre_blocks(
         )
     metrics_before_retry = _get_metrics()
     retry_raw = _llm_call(
-        _snap_hyde_2call_system(config, use_style_signal=use_style_signal),
+        system_prompt,
         "\n\n".join(retry_instruction),
         label=f"{label}/format_retry",
     )
@@ -3559,6 +3889,7 @@ def run_snap_hyre_exemplar(row: pd.Series, config: EvalConfig) -> dict:
         "snap_hyre_parse_ok": parse_ok,
         "snap_hyde_2call_parse_ok": parse_ok,
         "passage_style_signal_used": True,
+        **_passage_style_signal_metadata(config),
         "hyre_cache_hit": bool(cache_entry),
         "hyre_cache_label": _row_label(row, config) if cache_entry else "",
         "logical_llm_calls": 2,
@@ -8576,6 +8907,12 @@ def main():
                         help="Optional JSONL cache of retrieved passage ids for top-k replay")
     parser.add_argument("--housing-state-filter", action="store_true",
                         help="For HousingQA retrieval modes, constrain Chroma retrieval to the question state")
+    parser.add_argument("--passage-style-variant", default="",
+                        help="Probe-only exemplar style variant: single or multi3")
+    parser.add_argument("--exclude-gold-ids", default="",
+                        help="Comma/whitespace-separated gold ids to exclude from question loading")
+    parser.add_argument("--exclude-gold-ids-path", default="",
+                        help="JSON/TXT file of gold ids to exclude from question loading")
 
     args = parser.parse_args()
 
@@ -8598,6 +8935,9 @@ def main():
         hyre_cache_path=args.hyre_cache_path,
         retrieval_cache_path=args.retrieval_cache_path,
         housing_state_filter=args.housing_state_filter,
+        passage_style_variant=args.passage_style_variant,
+        exclude_gold_ids=args.exclude_gold_ids,
+        exclude_gold_ids_path=args.exclude_gold_ids_path,
     )
 
     run_eval(config)

@@ -28,20 +28,24 @@ from eval_harness import (  # noqa: E402
     _collection_for_config,
     _contains_answer_artifact,
     _choice_texts,
+    _coerce_gold_ids,
     _extract_answer,
     _extract_predicted_answer,
     _fmt,
     _fmt_intermediate,
     _generate_hyde,
+    _generate_snap_hyre_blocks,
     _get_call_trace,
     _get_metrics,
     _get_trace_events,
     _gold_ids,
+    _orthogonal_passage_style_signals,
     _question_only_hyde_user,
     _reset_call_trace,
     _reset_llm_call_counter,
     _reset_trace_events,
     _retrieve_and_format,
+    _retrieval_where_for_row,
     _retrieval_question,
     _row_label,
     _sanitize_intermediate_text,
@@ -50,7 +54,6 @@ from eval_harness import (  # noqa: E402
     _snap_hyde_2call_system,
     _split_choice_hyre,
     _split_snap_and_hyde,
-    _where_from_config,
     _llm_call,
 )
 
@@ -70,6 +73,7 @@ CHOICE_PROBE_MODES = DEFAULT_PROBE_MODES + (
     "rag_choice_fused",
     "rag_hyde",
     "snap_issue_hyre",
+    "snap_hyre_exemplar_parallel3",
 )
 
 _GENERATION_MEMO: dict[tuple[str, str, str], dict[str, Any]] = {}
@@ -238,6 +242,67 @@ def _build_snap_hyre_queries(
     }
 
 
+def _build_snap_hyre_exemplar_parallel3_queries(
+    row: Any,
+    config: EvalConfig,
+    *,
+    question: str,
+    question_intermediate: str,
+) -> dict[str, Any]:
+    signals = _orthogonal_passage_style_signals(config)
+    if len(signals) < 3:
+        raise ValueError(f"no three-signal exemplar bank for dataset={config.dataset}")
+
+    raw_outputs: list[str] = []
+    snap_blocks: list[str] = []
+    snap_letters: list[str] = []
+    passages: list[str] = []
+    parse_flags: list[bool] = []
+    retry_meta: list[dict[str, Any]] = []
+    signal_keys: list[str] = []
+    signal_ids: list[list[str]] = []
+
+    for signal in signals[:3]:
+        key = str(signal.get("key") or f"signal_{len(signal_keys) + 1}")
+        raw, snap_block, hyre_passage, parse_ok, meta = _generate_snap_hyre_blocks(
+            config,
+            question=question,
+            fallback_passage=question_intermediate,
+            label=f"snap_hyre_exemplar_parallel3/{key}",
+            use_style_signal=True,
+            style_signal_override=str(signal.get("signal") or ""),
+        )
+        raw_outputs.append(raw)
+        snap_blocks.append(snap_block)
+        snap_letters.append(str(_extract_answer(snap_block, config) or ""))
+        passages.append(hyre_passage)
+        parse_flags.append(bool(parse_ok))
+        retry_meta.append(meta)
+        signal_keys.append(key)
+        signal_ids.append([str(value) for value in signal.get("ids", [])])
+
+    return {
+        "source_mode": "snap_hyre_exemplar_parallel3",
+        "retrieval_queries": passages,
+        "formatted_question": question,
+        "intermediate_question": question_intermediate,
+        "generation_parse_ok": all(parse_flags),
+        "parallel_exemplar_signal_keys": signal_keys,
+        "parallel_exemplar_signal_ids": signal_ids,
+        "snap_answers": snap_blocks,
+        "snap_letters": snap_letters,
+        "snap_and_hyre_raws": raw_outputs,
+        "hyde_passages": passages,
+        "n_hyde_passages": len(passages),
+        "hyde_contains_answer_artifact": any(_contains_answer_artifact(p) for p in passages),
+        "raw_anchor_included": False,
+        "parallel_generation_calls": len(passages),
+        "parallel_generation_parse_flags": parse_flags,
+        "parallel_generation_retry_meta": retry_meta,
+        "generated_passages": passages,
+    }
+
+
 def _build_queries(row: Any, config: EvalConfig, mode: str) -> dict[str, Any]:
     question = _fmt(row, config)
     question_intermediate = _fmt_intermediate(row, config)
@@ -341,6 +406,14 @@ def _build_queries(row: Any, config: EvalConfig, mode: str) -> dict[str, Any]:
             include_anchor=True,
         )
 
+    if mode == "snap_hyre_exemplar_parallel3":
+        return _build_snap_hyre_exemplar_parallel3_queries(
+            row,
+            config,
+            question=question,
+            question_intermediate=question_intermediate,
+        )
+
     if mode == "multi_hyde_diverse":
         system = (
             "You are a legal research assistant. Given a legal question, write THREE different "
@@ -422,6 +495,77 @@ def _row_metrics(retrieved: list[str], gold_ids: list[str], ks: list[int]) -> di
         out[f"hit@{k}"] = 1.0 if hits else 0.0
         out[f"recall@{k}"] = hits / len(gold)
         out[f"mrr@{k}"] = _mrr(top, gold, k)
+    return out
+
+
+def _retrieval_proxy_metrics(row: Any, retrieval: dict[str, Any], ks: list[int]) -> dict[str, Any]:
+    evidence = list(retrieval.get("evidence_store") or [])
+    retrieved = [str(ev.get("idx", "")) for ev in evidence]
+    row_source = str(row.get("source", "") or "").strip()
+    source_context_ids = _coerce_gold_ids(row.get("source_context_ids", ""))
+    source_doc = str(row.get("source_doc", "") or "").strip()
+    target_doc = str(row.get("target_doc", "") or "").strip()
+
+    out: dict[str, Any] = {
+        "row_source": row_source,
+        "same_source_retrieved": bool(retrieval.get("same_source_retrieved", False)),
+        "same_source_retrieved_ids": retrieval.get("same_source_retrieved_ids", []),
+        "source_context_ids": source_context_ids,
+        "source_doc": source_doc,
+        "source_doc_retrieved": bool(retrieval.get("source_doc_retrieved", False)),
+        "source_doc_retrieved_ids": retrieval.get("source_doc_retrieved_ids", []),
+        "target_doc": target_doc,
+        "target_doc_retrieved": bool(retrieval.get("target_doc_retrieved", False)),
+        "target_doc_retrieved_ids": retrieval.get("target_doc_retrieved_ids", []),
+        "cross_encoder_doc_truncated_count": retrieval.get("cross_encoder_doc_truncated_count", 0),
+        "cross_encoder_query_truncated": bool(retrieval.get("cross_encoder_query_truncated", False)),
+        "cross_encoder_max_chars": retrieval.get("cross_encoder_max_chars", ""),
+    }
+
+    if row_source:
+        for k in ks:
+            top = evidence[:k]
+            hits = [
+                ev.get("idx", "")
+                for ev in top
+                if str(ev.get("source", "") or "").strip() == row_source
+            ]
+            out[f"same_source_hit@{k}"] = 1.0 if hits else 0.0
+            out[f"same_source_count@{k}"] = len(hits)
+
+    if source_context_ids:
+        context_set = {str(value) for value in source_context_ids if str(value)}
+        for k in ks:
+            top = retrieved[:k]
+            hits = len(context_set & set(top))
+            out[f"source_context_hit@{k}"] = 1.0 if hits else 0.0
+            out[f"source_context_recall@{k}"] = hits / len(context_set)
+            out[f"source_context_mrr@{k}"] = _mrr(top, context_set, k)
+
+    if source_doc or target_doc:
+        for k in ks:
+            source_at_k = False
+            target_at_k = False
+            for ev in evidence[:k]:
+                ev_source = str(ev.get("source", "") or "").strip()
+                ev_citation = str(ev.get("citation", "") or "").strip()
+                ev_text_id = ev_source or ev_citation
+                if source_doc and (
+                    ev_text_id == source_doc
+                    or ev_source == source_doc
+                    or ev_citation == source_doc
+                ):
+                    source_at_k = True
+                if target_doc and (
+                    ev_text_id == target_doc
+                    or ev_source == target_doc
+                    or ev_citation == target_doc
+                ):
+                    target_at_k = True
+            out[f"source_doc_hit@{k}"] = 1.0 if source_at_k else 0.0
+            out[f"target_doc_hit@{k}"] = 1.0 if target_at_k else 0.0
+            out[f"source_target_doc_hit@{k}"] = 1.0 if source_at_k and target_at_k else 0.0
+
     return out
 
 
@@ -508,6 +652,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--provider", default="or-gemma4-26b")
     parser.add_argument("--dataset", required=True, choices=[
         "barexam", "housing", "casehold", "legalbench_scalr",
+        "legal_link_eu", "mas_legal_bench",
     ])
     parser.add_argument("--questions", default="20")
     parser.add_argument("--seed", type=int, default=42)
@@ -517,6 +662,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-k", type=int, default=10)
     parser.add_argument("--ks", type=int, nargs="+", default=[1, 5, 10])
     parser.add_argument("--tag", default="")
+    parser.add_argument("--source-filter", default="")
+    parser.add_argument("--housing-state-filter", action="store_true",
+                        help="For HousingQA, constrain retrieval to each question's state metadata")
+    parser.add_argument("--exclude-gold-ids", default="",
+                        help="Comma/whitespace-separated gold ids to exclude from question loading")
+    parser.add_argument("--exclude-gold-ids-path", default="",
+                        help="JSON/TXT file of gold ids to exclude from question loading")
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--summary-out", type=Path)
     parser.add_argument("--trace-calls", action="store_true")
@@ -544,8 +696,12 @@ def main() -> None:
         dataset=args.dataset,
         sample_start=args.sample_start,
         sample_end=args.sample_end,
+        source_filter=args.source_filter,
         retrieval_k=args.max_k,
         tag=args.tag,
+        housing_state_filter=args.housing_state_filter,
+        exclude_gold_ids=args.exclude_gold_ids,
+        exclude_gold_ids_path=args.exclude_gold_ids_path,
     )
     _setup_provider(config)
     questions = load_questions(config)
@@ -579,7 +735,7 @@ def main() -> None:
                         payload["retrieval_queries"],
                         k=args.max_k,
                         label_prefix=mode,
-                        where=_where_from_config(config),
+                        where=_retrieval_where_for_row(row, config),
                         collection=_collection_for_config(config),
                     )
                     retrieved_ids = [str(value) for value in retrieval["retrieved_ids"]]
@@ -589,6 +745,7 @@ def main() -> None:
                         "gold_retrieved": retrieval["gold_retrieved"],
                         "retrieval_cache_hit": retrieval["retrieval_cache_hit"],
                         "retrieval_query_hash": retrieval["retrieval_query_hash"],
+                        **_retrieval_proxy_metrics(row, retrieval, ks),
                     })
                 except Exception as exc:
                     error = str(exc)

@@ -4,23 +4,23 @@ This file is generated from local artifacts only. Missing cells are not inferred
 
 - Experiments tag prefix: `local-snap-hyre`
 - Minimum answer-row questions: `50`
-- Latest answer rows found: 51 / 84 expected cells
-- Retrieval matrix rows found: 188
+- Latest answer rows found: 61 / 84 expected cells
+- Retrieval matrix rows found: 204
 
 ## Answer Ladder
 
 | provider | dataset | llm_only | rag_simple | rag_rewrite | rag_hyde | snap_hyre | golden_passage | golden_plus_neighbors |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| or-ministral-8b | barexam | 56.8% | 56.9% | missing | missing | missing | 64.6% | 63.2% |
-| or-ministral-8b | housing | missing | missing | missing | missing | missing | missing | missing |
-| or-ministral-8b | casehold | missing | missing | missing | missing | missing | missing | missing |
-| or-ministral-8b | legalbench_scalr | 67.2% | 68.0% | 69.9% | 71.1% | 69.9% | 93.2% | 77.1% |
+| groq-llama8b | barexam | 57.3% | 54.5% | 57.3% | 56.1% | 56.9% | 60.0% | 61.8% |
+| groq-llama8b | housing | 55.4% | 57.3% | 63.4% | 59.1% | 57.4% | 64.3% | 63.8% |
+| groq-llama8b | casehold | missing | missing | missing | missing | missing | missing | missing |
+| groq-llama8b | legalbench_scalr | missing | missing | missing | missing | missing | missing | missing |
 | or-gemma4-26b | barexam | 80.8% | 78.0% | 80.7% | 80.2% | 82.0% | 78.6% | 80.7% |
-| or-gemma4-26b | housing | missing | missing | missing | missing | missing | missing | missing |
+| or-gemma4-26b | housing | 56.1% | 66.1% | missing | 65.0% | 65.1% | missing | missing |
 | or-gemma4-26b | casehold | 72.6% | missing | missing | missing | missing | missing | missing |
 | or-gemma4-26b | legalbench_scalr | 73.0% | 73.4% | 73.9% | 72.2% | 73.9% | 97.9% | 81.3% |
 | groq-llama70b | barexam | 78.7% | 74.6% | 77.2% | 80.2% | 79.8% | 79.2% | 77.8% |
-| groq-llama70b | housing | 44.8% | 47.3% | missing | missing | missing | 67.3% | 66.0% |
+| groq-llama70b | housing | 44.8% | 62.1% | 55.8% | 58.9% | 59.6% | 67.3% | 66.0% |
 | groq-llama70b | casehold | 71.8% | 70.8% | 70.6% | 70.3% | 70.5% | 97.5% | 79.4% |
 | groq-llama70b | legalbench_scalr | 74.4% | 72.9% | 71.6% | 70.4% | 71.3% | 93.5% | 83.0% |
 
@@ -68,10 +68,18 @@ This file is generated from local artifacts only. Missing cells are not inferred
 | legalbench_scalr | llama70b | snap_hyre | 3 | 571 | 46.6% | 0.381 | aligned | empty=0, short=0, no_gold=0 |
 | legalbench_scalr | llama70b | snap_hyre | 5 | 571 | 55.2% | 0.400 | aligned | empty=0, short=0, no_gold=0 |
 | legalbench_scalr | llama70b | snap_hyre | 10 | 571 | 64.6% | 0.413 | aligned | empty=0, short=0, no_gold=0 |
-| barexam | gemma4-26b | snap_hyre | 1 | 1195 | 3.2% | 0.032 | aligned | empty=0, short=0, no_gold=0 |
-| barexam | gemma4-26b | snap_hyre | 3 | 1195 | 7.9% | 0.051 | aligned | empty=0, short=0, no_gold=0 |
-| barexam | gemma4-26b | snap_hyre | 5 | 1195 | 12.1% | 0.060 | aligned | empty=0, short=0, no_gold=0 |
-| barexam | gemma4-26b | snap_hyre | 10 | 1195 | 18.7% | 0.069 | aligned | empty=0, short=0, no_gold=0 |
+| barexam | model_invariant | snap_hyre | 1 | 1195 | 2.3% | 0.023 | aligned | empty=0, short=0, no_gold=0 |
+| barexam | model_invariant | snap_hyre | 3 | 1195 | 6.3% | 0.039 | aligned | empty=0, short=0, no_gold=0 |
+| barexam | model_invariant | snap_hyre | 5 | 1195 | 9.5% | 0.047 | aligned | empty=0, short=0, no_gold=0 |
+| barexam | model_invariant | snap_hyre | 10 | 1195 | 14.8% | 0.054 | aligned | empty=0, short=0, no_gold=0 |
+| legal_link_eu | gemma4-26b | rag_hyde | 1 | 1127 | 28.7% | 0.287 | alignment_missing | empty=0, short=0, no_gold=0 |
+| legal_link_eu | gemma4-26b | rag_hyde | 3 | 1127 | 43.1% | 0.350 | alignment_missing | empty=0, short=0, no_gold=0 |
+| legal_link_eu | gemma4-26b | rag_hyde | 5 | 1127 | 49.0% | 0.364 | alignment_missing | empty=0, short=0, no_gold=0 |
+| legal_link_eu | gemma4-26b | rag_hyde | 10 | 1127 | 58.9% | 0.377 | alignment_missing | empty=0, short=0, no_gold=0 |
+| legal_link_eu | gemma4-26b | snap_hyre | 1 | 1127 | 46.9% | 0.469 | alignment_missing | empty=0, short=0, no_gold=0 |
+| legal_link_eu | gemma4-26b | snap_hyre | 3 | 1127 | 61.5% | 0.533 | alignment_missing | empty=0, short=0, no_gold=0 |
+| legal_link_eu | gemma4-26b | snap_hyre | 5 | 1127 | 67.9% | 0.547 | alignment_missing | empty=0, short=0, no_gold=0 |
+| legal_link_eu | gemma4-26b | snap_hyre | 10 | 1127 | 76.8% | 0.559 | alignment_missing | empty=0, short=0, no_gold=0 |
 | barexam | gemma4-26b | rag_hyde | 1 | 100 | 3.0% | 0.030 | aligned | empty=0, short=0, no_gold=0 |
 | barexam | gemma4-26b | rag_hyde | 2 | 100 | 6.0% | 0.045 | aligned | empty=0, short=0, no_gold=0 |
 | barexam | gemma4-26b | rag_hyde | 3 | 100 | 8.0% | 0.052 | aligned | empty=0, short=0, no_gold=0 |
@@ -192,6 +200,14 @@ This file is generated from local artifacts only. Missing cells are not inferred
 | legalbench_scalr | model_invariant | rag_simple | 8 | 100 | 58.0% | 0.362 | aligned | empty=0, short=0, no_gold=0 |
 | legalbench_scalr | model_invariant | rag_simple | 9 | 100 | 58.0% | 0.362 | aligned | empty=0, short=0, no_gold=0 |
 | legalbench_scalr | model_invariant | rag_simple | 10 | 100 | 60.0% | 0.364 | aligned | empty=0, short=0, no_gold=0 |
+| barexam | model_invariant | rag_hyde | 1 | 1195 | 1.2% | 0.012 | aligned | empty=0, short=0, no_gold=0 |
+| barexam | model_invariant | rag_hyde | 3 | 1195 | 3.9% | 0.023 | aligned | empty=0, short=0, no_gold=0 |
+| barexam | model_invariant | rag_hyde | 5 | 1195 | 5.9% | 0.028 | aligned | empty=0, short=0, no_gold=0 |
+| barexam | model_invariant | rag_hyde | 10 | 1195 | 10.5% | 0.034 | aligned | empty=0, short=0, no_gold=0 |
+| barexam | model_invariant | snap_hyre | 1 | 1195 | 2.3% | 0.023 | aligned | empty=0, short=0, no_gold=0 |
+| barexam | model_invariant | snap_hyre | 3 | 1195 | 6.1% | 0.039 | aligned | empty=0, short=0, no_gold=0 |
+| barexam | model_invariant | snap_hyre | 5 | 1195 | 8.6% | 0.044 | aligned | empty=0, short=0, no_gold=0 |
+| barexam | model_invariant | snap_hyre | 10 | 1195 | 13.8% | 0.051 | aligned | empty=0, short=0, no_gold=0 |
 | legalbench_scalr | model_invariant | rag_hyde | 1 | 571 | 34.2% | 0.342 | aligned | empty=0, short=0, no_gold=0 |
 | legalbench_scalr | model_invariant | rag_hyde | 3 | 571 | 51.3% | 0.419 | aligned | empty=0, short=0, no_gold=0 |
 | legalbench_scalr | model_invariant | rag_hyde | 5 | 571 | 60.2% | 0.440 | aligned | empty=0, short=0, no_gold=0 |
@@ -221,28 +237,21 @@ This file is generated from local artifacts only. Missing cells are not inferred
 
 | provider | dataset | mode |
 |---|---|---|
-| or-ministral-8b | barexam | rag_rewrite |
-| or-ministral-8b | barexam | rag_hyde |
-| or-ministral-8b | barexam | snap_hyre |
-| or-ministral-8b | housing | llm_only |
-| or-ministral-8b | housing | rag_simple |
-| or-ministral-8b | housing | rag_rewrite |
-| or-ministral-8b | housing | rag_hyde |
-| or-ministral-8b | housing | snap_hyre |
-| or-ministral-8b | housing | golden_passage |
-| or-ministral-8b | housing | golden_plus_neighbors |
-| or-ministral-8b | casehold | llm_only |
-| or-ministral-8b | casehold | rag_simple |
-| or-ministral-8b | casehold | rag_rewrite |
-| or-ministral-8b | casehold | rag_hyde |
-| or-ministral-8b | casehold | snap_hyre |
-| or-ministral-8b | casehold | golden_passage |
-| or-ministral-8b | casehold | golden_plus_neighbors |
-| or-gemma4-26b | housing | llm_only |
-| or-gemma4-26b | housing | rag_simple |
+| groq-llama8b | casehold | llm_only |
+| groq-llama8b | casehold | rag_simple |
+| groq-llama8b | casehold | rag_rewrite |
+| groq-llama8b | casehold | rag_hyde |
+| groq-llama8b | casehold | snap_hyre |
+| groq-llama8b | casehold | golden_passage |
+| groq-llama8b | casehold | golden_plus_neighbors |
+| groq-llama8b | legalbench_scalr | llm_only |
+| groq-llama8b | legalbench_scalr | rag_simple |
+| groq-llama8b | legalbench_scalr | rag_rewrite |
+| groq-llama8b | legalbench_scalr | rag_hyde |
+| groq-llama8b | legalbench_scalr | snap_hyre |
+| groq-llama8b | legalbench_scalr | golden_passage |
+| groq-llama8b | legalbench_scalr | golden_plus_neighbors |
 | or-gemma4-26b | housing | rag_rewrite |
-| or-gemma4-26b | housing | rag_hyde |
-| or-gemma4-26b | housing | snap_hyre |
 | or-gemma4-26b | housing | golden_passage |
 | or-gemma4-26b | housing | golden_plus_neighbors |
 | or-gemma4-26b | casehold | rag_simple |
@@ -251,9 +260,6 @@ This file is generated from local artifacts only. Missing cells are not inferred
 | or-gemma4-26b | casehold | snap_hyre |
 | or-gemma4-26b | casehold | golden_passage |
 | or-gemma4-26b | casehold | golden_plus_neighbors |
-| groq-llama70b | housing | rag_rewrite |
-| groq-llama70b | housing | rag_hyde |
-| groq-llama70b | housing | snap_hyre |
 
 ## Retrieval Coverage Notes
 

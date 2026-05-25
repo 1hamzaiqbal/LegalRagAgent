@@ -34,6 +34,8 @@ from eval_harness import (  # noqa: E402
     _get_trace_events,
     _question_only_hyde_user,
     _provider_route_metadata,
+    _passage_style_signal_metadata,
+    _passage_style_signal_variant,
     _reset_call_trace,
     _reset_llm_call_counter,
     _reset_trace_events,
@@ -237,6 +239,7 @@ def _build_rag_hyde(row, config: EvalConfig) -> dict[str, Any]:
         "hyde_used_fallback": hyde.get("used_fallback", False),
         "hyde_parse_ok": bool(hyde["text"]),
         "passage_style_signal_used": use_style_signal,
+        **(_passage_style_signal_metadata(config) if use_style_signal else {}),
     }
     return _repair_hyde_payload(row, config, payload)
 
@@ -262,6 +265,7 @@ def _build_snap_hyre(row, config: EvalConfig) -> dict[str, Any]:
         "hyde_passage_raw": raw,
         "hyde_contains_answer_artifact": _contains_answer_artifact(hyre_passage),
         "passage_style_signal_used": use_style_signal,
+        **(_passage_style_signal_metadata(config) if use_style_signal else {}),
         **retry_meta,
     }
 
@@ -282,6 +286,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sample-end", type=int)
     parser.add_argument("--source-filter", default="")
     parser.add_argument("--tag", default="")
+    parser.add_argument("--passage-style-variant", default="",
+                        help="Probe-only exemplar style variant: single or multi3")
+    parser.add_argument("--exclude-gold-ids", default="",
+                        help="Comma/whitespace-separated gold ids to exclude from question loading")
+    parser.add_argument("--exclude-gold-ids-path", default="",
+                        help="JSON/TXT file of gold ids to exclude from question loading")
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--resume", action="store_true", help="Append missing labels if the output already exists")
     parser.add_argument("--trace-calls", action="store_true")
@@ -306,7 +316,12 @@ def main() -> None:
         sample_start=args.sample_start,
         sample_end=args.sample_end,
         tag=args.tag,
+        passage_style_variant=args.passage_style_variant,
+        exclude_gold_ids=args.exclude_gold_ids,
+        exclude_gold_ids_path=args.exclude_gold_ids_path,
     )
+    if config.mode in {"rag_hyde_exemplar", "snap_hyre_exemplar"} and args.passage_style_variant:
+        os.environ["EVAL_PASSAGE_STYLE_VARIANT"] = _passage_style_signal_variant(config)
     _setup_provider(config)
     questions = load_questions(config)
     if args.sample_start or args.sample_end is not None:
