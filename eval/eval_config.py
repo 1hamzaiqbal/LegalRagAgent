@@ -11,6 +11,19 @@ from dataclasses import dataclass
 import pandas as pd
 
 
+BEIR_DATASETS = {
+    "beir_scifact": "scifact",
+    "beir_nfcorpus": "nfcorpus",
+    "beir_fiqa": "fiqa",
+    "beir_trec_covid": "trec-covid",
+    "beir_scidocs": "scidocs",
+}
+
+
+def is_beir_dataset(dataset: str) -> bool:
+    return dataset in BEIR_DATASETS
+
+
 @dataclass
 class EvalConfig:
     mode: str = "full_pipeline"       # key in EVAL_MODES; default kept for backward compatibility
@@ -21,7 +34,7 @@ class EvalConfig:
     verbose: bool = False
     tag: str = ""                     # optional label for the run
     source_filter: str = ""           # optional metadata filter, e.g. "mbe" to search MBE docs only
-    dataset: str = "barexam"          # "barexam" | "housing" | "legal_rag" | "legal_rag_bench" | "mas_legal_bench" | "legal_link_eu" | "australian" | "casehold" | "musique" | "legalbench_scalr" | "medqa"
+    dataset: str = "barexam"          # "barexam" | "housing" | "legal_rag" | "legal_rag_bench" | "mas_legal_bench" | "legal_link_eu" | "australian" | "casehold" | "musique" | "legalbench_scalr" | "medqa" | beir_*
     embedding_model: str = ""         # override embedding model for retrieval (e.g., "BAAI/bge-m3")
     retrieval_k: int = 5              # final top-k after rerank for retrieval modes
     sample_start: int = 0             # optional slice start after deterministic sampling
@@ -124,6 +137,9 @@ EVAL_MODES = {
 
 def load_questions(config: EvalConfig) -> pd.DataFrame:
     """Load questions based on config.questions: 'curated', 'full', or integer N."""
+    if is_beir_dataset(config.dataset):
+        subset = BEIR_DATASETS[config.dataset]
+        return _load_generic_questions(config, f"datasets/beir/{subset}/questions.csv")
     if config.dataset == "housing":
         return _load_housing_questions(config)
     if config.dataset == "legal_rag":
@@ -353,6 +369,8 @@ def extract_answer_yn(text: str) -> str | None:
 
 def format_question_prompt(row: pd.Series, dataset: str = "barexam") -> str:
     """Format a question into a standard prompt string."""
+    if is_beir_dataset(dataset):
+        return format_beir_prompt(row, BEIR_DATASETS[dataset])
     if dataset == "housing":
         return format_housing_prompt(row)
     if dataset == "casehold":
@@ -505,6 +523,16 @@ def format_musique_prompt(row: pd.Series) -> str:
         f"{question}\n\n"
         "Answer with a brief span — a single entity, date, or short phrase. "
         "Provide your answer in the exact form: Answer: [your answer here]"
+    )
+
+
+def format_beir_prompt(row: pd.Series, subset: str) -> str:
+    """Format a BEIR retrieval query as an open corpus-search prompt."""
+    question = str(row["question"])
+    return (
+        f"Dataset: BEIR/{subset}\n\n"
+        f"## Query\n{question}\n\n"
+        "Answer the query briefly and cite the relevant corpus facts when available."
     )
 
 

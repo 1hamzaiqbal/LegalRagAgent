@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "eval"))
 
-from eval_config import EvalConfig, load_questions  # noqa: E402
+from eval_config import BEIR_DATASETS, EvalConfig, load_questions  # noqa: E402
 from eval_harness import (  # noqa: E402
     _contains_answer_artifact,
     _extract_required_final_line_prediction,
@@ -88,6 +88,17 @@ def _no_silent_fallback_enabled() -> bool:
     return os.getenv("NO_SILENT_FALLBACK", "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+STRICT_GENERATION_ANSWER_DATASETS = {
+    "barexam",
+    "housing",
+    "casehold",
+    "legalbench_scalr",
+    "mas_legal_bench",
+    "legal_link_eu",
+    "medqa",
+}
+
+
 def _strict_generation_violations(record: dict[str, Any], mode: str) -> list[str]:
     violations: list[str] = []
     if record.get("error"):
@@ -110,7 +121,11 @@ def _strict_generation_violations(record: dict[str, Any], mode: str) -> list[str
         violations.append(f"hyde_passage_chars>{max_hyde_chars}")
     if mode in {"snap_hyre", "snap_hyre_exemplar"} and record.get("snap_hyre_parse_ok") is False:
         violations.append("snap_hyre_parse_ok=False")
-    if mode in {"snap_hyre", "snap_hyre_exemplar"} and not record.get("snap_letter"):
+    if (
+        mode in {"snap_hyre", "snap_hyre_exemplar"}
+        and str(record.get("dataset") or "") in STRICT_GENERATION_ANSWER_DATASETS
+        and not record.get("snap_letter")
+    ):
         violations.append("snap_letter missing required final answer line")
     return violations
 
@@ -144,7 +159,8 @@ def _snap_hyre_retry_resolved_near_cap(record: dict[str, Any], near_cap: int) ->
         return False
     if record.get("snap_hyre_parse_ok") is not True:
         return False
-    if not record.get("snap_letter") or not record.get("hyde_passage"):
+    requires_snap_letter = str(record.get("dataset") or "") in STRICT_GENERATION_ANSWER_DATASETS
+    if (requires_snap_letter and not record.get("snap_letter")) or not record.get("hyde_passage"):
         return False
     if record.get("hyde_contains_answer_artifact") is True:
         return False
@@ -358,7 +374,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--provider", required=True)
     parser.add_argument("--dataset", required=True, choices=[
         "barexam", "housing", "legal_rag", "legal_rag_bench", "mas_legal_bench", "legal_link_eu", "australian", "casehold",
-        "musique", "legalbench_scalr", "medqa",
+        "musique", "legalbench_scalr", "medqa", *BEIR_DATASETS.keys(),
     ])
     parser.add_argument("--questions", default="full", help="'full' or integer N")
     parser.add_argument("--seed", type=int, default=42)

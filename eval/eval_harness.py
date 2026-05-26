@@ -26,7 +26,19 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
 from langchain_core.documents import Document
-from eval_config import EvalConfig, EVAL_MODES, load_questions, extract_answer_mc, extract_answer_mc5, extract_answer_yn, format_question_prompt, extract_answer_musique, musique_em_f1
+from eval_config import (
+    BEIR_DATASETS,
+    EvalConfig,
+    EVAL_MODES,
+    extract_answer_mc,
+    extract_answer_mc5,
+    extract_answer_musique,
+    extract_answer_yn,
+    format_question_prompt,
+    is_beir_dataset,
+    load_questions,
+    musique_em_f1,
+)
 from main import (
     run as run_pipeline,
     _llm_call as _base_llm_call,
@@ -216,10 +228,27 @@ def _strip_think_tags(text: str) -> str:
     return re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL | re.IGNORECASE)
 
 
+STRICT_FINAL_LINE_DATASETS = {
+    "barexam",
+    "housing",
+    "casehold",
+    "legalbench_scalr",
+    "mas_legal_bench",
+    "legal_link_eu",
+    "medqa",
+}
+
+
+def _requires_strict_answer_line(config: EvalConfig) -> bool:
+    return config.dataset in STRICT_FINAL_LINE_DATASETS
+
+
 def _extract_answer(text: str, config: EvalConfig) -> str | None:
     """Extract answer using the right extractor for the dataset."""
     # Strip closed <think>...</think> blocks before extraction (Qwen3, etc.)
     text = _strip_think_tags(text)
+    if is_beir_dataset(config.dataset):
+        return text
     if config.dataset == "housing":
         return extract_answer_yn(text)
     if config.dataset == "casehold":
@@ -380,6 +409,9 @@ def _fmt_intermediate(row: pd.Series, config: EvalConfig) -> str:
     removes answer letters from the choices so intermediate generators are not
     pushed toward emitting `Answer: (X)` artifacts.
     """
+    if is_beir_dataset(config.dataset):
+        return str(row["question"])
+
     if config.dataset in ("legal_rag", "legal_rag_bench", "australian", "musique"):
         return str(row["question"])
 
@@ -586,6 +618,9 @@ _RETRIEVAL_CACHE_PATH: str | None = None
 def _row_label(row: pd.Series, config: EvalConfig, fallback_i: int | None = None) -> str:
     """Stable per-row label shared by logs and optional HyRE replay caches."""
     i = row.get("idx", fallback_i if fallback_i is not None else "")
+    if is_beir_dataset(config.dataset):
+        i_str = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(i)).strip("_")
+        return f"{config.dataset}_{i_str or fallback_i or 'unknown'}"
     if config.dataset == "housing":
         return f"hqa_{row.get('state', 'unknown')}_{i}"
     if config.dataset == "casehold":
@@ -1584,7 +1619,7 @@ def _maybe_retry_final_answer_format(
     """Retry only malformed final-answer formatting, with the same evidence."""
     if not _env_truthy("EVAL_FINAL_FORMAT_RETRY"):
         return answer_text, predicted
-    if config.dataset not in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu", "medqa"}:
+    if not _requires_strict_answer_line(config):
         return answer_text, predicted
 
     final_line_prediction = _extract_required_final_line_prediction(answer_text, config)
@@ -1833,6 +1868,46 @@ def _generate_report(system: str, user: str, label: str, fallback: str) -> dict:
 
 def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
     """Get dataset-appropriate system prompt."""
+    if is_beir_dataset(config.dataset):
+        subset = BEIR_DATASETS[config.dataset]
+        domains = {
+            "scifact": "scientific claim verification",
+            "nfcorpus": "medical and nutrition literature",
+            "fiqa": "financial question answering",
+            "trec-covid": "COVID-19 biomedical literature",
+            "scidocs": "scientific-paper citation and related-work search",
+        }
+        domain = domains.get(subset, "open-domain information retrieval")
+        prompts = {
+            "answer": (
+                f"You are an information retrieval assistant for BEIR/{subset}, specializing in {domain}. "
+                "Answer the query briefly and accurately from general knowledge when needed. "
+                "No multiple-choice or final-answer marker is required."
+            ),
+            "rag": (
+                f"You are an information retrieval assistant for BEIR/{subset}, specializing in {domain}. "
+                "Retrieved corpus passages are provided. Use them to answer the query briefly and identify "
+                "the relevant facts, entities, mechanisms, or claims. No multiple-choice or final-answer "
+                "marker is required."
+            ),
+            "research": (
+                f"You are an information retrieval assistant for BEIR/{subset}, specializing in {domain}. "
+                "Research findings are provided. Synthesize them briefly and accurately."
+            ),
+            "hyde": (
+                f"You are a corpus author for BEIR/{subset}, specializing in {domain}. Given a search query, "
+                "write a short neutral passage (2-3 sentences) that could appear in a relevant source document. "
+                "Use concrete terminology and entities from the query when possible. Do not mention the query, "
+                "do not include answer labels, and do not output an `Answer:` line."
+            ),
+            "snap_hyde": (
+                f"You are a corpus author for BEIR/{subset}, specializing in {domain}. A user has reasoned "
+                "about an information need. Write a short neutral source-style passage (2-3 sentences) that "
+                "would be most useful for retrieving relevant corpus documents. Use the reasoning only to target "
+                "the relevant facts, entities, mechanisms, or claims. Do not output answer labels or an `Answer:` line."
+            ),
+        }
+        return prompts.get(role, prompts["answer"])
     if config.dataset == "housing":
         prompts = {
             "answer": (
@@ -2149,6 +2224,11 @@ DATASET_COLLECTIONS = {
     "musique": "musique_passages",
     "legalbench_scalr": "legalbench_scalr_holdings",
     "medqa": "medqa_textbooks",
+    "beir_scifact": "beir_scifact",
+    "beir_nfcorpus": "beir_nfcorpus",
+    "beir_fiqa": "beir_fiqa",
+    "beir_trec_covid": "beir_trec_covid",
+    "beir_scidocs": "beir_scidocs",
 }
 
 
@@ -3460,21 +3540,36 @@ def _snap_hyde_2call_system_with_signal(config: EvalConfig, style_signal_text: s
         if style_signal_text
         else ""
     )
-    passage_instruction = (
-        "\n\nADDITIONAL OUTPUT REQUIREMENT (REQUIRED, do not skip):\n"
-        "Keep the entire response under 180 words. Do not repeat sentences.\n"
-        "After your final 'Answer:' line, append a blank line, then a header line that reads exactly:\n"
-        "## Passage\n"
-        "Followed by a 2-3 sentence reference passage that states the controlling rule, doctrine, "
-        "fact, or principle most relevant to this question. Use the reasoning you just did to target "
-        "the discriminating legal issue, not to advocate for an answer label. The passage will be used "
-        "to retrieve supporting context from a corpus. Constraints for the passage block:\n"
-        "- Do NOT mention any answer choice (no '(A)', '(B)', 'Yes', 'No', etc.) in the passage.\n"
-        "- Do NOT use 'Answer:', 'Passage:' headers inside the block, no bold, no bullets.\n"
-        "- Write in plain reference / encyclopedia / treatise style — state the relevant fact "
-        "or rule directly so it could appear verbatim in a knowledge source.\n"
-        "Both the answer block AND the '## Passage' block are required. Stop immediately after the passage."
-    )
+    if _requires_strict_answer_line(config):
+        passage_instruction = (
+            "\n\nADDITIONAL OUTPUT REQUIREMENT (REQUIRED, do not skip):\n"
+            "Keep the entire response under 180 words. Do not repeat sentences.\n"
+            "After your final 'Answer:' line, append a blank line, then a header line that reads exactly:\n"
+            "## Passage\n"
+            "Followed by a 2-3 sentence reference passage that states the controlling rule, doctrine, "
+            "fact, or principle most relevant to this question. Use the reasoning you just did to target "
+            "the discriminating legal issue, not to advocate for an answer label. The passage will be used "
+            "to retrieve supporting context from a corpus. Constraints for the passage block:\n"
+            "- Do NOT mention any answer choice (no '(A)', '(B)', 'Yes', 'No', etc.) in the passage.\n"
+            "- Do NOT use 'Answer:', 'Passage:' headers inside the block, no bold, no bullets.\n"
+            "- Write in plain reference / encyclopedia / treatise style — state the relevant fact "
+            "or rule directly so it could appear verbatim in a knowledge source.\n"
+            "Both the answer block AND the '## Passage' block are required. Stop immediately after the passage."
+        )
+    else:
+        passage_instruction = (
+            "\n\nADDITIONAL OUTPUT REQUIREMENT (REQUIRED, do not skip):\n"
+            "Keep the entire response under 180 words. Do not repeat sentences.\n"
+            "After a brief answer or reasoning block, append a blank line, then a header line that reads exactly:\n"
+            "## Passage\n"
+            "Followed by a 2-3 sentence neutral reference passage that states the corpus facts, "
+            "entities, mechanism, or claim most relevant to this query. The passage will be used "
+            "to retrieve supporting context from a corpus. Constraints for the passage block:\n"
+            "- Do NOT include answer labels, choice letters, or an `Answer:` line in the passage.\n"
+            "- Do NOT use 'Passage:' headers inside the block, no bold, no bullets.\n"
+            "- Write in plain reference / encyclopedia style so it could appear verbatim in a knowledge source.\n"
+            "Both the brief reasoning block AND the '## Passage' block are required. Stop immediately after the passage."
+        )
     return base_answer + style_signal + passage_instruction
 
 
@@ -3535,13 +3630,20 @@ def _generate_snap_hyre_blocks(
     contains_answer = _contains_answer_artifact(hyre_passage)
     max_hyre_chars = int(os.getenv("EVAL_HYDE_MAX_CHARS", "2500"))
     passage_too_long = max_hyre_chars > 0 and len(str(hyre_passage or "")) > max_hyre_chars
+    requires_answer_line = _requires_strict_answer_line(config)
     snap_prediction = _extract_required_final_line_prediction(snap_block, config)
     retry_meta: dict = {
         "snap_hyre_format_retry": False,
         "snap_hyre_format_retry_reasons": [],
         "snap_hyre_initial_output_tokens": initial_output_tokens,
     }
-    if parse_ok and hyre_passage and not contains_answer and not passage_too_long and snap_prediction:
+    if (
+        parse_ok
+        and hyre_passage
+        and not contains_answer
+        and not passage_too_long
+        and (snap_prediction or not requires_answer_line)
+    ):
         return raw, snap_block, hyre_passage, parse_ok, retry_meta
     if not _env_truthy("EVAL_GENERATION_FORMAT_RETRY"):
         return raw, snap_block, hyre_passage, parse_ok, retry_meta
@@ -3553,23 +3655,35 @@ def _generate_snap_hyre_blocks(
         reasons.append("passage_contains_answer_artifact")
     if passage_too_long:
         reasons.append(f"hyde_passage_chars>{max_hyre_chars}")
-    if not snap_prediction:
+    if requires_answer_line and not snap_prediction:
         reasons.append("missing_snap_answer_line")
 
-    previous_prediction = (
-        snap_prediction
-        or _extract_answer(snap_block, config)
-        or _extract_answer(raw, config)
-    )
+    previous_prediction = ""
+    if requires_answer_line:
+        previous_prediction = (
+            snap_prediction
+            or _extract_answer(snap_block, config)
+            or _extract_answer(raw, config)
+            or ""
+        )
     target_line = _required_answer_line_from_prediction(previous_prediction, config)
+    retry_body = (
+        "Your previous Snap-HyRE generation did not satisfy the required two-block format. "
+        "Return a concise response with: legal reasoning, one final Answer line, a blank line, "
+        "then exactly the header `## Passage` followed by a 2-3 sentence neutral reference passage. "
+        "Do not include answer labels, choice letters, or `Answer:` inside the passage block."
+        if requires_answer_line
+        else
+        "Your previous SCOPE generation did not satisfy the required two-block format. "
+        "Return a concise response with: a brief answer or reasoning block, a blank line, "
+        "then exactly the header `## Passage` followed by a 2-3 sentence neutral corpus-style passage. "
+        "Do not include answer labels, choice letters, or `Answer:` inside the passage block."
+    )
     retry_instruction = [
         "## Question",
         question,
         "## Retry Instruction",
-        "Your previous Snap-HyRE generation did not satisfy the required two-block format. "
-        "Return a concise response with: legal reasoning, one final Answer line, a blank line, "
-        "then exactly the header `## Passage` followed by a 2-3 sentence neutral reference passage. "
-        "Do not include answer labels, choice letters, or `Answer:` inside the passage block.",
+        retry_body,
     ]
     if target_line:
         retry_instruction.append(
@@ -3597,7 +3711,7 @@ def _generate_snap_hyre_blocks(
     retry_line_repair = False
     retry_line_repair_source = ""
     retry_line_repair_prediction = ""
-    if not retry_snap_prediction:
+    if requires_answer_line and not retry_snap_prediction:
         retry_fallback_prediction = (
             previous_prediction
             or _extract_answer(retry_snap, config)
@@ -3618,7 +3732,7 @@ def _generate_snap_hyre_blocks(
         and retry_passage
         and not retry_contains_answer
         and not retry_passage_too_long
-        and retry_snap_prediction
+        and (retry_snap_prediction or not requires_answer_line)
     )
     retry_meta = {
         "snap_hyre_format_retry": True,
@@ -8414,7 +8528,7 @@ def _fallback_guard_violations(record: dict, config: EvalConfig) -> list[str]:
     if "<think>" in str(record.get("final_answer") or "").lower():
         violations.append("unclosed_think_or_reasoning_tag_in_final_answer")
 
-    if config.dataset in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu", "medqa"}:
+    if _requires_strict_answer_line(config):
         final_answer = str(record.get("final_answer") or "")
         predicted = record.get("predicted_answer")
         if not _has_explicit_answer_marker(final_answer):
@@ -8470,15 +8584,7 @@ def _fallback_guard_violations(record: dict, config: EvalConfig) -> list[str]:
         if record.get("hyre_cache_hit") is not True and record.get("hyde_cache_hit") is not True:
             violations.append("hyre_cache_hit!=True")
 
-    if config.mode in {"snap_hyre", "snap_hyre_exemplar", "rag_snap_hyde_2call"} and config.dataset in {
-        "barexam",
-        "housing",
-        "casehold",
-        "legalbench_scalr",
-        "mas_legal_bench",
-        "legal_link_eu",
-        "medqa",
-    }:
+    if config.mode in {"snap_hyre", "snap_hyre_exemplar", "rag_snap_hyde_2call"} and _requires_strict_answer_line(config):
         snap_answer = str(record.get("snap_answer") or "")
         if not _extract_required_final_line_prediction(snap_answer, config):
             violations.append("snap_answer_missing_required_final_line")
@@ -8534,6 +8640,8 @@ def _preload_eval_caches(config: EvalConfig) -> None:
 
 
 def _row_subject(row: pd.Series, config: EvalConfig) -> str:
+    if is_beir_dataset(config.dataset):
+        return BEIR_DATASETS[config.dataset]
     if config.dataset == "housing":
         return str(row.get("state", "unknown"))
     if config.dataset == "casehold":
@@ -8556,6 +8664,8 @@ def _row_subject(row: pd.Series, config: EvalConfig) -> str:
 
 
 def _row_gold_answer(row: pd.Series, config: EvalConfig) -> str:
+    if "answer" not in row:
+        return ""
     gold = str(row["answer"]).strip()
     if config.dataset == "housing":
         return gold.capitalize()
@@ -8700,6 +8810,10 @@ def _evaluate_one_row(
         record["choices"] = _record_choices(row, config.dataset)
         record["meta_info"] = str(row.get("meta_info", ""))
         record["answer_text"] = str(row.get("answer_text", ""))[:500]
+        record["gold_passage"] = ""
+    elif is_beir_dataset(config.dataset):
+        record["beir_subset"] = BEIR_DATASETS[config.dataset]
+        record["gold_count"] = int(row.get("gold_count", 0) or 0)
         record["gold_passage"] = ""
     else:
         record["choices"] = _record_choices(row, config.dataset)
@@ -8861,7 +8975,7 @@ def run_eval(config: EvalConfig):
     total_start = time.time()
     consecutive_errors = 0
 
-    is_open_ended = config.dataset in ("legal_rag", "legal_rag_bench", "australian")
+    is_open_ended = config.dataset in ("legal_rag", "legal_rag_bench", "australian") or is_beir_dataset(config.dataset)
     is_short_span = config.dataset == "musique"
 
     row_items = list(qa.iterrows())
@@ -9101,7 +9215,7 @@ def main():
     parser.add_argument("--source-filter", default="",
                         help="Metadata source filter for retrieval, e.g. 'mbe' (default: none)")
     parser.add_argument("--dataset", default="barexam",
-                        choices=["barexam", "housing", "legal_rag", "legal_rag_bench", "mas_legal_bench", "legal_link_eu", "australian", "casehold", "musique", "legalbench_scalr", "medqa"],
+                        choices=["barexam", "housing", "legal_rag", "legal_rag_bench", "mas_legal_bench", "legal_link_eu", "australian", "casehold", "musique", "legalbench_scalr", "medqa", *BEIR_DATASETS.keys()],
                         help="Dataset to evaluate on (default: barexam)")
     parser.add_argument("--retrieval-k", type=int, default=5,
                         help="Final top-k after rerank for retrieval modes (default 5; meeting ask: top-1 vs top-5 ablation)")
