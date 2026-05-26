@@ -45,3 +45,10 @@ eval/_chroma_info.py
 /*.tex
 /*.zip
 /*.sty
+
+# Overleaf integration scratch under paper/ (canonical source is paper/submission/)
+paper/scope_edit_*
+paper/_*
+
+# Auto-generated, churns on every machine — regenerated locally, not tracked
+current_status.md
