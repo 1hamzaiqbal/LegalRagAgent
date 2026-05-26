@@ -52,11 +52,16 @@ Passage examples:
 ## Current Status
 
 - Phase 0 complete.
-- Phase 1 pending: embed `datasets/medqa_usmle/textbooks.csv` into Chroma collection `medqa_textbooks` with `Alibaba-NLP/gte-large-en-v1.5`.
+- Phase 1 complete: embedded `datasets/medqa_usmle/textbooks.csv` into Chroma collection `medqa_textbooks` with `Alibaba-NLP/gte-large-en-v1.5`.
+- Chroma verification: `medqa_textbooks` contains 125847 documents. Sample metadata preserves `idx`, `source=medrag_textbooks`, and `title`.
+- Embedding run settings: `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1 EMBED_CHUNK=5000 EMBED_GPU_BATCH=32`; total runtime 48.5 minutes on the local RTX 3070 Laptop GPU.
 - MedQA has no gold passage labels; downstream answer EM is the primary outcome and no Hit@k/MRR/Recall will be reported.
 
 ## Reproduction
 
 ```bash
 uv run python scripts/download_medqa_usmle.py
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1 \
+  EMBED_CHUNK=5000 EMBED_GPU_BATCH=32 \
+  uv run python utils/fast_embed.py medqa
 ```

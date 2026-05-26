@@ -13,6 +13,7 @@ Usage:
   uv run python utils/fast_embed.py legal_rag_bench    # Legal RAG Bench corpus (4,876)
   uv run python utils/fast_embed.py mas_legal_bench    # MASLegalBench context corpus
   uv run python utils/fast_embed.py legal_link_eu       # Legal-Link-EU evidence contexts
+  uv run python utils/fast_embed.py medqa               # MedRAG textbook chunks for MedQA-USMLE
   uv run python utils/fast_embed.py status             # Check collection sizes
 
   # Embedding model A/B testing:
@@ -160,6 +161,12 @@ CORPORA = {
         "text_col": "text",
         "idx_col": "idx",
     },
+    "medqa": {
+        "csv": "datasets/medqa_usmle/textbooks.csv",
+        "collection": "medqa_textbooks",
+        "text_col": "text",
+        "idx_col": "idx",
+    },
 }
 
 # Process in chunks of this size to avoid OOM. Override for tight local memory.
@@ -269,7 +276,7 @@ def embed_corpus(corpus_name: str, max_passages: int = 0, resume: bool = False,
         metadatas = []
         for _, row in chunk_df.iterrows():
             meta = {"idx": str(row[idx_col])}
-            for col in ["source", "state", "citation", "context_type", "role", "context_title"]:
+            for col in ["source", "state", "citation", "context_type", "role", "context_title", "title"]:
                 if col in row and pd.notna(row[col]):
                     meta[col] = str(row[col])
             metadatas.append(meta)
