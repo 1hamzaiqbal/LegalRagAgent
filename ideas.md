@@ -69,6 +69,22 @@ misses. This directly attacks Section 0's gap.
 >   Post-hoc downstream-accuracy test of union → {CE-rerank, RRF, LLM-judge} →
 >   answer is queued as the next results-lane experiment.
 
+> **Validated 2026-05-25 (downstream, Gemma 26B q200)** — see
+> `docs/generated/raw_scope_union_downstream_2026-05-25.md`:
+> - **Union + cheap CE-rerank is the win, on HousingQA only:** 65.0% vs raw
+>   62.0% and SCOPE 59.0%, at **one answer call**. Where SCOPE *alone* loses to
+>   raw (strong-query regime), pooling raw∪SCOPE and reranking *rescues* it
+>   above raw. On BarExamQA, canonical SCOPE (88.0%) is already best — pooling
+>   ≈ SCOPE because raw retrieval is too weak to contribute.
+> - **The LLM judge maximizes retrieval but NOT answers.** On HousingQA it hit
+>   Hit@5 58.0% (huge exposure) but only 63.0% accuracy — *below* CE-rerank's
+>   65.0% which had Hit@5 just 38.0%. More gold in context ≠ better answers on
+>   HousingQA → confirms the answer-conversion bottleneck; the judge isn't worth
+>   its ~3× tokens + extra call here.
+> - **Implication:** the cheap, deployable method is **always-pool raw∪SCOPE +
+>   CE-rerank**; the expensive judge is deprioritized. (q200/1-model — scaling
+>   Union+CE-rerank to full N and all models is the next queued task.)
+
 **Open knobs to test:**
 - k examples: 1 vs 3 vs 5 (diminishing returns likely; examples eat context).
 - N generated passages: 2 vs 3 vs 4.
@@ -165,6 +181,25 @@ question (snap draft stays private).
 Cheapest first experiment for the router: compute Track A perplexity per query
 on BarExamQA vs HousingQA and check it separates the two regimes (it should —
 that's the paper's whole premise). If it does, the gate is essentially free.
+
+> **Reassessment after the 2026-05-25 downstream result.** The hard *binary*
+> gate (bypass-vs-trigger) is weakened by the finding that always-pooling
+> raw∪SCOPE + CE-rerank beats raw *even on strong-query HousingQA* (65.0 vs
+> 62.0). I.e. SCOPE retrievals are complementary even where the router would say
+> "bypass," so a hard bypass leaves a +3pp gain on the table. So:
+> - **Highest-value use of perplexity is as a *measurement axis*, not a gate.**
+>   The paper's thesis is "SCOPE helps in proportion to the question-corpus
+>   vocabulary gap"; perplexity is a *direct measure* of that gap. A figure of
+>   per-query SCOPE gain vs query perplexity would quantify the thesis — a
+>   strong result on its own, gate or no gate.
+> - **Always-pool likely dominates the binary router** on accuracy; the router's
+>   remaining value is *cost* (skip the SCOPE generation call on truly redundant
+>   queries), which perplexity may not cleanly identify (HousingQA is
+>   low-perplexity yet still benefits from SCOPE pooling).
+> - Build Track A (perplexity) first as the continuous analysis axis; treat a
+>   soft router as optional and the hard binary gate as a secondary ablation.
+>   Track B (domain-adapted MLM) is a robustness "we also tried," not the
+>   first move.
 
 ---
 
