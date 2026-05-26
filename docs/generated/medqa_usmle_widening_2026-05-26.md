@@ -79,6 +79,35 @@ HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1 \
   uv run python scripts/analyze_medqa_prescreen.py
 ```
 
+## Phase 4 - q200 Downstream Probe
+
+The q200 Groq Llama 70B probe used cached retrieval/generation artifacts where applicable and strict final-answer checks. MedQA has no gold passage labels, so this table reports downstream exact-match answer accuracy only.
+
+| Method | Detail log | N | Correct | EM | Delta vs raw | McNemar vs raw | Health |
+|---|---|---:|---:|---:|---:|---:|---|
+| LLM only | `logs/eval_llm_only_groq-llama70b_20260526_013008_medqa_local-snap-hyre-groq-llama70b-medqa-llm_only-n200-k5_detail.jsonl` | 200 | 156 | 78.0% | +1.5pp | -- | clean |
+| Raw question RAG | `logs/eval_rag_simple_groq-llama70b_20260526_013500_medqa_local-snap-hyre-groq-llama70b-medqa-rag_simple-n200-k5_detail.jsonl` | 200 | 153 | 76.5% | -- | -- | clean |
+| HyDE | `logs/eval_rag_hyde_groq-llama70b_20260526_013944_medqa_local-snap-hyre-groq-llama70b-medqa-rag_hyde-n200-k5_detail.jsonl` | 200 | 161 | 80.5% | +4.0pp | p=0.1338 | clean; 1 final-answer format retry |
+| Snap-HyRE / SCOPE | `logs/eval_snap_hyre_groq-llama70b_20260526_014411_medqa_local-snap-hyre-groq-llama70b-medqa-snap_hyre-n200-k5_detail.jsonl` | 200 | 167 | 83.5% | +7.0pp | p=0.00661 | clean; 1 final-answer format retry |
+
+Pairwise SCOPE checks:
+
+| Comparison | N | Baseline EM | SCOPE EM | Delta | b | c | McNemar p | Bootstrap 95% CI |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| SCOPE vs raw RAG | 200 | 76.5% | 83.5% | +7.0pp | 19 | 5 | 0.00661 | +2.5 to +12.0pp |
+| SCOPE vs HyDE | 200 | 80.5% | 83.5% | +3.0pp | 14 | 8 | 0.2863 | -1.5 to +7.5pp |
+| SCOPE vs LLM only | 200 | 78.0% | 83.5% | +5.5pp | 15 | 4 | 0.0192 | +1.5 to +9.5pp |
+
+Generation and retrieval caches:
+
+- `caches/retrieval/full/medqa_q200_seed42_raw_question_k10.jsonl`
+- `caches/hyre/full/medqa_q200_seed42_groq-llama70b_rag_hyde.jsonl`
+- `caches/retrieval/full/medqa_q200_seed42_groq-llama70b_rag_hyde_k10.jsonl`
+- `caches/hyre/full/medqa_q200_seed42_groq-llama70b_snap_hyre.jsonl`
+- `caches/retrieval/full/medqa_q200_seed42_groq-llama70b_snap_hyre_k10.jsonl`
+
+Gate decision: q200 clears the widening gate. SCOPE beats raw RAG by +7.0pp with McNemar p=0.00661 and also beats LLM-only by +5.5pp. The next step is to scale MedQA to full test N=1273 and add the 8B/Gemma 26B model rows, subject to provider rate limits.
+
 ## Current Status
 
 - Phase 0 complete.
@@ -87,6 +116,8 @@ HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1 \
 - Embedding run settings: `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1 EMBED_CHUNK=5000 EMBED_GPU_BATCH=32`; total runtime 48.5 minutes on the local RTX 3070 Laptop GPU.
 - Phase 2 complete: registered MedQA in the eval loader, prompt formatter, Chroma collection map, generation/retrieval cache builders, and local answer-cell health checks.
 - Formatter sanity check: `uv run python tests/test_formatter.py` passes 13/13, including MedQA four-option prompt and intermediate-generation checks.
+- Phase 3 complete: perplexity pre-screen clears the q200 answer-budget gate.
+- Phase 4 q200 complete: Groq Llama 70B SCOPE is 167/200, ahead of raw RAG 153/200 and HyDE 161/200.
 - MedQA has no gold passage labels; downstream answer EM is the primary outcome and no Hit@k/MRR/Recall will be reported.
 
 ## Reproduction
