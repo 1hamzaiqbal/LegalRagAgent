@@ -49,6 +49,36 @@ Passage examples:
 - `Anatomy_Gray_0` (Anatomy_Gray): Anatomy_Gray. What is anatomy? Anatomy includes those structures that can be seen grossly (without the aid of magnification) and microscopically (with the aid of magnification). Typically, when used by itself, the term anatomy tends to mean
 - `Anatomy_Gray_1` (Anatomy_Gray): Anatomy_Gray. Observation and visualization are the primary techniques a student should use to learn anatomy. Anatomy is much more than just memorization of lists of names. Although the language of anatomy is important, the network of infor
 
+## Phase 3 - Perplexity Pre-Screen
+
+Add-1 unigram LMs were built over the retrieval corpora and scored against intermediate-generation question text. MedQA uses `medqa_textbooks`; BarExamQA and HousingQA reuse the existing perplexity-axis LM cache.
+
+| Dataset | Questions | LM scope | Median PPL | IQR PPL | Mean log PPL | Mean OOV rate | Median tokens |
+|---|---:|---|---:|---:|---:|---:|---:|
+| BarExamQA | 1195 | corpus-wide | 1898.4 | 1403.4-2597.1 | 7.564 | 0.9% | 193 |
+| HousingQA state-filtered | 6853 | per state | 1434.8 | 1027.5-2096.4 | 7.320 | 0.7% | 22 |
+| MedQA-USMLE | 1273 | corpus-wide | 2650.6 | 2257.4-3093.5 | 7.886 | 0.2% | 152 |
+
+Separation checks on log-perplexity:
+
+| Comparison | AUC first > second | Cohen's d | Mean log-PPL gap |
+|---|---:|---:|---:|
+| MedQA > HousingQA | 0.841 | 0.71 | 0.565 |
+| MedQA > BarExamQA | 0.738 | 0.90 | 0.322 |
+
+Reading:
+
+- MedQA is materially higher than HousingQA on the corpus-surprise pre-screen by the configured gate: mean log-PPL gap 0.565, AUC 0.841.
+- MedQA median token count is 152, compared with HousingQA 22 and BarExamQA 193.
+- Gate decision: continue to q200 downstream answer probe.
+
+Reproduction:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1 \
+  uv run python scripts/analyze_medqa_prescreen.py
+```
+
 ## Current Status
 
 - Phase 0 complete.
