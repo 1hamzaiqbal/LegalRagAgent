@@ -104,6 +104,70 @@ contribution. Order: RRF first, then LLM judge measured as the delta over RRF.
 
 ---
 
+## 2b. The full routed SCOPE pipeline (perplexity gatekeeper → grounded generation → judge)
+
+A complete system that wraps the pieces above behind a **routing gatekeeper**.
+This operationalizes Section 0's weak-query vs strong-query split into a runtime
+decision, and gives the paper a clean Methodology spine: a lightweight
+statistical route and a deeper neural route for the same gate.
+
+**Phase 1 — routing gatekeeper (how surprising is the query to the domain?).**
+Two interchangeable implementations:
+- **Track A — unigram LM perplexity (fast, zero-GPU, interpretable).** Build a
+  word-frequency dictionary over the legal/housing corpus; score an incoming
+  query with Laplace (add-1) smoothing; convert to perplexity. Low perplexity
+  (corpus-shaped query) → bypass SCOPE; high perplexity (conversational /
+  out-of-domain vocabulary) → trigger SCOPE.
+- **Track B — domain-adapted MLM cross-entropy (semantic surprise).** Continue
+  pre-training a small MLM (`distilbert` / `legal-bert`) on the corpus for a few
+  epochs; score a query by its masked cross-entropy loss. Low loss → bypass;
+  high loss → trigger. More robust than Track A because it captures that
+  "breaking a lease" ≈ "terminating a rental agreement" even without lexical
+  overlap.
+
+**Phase 2 — grounded generation (only if triggered).** Inject 3 representative
+real corpus passages into the system prompt (style/vocabulary anchor; questions
+for those passages held out — leakage control), then generate 3 *orthogonal*
+hypothetical SCOPE passages. (= Section 1's parallel3 generation.)
+
+**Phase 3 — multi-faceted retrieval.** Bypassed: raw query → top-k. Triggered:
+raw query **plus** the 3 generated passages → retrieve, pool, dedup into one
+candidate list. (= the validated raw∪SCOPE pooling; the union recall gain is
+real on HousingQA.)
+
+**Phase 4 — evidence judge.** Score the pooled candidates against the *original*
+question with a judge (cross-encoder like `bge-reranker`, or a stronger LLM),
+discarding documents pulled in by hallucinated keywords; keep the top 3-5
+verified. (= Section 2; motivated by the CE-buries-gold finding.)
+
+**Phase 5 — final generation.** Answer from the judged evidence + original
+question (snap draft stays private).
+
+**Why this is the right framing — and two honest tensions:**
+- The router is exactly what the bottleneck data motivates: SCOPE *helps* on
+  weak-query (BarExamQA) and *hurts* on strong-query (HousingQA), so a per-query
+  gate that bypasses SCOPE when the query is already corpus-shaped avoids the
+  HousingQA degradation while keeping the BarExamQA gain. The whole-dataset
+  regimes (Section 0) become a per-query decision.
+- **Tension 1 (router vs always-pool):** the validated pooling result shows raw
+  and SCOPE retrievals are *complementary even on strong-query HousingQA*
+  (union Hit@5 +13.8pp). So a hard "bypass SCOPE" branch trades away that union
+  recall. The router optimizes *cost* (skip SCOPE generation when not needed);
+  always-pool optimizes *recall*. Test both — and consider a soft router that
+  always pools but only spends the 3-passage generation budget on high-surprise
+  queries.
+- **Tension 2 (threshold calibration):** Phase 1 needs a perplexity/loss
+  threshold, which must be set on held-out data per corpus and not leak into
+  test. Report router accuracy (does it route weak-query→SCOPE, strong→bypass?)
+  as its own ablation, plus the end-to-end accuracy/cost vs always-SCOPE and
+  always-raw.
+
+Cheapest first experiment for the router: compute Track A perplexity per query
+on BarExamQA vs HousingQA and check it separates the two regimes (it should —
+that's the paper's whole premise). If it does, the gate is essentially free.
+
+---
+
 ## 3. Cheap dedicated SCOPE generator via retrieval-reward distillation
 
 (Reframe of the "GAN-style generator" idea.) Goal is sound: a small, cheap
