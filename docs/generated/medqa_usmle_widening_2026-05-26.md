@@ -106,7 +106,28 @@ Generation and retrieval caches:
 - `caches/hyre/full/medqa_q200_seed42_groq-llama70b_snap_hyre.jsonl`
 - `caches/retrieval/full/medqa_q200_seed42_groq-llama70b_snap_hyre_k10.jsonl`
 
-Gate decision: q200 clears the widening gate. SCOPE beats raw RAG by +7.0pp with McNemar p=0.00661 and also beats LLM-only by +5.5pp. The next step is to scale MedQA to full test N=1273 and add the 8B/Gemma 26B model rows, subject to provider rate limits.
+Gate decision: q200 clears the widening gate. SCOPE beats raw RAG by +7.0pp with McNemar p=0.00661 and also beats LLM-only by +5.5pp. Per the 2026-05-26 plan change, q200 is the banked downstream answer result for now; full-N answer cells are deferred to the cheaper parallel OpenRouter runner and refreshed model set.
+
+## Full-N Reusable Caches
+
+After the q200 gate cleared, the full 1273-question MedQA cache inputs were built for the Llama 70B arm. These are reusable artifacts only; no full-N MedQA answer accuracy is reported from them here.
+
+| Artifact | Rows | Purpose |
+|---|---:|---|
+| `caches/retrieval/full/medqa_qfull_seed42_raw_question_k10.jsonl` | 1273 | Raw-question top-10 retrieval cache for raw RAG. |
+| `caches/hyre/full/medqa_qfull_seed42_groq-llama70b_rag_hyde.jsonl` | 1273 | Llama 70B HyDE generated passages. |
+| `caches/retrieval/full/medqa_qfull_seed42_groq-llama70b_rag_hyde_k10.jsonl` | 1273 | Top-10 retrieval over the HyDE generated passages. |
+| `caches/hyre/full/medqa_qfull_seed42_groq-llama70b_snap_hyre.jsonl` | 1273 | Llama 70B Snap-HyRE/SCOPE draft-plus-passage generations. |
+| `caches/retrieval/full/medqa_qfull_seed42_groq-llama70b_snap_hyre_k10.jsonl` | 1273 | Top-10 retrieval over the Snap-HyRE/SCOPE passage block. |
+
+Health notes:
+
+- Full raw retrieval cache: 1273/1273 rows.
+- Full HyDE generation cache: 1273/1273 rows, zero failures.
+- Full HyDE retrieval cache: 1273/1273 rows.
+- Full Snap-HyRE/SCOPE generation cache: 1273/1273 rows, zero failures after enabled same-model format retry.
+- Full Snap-HyRE/SCOPE retrieval cache: 1273/1273 rows.
+- Full-N answer cells are intentionally not banked in this report.
 
 ## Current Status
 
@@ -118,6 +139,8 @@ Gate decision: q200 clears the widening gate. SCOPE beats raw RAG by +7.0pp with
 - Formatter sanity check: `uv run python tests/test_formatter.py` passes 13/13, including MedQA four-option prompt and intermediate-generation checks.
 - Phase 3 complete: perplexity pre-screen clears the q200 answer-budget gate.
 - Phase 4 q200 complete: Groq Llama 70B SCOPE is 167/200, ahead of raw RAG 153/200 and HyDE 161/200.
+- Full-N reusable caches complete for raw retrieval plus Groq Llama 70B HyDE and Snap-HyRE/SCOPE.
+- Full-N downstream answer scoring stopped by plan change; answer scale-up is deferred.
 - MedQA has no gold passage labels; downstream answer EM is the primary outcome and no Hit@k/MRR/Recall will be reported.
 
 ## Reproduction
