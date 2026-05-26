@@ -14,6 +14,7 @@ unset, or when LLM_PROVIDER is explicitly custom/cluster-vllm.
 
 import functools
 import os
+import threading
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -201,7 +202,7 @@ def get_provider_info() -> dict:
     }
 
 
-@functools.lru_cache(maxsize=4)
+@functools.lru_cache(maxsize=64)
 def get_llm(temperature: float = 0.0, _provider: str = ""):
     """Returns a cached ChatOpenAI instance configured from environment variables.
 
@@ -237,7 +238,15 @@ _get_llm_cached = get_llm
 def get_llm(temperature: float = 0.0):
     """Returns a cached ChatOpenAI instance, keyed on (temperature, provider)."""
     provider = os.getenv("LLM_PROVIDER", "").strip().lower()
-    return _get_llm_cached(temperature=temperature, _provider=provider)
+    cache_provider = provider
+    if provider.startswith("or-"):
+        try:
+            concurrency = int(os.getenv("EVAL_CONCURRENCY", "0") or "0")
+        except ValueError:
+            concurrency = 0
+        if concurrency > 1:
+            cache_provider = f"{provider}:thread:{threading.get_ident()}"
+    return _get_llm_cached(temperature=temperature, _provider=cache_provider)
 
 
 def list_providers():

@@ -28,6 +28,7 @@ import logging
 import re
 import requests
 import sys
+import threading
 import time
 import tiktoken
 from datetime import datetime, timezone
@@ -144,20 +145,31 @@ def _parse_json(text: str) -> Any:
 
 class MetricsState:
     def __init__(self):
-        self.llm_call_counter = {"count": 0, "input_tokens": 0, "output_tokens": 0}
+        self._local = threading.local()
+
+    def get(self) -> Dict[str, int]:
+        counter = getattr(self._local, "llm_call_counter", None)
+        if counter is None:
+            counter = {"count": 0, "input_tokens": 0, "output_tokens": 0}
+            self._local.llm_call_counter = counter
+        return counter
+
+    def reset(self) -> None:
+        self._local.llm_call_counter = {"count": 0, "input_tokens": 0, "output_tokens": 0}
 
 
 _metrics_state = MetricsState()
 _LLM_LAST_CALL_START = 0.0
 _LLM_COOLDOWN_UNTIL = 0.0
+_LLM_PACE_LOCK = threading.Lock()
 
 
 def _get_metrics():
-    return _metrics_state.llm_call_counter
+    return dict(_metrics_state.get())
 
 
 def _reset_llm_call_counter():
-    _metrics_state.llm_call_counter = {"count": 0, "input_tokens": 0, "output_tokens": 0}
+    _metrics_state.reset()
 
 
 def _float_env(name: str, default: float = 0.0) -> float:
@@ -174,14 +186,15 @@ def _float_env(name: str, default: float = 0.0) -> float:
 def _pace_llm_call() -> None:
     """Optional provider pacing to avoid upstream 429 retries without changing prompts."""
     global _LLM_LAST_CALL_START
-    min_interval = _float_env("LLM_CALL_MIN_INTERVAL_SEC")
-    now = time.monotonic()
-    wait = max(0.0, _LLM_COOLDOWN_UNTIL - now)
-    if min_interval > 0 and _LLM_LAST_CALL_START > 0:
-        wait = max(wait, (_LLM_LAST_CALL_START + min_interval) - now)
-    if wait > 0:
-        time.sleep(wait)
-    _LLM_LAST_CALL_START = time.monotonic()
+    with _LLM_PACE_LOCK:
+        min_interval = _float_env("LLM_CALL_MIN_INTERVAL_SEC")
+        now = time.monotonic()
+        wait = max(0.0, _LLM_COOLDOWN_UNTIL - now)
+        if min_interval > 0 and _LLM_LAST_CALL_START > 0:
+            wait = max(wait, (_LLM_LAST_CALL_START + min_interval) - now)
+        if wait > 0:
+            time.sleep(wait)
+        _LLM_LAST_CALL_START = time.monotonic()
 
 
 def _mark_rate_limit_cooldown(err: str) -> None:
@@ -191,7 +204,8 @@ def _mark_rate_limit_cooldown(err: str) -> None:
         return
     cooldown = _float_env("LLM_CALL_RATE_LIMIT_COOLDOWN_SEC")
     if cooldown > 0:
-        _LLM_COOLDOWN_UNTIL = max(_LLM_COOLDOWN_UNTIL, time.monotonic() + cooldown)
+        with _LLM_PACE_LOCK:
+            _LLM_COOLDOWN_UNTIL = max(_LLM_COOLDOWN_UNTIL, time.monotonic() + cooldown)
 
 
 def _get_deepseek_balance() -> Dict[str, Any]:
@@ -254,14 +268,15 @@ def _llm_call(system_prompt: str, user_prompt: str, label: str = "") -> str:
             content = response.content
 
             # Track metrics
-            _metrics_state.llm_call_counter["count"] += 1
+            llm_call_counter = _metrics_state.get()
+            llm_call_counter["count"] += 1
             try:
-                _metrics_state.llm_call_counter["input_tokens"] += len(_TIKTOKEN_ENC.encode(system_prompt + user_prompt))
-                _metrics_state.llm_call_counter["output_tokens"] += len(_TIKTOKEN_ENC.encode(content))
+                llm_call_counter["input_tokens"] += len(_TIKTOKEN_ENC.encode(system_prompt + user_prompt))
+                llm_call_counter["output_tokens"] += len(_TIKTOKEN_ENC.encode(content))
             except Exception:
                 # Fallback to rough char-based estimate if tiktoken fails
-                _metrics_state.llm_call_counter["input_tokens"] += len(system_prompt) + len(user_prompt)
-                _metrics_state.llm_call_counter["output_tokens"] += len(content)
+                llm_call_counter["input_tokens"] += len(system_prompt) + len(user_prompt)
+                llm_call_counter["output_tokens"] += len(content)
 
             if label:
                 if VERBOSE:

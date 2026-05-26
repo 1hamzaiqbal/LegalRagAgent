@@ -32,6 +32,7 @@ class EvalConfig:
     passage_style_variant: str = ""   # probe-only exemplar prompt variant; env fallback EVAL_PASSAGE_STYLE_VARIANT
     exclude_gold_ids: str = ""        # comma-separated gold ids to drop from the loaded question set
     exclude_gold_ids_path: str = ""   # JSON/TXT file of gold ids to drop from the loaded question set
+    concurrency: int = 0              # OpenRouter worker count; 0 means EVAL_CONCURRENCY/default
 
 
 EVAL_MODES = {

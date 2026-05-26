@@ -10,6 +10,7 @@ answer sweep while keeping generated queries fixed.
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import json
 import os
 import sys
@@ -45,6 +46,14 @@ from eval_harness import (  # noqa: E402
     _setup_provider,
     _llm_call,
 )
+
+
+class StrictGenerationViolation(RuntimeError):
+    def __init__(self, label: str, record: dict[str, Any], violations: list[str]):
+        self.label = label
+        self.record = record
+        self.violations = violations
+        super().__init__(f"{label}: " + "; ".join(violations))
 
 
 def _load_existing(path: Path) -> set[str]:
@@ -270,6 +279,77 @@ def _build_snap_hyre(row, config: EvalConfig) -> dict[str, Any]:
     }
 
 
+def _is_openrouter_provider(provider: str) -> bool:
+    return str(provider or "").strip().lower().startswith("or-")
+
+
+def _resolved_concurrency(config: EvalConfig, provider: str) -> int:
+    configured = int(getattr(config, "concurrency", 0) or 0)
+    if configured <= 0:
+        raw = os.getenv("EVAL_CONCURRENCY", "").strip()
+        if raw:
+            try:
+                configured = int(raw)
+            except ValueError as exc:
+                raise SystemExit(f"EVAL_CONCURRENCY must be an integer, got {raw!r}") from exc
+    if configured <= 0:
+        configured = 8 if _is_openrouter_provider(provider) else 1
+    return max(1, configured)
+
+
+def _build_one_generation_record(
+    fallback_i: int,
+    row: Any,
+    *,
+    config: EvalConfig,
+    args: argparse.Namespace,
+) -> tuple[int, dict[str, Any], bool]:
+    label = _row_label(row, config, fallback_i=fallback_i)
+    _reset_llm_call_counter()
+    _reset_call_trace()
+    _reset_trace_events()
+    start_time = time.time()
+    error = ""
+    payload: dict[str, Any] = {}
+    failed = False
+    try:
+        if args.mode in {"rag_hyde", "rag_hyde_exemplar"}:
+            payload = _build_rag_hyde(row, config)
+        else:
+            payload = _build_snap_hyre(row, config)
+    except Exception as exc:
+        failed = True
+        error = str(exc)
+        payload = {"source_mode": args.mode}
+
+    metrics = _get_metrics()
+    record: dict[str, Any] = {
+        "label": label,
+        "idx": _row_idx(row, fallback_i),
+        "dataset": args.dataset,
+        "mode": args.mode,
+        "provider": args.provider,
+        "provider_route": _provider_route_metadata(),
+        "tag": args.tag,
+        "elapsed_sec": round(time.time() - start_time, 1),
+        "error": error,
+        "llm_calls": metrics["count"],
+        "input_tokens": metrics["input_tokens"],
+        "output_tokens": metrics["output_tokens"],
+        **payload,
+    }
+    if args.trace_calls:
+        record["call_trace"] = _get_call_trace()
+    if args.trace_events:
+        record["trace_events"] = _get_trace_events()
+        record["trace_schema_version"] = 1
+    if _no_silent_fallback_enabled():
+        violations = _strict_generation_violations(record, args.mode)
+        if violations:
+            raise StrictGenerationViolation(label, record, violations)
+    return fallback_i, record, failed
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", required=True, choices=[
@@ -296,6 +376,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--resume", action="store_true", help="Append missing labels if the output already exists")
     parser.add_argument("--trace-calls", action="store_true")
     parser.add_argument("--trace-events", action="store_true")
+    parser.add_argument("--concurrency", type=int, default=0,
+                        help="OpenRouter worker count; 0 uses EVAL_CONCURRENCY or the provider default")
     return parser.parse_args()
 
 
@@ -319,6 +401,7 @@ def main() -> None:
         passage_style_variant=args.passage_style_variant,
         exclude_gold_ids=args.exclude_gold_ids,
         exclude_gold_ids_path=args.exclude_gold_ids_path,
+        concurrency=args.concurrency,
     )
     if config.mode in {"rag_hyde_exemplar", "snap_hyre_exemplar"} and args.passage_style_variant:
         os.environ["EVAL_PASSAGE_STYLE_VARIANT"] = _passage_style_signal_variant(config)
@@ -333,73 +416,93 @@ def main() -> None:
     done = _load_existing(args.out) if args.resume else set()
     open_mode = "a" if args.resume else "w"
     failures = 0
-    consecutive_errors = 0
     wrote = 0
 
-    with args.out.open(open_mode) as f:
-        for fallback_i, row in questions.iterrows():
-            label = _row_label(row, config, fallback_i=fallback_i)
-            if label in done:
-                continue
-            _reset_llm_call_counter()
-            _reset_call_trace()
-            _reset_trace_events()
-            start_time = time.time()
-            error = ""
-            payload: dict[str, Any] = {}
+    pending_rows = [
+        (fallback_i, row)
+        for fallback_i, row in questions.iterrows()
+        if _row_label(row, config, fallback_i=fallback_i) not in done
+    ]
+    concurrency = _resolved_concurrency(config, args.provider)
+    use_parallel = _is_openrouter_provider(args.provider) and concurrency > 1
+    if use_parallel:
+        os.environ["EVAL_CONCURRENCY"] = str(concurrency)
+    print(f"[concurrency] provider={args.provider} workers={concurrency if use_parallel else 1}")
+
+    records_by_order: dict[int, tuple[dict[str, Any], bool]] = {}
+    if use_parallel:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
+            futures = {
+                executor.submit(
+                    _build_one_generation_record,
+                    fallback_i,
+                    row,
+                    config=config,
+                    args=args,
+                ): fallback_i
+                for fallback_i, row in pending_rows
+            }
+            error_count = 0
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    order_i, record, failed = future.result()
+                except StrictGenerationViolation as exc:
+                    for pending in futures:
+                        pending.cancel()
+                    raise SystemExit(
+                        f"NO_SILENT_FALLBACK blocked generation row {exc.label}: "
+                        + "; ".join(exc.violations)
+                    ) from exc
+                records_by_order[order_i] = (record, failed)
+                if failed:
+                    error_count += 1
+                    if error_count >= 5:
+                        for pending in futures:
+                            pending.cancel()
+                        raise SystemExit(
+                            "Aborting after 5 generation errors in parallel run: "
+                            f"{str(record.get('error'))[:200]}"
+                        )
+    else:
+        consecutive_errors = 0
+        for fallback_i, row in pending_rows:
             try:
-                if args.mode in {"rag_hyde", "rag_hyde_exemplar"}:
-                    payload = _build_rag_hyde(row, config)
-                else:
-                    payload = _build_snap_hyre(row, config)
-            except Exception as exc:
-                failures += 1
+                order_i, record, failed = _build_one_generation_record(
+                    fallback_i,
+                    row,
+                    config=config,
+                    args=args,
+                )
+            except StrictGenerationViolation as exc:
+                raise SystemExit(
+                    f"NO_SILENT_FALLBACK blocked generation row {exc.label}: "
+                    + "; ".join(exc.violations)
+                ) from exc
+            records_by_order[order_i] = (record, failed)
+            if failed:
                 consecutive_errors += 1
-                error = str(exc)
-                payload = {"source_mode": args.mode}
+                if consecutive_errors >= 5:
+                    raise SystemExit(
+                        f"Aborting after {consecutive_errors} consecutive generation errors: "
+                        f"{str(record.get('error'))[:200]}"
+                    )
             else:
                 consecutive_errors = 0
 
-            metrics = _get_metrics()
-            record: dict[str, Any] = {
-                "label": label,
-                "idx": _row_idx(row, fallback_i),
-                "dataset": args.dataset,
-                "mode": args.mode,
-                "provider": args.provider,
-                "provider_route": _provider_route_metadata(),
-                "tag": args.tag,
-                "elapsed_sec": round(time.time() - start_time, 1),
-                "error": error,
-                "llm_calls": metrics["count"],
-                "input_tokens": metrics["input_tokens"],
-                "output_tokens": metrics["output_tokens"],
-                **payload,
-            }
-            if args.trace_calls:
-                record["call_trace"] = _get_call_trace()
-            if args.trace_events:
-                record["trace_events"] = _get_trace_events()
-                record["trace_schema_version"] = 1
-            if _no_silent_fallback_enabled():
-                violations = _strict_generation_violations(record, args.mode)
-                if violations:
-                    raise SystemExit(
-                        f"NO_SILENT_FALLBACK blocked generation row {label}: "
-                        + "; ".join(violations)
-                    )
+    with args.out.open(open_mode) as f:
+        for order_i in sorted(records_by_order):
+            record, failed = records_by_order[order_i]
+            if failed:
+                failures += 1
             f.write(json.dumps(record, sort_keys=True) + "\n")
             f.flush()
             wrote += 1
-
-            status = "ERROR" if error else "OK"
+            status = "ERROR" if record.get("error") else "OK"
             print(
-                f"[{wrote}] {label:<35} {status:<5} "
-                f"({record['elapsed_sec']:.1f}s, {metrics['count']} calls)",
+                f"[{wrote}] {record['label']:<35} {status:<5} "
+                f"({record['elapsed_sec']:.1f}s, {record['llm_calls']} calls)",
                 flush=True,
             )
-            if consecutive_errors >= 5:
-                raise SystemExit(f"Aborting after {consecutive_errors} consecutive generation errors: {error[:200]}")
 
     print(f"wrote={wrote} failures={failures} out={args.out}")
     if failures:

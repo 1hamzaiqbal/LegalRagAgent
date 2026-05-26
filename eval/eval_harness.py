@@ -11,12 +11,14 @@ Usage:
     uv run python eval/eval_harness.py --mode full_pipeline --skill-dir skills_v2 --questions curated
 """
 import argparse
+import concurrent.futures
 import hashlib
 import json
 import os
 import re
 import subprocess
 import sys
+import threading
 from typing import Any, List
 import time
 
@@ -37,10 +39,25 @@ from llm_config import get_provider_info, _get_llm_cached
 from rag_utils import retrieve_documents_multi_query, get_documents_by_idx, get_vectorstore
 
 
-_CALL_TRACE: list[dict] = []
-_TRACE_EVENTS: list[dict] = []
+_TRACE_STATE = threading.local()
 _RETRIEVAL_DOC_CACHE: dict[tuple[str, str], Document] | None = None
 _RETRIEVAL_DOC_CACHE_PATH: str | None = None
+
+
+def _call_trace_buffer() -> list[dict]:
+    buf = getattr(_TRACE_STATE, "call_trace", None)
+    if buf is None:
+        buf = []
+        _TRACE_STATE.call_trace = buf
+    return buf
+
+
+def _trace_events_buffer() -> list[dict]:
+    buf = getattr(_TRACE_STATE, "trace_events", None)
+    if buf is None:
+        buf = []
+        _TRACE_STATE.trace_events = buf
+    return buf
 
 
 def _trace_calls_enabled() -> bool:
@@ -66,11 +83,11 @@ def _trace_text(text: str) -> str:
 
 
 def _reset_call_trace() -> None:
-    _CALL_TRACE.clear()
+    _TRACE_STATE.call_trace = []
 
 
 def _get_call_trace() -> list[dict]:
-    return list(_CALL_TRACE)
+    return list(_call_trace_buffer())
 
 
 def _trace_value(value):
@@ -88,18 +105,18 @@ def _trace_value(value):
 def _record_trace_event(event_type: str, **payload) -> None:
     if not _trace_events_enabled():
         return
-    _TRACE_EVENTS.append({
+    _trace_events_buffer().append({
         "type": event_type,
         **_trace_value(payload),
     })
 
 
 def _reset_trace_events() -> None:
-    _TRACE_EVENTS.clear()
+    _TRACE_STATE.trace_events = []
 
 
 def _get_trace_events() -> list[dict]:
-    return list(_TRACE_EVENTS)
+    return list(_trace_events_buffer())
 
 
 def _llm_call(system: str, user: str, label: str = "") -> str:
@@ -119,7 +136,7 @@ def _llm_call(system: str, user: str, label: str = "") -> str:
             response = _base_llm_call(system, user, label=label)
         except Exception as exc2:
             if _trace_calls_enabled():
-                _CALL_TRACE.append({
+                _call_trace_buffer().append({
                     "label": label, "system": _trace_text(system), "user": _trace_text(user),
                     "response": "", "error": f"retry_failed: {exc2}",
                     "system_chars": len(system or ""), "user_chars": len(user or ""), "response_chars": 0,
@@ -127,7 +144,7 @@ def _llm_call(system: str, user: str, label: str = "") -> str:
             raise exc2 from exc
     except Exception as exc:
         if _trace_calls_enabled():
-            _CALL_TRACE.append({
+            _call_trace_buffer().append({
                 "label": label,
                 "system": _trace_text(system),
                 "user": _trace_text(user),
@@ -151,7 +168,7 @@ def _llm_call(system: str, user: str, label: str = "") -> str:
         raise
 
     if _trace_calls_enabled():
-        _CALL_TRACE.append({
+        _call_trace_buffer().append({
             "label": label,
             "system": _trace_text(system),
             "user": _trace_text(user),
@@ -8475,6 +8492,247 @@ def _fallback_guard_violations(record: dict, config: EvalConfig) -> list[str]:
     return violations
 
 
+class NoSilentFallbackViolation(RuntimeError):
+    """Fail-closed row wrapper that preserves the blocked detail record."""
+
+    def __init__(self, label: str, record: dict, violations: list[str]):
+        self.label = label
+        self.record = record
+        self.violations = violations
+        super().__init__(f"{label}: " + "; ".join(violations))
+
+
+def _is_openrouter_provider(provider: str) -> bool:
+    return str(provider or "").strip().lower().startswith("or-")
+
+
+def _resolved_concurrency(config: EvalConfig, provider: str) -> int:
+    configured = int(getattr(config, "concurrency", 0) or 0)
+    if configured <= 0:
+        raw = os.getenv("EVAL_CONCURRENCY", "").strip()
+        if raw:
+            try:
+                configured = int(raw)
+            except ValueError as exc:
+                raise SystemExit(f"EVAL_CONCURRENCY must be an integer, got {raw!r}") from exc
+    if configured <= 0:
+        configured = 8 if _is_openrouter_provider(provider) else 1
+    return max(1, configured)
+
+
+def _preload_eval_caches(config: EvalConfig) -> None:
+    """Load read-only caches before threaded workers can race on lazy globals."""
+    hyre_path = (config.hyre_cache_path or os.getenv("HYRE_CACHE_PATH", "")).strip()
+    retrieval_path = (config.retrieval_cache_path or os.getenv("RETRIEVAL_CACHE_PATH", "")).strip()
+    doc_cache_path = os.getenv("RETRIEVAL_DOC_CACHE_PATH", "").strip()
+    if hyre_path:
+        _load_hyre_cache(hyre_path)
+    if retrieval_path:
+        _load_retrieval_cache(retrieval_path)
+    if doc_cache_path:
+        _load_retrieval_doc_cache(doc_cache_path)
+
+
+def _row_subject(row: pd.Series, config: EvalConfig) -> str:
+    if config.dataset == "housing":
+        return str(row.get("state", "unknown"))
+    if config.dataset == "casehold":
+        return "casehold"
+    if config.dataset == "legal_rag":
+        return "crim_law"
+    if config.dataset == "legal_rag_bench":
+        return "victorian_crim_law"
+    if config.dataset == "mas_legal_bench":
+        return str(row.get("source", "mas_legal_bench"))
+    if config.dataset == "legal_link_eu":
+        return str(row.get("relation_type", "legal_link_eu"))
+    if config.dataset == "australian":
+        return str(row.get("jurisdiction", "unknown"))
+    if config.dataset == "musique":
+        return f"{int(row.get('n_hops', 0))}-hop"
+    if config.dataset == "medqa":
+        return str(row.get("meta_info", "medqa"))
+    return str(row.get("subject", "unknown"))
+
+
+def _row_gold_answer(row: pd.Series, config: EvalConfig) -> str:
+    gold = str(row["answer"]).strip()
+    if config.dataset == "housing":
+        return gold.capitalize()
+    if config.dataset in ("barexam", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu", "medqa"):
+        return gold.upper()
+    return gold
+
+
+def _print_row_status(order_i: int, n: int, record: dict, is_open_ended: bool) -> None:
+    status = "PASS" if record.get("is_correct") else "FAIL"
+    if record.get("error"):
+        status = "ERROR"
+    if is_open_ended:
+        print(
+            f"[{order_i+1}/{n}] {record.get('label', ''):<35} {status:<6} "
+            f"({float(record.get('elapsed_sec') or 0):.1f}s, {int(record.get('llm_calls') or 0)} calls)",
+            flush=True,
+        )
+    else:
+        print(
+            f"[{order_i+1}/{n}] {record.get('label', ''):<35} {status:<6} "
+            f"gold={record.get('correct_answer')} pred={record.get('predicted_answer')} "
+            f"({float(record.get('elapsed_sec') or 0):.1f}s, {int(record.get('llm_calls') or 0)} calls)",
+            flush=True,
+        )
+
+
+def _evaluate_one_row(
+    order_i: int,
+    row: pd.Series,
+    *,
+    config: EvalConfig,
+    runner,
+    provider_route: dict,
+    embedding_model: str | None,
+    is_open_ended: bool,
+    is_short_span: bool,
+) -> tuple[int, dict]:
+    _reset_llm_call_counter()
+    _reset_call_trace()
+    _reset_trace_events()
+    q_start = time.time()
+
+    subject = _row_subject(row, config)
+    label = _row_label(row, config, order_i)
+    idx = str(row.get("idx", order_i))
+    gold = _row_gold_answer(row, config)
+
+    try:
+        result = runner(row, config)
+        answer_text = result.get("final_answer", "")
+        predicted = _extract_answer(answer_text, config)
+        final_line_prediction = _extract_required_final_line_prediction(answer_text, config)
+        if final_line_prediction is not None:
+            predicted = final_line_prediction
+        answer_text, predicted = _maybe_retry_final_answer_format(
+            row,
+            config,
+            result,
+            answer_text,
+            predicted,
+        )
+
+        if is_open_ended:
+            is_correct = _judge_open_answer(row["question"], gold, answer_text, config)
+            result["judge_score"] = is_correct
+        elif is_short_span:
+            aliases_raw = row.get("answer_aliases", "")
+            try:
+                aliases = json.loads(aliases_raw) if aliases_raw else []
+            except Exception:
+                aliases = []
+            em, f1 = musique_em_f1(predicted or "", gold, aliases)
+            is_correct = em
+            result["em"] = em
+            result["f1"] = f1
+            result["aliases_used"] = aliases
+        else:
+            is_correct = predicted == gold
+        error = None
+    except Exception as exc:
+        result = {}
+        answer_text = ""
+        predicted = None
+        is_correct = False
+        error = str(exc)
+
+    elapsed = time.time() - q_start
+    metrics = _get_metrics()
+
+    record = {
+        "label": label,
+        "subject": subject,
+        "idx": idx,
+        "question": str(row["question"])[:500],
+        "correct_answer": gold[:500] if is_open_ended else gold,
+        "predicted_answer": str(predicted)[:500] if is_open_ended else predicted,
+        "is_correct": is_correct,
+        "error": error,
+        "elapsed_sec": round(elapsed, 1),
+        "llm_calls": metrics["count"],
+        "input_tokens": metrics["input_tokens"],
+        "output_tokens": metrics["output_tokens"],
+        "gold_idx": _gold_idx_string(row),
+        "final_answer": answer_text[:500] if is_open_ended else answer_text,
+        "mode": config.mode,
+        "provider": config.provider,
+        "provider_route": provider_route,
+        "dataset": config.dataset,
+        "embedding_model": embedding_model,
+    }
+    if _trace_calls_enabled():
+        record["call_trace"] = _get_call_trace()
+    if _trace_events_enabled():
+        record["trace_events"] = _get_trace_events()
+        record["trace_schema_version"] = 1
+    if config.dataset == "housing":
+        record["state"] = str(row.get("state", ""))
+        if _housing_state_filter_enabled(config):
+            record["housing_state_filter"] = True
+    elif config.dataset in ("casehold", "legalbench_scalr"):
+        record["choices"] = _record_choices(row, config.dataset)
+        record["gold_passage"] = _gold_choice_text(row, gold)
+    elif config.dataset == "mas_legal_bench":
+        record["choices"] = _record_choices(row, config.dataset)
+        record["source"] = str(row.get("source", ""))
+        source_context_ids = _coerce_gold_ids(row.get("source_context_ids", ""))
+        record["source_context_count"] = len(source_context_ids)
+        record["source_context_ids_preview"] = source_context_ids[:20]
+        record["gold_passage"] = ""
+    elif config.dataset == "legal_link_eu":
+        record["choices"] = _record_choices(row, config.dataset)
+        record["relation_type"] = str(row.get("relation_type", ""))
+        record["source_doc"] = str(row.get("source_doc", ""))
+        record["target_doc"] = str(row.get("target_doc", ""))
+        record["gold_passage"] = str(row.get("gold_passage", ""))[:500]
+    elif config.dataset == "australian":
+        record["jurisdiction"] = str(row.get("jurisdiction", ""))
+    elif config.dataset in ("legal_rag", "legal_rag_bench"):
+        record["relevant_passages"] = str(row.get("relevant_passages", ""))
+    elif config.dataset == "medqa":
+        record["choices"] = _record_choices(row, config.dataset)
+        record["meta_info"] = str(row.get("meta_info", ""))
+        record["answer_text"] = str(row.get("answer_text", ""))[:500]
+        record["gold_passage"] = ""
+    else:
+        record["choices"] = _record_choices(row, config.dataset)
+        record["gold_passage"] = str(row.get("gold_passage", ""))[:500]
+
+    for k, v in result.items():
+        if k != "final_answer" and k not in record:
+            record[k] = v
+
+    record.setdefault("gold_retrieved", False)
+    record.setdefault("retrieved_ids", [])
+    record.setdefault("evidence_store", [])
+    if "snap1" in record:
+        record.setdefault("snap_answer", record["snap1"])
+    snap_list = record.get("snaps")
+    if not isinstance(snap_list, list):
+        snap_list = record.get("snap_answers")
+    if snap_list:
+        record.setdefault("snap_answer", snap_list[0])
+    if "letter1" in record:
+        record.setdefault("snap_letter", record["letter1"])
+
+    if _no_silent_fallback_enabled():
+        violations = _fallback_guard_violations(record, config)
+        if violations:
+            record["tag"] = config.tag
+            record["no_silent_fallback_violations"] = violations
+            raise NoSilentFallbackViolation(label, _serialize_result(record), violations)
+
+    record["tag"] = config.tag
+    return order_i, _serialize_result(record)
+
+
 def run_eval(config: EvalConfig):
     """Run evaluation with the given config."""
     if config.mode not in MODE_RUNNERS:
@@ -8585,8 +8843,19 @@ def run_eval(config: EvalConfig):
     os.makedirs("logs", exist_ok=True)
     if os.path.exists(detail_path):
         raise SystemExit(f"Refusing to overwrite existing detail log: {detail_path}")
-    print(f"[detail-log] streaming rows to {detail_path}")
+    provider_name = provider_info["provider"]
+    concurrency = _resolved_concurrency(config, provider_name)
+    use_parallel = _is_openrouter_provider(provider_name) and concurrency > 1
+    if use_parallel:
+        os.environ["EVAL_CONCURRENCY"] = str(concurrency)
+    print(f"[concurrency] provider={provider_name} workers={concurrency if use_parallel else 1}")
+    if use_parallel:
+        _preload_eval_caches(config)
+        print(f"[detail-log] collecting rows concurrently; writing deterministic order to {detail_path}")
+    else:
+        print(f"[detail-log] streaming rows to {detail_path}")
 
+    results_by_order: dict[int, dict] = {}
     results = []
     correct = 0
     total_start = time.time()
@@ -8595,217 +8864,95 @@ def run_eval(config: EvalConfig):
     is_open_ended = config.dataset in ("legal_rag", "legal_rag_bench", "australian")
     is_short_span = config.dataset == "musique"
 
-    for i, row in qa.iterrows():
-        _reset_llm_call_counter()
-        _reset_call_trace()
-        _reset_trace_events()
-        q_start = time.time()
+    row_items = list(qa.iterrows())
 
-        # Dataset-specific labeling
-        if config.dataset == "housing":
-            subject = str(row.get("state", "unknown"))
-        elif config.dataset == "casehold":
-            subject = "casehold"
-        elif config.dataset == "legal_rag":
-            subject = "crim_law"
-        elif config.dataset == "legal_rag_bench":
-            subject = "victorian_crim_law"
-        elif config.dataset == "mas_legal_bench":
-            subject = str(row.get("source", "mas_legal_bench"))
-        elif config.dataset == "legal_link_eu":
-            subject = str(row.get("relation_type", "legal_link_eu"))
-        elif config.dataset == "australian":
-            subject = str(row.get("jurisdiction", "unknown"))
-        elif config.dataset == "musique":
-            subject = f"{int(row.get('n_hops', 0))}-hop"
-        elif config.dataset == "medqa":
-            subject = str(row.get("meta_info", "medqa"))
-        else:
-            subject = str(row.get("subject", "unknown"))
-        label = _row_label(row, config, i)
-        idx = str(row.get("idx", i))
-
-        # Gold answer formatting
-        gold = str(row["answer"]).strip()
-        if config.dataset == "housing":
-            gold = gold.capitalize()
-        elif config.dataset in ("barexam", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu", "medqa"):
-            gold = gold.upper()
-        # open-ended: gold stays as-is
-
-        try:
-            result = runner(row, config)
-            answer_text = result.get("final_answer", "")
-            predicted = _extract_answer(answer_text, config)
-            final_line_prediction = _extract_required_final_line_prediction(answer_text, config)
-            if final_line_prediction is not None:
-                predicted = final_line_prediction
-            answer_text, predicted = _maybe_retry_final_answer_format(
-                row,
-                config,
-                result,
-                answer_text,
-                predicted,
-            )
-
-            if is_open_ended:
-                is_correct = _judge_open_answer(row["question"], gold, answer_text, config)
-                result["judge_score"] = is_correct  # store for analysis
-            elif is_short_span:
-                # MuSiQue uses EM/F1 with answer_aliases for tolerant scoring
-                aliases_raw = row.get("answer_aliases", "")
+    if use_parallel:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
+            futures = {
+                executor.submit(
+                    _evaluate_one_row,
+                    i,
+                    row,
+                    config=config,
+                    runner=runner,
+                    provider_route=provider_route,
+                    embedding_model=embedding_model,
+                    is_open_ended=is_open_ended,
+                    is_short_span=is_short_span,
+                ): i
+                for i, row in row_items
+            }
+            error_count = 0
+            for future in concurrent.futures.as_completed(futures):
                 try:
-                    aliases = json.loads(aliases_raw) if aliases_raw else []
-                except Exception:
-                    aliases = []
-                em, f1 = musique_em_f1(predicted or "", gold, aliases)
-                is_correct = em
-                result["em"] = em
-                result["f1"] = f1
-                result["aliases_used"] = aliases
+                    order_i, record = future.result()
+                except NoSilentFallbackViolation as exc:
+                    _append_detail_record(detail_path, exc.record)
+                    for pending in futures:
+                        pending.cancel()
+                    print(
+                        f"\n[no-silent-fallback] blocked {exc.label}: "
+                        + "; ".join(exc.violations[:10])
+                    )
+                    raise SystemExit(5) from exc
+                results_by_order[order_i] = record
+                if record.get("error"):
+                    error_count += 1
+                    if error_count >= 5:
+                        for pending in futures:
+                            pending.cancel()
+                        print(
+                            f"\n[circuit-breaker] {error_count} row errors in parallel run. "
+                            f"Last error: {str(record.get('error'))[:200]}\n"
+                            "[circuit-breaker] Aborting to avoid garbage results."
+                        )
+                        raise SystemExit(3)
+
+        for order_i in sorted(results_by_order):
+            record = results_by_order[order_i]
+            results.append(record)
+            if record.get("is_correct"):
+                correct += 1
+            _append_detail_record(detail_path, record)
+            _print_row_status(order_i, n, record, is_open_ended)
+    else:
+        for i, row in row_items:
+            try:
+                order_i, record = _evaluate_one_row(
+                    i,
+                    row,
+                    config=config,
+                    runner=runner,
+                    provider_route=provider_route,
+                    embedding_model=embedding_model,
+                    is_open_ended=is_open_ended,
+                    is_short_span=is_short_span,
+                )
+            except NoSilentFallbackViolation as exc:
+                _append_detail_record(detail_path, exc.record)
+                print(
+                    f"\n[no-silent-fallback] blocked {exc.label}: "
+                    + "; ".join(exc.violations[:10])
+                )
+                raise SystemExit(5) from exc
+
+            if record.get("error"):
+                consecutive_errors += 1
+                if consecutive_errors >= 5:
+                    print(
+                        f"\n[circuit-breaker] {consecutive_errors} consecutive errors. "
+                        f"Last error: {str(record.get('error'))[:200]}\n"
+                        f"[circuit-breaker] Aborting at question {i+1} to avoid garbage results."
+                    )
+                    raise SystemExit(3)
             else:
-                is_correct = predicted == gold
-            error = None
-        except Exception as e:
-            result = {}
-            answer_text = ""
-            predicted = None
-            is_correct = False
-            error = str(e)
+                consecutive_errors = 0
 
-        # Circuit breaker: if 5 consecutive questions error, the run is broken —
-        # abort before logging more garbage. Common cause: auth, rate-limit,
-        # model-not-found.
-        if error:
-            consecutive_errors += 1
-            if consecutive_errors >= 5:
-                print(
-                    f"\n[circuit-breaker] {consecutive_errors} consecutive errors. "
-                    f"Last error: {error[:200]}\n"
-                    f"[circuit-breaker] Aborting at question {i+1} to avoid garbage results."
-                )
-                raise SystemExit(3)
-        else:
-            consecutive_errors = 0
-
-        elapsed = time.time() - q_start
-        metrics = _get_metrics()
-
-        if is_correct:
-            correct += 1
-
-        status = "PASS" if is_correct else "FAIL"
-        if is_open_ended:
-            print(
-                f"[{i+1}/{n}] {label:<35} {status:<6} "
-                f"({elapsed:.1f}s, {metrics['count']} calls)",
-                flush=True,
-            )
-        else:
-            print(
-                f"[{i+1}/{n}] {label:<35} {status:<6} "
-                f"gold={gold} pred={predicted} "
-                f"({elapsed:.1f}s, {metrics['count']} calls)",
-                flush=True,
-            )
-
-        # Build per-question record
-        record = {
-            "label": label,
-            "subject": subject,
-            "idx": idx,
-            "question": str(row["question"])[:500],
-            "correct_answer": gold[:500] if is_open_ended else gold,
-            "predicted_answer": str(predicted)[:500] if is_open_ended else predicted,
-            "is_correct": is_correct,
-            "error": error,
-            "elapsed_sec": round(elapsed, 1),
-            "llm_calls": metrics["count"],
-            "input_tokens": metrics["input_tokens"],
-            "output_tokens": metrics["output_tokens"],
-            "gold_idx": _gold_idx_string(row),
-            "final_answer": answer_text[:500] if is_open_ended else answer_text,
-            "mode": config.mode,
-            "provider": config.provider,
-            "provider_route": provider_route,
-            "dataset": config.dataset,
-            "embedding_model": embedding_model,
-        }
-        if _trace_calls_enabled():
-            record["call_trace"] = _get_call_trace()
-        if _trace_events_enabled():
-            record["trace_events"] = _get_trace_events()
-            record["trace_schema_version"] = 1
-        if config.dataset == "housing":
-            record["state"] = str(row.get("state", ""))
-            if _housing_state_filter_enabled(config):
-                record["housing_state_filter"] = True
-        elif config.dataset in ("casehold", "legalbench_scalr"):
-            record["choices"] = _record_choices(row, config.dataset)
-            record["gold_passage"] = _gold_choice_text(row, gold)
-        elif config.dataset == "mas_legal_bench":
-            record["choices"] = _record_choices(row, config.dataset)
-            record["source"] = str(row.get("source", ""))
-            source_context_ids = _coerce_gold_ids(row.get("source_context_ids", ""))
-            record["source_context_count"] = len(source_context_ids)
-            record["source_context_ids_preview"] = source_context_ids[:20]
-            record["gold_passage"] = ""
-        elif config.dataset == "legal_link_eu":
-            record["choices"] = _record_choices(row, config.dataset)
-            record["relation_type"] = str(row.get("relation_type", ""))
-            record["source_doc"] = str(row.get("source_doc", ""))
-            record["target_doc"] = str(row.get("target_doc", ""))
-            record["gold_passage"] = str(row.get("gold_passage", ""))[:500]
-        elif config.dataset == "australian":
-            record["jurisdiction"] = str(row.get("jurisdiction", ""))
-        elif config.dataset in ("legal_rag", "legal_rag_bench"):
-            record["relevant_passages"] = str(row.get("relevant_passages", ""))
-        elif config.dataset == "medqa":
-            record["choices"] = _record_choices(row, config.dataset)
-            record["meta_info"] = str(row.get("meta_info", ""))
-            record["answer_text"] = str(row.get("answer_text", ""))[:500]
-            record["gold_passage"] = ""
-        else:
-            record["choices"] = _record_choices(row, config.dataset)
-            record["gold_passage"] = str(row.get("gold_passage", ""))[:500]
-        # Merge mode-specific fields (evidence_store, audit_log, etc.)
-        for k, v in result.items():
-            if k != "final_answer" and k not in record:
-                record[k] = v
-
-        # Normalize retrieval-schema keys: every record must have gold_retrieved,
-        # retrieved_ids, and evidence_store, even on no-retrieval modes. Downstream
-        # analysis scripts use key-presence to detect retrieval, so the absent-vs-
-        # explicit-False distinction matters.
-        record.setdefault("gold_retrieved", False)
-        record.setdefault("retrieved_ids", [])
-        record.setdefault("evidence_store", [])
-        if "snap1" in record:
-            record.setdefault("snap_answer", record["snap1"])
-        snap_list = record.get("snaps")
-        if not isinstance(snap_list, list):
-            snap_list = record.get("snap_answers")
-        if snap_list:
-            record.setdefault("snap_answer", snap_list[0])
-        if "letter1" in record:
-            record.setdefault("snap_letter", record["letter1"])
-
-        if _no_silent_fallback_enabled():
-            violations = _fallback_guard_violations(record, config)
-            if violations:
-                record["tag"] = config.tag
-                record["no_silent_fallback_violations"] = violations
-                _append_detail_record(detail_path, record)
-                print(
-                    f"\n[no-silent-fallback] blocked {label}: "
-                    + "; ".join(violations[:10])
-                )
-                raise SystemExit(5)
-
-        record["tag"] = config.tag
-        serialized_record = _serialize_result(record)
-        results.append(serialized_record)
-        _append_detail_record(detail_path, serialized_record)
+            if record.get("is_correct"):
+                correct += 1
+            results.append(record)
+            _append_detail_record(detail_path, record)
+            _print_row_status(order_i, n, record, is_open_ended)
 
     total_time = time.time() - total_start
     accuracy = correct / n if n > 0 else 0
@@ -8870,6 +9017,8 @@ def run_eval(config: EvalConfig):
         "housing_state_filter": bool(config.dataset == "housing" and _housing_state_filter_enabled(config)),
         "detail_log": detail_path,
         "git_commit": _git_commit_short(),
+        "concurrency": concurrency if use_parallel else 1,
+        "parallel_openrouter": bool(use_parallel),
     }
     if config.sample_start or config.sample_end is not None:
         summary["sample_start"] = int(config.sample_start or 0)
@@ -8972,6 +9121,8 @@ def main():
                         help="Comma/whitespace-separated gold ids to exclude from question loading")
     parser.add_argument("--exclude-gold-ids-path", default="",
                         help="JSON/TXT file of gold ids to exclude from question loading")
+    parser.add_argument("--concurrency", type=int, default=0,
+                        help="OpenRouter worker count; 0 uses EVAL_CONCURRENCY or the provider default")
 
     args = parser.parse_args()
 
@@ -8997,6 +9148,7 @@ def main():
         passage_style_variant=args.passage_style_variant,
         exclude_gold_ids=args.exclude_gold_ids,
         exclude_gold_ids_path=args.exclude_gold_ids_path,
+        concurrency=args.concurrency,
     )
 
     run_eval(config)
