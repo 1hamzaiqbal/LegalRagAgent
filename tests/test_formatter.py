@@ -142,7 +142,7 @@ def test_retrieval_question_includes_prompt():
         _re.DOTALL,
     )
     assert match, "_retrieval_question helper not found in eval_harness.py"
-    ns = {"pd": pd}
+    ns = {"pd": pd, "EvalConfig": object}
     exec(match.group(1), ns)
     _retrieval_question = ns["_retrieval_question"]
 
@@ -235,7 +235,7 @@ def test_legalbench_scalr_detail_logging_uses_five_choices():
         _re.DOTALL,
     )
     assert match, "MC choice logging helpers not found in eval_harness.py"
-    ns = {"pd": pd}
+    ns = {"pd": pd, "EvalConfig": object}
     exec(match.group(1), ns)
 
     row = _row(
@@ -280,6 +280,56 @@ def test_legalbench_scalr_intermediate_prompt_uses_holding_schema():
     assert "## Candidate Holdings" in out
     assert "holding E" in out
     assert "(E)" not in out
+
+
+def test_medqa_prompt_uses_four_choice_answer_contract():
+    """MedQA is four-way MC with the same strict Answer: (X) final-line contract."""
+    row = _row(
+        idx="medqa_test_0000",
+        question="A patient develops tinnitus after chemotherapy. What is the drug mechanism?",
+        choice_a="Inhibition of proteasome",
+        choice_b="Hyperstabilization of microtubules",
+        choice_c="Generation of free radicals",
+        choice_d="Cross-linking of DNA",
+        answer="D",
+    )
+    prompt = format_question_prompt(row, dataset="medqa")
+
+    assert "USMLE-style medical question" in prompt
+    assert "tinnitus after chemotherapy" in prompt
+    for letter in "ABCD":
+        assert f"({letter})" in prompt
+    assert "(E)" not in prompt
+    assert "Provide your answer as: Answer: (X)" in prompt
+
+
+def test_medqa_intermediate_prompt_removes_choice_letters():
+    """MedQA HyDE/SCOPE generation should get options without answer-letter artifacts."""
+    import re as _re
+    from types import SimpleNamespace
+
+    src = (ROOT / "eval" / "eval_harness.py").read_text()
+    match = _re.search(
+        r"(def _fmt_intermediate\(row: pd\.Series, config: EvalConfig\) -> str:.*?)\n\ndef _contains_answer_artifact",
+        src,
+        _re.DOTALL,
+    )
+    assert match, "_fmt_intermediate helper not found in eval_harness.py"
+    ns = {"pd": pd}
+    exec(match.group(1), ns)
+
+    row = _row(
+        question="A patient develops tinnitus after chemotherapy. What is the drug mechanism?",
+        choice_a="Inhibition of proteasome",
+        choice_b="Hyperstabilization of microtubules",
+        choice_c="Generation of free radicals",
+        choice_d="Cross-linking of DNA",
+    )
+    out = ns["_fmt_intermediate"](row, SimpleNamespace(dataset="medqa"))
+
+    assert "## Candidate Answer Framing" in out
+    assert "Cross-linking of DNA" in out
+    assert "(D)" not in out
 
 
 if __name__ == "__main__":

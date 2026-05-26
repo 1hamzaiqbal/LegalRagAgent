@@ -55,6 +55,8 @@ Passage examples:
 - Phase 1 complete: embedded `datasets/medqa_usmle/textbooks.csv` into Chroma collection `medqa_textbooks` with `Alibaba-NLP/gte-large-en-v1.5`.
 - Chroma verification: `medqa_textbooks` contains 125847 documents. Sample metadata preserves `idx`, `source=medrag_textbooks`, and `title`.
 - Embedding run settings: `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1 EMBED_CHUNK=5000 EMBED_GPU_BATCH=32`; total runtime 48.5 minutes on the local RTX 3070 Laptop GPU.
+- Phase 2 complete: registered MedQA in the eval loader, prompt formatter, Chroma collection map, generation/retrieval cache builders, and local answer-cell health checks.
+- Formatter sanity check: `uv run python tests/test_formatter.py` passes 13/13, including MedQA four-option prompt and intermediate-generation checks.
 - MedQA has no gold passage labels; downstream answer EM is the primary outcome and no Hit@k/MRR/Recall will be reported.
 
 ## Reproduction
@@ -64,4 +66,6 @@ uv run python scripts/download_medqa_usmle.py
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1 \
   EMBED_CHUNK=5000 EMBED_GPU_BATCH=32 \
   uv run python utils/fast_embed.py medqa
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1 \
+  uv run python tests/test_formatter.py
 ```

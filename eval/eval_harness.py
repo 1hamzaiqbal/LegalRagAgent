@@ -416,6 +416,20 @@ def _fmt_intermediate(row: pd.Series, config: EvalConfig) -> str:
             parts.append("## Candidate Answer Framing\n" + "\n".join(choices))
         return "\n\n".join(part for part in parts if part)
 
+    if config.dataset == "medqa":
+        choices = []
+        for letter in ["A", "B", "C", "D"]:
+            col = f"choice_{letter.lower()}"
+            if col in row and pd.notna(row[col]) and str(row[col]).strip():
+                choices.append(f"- {row[col]}")
+        parts = [
+            "The following question asks about medical diagnosis, mechanism, management, or clinical reasoning.",
+            f"## Question\n{row['question']}",
+        ]
+        if choices:
+            parts.append("## Candidate Answer Framing\n" + "\n".join(choices))
+        return "\n\n".join(parts)
+
     # Pull the shared fact pattern from 'prompt' column when present; same fix
     # as format_question_prompt (37% of BarExam rows need this context).
     prompt_ctx = row.get("prompt", "")
@@ -573,6 +587,9 @@ def _row_label(row: pd.Series, config: EvalConfig, fallback_i: int | None = None
         return f"aus_{row.get('jurisdiction', 'unknown')}_{i}"
     if config.dataset == "musique":
         return f"mq_{i}"
+    if config.dataset == "medqa":
+        i_str = str(i)
+        return i_str if i_str.startswith("medqa_") else f"medqa_{i_str}"
     return f"qa_{row.get('subject', 'unknown')}_{i}"
 
 
@@ -1454,7 +1471,7 @@ def _final_answer_contract(config: EvalConfig) -> str:
             "Answer: No\n"
             "Do not put any text after that final Answer line."
         )
-    if config.dataset in {"barexam", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"}:
+    if config.dataset in {"barexam", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu", "medqa"}:
         choices = ", ".join(f"Answer: ({letter})" for letter in _mc_choice_letters(config.dataset))
         return (
             "## Required Output\n"
@@ -1498,7 +1515,7 @@ def _extract_required_final_line_prediction(text: str, config: EvalConfig) -> st
         if last == "Answer: No":
             return "No"
         return None
-    if config.dataset in {"barexam", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"}:
+    if config.dataset in {"barexam", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu", "medqa"}:
         letters = re.escape(_mc_choice_letters(config.dataset))
         match = re.fullmatch(rf"Answer: \(([{letters}])\)", last)
         if match:
@@ -1550,7 +1567,7 @@ def _maybe_retry_final_answer_format(
     """Retry only malformed final-answer formatting, with the same evidence."""
     if not _env_truthy("EVAL_FINAL_FORMAT_RETRY"):
         return answer_text, predicted
-    if config.dataset not in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"}:
+    if config.dataset not in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu", "medqa"}:
         return answer_text, predicted
 
     final_line_prediction = _extract_required_final_line_prediction(answer_text, config)
@@ -1963,6 +1980,39 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
             ),
         }
         return prompts.get(role, prompts["answer"])
+    if config.dataset == "medqa":
+        prompts = {
+            "answer": (
+                "You are a medical expert answering a USMLE-style multiple-choice question. "
+                "Reason through the clinical facts and mechanisms, then end with exactly one "
+                "final line in the form: Answer: (X)"
+            ),
+            "rag": (
+                "You are a medical expert answering a USMLE-style multiple-choice question. "
+                "Retrieved textbook passages are provided; use them to verify or refine your "
+                "clinical reasoning, but choose the best answer from the options. End with "
+                "exactly one final line in the form: Answer: (X)"
+            ),
+            "research": (
+                "You are a medical expert answering a USMLE-style multiple-choice question. "
+                "Research findings are provided; use them to verify or refine your reasoning. "
+                "End with exactly one final line in the form: Answer: (X)"
+            ),
+            "hyde": (
+                "You are a medical textbook author. Given a USMLE-style question, write a "
+                "short neutral textbook passage (2-3 sentences) that states the disease, "
+                "mechanism, diagnostic principle, treatment principle, or physiology most "
+                "relevant to the question. Do not choose an answer letter, mention candidate "
+                "labels, or output a final answer."
+            ),
+            "snap_hyde": (
+                "You are a medical textbook author. A student has reasoned through a "
+                "USMLE-style question. Write a short neutral textbook passage (2-3 sentences) "
+                "that would be most relevant to verifying or correcting that reasoning. Do "
+                "not choose an answer letter, mention candidate labels, or output a final answer."
+            ),
+        }
+        return prompts.get(role, prompts["answer"])
     if config.dataset in ("legal_rag", "legal_rag_bench", "australian"):
         if config.dataset == "legal_rag_bench":
             domain = "Victorian criminal law and procedure"
@@ -2081,6 +2131,7 @@ DATASET_COLLECTIONS = {
     "casehold": "casehold_holdings",
     "musique": "musique_passages",
     "legalbench_scalr": "legalbench_scalr_holdings",
+    "medqa": "medqa_textbooks",
 }
 
 
@@ -8346,7 +8397,7 @@ def _fallback_guard_violations(record: dict, config: EvalConfig) -> list[str]:
     if "<think>" in str(record.get("final_answer") or "").lower():
         violations.append("unclosed_think_or_reasoning_tag_in_final_answer")
 
-    if config.dataset in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"}:
+    if config.dataset in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu", "medqa"}:
         final_answer = str(record.get("final_answer") or "")
         predicted = record.get("predicted_answer")
         if not _has_explicit_answer_marker(final_answer):
@@ -8409,6 +8460,7 @@ def _fallback_guard_violations(record: dict, config: EvalConfig) -> list[str]:
         "legalbench_scalr",
         "mas_legal_bench",
         "legal_link_eu",
+        "medqa",
     }:
         snap_answer = str(record.get("snap_answer") or "")
         if not _extract_required_final_line_prediction(snap_answer, config):
@@ -8519,7 +8571,7 @@ def run_eval(config: EvalConfig):
             if _coll_count is not None and _coll_count == 0:
                 print(f"[preflight] FAILED: collection '{_coll_name}' is EMPTY (0 docs).")
                 print(f"[preflight] mode={config.mode} requires retrieval but corpus is missing.")
-                print(f"[preflight] Rebuild via: uv run python utils/fast_embed.py barexam (or housing)")
+                print(f"[preflight] Rebuild via: uv run python utils/fast_embed.py {config.dataset}")
                 raise SystemExit(4)
             elif _coll_count is not None:
                 print(f"[preflight] collection={_coll_name} has {_coll_count:,} docs OK")
@@ -8566,6 +8618,8 @@ def run_eval(config: EvalConfig):
             subject = str(row.get("jurisdiction", "unknown"))
         elif config.dataset == "musique":
             subject = f"{int(row.get('n_hops', 0))}-hop"
+        elif config.dataset == "medqa":
+            subject = str(row.get("meta_info", "medqa"))
         else:
             subject = str(row.get("subject", "unknown"))
         label = _row_label(row, config, i)
@@ -8575,7 +8629,7 @@ def run_eval(config: EvalConfig):
         gold = str(row["answer"]).strip()
         if config.dataset == "housing":
             gold = gold.capitalize()
-        elif config.dataset in ("barexam", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"):
+        elif config.dataset in ("barexam", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu", "medqa"):
             gold = gold.upper()
         # open-ended: gold stays as-is
 
@@ -8706,6 +8760,11 @@ def run_eval(config: EvalConfig):
             record["jurisdiction"] = str(row.get("jurisdiction", ""))
         elif config.dataset in ("legal_rag", "legal_rag_bench"):
             record["relevant_passages"] = str(row.get("relevant_passages", ""))
+        elif config.dataset == "medqa":
+            record["choices"] = _record_choices(row, config.dataset)
+            record["meta_info"] = str(row.get("meta_info", ""))
+            record["answer_text"] = str(row.get("answer_text", ""))[:500]
+            record["gold_passage"] = ""
         else:
             record["choices"] = _record_choices(row, config.dataset)
             record["gold_passage"] = str(row.get("gold_passage", ""))[:500]
@@ -8893,7 +8952,7 @@ def main():
     parser.add_argument("--source-filter", default="",
                         help="Metadata source filter for retrieval, e.g. 'mbe' (default: none)")
     parser.add_argument("--dataset", default="barexam",
-                        choices=["barexam", "housing", "legal_rag", "legal_rag_bench", "mas_legal_bench", "legal_link_eu", "australian", "casehold", "musique", "legalbench_scalr"],
+                        choices=["barexam", "housing", "legal_rag", "legal_rag_bench", "mas_legal_bench", "legal_link_eu", "australian", "casehold", "musique", "legalbench_scalr", "medqa"],
                         help="Dataset to evaluate on (default: barexam)")
     parser.add_argument("--retrieval-k", type=int, default=5,
                         help="Final top-k after rerank for retrieval modes (default 5; meeting ask: top-1 vs top-5 ablation)")

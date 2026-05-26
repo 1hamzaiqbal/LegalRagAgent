@@ -374,7 +374,7 @@ def has_required_final_line(row, text):
             target = "Answer: No"
         else:
             return False
-    elif dataset in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"}:
+    elif dataset in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu", "medqa"}:
         pred = pred.upper()
         if pred not in {"A", "B", "C", "D", "E"}:
             return False
@@ -408,9 +408,9 @@ with open(path) as f:
         if "<think>" in final_answer.lower():
             think_tags.append(row_id)
         dataset = str(row.get("dataset") or "")
-        if dataset in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"} and not answer_marker.search(final_answer):
+        if dataset in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu", "medqa"} and not answer_marker.search(final_answer):
             missing_answer_marker.append(row_id)
-        elif dataset in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu"} and not has_required_final_line(row, final_answer):
+        elif dataset in {"barexam", "housing", "casehold", "legalbench_scalr", "mas_legal_bench", "legal_link_eu", "medqa"} and not has_required_final_line(row, final_answer):
             missing_answer_marker.append(f"{row_id}:missing_required_final_answer_line")
         if max_final_answer_chars > 0 and len(final_answer) > max_final_answer_chars:
             long_answers.append(f"{row_id}:{len(final_answer)}")
