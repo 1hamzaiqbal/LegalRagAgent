@@ -40,6 +40,7 @@ from rag_utils import get_vectorstore, rerank_with_cross_encoder, retrieve_docum
 
 
 QUERY_TYPE_TO_LABEL_PREFIX = {
+    "csqe_cache": "csqe",
     "hyde_cache": "hyde",
     "raw_question": "simple",
     "hyre_cache": "snap_hyre",
@@ -47,6 +48,7 @@ QUERY_TYPE_TO_LABEL_PREFIX = {
 }
 
 EXPECTED_GENERATION_SOURCE_MODES = {
+    "csqe_cache": {"csqe"},
     "hyde_cache": {"rag_hyde"},
     "hyre_cache": {"snap_hyre", "snap_hyre_exemplar", "rag_snap_hyde_2call"},
 }
@@ -342,8 +344,8 @@ def main() -> None:
 def _main_locked(args: argparse.Namespace) -> None:
     if args.embedding_model:
         os.environ["EVAL_EMBEDDING_MODEL"] = args.embedding_model
-    if args.query_type in {"hyde_cache", "hyre_cache"} and not args.hyre_cache_path:
-        raise SystemExit("--hyre-cache-path is required for --query-type hyde_cache or hyre_cache")
+    if args.query_type in {"csqe_cache", "hyde_cache", "hyre_cache"} and not args.hyre_cache_path:
+        raise SystemExit("--hyre-cache-path is required for generated-query cache types")
     if (
         args.dataset == "housing"
         and not args.housing_state_filter

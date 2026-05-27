@@ -1,0 +1,299 @@
+{
+  "datasets": {
+    "beir_fiqa": {
+      "candidate_embeddings": 55932,
+      "chroma_docs": 57638,
+      "cluster_counts": [
+        23632,
+        20212,
+        12088
+      ],
+      "collection": "beir_fiqa",
+      "embedding_source": "chroma",
+      "eval_exclude_gold_ids": [],
+      "eval_rows_excluded": 0,
+      "eval_rows_kept": 648,
+      "eval_rows_total": 648,
+      "exemplars": [
+        {
+          "cluster": 0,
+          "distance_to_centroid": 0.33836716413497925,
+          "excerpt": "There are many reasons, some already covered by other answers. I have a blog post on the issue here, and I'll summarize:",
+          "idx": "51311",
+          "source": "BeIR/fiqa",
+          "title": "",
+          "token_count": 23
+        },
+        {
+          "cluster": 1,
+          "distance_to_centroid": 0.3958202004432678,
+          "excerpt": "That article was terribly generic and ripe with grammatical errors. A quick Google search yields dozens of much more informative articles. Furthermore, this topic has a fringe relation to finance, and would be a better post in a small business, entrepreneur, or accounting subreddit.",
+          "idx": "178061",
+          "source": "BeIR/fiqa",
+          "title": "",
+          "token_count": 44
+        },
+        {
+          "cluster": 2,
+          "distance_to_centroid": 0.29843372106552124,
+          "excerpt": "A few points to consider - Welcome to Money.SE. This is not a discussion board, but rather, a site to ask and answer personal finance questions that are factual in nature. Your question is great, in my opinion, but it's a question that has no answer, it's opinion-based. So I'm slipping this in to help you, and suggest you visit the site to see the great Q&A we've accumulated over the years.",
+          "idx": "583912",
+          "source": "BeIR/fiqa",
+          "title": "",
+          "token_count": 78
+        }
+      ],
+      "ids": [
+        "51311",
+        "178061",
+        "583912"
+      ],
+      "mutual_cosine": [
+        0.6521546244621277,
+        0.6426445841789246,
+        0.7548763751983643
+      ],
+      "qrels_gold_ids_excluded": 1706,
+      "signal": "A useful retrieval passage for BEIR/fiqa should match the corpus style below: concrete entities, domain terminology, and source-like prose. Use these excerpts only as style and topical-coverage signals; do not copy them and do not treat them as evidence for the current query.\n\n\n\nCorpus passage excerpt 1 (doc id 51311): There are many reasons, some already covered by other answers. I have a blog post on the issue here, and I'll summarize:\n\nCorpus passage excerpt 2 (doc id 178061): That article was terribly generic and ripe with grammatical errors. A quick Google search yields dozens of much more informative articles. Furthermore, this topic has a fringe relation to finance, and would be a better post in a small business, entrepreneur, or accounting subreddit.\n\nCorpus passage excerpt 3 (doc id 583912): A few points to consider - Welcome to Money.SE. This is not a discussion board, but rather, a site to ask and answer personal finance questions that are factual in nature. Your question is great, in my opinion, but it's a question that has no answer, it's opinion-based. So I'm slipping this in to help you, and suggest you visit the site to see the great Q&A we've accumulated over the years.",
+      "subset": "fiqa",
+      "variant": "multi3"
+    },
+    "beir_nfcorpus": {
+      "candidate_embeddings": 505,
+      "chroma_docs": 3633,
+      "cluster_counts": [
+        86,
+        300,
+        119
+      ],
+      "collection": "beir_nfcorpus",
+      "embedding_source": "chroma",
+      "eval_exclude_gold_ids": [],
+      "eval_rows_excluded": 0,
+      "eval_rows_kept": 323,
+      "eval_rows_total": 323,
+      "exemplars": [
+        {
+          "cluster": 0,
+          "distance_to_centroid": 0.3295050263404846,
+          "excerpt": "Insights Into Normal and Disordered Bowel Habits From Bowel Diaries Background While symptom questionnaires provide a snapshot of bowel habits, they may not reflect day-to-day variations or the relationship between bowel symptoms and stool form. Aim To assess bowel habits by daily diaries in women with and without functional bowel disorders. Method From a community-based survey among Olmsted County, MN, women, 278 randomly selected subjects were interviewed by a gastroenterologist, who completed a bowel symptom questionnaire. Subjects also maintained bowel diaries for 2 wk. Results Among 278 subjects, questionnaires revealed diarrhea (26%), constipation (21%), or neither (53%). Asymptomatic subjects reported bowel symptoms (e.g., urgency) infrequently (i.e., <25% of the time) and generally for hard or loose stools. Urgency for soft,.",
+          "idx": "MED-1034",
+          "source": "BeIR/nfcorpus",
+          "title": "Insights Into Normal and Disordered Bowel Habits From Bowel Diaries",
+          "token_count": 125
+        },
+        {
+          "cluster": 1,
+          "distance_to_centroid": 0.31520673632621765,
+          "excerpt": "Bioavailability and inter-conversion of sulforaphane and erucin in human subjects consuming broccoli sprouts or broccoli supplement in a cross-over study design Broccoli consumption may reduce the risk of various cancers and many broccoli supplements are now available. The bioavailability and excretion of the mercapturic acid pathway metabolites isothiocyanates after human consumption of broccoli supplements has not been tested. Two important isothiocyanates from broccoli are sulforaphane and erucin. We employed a cross-over study design in which 12 subjects consumed 40 grams of fresh broccoli sprouts followed by a 1 month washout period and then the same 12 subjects consumed 6 pills of a broccoli supplement. As negative controls for isothiocyanate consumption four additional subjects consumed alfalfa sprouts during the first phase and.",
+          "idx": "MED-2235",
+          "source": "BeIR/nfcorpus",
+          "title": "Bioavailability and inter-conversion of sulforaphane and erucin in human subjects consuming broccoli sprouts or broccoli supplement in a cross-over study design",
+          "token_count": 124
+        },
+        {
+          "cluster": 2,
+          "distance_to_centroid": 0.34614112973213196,
+          "excerpt": "Plasma adiponectin concentrations are associated with body composition and plant-based dietary factors in female twins. Circulating adiponectin is emerging as an important link between obesity, type 2 diabetes, and cardiovascular disease (CVD). However, the spectrum of lifestyle factors that modulate the adiponectin concentration remains to be elucidated, particularly among women. We conducted a cross-sectional study of 877 female twin pairs from the TwinsUK adult twin registry. Using a co-twin design, we examined dietary and body composition influences on adiponectin by conducting matched, within-pair analyses to eliminate confounding. Following multivariable adjustment within-twin pairs, significant influences on adiponectin (log-transformed, percent change per SD of the dietary/body composition variable) were observed for nonstarch.",
+          "idx": "MED-5007",
+          "source": "BeIR/nfcorpus",
+          "title": "Plasma adiponectin concentrations are associated with body composition and plant-based dietary factors in female twins.",
+          "token_count": 117
+        }
+      ],
+      "ids": [
+        "MED-1034",
+        "MED-2235",
+        "MED-5007"
+      ],
+      "mutual_cosine": [
+        0.5660618543624878,
+        0.5442427396774292,
+        0.6813929677009583
+      ],
+      "qrels_gold_ids_excluded": 3128,
+      "signal": "A useful retrieval passage for BEIR/nfcorpus should match the corpus style below: concrete entities, domain terminology, and source-like prose. Use these excerpts only as style and topical-coverage signals; do not copy them and do not treat them as evidence for the current query.\n\n\n\nCorpus passage excerpt 1 (doc id MED-1034): Insights Into Normal and Disordered Bowel Habits From Bowel Diaries Background While symptom questionnaires provide a snapshot of bowel habits, they may not reflect day-to-day variations or the relationship between bowel symptoms and stool form. Aim To assess bowel habits by daily diaries in women with and without functional bowel disorders. Method From a community-based survey among Olmsted County, MN, women, 278 randomly selected subjects were interviewed by a gastroenterologist, who completed a bowel symptom questionnaire. Subjects also maintained bowel diaries for 2 wk. Results Among 278 subjects, questionnaires revealed diarrhea (26%), constipation (21%), or neither (53%). Asymptomatic subjects reported bowel symptoms (e.g., urgency) infrequently (i.e., <25% of the time) and generally for hard or loose stools. Urgency for soft,.\n\nCorpus passage excerpt 2 (doc id MED-2235): Bioavailability and inter-conversion of sulforaphane and erucin in human subjects consuming broccoli sprouts or broccoli supplement in a cross-over study design Broccoli consumption may reduce the risk of various cancers and many broccoli supplements are now available. The bioavailability and excretion of the mercapturic acid pathway metabolites isothiocyanates after human consumption of broccoli supplements has not been tested. Two important isothiocyanates from broccoli are sulforaphane and erucin. We employed a cross-over study design in which 12 subjects consumed 40 grams of fresh broccoli sprouts followed by a 1 month washout period and then the same 12 subjects consumed 6 pills of a broccoli supplement. As negative controls for isothiocyanate consumption four additional subjects consumed alfalfa sprouts during the first phase and.\n\nCorpus passage excerpt 3 (doc id MED-5007): Plasma adiponectin concentrations are associated with body composition and plant-based dietary factors in female twins. Circulating adiponectin is emerging as an important link between obesity, type 2 diabetes, and cardiovascular disease (CVD). However, the spectrum of lifestyle factors that modulate the adiponectin concentration remains to be elucidated, particularly among women. We conducted a cross-sectional study of 877 female twin pairs from the TwinsUK adult twin registry. Using a co-twin design, we examined dietary and body composition influences on adiponectin by conducting matched, within-pair analyses to eliminate confounding. Following multivariable adjustment within-twin pairs, significant influences on adiponectin (log-transformed, percent change per SD of the dietary/body composition variable) were observed for nonstarch.",
+      "subset": "nfcorpus",
+      "variant": "multi3"
+    },
+    "beir_scidocs": {
+      "candidate_embeddings": 25657,
+      "chroma_docs": 25657,
+      "cluster_counts": [
+        7879,
+        8797,
+        8981
+      ],
+      "collection": "beir_scidocs",
+      "embedding_source": "chroma_with_eval_row_exclusion",
+      "eval_exclude_gold_ids": [
+        "9e463eefadbcd336c69270a299666e4104d50159",
+        "4017f984d1b4b8748a06da2739183782bbe9b46d",
+        "1a090df137014acab572aa5dc23449b270db64b4"
+      ],
+      "eval_rows_excluded": 11,
+      "eval_rows_kept": 989,
+      "eval_rows_total": 1000,
+      "exemplars": [
+        {
+          "cluster": 0,
+          "distance_to_centroid": 0.3734241724014282,
+          "excerpt": "A COEFFICIENT OF AGREEMENT FOR NOMINAL SCALES 1",
+          "idx": "9e463eefadbcd336c69270a299666e4104d50159",
+          "source": "BeIR/scidocs",
+          "title": "A COEFFICIENT OF AGREEMENT FOR NOMINAL SCALES 1",
+          "token_count": 8
+        },
+        {
+          "cluster": 1,
+          "distance_to_centroid": 0.40918874740600586,
+          "excerpt": "Optimization by simulated annealing",
+          "idx": "4017f984d1b4b8748a06da2739183782bbe9b46d",
+          "source": "BeIR/scidocs",
+          "title": "Optimization by simulated annealing",
+          "token_count": 4
+        },
+        {
+          "cluster": 2,
+          "distance_to_centroid": 0.26388585567474365,
+          "excerpt": "LIBSVM: a library for support vector machines",
+          "idx": "1a090df137014acab572aa5dc23449b270db64b4",
+          "source": "BeIR/scidocs",
+          "title": "LIBSVM: a library for support vector machines",
+          "token_count": 7
+        }
+      ],
+      "ids": [
+        "9e463eefadbcd336c69270a299666e4104d50159",
+        "4017f984d1b4b8748a06da2739183782bbe9b46d",
+        "1a090df137014acab572aa5dc23449b270db64b4"
+      ],
+      "mutual_cosine": [
+        0.5931206345558167,
+        0.7017592787742615,
+        0.7063589692115784
+      ],
+      "qrels_gold_ids_excluded": 25657,
+      "signal": "A useful retrieval passage for BEIR/scidocs should match the corpus style below: concrete entities, domain terminology, and source-like prose. Use these excerpts only as style and topical-coverage signals; do not copy them and do not treat them as evidence for the current query.\n\n\n\nCorpus passage excerpt 1 (doc id 9e463eefadbcd336c69270a299666e4104d50159): A COEFFICIENT OF AGREEMENT FOR NOMINAL SCALES 1\n\nCorpus passage excerpt 2 (doc id 4017f984d1b4b8748a06da2739183782bbe9b46d): Optimization by simulated annealing\n\nCorpus passage excerpt 3 (doc id 1a090df137014acab572aa5dc23449b270db64b4): LIBSVM: a library for support vector machines",
+      "subset": "scidocs",
+      "variant": "multi3"
+    },
+    "beir_scifact": {
+      "candidate_embeddings": 4900,
+      "chroma_docs": 5183,
+      "cluster_counts": [
+        1177,
+        2299,
+        1424
+      ],
+      "collection": "beir_scifact",
+      "embedding_source": "chroma",
+      "eval_exclude_gold_ids": [],
+      "eval_rows_excluded": 0,
+      "eval_rows_kept": 300,
+      "eval_rows_total": 300,
+      "exemplars": [
+        {
+          "cluster": 0,
+          "distance_to_centroid": 0.35996827483177185,
+          "excerpt": "Replication Fork Stability Confers Chemoresistance in BRCA-deficient Cells Cells deficient in the Brca1 and Brca2 genes have reduced capacity to repair DNA double-strand breaks by homologous recombination and consequently are hypersensitive to DNA-damaging agents, including cisplatin and poly(ADP-ribose) polymerase (PARP) inhibitors. Here we show that loss of the MLL3/4 complex protein, PTIP, protects Brca1/2-deficient cells from DNA damage and rescues the lethality of Brca2-deficient embryonic stem cells. However, PTIP deficiency does not restore homologous recombination activity at double-strand breaks. Instead, its absence inhibits the recruitment of the MRE11 nuclease to stalled replication forks, which in turn protects nascent DNA strands from extensive degradation. More generally, acquisition of PARP inhibitors and cisplatin.",
+          "idx": "4444861",
+          "source": "BeIR/scifact",
+          "title": "Replication Fork Stability Confers Chemoresistance in BRCA-deficient Cells",
+          "token_count": 121
+        },
+        {
+          "cluster": 1,
+          "distance_to_centroid": 0.37528300285339355,
+          "excerpt": "Genome-Wide Profiling of H3K56 Acetylation and Transcription Factor Binding Sites in Human Adipocytes The growing epidemic of obesity and metabolic diseases calls for a better understanding of adipocyte biology. The regulation of transcription in adipocytes is particularly important, as it is a target for several therapeutic approaches. Transcriptional outcomes are influenced by both histone modifications and transcription factor binding. Although the epigenetic states and binding sites of several important transcription factors have been profiled in the mouse 3T3-L1 cell line, such data are lacking in human adipocytes. In this study, we identified H3K56 acetylation sites in human adipocytes derived from mesenchymal stem cells. H3K56 is acetylated by CBP and p300, and deacetylated by SIRT1, all are proteins with important roles in.",
+          "idx": "3052213",
+          "source": "BeIR/scifact",
+          "title": "Genome-Wide Profiling of H3K56 Acetylation and Transcription Factor Binding Sites in Human Adipocytes",
+          "token_count": 123
+        },
+        {
+          "cluster": 2,
+          "distance_to_centroid": 0.3873058557510376,
+          "excerpt": "Global, regional, and national disability-adjusted life-years (DALYs) for 315 diseases and injuries and healthy life expectancy (HALE), 1990\u20132015: a systematic analysis for the Global Burden of Disease Study 2015 BACKGROUND Healthy life expectancy (HALE) and disability-adjusted life-years (DALYs) provide summary measures of health across geographies and time that can inform assessments of epidemiological patterns and health system performance, help to prioritise investments in research and development, and monitor progress toward the Sustainable Development Goals (SDGs). We aimed to provide updated HALE and DALYs for geographies worldwide and evaluate how disease burden changes with development. METHODS We used results from the Global Burden of Diseases, Injuries, and Risk Factors Study 2015 (GBD 2015) for all-cause mortality,.",
+          "idx": "581832",
+          "source": "BeIR/scifact",
+          "title": "Global, regional, and national disability-adjusted life-years (DALYs) for 315 diseases and injuries and healthy life expectancy (HALE), 1990\u20132015: a systematic analysis for the Global Burden of Disease Study 2015",
+          "token_count": 121
+        }
+      ],
+      "ids": [
+        "4444861",
+        "3052213",
+        "581832"
+      ],
+      "mutual_cosine": [
+        0.5611066222190857,
+        0.45766934752464294,
+        0.5307984948158264
+      ],
+      "qrels_gold_ids_excluded": 283,
+      "signal": "A useful retrieval passage for BEIR/scifact should match the corpus style below: concrete entities, domain terminology, and source-like prose. Use these excerpts only as style and topical-coverage signals; do not copy them and do not treat them as evidence for the current query.\n\n\n\nCorpus passage excerpt 1 (doc id 4444861): Replication Fork Stability Confers Chemoresistance in BRCA-deficient Cells Cells deficient in the Brca1 and Brca2 genes have reduced capacity to repair DNA double-strand breaks by homologous recombination and consequently are hypersensitive to DNA-damaging agents, including cisplatin and poly(ADP-ribose) polymerase (PARP) inhibitors. Here we show that loss of the MLL3/4 complex protein, PTIP, protects Brca1/2-deficient cells from DNA damage and rescues the lethality of Brca2-deficient embryonic stem cells. However, PTIP deficiency does not restore homologous recombination activity at double-strand breaks. Instead, its absence inhibits the recruitment of the MRE11 nuclease to stalled replication forks, which in turn protects nascent DNA strands from extensive degradation. More generally, acquisition of PARP inhibitors and cisplatin.\n\nCorpus passage excerpt 2 (doc id 3052213): Genome-Wide Profiling of H3K56 Acetylation and Transcription Factor Binding Sites in Human Adipocytes The growing epidemic of obesity and metabolic diseases calls for a better understanding of adipocyte biology. The regulation of transcription in adipocytes is particularly important, as it is a target for several therapeutic approaches. Transcriptional outcomes are influenced by both histone modifications and transcription factor binding. Although the epigenetic states and binding sites of several important transcription factors have been profiled in the mouse 3T3-L1 cell line, such data are lacking in human adipocytes. In this study, we identified H3K56 acetylation sites in human adipocytes derived from mesenchymal stem cells. H3K56 is acetylated by CBP and p300, and deacetylated by SIRT1, all are proteins with important roles in.\n\nCorpus passage excerpt 3 (doc id 581832): Global, regional, and national disability-adjusted life-years (DALYs) for 315 diseases and injuries and healthy life expectancy (HALE), 1990\u20132015: a systematic analysis for the Global Burden of Disease Study 2015 BACKGROUND Healthy life expectancy (HALE) and disability-adjusted life-years (DALYs) provide summary measures of health across geographies and time that can inform assessments of epidemiological patterns and health system performance, help to prioritise investments in research and development, and monitor progress toward the Sustainable Development Goals (SDGs). We aimed to provide updated HALE and DALYs for geographies worldwide and evaluate how disease burden changes with development. METHODS We used results from the Global Burden of Diseases, Injuries, and Risk Factors Study 2015 (GBD 2015) for all-cause mortality,.",
+      "subset": "scifact",
+      "variant": "multi3"
+    },
+    "beir_trec_covid": {
+      "candidate_embeddings": 135852,
+      "chroma_docs": 171332,
+      "cluster_counts": [
+        34304,
+        46955,
+        54593
+      ],
+      "collection": "beir_trec_covid",
+      "embedding_source": "chroma",
+      "eval_exclude_gold_ids": [],
+      "eval_rows_excluded": 0,
+      "eval_rows_kept": 50,
+      "eval_rows_total": 50,
+      "exemplars": [
+        {
+          "cluster": 0,
+          "distance_to_centroid": 0.42243748903274536,
+          "excerpt": "Phylogenetic Distribution of CMP-Neu5Ac Hydroxylase (CMAH), the Enzyme Synthetizing the Proinflammatory Human Xenoantigen Neu5Gc The enzyme CMP-N-acetylneuraminic acid hydroxylase (CMAH) is responsible for the synthesis of N-glycolylneuraminic acid (Neu5Gc), a sialic acid present on the cell surface proteins of most deuterostomes. The CMAH gene is thought to be present in most deuterostomes, but it has been inactivated in a number of lineages, including humans. The inability of humans to synthesize Neu5Gc has had several evolutionary and biomedical implications. Remarkably, Neu5Gc is a xenoantigen for humans, and consumption of Neu5Gc-containing foods, such as red meats, may promote inflammation, arthritis, and cancer. Likewise, xenotransplantation of organs producing Neu5Gc can result in inflammation and organ rejection. Therefore,.",
+          "idx": "k596omcy",
+          "source": "BeIR/trec-covid",
+          "title": "Phylogenetic Distribution of CMP-Neu5Ac Hydroxylase (CMAH), the Enzyme Synthetizing the Proinflammatory Human Xenoantigen Neu5Gc",
+          "token_count": 119
+        },
+        {
+          "cluster": 1,
+          "distance_to_centroid": 0.4177762269973755,
+          "excerpt": "Correction",
+          "idx": "2xsjxjml",
+          "source": "BeIR/trec-covid",
+          "title": "Correction",
+          "token_count": 1
+        },
+        {
+          "cluster": 2,
+          "distance_to_centroid": 0.2963835895061493,
+          "excerpt": "COVID 19",
+          "idx": "okqsvg8q",
+          "source": "BeIR/trec-covid",
+          "title": "COVID 19",
+          "token_count": 2
+        }
+      ],
+      "ids": [
+        "k596omcy",
+        "2xsjxjml",
+        "okqsvg8q"
+      ],
+      "mutual_cosine": [
+        0.5715258717536926,
+        0.5676917433738708,
+        0.6378122568130493
+      ],
+      "qrels_gold_ids_excluded": 35480,
+      "signal": "A useful retrieval passage for BEIR/trec-covid should match the corpus style below: concrete entities, domain terminology, and source-like prose. Use these excerpts only as style and topical-coverage signals; do not copy them and do not treat them as evidence for the current query.\n\n\n\nCorpus passage excerpt 1 (doc id k596omcy): Phylogenetic Distribution of CMP-Neu5Ac Hydroxylase (CMAH), the Enzyme Synthetizing the Proinflammatory Human Xenoantigen Neu5Gc The enzyme CMP-N-acetylneuraminic acid hydroxylase (CMAH) is responsible for the synthesis of N-glycolylneuraminic acid (Neu5Gc), a sialic acid present on the cell surface proteins of most deuterostomes. The CMAH gene is thought to be present in most deuterostomes, but it has been inactivated in a number of lineages, including humans. The inability of humans to synthesize Neu5Gc has had several evolutionary and biomedical implications. Remarkably, Neu5Gc is a xenoantigen for humans, and consumption of Neu5Gc-containing foods, such as red meats, may promote inflammation, arthritis, and cancer. Likewise, xenotransplantation of organs producing Neu5Gc can result in inflammation and organ rejection. Therefore,.\n\nCorpus passage excerpt 2 (doc id 2xsjxjml): Correction\n\nCorpus passage excerpt 3 (doc id okqsvg8q): COVID 19",
+      "subset": "trec-covid",
+      "variant": "multi3"
+    }
+  },
+  "schema": "exemplar_scope_phase_a_v1"
+}

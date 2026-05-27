@@ -55,6 +55,8 @@ from hotpotqa_retrieval import hotpotqa_documents_by_idx, retrieve_hotpotqa_docu
 _TRACE_STATE = threading.local()
 _RETRIEVAL_DOC_CACHE: dict[tuple[str, str], Document] | None = None
 _RETRIEVAL_DOC_CACHE_PATH: str | None = None
+_EXTERNAL_PASSAGE_STYLE_SIGNALS: dict[str, Any] | None = None
+_EXTERNAL_PASSAGE_STYLE_SIGNAL_PATH: str | None = None
 _LLM_CALL_THROTTLE_LOCK = threading.Lock()
 _LLM_CALL_THROTTLE_LAST_START = 0.0
 
@@ -1011,7 +1013,25 @@ def _passage_style_signal_variant(config: EvalConfig) -> str:
     return variant
 
 
+def _external_passage_style_record(config: EvalConfig) -> dict[str, Any] | None:
+    """Load optional dataset-specific exemplar text from a JSON artifact."""
+    global _EXTERNAL_PASSAGE_STYLE_SIGNALS, _EXTERNAL_PASSAGE_STYLE_SIGNAL_PATH
+    path = str(os.getenv("EVAL_PASSAGE_STYLE_SIGNAL_PATH") or "").strip()
+    if not path:
+        return None
+    if _EXTERNAL_PASSAGE_STYLE_SIGNALS is None or _EXTERNAL_PASSAGE_STYLE_SIGNAL_PATH != path:
+        with open(path) as f:
+            payload = json.load(f)
+        _EXTERNAL_PASSAGE_STYLE_SIGNALS = payload.get("datasets", payload)
+        _EXTERNAL_PASSAGE_STYLE_SIGNAL_PATH = path
+    record = (_EXTERNAL_PASSAGE_STYLE_SIGNALS or {}).get(config.dataset)
+    return dict(record or {}) if isinstance(record, dict) else None
+
+
 def _passage_style_signal_ids(config: EvalConfig) -> list[str]:
+    external = _external_passage_style_record(config)
+    if external:
+        return [str(idx) for idx in external.get("ids", []) if str(idx)]
     variant = _passage_style_signal_variant(config)
     if variant not in {"multi3", "parallel3"}:
         ids_by_dataset = {
@@ -1243,6 +1263,10 @@ def _hyre_passage_style_signal(config: EvalConfig) -> str:
     each corpus without providing row-specific evidence for the current
     question.
     """
+    external = _external_passage_style_record(config)
+    if external and str(external.get("signal") or "").strip():
+        return str(external["signal"]).strip()
+
     variant = _passage_style_signal_variant(config)
     if variant == "multi3":
         multi3_by_dataset = {
