@@ -3679,6 +3679,23 @@ def _snap_hyde_2call_system_with_signal(config: EvalConfig, style_signal_text: s
         if style_signal_text
         else ""
     )
+    if config.dataset == "hotpotqa":
+        return (
+            "You create SCOPE retrieval passages for HotpotQA multi-hop questions. "
+            "Do not answer the question directly. Use the question only to identify "
+            "the bridge entity, target entity, and relation that would help retrieve "
+            "the supporting Wikipedia paragraphs."
+            + style_signal
+            + "\n\nADDITIONAL OUTPUT REQUIREMENT (REQUIRED, do not skip):\n"
+            "Keep the entire response under 140 words. Do not repeat phrases.\n"
+            "Output exactly two blocks:\n"
+            "Reasoning: one short sentence identifying the bridge entity or target relation.\n\n"
+            "## Passage\n"
+            "Followed by a 2-3 sentence neutral Wikipedia-style passage useful for retrieval. "
+            "Preserve concrete entity names from the question when possible. Do not include "
+            "an `Answer:` line, bullets, markdown inside the passage, or direct answer wording. "
+            "Stop immediately after the passage."
+        )
     if _requires_strict_answer_line(config):
         passage_instruction = (
             "\n\nADDITIONAL OUTPUT REQUIREMENT (REQUIRED, do not skip):\n"
@@ -3712,7 +3729,25 @@ def _snap_hyde_2call_system_with_signal(config: EvalConfig, style_signal_text: s
     return base_answer + style_signal + passage_instruction
 
 
-def _split_snap_and_hyde(raw: str, fallback_passage: str) -> tuple[str, str, bool]:
+def _strip_trailing_answer_lines(text: str) -> str:
+    """Remove answer-only footer lines after a valid passage block."""
+    lines = str(text or "").splitlines()
+    while lines and not lines[-1].strip():
+        lines.pop()
+    stripped_any = False
+    while lines and re.fullmatch(r"\s*(?:Answer|ANSWER)\s*:\s*.+", lines[-1].strip()):
+        lines.pop()
+        stripped_any = True
+        while lines and not lines[-1].strip():
+            lines.pop()
+    return "\n".join(lines).strip() if stripped_any else str(text or "").strip()
+
+
+def _split_snap_and_hyde(
+    raw: str,
+    fallback_passage: str,
+    strip_trailing_answer: bool = False,
+) -> tuple[str, str, bool]:
     """Parse a 2-call combined response into (snap_block, hyde_passage, parse_ok).
 
     Tries the canonical '## Passage' header first, then a few common variants.
@@ -3724,7 +3759,10 @@ def _split_snap_and_hyde(raw: str, fallback_passage: str) -> tuple[str, str, boo
         if marker in text:
             head, _, tail = text.rpartition(marker)
             snap_block = head.strip()
-            hyde_passage = _sanitize_intermediate_text(tail.strip(), fallback=fallback_passage)
+            tail_text = tail.strip()
+            if strip_trailing_answer:
+                tail_text = _strip_trailing_answer_lines(tail_text)
+            hyde_passage = _sanitize_intermediate_text(tail_text, fallback=fallback_passage)
             if hyde_passage:
                 return snap_block, hyde_passage, True
     bare_header = re.search(
@@ -3734,8 +3772,11 @@ def _split_snap_and_hyde(raw: str, fallback_passage: str) -> tuple[str, str, boo
     )
     if bare_header:
         snap_block = bare_header.group("head").strip()
+        tail_text = bare_header.group("tail").strip()
+        if strip_trailing_answer:
+            tail_text = _strip_trailing_answer_lines(tail_text)
         hyde_passage = _sanitize_intermediate_text(
-            bare_header.group("tail").strip(),
+            tail_text,
             fallback=fallback_passage,
         )
         if hyde_passage:
@@ -3765,7 +3806,12 @@ def _generate_snap_hyre_blocks(
         int(metrics_after_initial.get("output_tokens") or 0)
         - int(metrics_before_initial.get("output_tokens") or 0),
     )
-    snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(raw, fallback_passage=fallback_passage)
+    strip_trailing_answer = config.dataset in {"hotpotqa", "musique"}
+    snap_block, hyre_passage, parse_ok = _split_snap_and_hyde(
+        raw,
+        fallback_passage=fallback_passage,
+        strip_trailing_answer=strip_trailing_answer,
+    )
     contains_answer = _contains_answer_artifact(hyre_passage)
     max_hyre_chars = int(os.getenv("EVAL_HYDE_MAX_CHARS", "2500"))
     passage_too_long = max_hyre_chars > 0 and len(str(hyre_passage or "")) > max_hyre_chars
@@ -3844,6 +3890,7 @@ def _generate_snap_hyre_blocks(
     retry_snap, retry_passage, retry_parse_ok = _split_snap_and_hyde(
         retry_raw,
         fallback_passage=fallback_passage,
+        strip_trailing_answer=strip_trailing_answer,
     )
     retry_contains_answer = _contains_answer_artifact(retry_passage)
     retry_snap_prediction = _extract_required_final_line_prediction(retry_snap, config)
