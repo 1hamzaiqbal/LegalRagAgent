@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "eval"))
 
 from eval_config import BEIR_DATASETS, EvalConfig, load_questions  # noqa: E402
+from hotpotqa_retrieval import retrieve_hotpotqa_documents  # noqa: E402
 from eval_harness import (  # noqa: E402
     _collection_for_config,
     _fmt_intermediate,
@@ -300,7 +301,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", required=True, choices=[
         "barexam", "housing", "legal_rag", "legal_rag_bench", "mas_legal_bench", "legal_link_eu", "australian", "casehold",
-        "musique", "legalbench_scalr", "medqa", *BEIR_DATASETS.keys(),
+        "musique", "hotpotqa", "legalbench_scalr", "medqa", *BEIR_DATASETS.keys(),
     ])
     parser.add_argument("--questions", default="full", help="'full' or integer N")
     parser.add_argument("--seed", type=int, default=42)
@@ -381,7 +382,12 @@ def _main_locked(args: argparse.Namespace) -> None:
         args.query_type == "golden_neighbors"
         and _env_truthy("GOLDEN_NEIGHBORS_STORED_EMBEDDING")
     )
-    vectorstore = None if use_stored_gold_embeddings else get_vectorstore(collection, embedding_model=embedding_model or None)
+    use_hotpotqa_in_row = collection == "hotpotqa_passages"
+    vectorstore = (
+        None
+        if use_stored_gold_embeddings or use_hotpotqa_in_row
+        else get_vectorstore(collection, embedding_model=embedding_model or None)
+    )
     direct_collection = _direct_chroma_collection(collection) if use_stored_gold_embeddings else None
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -434,7 +440,15 @@ def _main_locked(args: argparse.Namespace) -> None:
             if args.query_type == "golden_neighbors":
                 retrieve_k = args.max_k + max(args.max_k, len(_gold_ids(row)))
 
-            if use_stored_gold_embeddings:
+            if use_hotpotqa_in_row:
+                docs = retrieve_hotpotqa_documents(
+                    row,
+                    queries,
+                    k=retrieve_k,
+                    embedding_model=embedding_model or None,
+                )
+                retrieval_backend = "hotpotqa_in_row_gte_ce"
+            elif use_stored_gold_embeddings:
                 docs, stored_gold_embedding_ids = _golden_neighbors_from_stored_embeddings(
                     collection=direct_collection,
                     gold_text=queries[0],

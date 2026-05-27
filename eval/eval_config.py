@@ -34,7 +34,7 @@ class EvalConfig:
     verbose: bool = False
     tag: str = ""                     # optional label for the run
     source_filter: str = ""           # optional metadata filter, e.g. "mbe" to search MBE docs only
-    dataset: str = "barexam"          # "barexam" | "housing" | "legal_rag" | "legal_rag_bench" | "mas_legal_bench" | "legal_link_eu" | "australian" | "casehold" | "musique" | "legalbench_scalr" | "medqa" | beir_*
+    dataset: str = "barexam"          # "barexam" | "housing" | "legal_rag" | "legal_rag_bench" | "mas_legal_bench" | "legal_link_eu" | "australian" | "casehold" | "musique" | "hotpotqa" | "legalbench_scalr" | "medqa" | beir_*
     embedding_model: str = ""         # override embedding model for retrieval (e.g., "BAAI/bge-m3")
     retrieval_k: int = 5              # final top-k after rerank for retrieval modes
     sample_start: int = 0             # optional slice start after deterministic sampling
@@ -156,6 +156,8 @@ def load_questions(config: EvalConfig) -> pd.DataFrame:
         return _load_generic_questions(config, "datasets/casehold/test.csv")
     if config.dataset == "musique":
         return _load_generic_questions(config, "datasets/musique/questions.csv")
+    if config.dataset == "hotpotqa":
+        return _load_generic_questions(config, "datasets/hotpotqa_distractor/questions.csv")
     if config.dataset == "legalbench_scalr":
         return _load_generic_questions(config, "datasets/legalbench_scalr/test.csv")
     if config.dataset == "medqa":
@@ -387,6 +389,8 @@ def format_question_prompt(row: pd.Series, dataset: str = "barexam") -> str:
         return format_open_prompt(row)
     if dataset == "musique":
         return format_musique_prompt(row)
+    if dataset == "hotpotqa":
+        return format_hotpotqa_prompt(row)
 
     # Many BarExam items share a fact pattern across multiple sub-questions
     # (same prompt_id). The 'prompt' column carries that shared fact pattern;
@@ -522,6 +526,16 @@ def format_musique_prompt(row: pd.Series) -> str:
     return (
         f"{question}\n\n"
         "Answer with a brief span — a single entity, date, or short phrase. "
+        "Provide your answer in the exact form: Answer: [your answer here]"
+    )
+
+
+def format_hotpotqa_prompt(row: pd.Series) -> str:
+    """Format a HotpotQA distractor multi-hop short-answer question."""
+    question = str(row["question"])
+    return (
+        f"{question}\n\n"
+        "Answer with a brief span or yes/no. "
         "Provide your answer in the exact form: Answer: [your answer here]"
     )
 

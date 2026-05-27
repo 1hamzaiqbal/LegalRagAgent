@@ -374,7 +374,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--provider", required=True)
     parser.add_argument("--dataset", required=True, choices=[
         "barexam", "housing", "legal_rag", "legal_rag_bench", "mas_legal_bench", "legal_link_eu", "australian", "casehold",
-        "musique", "legalbench_scalr", "medqa", *BEIR_DATASETS.keys(),
+        "musique", "hotpotqa", "legalbench_scalr", "medqa", *BEIR_DATASETS.keys(),
     ])
     parser.add_argument("--questions", default="full", help="'full' or integer N")
     parser.add_argument("--seed", type=int, default=42)

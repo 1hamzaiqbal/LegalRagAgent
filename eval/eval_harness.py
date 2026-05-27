@@ -49,6 +49,7 @@ from main import (
 )
 from llm_config import get_provider_info, _get_llm_cached
 from rag_utils import retrieve_documents_multi_query, get_documents_by_idx, get_vectorstore
+from hotpotqa_retrieval import hotpotqa_documents_by_idx, retrieve_hotpotqa_documents
 
 
 _TRACE_STATE = threading.local()
@@ -282,7 +283,7 @@ def _extract_answer(text: str, config: EvalConfig) -> str | None:
         return extract_answer_mc5(text)
     if config.dataset == "legalbench_scalr":
         return extract_answer_mc5(text)
-    if config.dataset == "musique":
+    if config.dataset in ("musique", "hotpotqa"):
         # Short-answer span — extract the post-Answer span, EM/F1 scored downstream
         return extract_answer_musique(text)
     if config.dataset in ("legal_rag", "legal_rag_bench", "australian"):
@@ -439,7 +440,7 @@ def _fmt_intermediate(row: pd.Series, config: EvalConfig) -> str:
     if is_beir_dataset(config.dataset):
         return str(row["question"])
 
-    if config.dataset in ("legal_rag", "legal_rag_bench", "australian", "musique"):
+    if config.dataset in ("legal_rag", "legal_rag_bench", "australian", "musique", "hotpotqa"):
         return str(row["question"])
 
     if config.dataset == "housing":
@@ -666,6 +667,9 @@ def _row_label(row: pd.Series, config: EvalConfig, fallback_i: int | None = None
         return f"aus_{row.get('jurisdiction', 'unknown')}_{i}"
     if config.dataset == "musique":
         return f"mq_{i}"
+    if config.dataset == "hotpotqa":
+        i_str = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(i)).strip("_")
+        return f"hpq_{i_str or fallback_i or 'unknown'}"
     if config.dataset == "medqa":
         i_str = str(i)
         return i_str if i_str.startswith("medqa_") else f"medqa_{i_str}"
@@ -915,6 +919,9 @@ def _get_documents_by_idx_for_replay(
     embedding_model: str | None = None,
     return_cache_hit: bool = False,
 ) -> list[Document] | tuple[list[Document], bool]:
+    if collection == "hotpotqa_passages":
+        docs = hotpotqa_documents_by_idx(idxs)
+        return (docs, False) if return_cache_hit else docs
     cached = _documents_from_doc_cache(collection, [str(idx) for idx in idxs])
     if cached is not None:
         return (cached, True) if return_cache_hit else cached
@@ -2132,6 +2139,35 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
             ),
         }
         return prompts.get(role, prompts["answer"])
+    if config.dataset == "hotpotqa":
+        prompts = {
+            "answer": (
+                "You answer HotpotQA multi-hop questions. Give a brief span or yes/no answer. "
+                "End with one line in the form: Answer: [your answer here]"
+            ),
+            "rag": (
+                "You answer HotpotQA multi-hop questions using retrieved Wikipedia paragraphs. "
+                "Combine evidence across paragraphs when needed, but keep the final answer brief. "
+                "End with one line in the form: Answer: [your answer here]"
+            ),
+            "research": (
+                "You answer HotpotQA multi-hop questions from research findings. Combine the "
+                "findings when needed and end with one line in the form: Answer: [your answer here]"
+            ),
+            "hyde": (
+                "You are a Wikipedia-style corpus author. Given a multi-hop question, write a "
+                "short neutral passage (2-3 sentences) that would help retrieve the relevant "
+                "Wikipedia paragraphs. Preserve concrete entities from the question and include "
+                "the likely bridge relation when useful. Do not output an `Answer:` line."
+            ),
+            "snap_hyde": (
+                "You are a Wikipedia-style corpus author. A user has reasoned about a multi-hop "
+                "question. Write a short neutral passage (2-3 sentences) that would be useful "
+                "for retrieving the supporting Wikipedia paragraphs. Use the reasoning only to "
+                "target entities and bridge facts. Do not output answer labels or an `Answer:` line."
+            ),
+        }
+        return prompts.get(role, prompts["answer"])
     if config.dataset in ("legal_rag", "legal_rag_bench", "australian"):
         if config.dataset == "legal_rag_bench":
             domain = "Victorian criminal law and procedure"
@@ -2249,6 +2285,7 @@ DATASET_COLLECTIONS = {
     "australian": "australian_legal",
     "casehold": "casehold_holdings",
     "musique": "musique_passages",
+    "hotpotqa": "hotpotqa_passages",
     "legalbench_scalr": "legalbench_scalr_holdings",
     "medqa": "medqa_textbooks",
     "beir_scifact": "beir_scifact",
@@ -2645,6 +2682,81 @@ def _retrieve_and_format(row: pd.Series, queries: List[str], k: int = 5,
     # MuSiQue uses in-row BM25 (no ChromaDB) — each question carries its own paragraph pool
     if collection == "musique_passages":
         return _retrieve_musique_in_row(row, queries, k=k, label_prefix=label_prefix)
+
+    # HotpotQA-distractor uses in-row dense retrieval over its ten paragraphs.
+    if collection == "hotpotqa_passages":
+        embedding_model = os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or None
+        cached = _documents_from_retrieval_cache(
+            row=row,
+            label_prefix=label_prefix,
+            collection=collection,
+            where=where,
+            embedding_model=embedding_model,
+            k=k,
+            queries=queries,
+        )
+        retrieval_cache_hit = cached is not None
+        retrieval_cache_entry = cached[1] if cached is not None else None
+        docs = (
+            cached[0]
+            if cached is not None
+            else retrieve_hotpotqa_documents(
+                row,
+                queries,
+                k=k,
+                rerank_query=rerank_query,
+                embedding_model=embedding_model,
+            )
+        )
+        passages = []
+        evidence_store = []
+        for i, doc in enumerate(docs, 1):
+            metadata = dict(doc.metadata or {})
+            idx = str(metadata.get("idx", f"{label_prefix}_{i}"))
+            ce_score = metadata.get("cross_encoder_score", 0.0)
+            title = str(metadata.get("title") or metadata.get("context_title") or "")
+            header = f"[Source {i} | {idx}]"
+            if title:
+                header += f" {title}"
+            passages.append(f"{header}\n{doc.page_content}")
+            evidence_store.append({
+                "idx": idx,
+                "text": doc.page_content,
+                "source": "hotpotqa_distractor",
+                "citation": title,
+                "role": "supporting" if metadata.get("is_supporting") else "distractor",
+                "context_title": title,
+                "cross_encoder_score": ce_score,
+                "dense_score": metadata.get("dense_score", 0.0),
+            })
+        retrieved_ids = [ev["idx"] for ev in evidence_store]
+        gold_retrieved = _is_gold_retrieved(row, retrieved_ids)
+        max_ce_score = max((float(ev["cross_encoder_score"]) for ev in evidence_store), default=0.0)
+        _record_trace_event(
+            "retrieval",
+            label=label_prefix,
+            queries=queries,
+            rerank_query=rerank_query or "",
+            k=k,
+            where={},
+            collection=collection,
+            embedding_model=embedding_model or "",
+            results=evidence_store,
+            retrieved_ids=retrieved_ids,
+            gold_idx=_gold_idx_string(row),
+            gold_retrieved=gold_retrieved,
+            max_ce_score=max_ce_score,
+            retrieval_cache_hit=retrieval_cache_hit,
+        )
+        return {
+            "passages": passages,
+            "evidence_store": evidence_store,
+            "retrieved_ids": retrieved_ids,
+            "gold_retrieved": gold_retrieved,
+            "max_ce_score": max_ce_score,
+            "retrieval_cache_hit": retrieval_cache_hit,
+            "retrieval_doc_cache_hit": bool((retrieval_cache_entry or {}).get("_doc_cache_hit")),
+        }
 
     embedding_model = os.getenv("EVAL_EMBEDDING_MODEL", "").strip() or None
     cached = _documents_from_retrieval_cache(
@@ -8685,6 +8797,8 @@ def _row_subject(row: pd.Series, config: EvalConfig) -> str:
         return str(row.get("jurisdiction", "unknown"))
     if config.dataset == "musique":
         return f"{int(row.get('n_hops', 0))}-hop"
+    if config.dataset == "hotpotqa":
+        return str(row.get("type", row.get("level", "hotpotqa")))
     if config.dataset == "medqa":
         return str(row.get("meta_info", "medqa"))
     return str(row.get("subject", "unknown"))
@@ -8838,6 +8952,11 @@ def _evaluate_one_row(
         record["meta_info"] = str(row.get("meta_info", ""))
         record["answer_text"] = str(row.get("answer_text", ""))[:500]
         record["gold_passage"] = ""
+    elif config.dataset == "hotpotqa":
+        record["type"] = str(row.get("type", ""))
+        record["level"] = str(row.get("level", ""))
+        record["gold_titles"] = str(row.get("gold_titles", ""))
+        record["gold_passage"] = ""
     elif is_beir_dataset(config.dataset):
         record["beir_subset"] = BEIR_DATASETS[config.dataset]
         record["gold_count"] = int(row.get("gold_count", 0) or 0)
@@ -8961,7 +9080,7 @@ def run_eval(config: EvalConfig):
     skip_collection_preflight = os.getenv("SKIP_EVAL_COLLECTION_PREFLIGHT", "").strip().lower() in {"1", "true", "yes", "on"}
     if skip_collection_preflight:
         print("[preflight] collection count skipped by SKIP_EVAL_COLLECTION_PREFLIGHT=1")
-    elif config.dataset != "musique" and config.mode not in _NO_CHROMA_MODES:
+    elif config.dataset not in ("musique", "hotpotqa") and config.mode not in _NO_CHROMA_MODES:
         try:
             from rag_utils import get_vectorstore
             _coll_name = _collection_for_config(config) if "_collection_for_config" in globals() else "legal_passages"
@@ -9003,7 +9122,7 @@ def run_eval(config: EvalConfig):
     consecutive_errors = 0
 
     is_open_ended = config.dataset in ("legal_rag", "legal_rag_bench", "australian") or is_beir_dataset(config.dataset)
-    is_short_span = config.dataset == "musique"
+    is_short_span = config.dataset in ("musique", "hotpotqa")
 
     row_items = list(qa.iterrows())
 
@@ -9242,7 +9361,7 @@ def main():
     parser.add_argument("--source-filter", default="",
                         help="Metadata source filter for retrieval, e.g. 'mbe' (default: none)")
     parser.add_argument("--dataset", default="barexam",
-                        choices=["barexam", "housing", "legal_rag", "legal_rag_bench", "mas_legal_bench", "legal_link_eu", "australian", "casehold", "musique", "legalbench_scalr", "medqa", *BEIR_DATASETS.keys()],
+                        choices=["barexam", "housing", "legal_rag", "legal_rag_bench", "mas_legal_bench", "legal_link_eu", "australian", "casehold", "musique", "hotpotqa", "legalbench_scalr", "medqa", *BEIR_DATASETS.keys()],
                         help="Dataset to evaluate on (default: barexam)")
     parser.add_argument("--retrieval-k", type=int, default=5,
                         help="Final top-k after rerank for retrieval modes (default 5; meeting ask: top-1 vs top-5 ablation)")
