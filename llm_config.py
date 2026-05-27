@@ -5,7 +5,8 @@ Supports multiple providers via LLM_PROVIDER env var:
   groq-llama70b, groq-llama8b, groq-maverick, groq-scout, groq-gpt120b, groq-kimi, groq-qwen,
   or-llama70b, or-gpt20b, or-ministral-8b, or-gemma3n-e4b, or-gemma3-4b, or-gemma27b,
   or-gemma4-26b, or-gemma4-31b,
-  or-qwen3-coder, or-nemotron, or-mistral, or-hermes,
+  or-qwen3-coder, or-qwen3p5-9b, or-mistral-small-3p2-24b, or-deepseek-v32,
+  or-nemotron, or-mistral, or-hermes,
   ollama, cerebras
 
 Falls back to raw LLM_BASE_URL/LLM_API_KEY/LLM_MODEL only when LLM_PROVIDER is
@@ -49,11 +50,14 @@ PROVIDERS = {
     "or-qwen3-32b":       ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3-32b",                         None, None),
     "or-qwen3-30b-moe":   ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3-30b-a3b",                     None, None),
     "or-qwen35-9b":       ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3.5-9b",                        None, None),
+    "or-qwen3p5-9b":      ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "qwen/qwen3.5-9b",                        None, None),
     # --- Small API model replacement for historical Gemma 4 E4B ---
     "or-ministral-8b":     ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "mistralai/ministral-8b-2512",              None, None),
     # --- OpenRouter (paid) ---
     "or-phi4":            ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "microsoft/phi-4",                       None, None),
     "or-mistral-nemo":    ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "mistralai/mistral-nemo",                None, None),
+    "or-mistral-small-3p2-24b": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "mistralai/mistral-small-3.2-24b-instruct", None, None),
+    "or-deepseek-v32":    ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "deepseek/deepseek-v3.2",                None, None),
     # --- OpenRouter (free tier — weekly token limits, no RPD cap) ---
     "or-llama70b":        ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "meta-llama/llama-3.3-70b-instruct:free",     None, None),
     "or-llama70b-paid":   ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", "meta-llama/llama-3.3-70b-instruct",          None, None),
@@ -171,6 +175,8 @@ def _openrouter_extra_body(max_completion_tokens: int | None = None) -> dict:
     extra_body = {
         "provider": provider,
     }
+    if os.getenv("OPENROUTER_DISABLE_REASONING", "").strip().lower() in {"1", "true", "yes", "on"}:
+        extra_body["reasoning"] = {"enabled": False}
     if max_completion_tokens is not None:
         # ChatOpenAI rewrites max_tokens to max_completion_tokens, but
         # OpenRouter enforces the legacy max_tokens field for these models.

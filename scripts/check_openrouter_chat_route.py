@@ -119,6 +119,12 @@ def main() -> int:
         action="store_true",
         help="Allow OpenRouter provider fallbacks. Defaults to disabled.",
     )
+    parser.add_argument(
+        "--disable-reasoning",
+        action="store_true",
+        default=env_truthy("OPENROUTER_DISABLE_REASONING"),
+        help="Pass OpenRouter reasoning.enabled=false for reactive instruct checks.",
+    )
     parser.add_argument("--timeout", type=float, default=45.0)
     parser.add_argument("--max-tokens", type=int, default=8)
     parser.add_argument("--expected-content", default="OK")
@@ -177,6 +183,8 @@ def main() -> int:
             args.allow_fallbacks,
         ),
     }
+    if args.disable_reasoning:
+        body["reasoning"] = {"enabled": False}
     request = urllib.request.Request(
         "https://openrouter.ai/api/v1/chat/completions",
         data=json.dumps(body).encode("utf-8"),

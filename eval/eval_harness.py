@@ -508,7 +508,7 @@ def _contains_answer_artifact(text: str) -> bool:
         return False
     artifact_patterns = [
         r"(?im)^\s*(?:\*\*)?(?:final\s+)?answer(?:\*\*)?\s*:",
-        r"(?i)\b(?:answer|option|choice)\s+(?:is|must be|would be)\s*\(?[A-E]\)?\b",
+        r"(?i)\b(?:answer|option|choice)\s+(?:is|must be|would be)\s*\(?[A-E]\)?(?=\s*(?:$|[.,;:!?]))",
         # Keep this stricter than the answer/option patterns above so ordinary
         # legal prose such as "it is a fair representation" is not treated as
         # an option-letter leak.
