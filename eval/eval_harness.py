@@ -54,6 +54,8 @@ from rag_utils import retrieve_documents_multi_query, get_documents_by_idx, get_
 _TRACE_STATE = threading.local()
 _RETRIEVAL_DOC_CACHE: dict[tuple[str, str], Document] | None = None
 _RETRIEVAL_DOC_CACHE_PATH: str | None = None
+_LLM_CALL_THROTTLE_LOCK = threading.Lock()
+_LLM_CALL_THROTTLE_LAST_START = 0.0
 
 
 def _call_trace_buffer() -> list[dict]:
@@ -92,6 +94,29 @@ def _trace_text(text: str) -> str:
     if limit <= 0:
         return text
     return text[:limit] + ("..." if len(text) > limit else "")
+
+
+def _llm_call_throttle() -> None:
+    """Optional global start-rate throttle for provider RPM limits."""
+    raw = os.getenv("EVAL_LLM_MIN_CALL_INTERVAL_SEC", "").strip()
+    if not raw:
+        return
+    try:
+        min_interval = float(raw)
+    except ValueError as exc:
+        raise ValueError(
+            f"EVAL_LLM_MIN_CALL_INTERVAL_SEC must be numeric, got {raw!r}"
+        ) from exc
+    if min_interval <= 0:
+        return
+    global _LLM_CALL_THROTTLE_LAST_START
+    with _LLM_CALL_THROTTLE_LOCK:
+        now = time.monotonic()
+        wait = _LLM_CALL_THROTTLE_LAST_START + min_interval - now
+        if wait > 0:
+            time.sleep(wait)
+            now = time.monotonic()
+        _LLM_CALL_THROTTLE_LAST_START = now
 
 
 def _reset_call_trace() -> None:
@@ -140,11 +165,13 @@ def _llm_call(system: str, user: str, label: str = "") -> str:
     catches body-parse failures the OpenAI client doesn't retry.
     """
     try:
+        _llm_call_throttle()
         response = _base_llm_call(system, user, label=label)
     except (json.JSONDecodeError, ConnectionError, TimeoutError) as exc:
         # One retry — these are transient OpenRouter routing failures
         time.sleep(2)
         try:
+            _llm_call_throttle()
             response = _base_llm_call(system, user, label=label)
         except Exception as exc2:
             if _trace_calls_enabled():

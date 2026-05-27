@@ -36,6 +36,25 @@ PROVIDER_DISPLAY = {
     "or-deepseek-v32": "DeepSeek V3.2",
 }
 
+PROVIDER_RUN_NOTES = {
+    "or-qwen3p5-9b": (
+        "Qwen generation used `OPENROUTER_DISABLE_REASONING=1` after the "
+        "sanity check exposed hidden-reasoning / blank-visible-content routing; "
+        "the committed caches passed the clean-output checks."
+    ),
+    "or-qwen35-9b": (
+        "Qwen generation used `OPENROUTER_DISABLE_REASONING=1` after the "
+        "sanity check exposed hidden-reasoning / blank-visible-content routing; "
+        "the committed caches passed the clean-output checks."
+    ),
+    "or-mistral-small-3p2-24b": (
+        "Mistral generation hit an upstream 429 on the default route and was "
+        "resumed on the OpenRouter `Mistral` provider with "
+        "`EVAL_LLM_MIN_CALL_INTERVAL_SEC=0.75`; the completed caches are clean "
+        "and are not marked provisional."
+    ),
+}
+
 
 def provider_spec(spec: phase1.BeirSpec, provider: str) -> phase1.BeirSpec:
     return replace(
@@ -417,6 +436,12 @@ def write_report(output: Path, points: list[dict[str, Any]], providers: list[str
     lines.append("## Clean-Output And Cache Health")
     lines.append("")
     lines.append(f"Generation status: **{clean_status(gen_health)}**. Retrieval status: **{clean_status(ret_health)}**.")
+    notes = [PROVIDER_RUN_NOTES[p] for p in providers if p in PROVIDER_RUN_NOTES]
+    if notes:
+        lines.append("")
+        lines.append("Execution notes:")
+        for note in notes:
+            lines.append(f"- {note}")
     lines.append("")
     lines.append("| Model | Dataset | Expansion | Generation rows | Errors | Missing passage | Parse bad | Answer artifacts | Format retries | Max output tokens | Retrieval rows | Short retrieval rows | Provider mismatches |")
     lines.append("|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
