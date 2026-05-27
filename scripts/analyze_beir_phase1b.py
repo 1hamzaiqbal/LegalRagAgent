@@ -53,6 +53,11 @@ PROVIDER_RUN_NOTES = {
         "`EVAL_LLM_MIN_CALL_INTERVAL_SEC=0.75`; the completed caches are clean "
         "and are not marked provisional."
     ),
+    "or-deepseek-v32": (
+        "DeepSeek V3.2 generation used the OpenRouter `StreamLake` provider "
+        "after the default route exposed upstream 429 risk; the completed "
+        "caches passed the clean-output checks."
+    ),
 }
 
 

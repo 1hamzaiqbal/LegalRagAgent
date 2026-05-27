@@ -4,17 +4,17 @@
 
 Model-breadth analysis over the five BEIR Phase 1 datasets using the same raw-question retrieval caches, Chroma collections, gte-large embeddings, and MiniLM cross-encoder reranking. No files under `paper/` were edited.
 
-Models included: `or-gemma4-26b` (Gemma 4 26B), `or-qwen3p5-9b` (Qwen 3.5 9B), `or-mistral-small-3p2-24b` (Mistral Small 3.2 24B).
+Models included: `or-gemma4-26b` (Gemma 4 26B), `or-qwen3p5-9b` (Qwen 3.5 9B), `or-mistral-small-3p2-24b` (Mistral Small 3.2 24B), `or-deepseek-v32` (DeepSeek V3.2).
 
 ## Cross-Model Verdicts
 
 | Claim | Verdict | Key numbers |
 |---|---|---|
-| Gold-affinity mechanism (HyDE) | **supported** | Gemma 4 26B rho=0.501, Mistral Small 3.2 24B rho=0.512, Qwen 3.5 9B rho=0.478 |
-| P4 geometry-not-hallucination (HyDE) | **supported** | Gemma 4 26B geom=0.944/quality=0.520, Mistral Small 3.2 24B geom=0.944/quality=0.499, Qwen 3.5 9B geom=0.945/quality=0.492 |
-| Gold-affinity mechanism (SCOPE) | **supported** | Gemma 4 26B rho=0.426, Mistral Small 3.2 24B rho=0.390, Qwen 3.5 9B rho=0.393 |
-| P4 geometry-not-hallucination (SCOPE) | **supported** | Gemma 4 26B geom=0.909/quality=0.509, Mistral Small 3.2 24B geom=0.910/quality=0.508, Qwen 3.5 9B geom=0.922/quality=0.528 |
-| SCOPE robustness over HyDE | **supported** | Gemma 4 26B net_gap=19.0%, closer0=3.807, Mistral Small 3.2 24B net_gap=17.0%, closer0=2.716, Qwen 3.5 9B net_gap=19.6%, closer0=4.348 |
+| Gold-affinity mechanism (HyDE) | **supported** | DeepSeek V3.2 rho=0.592, Gemma 4 26B rho=0.501, Mistral Small 3.2 24B rho=0.512, Qwen 3.5 9B rho=0.478 |
+| P4 geometry-not-hallucination (HyDE) | **supported** | DeepSeek V3.2 geom=0.928/quality=0.493, Gemma 4 26B geom=0.944/quality=0.520, Mistral Small 3.2 24B geom=0.944/quality=0.499, Qwen 3.5 9B geom=0.945/quality=0.492 |
+| Gold-affinity mechanism (SCOPE) | **supported** | DeepSeek V3.2 rho=0.390, Gemma 4 26B rho=0.426, Mistral Small 3.2 24B rho=0.390, Qwen 3.5 9B rho=0.393 |
+| P4 geometry-not-hallucination (SCOPE) | **supported** | DeepSeek V3.2 geom=0.888/quality=0.482, Gemma 4 26B geom=0.909/quality=0.509, Mistral Small 3.2 24B geom=0.910/quality=0.508, Qwen 3.5 9B geom=0.922/quality=0.528 |
+| SCOPE robustness over HyDE | **supported** | DeepSeek V3.2 net_gap=29.3%, closer0=4.291, Gemma 4 26B net_gap=19.0%, closer0=3.807, Mistral Small 3.2 24B net_gap=17.0%, closer0=2.716, Qwen 3.5 9B net_gap=19.6%, closer0=4.348 |
 
 ## Clean-Output And Cache Health
 
@@ -23,6 +23,7 @@ Generation status: **clean**. Retrieval status: **clean**.
 Execution notes:
 - Qwen generation used `OPENROUTER_DISABLE_REASONING=1` after the sanity check exposed hidden-reasoning / blank-visible-content routing; the committed caches passed the clean-output checks.
 - Mistral generation hit an upstream 429 on the default route and was resumed on the OpenRouter `Mistral` provider with `EVAL_LLM_MIN_CALL_INTERVAL_SEC=0.75`; the completed caches are clean and are not marked provisional.
+- DeepSeek V3.2 generation used the OpenRouter `StreamLake` provider after the default route exposed upstream 429 risk; the completed caches passed the clean-output checks.
 
 | Model | Dataset | Expansion | Generation rows | Errors | Missing passage | Parse bad | Answer artifacts | Format retries | Max output tokens | Retrieval rows | Short retrieval rows | Provider mismatches |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -56,11 +57,31 @@ Execution notes:
 | Mistral Small 3.2 24B | TREC-COVID | SCOPE | 50 | 0 | 0 | 0 | 0 | 0 | 224 | 50 | 0 | 0 |
 | Mistral Small 3.2 24B | SciDocs | HyDE | 1000 | 0 | 0 | 0 | 0 | 0 | 151 | 1000 | 0 | 0 |
 | Mistral Small 3.2 24B | SciDocs | SCOPE | 1000 | 0 | 0 | 0 | 0 | 0 | 250 | 1000 | 0 | 0 |
+| DeepSeek V3.2 | SciFact | HyDE | 300 | 0 | 0 | 0 | 0 | 0 | 135 | 300 | 0 | 0 |
+| DeepSeek V3.2 | SciFact | SCOPE | 300 | 0 | 0 | 0 | 0 | 0 | 220 | 300 | 0 | 0 |
+| DeepSeek V3.2 | NFCorpus | HyDE | 323 | 0 | 0 | 0 | 0 | 0 | 151 | 323 | 0 | 0 |
+| DeepSeek V3.2 | NFCorpus | SCOPE | 323 | 0 | 0 | 0 | 0 | 0 | 151 | 323 | 0 | 0 |
+| DeepSeek V3.2 | FiQA | HyDE | 648 | 0 | 0 | 0 | 0 | 0 | 141 | 648 | 0 | 0 |
+| DeepSeek V3.2 | FiQA | SCOPE | 648 | 0 | 0 | 0 | 0 | 0 | 212 | 648 | 0 | 0 |
+| DeepSeek V3.2 | TREC-COVID | HyDE | 50 | 0 | 0 | 0 | 0 | 0 | 148 | 50 | 0 | 0 |
+| DeepSeek V3.2 | TREC-COVID | SCOPE | 50 | 0 | 0 | 0 | 0 | 0 | 214 | 50 | 0 | 0 |
+| DeepSeek V3.2 | SciDocs | HyDE | 1000 | 0 | 0 | 0 | 0 | 0 | 147 | 1000 | 0 | 0 |
+| DeepSeek V3.2 | SciDocs | SCOPE | 1000 | 0 | 0 | 0 | 0 | 0 | 217 | 1000 | 0 | 0 |
 
 ## Retrieval Outcomes
 
 | Model | Dataset | Expansion | N | Raw Hit@5 | Expansion Hit@5 | Net Hit@5 | Help | Hurt | RI |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|
+| DeepSeek V3.2 | FiQA | HyDE | 648 | 66.2% | 27.6% | -38.6% | 31 | 281 | -0.386 |
+| DeepSeek V3.2 | FiQA | SCOPE | 648 | 66.2% | 48.3% | -17.9% | 40 | 156 | -0.179 |
+| DeepSeek V3.2 | NFCorpus | HyDE | 323 | 69.3% | 27.6% | -41.8% | 7 | 142 | -0.418 |
+| DeepSeek V3.2 | NFCorpus | SCOPE | 323 | 69.3% | 66.9% | -2.5% | 20 | 28 | -0.025 |
+| DeepSeek V3.2 | SciDocs | HyDE | 1000 | 49.0% | 20.4% | -28.6% | 48 | 334 | -0.286 |
+| DeepSeek V3.2 | SciDocs | SCOPE | 1000 | 49.0% | 47.6% | -1.4% | 98 | 112 | -0.014 |
+| DeepSeek V3.2 | SciFact | HyDE | 300 | 82.0% | 31.7% | -50.3% | 10 | 161 | -0.503 |
+| DeepSeek V3.2 | SciFact | SCOPE | 300 | 82.0% | 77.0% | -5.0% | 16 | 31 | -0.050 |
+| DeepSeek V3.2 | TREC-COVID | HyDE | 50 | 98.0% | 72.0% | -26.0% | 0 | 13 | -0.260 |
+| DeepSeek V3.2 | TREC-COVID | SCOPE | 50 | 98.0% | 96.0% | -2.0% | 1 | 2 | -0.020 |
 | Gemma 4 26B | FiQA | HyDE | 648 | 66.2% | 32.3% | -34.0% | 38 | 258 | -0.340 |
 | Gemma 4 26B | FiQA | SCOPE | 648 | 66.2% | 35.2% | -31.0% | 25 | 226 | -0.310 |
 | Gemma 4 26B | NFCorpus | HyDE | 323 | 69.3% | 33.4% | -35.9% | 6 | 122 | -0.359 |
@@ -91,6 +112,8 @@ Execution notes:
 | Qwen 3.5 9B | SciFact | SCOPE | 300 | 82.0% | 70.0% | -12.0% | 16 | 52 | -0.120 |
 | Qwen 3.5 9B | TREC-COVID | HyDE | 50 | 98.0% | 64.0% | -34.0% | 0 | 17 | -0.340 |
 | Qwen 3.5 9B | TREC-COVID | SCOPE | 50 | 98.0% | 92.0% | -6.0% | 1 | 4 | -0.060 |
+| DeepSeek V3.2 | Pooled | HyDE | 2321 | 62.0% | 26.0% | -36.0% | 96 | 931 | -0.360 |
+| DeepSeek V3.2 | Pooled | SCOPE | 2321 | 62.0% | 55.3% | -6.6% | 175 | 329 | -0.066 |
 | Gemma 4 26B | Pooled | HyDE | 2321 | 62.0% | 30.7% | -31.3% | 115 | 841 | -0.313 |
 | Gemma 4 26B | Pooled | SCOPE | 2321 | 62.0% | 49.7% | -12.2% | 145 | 429 | -0.122 |
 | Mistral Small 3.2 24B | Pooled | HyDE | 2321 | 62.0% | 33.3% | -28.6% | 111 | 775 | -0.286 |
@@ -102,6 +125,16 @@ Execution notes:
 
 | Model | Dataset | Expansion | N | Mean CE gold delta | Gold rho | Gold tau | Margin-valid N | Mean deltaM | DeltaM rho | DeltaM tau |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| DeepSeek V3.2 | FiQA | HyDE | 648 | -3.797 | 0.583 | 0.474 | 648 | -1.836 | 0.556 | 0.452 |
+| DeepSeek V3.2 | FiQA | SCOPE | 648 | -1.576 | 0.439 | 0.357 | 648 | -1.257 | 0.478 | 0.390 |
+| DeepSeek V3.2 | NFCorpus | HyDE | 323 | -5.325 | 0.561 | 0.458 | 311 | -2.487 | 0.445 | 0.362 |
+| DeepSeek V3.2 | NFCorpus | SCOPE | 323 | -0.294 | 0.275 | 0.223 | 309 | -0.811 | 0.217 | 0.175 |
+| DeepSeek V3.2 | SciDocs | HyDE | 1000 | -3.673 | 0.572 | 0.462 | 1000 | 0.424 | 0.565 | 0.455 |
+| DeepSeek V3.2 | SciDocs | SCOPE | 1000 | 1.359 | 0.347 | 0.279 | 1000 | 1.146 | 0.382 | 0.308 |
+| DeepSeek V3.2 | SciFact | HyDE | 300 | -6.887 | 0.652 | 0.536 | 300 | -2.883 | 0.531 | 0.434 |
+| DeepSeek V3.2 | SciFact | SCOPE | 300 | 0.207 | 0.404 | 0.331 | 300 | -1.301 | 0.424 | 0.348 |
+| DeepSeek V3.2 | TREC-COVID | HyDE | 50 | -5.244 | 0.507 | 0.418 | 27 | -0.727 | 0.535 | 0.445 |
+| DeepSeek V3.2 | TREC-COVID | SCOPE | 50 | -1.685 | 0.023 | 0.017 | 24 | -0.173 | 0.506 | 0.426 |
 | Gemma 4 26B | FiQA | HyDE | 648 | -4.055 | 0.565 | 0.457 | 648 | -1.352 | 0.543 | 0.441 |
 | Gemma 4 26B | FiQA | SCOPE | 648 | -2.947 | 0.505 | 0.411 | 648 | -1.798 | 0.537 | 0.440 |
 | Gemma 4 26B | NFCorpus | HyDE | 323 | -5.005 | 0.406 | 0.331 | 310 | -2.313 | 0.419 | 0.341 |
@@ -132,6 +165,8 @@ Execution notes:
 | Qwen 3.5 9B | SciFact | SCOPE | 300 | -0.603 | 0.324 | 0.264 | 300 | -2.096 | 0.440 | 0.362 |
 | Qwen 3.5 9B | TREC-COVID | HyDE | 50 | -7.695 | 0.414 | 0.341 | 28 | -1.033 | 0.052 | 0.043 |
 | Qwen 3.5 9B | TREC-COVID | SCOPE | 50 | -2.074 | -0.118 | -0.096 | 25 | 0.149 | 0.167 | 0.130 |
+| DeepSeek V3.2 | Pooled | HyDE | 2321 | -4.387 | 0.592 | 0.481 | 2286 | -1.060 | 0.559 | 0.453 |
+| DeepSeek V3.2 | Pooled | SCOPE | 2321 | 0.095 | 0.390 | 0.316 | 2281 | -0.137 | 0.409 | 0.332 |
 | Gemma 4 26B | Pooled | HyDE | 2321 | -4.354 | 0.501 | 0.404 | 2285 | -0.555 | 0.517 | 0.418 |
 | Gemma 4 26B | Pooled | SCOPE | 2321 | -0.546 | 0.426 | 0.346 | 2282 | -0.444 | 0.442 | 0.358 |
 | Mistral Small 3.2 24B | Pooled | HyDE | 2321 | -2.895 | 0.512 | 0.413 | 2282 | -0.548 | 0.509 | 0.410 |
@@ -143,6 +178,26 @@ Execution notes:
 
 | Model | Dataset | Expansion | Target | N | Failures | AUC OOV/logPPL | AUC geometry | Pseudo-R2 OOV/logPPL | Pseudo-R2 geometry |
 |---|---|---|---|---:|---:|---:|---:|---:|---:|
+| DeepSeek V3.2 | FiQA | HyDE | deltaM<0 | 648 | 438 | 0.512 | 0.952 | 0.004 | 0.588 |
+| DeepSeek V3.2 | FiQA | HyDE | retrieval hurt | 648 | 281 | 0.530 | 0.816 | 0.003 | 0.246 |
+| DeepSeek V3.2 | FiQA | SCOPE | deltaM<0 | 648 | 409 | 0.530 | 0.881 | 0.002 | 0.383 |
+| DeepSeek V3.2 | FiQA | SCOPE | retrieval hurt | 648 | 156 | 0.547 | 0.706 | 0.001 | 0.085 |
+| DeepSeek V3.2 | NFCorpus | HyDE | deltaM<0 | 311 | 211 | 0.562 | 0.944 | 0.008 | 0.532 |
+| DeepSeek V3.2 | NFCorpus | HyDE | retrieval hurt | 311 | 135 | 0.588 | 0.790 | 0.026 | 0.208 |
+| DeepSeek V3.2 | NFCorpus | SCOPE | deltaM<0 | 309 | 179 | 0.585 | 0.870 | 0.017 | 0.359 |
+| DeepSeek V3.2 | NFCorpus | SCOPE | retrieval hurt | 311 | 28 | 0.574 | 0.698 | 0.011 | 0.060 |
+| DeepSeek V3.2 | SciDocs | HyDE | deltaM<0 | 1000 | 473 | 0.519 | 0.928 | 0.001 | 0.512 |
+| DeepSeek V3.2 | SciDocs | HyDE | retrieval hurt | 1000 | 334 | 0.544 | 0.870 | 0.002 | 0.337 |
+| DeepSeek V3.2 | SciDocs | SCOPE | deltaM<0 | 1000 | 378 | 0.507 | 0.914 | 0.000 | 0.456 |
+| DeepSeek V3.2 | SciDocs | SCOPE | retrieval hurt | 1000 | 112 | 0.568 | 0.723 | 0.006 | 0.088 |
+| DeepSeek V3.2 | SciFact | HyDE | deltaM<0 | 300 | 214 | 0.546 | 0.928 | 0.002 | 0.481 |
+| DeepSeek V3.2 | SciFact | HyDE | retrieval hurt | 300 | 161 | 0.534 | 0.895 | 0.000 | 0.408 |
+| DeepSeek V3.2 | SciFact | SCOPE | deltaM<0 | 300 | 188 | 0.541 | 0.839 | 0.014 | 0.285 |
+| DeepSeek V3.2 | SciFact | SCOPE | retrieval hurt | 300 | 31 | 0.531 | 0.836 | 0.005 | 0.221 |
+| DeepSeek V3.2 | TREC-COVID | HyDE | deltaM<0 | 27 | 14 | 0.500 | 0.879 | 0.002 | 0.367 |
+| DeepSeek V3.2 | TREC-COVID | HyDE | retrieval hurt | 28 | 9 | 0.624 | 0.848 | 0.026 | 0.301 |
+| DeepSeek V3.2 | TREC-COVID | SCOPE | deltaM<0 | 24 | 12 | 0.688 | 0.792 | 0.053 | 0.163 |
+| DeepSeek V3.2 | TREC-COVID | SCOPE | retrieval hurt | 28 | 2 | 0.688 | 0.731 | 0.074 | 0.127 |
 | Gemma 4 26B | FiQA | HyDE | deltaM<0 | 648 | 412 | 0.544 | 0.936 | 0.006 | 0.534 |
 | Gemma 4 26B | FiQA | HyDE | retrieval hurt | 648 | 258 | 0.548 | 0.815 | 0.004 | 0.241 |
 | Gemma 4 26B | FiQA | SCOPE | deltaM<0 | 648 | 423 | 0.527 | 0.923 | 0.003 | 0.491 |
@@ -203,6 +258,10 @@ Execution notes:
 | Qwen 3.5 9B | TREC-COVID | HyDE | retrieval hurt | 28 | 9 | 0.569 | 0.708 | 0.020 | 0.109 |
 | Qwen 3.5 9B | TREC-COVID | SCOPE | deltaM<0 | 25 | 13 | 0.590 | 0.769 | 0.008 | 0.196 |
 | Qwen 3.5 9B | TREC-COVID | SCOPE | retrieval hurt | 28 | 3 | 0.647 | 0.787 | 0.047 | 0.094 |
+| DeepSeek V3.2 | Pooled | HyDE | deltaM<0 | 2286 | 1350 | 0.493 | 0.928 | 0.000 | 0.511 |
+| DeepSeek V3.2 | Pooled | HyDE | retrieval hurt | 2287 | 920 | 0.511 | 0.836 | 0.002 | 0.272 |
+| DeepSeek V3.2 | Pooled | SCOPE | deltaM<0 | 2281 | 1166 | 0.482 | 0.888 | 0.000 | 0.392 |
+| DeepSeek V3.2 | Pooled | SCOPE | retrieval hurt | 2287 | 329 | 0.574 | 0.716 | 0.006 | 0.079 |
 | Gemma 4 26B | Pooled | HyDE | deltaM<0 | 2285 | 1256 | 0.520 | 0.944 | 0.000 | 0.571 |
 | Gemma 4 26B | Pooled | HyDE | retrieval hurt | 2287 | 832 | 0.490 | 0.798 | 0.001 | 0.206 |
 | Gemma 4 26B | Pooled | SCOPE | deltaM<0 | 2282 | 1206 | 0.509 | 0.909 | 0.000 | 0.450 |
@@ -222,6 +281,11 @@ Positive `SCOPE-HyDE net` means SCOPE loses less retrieval exposure than HyDE. P
 
 | Model | Dataset | HyDE net Hit@5 | SCOPE net Hit@5 | SCOPE-HyDE net | HyDE mean CE gold delta | SCOPE mean CE gold delta | Closer-to-zero CE delta |
 |---|---|---:|---:|---:|---:|---:|---:|
+| DeepSeek V3.2 | FiQA | -38.6% | -17.9% | 20.7% | -3.797 | -1.576 | 2.221 |
+| DeepSeek V3.2 | NFCorpus | -41.8% | -2.5% | 39.3% | -5.325 | -0.294 | 5.031 |
+| DeepSeek V3.2 | SciDocs | -28.6% | -1.4% | 27.2% | -3.673 | 1.359 | 2.313 |
+| DeepSeek V3.2 | SciFact | -50.3% | -5.0% | 45.3% | -6.887 | 0.207 | 6.680 |
+| DeepSeek V3.2 | TREC-COVID | -26.0% | -2.0% | 24.0% | -5.244 | -1.685 | 3.559 |
 | Gemma 4 26B | FiQA | -34.0% | -31.0% | 2.9% | -4.055 | -2.947 | 1.108 |
 | Gemma 4 26B | NFCorpus | -35.9% | -4.3% | 31.6% | -5.005 | -0.919 | 4.086 |
 | Gemma 4 26B | SciDocs | -23.5% | -1.9% | 21.6% | -3.269 | 1.302 | 1.967 |
@@ -237,48 +301,61 @@ Positive `SCOPE-HyDE net` means SCOPE loses less retrieval exposure than HyDE. P
 | Qwen 3.5 9B | SciDocs | -25.3% | -3.3% | 22.0% | -4.293 | 1.143 | 3.150 |
 | Qwen 3.5 9B | SciFact | -39.3% | -12.0% | 27.3% | -7.139 | -0.603 | 6.536 |
 | Qwen 3.5 9B | TREC-COVID | -34.0% | -6.0% | 28.0% | -7.695 | -2.074 | 5.620 |
+| DeepSeek V3.2 | Pooled | -36.0% | -6.6% | 29.3% | -4.387 | 0.095 | 4.291 |
 | Gemma 4 26B | Pooled | -31.3% | -12.2% | 19.0% | -4.354 | -0.546 | 3.807 |
 | Mistral Small 3.2 24B | Pooled | -28.6% | -11.6% | 17.0% | -2.895 | 0.179 | 2.716 |
 | Qwen 3.5 9B | Pooled | -31.0% | -11.4% | 19.6% | -4.705 | -0.357 | 4.348 |
 
 ## Reading
 
-- SCOPE is consistently less destructive than HyDE in pooled Hit@5: Gemma 4 26B gap 19.0%; Mistral Small 3.2 24B gap 17.0%; Qwen 3.5 9B gap 19.6%.
-- SCOPE's row-level gold-affinity mechanism remains positive across included models: Gemma 4 26B rho 0.426; Mistral Small 3.2 24B rho 0.390; Qwen 3.5 9B rho 0.393.
+- SCOPE is consistently less destructive than HyDE in pooled Hit@5: DeepSeek V3.2 gap 29.3%; Gemma 4 26B gap 19.0%; Mistral Small 3.2 24B gap 17.0%; Qwen 3.5 9B gap 19.6%.
+- SCOPE's row-level gold-affinity mechanism remains positive across included models: DeepSeek V3.2 rho 0.390; Gemma 4 26B rho 0.426; Mistral Small 3.2 24B rho 0.390; Qwen 3.5 9B rho 0.393.
 - The operational implication is still gated expansion: the mechanism predicts which rows can move, but ungated expansion remains risky when raw retrieval already has strong gold exposure.
 
 ## Sources
 
+- `caches/generation/full/beir_fiqa_qfull_seed42_or-deepseek-v32_rag_hyde.jsonl`
+- `caches/generation/full/beir_fiqa_qfull_seed42_or-deepseek-v32_snap_hyre.jsonl`
 - `caches/generation/full/beir_fiqa_qfull_seed42_or-gemma4-26b_rag_hyde.jsonl`
 - `caches/generation/full/beir_fiqa_qfull_seed42_or-gemma4-26b_snap_hyre.jsonl`
 - `caches/generation/full/beir_fiqa_qfull_seed42_or-mistral-small-3p2-24b_rag_hyde.jsonl`
 - `caches/generation/full/beir_fiqa_qfull_seed42_or-mistral-small-3p2-24b_snap_hyre.jsonl`
 - `caches/generation/full/beir_fiqa_qfull_seed42_or-qwen3p5-9b_rag_hyde.jsonl`
 - `caches/generation/full/beir_fiqa_qfull_seed42_or-qwen3p5-9b_snap_hyre.jsonl`
+- `caches/generation/full/beir_nfcorpus_qfull_seed42_or-deepseek-v32_rag_hyde.jsonl`
+- `caches/generation/full/beir_nfcorpus_qfull_seed42_or-deepseek-v32_snap_hyre.jsonl`
 - `caches/generation/full/beir_nfcorpus_qfull_seed42_or-gemma4-26b_rag_hyde.jsonl`
 - `caches/generation/full/beir_nfcorpus_qfull_seed42_or-gemma4-26b_snap_hyre.jsonl`
 - `caches/generation/full/beir_nfcorpus_qfull_seed42_or-mistral-small-3p2-24b_rag_hyde.jsonl`
 - `caches/generation/full/beir_nfcorpus_qfull_seed42_or-mistral-small-3p2-24b_snap_hyre.jsonl`
 - `caches/generation/full/beir_nfcorpus_qfull_seed42_or-qwen3p5-9b_rag_hyde.jsonl`
 - `caches/generation/full/beir_nfcorpus_qfull_seed42_or-qwen3p5-9b_snap_hyre.jsonl`
+- `caches/generation/full/beir_scidocs_qfull_seed42_or-deepseek-v32_rag_hyde.jsonl`
+- `caches/generation/full/beir_scidocs_qfull_seed42_or-deepseek-v32_snap_hyre.jsonl`
 - `caches/generation/full/beir_scidocs_qfull_seed42_or-gemma4-26b_rag_hyde.jsonl`
 - `caches/generation/full/beir_scidocs_qfull_seed42_or-gemma4-26b_snap_hyre.jsonl`
 - `caches/generation/full/beir_scidocs_qfull_seed42_or-mistral-small-3p2-24b_rag_hyde.jsonl`
 - `caches/generation/full/beir_scidocs_qfull_seed42_or-mistral-small-3p2-24b_snap_hyre.jsonl`
 - `caches/generation/full/beir_scidocs_qfull_seed42_or-qwen3p5-9b_rag_hyde.jsonl`
 - `caches/generation/full/beir_scidocs_qfull_seed42_or-qwen3p5-9b_snap_hyre.jsonl`
+- `caches/generation/full/beir_scifact_qfull_seed42_or-deepseek-v32_rag_hyde.jsonl`
+- `caches/generation/full/beir_scifact_qfull_seed42_or-deepseek-v32_snap_hyre.jsonl`
 - `caches/generation/full/beir_scifact_qfull_seed42_or-gemma4-26b_rag_hyde.jsonl`
 - `caches/generation/full/beir_scifact_qfull_seed42_or-gemma4-26b_snap_hyre.jsonl`
 - `caches/generation/full/beir_scifact_qfull_seed42_or-mistral-small-3p2-24b_rag_hyde.jsonl`
 - `caches/generation/full/beir_scifact_qfull_seed42_or-mistral-small-3p2-24b_snap_hyre.jsonl`
 - `caches/generation/full/beir_scifact_qfull_seed42_or-qwen3p5-9b_rag_hyde.jsonl`
 - `caches/generation/full/beir_scifact_qfull_seed42_or-qwen3p5-9b_snap_hyre.jsonl`
+- `caches/generation/full/beir_trec_covid_qfull_seed42_or-deepseek-v32_rag_hyde.jsonl`
+- `caches/generation/full/beir_trec_covid_qfull_seed42_or-deepseek-v32_snap_hyre.jsonl`
 - `caches/generation/full/beir_trec_covid_qfull_seed42_or-gemma4-26b_rag_hyde.jsonl`
 - `caches/generation/full/beir_trec_covid_qfull_seed42_or-gemma4-26b_snap_hyre.jsonl`
 - `caches/generation/full/beir_trec_covid_qfull_seed42_or-mistral-small-3p2-24b_rag_hyde.jsonl`
 - `caches/generation/full/beir_trec_covid_qfull_seed42_or-mistral-small-3p2-24b_snap_hyre.jsonl`
 - `caches/generation/full/beir_trec_covid_qfull_seed42_or-qwen3p5-9b_rag_hyde.jsonl`
 - `caches/generation/full/beir_trec_covid_qfull_seed42_or-qwen3p5-9b_snap_hyre.jsonl`
+- `caches/retrieval/full/beir_fiqa_qfull_seed42_or-deepseek-v32_rag_hyde_k10.jsonl`
+- `caches/retrieval/full/beir_fiqa_qfull_seed42_or-deepseek-v32_snap_hyre_k10.jsonl`
 - `caches/retrieval/full/beir_fiqa_qfull_seed42_or-gemma4-26b_rag_hyde_k10.jsonl`
 - `caches/retrieval/full/beir_fiqa_qfull_seed42_or-gemma4-26b_snap_hyre_k10.jsonl`
 - `caches/retrieval/full/beir_fiqa_qfull_seed42_or-mistral-small-3p2-24b_rag_hyde_k10.jsonl`
@@ -286,6 +363,8 @@ Positive `SCOPE-HyDE net` means SCOPE loses less retrieval exposure than HyDE. P
 - `caches/retrieval/full/beir_fiqa_qfull_seed42_or-qwen3p5-9b_rag_hyde_k10.jsonl`
 - `caches/retrieval/full/beir_fiqa_qfull_seed42_or-qwen3p5-9b_snap_hyre_k10.jsonl`
 - `caches/retrieval/full/beir_fiqa_qfull_seed42_raw_question_k10.jsonl`
+- `caches/retrieval/full/beir_nfcorpus_qfull_seed42_or-deepseek-v32_rag_hyde_k10.jsonl`
+- `caches/retrieval/full/beir_nfcorpus_qfull_seed42_or-deepseek-v32_snap_hyre_k10.jsonl`
 - `caches/retrieval/full/beir_nfcorpus_qfull_seed42_or-gemma4-26b_rag_hyde_k10.jsonl`
 - `caches/retrieval/full/beir_nfcorpus_qfull_seed42_or-gemma4-26b_snap_hyre_k10.jsonl`
 - `caches/retrieval/full/beir_nfcorpus_qfull_seed42_or-mistral-small-3p2-24b_rag_hyde_k10.jsonl`
@@ -293,6 +372,8 @@ Positive `SCOPE-HyDE net` means SCOPE loses less retrieval exposure than HyDE. P
 - `caches/retrieval/full/beir_nfcorpus_qfull_seed42_or-qwen3p5-9b_rag_hyde_k10.jsonl`
 - `caches/retrieval/full/beir_nfcorpus_qfull_seed42_or-qwen3p5-9b_snap_hyre_k10.jsonl`
 - `caches/retrieval/full/beir_nfcorpus_qfull_seed42_raw_question_k10.jsonl`
+- `caches/retrieval/full/beir_scidocs_qfull_seed42_or-deepseek-v32_rag_hyde_k10.jsonl`
+- `caches/retrieval/full/beir_scidocs_qfull_seed42_or-deepseek-v32_snap_hyre_k10.jsonl`
 - `caches/retrieval/full/beir_scidocs_qfull_seed42_or-gemma4-26b_rag_hyde_k10.jsonl`
 - `caches/retrieval/full/beir_scidocs_qfull_seed42_or-gemma4-26b_snap_hyre_k10.jsonl`
 - `caches/retrieval/full/beir_scidocs_qfull_seed42_or-mistral-small-3p2-24b_rag_hyde_k10.jsonl`
@@ -300,6 +381,8 @@ Positive `SCOPE-HyDE net` means SCOPE loses less retrieval exposure than HyDE. P
 - `caches/retrieval/full/beir_scidocs_qfull_seed42_or-qwen3p5-9b_rag_hyde_k10.jsonl`
 - `caches/retrieval/full/beir_scidocs_qfull_seed42_or-qwen3p5-9b_snap_hyre_k10.jsonl`
 - `caches/retrieval/full/beir_scidocs_qfull_seed42_raw_question_k10.jsonl`
+- `caches/retrieval/full/beir_scifact_qfull_seed42_or-deepseek-v32_rag_hyde_k10.jsonl`
+- `caches/retrieval/full/beir_scifact_qfull_seed42_or-deepseek-v32_snap_hyre_k10.jsonl`
 - `caches/retrieval/full/beir_scifact_qfull_seed42_or-gemma4-26b_rag_hyde_k10.jsonl`
 - `caches/retrieval/full/beir_scifact_qfull_seed42_or-gemma4-26b_snap_hyre_k10.jsonl`
 - `caches/retrieval/full/beir_scifact_qfull_seed42_or-mistral-small-3p2-24b_rag_hyde_k10.jsonl`
@@ -307,6 +390,8 @@ Positive `SCOPE-HyDE net` means SCOPE loses less retrieval exposure than HyDE. P
 - `caches/retrieval/full/beir_scifact_qfull_seed42_or-qwen3p5-9b_rag_hyde_k10.jsonl`
 - `caches/retrieval/full/beir_scifact_qfull_seed42_or-qwen3p5-9b_snap_hyre_k10.jsonl`
 - `caches/retrieval/full/beir_scifact_qfull_seed42_raw_question_k10.jsonl`
+- `caches/retrieval/full/beir_trec_covid_qfull_seed42_or-deepseek-v32_rag_hyde_k10.jsonl`
+- `caches/retrieval/full/beir_trec_covid_qfull_seed42_or-deepseek-v32_snap_hyre_k10.jsonl`
 - `caches/retrieval/full/beir_trec_covid_qfull_seed42_or-gemma4-26b_rag_hyde_k10.jsonl`
 - `caches/retrieval/full/beir_trec_covid_qfull_seed42_or-gemma4-26b_snap_hyre_k10.jsonl`
 - `caches/retrieval/full/beir_trec_covid_qfull_seed42_or-mistral-small-3p2-24b_rag_hyde_k10.jsonl`
@@ -320,6 +405,6 @@ Positive `SCOPE-HyDE net` means SCOPE loses less retrieval exposure than HyDE. P
 ```bash
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 CROSS_ENCODER_DEVICE=cuda \
 uv run python scripts/analyze_beir_phase1b.py \
-  --providers or-gemma4-26b or-qwen3p5-9b or-mistral-small-3p2-24b \
+  --providers or-gemma4-26b or-qwen3p5-9b or-mistral-small-3p2-24b or-deepseek-v32 \
   --output docs/generated/beir_phase1b_model_breadth_2026-05-26.md
 ```
