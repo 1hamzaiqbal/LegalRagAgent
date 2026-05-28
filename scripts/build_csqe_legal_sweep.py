@@ -73,6 +73,13 @@ def dataset_specs() -> dict[str, DatasetSpec]:
             out=ROOT / f"caches/generation/full/housing_qfull_seed42_statefilter_{MODEL}_csqe.jsonl",
             housing_state_filter=True,
         ),
+        "casehold": DatasetSpec(
+            dataset="casehold",
+            display="CaseHOLD",
+            collection="casehold_holdings",
+            raw_cache=ROOT / "caches/retrieval/full/casehold_qfull_seed42_raw_question_k10.jsonl",
+            out=ROOT / f"caches/generation/full/casehold_qfull_seed42_{MODEL}_csqe.jsonl",
+        ),
     }
 
 
@@ -329,6 +336,8 @@ def build_dataset(args: argparse.Namespace, spec: DatasetSpec) -> None:
     raw_by_label = {str(row["label"]): row for row in raw_rows}
     q_by_label = _question_rows(config)
     labels = list(q_by_label)
+    if args.limit:
+        labels = labels[: min(args.limit, len(labels))]
     missing = [label for label in labels if label not in raw_by_label]
     if missing:
         raise SystemExit(f"{spec.dataset}: raw retrieval cache missing {len(missing)} labels, first={missing[:5]}")
@@ -400,9 +409,10 @@ def build_dataset(args: argparse.Namespace, spec: DatasetSpec) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset", choices=["barexam", "housing", "all"], default="all")
+    parser.add_argument("--dataset", choices=["barexam", "housing", "casehold", "all"], default="all")
     parser.add_argument("--provider", default=MODEL)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--limit", type=int, default=0, help="Optional first-N question cap; 0 means full.")
     parser.add_argument("--raw-top-k", type=int, default=5)
     parser.add_argument("--concurrency", type=int, default=int(os.getenv("EVAL_CONCURRENCY", "8") or 8))
     parser.add_argument("--batch-size", type=int, default=128)
@@ -415,6 +425,8 @@ def main() -> None:
     args = parse_args()
     if args.concurrency <= 0:
         raise SystemExit("--concurrency must be positive")
+    if args.limit < 0:
+        raise SystemExit("--limit must be >= 0")
     specs = dataset_specs()
     selected = list(specs) if args.dataset == "all" else [args.dataset]
     for key in selected:
