@@ -10,6 +10,8 @@ This report evaluates the 3SCOPE+raw arm: raw query plus three independently gen
 | H-vs-CSQE strong side | **supported** | BEIR macro 3SCOPE+raw 75.3% vs CSQE 70.0%. |
 | H-vs-raw∪SCOPE | **killed** | BEIR macro 3SCOPE+raw 75.3% vs raw∪SCOPE 75.8%. |
 | H-net-positive | **supported** | Positive RI on SciFact, FiQA, TREC-COVID, SciDocs. |
+| H-weak-help | **killed** | BarExam 3SCOPE+raw 3.4% vs SCOPE 12.0%. |
+| H-vs-CSQE weak side | **mixed** | BarExam 3SCOPE+raw 3.4% vs CSQE 2.0%. |
 
 ## Regime Table
 
@@ -45,12 +47,30 @@ This report evaluates the 3SCOPE+raw arm: raw query plus three independently gen
 | SciDocs | CSQE | 989 | 47.9% | 474 | -0.014 | 56 | 70 | 0.240 | -- | -- |
 | SciDocs | raw∪SCOPE-pool | 989 | 53.6% | 530 | 0.042 | 67 | 25 | 1.298 | 14.18 | 100.0% |
 | SciDocs | 3SCOPE+raw | 989 | 52.4% | 518 | 0.030 | 56 | 26 | 0.518 | 18.03 | 100.0% |
+| BarExamQA | Raw | 1192 | 1.4% | 17 | 0.000 | 0 | 0 | 0.000 | -- | -- |
+| BarExamQA | HyDE | 1192 | 11.4% | 136 | 0.100 | 130 | 11 | 4.120 | -- | -- |
+| BarExamQA | SCOPE | 1192 | 12.0% | 143 | 0.106 | 137 | 11 | 3.881 | -- | -- |
+| BarExamQA | CSQE | 1192 | 2.0% | 24 | 0.006 | 15 | 8 | -0.530 | -- | -- |
+| BarExamQA | raw∪SCOPE-pool | 1192 | 3.9% | 47 | 0.025 | 35 | 5 | 3.881 | 19.55 | 100.0% |
+| BarExamQA | 3SCOPE+raw | 1192 | 3.4% | 40 | 0.019 | 30 | 7 | 3.518 | 27.62 | 100.0% |
+| HousingQA state-filtered | Raw | 6832 | 36.8% | 2512 | 0.000 | 0 | 0 | 0.000 | -- | -- |
+| HousingQA state-filtered | HyDE | 6832 | 30.7% | 2096 | -0.061 | 864 | 1280 | 3.372 | -- | -- |
+| HousingQA state-filtered | SCOPE | 6832 | 38.0% | 2596 | 0.012 | 1022 | 938 | 2.998 | -- | -- |
+| HousingQA state-filtered | CSQE | 6832 | 37.4% | 2552 | 0.006 | 506 | 466 | 4.562 | -- | -- |
+| HousingQA state-filtered | raw∪SCOPE-pool | 6832 | 41.1% | 2809 | 0.043 | 556 | 259 | 2.998 | 17.42 | 100.0% |
+| HousingQA state-filtered | 3SCOPE+raw | 6832 | 40.1% | 2737 | 0.033 | 456 | 231 | 2.005 | 21.15 | 100.0% |
 | BEIR pooled | Raw | 2310 | 62.2% | 1436 | 0.000 | 0 | 0 | 0.000 | -- | -- |
 | BEIR pooled | HyDE | 2310 | 30.8% | 712 | -0.313 | 115 | 839 | -4.366 | -- | -- |
 | BEIR pooled | SCOPE | 2310 | 49.8% | 1150 | -0.124 | 142 | 428 | -0.557 | -- | -- |
 | BEIR pooled | CSQE | 2310 | 59.4% | 1372 | -0.028 | 93 | 157 | -0.411 | -- | -- |
 | BEIR pooled | raw∪SCOPE-pool | 2310 | 65.9% | 1522 | 0.037 | 131 | 45 | -0.557 | 15.22 | 100.0% |
 | BEIR pooled | 3SCOPE+raw | 2310 | 65.0% | 1502 | 0.029 | 105 | 39 | -1.023 | 19.97 | 100.0% |
+| Legal pooled | Raw | 8024 | 31.5% | 2529 | 0.000 | 0 | 0 | 0.000 | -- | -- |
+| Legal pooled | HyDE | 8024 | 27.8% | 2232 | -0.037 | 994 | 1291 | 3.483 | -- | -- |
+| Legal pooled | SCOPE | 8024 | 34.1% | 2739 | 0.026 | 1159 | 949 | 3.129 | -- | -- |
+| Legal pooled | CSQE | 8024 | 32.1% | 2576 | 0.006 | 521 | 474 | 3.806 | -- | -- |
+| Legal pooled | raw∪SCOPE-pool | 8024 | 35.6% | 2856 | 0.041 | 591 | 264 | 3.129 | 17.73 | 100.0% |
+| Legal pooled | 3SCOPE+raw | 8024 | 34.6% | 2777 | 0.031 | 486 | 238 | 2.230 | 22.11 | 100.0% |
 
 ## 3SCOPE Candidate Drift
 
@@ -61,6 +81,8 @@ This report evaluates the 3SCOPE+raw arm: raw query plus three independently gen
 | FiQA | 648 | -3.481 | -3.530 | -3.444 | -3.485 |
 | TREC-COVID | 50 | -2.489 | -2.322 | -1.554 | -2.122 |
 | SciDocs | 989 | 0.332 | 0.442 | 0.780 | 0.518 |
+| BarExamQA | 1192 | 3.528 | 3.713 | 3.314 | 3.518 |
+| HousingQA state-filtered | 6832 | 1.856 | 2.020 | 2.138 | 2.005 |
 
 ## Sources
 
@@ -81,3 +103,9 @@ This report evaluates the 3SCOPE+raw arm: raw query plus three independently gen
 - SciDocs 3SCOPE generation: `caches/generation/full/beir_scidocs_qfull_seed42_or-gemma4-26b_3scope_raw.jsonl`
 - SciDocs 3SCOPE+raw pool: `caches/retrieval/full/beir_scidocs_qfull_seed42_or-gemma4-26b_3scope_raw_pool_k5.jsonl`
 - SciDocs raw∪SCOPE pool: `caches/retrieval/full/beir_scidocs_qfull_seed42_or-gemma4-26b_raw_scope_pool_k5.jsonl`
+- BarExamQA 3SCOPE generation: `caches/generation/full/barexam_qfull_seed42_or-gemma4-26b_3scope_raw.jsonl`
+- BarExamQA 3SCOPE+raw pool: `caches/retrieval/full/barexam_qfull_seed42_or-gemma4-26b_3scope_raw_pool_k5.jsonl`
+- BarExamQA raw∪SCOPE pool: `caches/retrieval/full/barexam_qfull_seed42_or-gemma4-26b_raw_scope_pool_k5.jsonl`
+- HousingQA state-filtered 3SCOPE generation: `caches/generation/full/housing_qfull_seed42_statefilter_or-gemma4-26b_3scope_raw.jsonl`
+- HousingQA state-filtered 3SCOPE+raw pool: `caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_3scope_raw_pool_k5.jsonl`
+- HousingQA state-filtered raw∪SCOPE pool: `caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_raw_scope_pool_k5.jsonl`

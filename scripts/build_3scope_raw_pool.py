@@ -16,6 +16,7 @@ import math
 import os
 import re
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -40,6 +41,7 @@ from eval_harness import (  # noqa: E402
     _setup_provider,
 )
 from rag_utils import _retrieve_dense, get_cross_encoder, get_vectorstore, rerank_with_cross_encoder  # noqa: E402
+from langchain_core.documents import Document  # noqa: E402
 
 
 MODEL = "or-gemma4-26b"
@@ -62,6 +64,7 @@ COLLECTION = {
 }
 JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 BAD_JSON_ESCAPE_RE = re.compile(r'\\(?!["\\/bfnrtu])')
+RERANK_LOCK = threading.Lock()
 
 
 @dataclass(frozen=True)
@@ -503,8 +506,233 @@ def dense_pool(
             if idx and idx not in seen:
                 seen.add(idx)
                 pool.append(doc)
-    ranked = rerank_with_cross_encoder(question, pool, top_k=5)
+    # The local cross-encoder is GPU-backed and shared process-wide; serialize
+    # reranking while allowing the slower dense retrieval calls to overlap.
+    with RERANK_LOCK:
+        ranked = rerank_with_cross_encoder(question, pool, top_k=5)
     return ranked, source_ids, len(pool)
+
+
+def docs_from_chroma(result: dict[str, Any], row_i: int) -> list[Document]:
+    docs = (result.get("documents") or [[]])[row_i] or []
+    metadatas = (result.get("metadatas") or [[]])[row_i] or []
+    ids = (result.get("ids") or [[]])[row_i] or []
+    out: list[Document] = []
+    for doc_text, metadata, chroma_id in zip(docs, metadatas, ids):
+        meta = dict(metadata or {})
+        if not meta.get("idx") and chroma_id:
+            raw_id = str(chroma_id)
+            meta["idx"] = raw_id[4:] if raw_id.startswith("doc_") else raw_id
+        out.append(Document(page_content=str(doc_text or ""), metadata=meta))
+    return out
+
+
+def retrieve_dense_batches(
+    *,
+    query_refs: list[tuple[int, int, str]],
+    vectorstore: Any,
+    where: dict[str, Any] | None,
+    top_k: int,
+    query_batch_size: int = 128,
+) -> dict[int, dict[int, list[Document]]]:
+    out: dict[int, dict[int, list[Document]]] = {}
+    if not query_refs:
+        return out
+    embedder = getattr(vectorstore, "_embedding_function", None)
+    collection = getattr(vectorstore, "_collection", None)
+    if embedder is None or collection is None:
+        for order_i, component_i, query in query_refs:
+            out.setdefault(order_i, {})[component_i] = _retrieve_dense(
+                query,
+                k=top_k,
+                vectorstore=vectorstore,
+                where=where,
+            )
+        return out
+    for start in range(0, len(query_refs), query_batch_size):
+        chunk = query_refs[start:start + query_batch_size]
+        queries = [query for _, _, query in chunk]
+        embeddings = embedder.embed_documents(queries)
+        result = collection.query(
+            query_embeddings=embeddings,
+            n_results=top_k,
+            where=where or None,
+            include=["documents", "metadatas"],
+        )
+        for local_i, (order_i, component_i, _) in enumerate(chunk):
+            out.setdefault(order_i, {})[component_i] = docs_from_chroma(result, local_i)
+    return out
+
+
+def rerank_pool_from_lists(question: str, lists: list[list[Document]]) -> tuple[list[Document], list[list[str]], int]:
+    source_ids = [[doc_id(doc) for doc in docs] for docs in lists]
+    seen: set[str] = set()
+    pool: list[Document] = []
+    for docs in lists:
+        for doc in docs:
+            idx = doc_id(doc)
+            if idx and idx not in seen:
+                seen.add(idx)
+                pool.append(doc)
+    with RERANK_LOCK:
+        ranked = rerank_with_cross_encoder(question, pool, top_k=5)
+    return ranked, source_ids, len(pool)
+
+
+def build_pool_record(
+    *,
+    arm: str,
+    dataset: str,
+    label: str,
+    fallback_i: int,
+    row: Any,
+    question: str,
+    gold_ids: list[str],
+    config: EvalConfig,
+    three_gen: dict[str, dict[str, Any]],
+    scope_gen: dict[str, dict[str, Any]],
+    vectorstore: Any,
+    retrieve_k: int,
+) -> tuple[int, dict[str, Any]]:
+    where = _retrieval_where_for_row(row, config)
+    if arm == "3scope_raw_pool":
+        gen_row = three_gen.get(label)
+        if not gen_row:
+            raise RuntimeError(f"{dataset}: missing 3SCOPE generation for {label}")
+        passages = [str(x) for x in gen_row.get("scope_passages", [])[:3]]
+        queries = [question] + passages
+    else:
+        gen_row = scope_gen.get(label)
+        if not gen_row:
+            raise RuntimeError(f"{dataset}: missing canonical SCOPE generation for {label}")
+        queries = [question, generation_passage(gen_row)]
+    ranked, source_ids, pool_size = dense_pool(
+        queries=queries,
+        question=question,
+        vectorstore=vectorstore,
+        where=where,
+        top_k=retrieve_k,
+    )
+    retrieved_ids = [doc_id(doc) for doc in ranked]
+    scores = [float(doc.metadata.get("cross_encoder_score", 0.0) or 0.0) for doc in ranked]
+    record = {
+        "label": label,
+        "idx": str(row.get("idx", fallback_i)),
+        "dataset": dataset,
+        "query_type": arm,
+        "label_prefix": arm,
+        "provider": MODEL,
+        "collection": COLLECTION[dataset],
+        "where": where or {},
+        "housing_state_filter": bool(dataset == "housing"),
+        "max_k": 5,
+        "component_top_k": retrieve_k,
+        "component_count": len(queries),
+        "pool_size": pool_size,
+        "component_retrieved_ids": source_ids,
+        "retrieved_ids": retrieved_ids,
+        "scores": scores,
+        "gold_ids": gold_ids,
+        "gold_retrieved": bool(set(gold_ids) & set(retrieved_ids[:5])),
+        "ce_rerank_coverage": len(retrieved_ids) / min(5, pool_size) if pool_size else 0.0,
+        "question_hash": hashlib.sha256(question.encode("utf-8", errors="ignore")).hexdigest()[:16],
+    }
+    return fallback_i, record
+
+
+def pool_queries_for_arm(
+    *,
+    arm: str,
+    dataset: str,
+    label: str,
+    question: str,
+    three_gen: dict[str, dict[str, Any]],
+    scope_gen: dict[str, dict[str, Any]],
+) -> list[str]:
+    if arm == "3scope_raw_pool":
+        gen_row = three_gen.get(label)
+        if not gen_row:
+            raise RuntimeError(f"{dataset}: missing 3SCOPE generation for {label}")
+        passages = [str(x) for x in gen_row.get("scope_passages", [])[:3]]
+        return [question] + passages
+    gen_row = scope_gen.get(label)
+    if not gen_row:
+        raise RuntimeError(f"{dataset}: missing canonical SCOPE generation for {label}")
+    return [question, generation_passage(gen_row)]
+
+
+def build_pool_records_batched(
+    *,
+    arm: str,
+    dataset: str,
+    batch: list[tuple[int, str, int, Any, str, list[str]]],
+    config: EvalConfig,
+    three_gen: dict[str, dict[str, Any]],
+    scope_gen: dict[str, dict[str, Any]],
+    vectorstore: Any,
+    retrieve_k: int,
+) -> dict[int, dict[str, Any]]:
+    by_where: dict[str, dict[str, Any]] = {}
+    queries_by_order: dict[int, list[str]] = {}
+    row_meta: dict[int, tuple[str, int, Any, str, list[str], dict[str, Any] | None]] = {}
+    for row_i, label, fallback_i, row, question, gold_ids in batch:
+        where = _retrieval_where_for_row(row, config)
+        queries = pool_queries_for_arm(
+            arm=arm,
+            dataset=dataset,
+            label=label,
+            question=question,
+            three_gen=three_gen,
+            scope_gen=scope_gen,
+        )
+        queries_by_order[row_i] = queries
+        row_meta[row_i] = (label, fallback_i, row, question, gold_ids, where)
+        where_key = json.dumps(where or {}, sort_keys=True)
+        bucket = by_where.setdefault(where_key, {"where": where, "refs": []})
+        for component_i, query in enumerate(queries):
+            bucket["refs"].append((row_i, component_i, query))
+
+    docs_by_order: dict[int, dict[int, list[Document]]] = {}
+    for bucket in by_where.values():
+        partial = retrieve_dense_batches(
+            query_refs=bucket["refs"],
+            vectorstore=vectorstore,
+            where=bucket["where"],
+            top_k=retrieve_k,
+        )
+        for order_i, component_docs in partial.items():
+            docs_by_order.setdefault(order_i, {}).update(component_docs)
+
+    records: dict[int, dict[str, Any]] = {}
+    for order_i in sorted(queries_by_order):
+        label, fallback_i, row, question, gold_ids, where = row_meta[order_i]
+        lists = [docs_by_order.get(order_i, {}).get(i, []) for i in range(len(queries_by_order[order_i]))]
+        ranked, source_ids, pool_size = rerank_pool_from_lists(question, lists)
+        retrieved_ids = [doc_id(doc) for doc in ranked]
+        scores = [float(doc.metadata.get("cross_encoder_score", 0.0) or 0.0) for doc in ranked]
+        records[order_i] = {
+            "label": label,
+            "idx": str(row.get("idx", fallback_i)),
+            "dataset": dataset,
+            "query_type": arm,
+            "label_prefix": arm,
+            "provider": MODEL,
+            "collection": COLLECTION[dataset],
+            "where": where or {},
+            "housing_state_filter": bool(dataset == "housing"),
+            "max_k": 5,
+            "component_top_k": retrieve_k,
+            "component_count": len(queries_by_order[order_i]),
+            "pool_size": pool_size,
+            "component_retrieved_ids": source_ids,
+            "retrieved_ids": retrieved_ids,
+            "scores": scores,
+            "gold_ids": gold_ids,
+            "gold_retrieved": bool(set(gold_ids) & set(retrieved_ids[:5])),
+            "ce_rerank_coverage": len(retrieved_ids) / min(5, pool_size) if pool_size else 0.0,
+            "question_hash": hashlib.sha256(question.encode("utf-8", errors="ignore")).hexdigest()[:16],
+        }
+    return records
 
 
 def build_pool_phase(args: argparse.Namespace) -> None:
@@ -524,61 +752,63 @@ def build_pool_phase(args: argparse.Namespace) -> None:
         for arm, out_path in outputs.items():
             out_path.parent.mkdir(parents=True, exist_ok=True)
             done = load_existing_labels(out_path) if args.resume else set()
+            pending = [
+                (row_i, label, *questions[label])
+                for row_i, label in enumerate(labels)
+                if label not in done
+            ]
             mode = "a" if args.resume and out_path.exists() else "w"
             wrote = 0
             with out_path.open(mode) as f:
-                for row_i, label in enumerate(labels):
-                    if label in done:
-                        continue
-                    fallback_i, row, question, gold_ids = questions[label]
-                    where = _retrieval_where_for_row(row, config)
-                    if arm == "3scope_raw_pool":
-                        gen_row = three_gen.get(label)
-                        if not gen_row:
-                            raise SystemExit(f"{dataset}: missing 3SCOPE generation for {label}")
-                        passages = [str(x) for x in gen_row.get("scope_passages", [])[:3]]
-                        queries = [question] + passages
+                for batch_start in range(0, len(pending), args.batch_size):
+                    batch = pending[batch_start:batch_start + args.batch_size]
+                    if dataset == "housing":
+                        records = build_pool_records_batched(
+                            arm=arm,
+                            dataset=dataset,
+                            batch=batch,
+                            config=config,
+                            three_gen=three_gen,
+                            scope_gen=scope_gen,
+                            vectorstore=vectorstore,
+                            retrieve_k=args.retrieve_k,
+                        )
                     else:
-                        gen_row = scope_gen.get(label)
-                        if not gen_row:
-                            raise SystemExit(f"{dataset}: missing canonical SCOPE generation for {label}")
-                        queries = [question, generation_passage(gen_row)]
-                    ranked, source_ids, pool_size = dense_pool(
-                        queries=queries,
-                        question=question,
-                        vectorstore=vectorstore,
-                        where=where,
-                        top_k=args.retrieve_k,
-                    )
-                    retrieved_ids = [doc_id(doc) for doc in ranked]
-                    scores = [float(doc.metadata.get("cross_encoder_score", 0.0) or 0.0) for doc in ranked]
-                    record = {
-                        "label": label,
-                        "idx": str(row.get("idx", fallback_i)),
-                        "dataset": dataset,
-                        "query_type": arm,
-                        "label_prefix": arm,
-                        "provider": MODEL,
-                        "collection": COLLECTION[dataset],
-                        "where": where or {},
-                        "housing_state_filter": bool(dataset == "housing"),
-                        "max_k": 5,
-                        "component_top_k": args.retrieve_k,
-                        "component_count": len(queries),
-                        "pool_size": pool_size,
-                        "component_retrieved_ids": source_ids,
-                        "retrieved_ids": retrieved_ids,
-                        "scores": scores,
-                        "gold_ids": gold_ids,
-                        "gold_retrieved": bool(set(gold_ids) & set(retrieved_ids[:5])),
-                        "ce_rerank_coverage": len(retrieved_ids) / min(5, pool_size) if pool_size else 0.0,
-                        "question_hash": hashlib.sha256(question.encode("utf-8", errors="ignore")).hexdigest()[:16],
-                    }
-                    f.write(json.dumps(record, sort_keys=True) + "\n")
-                    f.flush()
-                    wrote += 1
-                    if args.progress_interval and wrote % args.progress_interval == 0:
-                        print(f"[pool] {dataset}/{arm} wrote={wrote}", flush=True)
+                        records: dict[int, dict[str, Any]] = {}
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrency) as executor:
+                            futures = {
+                                executor.submit(
+                                    build_pool_record,
+                                    arm=arm,
+                                    dataset=dataset,
+                                    label=label,
+                                    fallback_i=fallback_i,
+                                    row=row,
+                                    question=question,
+                                    gold_ids=gold_ids,
+                                    config=config,
+                                    three_gen=three_gen,
+                                    scope_gen=scope_gen,
+                                    vectorstore=vectorstore,
+                                    retrieve_k=args.retrieve_k,
+                                ): label
+                                for row_i, label, fallback_i, row, question, gold_ids in batch
+                            }
+                            for future in concurrent.futures.as_completed(futures):
+                                label = futures[future]
+                                try:
+                                    order_i, record = future.result()
+                                except Exception as exc:
+                                    for pending_future in futures:
+                                        pending_future.cancel()
+                                    raise SystemExit(f"pool failed for {dataset}/{arm}/{label}: {exc}") from exc
+                                records[order_i] = record
+                    for order_i in sorted(records):
+                        f.write(json.dumps(records[order_i], sort_keys=True) + "\n")
+                        f.flush()
+                        wrote += 1
+                        if args.progress_interval and wrote % args.progress_interval == 0:
+                            print(f"[pool] {dataset}/{arm} wrote={wrote}", flush=True)
             print(f"[pool] {dataset}/{arm} wrote={wrote} out={rel(out_path)}", flush=True)
 
 
