@@ -34,6 +34,7 @@ PREFIX = "musique_qfull_seed42"
 REPORT = ROOT / "docs/generated/musique_cross_domain_regime_2026-05-28.md"
 POINTS = ROOT / "docs/generated/musique_cross_domain_regime_2026-05-28_points.jsonl"
 PASSAGES_PATH = ROOT / "datasets/musique/passages.csv"
+EMBED_CACHE_DIR = ROOT / "caches/retrieval/tmp"
 
 
 @dataclass(frozen=True)
@@ -184,16 +185,68 @@ def query_texts_for_arm(arm_key: str, questions: list[tuple[int, str, Any]]) -> 
     return out
 
 
+def _model_cache_slug(model_name: str | None) -> str:
+    raw = model_name or os.getenv("EMBEDDING_MODEL", "") or "Alibaba-NLP/gte-large-en-v1.5"
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", raw).strip("_") or "default"
+
+
+def _ids_hash(ids: list[str]) -> str:
+    return hashlib.sha256("\n".join(ids).encode("utf-8")).hexdigest()[:16]
+
+
+def _embed_texts_chunked(
+    texts: list[str],
+    *,
+    embedding_model: str | None,
+    chunk_size: int,
+    encode_batch_size: int,
+) -> np.ndarray:
+    embeddings = get_embeddings(embedding_model)
+    if encode_batch_size > 0 and hasattr(embeddings, "encode_kwargs"):
+        embeddings.encode_kwargs["batch_size"] = encode_batch_size
+    chunks: list[np.ndarray] = []
+    for start in range(0, len(texts), chunk_size):
+        chunk = texts[start:start + chunk_size]
+        matrix = np.asarray(embeddings.embed_documents(chunk), dtype=np.float32)
+        chunks.append(matrix)
+        print(f"[embed] {min(start + len(chunk), len(texts))}/{len(texts)}", flush=True)
+    return np.vstack(chunks) if chunks else np.zeros((0, 0), dtype=np.float32)
+
+
 def embed_passages(
     by_id: dict[str, dict[str, Any]],
     embedding_model: str | None,
     ids: list[str] | None = None,
+    chunk_size: int = 512,
+    encode_batch_size: int = 32,
+    use_cache: bool = True,
 ) -> dict[str, np.ndarray]:
     ids = ids or list(by_id)
     texts = [paragraph_text(by_id[idx]) for idx in ids]
-    embeddings = get_embeddings(embedding_model)
+    cache_path = (
+        EMBED_CACHE_DIR
+        / f"musique_passage_embeddings_{_model_cache_slug(embedding_model)}_{_ids_hash(ids)}.npz"
+    )
+    if use_cache and cache_path.exists():
+        print(f"[embed] loading cached passage embeddings {cache_path}", flush=True)
+        loaded = np.load(cache_path, allow_pickle=False)
+        cached_ids = [str(x) for x in loaded["ids"].tolist()]
+        if cached_ids == ids:
+            matrix = np.asarray(loaded["embeddings"], dtype=np.float32)
+            return {idx: matrix[i] for i, idx in enumerate(ids)}
+        print("[embed] cache id order mismatch; rebuilding", flush=True)
+
     print(f"[embed] passages={len(texts)}", flush=True)
-    matrix = np.asarray(embeddings.embed_documents(texts), dtype=np.float32)
+    matrix = _embed_texts_chunked(
+        texts,
+        embedding_model=embedding_model,
+        chunk_size=chunk_size,
+        encode_batch_size=encode_batch_size,
+    )
+    if use_cache and len(ids) > 1000:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(cache_path, ids=np.asarray(ids), embeddings=matrix)
+        print(f"[embed] cached passage embeddings {cache_path}", flush=True)
     return {idx: matrix[i] for i, idx in enumerate(ids)}
 
 
@@ -634,6 +687,8 @@ def parse_args() -> argparse.Namespace:
     ret.add_argument("--max-k", type=int, default=10)
     ret.add_argument("--embedding-model", default=os.getenv("EVAL_EMBEDDING_MODEL", "").strip())
     ret.add_argument("--resume", action="store_true")
+    ret.add_argument("--embed-chunk-size", type=int, default=512)
+    ret.add_argument("--embed-batch-size", type=int, default=32)
     ret.add_argument("--ce-batch-size", type=int, default=int(os.getenv("CROSS_ENCODER_BATCH_SIZE", "32") or 32))
     ret.add_argument("--ce-chunk-size", type=int, default=4096)
 
@@ -671,7 +726,13 @@ def main() -> None:
         for _, _, row in questions
         for candidate in by_q.get(str(row.get("idx", "")), [])
     })
-    passage_embeddings = embed_passages(by_id, args.embedding_model or None, ids=needed_ids)
+    passage_embeddings = embed_passages(
+        by_id,
+        args.embedding_model or None,
+        ids=needed_ids,
+        chunk_size=args.embed_chunk_size,
+        encode_batch_size=args.embed_batch_size,
+    )
     selected = ["raw", "hyde", "scope", "csqe"] if args.arm == "all" else [args.arm]
     for arm_key in selected:
         build_retrieval_arm(
