@@ -113,8 +113,11 @@ E5_DATASETS_PRIORITY = [
     "beir_trec_covid",
     "beir_scidocs",
     "barexam",
+    "housing",
 ]
 E5_TEXT_MAX_CHARS = 4096
+E5_INDEX_ROOT = ROOT / "caches/e5/legal"
+E5_LEGAL_DATASETS = {"barexam", "housing"}
 
 PHASE_E_DATASETS = [
     "barexam",
@@ -706,15 +709,305 @@ def e5_gold_affinities(
     return out
 
 
+def e5_index_slug(model_name: str) -> str:
+    return re.sub(r"[^A-Za-z0-9._-]+", "_", model_name).strip("_")
+
+
+def e5_index_dir(dataset: str, model_name: str, base_dir: str | Path | None) -> Path:
+    root = Path(base_dir) if base_dir else E5_INDEX_ROOT
+    if not root.is_absolute():
+        root = ROOT / root
+    return root / dataset / f"{e5_index_slug(model_name)}_cap{E5_TEXT_MAX_CHARS}"
+
+
+def e5_state_for_doc(dataset: str, state: str) -> str:
+    if dataset == "housing":
+        return state_key(state)
+    return "all"
+
+
+def e5_state_for_query(dataset: str, qrow: dict[str, Any]) -> str:
+    if dataset == "housing":
+        return state_key(str(qrow.get("state") or ""))
+    return "all"
+
+
+def e5_load_saved_ids(index_dir: Path) -> set[str]:
+    ids: set[str] = set()
+    for ids_path in sorted(index_dir.glob("*/shard_*.ids")):
+        with ids_path.open() as f:
+            ids.update(line.strip() for line in f if line.strip())
+    return ids
+
+
+def e5_next_shard_numbers(index_dir: Path) -> dict[str, int]:
+    out: dict[str, int] = defaultdict(int)
+    for state_dir in sorted(path for path in index_dir.iterdir() if path.is_dir()) if index_dir.exists() else []:
+        shard_nums = []
+        for shard in state_dir.glob("shard_*.npy"):
+            try:
+                shard_nums.append(int(shard.stem.split("_", 1)[1]))
+            except Exception:
+                continue
+        out[state_dir.name] = max(shard_nums) + 1 if shard_nums else 0
+    return out
+
+
+def ensure_e5_legal_shards(
+    dataset: str,
+    *,
+    model: Any,
+    model_name: str,
+    corpus_batch_size: int,
+    shard_size: int,
+    index_base_dir: str | Path | None,
+    rebuild: bool,
+) -> tuple[Path, dict[str, Any], str]:
+    import shutil
+
+    index_dir = e5_index_dir(dataset, model_name, index_base_dir)
+    meta_path = index_dir / "meta.json"
+    if rebuild and index_dir.exists():
+        shutil.rmtree(index_dir)
+    if meta_path.exists():
+        meta = json.loads(meta_path.read_text())
+        if meta.get("complete") and int(meta.get("text_max_chars", -1)) == E5_TEXT_MAX_CHARS:
+            return index_dir, meta, f"reused persisted E5 shards docs={meta.get('n_docs')} states={meta.get('n_states')}"
+
+    index_dir.mkdir(parents=True, exist_ok=True)
+    saved_ids = e5_load_saved_ids(index_dir)
+    next_shard = e5_next_shard_numbers(index_dir)
+    buffers: dict[str, list[tuple[str, np.ndarray]]] = defaultdict(list)
+    started = time.time()
+    encoded_docs = 0
+    streamed_docs = 0
+    skipped_docs = 0
+    embed_sec = 0.0
+    state_counts: Counter[str] = Counter()
+    state_examples: dict[str, str] = {}
+
+    def flush_state(state: str) -> None:
+        if not buffers[state]:
+            return
+        state_dir = index_dir / state
+        state_dir.mkdir(parents=True, exist_ok=True)
+        shard_n = next_shard[state]
+        next_shard[state] += 1
+        rows = buffers[state]
+        vecs = np.stack([vec for _, vec in rows]).astype(np.float32, copy=False)
+        vec_path = state_dir / f"shard_{shard_n:05d}.npy"
+        ids_path = state_dir / f"shard_{shard_n:05d}.ids"
+        np.save(vec_path, vecs)
+        with ids_path.open("w") as f:
+            for doc_id, _vec in rows:
+                f.write(f"{doc_id}\n")
+        buffers[state].clear()
+
+    batch_ids: list[str] = []
+    batch_states: list[str] = []
+    batch_texts: list[str] = []
+
+    def flush_batch() -> None:
+        nonlocal embed_sec, encoded_docs
+        if not batch_ids:
+            return
+        t0 = time.time()
+        vecs = encode_e5(model, batch_texts, kind="passage", batch_size=corpus_batch_size)
+        embed_sec += time.time() - t0
+        for doc_id, state, vec in zip(batch_ids, batch_states, vecs):
+            buffers[state].append((doc_id, np.asarray(vec, dtype=np.float32).copy()))
+            state_counts[state] += 1
+            if len(buffers[state]) >= shard_size:
+                flush_state(state)
+        encoded_docs += len(batch_ids)
+        if encoded_docs % 50000 < len(batch_ids):
+            print(f"[e5-legal] {dataset}: encoded {encoded_docs}; streamed={streamed_docs}; skipped={skipped_docs}", flush=True)
+        batch_ids.clear()
+        batch_states.clear()
+        batch_texts.clear()
+
+    for doc_id, raw_state, text in iter_docs_with_state(dataset):
+        streamed_docs += 1
+        doc_id = str(doc_id)
+        if doc_id in saved_ids:
+            skipped_docs += 1
+            continue
+        state = e5_state_for_doc(dataset, raw_state)
+        state_examples.setdefault(state, str(raw_state or ""))
+        batch_ids.append(doc_id)
+        batch_states.append(state)
+        batch_texts.append(text)
+        if len(batch_ids) >= corpus_batch_size:
+            flush_batch()
+    flush_batch()
+    for state in list(buffers):
+        flush_state(state)
+
+    shard_paths = sorted(index_dir.glob("*/shard_*.npy"))
+    final_counts: Counter[str] = Counter()
+    for ids_path in sorted(index_dir.glob("*/shard_*.ids")):
+        state = ids_path.parent.name
+        with ids_path.open() as f:
+            final_counts[state] += sum(1 for line in f if line.strip())
+    meta = {
+        "complete": True,
+        "dataset": dataset,
+        "model": model_name,
+        "text_max_chars": E5_TEXT_MAX_CHARS,
+        "n_docs": int(sum(final_counts.values())),
+        "n_states": len(final_counts),
+        "state_counts": dict(sorted(final_counts.items())),
+        "state_examples": dict(sorted(state_examples.items())),
+        "n_shards": len(shard_paths),
+        "shard_size": shard_size,
+        "encoded_this_run": encoded_docs,
+        "skipped_existing": skipped_docs,
+        "embed_sec": embed_sec,
+        "elapsed_sec": time.time() - started,
+    }
+    meta_path.write_text(json.dumps(meta, indent=2, sort_keys=True) + "\n")
+    return index_dir, meta, (
+        f"persisted E5 shards docs={meta['n_docs']}; states={meta['n_states']}; shards={meta['n_shards']}; "
+        f"encoded_this_run={encoded_docs}; skipped_existing={skipped_docs}; embed_sec={embed_sec:.1f}; "
+        f"elapsed_sec={meta['elapsed_sec']:.1f}"
+    )
+
+
+def load_e5_state_index(index_dir: Path, state: str) -> tuple[Any, list[str]]:
+    import faiss
+
+    state_dir = index_dir / state
+    shard_paths = sorted(state_dir.glob("shard_*.npy"))
+    if not shard_paths:
+        raise RuntimeError(f"missing E5 state shard for state={state} under {index_dir}")
+    dim = int(np.load(shard_paths[0], mmap_mode="r").shape[1])
+    index = faiss.IndexFlatIP(dim)
+    doc_ids: list[str] = []
+    for shard_path in shard_paths:
+        ids_path = shard_path.with_suffix(".ids")
+        with ids_path.open() as f:
+            ids = [line.strip() for line in f if line.strip()]
+        vecs = np.load(shard_path)
+        if len(ids) != int(vecs.shape[0]):
+            raise RuntimeError(f"{shard_path}: ids/vector mismatch {len(ids)} != {vecs.shape[0]}")
+        index.add(np.ascontiguousarray(vecs, dtype=np.float32))
+        doc_ids.extend(ids)
+        del vecs
+    return index, doc_ids
+
+
+def e5_rows_for_legal_dataset(
+    dataset: str,
+    *,
+    model: Any,
+    model_name: str,
+    corpus_batch_size: int,
+    query_batch_size: int,
+    shard_size: int,
+    index_base_dir: str | Path | None,
+    rebuild: bool,
+) -> tuple[list[dict[str, Any]], str]:
+    qmap, query_items = e5_query_items(dataset)
+    started = time.time()
+    index_dir, meta, shard_note = ensure_e5_legal_shards(
+        dataset,
+        model=model,
+        model_name=model_name,
+        corpus_batch_size=corpus_batch_size,
+        shard_size=shard_size,
+        index_base_dir=index_base_dir,
+        rebuild=rebuild,
+    )
+    query_vectors = encode_e5(
+        model,
+        [text for _, _, text in query_items],
+        kind="query",
+        batch_size=query_batch_size,
+    )
+    gold_aff = e5_gold_affinities(
+        dataset=dataset,
+        qmap=qmap,
+        query_items=query_items,
+        query_vectors=query_vectors,
+        model=model,
+        batch_size=query_batch_size,
+    )
+    by_state: dict[str, list[int]] = defaultdict(list)
+    for i, (_arm, label, _text) in enumerate(query_items):
+        by_state[e5_state_for_query(dataset, qmap[label])].append(i)
+
+    retrieved: dict[int, tuple[list[str], list[float]]] = {}
+    search_sec = 0.0
+    state_search_notes: list[str] = []
+    for state in sorted(by_state):
+        state_started = time.time()
+        index, doc_ids = load_e5_state_index(index_dir, state)
+        idxs = by_state[state]
+        qvec = np.ascontiguousarray(query_vectors[idxs], dtype=np.float32)
+        scores, indices = index.search(qvec, 10)
+        for local_i, query_i in enumerate(idxs):
+            ids = [doc_ids[int(j)] for j in indices[local_i].tolist() if int(j) >= 0]
+            retrieved[query_i] = (ids, [float(s) for s in scores[local_i].tolist()[: len(ids)]])
+        elapsed = time.time() - state_started
+        search_sec += elapsed
+        state_search_notes.append(f"{state}:{len(doc_ids)}docs/{len(idxs)}queries/{elapsed:.1f}s")
+        del index, scores, indices, qvec
+        gc.collect()
+
+    rows: list[dict[str, Any]] = []
+    for i, (arm, label, text) in enumerate(query_items):
+        ids, row_scores = retrieved.get(i, ([], []))
+        gold_ids = qmap[label]["gold_ids"]
+        rows.append({
+            "dataset": dataset,
+            "dataset_display": DATASET_SOURCES[dataset].display,
+            "retriever": "e5_large_v2_full",
+            "arm": arm,
+            "label": label,
+            "gold_ids": gold_ids,
+            "retrieved_ids": ids,
+            "scores": row_scores,
+            "hit5": hit_at(ids, gold_ids, 5),
+            "hit10": hit_at(ids, gold_ids, 10),
+            "gold_affinity": gold_aff.get((arm, label), float("nan")),
+            "query_chars": len(text),
+            "state": qmap[label].get("state", ""),
+            "state_key": e5_state_for_query(dataset, qmap[label]),
+        })
+    note = (
+        f"{shard_note}; query_vectors={len(query_items)}; search_sec={search_sec:.1f}; "
+        f"elapsed_sec={time.time() - started:.1f}; index_dir={index_dir.relative_to(ROOT)}; "
+        f"state_searches={'; '.join(state_search_notes[:8])}"
+    )
+    if len(state_search_notes) > 8:
+        note += f"; plus {len(state_search_notes) - 8} more states"
+    del query_vectors
+    gc.collect()
+    return rows, note
+
+
 def e5_rows_for_dataset(
     dataset: str,
     *,
     model: Any,
+    model_name: str,
     corpus_batch_size: int,
     query_batch_size: int,
+    shard_size: int,
+    index_base_dir: str | Path | None,
+    rebuild: bool,
 ) -> tuple[list[dict[str, Any]], str]:
-    if dataset == "housing":
-        raise RuntimeError("housing E5 state-filtered retrieval is a stretch target; state-sharded E5 indexing is not enabled in this pass")
+    if dataset in E5_LEGAL_DATASETS:
+        return e5_rows_for_legal_dataset(
+            dataset,
+            model=model,
+            model_name=model_name,
+            corpus_batch_size=corpus_batch_size,
+            query_batch_size=query_batch_size,
+            shard_size=shard_size,
+            index_base_dir=index_base_dir,
+            rebuild=rebuild,
+        )
     import faiss
 
     qmap, query_items = e5_query_items(dataset)
@@ -825,8 +1118,12 @@ def phase_cxx_e5(args: argparse.Namespace) -> None:
             rows, note = e5_rows_for_dataset(
                 dataset,
                 model=model,
+                model_name=args.e5_model,
                 corpus_batch_size=args.corpus_batch_size,
                 query_batch_size=args.query_batch_size,
+                shard_size=args.shard_size,
+                index_base_dir=args.e5_index_dir,
+                rebuild=args.rebuild,
             )
             all_e5_rows = [r for r in all_e5_rows if str(r.get("dataset")) != dataset]
             all_e5_rows.extend(rows)
@@ -908,7 +1205,6 @@ def phase_cxx_e5(args: argparse.Namespace) -> None:
     lines.extend([
         f"- E5 row-level points: `{PHASE_CXX_E5_POINTS.relative_to(ROOT)}`",
         f"- Base C++ row-level points: `{PHASE_CXX_POINTS.relative_to(ROOT)}`",
-        "",
     ])
     PHASE_CXX_E5_REPORT.write_text("\n".join(lines) + "\n")
     print(PHASE_CXX_E5_REPORT)
@@ -1387,6 +1683,8 @@ def parse_args() -> argparse.Namespace:
     e5.add_argument("--e5-model", default="intfloat/e5-large-v2")
     e5.add_argument("--corpus-batch-size", type=int, default=64)
     e5.add_argument("--query-batch-size", type=int, default=64)
+    e5.add_argument("--shard-size", type=int, default=10000)
+    e5.add_argument("--e5-index-dir", default=str(E5_INDEX_ROOT))
     e5.add_argument("--resume", action="store_true")
     e5.add_argument("--rebuild", action="store_true")
     e5.add_argument("--fp16", action="store_true", default=True)
