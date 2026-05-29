@@ -1401,6 +1401,22 @@ def _style_signal_block(config: EvalConfig) -> str:
 def _question_only_hyde_user(question_text: str, config: EvalConfig | None = None, use_style_signal: bool = False) -> str:
     """Structured user payload for question-only HyDE generation."""
     style_signal = _style_signal_block(config) if use_style_signal and config is not None else ""
+    if config is not None and config.dataset in {"hotpotqa", "musique"}:
+        return (
+            "## Task\n"
+            "Write a short neutral Wikipedia-style passage that would help retrieve the "
+            "supporting paragraphs for the multi-hop question below. This is NOT an answer "
+            "task; do not give the final answer.\n\n"
+            f"{style_signal}"
+            "## Question (for context only)\n"
+            f"{question_text}\n\n"
+            "## Passage Requirements\n"
+            "- 2-3 sentences, source-document style\n"
+            "- 120 words maximum; do not repeat phrases or sentences\n"
+            "- Preserve concrete entities from the question when possible\n"
+            "- Include bridge entities, relations, or target facts that would help retrieve support\n"
+            "- Start with the passage itself; no 'Answer:', no headers, no bold or markdown\n"
+        )
     return (
         "## Task\n"
         "Write a passage that would appear in a legal treatise or casebook — the kind of "
@@ -2163,19 +2179,20 @@ def _system_prompt(config: EvalConfig, role: str = "answer") -> str:
             ),
         }
         return prompts.get(role, prompts["answer"])
-    if config.dataset == "hotpotqa":
+    if config.dataset in {"hotpotqa", "musique"}:
+        dataset_name = "HotpotQA" if config.dataset == "hotpotqa" else "MuSiQue"
         prompts = {
             "answer": (
-                "You answer HotpotQA multi-hop questions. Give a brief span or yes/no answer. "
+                f"You answer {dataset_name} multi-hop questions. Give a brief span or yes/no answer. "
                 "End with one line in the form: Answer: [your answer here]"
             ),
             "rag": (
-                "You answer HotpotQA multi-hop questions using retrieved Wikipedia paragraphs. "
+                f"You answer {dataset_name} multi-hop questions using retrieved Wikipedia-style paragraphs. "
                 "Combine evidence across paragraphs when needed, but keep the final answer brief. "
                 "End with one line in the form: Answer: [your answer here]"
             ),
             "research": (
-                "You answer HotpotQA multi-hop questions from research findings. Combine the "
+                f"You answer {dataset_name} multi-hop questions from research findings. Combine the "
                 "findings when needed and end with one line in the form: Answer: [your answer here]"
             ),
             "hyde": (
@@ -3703,12 +3720,13 @@ def _snap_hyde_2call_system_with_signal(config: EvalConfig, style_signal_text: s
         if style_signal_text
         else ""
     )
-    if config.dataset == "hotpotqa":
+    if config.dataset in {"hotpotqa", "musique"}:
+        dataset_name = "HotpotQA" if config.dataset == "hotpotqa" else "MuSiQue"
         return (
-            "You create SCOPE retrieval passages for HotpotQA multi-hop questions. "
+            f"You create SCOPE retrieval passages for {dataset_name} multi-hop questions. "
             "Do not answer the question directly. Use the question only to identify "
             "the bridge entity, target entity, and relation that would help retrieve "
-            "the supporting Wikipedia paragraphs."
+            "the supporting Wikipedia-style paragraphs."
             + style_signal
             + "\n\nADDITIONAL OUTPUT REQUIREMENT (REQUIRED, do not skip):\n"
             "Keep the entire response under 140 words. Do not repeat phrases.\n"

@@ -40,6 +40,7 @@ from eval_harness import (  # noqa: E402
     _setup_provider,
 )
 from rag_utils import get_documents_by_idx  # noqa: E402
+from musique_retrieval import musique_documents_by_idx  # noqa: E402
 
 
 MODEL = "or-gemma4-26b"
@@ -79,6 +80,13 @@ def dataset_specs() -> dict[str, DatasetSpec]:
             collection="casehold_holdings",
             raw_cache=ROOT / "caches/retrieval/full/casehold_qfull_seed42_raw_question_k10.jsonl",
             out=ROOT / f"caches/generation/full/casehold_qfull_seed42_{MODEL}_csqe.jsonl",
+        ),
+        "musique": DatasetSpec(
+            dataset="musique",
+            display="MuSiQue",
+            collection="musique_passages",
+            raw_cache=ROOT / "caches/retrieval/full/musique_qfull_seed42_raw_question_k10.jsonl",
+            out=ROOT / f"caches/generation/full/musique_qfull_seed42_{MODEL}_csqe.jsonl",
         ),
     }
 
@@ -154,7 +162,11 @@ def _build_doc_lookup(collection: str, ids: list[str]) -> dict[str, str]:
     unique = list(dict.fromkeys(str(idx) for idx in ids if str(idx)))
     for start in range(0, len(unique), 5000):
         chunk = unique[start : start + 5000]
-        docs = get_documents_by_idx(collection, chunk)
+        docs = (
+            musique_documents_by_idx(chunk)
+            if collection == "musique_passages"
+            else get_documents_by_idx(collection, chunk)
+        )
         for doc in docs:
             idx = str(doc.metadata.get("idx") or "")
             if idx:
@@ -409,7 +421,7 @@ def build_dataset(args: argparse.Namespace, spec: DatasetSpec) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset", choices=["barexam", "housing", "casehold", "all"], default="all")
+    parser.add_argument("--dataset", choices=["barexam", "housing", "casehold", "musique", "all"], default="all")
     parser.add_argument("--provider", default=MODEL)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--limit", type=int, default=0, help="Optional first-N question cap; 0 means full.")
