@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT / "eval"))
 
 from eval_config import BEIR_DATASETS, EvalConfig, load_questions  # noqa: E402
 from hotpotqa_retrieval import retrieve_hotpotqa_documents  # noqa: E402
+from musique_retrieval import retrieve_musique_documents  # noqa: E402
 from eval_harness import (  # noqa: E402
     _collection_for_config,
     _fmt_intermediate,
@@ -385,9 +386,10 @@ def _main_locked(args: argparse.Namespace) -> None:
         and _env_truthy("GOLDEN_NEIGHBORS_STORED_EMBEDDING")
     )
     use_hotpotqa_in_row = collection == "hotpotqa_passages"
+    use_musique_in_row = collection == "musique_passages"
     vectorstore = (
         None
-        if use_stored_gold_embeddings or use_hotpotqa_in_row
+        if use_stored_gold_embeddings or use_hotpotqa_in_row or use_musique_in_row
         else get_vectorstore(collection, embedding_model=embedding_model or None)
     )
     direct_collection = _direct_chroma_collection(collection) if use_stored_gold_embeddings else None
@@ -450,6 +452,14 @@ def _main_locked(args: argparse.Namespace) -> None:
                     embedding_model=embedding_model or None,
                 )
                 retrieval_backend = "hotpotqa_in_row_gte_ce"
+            elif use_musique_in_row:
+                docs = retrieve_musique_documents(
+                    row,
+                    queries,
+                    k=retrieve_k,
+                    embedding_model=embedding_model or None,
+                )
+                retrieval_backend = "musique_in_row_gte_ce"
             elif use_stored_gold_embeddings:
                 docs, stored_gold_embedding_ids = _golden_neighbors_from_stored_embeddings(
                     collection=direct_collection,
