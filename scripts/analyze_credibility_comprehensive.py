@@ -24,7 +24,6 @@ from scipy.stats import kendalltau, spearmanr
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import train_test_split
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -47,6 +46,13 @@ from analyze_credibility_battery import (  # noqa: E402
     write_jsonl,
 )
 from build_factuality_judge_cache import dataset_specs as factuality_dataset_specs  # noqa: E402
+from analyze_beir_phase1 import BEIR_SPECS, load_questions_for_spec  # noqa: E402
+from analyze_raw_retrieval_confidence_routing import (  # noqa: E402
+    ce_features as qpp_ce_features,
+    dense_features_for_row,
+    embed_queries,
+    fetch_doc_embeddings,
+)
 
 
 TOKEN_RE = re.compile(r"[a-z0-9]+")
@@ -71,6 +77,29 @@ PHASE_CXX_POINTS = ROOT / "docs/generated/credibility_C_three_retrievers_full_20
 PHASE_D_REPORT = ROOT / "docs/generated/credibility_D_ood_predictor_2026-05-29.md"
 PHASE_D_POINTS = ROOT / "docs/generated/credibility_D_ood_predictor_2026-05-29_points.jsonl"
 FINAL_REPORT = ROOT / "docs/generated/credibility_comprehensive_summary_2026-05-29.md"
+
+MODEL_DISPLAY = {
+    "or-gemma4-26b": "Gemma 4 26B",
+    "or-qwen3p5-9b": "Qwen 3.5 9B",
+    "or-mistral-small-3p2-24b": "Mistral Small 3.2 24B",
+    "or-deepseek-v32": "DeepSeek V3.2",
+}
+
+QPP_FEATURES = [
+    "nqc_ce_top10",
+    "wig_ce_top5_vs_top10",
+    "smv_ce_top10",
+    "ce_top1",
+    "ce_top5_mean",
+    "ce_spread_1_5",
+    "ce_entropy_conf_top5",
+    "dense_query_top1_cos",
+    "dense_coherence_top5",
+    "dense_centroid_norm_top5",
+    "log_perplexity",
+    "question_tokens",
+    "oov_rate",
+]
 
 
 def tokenize(text: Any, *, max_terms: int = 0) -> list[str]:
@@ -586,6 +615,271 @@ def phase_cxx(args: argparse.Namespace) -> None:
     print(PHASE_CXX_REPORT)
 
 
+class BeirQppSpec:
+    def __init__(self, key: str, collection: str) -> None:
+        self.key = key
+        self.collection = collection
+
+
+def safe_tau(y_true: list[float], y_score: list[float]) -> float:
+    pairs = [(float(y), float(s)) for y, s in zip(y_true, y_score) if math.isfinite(float(y)) and math.isfinite(float(s))]
+    if len(pairs) < 3 or len({p[0] for p in pairs}) < 2 or len({p[1] for p in pairs}) < 2:
+        return float("nan")
+    value = kendalltau([p[1] for p in pairs], [p[0] for p in pairs], nan_policy="omit").statistic
+    return float(value) if math.isfinite(float(value)) else float("nan")
+
+
+def safe_spearman(y_true: list[float], y_score: list[float]) -> float:
+    pairs = [(float(y), float(s)) for y, s in zip(y_true, y_score) if math.isfinite(float(y)) and math.isfinite(float(s))]
+    if len(pairs) < 3 or len({p[0] for p in pairs}) < 2 or len({p[1] for p in pairs}) < 2:
+        return float("nan")
+    value = spearmanr([p[1] for p in pairs], [p[0] for p in pairs], nan_policy="omit").statistic
+    return float(value) if math.isfinite(float(value)) else float("nan")
+
+
+def safe_auc_values(y_true: list[int], y_score: list[float]) -> float:
+    pairs = [(int(y), float(s)) for y, s in zip(y_true, y_score) if math.isfinite(float(s))]
+    if len({p[0] for p in pairs}) < 2:
+        return float("nan")
+    return float(roc_auc_score([p[0] for p in pairs], [p[1] for p in pairs]))
+
+
+def finite_feature_rows(rows: list[dict[str, Any]], features: list[str]) -> list[dict[str, Any]]:
+    out = []
+    for row in rows:
+        ok = True
+        for feature in features:
+            try:
+                value = float(row.get(feature))
+            except Exception:
+                ok = False
+                break
+            if not math.isfinite(value):
+                ok = False
+                break
+        if ok:
+            out.append(row)
+    return out
+
+
+def matrix(rows: list[dict[str, Any]], features: list[str]) -> np.ndarray:
+    return np.asarray([[float(row[f]) for f in features] for row in rows], dtype=np.float64)
+
+
+def standardize_train_test(x_train: np.ndarray, x_test: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    mu = x_train.mean(axis=0)
+    sd = x_train.std(axis=0)
+    sd[sd == 0.0] = 1.0
+    return (x_train - mu) / sd, (x_test - mu) / sd
+
+
+def make_model(kind: str):
+    if kind == "logistic":
+        return LogisticRegression(max_iter=2000, class_weight="balanced", random_state=42)
+    if kind == "gb":
+        return GradientBoostingClassifier(random_state=42, n_estimators=80, max_depth=2, learning_rate=0.05)
+    raise ValueError(kind)
+
+
+def fit_predict(train: list[dict[str, Any]], test: list[dict[str, Any]], features: list[str], kind: str) -> dict[str, Any]:
+    train = finite_feature_rows(train, features)
+    test = finite_feature_rows(test, features)
+    if len(train) < 20 or len(test) < 5:
+        return {"n_train": len(train), "n_test": len(test), "tau": float("nan"), "spearman": float("nan"), "auc": float("nan")}
+    y_train = np.asarray([int(float(r["retrieval_delta"]) > 0) for r in train], dtype=np.int64)
+    if len(set(y_train.tolist())) < 2:
+        return {"n_train": len(train), "n_test": len(test), "tau": float("nan"), "spearman": float("nan"), "auc": float("nan")}
+    x_train, x_test = standardize_train_test(matrix(train, features), matrix(test, features))
+    model = make_model(kind)
+    model.fit(x_train, y_train)
+    score = model.predict_proba(x_test)[:, 1]
+    y_cont = [float(r["retrieval_delta"]) for r in test]
+    y_bin = [int(float(r["retrieval_delta"]) > 0) for r in test]
+    return {
+        "n_train": len(train),
+        "n_test": len(test),
+        "tau": safe_tau(y_cont, score.tolist()),
+        "spearman": safe_spearman(y_cont, score.tolist()),
+        "auc": safe_auc_values(y_bin, score.tolist()),
+        "positive_rate": mean(y_bin),
+    }
+
+
+def load_phase_d_points(*, chroma_batch_size: int, embed_batch_size: int) -> list[dict[str, Any]]:
+    source_path = Path("/tmp/beir_phase1b_model_breadth_2026-05-26_points.jsonl")
+    if not source_path.exists():
+        raise SystemExit(f"Missing Phase 1b points: {source_path}")
+    phase_rows = [
+        row for row in read_jsonl(source_path)
+        if row.get("expansion") == "scope" and row.get("model") in MODEL_DISPLAY
+    ]
+    by_dataset = sorted({str(row["dataset"]) for row in phase_rows})
+    raw_features: dict[tuple[str, str], dict[str, float]] = {}
+    for dataset in by_dataset:
+        spec = BEIR_SPECS[dataset]
+        raw_cache = load_by_label(retrieval_cache_path(dataset, "raw"))
+        questions = load_questions_for_spec(spec)
+        raw_queries = {label: row["question"] for label, row in questions.items()}
+        print(f"[phase-d] {dataset}: dense features", flush=True)
+        doc_embeddings = fetch_doc_embeddings(BeirQppSpec(dataset, spec.collection), raw_cache, chroma_batch_size)
+        query_embeddings = embed_queries(raw_queries, embed_batch_size)
+        for label, raw_row in raw_cache.items():
+            feats = qpp_ce_features(raw_row.get("scores") or [])
+            feats.update(dense_features_for_row(raw_row, doc_embeddings, query_embeddings.get(label)))
+            raw_features[(dataset, label)] = feats
+    points: list[dict[str, Any]] = []
+    for row in phase_rows:
+        dataset = str(row["dataset"])
+        label = str(row["label"])
+        feats = dict(raw_features.get((dataset, label), {}))
+        feats["log_perplexity"] = float(row.get("log_perplexity", float("nan")))
+        feats["question_tokens"] = float(row.get("token_count", float("nan")))
+        feats["oov_rate"] = float(row.get("oov_rate", float("nan")))
+        out = {
+            "dataset": dataset,
+            "dataset_display": row.get("dataset_display") or DATASET_SOURCES[dataset].display,
+            "model": str(row["model"]),
+            "model_display": MODEL_DISPLAY[str(row["model"])],
+            "label": label,
+            "retrieval_delta": float(row["retrieval_delta"]),
+            "scope_help": int(float(row["retrieval_delta"]) > 0),
+            "scope_hurt": int(float(row["retrieval_delta"]) < 0),
+        }
+        out.update(feats)
+        points.append(out)
+    return finite_feature_rows(points, QPP_FEATURES)
+
+
+def split_mean(rows: list[dict[str, Any]], key: str) -> float:
+    vals = [float(r[key]) for r in rows if math.isfinite(float(r.get(key, float("nan"))))]
+    return mean(vals)
+
+
+def phase_d(args: argparse.Namespace) -> None:
+    points = load_phase_d_points(chroma_batch_size=args.chroma_batch_size, embed_batch_size=args.embed_batch_size)
+    write_jsonl(PHASE_D_POINTS, points)
+
+    models = sorted({p["model"] for p in points})
+    datasets = sorted({p["dataset"] for p in points})
+    model_kinds = ["logistic", "gb"]
+    rows_eval: list[dict[str, Any]] = []
+
+    for kind in model_kinds:
+        rows_eval.append({"split": "in_sample", "heldout": "none", "model_kind": kind, **fit_predict(points, points, QPP_FEATURES, kind)})
+        for model in models:
+            train = [p for p in points if p["model"] != model]
+            test = [p for p in points if p["model"] == model]
+            rows_eval.append({"split": "heldout_generator", "heldout": MODEL_DISPLAY[model], "model_kind": kind, **fit_predict(train, test, QPP_FEATURES, kind)})
+        for dataset in datasets:
+            train = [p for p in points if p["dataset"] != dataset]
+            test = [p for p in points if p["dataset"] == dataset]
+            rows_eval.append({"split": "heldout_dataset_lodo", "heldout": DATASET_SOURCES[dataset].display, "model_kind": kind, **fit_predict(train, test, QPP_FEATURES, kind)})
+        # With five BEIR datasets available for four-generator breadth, the literal
+        # 5-train/2-heldout split is impossible; use leave-two-out as a harder proxy.
+        for i, d1 in enumerate(datasets):
+            for d2 in datasets[i + 1:]:
+                held = {d1, d2}
+                train = [p for p in points if p["dataset"] not in held]
+                test = [p for p in points if p["dataset"] in held]
+                rows_eval.append({"split": "heldout_dataset_leave2_proxy", "heldout": f"{DATASET_SOURCES[d1].display} + {DATASET_SOURCES[d2].display}", "model_kind": kind, **fit_predict(train, test, QPP_FEATURES, kind)})
+
+    mean_by_kind = {}
+    for kind in model_kinds:
+        held = [r for r in rows_eval if r["model_kind"] == kind and r["split"] == "heldout_generator"]
+        mean_by_kind[kind] = mean(r["tau"] for r in held)
+    best_kind = max(model_kinds, key=lambda k: mean_by_kind.get(k, float("-inf")) if math.isfinite(mean_by_kind.get(k, float("nan"))) else -999)
+
+    rng = np.random.default_rng(42)
+    budget_sizes = [0, 25, 50, 100, 200, 500, 1000]
+    budget_rows: list[dict[str, Any]] = []
+    for model in models:
+        base = [p for p in points if p["model"] != model]
+        target = [p for p in points if p["model"] == model]
+        for size in budget_sizes:
+            vals = []
+            for seed in range(5):
+                local_rng = np.random.default_rng(1000 + seed)
+                indices = np.arange(len(target))
+                local_rng.shuffle(indices)
+                calib_idx = set(indices[: min(size, max(0, len(target) - 50))].tolist())
+                calib = [target[i] for i in calib_idx]
+                test = [target[i] for i in range(len(target)) if i not in calib_idx]
+                vals.append(fit_predict(base + calib, test, QPP_FEATURES, best_kind)["tau"])
+            budget_rows.append({
+                "heldout_model": MODEL_DISPLAY[model],
+                "calibration_n": size,
+                "mean_tau": mean(vals),
+                "max_tau": max((v for v in vals if math.isfinite(v)), default=float("nan")),
+            })
+    _ = rng
+
+    held_gen = [r for r in rows_eval if r["split"] == "heldout_generator" and r["model_kind"] == best_kind]
+    held_dataset = [r for r in rows_eval if r["split"].startswith("heldout_dataset") and r["model_kind"] == best_kind]
+    useful_negative = mean(abs(float(r["tau"])) for r in held_gen if math.isfinite(float(r["tau"]))) < 0.3
+    verdict = "useful negative" if useful_negative else "promising"
+    best_budget = next((r for r in budget_rows if math.isfinite(float(r["mean_tau"])) and abs(float(r["mean_tau"])) >= 0.5), None)
+
+    lines = [
+        "# Credibility D - OOD No-Gold QPP Predictor",
+        "",
+        "No `paper/` files were edited.",
+        "",
+        "## Verdict",
+        "",
+        f"- Status: **{verdict}**.",
+        f"- Best model family by held-out-generator tau: `{best_kind}` with mean tau `{fmt(mean_by_kind[best_kind])}`.",
+        f"- Held-out-generator mean Kendall tau: `{fmt(mean(r['tau'] for r in held_gen))}`; held-out-dataset mean tau: `{fmt(mean(r['tau'] for r in held_dataset))}`.",
+        f"- Datta-style reliability bar `|tau| >= 0.5`: {'reached in calibration curve' if best_budget else 'not reached in the tested calibration budget'}." ,
+        "",
+        "## Coverage",
+        "",
+        "| Dataset | Generator | Rows | Help rate | Hurt rate | Mean retrieval delta |",
+        "|---|---|---:|---:|---:|---:|",
+    ]
+    for dataset in datasets:
+        for model in models:
+            group = [p for p in points if p["dataset"] == dataset and p["model"] == model]
+            lines.append(
+                f"| {DATASET_SOURCES[dataset].display} | {MODEL_DISPLAY[model]} | {len(group)} | "
+                f"{pct(mean(p['scope_help'] for p in group))} | {pct(mean(p['scope_hurt'] for p in group))} | {pct(mean(p['retrieval_delta'] for p in group))} |"
+            )
+    lines.extend([
+        "",
+        "## OOD Splits",
+        "",
+        "| Split | Held out | Model | Train N | Test N | Kendall tau | Spearman | AUC(help) | Help rate |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|",
+    ])
+    for row in rows_eval:
+        lines.append(
+            f"| {row['split']} | {row['heldout']} | {row['model_kind']} | {row['n_train']} | {row['n_test']} | "
+            f"{fmt(row['tau'])} | {fmt(row['spearman'])} | {fmt(row['auc'])} | {pct(row.get('positive_rate'))} |"
+        )
+    lines.extend([
+        "",
+        "## Calibration Budget Curve",
+        "",
+        f"Budget curve uses `{best_kind}` and adds labeled examples from the held-out generator before evaluating on the remaining held-out rows.",
+        "",
+        "| Held-out generator | Calibration labels | Mean tau | Max tau |",
+        "|---|---:|---:|---:|",
+    ])
+    for row in budget_rows:
+        lines.append(f"| {row['heldout_model']} | {row['calibration_n']} | {fmt(row['mean_tau'])} | {fmt(row['max_tau'])} |")
+    lines.extend([
+        "",
+        "## Notes",
+        "",
+        "- The true four-generator OOD battery is available only for the five BEIR Phase 1b datasets. BarExamQA and HousingQA have richer answer/QPP rows but not the same four-generator breadth, so they are not mixed into the generator-OOD estimate.",
+        "- The requested `5 train / 2 held-out datasets` split is impossible within the five-dataset, four-generator BEIR slice. This report uses leave-one-dataset-out plus leave-two-datasets-out as the available proxy.",
+        "- Features are no-gold raw-retrieval predictors: NQC, WIG, SMV, CE score/spread/entropy, dense query-top1 cosine, dense top-5 coherence/centroid norm, log perplexity, question length, and OOV rate.",
+        f"- Row-level points: `{PHASE_D_POINTS.relative_to(ROOT)}`",
+        "",
+    ])
+    PHASE_D_REPORT.write_text("\n".join(lines) + "\n")
+    print(PHASE_D_REPORT)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -598,6 +892,11 @@ def parse_args() -> argparse.Namespace:
     cxx.add_argument("--e5-status", action="store_true")
     cxx.add_argument("--e5-model", default="intfloat/e5-large-v2")
     cxx.set_defaults(func=phase_cxx)
+
+    d = sub.add_parser("phase-d")
+    d.add_argument("--chroma-batch-size", type=int, default=4000)
+    d.add_argument("--embed-batch-size", type=int, default=64)
+    d.set_defaults(func=phase_d)
 
     return parser.parse_args()
 
