@@ -35,6 +35,7 @@ from eval_harness import (  # noqa: E402
     _row_label,
     _setup_provider,
 )
+from llm_config import get_provider_info  # noqa: E402
 from rag_utils import get_documents_by_idx  # noqa: E402
 
 
@@ -43,6 +44,7 @@ DEFAULT_OUT = ROOT / "docs/generated/factuality_judge_q200_2026-05-28.jsonl"
 TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
 JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 TRANSIENT_RE = re.compile(r"(429|rate|timeout|temporar|overload|upstream|connection)", re.I)
+BAD_JSON_ESCAPE_RE = re.compile(r'\\(?!["\\/bfnrtu])')
 
 
 @dataclass(frozen=True)
@@ -314,7 +316,13 @@ def parse_judgment(raw: str) -> dict[str, Any]:
     text = str(raw or "").strip()
     match = JSON_RE.search(text)
     candidate = match.group(0) if match else text
-    data = json.loads(candidate)
+    try:
+        data = json.loads(candidate)
+    except json.JSONDecodeError:
+        # Some otherwise valid judge responses contain prose escapes such as
+        # "\S" inside rationale strings. Preserve the raw output in the record,
+        # but tolerate those invalid JSON escapes when extracting the verdict.
+        data = json.loads(BAD_JSON_ESCAPE_RE.sub(r"\\\\", candidate))
     verdict = str(data.get("verdict") or "").strip().lower().replace("-", "_")
     aliases = {
         "not entailed": "not_entailed",
@@ -349,9 +357,9 @@ def call_with_retries(system: str, user: str, label: str, max_retries: int) -> t
             return raw, parse_judgment(raw), attempt
         except Exception as exc:
             last_error = str(exc)
-            if attempt >= max_retries or not TRANSIENT_RE.search(last_error):
+            if attempt >= max_retries:
                 raise
-            sleep_s = min(60.0, 2.0 * (2 ** attempt))
+            sleep_s = min(60.0, 2.0 * (2 ** attempt)) if TRANSIENT_RE.search(last_error) else 1.0
             print(f"[retry] {label} attempt={attempt + 1} sleep={sleep_s:.1f}s error={last_error[:160]}", flush=True)
             time.sleep(sleep_s)
     raise RuntimeError(last_error)
@@ -435,6 +443,7 @@ def judge_one(order_i: int, task: dict[str, Any], docs_by_id: dict[str, str], ar
     if not premise:
         raise RuntimeError(f"{task['dataset']}/{task['label']}/{task['premise_kind']}: empty premise")
     start = time.time()
+    provider_info = get_provider_info()
     raw, parsed, retry_count = call_with_retries(
         system_prompt(),
         user_prompt(
@@ -466,7 +475,8 @@ def judge_one(order_i: int, task: dict[str, Any], docs_by_id: dict[str, str], ar
         "rationale": parsed["rationale"],
         "unsupported_claims": parsed["unsupported_claims"],
         "judge_raw": raw,
-        "judge_model": MODEL,
+        "judge_provider": provider_info.get("provider", args.provider),
+        "judge_model": provider_info.get("model", args.provider),
         "provider_route": _provider_route_metadata(),
         "retry_count": retry_count,
         "elapsed_sec": round(time.time() - start, 3),
