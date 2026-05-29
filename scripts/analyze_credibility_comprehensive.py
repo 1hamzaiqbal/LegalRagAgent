@@ -15,6 +15,7 @@ import re
 import sqlite3
 import sys
 import time
+import gc
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Iterable
@@ -74,6 +75,8 @@ DATASETS_7 = [
 
 PHASE_CXX_REPORT = ROOT / "docs/generated/credibility_C_three_retrievers_full_2026-05-29.md"
 PHASE_CXX_POINTS = ROOT / "docs/generated/credibility_C_three_retrievers_full_2026-05-29_points.jsonl"
+PHASE_CXX_E5_REPORT = ROOT / "docs/generated/credibility_C_e5_addendum_2026-05-29.md"
+PHASE_CXX_E5_POINTS = ROOT / "docs/generated/credibility_C_e5_addendum_2026-05-29_points.jsonl"
 PHASE_D_REPORT = ROOT / "docs/generated/credibility_D_ood_predictor_2026-05-29.md"
 PHASE_D_POINTS = ROOT / "docs/generated/credibility_D_ood_predictor_2026-05-29_points.jsonl"
 FINAL_REPORT = ROOT / "docs/generated/credibility_comprehensive_summary_2026-05-29.md"
@@ -100,6 +103,16 @@ QPP_FEATURES = [
     "question_tokens",
     "oov_rate",
 ]
+
+E5_DATASETS_PRIORITY = [
+    "beir_scifact",
+    "beir_nfcorpus",
+    "beir_fiqa",
+    "beir_trec_covid",
+    "beir_scidocs",
+    "barexam",
+]
+E5_TEXT_MAX_CHARS = 4096
 
 
 def tokenize(text: Any, *, max_terms: int = 0) -> list[str]:
@@ -615,6 +628,278 @@ def phase_cxx(args: argparse.Namespace) -> None:
     print(PHASE_CXX_REPORT)
 
 
+def e5_prefix(text: str, kind: str) -> str:
+    prefix = "query: " if kind == "query" else "passage: "
+    clean = " ".join(str(text or "").split())
+    if E5_TEXT_MAX_CHARS and len(clean) > E5_TEXT_MAX_CHARS:
+        clean = clean[:E5_TEXT_MAX_CHARS]
+    return prefix + clean
+
+
+def encode_e5(model: Any, texts: list[str], *, kind: str, batch_size: int) -> np.ndarray:
+    if not texts:
+        return np.zeros((0, 0), dtype=np.float32)
+    arr = model.encode(
+        [e5_prefix(text, kind) for text in texts],
+        batch_size=batch_size,
+        convert_to_numpy=True,
+        normalize_embeddings=True,
+        show_progress_bar=False,
+    )
+    return np.asarray(arr, dtype=np.float32)
+
+
+def e5_query_items(dataset: str) -> tuple[dict[str, dict[str, Any]], list[tuple[str, str, str]]]:
+    qmap = load_question_rows_with_state(dataset)
+    items: list[tuple[str, str, str]] = []
+    for label, qrow in qmap.items():
+        items.append(("raw", label, str(qrow["question"])))
+    for arm in ["hyde", "scope"]:
+        gen = generation_for(dataset, arm, OR_GEMMA)
+        for label in qmap:
+            if label not in gen:
+                continue
+            passage = generation_passage(gen[label])
+            if passage:
+                items.append((arm, label, passage))
+    return qmap, items
+
+
+def e5_gold_affinities(
+    *,
+    dataset: str,
+    qmap: dict[str, dict[str, Any]],
+    query_items: list[tuple[str, str, str]],
+    query_vectors: np.ndarray,
+    model: Any,
+    batch_size: int,
+) -> dict[tuple[str, str], float]:
+    gold_ids = list(dict.fromkeys(
+        gid for label in qmap for gid in qmap[label].get("gold_ids", []) if str(gid)
+    ))
+    gold_docs = gold_docs_for(dataset, gold_ids)
+    gold_doc_ids = [gid for gid in gold_ids if gid in gold_docs]
+    gold_vecs = encode_e5(model, [gold_docs[gid] for gid in gold_doc_ids], kind="passage", batch_size=batch_size)
+    by_gold = {gid: gold_vecs[i] for i, gid in enumerate(gold_doc_ids)}
+    out: dict[tuple[str, str], float] = {}
+    for i, (arm, label, _) in enumerate(query_items):
+        vals = [
+            float(np.dot(query_vectors[i], by_gold[gid]))
+            for gid in qmap[label].get("gold_ids", [])
+            if gid in by_gold
+        ]
+        out[(arm, label)] = max(vals) if vals else float("nan")
+    return out
+
+
+def e5_rows_for_dataset(
+    dataset: str,
+    *,
+    model: Any,
+    corpus_batch_size: int,
+    query_batch_size: int,
+) -> tuple[list[dict[str, Any]], str]:
+    if dataset == "housing":
+        raise RuntimeError("housing E5 state-filtered retrieval is a stretch target; state-sharded E5 indexing is not enabled in this pass")
+    import faiss
+
+    qmap, query_items = e5_query_items(dataset)
+    started = time.time()
+    query_vectors = encode_e5(
+        model,
+        [text for _, _, text in query_items],
+        kind="query",
+        batch_size=query_batch_size,
+    )
+    if query_vectors.ndim != 2 or query_vectors.shape[0] != len(query_items):
+        raise RuntimeError(f"{dataset}: bad query embedding shape {query_vectors.shape}")
+    dim = int(query_vectors.shape[1])
+    index = faiss.IndexFlatIP(dim)
+    doc_ids: list[str] = []
+    doc_buffer: list[str] = []
+    id_buffer: list[str] = []
+    n_docs = 0
+    embed_sec = 0.0
+
+    def flush() -> None:
+        nonlocal embed_sec, n_docs
+        if not doc_buffer:
+            return
+        t0 = time.time()
+        vecs = encode_e5(model, doc_buffer, kind="passage", batch_size=corpus_batch_size)
+        embed_sec += time.time() - t0
+        index.add(vecs)
+        doc_ids.extend(id_buffer)
+        n_docs += len(id_buffer)
+        doc_buffer.clear()
+        id_buffer.clear()
+        if n_docs % 50000 < corpus_batch_size:
+            print(f"[e5] {dataset}: indexed {n_docs}", flush=True)
+
+    for idx, _state, text in iter_docs_with_state(dataset):
+        id_buffer.append(str(idx))
+        doc_buffer.append(text)
+        if len(doc_buffer) >= corpus_batch_size:
+            flush()
+    flush()
+    if index.ntotal != len(doc_ids):
+        raise RuntimeError(f"{dataset}: index/doc-id mismatch {index.ntotal} != {len(doc_ids)}")
+
+    search_started = time.time()
+    scores, indices = index.search(query_vectors, 10)
+    search_sec = time.time() - search_started
+    gold_aff = e5_gold_affinities(
+        dataset=dataset,
+        qmap=qmap,
+        query_items=query_items,
+        query_vectors=query_vectors,
+        model=model,
+        batch_size=query_batch_size,
+    )
+    rows: list[dict[str, Any]] = []
+    for i, (arm, label, text) in enumerate(query_items):
+        ids = [doc_ids[int(j)] for j in indices[i].tolist() if int(j) >= 0]
+        row_scores = [float(s) for s in scores[i].tolist()[: len(ids)]]
+        gold_ids = qmap[label]["gold_ids"]
+        rows.append({
+            "dataset": dataset,
+            "dataset_display": DATASET_SOURCES[dataset].display,
+            "retriever": "e5_large_v2_full",
+            "arm": arm,
+            "label": label,
+            "gold_ids": gold_ids,
+            "retrieved_ids": ids,
+            "scores": row_scores,
+            "hit5": hit_at(ids, gold_ids, 5),
+            "hit10": hit_at(ids, gold_ids, 10),
+            "gold_affinity": gold_aff.get((arm, label), float("nan")),
+            "query_chars": len(text),
+        })
+    note = (
+        f"docs={n_docs}; query_vectors={len(query_items)}; dim={dim}; "
+        f"embed_sec={embed_sec:.1f}; search_sec={search_sec:.1f}; elapsed_sec={time.time() - started:.1f}"
+    )
+    del index, query_vectors, scores, indices
+    gc.collect()
+    return rows, note
+
+
+def phase_cxx_e5(args: argparse.Namespace) -> None:
+    datasets = args.datasets or E5_DATASETS_PRIORITY
+    from sentence_transformers import SentenceTransformer
+    import torch
+
+    model = SentenceTransformer(args.e5_model, local_files_only=True)
+    if args.fp16 and torch.cuda.is_available():
+        model = model.to("cuda")
+        model.half()
+        print("[e5] using cuda fp16", flush=True)
+    existing = read_jsonl(PHASE_CXX_E5_POINTS) if PHASE_CXX_E5_POINTS.exists() and args.resume else []
+    done = {
+        str(row.get("dataset"))
+        for row in existing
+        if row.get("retriever") == "e5_large_v2_full"
+    }
+    all_e5_rows = list(existing)
+    notes: list[str] = []
+    failures: list[str] = []
+    for dataset in datasets:
+        if dataset in done and not args.rebuild:
+            notes.append(f"{DATASET_SOURCES[dataset].display} E5: reused existing rows")
+            continue
+        try:
+            rows, note = e5_rows_for_dataset(
+                dataset,
+                model=model,
+                corpus_batch_size=args.corpus_batch_size,
+                query_batch_size=args.query_batch_size,
+            )
+            all_e5_rows = [r for r in all_e5_rows if str(r.get("dataset")) != dataset]
+            all_e5_rows.extend(rows)
+            notes.append(f"{DATASET_SOURCES[dataset].display} E5: {note}")
+            write_jsonl(PHASE_CXX_E5_POINTS, all_e5_rows)
+        except Exception as exc:
+            failures.append(f"{DATASET_SOURCES[dataset].display} E5 failed/pending: {type(exc).__name__}: {str(exc)[:300]}")
+            write_jsonl(PHASE_CXX_E5_POINTS, all_e5_rows)
+
+    combined_rows = read_jsonl(PHASE_CXX_POINTS) if PHASE_CXX_POINTS.exists() else []
+    combined_rows.extend(all_e5_rows)
+    summary_rows, corr_rows = summarize_retriever_rows(combined_rows)
+    e5_scope = [
+        float(r["spearman"]) for r in corr_rows
+        if r["retriever"] == "e5_large_v2_full" and r["arm"] == "scope" and math.isfinite(float(r.get("spearman", float("nan"))))
+    ]
+    original_scope = [
+        float(r["spearman"]) for r in corr_rows
+        if r["retriever"] == "gte_ce_original" and r["arm"] == "scope" and math.isfinite(float(r.get("spearman", float("nan"))))
+    ]
+    bm25_scope = [
+        float(r["spearman"]) for r in corr_rows
+        if r["retriever"] == "bm25_tantivy_full" and r["arm"] == "scope" and math.isfinite(float(r.get("spearman", float("nan"))))
+    ]
+    verdict = "closed for completed E5 datasets" if e5_scope and mean(e5_scope) >= 0.3 else "provisional/mixed"
+    lines = [
+        "# Credibility C++ E5 Addendum - 2026-05-29",
+        "",
+        "No `paper/` files were edited.",
+        "",
+        "## Verdict",
+        "",
+        f"- Three-retriever status: **{verdict}**.",
+        f"- E5 completed datasets: `{len(set(r['dataset'] for r in all_e5_rows))}`; SCOPE mean Spearman `{fmt(mean(e5_scope))}` over `{len(e5_scope)}` dataset correlations.",
+        f"- Original gte+CE SCOPE mean Spearman `{fmt(mean(original_scope))}`; BM25 SCOPE mean Spearman `{fmt(mean(bm25_scope))}`.",
+        "- Verdict criterion: E5 mean SCOPE Spearman >= 0.3 across completed datasets closes the three-retriever mechanism claim for those datasets.",
+        f"- E5 embedding inputs are capped at `{E5_TEXT_MAX_CHARS}` characters, matching the existing BEIR embedding pipeline cap.",
+        "",
+        "## E5 Retrieval Summary",
+        "",
+        "| Dataset | Arm | N | Hit@5 | Hit@10 | Delta vs raw | Help | Hurt | RI |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for row in summary_rows:
+        if row["retriever"] != "e5_large_v2_full":
+            continue
+        lines.append(
+            f"| {row['dataset_display']} | {row['arm']} | {row['n']} | {pct(row['hit5'])} | "
+            f"{pct(row['hit10'])} | {pct(row['delta'])} | {row['help']} | {row['hurt']} | {fmt(row['ri'])} |"
+        )
+    lines.extend([
+        "",
+        "## Three-Retriever Mechanism Comparison",
+        "",
+        "| Retriever | Dataset | Arm | N | Spearman | Kendall | Pearson | Mean gold-affinity delta |",
+        "|---|---|---|---:|---:|---:|---:|---:|",
+    ])
+    for row in corr_rows:
+        if row["arm"] != "scope":
+            continue
+        lines.append(
+            f"| {row['retriever']} | {row['dataset_display']} | {row['arm']} | {row['n']} | "
+            f"{fmt(row['spearman'])} | {fmt(row['kendall'])} | {fmt(row['pearson'])} | {fmt(row['mean_gold_delta'])} |"
+        )
+    lines.extend([
+        "",
+        "## Run Notes",
+        "",
+    ])
+    for note in notes:
+        lines.append(f"- {note}")
+    for failure in failures:
+        lines.append(f"- {failure}")
+    completed_e5 = {str(r.get("dataset")) for r in all_e5_rows}
+    if "barexam" not in completed_e5:
+        lines.append("- BarExamQA E5 remains pending after the five-BEIR priority pass; it should be run before claiming legal-corpus E5 generality.")
+    if "housing" not in completed_e5:
+        lines.append("- HousingQA E5 state-filtered retrieval remains a stretch target; it needs state-sharded E5 indexing to preserve the jurisdiction filter.")
+    lines.extend([
+        f"- E5 row-level points: `{PHASE_CXX_E5_POINTS.relative_to(ROOT)}`",
+        f"- Base C++ row-level points: `{PHASE_CXX_POINTS.relative_to(ROOT)}`",
+        "",
+    ])
+    PHASE_CXX_E5_REPORT.write_text("\n".join(lines) + "\n")
+    print(PHASE_CXX_E5_REPORT)
+
+
 class BeirQppSpec:
     def __init__(self, key: str, collection: str) -> None:
         self.key = key
@@ -892,6 +1177,16 @@ def parse_args() -> argparse.Namespace:
     cxx.add_argument("--e5-status", action="store_true")
     cxx.add_argument("--e5-model", default="intfloat/e5-large-v2")
     cxx.set_defaults(func=phase_cxx)
+
+    e5 = sub.add_parser("phase-cxx-e5")
+    e5.add_argument("--datasets", nargs="*")
+    e5.add_argument("--e5-model", default="intfloat/e5-large-v2")
+    e5.add_argument("--corpus-batch-size", type=int, default=64)
+    e5.add_argument("--query-batch-size", type=int, default=64)
+    e5.add_argument("--resume", action="store_true")
+    e5.add_argument("--rebuild", action="store_true")
+    e5.add_argument("--fp16", action="store_true", default=True)
+    e5.set_defaults(func=phase_cxx_e5)
 
     d = sub.add_parser("phase-d")
     d.add_argument("--chroma-batch-size", type=int, default=4000)
