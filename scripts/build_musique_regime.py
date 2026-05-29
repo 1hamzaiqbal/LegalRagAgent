@@ -568,15 +568,21 @@ def report() -> None:
     pool_hit = mean(all_metrics["pool"]["hit@5"])
     hyde_full_delta = mean(all_metrics["hyde"]["full@5"]) - mean(all_metrics["raw"]["full@5"])
     scope_full_delta = mean(all_metrics["scope"]["full@5"]) - mean(all_metrics["raw"]["full@5"])
-    csqe_delta = mean(all_metrics["csqe"]["hit@5"]) - raw_hit
-    help_supported = (hyde_full_delta > 0) or (scope_full_delta > 0)
-    csqe_supported = csqe_delta < 0.05
+    hyde_bridge_delta = mean(all_metrics["hyde"]["bridge@5"]) - mean(all_metrics["raw"]["bridge@5"])
+    scope_bridge_delta = mean(all_metrics["scope"]["bridge@5"]) - mean(all_metrics["raw"]["bridge@5"])
+    csqe_full_delta = mean(all_metrics["csqe"]["full@5"]) - mean(all_metrics["raw"]["full@5"])
+    csqe_bridge_delta = mean(all_metrics["csqe"]["bridge@5"]) - mean(all_metrics["raw"]["bridge@5"])
+    help_verdict = "supported" if (
+        (hyde_full_delta > 0 and hyde_bridge_delta > 0)
+        or (scope_full_delta > 0 and scope_bridge_delta > 0)
+    ) else ("mixed/killed" if (hyde_bridge_delta > 0 or scope_bridge_delta > 0) else "killed")
+    csqe_verdict = "supported" if abs(csqe_full_delta) < 0.05 and abs(csqe_bridge_delta) < 0.05 else "killed"
     if raw_hit <= 0.25:
         regime_supported = pool_hit <= scope_hit
         regime_text = "weak raw regime; pool was expected not to beat SCOPE"
     elif raw_hit >= 0.30:
-        regime_supported = pool_hit >= scope_hit
-        regime_text = "moderate raw regime; pool was expected to help preserve raw candidates"
+        regime_supported = pool_hit > raw_hit
+        regime_text = "moderate-to-saturated raw regime; pool was expected to help preserve raw candidates"
     else:
         regime_supported = False
         regime_text = "boundary raw regime; pre-registered threshold does not give a clean prediction"
@@ -588,8 +594,8 @@ def report() -> None:
         "",
         "## Verdict",
         "",
-        f"- **H-cross-domain-help-side: {'supported' if help_supported else 'killed'}.** HyDE full-support@5 delta is {signed_pp(hyde_full_delta)} and SCOPE full-support@5 delta is {signed_pp(scope_full_delta)} versus raw.",
-        f"- **H-csqe-collapse-cross-domain: {'supported' if csqe_supported else 'killed'}.** CSQE Hit@5 is {pct(mean(all_metrics['csqe']['hit@5']))} versus raw {pct(raw_hit)}.",
+        f"- **H-cross-domain-help-side: {help_verdict}.** HyDE/SCOPE improve bridge@5 by {signed_pp(hyde_bridge_delta)}/{signed_pp(scope_bridge_delta)}, but reduce full-support@5 by {signed_pp(hyde_full_delta)}/{signed_pp(scope_full_delta)} versus raw.",
+        f"- **H-csqe-collapse-cross-domain: {csqe_verdict}.** CSQE is not raw-like on the multi-hop metrics: full-support@5 changes by {signed_pp(csqe_full_delta)} and bridge@5 by {signed_pp(csqe_bridge_delta)} versus raw.",
         f"- **H-regime-placement: {'supported' if regime_supported else 'mixed/killed'}.** MuSiQue raw Hit@5 is {pct(raw_hit)}, placing it in the {regime_text}; pool Hit@5 is {pct(pool_hit)} and SCOPE Hit@5 is {pct(scope_hit)}.",
         "- Optional q500 answer EM was not run in this phase; the task gate was retrieval-regime evidence first.",
         "",
@@ -666,10 +672,10 @@ def report() -> None:
         "## Recommendation",
         "",
     ])
-    if help_supported:
+    if help_verdict == "supported":
         lines.append("- Keep MuSiQue as the open-domain multi-hop retrieval anchor; it provides a cross-domain check on whether generative query expansion helps full-support/bridge retrieval.")
     else:
-        lines.append("- Do not spend q500 answer budget on MuSiQue under this retrieval setup unless a later prompt or selector improves full-support/bridge retrieval.")
+        lines.append("- Do not spend q500 answer budget on the standard MuSiQue SCOPE/HyDE setup unless a later prompt or selector improves full-support without losing the bridge-recall gain.")
     lines.append("- Use the row-level points file to inspect where expansion helps bridge recall versus where it drops a required support paragraph.")
     lines.append("")
     REPORT.parent.mkdir(parents=True, exist_ok=True)
