@@ -79,6 +79,8 @@ PHASE_CXX_E5_REPORT = ROOT / "docs/generated/credibility_C_e5_addendum_2026-05-2
 PHASE_CXX_E5_POINTS = ROOT / "docs/generated/credibility_C_e5_addendum_2026-05-29_points.jsonl"
 PHASE_D_REPORT = ROOT / "docs/generated/credibility_D_ood_predictor_2026-05-29.md"
 PHASE_D_POINTS = ROOT / "docs/generated/credibility_D_ood_predictor_2026-05-29_points.jsonl"
+PHASE_E_REPORT = ROOT / "docs/generated/credibility_E_midregime_2026-05-29.md"
+PHASE_E_POINTS = ROOT / "docs/generated/credibility_E_midregime_2026-05-29_points.jsonl"
 FINAL_REPORT = ROOT / "docs/generated/credibility_comprehensive_summary_2026-05-29.md"
 
 MODEL_DISPLAY = {
@@ -113,6 +115,18 @@ E5_DATASETS_PRIORITY = [
     "barexam",
 ]
 E5_TEXT_MAX_CHARS = 4096
+
+PHASE_E_DATASETS = [
+    "barexam",
+    "casehold",
+    "housing",
+    "beir_scidocs",
+    "beir_fiqa",
+    "beir_nfcorpus",
+    "beir_scifact",
+    "beir_trec_covid",
+]
+PHASE_E_DISPLAY = {"casehold": "CaseHOLD"}
 
 
 def tokenize(text: Any, *, max_terms: int = 0) -> list[str]:
@@ -900,6 +914,196 @@ def phase_cxx_e5(args: argparse.Namespace) -> None:
     print(PHASE_CXX_E5_REPORT)
 
 
+def phase_e_cache_paths(dataset: str) -> tuple[Path, Path, Path]:
+    if dataset.startswith("beir_"):
+        return (
+            ROOT / f"caches/retrieval/full/{dataset}_qfull_seed42_raw_question_k10.jsonl",
+            ROOT / f"caches/retrieval/full/{dataset}_qfull_seed42_or-gemma4-26b_snap_hyre_k10.jsonl",
+            ROOT / f"caches/retrieval/full/{dataset}_qfull_seed42_or-gemma4-26b_raw_scope_pool_k5.jsonl",
+        )
+    if dataset == "barexam":
+        return (
+            ROOT / "caches/retrieval/full/barexam_qfull_seed42_raw_question_k10.jsonl",
+            ROOT / "caches/retrieval/full/barexam_qfull_seed42_or-gemma4-26b_snap_hyre_k10.jsonl",
+            ROOT / "caches/retrieval/full/barexam_qfull_seed42_or-gemma4-26b_raw_scope_pool_k5.jsonl",
+        )
+    if dataset == "housing":
+        return (
+            ROOT / "caches/retrieval/full/housing_qfull_seed42_statefilter_raw_question_k10.jsonl",
+            ROOT / "caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_snap_hyre_k10.jsonl",
+            ROOT / "caches/retrieval/full/housing_qfull_seed42_statefilter_or-gemma4-26b_raw_scope_pool_k5.jsonl",
+        )
+    if dataset == "casehold":
+        return (
+            ROOT / "caches/retrieval/full/casehold_qfull_seed42_raw_question_k10.jsonl",
+            ROOT / "caches/retrieval/full/casehold_qfull_seed42_groq-llama70b_snap_hyre_k10.jsonl",
+            ROOT / "caches/retrieval/full/casehold_qfull_seed42_groq-llama70b_raw_scope_pool_k5.jsonl",
+        )
+    raise KeyError(dataset)
+
+
+def phase_e_display(dataset: str) -> str:
+    source = DATASET_SOURCES.get(dataset)
+    if source:
+        return source.display
+    return PHASE_E_DISPLAY.get(dataset, dataset)
+
+
+def hit_from_cache(row: dict[str, Any], k: int) -> int:
+    gold = {str(x) for x in row.get("gold_ids") or []}
+    ids = [str(x) for x in row.get("retrieved_ids") or []][:k]
+    return int(bool(gold.intersection(ids)))
+
+
+def phase_e_dataset_summary(dataset: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str]]:
+    paths = phase_e_cache_paths(dataset)
+    display = phase_e_display(dataset)
+    notes: list[str] = []
+    missing = [str(path.relative_to(ROOT)) for path in paths if not path.exists()]
+    if missing:
+        return [], [], [f"{display}: missing caches {missing}"]
+    raw, scope, pool = [load_by_label(path) for path in paths]
+    labels = sorted(set(raw).intersection(scope).intersection(pool))
+    rows: list[dict[str, Any]] = []
+    points: list[dict[str, Any]] = []
+    for k in range(1, 6):
+        raw_hits = [hit_from_cache(raw[label], k) for label in labels]
+        scope_hits = [hit_from_cache(scope[label], k) for label in labels]
+        pool_hits = [hit_from_cache(pool[label], k) for label in labels]
+        raw_rate = mean(raw_hits)
+        scope_rate = mean(scope_hits)
+        pool_rate = mean(pool_hits)
+        pool_minus_raw = pool_rate - raw_rate
+        if pool_minus_raw > 0.005:
+            pool_verdict = "helps raw"
+        elif pool_minus_raw < -0.01:
+            pool_verdict = "hurts raw"
+        else:
+            pool_verdict = "flat"
+        rows.append({
+            "dataset": dataset,
+            "dataset_display": display,
+            "slice": f"Hit@{k}",
+            "k": k,
+            "n": len(labels),
+            "raw": raw_rate,
+            "scope": scope_rate,
+            "pool": pool_rate,
+            "scope_minus_raw": scope_rate - raw_rate,
+            "pool_minus_raw": pool_minus_raw,
+            "pool_minus_scope": pool_rate - scope_rate,
+            "pool_verdict": pool_verdict,
+        })
+        for label, raw_hit, scope_hit, pool_hit in zip(labels, raw_hits, scope_hits, pool_hits):
+            points.append({
+                "dataset": dataset,
+                "dataset_display": display,
+                "label": label,
+                "k": k,
+                "raw_hit": raw_hit,
+                "scope_hit": scope_hit,
+                "pool_hit": pool_hit,
+                "scope_minus_raw": scope_hit - raw_hit,
+                "pool_minus_raw": pool_hit - raw_hit,
+                "pool_minus_scope": pool_hit - scope_hit,
+            })
+    notes.append(
+        f"{display}: N={len(labels)} from intersection of raw, SCOPE, and raw+SCOPE pool caches"
+    )
+    return rows, points, notes
+
+
+def phase_e(args: argparse.Namespace) -> None:
+    datasets = args.datasets or PHASE_E_DATASETS
+    all_rows: list[dict[str, Any]] = []
+    all_points: list[dict[str, Any]] = []
+    notes: list[str] = []
+    for dataset in datasets:
+        rows, points, dataset_notes = phase_e_dataset_summary(dataset)
+        all_rows.extend(rows)
+        all_points.extend(points)
+        notes.extend(dataset_notes)
+    write_jsonl(PHASE_E_POINTS, all_points)
+
+    strict_mid = [r for r in all_rows if 0.20 <= r["raw"] <= 0.30]
+    near_mid = [r for r in all_rows if 0.20 <= r["raw"] <= 0.35]
+    k5_rows = [r for r in all_rows if r["k"] == 5]
+    lines = [
+        "# Credibility E Mid-Regime Construction - 2026-05-29",
+        "",
+        "No `paper/` files were edited. This report is read-only over existing retrieval caches.",
+        "",
+        "## Verdict",
+        "",
+        "- Constructed mid-regime points using the allowed lower-k evidence-budget axis: the same caches are evaluated at Hit@1 through Hit@5.",
+        "- In the strict 20-30% raw band, the raw+SCOPE pool improves raw on all available points: SciDocs Hit@1 and Housing state-filtered Hit@2/Hit@3.",
+        "- The threshold is not a clean raw-Hit-only boundary. Pooling starts to help raw in the low-20% regime, but it only carries the method when SCOPE contributes complementary correct evidence; it remains weak relative to SCOPE on BarExamQA and CaseHOLD.",
+        "- Honest claim: raw+SCOPE pooling is useful as a risk-control fusion in mid/high raw regimes, not as a universal replacement for canonical SCOPE on sparse legal corpora.",
+        "",
+        "## Strict Mid-Regime Points",
+        "",
+        "| Dataset | Slice | N | Raw | SCOPE | Raw+SCOPE pool | SCOPE-Raw | Pool-Raw | Pool-SCOPE | Reading |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+    ]
+    for row in sorted(strict_mid, key=lambda r: (r["raw"], r["dataset"], r["k"])):
+        lines.append(
+            f"| {row['dataset_display']} | {row['slice']} | {row['n']} | {pct(row['raw'])} | "
+            f"{pct(row['scope'])} | {pct(row['pool'])} | {pct(row['scope_minus_raw'])} | "
+            f"{pct(row['pool_minus_raw'])} | {pct(row['pool_minus_scope'])} | {row['pool_verdict']} |"
+        )
+    if not strict_mid:
+        lines.append("| _None_ | - | - | - | - | - | - | - | - | - |")
+    lines.extend([
+        "",
+        "## Near-Mid Regime Context",
+        "",
+        "| Dataset | Slice | N | Raw | SCOPE | Raw+SCOPE pool | SCOPE-Raw | Pool-Raw | Pool-SCOPE |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ])
+    for row in sorted(near_mid, key=lambda r: (r["raw"], r["dataset"], r["k"])):
+        lines.append(
+            f"| {row['dataset_display']} | {row['slice']} | {row['n']} | {pct(row['raw'])} | "
+            f"{pct(row['scope'])} | {pct(row['pool'])} | {pct(row['scope_minus_raw'])} | "
+            f"{pct(row['pool_minus_raw'])} | {pct(row['pool_minus_scope'])} |"
+        )
+    lines.extend([
+        "",
+        "## Full Hit@5 Anchors",
+        "",
+        "| Dataset | N | Raw Hit@5 | SCOPE Hit@5 | Raw+SCOPE pool Hit@5 | SCOPE-Raw | Pool-Raw | Pool-SCOPE |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
+    ])
+    for row in sorted(k5_rows, key=lambda r: r["raw"]):
+        lines.append(
+            f"| {row['dataset_display']} | {row['n']} | {pct(row['raw'])} | {pct(row['scope'])} | "
+            f"{pct(row['pool'])} | {pct(row['scope_minus_raw'])} | {pct(row['pool_minus_raw'])} | "
+            f"{pct(row['pool_minus_scope'])} |"
+        )
+    lines.extend([
+        "",
+        "## Interpretation",
+        "",
+        "- CaseHOLD is the lower anchor: raw Hit@5 is 17.9%, SCOPE jumps to 45.0%, but the raw+SCOPE pool reaches only 19.2%. In this sparse regime, fusion mostly preserves raw rather than the SCOPE gains.",
+        "- SciDocs Hit@1 gives a strict mid-regime point: raw 22.2%, SCOPE 21.1%, pool 23.2%. The pool helps raw modestly, but this is a fusion gain rather than a SCOPE-alone gain.",
+        "- Housing state-filtered Hit@2 gives the strongest strict mid-regime point: raw 23.9%, SCOPE 25.5%, pool 25.9%. Pooling is helpful and slightly better than either component.",
+        "- The upper side of the void is consistent: SciDocs Hit@2 at 31.7% raw and Housing Hit@5 at 36.8% raw both show pool gains over raw.",
+        "- Therefore the practical threshold for positive raw+SCOPE pooling appears around the low-20% raw-retrieval regime, but the threshold for replacing canonical SCOPE is higher and corpus-dependent.",
+        "",
+        "## Notes",
+        "",
+        "- This phase does not run new retrieval. Lower-k evaluation reuses the deterministic ranking already present in each cache.",
+        "- The mid-regime construction is an evidence-budget proxy, not a new benchmark split. It is useful for regime-shape diagnosis, not for final leaderboard claims.",
+    ])
+    for note in notes:
+        lines.append(f"- {note}")
+    lines.extend([
+        f"- Row-level points: `{PHASE_E_POINTS.relative_to(ROOT)}`",
+        "",
+    ])
+    PHASE_E_REPORT.write_text("\n".join(lines) + "\n")
+    print(PHASE_E_REPORT)
+
+
 class BeirQppSpec:
     def __init__(self, key: str, collection: str) -> None:
         self.key = key
@@ -1187,6 +1391,10 @@ def parse_args() -> argparse.Namespace:
     e5.add_argument("--rebuild", action="store_true")
     e5.add_argument("--fp16", action="store_true", default=True)
     e5.set_defaults(func=phase_cxx_e5)
+
+    e = sub.add_parser("phase-e")
+    e.add_argument("--datasets", nargs="*")
+    e.set_defaults(func=phase_e)
 
     d = sub.add_parser("phase-d")
     d.add_argument("--chroma-batch-size", type=int, default=4000)
