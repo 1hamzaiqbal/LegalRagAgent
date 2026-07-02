@@ -23,7 +23,8 @@ import tinker
 from tinker import types as T
 
 DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-BASE_MODEL = "Qwen/Qwen3.5-9B"
+import os as _os
+BASE_MODEL = _os.getenv("JUDGE_BASE_MODEL", "Qwen/Qwen3.5-9B")
 MAX_TOKENS = 1024
 WINDOW = 96   # in-flight requests
 
