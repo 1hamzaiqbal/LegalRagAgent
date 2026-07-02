@@ -1,5 +1,14 @@
 # SCOPE — Research Ideas (spitball log)
 
+> **STALE-HEADER (2026-07-02).** This log predates the ICML AI4Law rejection
+> and the wiki. Current direction lives in `wiki/direction-2026-07.md` and
+> `wiki/concepts/thesis-v2.md`. Known supersessions: the "always-pool"
+> reading of §2b was corrected to regime-dependence (wiki: pooling-regime),
+> and then partially re-opened by the trained-judge result (wiki:
+> judge-pilot-v0-results — the CE, not pooling, was the weak-query problem).
+> §5's CE-distribution diagnostic ran and motivated the judge. Treat numbers
+> below as historical context.
+
 Started 2026-05-25 from an advisor spitball session. Forward-looking ideas,
 not committed results. Numbers cited are from the v8 main answer matrix
 (`paper/submission/tables/current_answer_matrix.tex`) and are descriptive

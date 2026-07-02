@@ -132,22 +132,21 @@ disagreement-routed verification; leave-one-out ablations) are the template.
 Ordering logic: **de-risk before decorate** — items 1–3 can *kill or harden*
 the Path A thesis, so they run before anything that merely extends it.
 
-1. **Yoon NLI leakage audit** on BarExam/Housing/MedQA pseudo-docs — ~1
-   GPU-day, caches exist. *Motivation*: [[yoon2025leakage]] is the one
-   published result that could explain away our entire weak-query lift
-   ("the LLM just regurgitates gold evidence it memorized"). Their protocol —
-   NLI-match generated docs against gold, split the lift into matched vs
-   unmatched rows — is cheap and decisive: if SCOPE's Hit@5 gain survives on
-   *unmatched* rows (plausible: state statutes and MBE rule paragraphs are
-   corpus-specific), our geometry story beats their leakage story and the
-   paper gains a section; if it doesn't, we need to know before writing, not
-   from a reviewer. Gates everything. (C9/C4)
-2. **Retrieval-side bootstrap CIs + McNemar on all cached Hit@5 deltas** —
-   hours, free, pure analysis over existing caches. *Motivation*: V1's audit
-   found *zero* retrieval-side significance tests in the repo; every
-   Hit@5 comparison we cite (snap-vs-HyDE, SCOPE-vs-raw, pool-vs-single) is
-   point-estimate-grade. One afternoon converts every retrieval claim from
-   "would re-trigger C7" to publication-grade. (C7/C11)
+1. **Yoon NLI leakage audit** — **✅ DONE on BarExamQA 2026-07-02, decisive
+   in our favor** ([[leakage-audit-barexam]]): unmatched-generation lift
+   +6pp over raw (>4×), all-unmatched stratum p=1.1e-20 — the leakage account
+   is rejected on the regime where expansion matters; leakage amplifies
+   (+28pp matched) but does not explain. BEIR replication running; Housing
+   pending gold-text hydration. Original motivation (kept for provenance):
+   [[yoon2025leakage]] was the one published result that could explain away
+   the entire weak-query lift; running their protocol ourselves before a
+   reviewer did was the highest-leverage de-risk. (C9/C4)
+2. **Retrieval-side bootstrap CIs + McNemar** — **✅ DONE 2026-07-02**
+   ([sweep](../docs/generated/retrieval_significance_2026-07-02.md), 97/128
+   pairs significant). Story-changing corrections: BarExamQA snap-vs-HyDE NS
+   3/4 models; BEIR drift-robustness +16–45pp significant 19/20 cells;
+   Housing direction flips by generator (new open question). Every retrieval
+   claim is now publication-grade. (C7/C11)
 3. **C12 ablation trio** (q200 first): (a) pass a0 into call 2, (b)
    keep+concat the raw question Query2doc-style, (c) conclusion-banned
    generation ParSeR-style. *Motivation*: these three cells convert SCOPE's
