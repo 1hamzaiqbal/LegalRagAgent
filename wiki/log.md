@@ -255,3 +255,45 @@ target. Cost-aware mixtures trace frontier-dominating points (Housing/8B
 results/alloc-internalization-rung2; design-page E1 row updated. ALSO:
 nvidia-smi settles a100-sxm4 = 80GB -> one a100s node (4x80GB) covers every
 2-H100 teacher config for free; H100 = speed, not capability.
+
+## [2026-07-02] PAUSED | Session paused — pickup instructions
+User paused the session. State at pause:
+
+**Everything committed** through `a3d590b` on `scope-generalization`. No cron
+loops, no local monitors, no Tinker dependencies remain.
+
+**One job still running on EIT (free, self-contained)**: `93802 opd_smoke_v1`
+— the OPD end-to-end smoke retry (Qwen3-8B vLLM teacher -> Qwen3-1.7B
+student, 3 reverse-KL steps). First attempt (93773) failed only on a 6-min
+readiness window vs vLLM cold start; window now 20 min and caches are warm.
+**Pickup check**:
+`ssh wustl 'tail -20 /engrfs/tmp/jacobsn/hiqbal_legalrag/opd_smoke/opd_smoke_93802.out'`
+— look for `PASS smoke_test` / `ALL DONE opd-smoke`. If PASS: the whole E3
+stack is validated on free hardware. If FAIL: read
+`.../opd_smoke/repo_root/scripts/opd/_smoke_tmp/vllm.log`.
+
+**Where the science stands** (all wiki'd):
+- Judge program COMPLETE: selector-bottleneck 4 domains, capacity dial,
+  label semantics, mixed-label general legal judge ([[judge-mixed-legal]]),
+  free EIT lane reproduces Tinker exactly.
+- Bridge ladder ([[opd-skill0-design]]): E0 done ([[offline-bandit-v0]],
+  negative), E1 done ([[alloc-internalization-rung2]], mixed — regime-level
+  allocation learned, per-question edge absent, BarExam/70B "don't retrieve"
+  failure = E3's falsifiable target), E3 infra built (`scripts/opd/`, CPU
+  tests pass), smoke pending = the only in-flight item.
+- Meeting packet final: `wiki/7_2_review_meeting/` docs 00-08.
+- Dormant: [[helpfulness-benchmark]] (Idea 3, pickup checklist inside).
+
+**Next actions queued (in order)**:
+1. Check smoke job 93802 (above).
+2. E2 skill-gap A/B: teacher (70B via Groq or EIT vLLM) ± 
+   `scripts/opd/skills/allocation.md` on the rung-1 test questions — gates E3.
+3. Novelty reads: SDAR (github.com/ZJU-REAL/SDAR) + SKILL1 — gate the E3/E4
+   framing.
+4. Closed-teacher distillation lit survey (OPD needs top-k logprobs).
+5. E3 arms per [[opd-skill0-design]] — hardware note: a100-sxm4 = 80GB,
+   `--gpus a100-sxm4:2` covers 70B/235B-FP8 teachers free; H100 = speed only.
+
+Key infra facts: EIT account flag `-A engr-lab-jacobsn` required on sbatch;
+opd_lane venv at `/engrfs/project/jacobsn/hiqbal/envs/opd_lane` (vllm);
+judge_lane venv untouched; HF cache `/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache`.
