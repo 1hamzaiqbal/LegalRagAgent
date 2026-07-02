@@ -184,8 +184,12 @@ the Path A thesis, so they run before anything that merely extends it.
    [[thinking-machines-expert-judgment]] thesis at academic scale — prompted
    judges plateau, trained judges don't; we already saw the prompted-judge
    version maximize exposure but not answers. (iii) It is the C1 answer with
-   teeth: a model of legal *judgment*, not another retrieval trick. Running
-   NOW on Tinker (see [[judge-pilot-v0]]). (C1 + answer-conversion)
+   teeth: a model of legal *judgment*, not another retrieval trick.
+   **→ RAN 2026-07-02, decisive win** ([[judge-pilot-v0-results]]): trained
+   judge Hit@5 20.6% vs CE 3.8% on identical held-out pools (p=1.4e-17),
+   90.1% gold-in-pool conversion, and trained beats the prompted same-model
+   judge +5.3pp (p=1e-04) — the TM thesis at 9B/$15. Next cell: judge-top5
+   answer run (does the selector fix convert to answers?). (C1 + answer-conversion)
 8. **Union+CE-rerank full-N downstream** — 48K calls, Groq Batch.
    *Motivation*: the one deployable recipe from May (Housing q200: union 65.0%
    vs raw 62.0% vs SCOPE 59.0%) was never scaled; it is the answer-side proof

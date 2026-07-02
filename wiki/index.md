@@ -37,6 +37,7 @@ help retrieval and when retrieval helps answers*** — the mechanism
 
 ## Methods (ours)
 - [[scope]] — the two-call method: what it does, what survives of it
+- [[judge-pilot-v0]] — Tinker-trained legal relevance judge vs the CE (Path C v0, running 2026-07-02)
 
 ## Sources — reviewer-named prior art & family
 - [[koblex-parser]] — **the C6 near-twin** (parametric provisions, EMNLP'25); adjudication: pre-empted on core move, not on mechanism/regime
@@ -74,6 +75,7 @@ help retrieval and when retrieval helps answers*** — the mechanism
 - [[pooling-regime]] — raw∪SCOPE pooling wins strong/mid, destroys weak; CSQE crossover
 - [[musique-cross-domain]] — bridge-recall +15–16pp; pool-structure caveat
 - [[snap-vs-hyde-ledger]] — every signed SCOPE-vs-HyDE pair (the C7 evidence)
+- [[judge-pilot-v0-results]] — **Tinker-trained judge un-buries the pool**: 20.6% vs CE 3.8% Hit@5, trained > prompted p=1e-04 (2026-07-02)
 
 ## Reviews
 - [[icml-ai4law-2026-rejection]] — inventory, assessment, resubmission checklist, meta-lessons

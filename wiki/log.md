@@ -32,6 +32,20 @@ magesh2024hallucinationfree). Discovery sweeps returned ~24 ranked candidates
 LegalAgentBench, Chain-of-Logic, Makri'08 lawyer info-seeking, Aletras'16 …)
 — unpulled ones are TODO markers.
 
+## [2026-07-02] experiment | Judge pilot v0 launched on Tinker (Path C)
+Built `scripts/judge_pilot/` (dataset from signed caches + qa.csv gold;
+passage texts hydrated from EIT corpus CSV + HF test/validation splits after
+discovering the experiment-box Chroma used the full 857K corpus vs our 686K).
+Trained Qwen3.5-9B LoRA (rank 32, 84 steps, loss 2.18→0.15) on 3,500
+question–passage relevance pairs; eval = rerank the identical raw∪SCOPE pools
+the CE reranked (399 held-out pools, 22.8% recall ceiling). Zero-shot arm
+already decisive: judge-zeroshot Hit@5 15.3% vs CE 3.8% vs SCOPE-alone 12.0%,
+converting 61/91 gold-in-pool. **Trained arm: Hit@5 20.6% / MRR@5 0.138,
+90.1% gold-in-pool conversion; all deltas McNemar-significant (vs CE p=1.4e-17,
+vs SCOPE-alone p=3.4e-06, vs zeroshot p=1.0e-04).** The May "pooling destroys
+weak-query gains" verdict was a CE artifact, now fixed by a trained selector.
+Full read: [[judge-pilot-v0-results]].
+
 ## [2026-07-02] synthesize | Review postmortem + concepts + results + direction
 Wrote reviews/icml-ai4law-2026-rejection (C1–C12 inventory + assessment),
 10 concept pages, methods/scope, 8 results pages (numbers verified against
