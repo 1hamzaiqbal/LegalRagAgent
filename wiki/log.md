@@ -211,3 +211,19 @@ unreachable from external features. Extends qpp-routing-negative to
 answer-level allocation; motivates rung 2 = internalized policy on the EIT
 lane. Report: docs/generated/offline_bandit_v0_2026-07-02.md + frontier PNG;
 wiki page results/offline-bandit-v0.
+
+## [2026-07-02] rung2-launched + opd-design | Internalized allocation training on EIT; OPD ladder designed
+Rung 2 launched as EIT job 93770 (free A100): 9B LoRA on 6,136
+(question, reader, strategy)->Yes/No pairs built from all 5 bandit cells with
+rung-1-IDENTICAL seed-0 splits (scripts/bandit/build_alloc_dataset.py);
+scores 6,148 held-out pairs trained+zeroshot (score_alloc_pairs.py); policy
+= argmax(score - lam*cost), analyzed against rung-1 fixed arms on the same
+test halves. OPD x SKILL0 experiment design written
+(concepts/opd-skill0-design): E0 bandit (done) -> E1 rung 2 (running) -> E2
+teacher skill-gap A/B -> E3 OPD vs outcome-labels on 1-2 H100 (Qwen3 track:
+32B teacher 1xH100, 235B-A22B-FP8 TP=2 on 2; Llama track: 70B; hard
+same-tokenizer constraint) -> E4 multi-turn Search-R1-style + curriculum.
+Codex lane building scripts/opd/ scaffold (vLLM teacher client, reverse-KL
+OPD loss + CPU tests, train skeleton, A100 smoke test). Job 93770 also
+prints nvidia-smi to settle whether a100-sxm4 = 80GB (if so, one a100s node
+= 2-H100-class TP capacity for free).

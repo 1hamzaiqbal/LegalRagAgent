@@ -27,6 +27,7 @@ help retrieval and when retrieval helps answers*** — the mechanism
 ## Concepts
 - [[skill-distillation-bridge]] — post-meeting priority direction: internalize big-model agentic retrieval skills into a small model
 - [[helpfulness-benchmark]] — DORMANT direction (meeting Idea 3): measure whether retrieval helped the reader, not whether it hit gold; evidence inventory ready
+- [[opd-skill0-design]] — the OPD x SKILL0 experiment ladder (E0-E4): model matrix for 1-2 H100s, tokenizer constraint, decision gates
 - [[thesis-v2]] — **the working thesis**: generation is a low-margin instrument; answer-conditioning dampens drift; after pooling, selection binds — with pre-stated falsifiable predictions
 - [[weak-vs-strong-query-regime]] — the regime law: expansion helps ∝ query–corpus gap
 - [[geometry-vs-factuality]] — mechanism + falsification: failures are geometric, not hallucinated
