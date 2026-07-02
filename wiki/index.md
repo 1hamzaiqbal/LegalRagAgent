@@ -84,6 +84,7 @@ help retrieval and when retrieval helps answers*** — the mechanism
 - [[judge-pilot-housing]] — **strong-regime judge replication**: 55.0% vs CE 38.2% (p=2.5e-23), 96.5% conversion — regime routing superseded (2026-07-02)
 - [[judge-pilot-scidocs]] — cross-domain: zero-shot judge > CE (+8.5pp p=3e-05) but citation-proxy label training *hurts* (−14pp) — label semantics decide (2026-07-02)
 - [[judge-pilot-fiqa]] — label-semantics resolved: zero-shot judge > CE in all 4 domains; training = label quality × headroom (2026-07-02)
+- [[judge-capacity-dial]] — 27B ≤ 9B at the judge task: label-bound, not capacity-bound (2026-07-02)
 - [[judge-answer-conversion]] — **the two-regime conversion law**: BarExam — 5.4× exposure ≠ answers (break-even ≈61%, gold-absent −3.8pp); Housing — monotone conversion, judge-evidence +11.4pp over llm_only p=5e-08, gold-absent +12pp (2026-07-02)
 
 ## Reviews

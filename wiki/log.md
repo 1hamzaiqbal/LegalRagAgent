@@ -32,6 +32,12 @@ magesh2024hallucinationfree). Discovery sweeps returned ~24 ranked candidates
 LegalAgentBench, Chain-of-Logic, Makri'08 lawyer info-seeking, Aletras'16 …)
 — unpulled ones are TODO markers.
 
+## [2026-07-02] experiment | Capacity dial: judge is label-bound, not capacity-bound
+Qwen3.6-27B on identical BarExam pools: zeroshot 14.0%/trained 18.5% vs 9B's
+15.3%/20.6% — 3x parameters bought nothing; training lift replicates at both
+scales (+4.5/+5.3pp). Spend on labels, not parameters. 235B prompted-frontier
+arm running. Page: [[judge-capacity-dial]].
+
 ## [2026-07-02] experiment | FiQA judge: four-domain picture completes
 Zero-shot judge beats the CE in ALL FOUR domains (+8.5..+14.6pp, p≤3e-05) —
 the ms-marco CE is universally the weakest stack component. Training =
