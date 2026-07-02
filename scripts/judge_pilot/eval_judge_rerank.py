@@ -114,10 +114,23 @@ def main():
     ap.add_argument("--arms", default="trained,zeroshot")
     ap.add_argument("--max-pools", type=int, default=None)
     ap.add_argument("--dev-check", action="store_true")
-    ap.add_argument("--train-info", default=f"{DATA}/train_info.json")
+    ap.add_argument("--prefix", default="", help="dataset prefix, e.g. housing_")
+    ap.add_argument("--train-info", default=None)
     args = ap.parse_args()
+    if args.train_info is None:
+        args.train_info = f"{DATA}/{args.prefix}train_info.json"
+    global PROMPT_TMPL
+    if args.prefix.startswith("housing"):
+        PROMPT_TMPL = (
+            "You are a legal retrieval judge for U.S. housing law. Decide whether the "
+            "statute passage provides the legal basis to answer the question for the "
+            "given state.\n\n"
+            "{facts}\nQuestion: {question}\n\n"
+            "Statute passage: {passage}\n\n"
+            "Does this passage provide the controlling statutory basis to answer this "
+            "question? Answer Yes or No.\nAnswer:")
 
-    pools = [json.loads(l) for l in open(f"{DATA}/pools_test.jsonl")]
+    pools = [json.loads(l) for l in open(f"{DATA}/{args.prefix}pools_test.jsonl")]
     if args.max_pools:
         pools = pools[:args.max_pools]
     gold_in_pool = [p for p in pools
@@ -126,7 +139,7 @@ def main():
           f"(recall ceiling {len(gold_in_pool)/len(pools):.1%})")
 
     service = tinker.ServiceClient()
-    res_path = f"{DATA}/eval_results.json"
+    res_path = f"{DATA}/{args.prefix}eval_results.json"
     results = {"n_pools": len(pools), "n_gold_in_pool": len(gold_in_pool), "arms": {}}
     if os.path.exists(res_path):
         prev = json.load(open(res_path))
@@ -163,10 +176,10 @@ def main():
         print(f"judge-{arm:26s} Hit@5={h:.3f} MRR@5={m:.3f} ({nh}/{len(pools)}) | "
               f"conversion on gold-in-pool: {hs:.3f} ({nhs}/{len(sub)})")
         json.dump({str(k): v for k, v in scores.items()},
-                  open(f"{DATA}/scores_{arm}.json", "w"))
+                  open(f"{DATA}/{args.prefix}scores_{arm}.json", "w"))
 
-    json.dump(results, open(f"{DATA}/eval_results.json", "w"), indent=2)
-    print("wrote", f"{DATA}/eval_results.json")
+    json.dump(results, open(res_path, "w"), indent=2)
+    print("wrote", res_path)
 
 
 if __name__ == "__main__":

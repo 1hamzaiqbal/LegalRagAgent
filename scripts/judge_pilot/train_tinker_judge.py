@@ -44,9 +44,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--smoke", action="store_true", help="8 examples, 1 step")
     ap.add_argument("--epochs", type=int, default=EPOCHS)
+    ap.add_argument("--prefix", default="", help="dataset prefix, e.g. housing_")
     args = ap.parse_args()
 
-    train = load_jsonl(f"{DATA}/train.jsonl")
+    train = load_jsonl(f"{DATA}/{args.prefix}train.jsonl")
     if args.smoke:
         train = train[:8]
     print(f"train examples: {len(train)}")
@@ -83,7 +84,8 @@ def main():
                 msg += f" mean_target_loss={sum(losses)/len(losses):.4f}"
             print(msg, flush=True)
 
-    name = "barexam-judge-v0" + ("-smoke" if args.smoke else "")
+    name = (args.prefix or "barexam-") .rstrip("_") + "-judge-v0" + ("-smoke" if args.smoke else "")
+    name = name.replace("--", "-")
     sampling_client = tc.save_weights_and_get_sampling_client(name=name)
     # persist the checkpoint path for the eval script
     info = {
@@ -101,7 +103,7 @@ def main():
         info["sampler_path"] = resp.path
     except Exception as e:
         print("save_weights_for_sampler fallback:", e)
-    out = f"{DATA}/train_info{'_smoke' if args.smoke else ''}.json"
+    out = f"{DATA}/{args.prefix}train_info{'_smoke' if args.smoke else ''}.json"
     json.dump(info, open(out, "w"), indent=2)
     print("saved", out, "->", info["sampler_path"])
 
