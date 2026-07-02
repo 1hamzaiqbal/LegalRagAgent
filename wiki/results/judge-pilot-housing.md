@@ -71,6 +71,12 @@ training is not automatically legal-general. A deployable "legal judge"
 needs mixed-task labels — queued as the first free EIT-lane experiment
 (train barexam+housing combined, eval both).
 
+**RESOLVED same day ([[judge-mixed-legal]])**: the mixed barexam+housing
+judge holds both domains with zero specialization tax — BarExam 22.1%
+(above the 20.6% specialist, b/c=7/1 p=0.070) and Housing 55.4% (tied with
+the 55.0% specialist, p=0.625), trained for $0 on the EIT free lane.
+Specialization was an artifact of single-domain training, not a limit.
+
 ## Links
 [[thesis-v2]] (prediction 2 ✓) · [[judge-pilot-v0-results]] ·
 [[regime-routing]] (superseded) · [[pooling-regime]] ·

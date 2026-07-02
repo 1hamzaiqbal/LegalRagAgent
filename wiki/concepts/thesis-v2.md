@@ -90,6 +90,11 @@ trained>prompted (p=1e-04) — [[judge-pilot-v0-results]].
   weakest link); training = label quality × headroom (legal: helps; FiQA
   human labels at ceiling: neutral/safe; SciDocs proxy labels: harmful). P3
   final form.
+- **Mixed-label judge closes the specialization worry (2026-07-02 evening,
+  [[judge-mixed-legal]])**: one 9B trained on pooled barexam+housing labels
+  matches or directionally beats both specialists (BarExam 22.1% vs 20.6%;
+  Housing 55.4% vs 55.0%) — the 46.4% transfer result was a single-domain-
+  training artifact. A general legal judge is one free training run.
 - Still pending: pre-registered held-out validation of the three-dial law on
   an unseen corpus (e.g. Legal-Link-EU end-to-end); lawyer-label rung of
   Path C.

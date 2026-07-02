@@ -173,3 +173,14 @@ dead ends included, timeline + claims-alive/killed figures). Lane B's original
 codex task died instantly on the gpt-5.5-codex model rejection and was
 relaunched in blocking mode. Staleness fixes applied post-landing: EIT race
 resolution in 06/07, MRR 0.135-vs-0.138 in 04. Folder indexed from wiki index.
+
+## [2026-07-02] mixed-legal-judge | One judge holds both domains, zero specialization tax
+EIT A100 job 93660 ($0, ~2.5h): Qwen3.5-9B LoRA r=32 trained on 8,500 mixed
+barexam+housing pairs. BarExam pools 22.1% Hit@5 / MRR 0.142 (88/399, 96.7% of
+ceiling) vs specialist 20.6% — McNemar 7/1, p=0.070 directionally BETTER.
+Housing pools 55.4% / MRR 0.486 (277/500, conversion 97.2%) vs specialist
+55.0% — 3/1, p=0.625 tied. The 46.4% transfer-specialization result is
+superseded as a deployment limit: it was an artifact of single-domain
+training. New page results/judge-mixed-legal; thesis-v2 P3, judge-pilot-housing
+transfer §, and meeting-packet 06 updated. Scores mirrored to
+scripts/judge_pilot/data/local_{,housing_}scores_mixed_*.json.
