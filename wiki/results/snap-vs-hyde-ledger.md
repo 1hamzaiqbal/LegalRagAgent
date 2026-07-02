@@ -25,12 +25,25 @@ significant cells split by dataset:
   **−2.57pp p=1.7e-06** (state-filtered) — *worse* than the paper's "parity"
   framing; SCOPE is significantly the weaker expansion there.
 
-**Retrieval side (Hit@5, point estimates — no significance tests exist
-anywhere yet; do not cite as tested):** snap wins BarExamQA 3/3 models
-(0.083→0.095, 0.114→0.121, 0.105→0.111) and Legal-Link-EU 2/3 hugely
-(0.49→0.68 Gemma, 0.55→0.72 70B — though the 70B case converts to zero answer
-gain, the [[answer-conversion-gap]] in miniature); HyDE wins CaseHOLD
-(0.512 vs 0.450), SCALR-70B (0.615 vs 0.552), MASLegalBench 3/3, Housing-70B.
+**Retrieval side — NOW SIGNIFICANCE-TESTED** (2026-07-02 sweep, exact McNemar
++ bootstrap CIs over all full caches:
+[retrieval_significance_2026-07-02](../../docs/generated/retrieval_significance_2026-07-02.md),
+97/128 pairs significant):
+- **BarExamQA (weak-query): SCOPE ≈ HyDE.** NS for 3/4 models (+0.59 p=0.61;
+  +1.26 p=0.19; +0.67 p=0.52); only ministral-8b significant (+2.76pp
+  p=1.2e-03). The "snap wins BarExam" point-estimate read does not survive
+  testing.
+- **BEIR (strong-query): SCOPE ≫ HyDE, everywhere.** All 20 dataset×generator
+  cells positive, 19/20 significant, +16 to +45pp (SciFact +30.7pp p=5e-17
+  Gemma, +45.3pp p=6e-31 DeepSeek; NFCorpus +24 to +39pp; SciDocs +21 to
+  +27pp; TREC-COVID +24 to +28pp) — the drift-robustness claim is now
+  significance-tested across 4 generators.
+- **Housing (intermediate regime): direction flips by model.** State-filtered:
+  Gemma **+7.44pp pro-SCOPE** (p=2.4e-33), llama8b +2.61 (p=9e-06), but
+  llama70b **−11.83pp pro-HyDE** (p=6.2e-90). Generator identity matters on
+  the boundary regime — an open mechanism question.
+- Legal-Link-EU / CaseHOLD / SCALR cells: see the full table (LLEU pro-snap
+  large where tested; CaseHOLD/SCALR pro-HyDE).
 
 **Robustness side** (the surviving snap claim): strong-query BEIR drift —
 HyDE −31.3pp vs SCOPE −12.2pp pooled Hit@5, SCOPE less-drifting on 5/5
@@ -38,12 +51,14 @@ datasets and across 4 generators (17–29pp net gap) — [[beir-phase1]],
 `docs/generated/beir_phase1b_model_breadth_2026-05-26.md`. Now local and
 artifact-backed post fast-forward, but not signoff-gated as an answer row.
 
-**The revision-safe statement** (use this wording): snap-conditioning does not
-change answer accuracy vs HyDE in 13/16 tested pairs; where it does, direction
-is dataset-dependent (+4.2pp LLEU/Gemma, −2.6 to −6.5pp Housing/70B). Its
-measurable value is retrieval-side and regime-dependent (consistent small
-weak-query gains; large citation-linkage gains) plus drift-robustness on
-strong queries. Any stronger claim needs the C12 ablations first.
+**The revision-safe statement** (updated 2026-07-02 after the significance
+sweep): snap-conditioning does not change answer accuracy vs HyDE in 13/16
+tested pairs, and does not change weak-query retrieval either (BarExamQA ns
+3/4 models). **Its one large, replicated, significance-tested advantage is
+drift-robustness on strong-query corpora** (+16–45pp Hit@5 over HyDE, 19/20
+cells p<0.05, 4 generators × 5 BEIR datasets), with model-dependent behavior
+on the intermediate Housing regime. Any stronger claim needs the C12
+ablations first.
 
 ## Links
 [[icml-ai4law-2026-rejection]] (C7) · [[scope]] · [[hyde]] · [[beir-phase1]] ·

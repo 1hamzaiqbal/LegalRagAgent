@@ -39,6 +39,12 @@ snap-conditioning claim: SCOPE ≫ HyDE *robustness* under drift (a variance
 claim, not a mean-lift claim — relevant to C7 in
 [[icml-ai4law-2026-rejection]]).
 
+**Update 2026-07-02**: the robustness gap is now **significance-tested** —
+19/20 dataset×generator SCOPE-vs-HyDE cells significant at +16 to +45pp Hit@5
+(exact McNemar; SciFact up to +45.3pp p=6e-31), see
+[retrieval_significance_2026-07-02](../../docs/generated/retrieval_significance_2026-07-02.md)
+and [[snap-vs-hyde-ledger]].
+
 **Caveats.** Single generator (Gemma 26B) for this phase — model breadth added
 in phase 1b (Qwen/Mistral/DeepSeek, `docs/generated/beir_phase1b_model_breadth_2026-05-26.md`);
 TREC-COVID margins mostly undefined (dense qrels); Hit@5 on BEIR ≠ nDCG
