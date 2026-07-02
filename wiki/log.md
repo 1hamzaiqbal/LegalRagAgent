@@ -32,6 +32,17 @@ magesh2024hallucinationfree). Discovery sweeps returned ~24 ranked candidates
 LegalAgentBench, Chain-of-Logic, Makri'08 lawyer info-seeking, Aletras'16 …)
 — unpulled ones are TODO markers.
 
+## [2026-07-02] experiment | Housing answer arms: conversion pays — two-regime law complete
+Four paired Housing arms (500 questions, state-filtered strict replay,
+groq-llama70b): llm_only 54.2 → CE-ev 61.8 (+7.6, p=1.6e-04) → SCOPE-ev 63.2
+→ **judge-ev 65.6% (+11.4pp, p=5.5e-08; beats CE arm +3.8pp p=0.048)** —
+monotone in evidence quality. Gold-absent evidence HELPS here (+12.0pp) vs
+HURTS on BarExam (−3.8pp): the break-even cost term is regime-dependent.
+Full pipeline law recorded in [[thesis-v2]]. Ops notes: pipeline-status bug
+masked a state-filter guard failure (fixed with pipefail); EIT login-node I/O
+degraded → extraction moved to sbatch (job 93491). Page updated:
+[[judge-answer-conversion]].
+
 ## [2026-07-02] experiment | Answer-conversion wall measured: break-even ≈ 61% Hit@5
 Four paired arms on the 399 judge-test questions (groq-llama70b, strict
 harness replay, ~1,600 calls): llm_only 77.7% ≥ CE-evidence 76.7% ≥

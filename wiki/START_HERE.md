@@ -20,12 +20,17 @@ helps ∝ query–corpus gap, hurts strong queries via [[query-drift]]), and an
 **operational recipe** ([[regime-routing]]).
 
 **Reading order for a new agent/human:**
-1. [[icml-ai4law-2026-rejection]] — what died and why (criticisms C1–C12).
-2. [[weak-vs-strong-query-regime]] + [[geometry-vs-factuality]] — what lives.
-3. [[direction-2026-07]] — where we're going (meeting map).
-4. [[generated-query-family]] — the prior-art landscape (incl. the reviewer-named
+1. [[thesis-v2]] — the working thesis with pre-stated predictions and their
+   live status (P1 ✓ leakage rejected · P2 ✓ judge wins both regimes ·
+   P3 revised: label semantics decide · conversion break-even measured).
+2. [[icml-ai4law-2026-rejection]] — what died and why (criticisms C1–C12).
+3. [[weak-vs-strong-query-regime]] + [[geometry-vs-factuality]] — the regime
+   law and mechanism.
+4. [[direction-2026-07]] — the direction map (queue statuses updated inline).
+5. [[generated-query-family]] — prior-art landscape (incl. the reviewer-named
    near-twins [[koblex-parser]], [[gure]]).
-5. Results pages under `results/` — each links its evidence artifacts.
+6. Results pages under `results/` — each records an explicit question, its
+   verdict, and evidence paths ([[log]] for chronology).
 
 **House rules.** [[WIKI_GUIDE]] for schema. Cite-or-not gate for any number:
 [signoff_log](../docs/signoff_log.md). Skeptic's discipline: verify against

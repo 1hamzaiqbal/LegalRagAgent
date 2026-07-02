@@ -68,17 +68,19 @@ trained>prompted (p=1e-04) — [[judge-pilot-v0-results]].
   than prompting* ([[judge-pilot-scidocs]]). This sharpens the
   [[expert-judgment-replication]] motivation: label quality is the scarce
   resource, exactly TM's thesis.
-- **Answer-conversion measured (2026-07-02, [[judge-answer-conversion]])**:
-  on BarExamQA/70B the 5.4× exposure fix does NOT convert (75.2% vs llm_only
-  77.7%, ns) — but the decomposition yields the model: gold-present +2.4pp,
-  gold-absent −3.8pp, **break-even Hit@5 ≈ 61%** vs pool ceiling 22.8%. P3
-  amended: *selection binds for retrieval; answering binds on evidence
-  precision, with a computable break-even.* The constraint moves up-stack to
-  pool recall + evidence-conditional answering. Decisive next arm: Housing
-  answer run (gold ceiling +5pp there; judge conversion 96.5% ≫ break-even
-  candidates).
+- **Answer-conversion RESOLVED as a two-regime law (2026-07-02,
+  [[judge-answer-conversion]])**: BarExamQA/70B — 5.4× exposure does not
+  convert (gold-present +2.4pp, gold-absent −3.8pp, break-even Hit@5 ≈61% vs
+  22.8% ceiling). Housing/70B — conversion pays monotonically: llm_only 54.2
+  → CE-ev 61.8 → SCOPE-ev 63.2 → **judge-ev 65.6% (+11.4pp, p=5.5e-08;
+  beats CE arm p=0.048)**, and even gold-absent evidence helps (+12.0pp).
+  **The cost term is regime-dependent**: distractor tax on parametric-strong
+  MC, neighboring-provision value on statutory entailment. Full pipeline law:
+  expansion ← query margin; selection ← pool confusability; conversion ←
+  task evidence-value — all measurable in advance.
 - Still pending: graded-qrels BEIR domain (FiQA/NFCorpus) to separate
-  label-noise from domain-shift; Housing judge-evidence answer run.
+  label-noise from domain-shift; pre-registered held-out validation of the
+  three-dial law on an unseen corpus.
 
 ## Falsifiable predictions (pre-stated)
 1. Leakage audit: unmatched-generation lift on BarExamQA stays > 0 (geometry

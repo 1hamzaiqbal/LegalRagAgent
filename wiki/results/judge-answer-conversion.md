@@ -64,6 +64,44 @@ cannot rescue conversion at this ceiling.
    gold ceiling +5pp, judge conversion 96.5%) is the arm where conversion
    should actually pay — **that is the decisive next answer run.**
 
+## Housing arms (same day) — conversion PAYS on the evidence-valuable regime
+
+Same design, 500 held-out Housing questions (state-filtered strict replay,
+logs `eval_*_20260702_{061002,061742,062828,063923}_housing_detail.jsonl`):
+
+| Arm | Hit@5 of evidence | Answer acc | vs llm_only |
+|---|---:|---:|---|
+| llm_only | — | 54.2% | — |
+| CE-pool top5 | 38.2% | 61.8% | +7.6pp, p=1.6e-04 |
+| SCOPE top5 | 41.2% | 63.2% | +9.0pp, p=8.1e-05 |
+| **judge-trained top5** | **55.0%** | **65.6%** | **+11.4pp, p=5.5e-08** |
+
+Judge beats the CE arm on answers too (+3.8pp, b/c=51/32, **p=0.048**);
+judge-vs-SCOPE +2.4pp (ns at N=500). Ordering matches evidence quality
+exactly: better selection → better answers, monotone.
+
+**The two-regime conversion contrast (the paper's closing figure):**
+
+| | BarExamQA/70B | HousingQA/70B |
+|---|---:|---:|
+| best evidence arm vs llm_only | −2.5pp (ns) | **+11.4pp (p=5e-08)** |
+| gold-present evidence effect | +2.4pp | +10.9pp |
+| gold-absent evidence effect | **−3.8pp** | **+12.0pp** |
+
+The cost term of the break-even model is *itself regime-dependent*: on
+parametric-strong MC, non-gold evidence is a distractor tax; on statutory
+entailment, even non-gold same-state statutes carry answer-value (neighboring
+provisions). So the full pipeline law reads: **expansion is governed by the
+query-side margin; selection is governed by pool confusability; and whether
+any of it reaches answers is governed by the evidence answer-value of the
+task — all three measurable in advance.** Selector improvements convert 1:1
+where evidence has value (Housing: CE 61.8 → judge 65.6 tracks Hit@5 38→55)
+and cannot convert where it doesn't (BarExam).
+
+Caveat: this 500-question subset runs hotter than the signed full-N llm_only
+(54.2% vs 44.8%) — group-level sampling; all comparisons are within-subset
+paired, so unaffected.
+
 ## Links
 [[thesis-v2]] · [[answer-conversion-gap]] · [[judge-pilot-v0-results]] ·
 [[judge-pilot-housing]] · [[zheng-cslaw]] · [[icml-ai4law-2026-rejection]] (C5/C9)
