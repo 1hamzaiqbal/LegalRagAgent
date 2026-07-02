@@ -32,6 +32,12 @@ magesh2024hallucinationfree). Discovery sweeps returned ~24 ranked candidates
 LegalAgentBench, Chain-of-Logic, Makri'08 lawyer info-seeking, Aletras'16 …)
 — unpulled ones are TODO markers.
 
+## [2026-07-02] experiment | MedQA full-N: q200 headline retired, law holds
+N=1,273 strict replay: llm_only 85.6% / raw-RAG 83.1% (hurts, p=0.005) /
+HyDE 85.2% / SCOPE 86.1% (+0.55 ns vs llm_only; +2.99pp p=0.002 vs raw).
+The q200 "+5.5pp over llm_only" claim does NOT replicate (hard slice by
+luck). Dial-3 law now 5-for-5 cells. Page: [[medqa-fulln-matrix]].
+
 ## [2026-07-02] experiment | Reader-size 2x2: conversion = parametric deficit
 8-arm groq-llama8b replay (same evidence artifacts): regimes INVERT at 8B —
 BarExam evidence pays (+11.8pp SCOPE-ev p=5.6e-05; judge +8.8pp p=0.0026;
