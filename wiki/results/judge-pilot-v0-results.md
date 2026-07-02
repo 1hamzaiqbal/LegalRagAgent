@@ -68,11 +68,32 @@ Significance (exact McNemar on per-pool Hit@5):
 - Judge scoring costs ~2 forward passes/candidate at 9B — fine for k=20
   pools, not a drop-in for 686K-corpus first-stage retrieval.
 
+## Free-infrastructure replication (EIT, 2026-07-02 evening)
+
+The Tinker recipe was ported to a plain HF PEFT script
+(`scripts/judge_pilot/local_judge.py`: same LoRA r=32 on attn+mlp, loss on
+" Yes"/" No" tokens only, 3 epochs, lr 1e-4, effective batch 128) and run on
+a free EIT `general-gpu` A100-SXM4 (Slurm job 93632, ~1h train+score,
+Qwen3.5-9B slow-attention fallback path, micro-batch 4 × accum 32):
+
+| Lane | Hit@5 | MRR@5 | hits |
+|---|---:|---:|---:|
+| Tinker-trained (reference) | 20.6% | 0.138 | 82/399 |
+| **EIT local-trained (A100, free)** | **20.6%** | **0.135** | **82/399** |
+
+Identical hit count, MRR within 0.003 — the recipe is
+infrastructure-independent and the training lane is now **$0/run**
+(checkpoint `.../judge_pilot_v0_data/ckpt_barexam_local_v4` on EIT; scores
+mirrored to `data/local_scores_trained_local_v4.json`). A racing A40 job
+(93629) was cancelled once the A100 landed. All follow-on judge training
+(mixed-label legal judge, deeper pools, MedQA) runs on this free lane.
+
 ## Reproduce
 ```
 scripts/judge_pilot/build_judge_dataset.py   # dataset from signed caches
 scripts/judge_pilot/train_tinker_judge.py    # Tinker LoRA (TINKER_API_KEY)
 scripts/judge_pilot/eval_judge_rerank.py     # arms: trained,zeroshot
+scripts/judge_pilot/local_judge.py           # free EIT lane (HF PEFT port)
 ```
 Checkpoint: `tinker://f359dd9b-…/sampler_weights/barexam-judge-v0-final`
 (recorded in `data/train_info.json`).

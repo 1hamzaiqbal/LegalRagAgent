@@ -141,3 +141,21 @@ HyDE ledger = 13/16 NS with dataset-split significant cells; memory claims
 (a)–(d) all CONFIRMED with per-dataset caveats (three-retriever closure is
 mean-level; TREC-COVID low). Corrected an overstatement in methods/scope.md
 ("null on every pair" → 13/16 NS, direction dataset-dependent).
+
+## [2026-07-02] eit-lane-validated | Free judge-training lane reproduces Tinker exactly
+EIT A100 job 93632 (local_judge.py HF PEFT port, Qwen3.5-9B, LoRA r=32,
+micro 4 × accum 32) landed Hit@5 20.55% / MRR 0.1345 / 82/399 — identical
+hit count to the Tinker reference (20.6% / 0.138 / 82/399). Racing A40 job
+93629 cancelled. Judge training is now $0/run on general-gpu A100-SXM4
+(gres type `a100-sxm4`; the `a100s` alias is stale). Section added to
+results/judge-pilot-v0-results. Queued next on the free lane: mixed-label
+barexam+housing "general legal judge" (motivated by the 46.4% transfer
+specialization result).
+
+## [2026-07-02] meeting-packet | 7_2_review_meeting folder + 5 Codex lanes
+Created wiki/7_2_review_meeting/ (transient meeting packet, 00-README pins
+conventions). Five Codex (gpt-5.5 xhigh) lanes launched in parallel, one per
+document: 01 submission summary + primary sources, 02 critique dossier
+(fixed/fixable/remains), 03 overlapping related work, 04 generalization-pivot
+memo + 05 datasets EDA (with figures), 06 consolidated results + meeting
+questions, 07 experiment narrative since submission (with timeline figure).
