@@ -102,6 +102,30 @@ Caveat: this 500-question subset runs hotter than the signed full-N llm_only
 (54.2% vs 44.8%) — group-level sampling; all comparisons are within-subset
 paired, so unaffected.
 
+## The reader-size 2×2 (same day, groq-llama8b arms) — dial 3 sharpens
+
+Identical evidence artifacts, answer model swapped to Llama-3.1-8B:
+
+| best-evidence vs llm_only | BarExamQA | HousingQA |
+|---|---:|---:|
+| **70B reader** | −2.5pp ns (llm_only 77.7%) | **+11.4pp p=5e-08** (llm_only 54.2%) |
+| **8B reader** | **+11.8pp p=5.6e-05** (llm_only 54.9%) | −2.8pp ns (llm_only 62.8%) |
+
+At 8B the regimes *invert*: BarExam evidence pays (judge +8.8pp p=0.0026,
+SCOPE-ev +11.8pp; gold-present +14.6pp AND gold-absent +7.3pp — even
+imperfect evidence helps a weak reader), Housing evidence stops paying
+(gold-present −6.5pp: the 8B can't integrate statutes it already answers
+above its integration ability).
+
+**Unified conversion law**: evidence pays iff the reader's parametric
+competence on the task (measured by plain llm_only accuracy) is low —
+in these four cells the crossover sits around llm_only ≈ 60%. "Task
+evidence-value" was the fixed-reader special case; the general dial is the
+**reader–task parametric deficit**, and its pre-test costs one llm_only run.
+(Also note: at 8B/BarExam, SCOPE-evidence 66.7% ≥ judge-evidence 63.7%
+despite less gold — weak readers may benefit from topically-broad context
+beyond exact gold; judge-vs-scope −3.0pp ns, flag for replication.)
+
 ## Links
 [[thesis-v2]] · [[answer-conversion-gap]] · [[judge-pilot-v0-results]] ·
 [[judge-pilot-housing]] · [[zheng-cslaw]] · [[icml-ai4law-2026-rejection]] (C5/C9)

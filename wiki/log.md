@@ -32,6 +32,16 @@ magesh2024hallucinationfree). Discovery sweeps returned ~24 ranked candidates
 LegalAgentBench, Chain-of-Logic, Makri'08 lawyer info-seeking, Aletras'16 …)
 — unpulled ones are TODO markers.
 
+## [2026-07-02] experiment | Reader-size 2x2: conversion = parametric deficit
+8-arm groq-llama8b replay (same evidence artifacts): regimes INVERT at 8B —
+BarExam evidence pays (+11.8pp SCOPE-ev p=5.6e-05; judge +8.8pp p=0.0026;
+even gold-absent +7.3pp) while Housing stops paying (gold-present -6.5pp).
+Across the 4 (reader x task) cells, evidence pays iff llm_only is weak
+(crossover ~60%): dial 3 = reader-task parametric deficit, pre-testable with
+one llm_only run. Also: capacity curve completed (prompted 235B = prompted 9B
+= 15.3% < trained 9B 20.6%); EIT lane v2 resubmitted (job 93606, dedicated
+venv after transformers 4.57 lacked qwen3_5).
+
 ## [2026-07-02] experiment | Capacity dial: judge is label-bound, not capacity-bound
 Qwen3.6-27B on identical BarExam pools: zeroshot 14.0%/trained 18.5% vs 9B's
 15.3%/20.6% — 3x parameters bought nothing; training lift replicates at both

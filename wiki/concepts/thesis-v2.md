@@ -78,6 +78,12 @@ trained>prompted (p=1e-04) — [[judge-pilot-v0-results]].
   MC, neighboring-provision value on statutory entailment. Full pipeline law:
   expansion ← query margin; selection ← pool confusability; conversion ←
   task evidence-value — all measurable in advance.
+- **Dial 3 sharpened by the reader-size 2×2 (same day, 8B arms)**: the
+  regimes invert at 8B (BarExam evidence pays +11.8pp p=5.6e-05; Housing
+  stops paying). Conversion tracks the **reader–task parametric deficit**
+  (llm_only accuracy), crossover ≈60% in our four cells — the pre-test for
+  the whole pipeline is one llm_only run. See
+  [[judge-answer-conversion]] §2×2.
 - **FiQA resolves the label-semantics question (2026-07-02,
   [[judge-pilot-fiqa]])**: zero-shot judge > CE in all four domains
   (+8.5..+14.6pp, all p≤3e-05 — the general-domain CE is universally the
