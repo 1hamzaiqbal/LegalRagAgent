@@ -172,7 +172,13 @@ def load_questions(config: EvalConfig) -> pd.DataFrame:
             )
         return _apply_question_exclusions(pd.read_csv(path), config)
 
-    qa = pd.read_csv("datasets/barexam_qa/qa/qa.csv")
+    # EVAL_QA_CSV: explicit question-subset override (e.g. judge-pilot test
+    # split replay). Provenance must be recorded by the caller; the file must
+    # keep qa.csv's schema.
+    _qa_override = os.getenv("EVAL_QA_CSV", "").strip()
+    qa = pd.read_csv(_qa_override or "datasets/barexam_qa/qa/qa.csv")
+    if _qa_override:
+        print(f"[load_questions] EVAL_QA_CSV override: {_qa_override} ({len(qa)} rows)")
 
     if config.questions == "full":
         return _apply_question_exclusions(qa.reset_index(drop=True), config)
