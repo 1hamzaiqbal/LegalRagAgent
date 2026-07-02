@@ -80,6 +80,7 @@ help retrieval and when retrieval helps answers*** — the mechanism
 - [[musique-cross-domain]] — bridge-recall +15–16pp; pool-structure caveat
 - [[snap-vs-hyde-ledger]] — every signed SCOPE-vs-HyDE pair (the C7 evidence)
 - [[judge-pilot-v0-results]] — **Tinker-trained judge un-buries the pool**: 20.6% vs CE 3.8% Hit@5, trained > prompted p=1e-04 (2026-07-02)
+- [[leakage-audit-barexam]] — **Yoon leakage account rejected**: weak-query lift survives at +6pp on unmatched generations, p=1e-20 (2026-07-02)
 
 ## Reviews
 - [[icml-ai4law-2026-rejection]] — inventory, assessment, resubmission checklist, meta-lessons

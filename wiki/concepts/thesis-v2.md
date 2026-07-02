@@ -26,9 +26,13 @@ perplexity/OOV (≈0.51).
 - Tested: 7 datasets (legal/medical/scientific/web) × 3 retrievers × 4
   generators — [[affinity-margin-mechanism]], [[beir-phase1]],
   [[three-retriever-generality]], [[factuality-falsification]].
-- Pending: **leakage confound** ([[yoon2025leakage]] audit running
-  2026-07-02 — does the weak-query lift survive on generations not entailed
-  by gold?); answer-side conversion modeling.
+- **Prediction 1 SUPPORTED (2026-07-02)**: the leakage confound is rejected —
+  the weak-query lift survives at +6pp (>4× raw, p=1.1e-20 question-level) on
+  the ~85% of generations with no gold-entailed sentence
+  ([[leakage-audit-barexam]]). Leakage amplifies (+28pp on matched rows) but
+  does not explain the effect.
+- Still pending: answer-side conversion modeling; BEIR/MedQA leakage
+  replication (cheap, queued).
 
 **P2 — Answer-conditioning is a drift dampener, not a retrieval booster**
 (how to expand). Snap-conditioned generation ≈ HyDE on weak-query retrieval

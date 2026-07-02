@@ -39,6 +39,14 @@ as recipe + negative-result-on-per-query, not as a novel router (taken).
 (corpus-conditioned, few-shot probe set?) cheap enough for deployment; where
 MASLegalBench/Legal-Link-EU sit on the axis (anchored questions = strong).
 
+**Possible supersession (2026-07-02, [[thesis-v2]] P3)**: the pooling-kills-
+weak result that forces routing was an *ms-marco-CE artifact* — with a
+trained judge as selector, pool reranking wins on the weak end too
+([[judge-pilot-v0-results]]: 20.6% vs SCOPE-alone 12.0%, p=3.4e-06). If this
+replicates on strong/intermediate regimes (Housing test in prep), routing
+collapses into "always pool + trained judge" and this page becomes the
+recipe's fallback for judge-less deployments. Not yet superseded — flagged.
+
 ## Links
 [[weak-vs-strong-query-regime]] · [[qpp]] · [[query-drift]] ·
 [[emami-qpp-variant]] · [[adaptive-rag-mallen]] · [[scope]] · [[beir-phase1]]

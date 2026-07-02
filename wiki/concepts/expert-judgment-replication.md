@@ -10,10 +10,18 @@ status: draft
 # Replicating expert judgment — candidate new direction
 
 **The pattern** (from Thinking Machines' financial-tasks post,
-[[thinking-machines-expert-judgment]] — details pending ingestion): collect
-expert judgments on domain tasks, train/tune models (or judges/reward models)
-to *replicate* that judgment, evaluate agreement with held-out experts rather
-than against brittle exact-match labels.
+[[thinking-machines-expert-judgment]], ingested 2026-07-02): collect expert
+judgments as *labels* (their thesis: expert judgment resists prompt
+articulation — frontier models plateau at 74–78% even with expert prompts,
+their trained 235B hits 84.7%), train judges on them with cheap
+disagreement-routed verification, evaluate agreement with held-out experts
+rather than brittle exact-match.
+
+**Status update (2026-07-02)**: pilot v0 executed and won —
+[[judge-pilot-v0-results]] (trained 9B judge, free benchmark labels, Hit@5
+20.6% vs CE 3.8%, trained>prompted p=1e-04). The pattern's first rung
+(outcome-label training beats prompting for domain judgment) is validated at
+academic scale; the lawyer-label rungs remain open.
 
 **Why it's interesting for us** (advisor/user flagged it 2026-07-02):
 1. **It attacks the [[answer-conversion-gap]] at the metric layer.** Our whole

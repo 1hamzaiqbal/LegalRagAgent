@@ -32,6 +32,16 @@ magesh2024hallucinationfree). Discovery sweeps returned ~24 ranked candidates
 LegalAgentBench, Chain-of-Logic, Makri'08 lawyer info-seeking, Aletras'16 …)
 — unpulled ones are TODO markers.
 
+## [2026-07-02] experiment | Leakage audit: Yoon account rejected on BarExamQA
+Queue #1 executed locally (deberta-v3-base NLI on MPS, 7,703 pairs over 1,192
+questions × 3 SCOPE samples, dense-stage retrieval). Matched (gold-entailed)
+samples = 14–15%; unmatched lift = **+5.9 to +6.1pp Hit@5 over raw 1.4%**;
+strictest all-unmatched stratum: 10.5% vs 1.5%, McNemar 88/5, p=1.1e-20.
+Thesis-v2 prediction 1 supported; the strongest external threat to Path A
+defused and converted into a positive decomposition section. Caveats: 3SCOPE
+exemplar variant (conservative), single dataset/generator. Page:
+[[leakage-audit-barexam]].
+
 ## [2026-07-02] experiment | Judge pilot v0 launched on Tinker (Path C)
 Built `scripts/judge_pilot/` (dataset from signed caches + qa.csv gold;
 passage texts hydrated from EIT corpus CSV + HF test/validation splits after

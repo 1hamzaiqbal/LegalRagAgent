@@ -92,10 +92,10 @@ def main():
             sents = sentences(passage)
             rows[qi]["samples"].append({"hit5": hit, "n_sents": len(sents), "max_ent": 0.0})
             for sj, s in enumerate(sents):
-                jobs.append((qi, si, gtxt[:3000], s))
+                jobs.append((qi, si, gtxt[:2000], s))
     print(f"NLI pairs: {len(jobs)} over {len(rows)} questions")
 
-    B = 128
+    B = 16
     t0 = time.time()
     for i in range(0, len(jobs), B):
         chunk = jobs[i:i + B]
