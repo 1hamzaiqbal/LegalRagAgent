@@ -60,6 +60,17 @@ one seed. Housing gold labels are acknowledged-noisy ([[zheng-cslaw]]).
 train+2 evals ≈ $50–70 of the $150 credits (check dashboard); within the
 $125 loop budget.
 
+## Cross-task transfer (2026-07-02, Tinker spend-down battery)
+
+The **BarExam-trained** 9B scored on these same Housing pools: Hit@5 46.4% /
+MRR 0.300 / 81.4% conversion — above the CE (38.2%) but **below Housing
+zero-shot** (52.8%) and far below the Housing-trained judge (55.0%).
+Reading: label-training *specializes* toward the source task's relevance
+notion (controlling MBE rule ≠ statutory basis for a state); judgment
+training is not automatically legal-general. A deployable "legal judge"
+needs mixed-task labels — queued as the first free EIT-lane experiment
+(train barexam+housing combined, eval both).
+
 ## Links
 [[thesis-v2]] (prediction 2 ✓) · [[judge-pilot-v0-results]] ·
 [[regime-routing]] (superseded) · [[pooling-regime]] ·
