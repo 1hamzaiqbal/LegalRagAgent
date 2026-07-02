@@ -31,8 +31,11 @@ perplexity/OOV (≈0.51).
   the ~85% of generations with no gold-entailed sentence
   ([[leakage-audit-barexam]]). Leakage amplifies (+28pp on matched rows) but
   does not explain the effect.
-- Still pending: answer-side conversion modeling; BEIR/MedQA leakage
-  replication (cheap, queued).
+- **BEIR leakage replication also done (2026-07-02)**: matched rates 0–7% on
+  scientific corpora and help_m=0 in all cells — expansion help is never
+  leakage-gated in either regime ([[leakage-audit-barexam]] §BEIR).
+- Still pending: answer-side conversion modeling; MedQA leakage variant (no
+  gold qrels — needs a proxy design).
 
 **P2 — Answer-conditioning is a drift dampener, not a retrieval booster**
 (how to expand). Snap-conditioned generation ≈ HyDE on weak-query retrieval
@@ -52,11 +55,13 @@ BarExam pool 3.9% vs SCOPE-alone 12.0%). A 9B judge LoRA-trained on *free
 outcome labels* (gold ids + retrieved hard negatives, no human annotation)
 un-buries it: Hit@5 20.6% vs CE 3.8% (p=1.4e-17), 90% of pool ceiling, and
 trained>prompted (p=1e-04) — [[judge-pilot-v0-results]].
-- Pending: **strong/intermediate-regime replication** (Housing judge — in
-  prep); **cross-domain replication** (same recipe on a BEIR corpus);
-  **answer conversion** (judge-top5 answer run); if P3 holds across regimes,
-  [[regime-routing]] collapses into "always pool + trained judge," which is a
-  simpler and stronger operational law than routing.
+- **Prediction 2 SUPPORTED (2026-07-02)**: Housing (strong regime) trained
+  judge 55.0% vs CE-pool 38.2% (p=2.5e-23), 96.5% gold-in-pool conversion —
+  P3 holds on both regimes; [[regime-routing]] superseded by "always pool +
+  trained judge" ([[judge-pilot-housing]]).
+- Still pending: **cross-domain replication** (same recipe on a BEIR corpus —
+  prediction 3); **answer conversion** (judge-top5 answer run — the wall
+  P3 must eventually cross).
 
 ## Falsifiable predictions (pre-stated)
 1. Leakage audit: unmatched-generation lift on BarExamQA stays > 0 (geometry

@@ -54,8 +54,28 @@ McNemar b/c=88/5, **p=1.1e-20**; τ=0.8: n=902, 84/5, p=1.4e-19).
 single-SCOPE texts (never committed; exemplar prompts bias matched-rate UP →
 conservative for our conclusion). NLI matcher imperfect below the entailment
 threshold (we swept τ to 0.7). This audits retrieval-lift leakage, not answer
-train-test contamination. Single dataset/generator — BEIR/MedQA replication
-is cheap (same script, generation caches exist) and queued.
+train-test contamination.
+
+## BEIR replication (same day — canonical single-passage generations)
+
+SciFact/NFCorpus/SciDocs × {HyDE, SCOPE}, canonical Gemma generation caches,
+τ∈{0.8,0.9} ([report](../../docs/generated/leakage_audit_beir_2026-07-02.md)):
+- **Matched rates collapse outside legal: 0–7%** (most cells ≤1%) — on
+  scientific corpora the generator essentially never produces gold-entailed
+  sentences, so expansion outcomes there are all-geometry by construction.
+- **help_m = 0 in all six cells**: every expansion-help-over-raw event occurs
+  on an *unmatched* generation. Even inside strong-query corpora, the help
+  pockets are not leakage-driven.
+- SCOPE's drift-robustness (unmatched delta −1.8/−4.4pp ns on
+  SciDocs/NFCorpus vs HyDE's −23.5/−35.9pp, p≤1e-29) is likewise orthogonal
+  to leakage.
+
+**Combined statement for the paper**: knowledge leakage cannot explain
+generative-expansion behavior in either regime — weak-query legal lift
+survives at +6pp on the 85% unmatched stratum (p=1e-20), and on strong-query
+scientific corpora matched generations are ~1% of rows with zero
+leakage-gated help events. Yoon et al.'s fact-verification finding does not
+transfer to specialist-corpus retrieval.
 
 **What it changes.** The strongest external threat to the mechanism paper
 (Path A) is defused on the flagship dataset — and turned into a positive

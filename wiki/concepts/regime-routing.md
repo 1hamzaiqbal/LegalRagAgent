@@ -39,13 +39,14 @@ as recipe + negative-result-on-per-query, not as a novel router (taken).
 (corpus-conditioned, few-shot probe set?) cheap enough for deployment; where
 MASLegalBench/Legal-Link-EU sit on the axis (anchored questions = strong).
 
-**Possible supersession (2026-07-02, [[thesis-v2]] P3)**: the pooling-kills-
-weak result that forces routing was an *ms-marco-CE artifact* — with a
-trained judge as selector, pool reranking wins on the weak end too
-([[judge-pilot-v0-results]]: 20.6% vs SCOPE-alone 12.0%, p=3.4e-06). If this
-replicates on strong/intermediate regimes (Housing test in prep), routing
-collapses into "always pool + trained judge" and this page becomes the
-recipe's fallback for judge-less deployments. Not yet superseded — flagged.
+**SUPERSEDED as primary recipe (2026-07-02, [[thesis-v2]] P3 confirmed both
+regimes)**: the pooling-kills-weak result that forced routing was an
+*ms-marco-CE artifact*. With a trained judge as selector, always-pool wins on
+BOTH ends: weak ([[judge-pilot-v0-results]] 20.6% vs SCOPE-alone 12.0%,
+p=3.4e-06) and strong ([[judge-pilot-housing]] 55.0% vs CE-pool 38.2%,
+p=2.5e-23; vs SCOPE-alone p=8.5e-12). This page remains the recipe for
+**judge-less deployments** (a general-domain CE does force the regime split)
+and as the historical record of why the routing question arose.
 
 ## Links
 [[weak-vs-strong-query-regime]] · [[qpp]] · [[query-drift]] ·

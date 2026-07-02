@@ -32,6 +32,21 @@ magesh2024hallucinationfree). Discovery sweeps returned ~24 ranked candidates
 LegalAgentBench, Chain-of-Logic, Makri'08 lawyer info-seeking, Aletras'16 …)
 — unpulled ones are TODO markers.
 
+## [2026-07-02] experiment | Housing judge (strong regime): routing superseded
+Same recipe, new regime: group-level splits, 5,000 pairs, 13-min Tinker LoRA.
+On 500 held-out state-filtered pools (57.0% ceiling): trained judge Hit@5
+55.0% / MRR 0.477 / 96.5% conversion vs CE-pool 38.2% (p=2.5e-23), SCOPE-alone
+41.2% (p=8.5e-12), raw 33.4% (p=1.5e-24); trained>zeroshot p=0.043 (MRR
++0.092). Thesis-v2 prediction 2 supported → [[regime-routing]] superseded by
+always-pool + trained judge. Page: [[judge-pilot-housing]].
+
+## [2026-07-02] experiment | BEIR leakage replication: help is never leakage-gated
+Canonical HyDE/SCOPE generations on SciFact/NFCorpus/SciDocs: matched rates
+0–7% (most ≤1%), help_m=0 in all six cells — every expansion-help event
+occurs on unmatched generations. Combined with BarExamQA: leakage cannot
+explain expansion behavior in either regime. Appended to
+[[leakage-audit-barexam]].
+
 ## [2026-07-02] experiment | Leakage audit: Yoon account rejected on BarExamQA
 Queue #1 executed locally (deberta-v3-base NLI on MPS, 7,703 pairs over 1,192
 questions × 3 SCOPE samples, dense-stage retrieval). Matched (gold-entailed)
