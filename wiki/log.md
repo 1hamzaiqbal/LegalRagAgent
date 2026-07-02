@@ -159,3 +159,17 @@ document: 01 submission summary + primary sources, 02 critique dossier
 (fixed/fixable/remains), 03 overlapping related work, 04 generalization-pivot
 memo + 05 datasets EDA (with figures), 06 consolidated results + meeting
 questions, 07 experiment narrative since submission (with timeline figure).
+
+## [2026-07-02] meeting-packet-complete | All 7 documents landed, reviewed, committed
+All five Codex (gpt-5.5 xhigh; account rejected the -codex variant) lanes
+finished: 01 submission reconstruction + primary sources in assets/primary/,
+02 critique dossier (quotes enriched to verbatim reviewer excerpts), 03
+overlapping related-work dossier (KoBLEX/GuRE = clear uncited misses; Zheng =
+cited-but-not-engaged; coverage map of surviving white space), 04
+generalization-pivot memo (RQ1-RQ7), 05 datasets EDA (11-dataset
+vocabulary-gap violin; Jaccard-vs-TFIDF metric caveat added), 06 consolidated
+results + 12 meeting questions with leans, 07 experiment narrative (Era 0-7,
+dead ends included, timeline + claims-alive/killed figures). Lane B's original
+codex task died instantly on the gpt-5.5-codex model rejection and was
+relaunched in blocking mode. Staleness fixes applied post-landing: EIT race
+resolution in 06/07, MRR 0.135-vs-0.138 in 04. Folder indexed from wiki index.

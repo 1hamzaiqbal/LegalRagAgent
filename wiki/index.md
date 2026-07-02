@@ -22,6 +22,7 @@ help retrieval and when retrieval helps answers*** — the mechanism
 - [[START_HERE]] — orienting read
 - [[direction-2026-07]] — direction map for the 2026-07-02 meeting (next steps, candidate anchors)
 - [[icml-ai4law-2026-rejection]] — criticism inventory C1–C12 + assessment (the pivot document)
+- [7_2_review_meeting/](7_2_review_meeting/00-README.md) — meeting packet: submission + critique + related work + pivot + EDA + results + narrative (transient, 2026-07-02)
 
 ## Concepts
 - [[thesis-v2]] — **the working thesis**: generation is a low-margin instrument; answer-conditioning dampens drift; after pooling, selection binds — with pre-stated falsifiable predictions
