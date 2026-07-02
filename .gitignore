@@ -52,3 +52,6 @@ paper/_*
 
 # Auto-generated, churns on every machine — regenerated locally, not tracked
 current_status.md
+
+# Wiki raw sources (papers/PDFs/repos) — heavy, archived on WUSTL EIT cluster
+references/

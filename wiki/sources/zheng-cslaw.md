@@ -1,0 +1,46 @@
+---
+title: A Reasoning-Focused Legal Retrieval Benchmark (CSLAW 2025)
+type: source
+tags: [legal-rag, benchmark, retrieval, query-expansion, barexamqa, housingqa]
+created: 2026-07-02
+updated: 2026-07-02
+status: draft
+url: https://doi.org/10.1145/3709025.3712219
+local: references/zheng-cslaw.pdf
+authors: Zheng et al.
+year: 2025
+venue: ACM CS&Law 2025
+code: https://huggingface.co/collections/reglab/a-reasoning-focused-legal-retrieval-benchmark-67a00c363f7e0d14619e95c5
+---
+
+# A Reasoning-Focused Legal Retrieval Benchmark (Zheng et al., CS&Law 2025)
+
+## TL;DR
+Our benchmark source paper (Stanford RegLab + Manning/Henderson/Ho): introduces Bar Exam QA (1,195 released Historical MBE + 1,815 private Barbri queries, ~857K-passage corpus) and Housing Statute QA (6,853 Y/N queries, 1.84M statute corpus), built via ~6-9 months of law-student annotation modeled on real legal research. They show both tasks have extreme query-gold lexical gaps (TF-IDF cosine 0.07-0.09 vs 0.25-0.27 for NQ/HotpotQA/COLIEE/CLERC), that BM25/E5 baselines collapse on them, and that GPT-3.5 generative query expansion — including a law-tailored "structured legal reasoning" (issue + rule) rollout — significantly lifts recall. Crucially, they also show retrieval gains translate weakly downstream ("even a 10% gain on retrieval can only lead to a 2% improvement... in theory") and that feeding the reasoning rollout to the answer model as a pseudo-passage *reduces* BarExamQA accuracy.
+
+## Key claims / numbers
+- Datasets: BarExamQA 1,195 Historical MBE (released, the set we use) / 1,815 Barbri (private held-out); corpus 856,835 passages = annotated golds + 2019-2021 US caselaw split at paragraph level + Cornell LII Wex + select primary sources. HousingQA rc_questions split 6,853 Y/N with statute labels over 1,837,403 Justia 2021 state statutes; a second knowledge_qa split (9,297) has no gold labels. *our-relevance:* corpus construction facts for the paper; our local `legal_passages` collection (686,324) is smaller than their stated 856,835 and the discrepancy should be documented.
+- Gold annotation: for Historical MBE, law students identified the rule of law, ran hand-written Westlaw Terms-and-Connectors searches, and annotated ONE succinct rule statement in a case as gold (~9 months effort, subsets manually validated); Barbri golds come from answer-key explanation passages. *our-relevance:* single-gold design + their explicit caveat that "in law, common principles or rules are restated many times across the corpus" and that downstream performance should "further contextualize retrieval performance" means Hit@5 against one gold id is a pessimistic lower bound — direct calibration for C5/C9.
+- Housing gold noise: multi-answer MC questions were mechanically split into Y/N questions, so "not all of the gold passages for the original question may be relevant to each Y/N question"; they report recall of ≥1 gold (upper bound) and all golds (lower bound); most examples carry 1-2 golds; Justia coverage of state law is incomplete. *our-relevance:* HousingQA gold labels are acknowledged-noisy; our upper-bound-style Hit@k is the authors' own primary convention (C10, C11).
+- Vocabulary gap is quantified: mean TF-IDF cosine (query, gold) = 0.07 (BarExam) / 0.09 (Housing) vs 0.25-0.27 for NQ/HotpotQA/COLIEE/CLERC; KS and t-tests all p<0.001. *our-relevance:* this is the corpus-level distributional analysis C8 demanded — it exists, we must cite and build on it ([[vocabulary-gap]]).
+- Baseline retrieval collapses: on the released Historical MBE subset (our question set), baseline Recall@10 = 0.75 (BM25), 0.92 (E5-large-v2), 3.26 (E5-mistral-7b-instruct); aggregate incl. Barbri: 5.03 / 7.00 / 15.25. Housing upper-bound Recall@10 = 40.8 (BM25) / 50.6 (E5-large) / 65.3 (E5-mistral), retrieved from per-jurisdiction candidate pools (10,676-155,974 passages). *our-relevance:* our raw Hit@5 1.4% on BarExamQA is consistent with their floor; our jurisdiction state filter mirrors their protocol, so unfiltered Housing retrieval is the nonstandard condition (C9, C10).
+- They already ran generative query expansion (GPT-3.5-turbo-0613): Paraphrase, CoT (answer + step-by-step explanation appended to query, after Jagerman et al.), and Structured Legal Reasoning (issue-spotting + applicable-rule rollout). Structured reasoning gains Recall@10: BarExam BM25 +6.28±0.99, E5-large +8.86±1.16 (E5-mistral −1.22, no gain); Housing BM25 +10.27±1.08, E5-large +2.16±1.15 (E5-mistral n.s.). On Historical MBE the *best* expanded number is Recall@10 6.95 (E5-mistral + structured reasoning), MRR@10 ≤2.42 for E5-large. *our-relevance:* (a) HyDE-style expansion on these exact benchmarks is prior art from the benchmark authors themselves (C3, C6, C7); (b) SCOPE's Hit@5 9.5-12.1 on the same released question set is at or above the benchmark authors' best reported achievable recall, the sharpest calibration for C5; (c) expansion gains vanish for the strongest retriever — an early strong-regime/[[query-drift]] signal.
+- Retrieval→answer conversion is weak by their own account: Llama-3-8B BarExam no-passage 37.84 → gold 57.38 (only ~20pp headroom); Llama-3-70B 52.22 → 68.80; "even a 10% gain on retrieval can only lead to a 2% improvement on downstream task performance in theory." GPT-4o-mini BarExam: rollout-as-pseudo-passage 47.94 < no-passage 49.73 < retrieved 50.23 << gold 62.76. Housing GPT-4o-mini: no-passage 48.18 → retrieved 71.71 (+23.5pp), rollout-as-passage 68.51. *our-relevance:* the [[answer-conversion-gap]] is documented in the source paper; our 72.3→72.9 under 8x retrieval lift is the same phenomenon (C5, C9), and their pseudo-passage-hurts result grounds both the C4 fabrication worry and the motivation for SCOPE's discard-a0 guardrail (C12).
+- Recommended metrics/rigor: Recall@1/10/100/1000 + MRR@10, 95% percentile-bootstrap CIs (n=1000), KS/t-tests, upper/lower-bound recall for Housing, no-passage and gold-passage anchors in every downstream table. *our-relevance:* the rigor template a revision must match (C11).
+
+## Bearing on the review
+- **C5/C9 (marginal gains, weak baseline framing)**: cite Table 22 (Historical MBE Recall@10 ≤6.95 for their best method) to show SCOPE's absolute retrieval numbers exceed the benchmark authors' best; cite their 10%-retrieval→2%-answer bound and gold-passage ceilings to argue small answer deltas are a property of the benchmark, not of SCOPE. But adopt their anchoring convention: every downstream table needs no-passage AND gold-passage rows, with LLM-only as the primary comparator.
+- **C8/C2**: their lexical-similarity analysis is exactly the distributional evidence requested; a revision should reproduce it on our corpus slice and cite this paper as the benchmark-native vocabulary-gap measurement rather than re-deriving it informally.
+- **C3/C6/C7**: their structured-reasoning expansion is closer prior art than ParSeR for these exact datasets and must be cited and compared. Any SCOPE novelty claim now has to be a measured delta against (i) their structured rollout and (ii) HyDE, with significance tests.
+- **C10**: their jurisdiction-pool protocol legitimizes our state filter; their Housing results (strong retrieval helps answers +23.5pp for a capable model; rollout-as-passage underperforms real passages) sharpen the question of why SCOPE regresses there — regime framing, not "parity" language.
+- **C11/C12**: bootstrap CIs everywhere; and their rollout-as-pseudo-passage condition is a ready-made template for the a0-leakage ablation C12 demands.
+
+## Differentiation
+Honest position: we did not invent generated-query expansion for these benchmarks — the benchmark authors already ran a legal-tailored generative rollout (issue + rule, GPT-3.5) and reported significant recall gains, including the observation that gains shrink or invert for stronger retrievers. What they did NOT do: same-model self-expansion (query generator = answerer), the snap-answer-then-discard structure, embedding only the pseudo-document (they concatenate query + rollout), cross-encoder reranked end-to-end answer pipelines at k=5, per-query mechanism analysis (our CE-affinity geometry, [[geometry-vs-factuality]]), QPP-based [[regime-routing]], or significance-tested method-vs-method answer comparisons. Our weak/strong-regime split ([[weak-vs-strong-query-regime]]) is a generalization of their scattered observations (E5-mistral loses expansion gains; Housing gains smaller than BarExam). We are partially pre-empted on "expansion fixes the legal vocabulary gap" and fully pre-empted on "these benchmarks need reasoning retrievers"; we are not pre-empted on mechanism, routing, or the falsification of the hallucination story.
+
+## Links
+[[scope]], [[hyde]], [[vocabulary-gap]], [[weak-vs-strong-query-regime]], [[query-drift]], [[qpp]], [[answer-conversion-gap]], [[geometry-vs-factuality]], [[regime-routing]], [[generated-query-family]], [[legal-rag-benchmarks]], [[expert-judgment-replication]], [[icml-ai4law-2026-rejection]]
+Sibling sources: [[koblex-parser]], [[gure]], [[hyde]], [[query2doc]], [[guha2023legalbench]], [[magesh2024hallucinationfree]]
+
+## Raw source
+- references/zheng-cslaw.pdf (arXiv:2505.03970v1; ACM DOI 10.1145/3709025.3712219, CS&Law '25, Munich)
