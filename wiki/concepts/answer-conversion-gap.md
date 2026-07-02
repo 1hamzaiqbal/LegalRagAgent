@@ -33,6 +33,12 @@ Nobody has a model of *when* exposure converts. Our margin machinery gives a
 place to start: exposure converts when the gold's rank/margin in the final
 context clears the reader's distractor tolerance — measurable per-query.
 
+**Quantified (2026-07-02, [[judge-answer-conversion]]).** On BarExamQA/70B,
+paired 4-arm replay: gold-present evidence converts (+2.4pp over llm_only on
+those rows) but gold-absent evidence costs −3.8pp, giving a **break-even
+Hit@5 ≈ 61%** — ~3× the current pool ceiling. The gap is not mystical: it is
+a precision threshold, and on parametric-strong MC tasks it is high.
+
 **Candidate attacks** (for [[direction-2026-07]]):
 1. Model conversion per-query: P(answer flips correct | gold enters context at
    rank r, margin m, reader size). We have every log needed (signed rows with

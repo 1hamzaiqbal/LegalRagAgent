@@ -32,6 +32,17 @@ magesh2024hallucinationfree). Discovery sweeps returned ~24 ranked candidates
 LegalAgentBench, Chain-of-Logic, Makri'08 lawyer info-seeking, Aletras'16 …)
 — unpulled ones are TODO markers.
 
+## [2026-07-02] experiment | Answer-conversion wall measured: break-even ≈ 61% Hit@5
+Four paired arms on the 399 judge-test questions (groq-llama70b, strict
+harness replay, ~1,600 calls): llm_only 77.7% ≥ CE-evidence 76.7% ≥
+SCOPE-evidence 76.2% ≥ judge-evidence 75.2% (all ns) — the 5.4× exposure fix
+does not convert on BarExamQA/70B. Decomposition: gold-present evidence
++2.4pp, gold-absent −3.8pp → break-even Hit@5 ≈ 61% vs pool ceiling 22.8%.
+Post-hoc score-gated evidence: +0.75pp best case (ns). Constraint moves
+up-stack to pool recall + evidence-conditional answering; Housing answer run
+is the decisive next arm. Also: wiki lint (57 pages, 0 orphans, 0 broken
+links); EVAL_QA_CSV harness override added. Page: [[judge-answer-conversion]].
+
 ## [2026-07-02] experiment | SciDocs judge: idea transfers, blind training doesn't
 Prediction 3 revised: zero-shot judge beats CE cross-domain (SciDocs +8.5pp,
 p=3.3e-05 — CE is the weakest link in all 3 domains tested), but training on

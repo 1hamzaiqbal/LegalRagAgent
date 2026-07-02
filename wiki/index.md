@@ -83,6 +83,7 @@ help retrieval and when retrieval helps answers*** — the mechanism
 - [[leakage-audit-barexam]] — **Yoon leakage account rejected, both regimes**: weak-legal lift survives unmatched (+6pp, p=1e-20); BEIR matched rates ~1%, zero leakage-gated help events (2026-07-02)
 - [[judge-pilot-housing]] — **strong-regime judge replication**: 55.0% vs CE 38.2% (p=2.5e-23), 96.5% conversion — regime routing superseded (2026-07-02)
 - [[judge-pilot-scidocs]] — cross-domain: zero-shot judge > CE (+8.5pp p=3e-05) but citation-proxy label training *hurts* (−14pp) — label semantics decide (2026-07-02)
+- [[judge-answer-conversion]] — **the wall, decomposed**: gold-present +2.4pp / gold-absent −3.8pp → break-even Hit@5 ≈ 61%; 5.4× exposure ≠ answers on BarExam/70B (2026-07-02)
 
 ## Reviews
 - [[icml-ai4law-2026-rejection]] — inventory, assessment, resubmission checklist, meta-lessons

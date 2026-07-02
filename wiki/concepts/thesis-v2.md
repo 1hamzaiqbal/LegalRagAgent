@@ -68,9 +68,17 @@ trained>prompted (p=1e-04) — [[judge-pilot-v0-results]].
   than prompting* ([[judge-pilot-scidocs]]). This sharpens the
   [[expert-judgment-replication]] motivation: label quality is the scarce
   resource, exactly TM's thesis.
-- Still pending: **answer conversion** (judge-top5 answer run — the wall
-  P3 must eventually cross); graded-qrels BEIR domain (FiQA/NFCorpus) to
-  separate label-noise from domain-shift.
+- **Answer-conversion measured (2026-07-02, [[judge-answer-conversion]])**:
+  on BarExamQA/70B the 5.4× exposure fix does NOT convert (75.2% vs llm_only
+  77.7%, ns) — but the decomposition yields the model: gold-present +2.4pp,
+  gold-absent −3.8pp, **break-even Hit@5 ≈ 61%** vs pool ceiling 22.8%. P3
+  amended: *selection binds for retrieval; answering binds on evidence
+  precision, with a computable break-even.* The constraint moves up-stack to
+  pool recall + evidence-conditional answering. Decisive next arm: Housing
+  answer run (gold ceiling +5pp there; judge conversion 96.5% ≫ break-even
+  candidates).
+- Still pending: graded-qrels BEIR domain (FiQA/NFCorpus) to separate
+  label-noise from domain-shift; Housing judge-evidence answer run.
 
 ## Falsifiable predictions (pre-stated)
 1. Leakage audit: unmatched-generation lift on BarExamQA stays > 0 (geometry
