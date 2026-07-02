@@ -227,3 +227,17 @@ Codex lane building scripts/opd/ scaffold (vLLM teacher client, reverse-KL
 OPD loss + CPU tests, train skeleton, A100 smoke test). Job 93770 also
 prints nvidia-smi to settle whether a100-sxm4 = 80GB (if so, one a100s node
 = 2-H100-class TP capacity for free).
+
+## [2026-07-02] opd-scaffold-landed + smoke-launched | scripts/opd complete, A100 smoke on EIT
+Codex lane delivered scripts/opd/ (teacher_client vLLM prompt_logprobs
+scoring, opd_loss reverse-KL policy-gradient w/ clamp + ratio-clip +
+kd_forward_loss closed-teacher fallback, opd_train LoRA skeleton w/ --mode
+kd, smoke_test.sh, CPU unit tests). Review pass: loss math verified correct;
+patched the one real gap (vllm serve defaulted to 0.9 gpu-memory-utilization
+— would starve the co-located student; now OPD_TEACHER_GPU_FRAC=0.55).
+Wrote scripts/opd/skills/allocation.md (the E2/E3 skill file, distilling the
+three-dial rules with measured numbers). CPU tests re-verified locally (all
+PASS). End-to-end smoke (Qwen3-8B teacher -> Qwen3-1.7B student, 3 OPD
+steps) submitted as EIT job 93773 in a dedicated opd_lane venv (vllm pins
+its own torch; kept away from judge_lane). Rung-2 job 93770 running in
+parallel.
