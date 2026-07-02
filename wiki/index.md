@@ -83,6 +83,7 @@ help retrieval and when retrieval helps answers*** — the mechanism
 - [[judge-pilot-v0-results]] — **Tinker-trained judge un-buries the pool**: 20.6% vs CE 3.8% Hit@5, trained > prompted p=1e-04 (2026-07-02)
 - [[leakage-audit-barexam]] — **Yoon leakage account rejected, both regimes**: weak-legal lift survives unmatched (+6pp, p=1e-20); BEIR matched rates ~1%, zero leakage-gated help events (2026-07-02)
 - [[judge-pilot-housing]] — **strong-regime judge replication**: 55.0% vs CE 38.2% (p=2.5e-23), 96.5% conversion — regime routing superseded (2026-07-02)
+- [[judge-mixed-legal]] — **general legal judge**: mixed-label training holds both domains (BarExam 22.1%, Housing 55.4%), zero specialization tax, $0 EIT lane (2026-07-02)
 - [[judge-pilot-scidocs]] — cross-domain: zero-shot judge > CE (+8.5pp p=3e-05) but citation-proxy label training *hurts* (−14pp) — label semantics decide (2026-07-02)
 - [[judge-pilot-fiqa]] — label-semantics resolved: zero-shot judge > CE in all 4 domains; training = label quality × headroom (2026-07-02)
 - [[medqa-fulln-matrix]] — **q200 headline retired** (+5.5pp didn't replicate); raw-RAG hurts, SCOPE repairs (+3.0pp p=0.002); dial-3 law 5-for-5 (2026-07-02)
