@@ -65,7 +65,8 @@ def cmd_train(args):
     model.train()
     opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=1e-4)
     rng = random.Random(0)
-    micro, accum = 8, 16   # effective batch 128
+    micro = int(os.getenv("JUDGE_MICRO", "8"))
+    accum = int(os.getenv("JUDGE_ACCUM", "16"))   # effective batch = micro*accum
     step = 0
     t0 = time.time()
     for epoch in range(1 if args.smoke else 3):
