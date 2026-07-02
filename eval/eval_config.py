@@ -193,7 +193,10 @@ def load_questions(config: EvalConfig) -> pd.DataFrame:
 def _load_housing_questions(config: EvalConfig) -> pd.DataFrame:
     """Load HousingQA questions (Yes/No format)."""
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    qa = pd.read_csv(os.path.join(base, "datasets/housing_qa/questions.csv"))
+    _qa_override = os.getenv("EVAL_QA_CSV", "").strip()
+    qa = pd.read_csv(_qa_override or os.path.join(base, "datasets/housing_qa/questions.csv"))
+    if _qa_override:
+        print(f"[load_questions] EVAL_QA_CSV override: {_qa_override} ({len(qa)} rows)")
 
     if config.questions == "full":
         return _apply_question_exclusions(qa.reset_index(drop=True), config)

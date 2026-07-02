@@ -70,9 +70,26 @@ SciFact/NFCorpus/SciDocs × {HyDE, SCOPE}, canonical Gemma generation caches,
   SciDocs/NFCorpus vs HyDE's −23.5/−35.9pp, p≤1e-29) is likewise orthogonal
   to leakage.
 
+## Housing replication (strong-legal regime, 1,200-question subsample)
+
+Statefilter 3SCOPE generations, dense-stage per-sample retrieval
+([report](../../docs/generated/leakage_audit_housing_2026-07-02.md)): matched
+rate 5–7%; matched lift +8.9 to +9.6pp; **unmatched lift +0.8 to +1.0pp**
+over the 35.3% raw base — essentially neutral, matching the small overall
+Housing expansion delta.
+
+**The three-regime tryptic** (the paper figure): unmatched-generation lift is
+**+6pp on weak-legal** (large gap to close), **+0.9pp on strong-legal**
+(little to close), **negative on strong-scientific** (drift) — while matched
+rates stay 1–15% everywhere, far too small to carry the regime differences.
+The regime law reproduces *inside* the leakage decomposition: what generated
+queries do is geometric gap-closing, and leakage is a minor amplifier at
+every point on the axis.
+
 **Combined statement for the paper**: knowledge leakage cannot explain
-generative-expansion behavior in either regime — weak-query legal lift
-survives at +6pp on the 85% unmatched stratum (p=1e-20), and on strong-query
+generative-expansion behavior in any regime tested — weak-query legal lift
+survives at +6pp on the 85% unmatched stratum (p=1e-20), strong-legal
+unmatched behavior is neutral as geometry predicts, and on strong-query
 scientific corpora matched generations are ~1% of rows with zero
 leakage-gated help events. Yoon et al.'s fact-verification finding does not
 transfer to specialist-corpus retrieval.
