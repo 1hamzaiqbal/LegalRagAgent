@@ -59,9 +59,18 @@ trained>prompted (p=1e-04) — [[judge-pilot-v0-results]].
   judge 55.0% vs CE-pool 38.2% (p=2.5e-23), 96.5% gold-in-pool conversion —
   P3 holds on both regimes; [[regime-routing]] superseded by "always pool +
   trained judge" ([[judge-pilot-housing]]).
-- Still pending: **cross-domain replication** (same recipe on a BEIR corpus —
-  prediction 3); **answer conversion** (judge-top5 answer run — the wall
-  P3 must eventually cross).
+- **Prediction 3 REVISED (2026-07-02)**: the selector-bottleneck half
+  transfers cross-domain (zero-shot judge > CE in all 3 domains: +11.5/+14.6/
+  +8.5pp), but **label-training helps only where labels encode judged
+  relevance** — on SciDocs' citation-proxy gold, training *hurt* (−14pp vs
+  zero-shot, p=6.5e-06). P3 restated: *after pooling, selection binds, and a
+  judge trained on quality labels fixes it; proxy labels can make it worse
+  than prompting* ([[judge-pilot-scidocs]]). This sharpens the
+  [[expert-judgment-replication]] motivation: label quality is the scarce
+  resource, exactly TM's thesis.
+- Still pending: **answer conversion** (judge-top5 answer run — the wall
+  P3 must eventually cross); graded-qrels BEIR domain (FiQA/NFCorpus) to
+  separate label-noise from domain-shift.
 
 ## Falsifiable predictions (pre-stated)
 1. Leakage audit: unmatched-generation lift on BarExamQA stays > 0 (geometry

@@ -32,6 +32,14 @@ magesh2024hallucinationfree). Discovery sweeps returned ~24 ranked candidates
 LegalAgentBench, Chain-of-Logic, Makri'08 lawyer info-seeking, Aletras'16 …)
 — unpulled ones are TODO markers.
 
+## [2026-07-02] experiment | SciDocs judge: idea transfers, blind training doesn't
+Prediction 3 revised: zero-shot judge beats CE cross-domain (SciDocs +8.5pp,
+p=3.3e-05 — CE is the weakest link in all 3 domains tested), but training on
+SciDocs' citation-proxy gold HURTS (−14pp vs zero-shot, p=6.5e-06). New
+statement: label semantics, not domain, decide whether judgment-training
+pays — TM-consistent, and a caution against fine-tuning rerankers on
+behavioral proxies. Page: [[judge-pilot-scidocs]].
+
 ## [2026-07-02] experiment | Housing judge (strong regime): routing superseded
 Same recipe, new regime: group-level splits, 5,000 pairs, 13-min Tinker LoRA.
 On 500 held-out state-filtered pools (57.0% ceiling): trained judge Hit@5

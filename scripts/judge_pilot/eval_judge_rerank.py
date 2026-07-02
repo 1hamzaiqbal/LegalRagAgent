@@ -129,6 +129,13 @@ def main():
             "Statute passage: {passage}\n\n"
             "Does this passage provide the controlling statutory basis to answer this "
             "question? Answer Yes or No.\nAnswer:")
+    elif args.prefix.startswith("scidocs"):
+        PROMPT_TMPL = (
+            "You are a scientific retrieval judge. Decide whether the document is "
+            "relevant to the query (a paper title whose related work is sought).\n\n"
+            "Query: {question}\n\n"
+            "Document: {passage}\n\n"
+            "Is this document relevant to the query? Answer Yes or No.\nAnswer:")
 
     pools = [json.loads(l) for l in open(f"{DATA}/{args.prefix}pools_test.jsonl")]
     if args.max_pools:
