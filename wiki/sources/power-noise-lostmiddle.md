@@ -47,7 +47,7 @@ These are reader/context-side papers on general-domain Wikipedia QA with *contro
 - [[vocabulary-gap]], [[qpp]] — the retrieval-side story these papers deliberately do not cover
 - [[geometry-vs-factuality]] — our mechanism layer beneath the conversion gap
 - [[legal-rag-benchmarks]], [[icml-ai4law-2026-rejection]] — where C5/C9/C10 originated
-- Sibling sources: [[parser-koblex]] (C6 prior art), [[gure]] (C8 legal-IR rewriting), if/when ingested
+- Sibling sources: [[koblex-parser]] (C6 prior art), [[gure]] (C8 legal-IR rewriting)
 
 # Raw source
 
