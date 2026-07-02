@@ -113,6 +113,15 @@ trained>prompted (p=1e-04) — [[judge-pilot-v0-results]].
   as the open gap; MUGI's multi-pseudo-doc gains vs our 3SCOPE null must be
   positioned by regime.
 
+## Benchmark weighting (user steer, 2026-07-02)
+HousingQA is a **supporting** dataset, not a headline: acknowledged-noisy
+gold, answer-bound Y/N structure, mechanically-split questions
+([[zheng-cslaw]] caveats; advisor preference on record). Lead evidence for
+the conversion-pays regime should be **MedQA-USMLE** (full-N 4-arm matrix
+running 2026-07-02; q200 probe already showed the only significant SCOPE
+answer win over llm_only: +5.5pp p=0.019) plus BarExamQA/Legal-Link-EU/BEIR
+for the other dials. Housing results stay as replications.
+
 ## What this thesis is NOT
 - Not "SCOPE beats HyDE" (dead — C7).
 - Not "expansion is good" (it is net-negative ungated on strong queries).
