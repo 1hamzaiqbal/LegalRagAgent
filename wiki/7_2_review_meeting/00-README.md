@@ -29,7 +29,7 @@ AI4Law rejection and the generalization pivot.
 ## Conventions used in this folder
 
 - YAML frontmatter, `type: meeting-doc`, created/date `2026-07-02`.
-- `[[wikilinks]]` point at canonical wiki pages (Obsidian resolves across the vault).
+- Double-bracket wikilinks point at canonical wiki pages (Obsidian resolves across the vault).
 - Every number carries a source (wiki result page, `docs/generated/*`, or a
   `logs/*.jsonl` detail log). No unsourced numbers.
 - Figures live in `assets/`, prefixed by owning doc number (`05_*.png`, …).
