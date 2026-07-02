@@ -89,6 +89,7 @@ help retrieval and when retrieval helps answers*** — the mechanism
 - [[judge-pilot-housing]] — **strong-regime judge replication**: 55.0% vs CE 38.2% (p=2.5e-23), 96.5% conversion — regime routing superseded (2026-07-02)
 - [[judge-mixed-legal]] — **general legal judge**: mixed-label training holds both domains (BarExam 22.1%, Housing 55.4%), zero specialization tax, $0 EIT lane (2026-07-02)
 - [[offline-bandit-v0]] — bridge rung 1: cheap per-query retrieval allocation fails in all 5 cells; oracle headroom 8-24pp unreachable from features (2026-07-02)
+- [[alloc-internalization-rung2]] — E1: 9B internalizes regime-level allocation from outcome labels (trained >> zero-shot); no per-question edge; frontier-positive-ns under cost pressure (2026-07-02)
 - [[judge-pilot-scidocs]] — cross-domain: zero-shot judge > CE (+8.5pp p=3e-05) but citation-proxy label training *hurts* (−14pp) — label semantics decide (2026-07-02)
 - [[judge-pilot-fiqa]] — label-semantics resolved: zero-shot judge > CE in all 4 domains; training = label quality × headroom (2026-07-02)
 - [[medqa-fulln-matrix]] — **q200 headline retired** (+5.5pp didn't replicate); raw-RAG hurts, SCOPE repairs (+3.0pp p=0.002); dial-3 law 5-for-5 (2026-07-02)

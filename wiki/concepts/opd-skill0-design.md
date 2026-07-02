@@ -26,7 +26,7 @@ isolates one ingredient.
 | Rung | Question | Method | Compute | Status |
 |---|---|---|---|---|
 | **E0** | Is there per-question allocation headroom, and can cheap externals capture it? | Offline bandit replay | Mac, $0 | **DONE — negative/instructive**: headroom 8–24pp, unreachable from features ([[offline-bandit-v0]]) |
-| **E1** | Can a 9B *internalize* the allocation predictor from sparse outcome labels? | (question, reader, strategy)→Yes/No LoRA (judge recipe), argmax(score−λ·cost) policy | 1×A100, $0 | **LAUNCHED** — EIT job 93770, 6,136 train pairs, rung-1-identical splits |
+| **E1** | Can a 9B *internalize* the allocation predictor from sparse outcome labels? | (question, reader, strategy)→Yes/No LoRA (judge recipe), argmax(score−λ·cost) policy | 1×A100, $0 | **DONE — mixed** ([[alloc-internalization-rung2]]): regime-level allocation learned (trained ≫ zero-shot), no per-question edge at λ=0, cost-aware frontier points positive-ns; diagnostic failure: never learns "don't retrieve for strong readers" — the exact rule in the E2/E3 skill file |
 | **E2** | Is there a *skill gap* to distill — does a big model with the skill file in context allocate/search better than without? | Inference-only A/B: teacher ± skill markdown on the same test questions | API or 1×A100/H100 inference | designed, not launched |
 | **E3** | Does **dense teacher signal (OPD)** beat sparse outcome labels (E1) for internalization? | Student samples on-policy; teacher (with skill context) scores per-token logprobs; reverse-KL update | 1–2×H100 | infra scaffolding now (`scripts/opd/`) |
 | **E4** | Does it hold for **multi-turn** search (retrieve→read→re-query→stop) with curriculum withdrawal? | SKILL0-style ICRL ± OPD hybrid on a Search-R1-style env over our corpora | 2×H100 | design only |
@@ -56,6 +56,11 @@ its own GPU** — hence "1 or even 2 H100s simultaneously" maps to:
 1×H100 = 32B-teacher track; 2×H100 = 32B teacher + dedicated student GPU
 (fastest iteration), or 235B/70B teacher TP=2 with student squeezed or on
 an A100 alongside.
+
+**A100 VRAM settled (job 93770 nvidia-smi): a100-sxm4 = 80GB.** One a100s
+node (4×80GB) exceeds 2-H100 capacity — every 2-GPU teacher config below
+(70B bf16 TP=2, 235B-A22B-FP8 TP=2) is runnable for free today with
+`--gpus a100-sxm4:2`. H100s are a speed upgrade, not a capability gate.
 
 Note on EIT reality: `general-gpu` currently shows one h100 node
 (`--gpus h100:1`) and 3 healthy a100-sxm4 nodes × 4 GPUs. If the A100-SXM4s

@@ -241,3 +241,17 @@ PASS). End-to-end smoke (Qwen3-8B teacher -> Qwen3-1.7B student, 3 OPD
 steps) submitted as EIT job 93773 in a dedicated opd_lane venv (vllm pins
 its own torch; kept away from judge_lane). Rung-2 job 93770 running in
 parallel.
+
+## [2026-07-02] rung2-results | Regime-level allocation internalizes; per-question edge absent; A100s are 80GB
+EIT job 93770 complete (~2h, $0). Trained 9B allocation policy: ties/trails
+best fixed arm at lam=0 in all 5 cells (consistent with E0) but decisively
+beats the zero-shot prompted 9B where allocation matters (Housing/70B
++6.0pp, BarExam/8B +4.5pp) with sensible per-cell action mixes — sparse
+outcome labels teach the regime map. Diagnostic failure: never learns
+"evidence hurts strong readers" (llm_only picked 5/200 on BarExam/70B) —
+exactly Rule 1 of the E2/E3 skill file, now a falsifiable distillation
+target. Cost-aware mixtures trace frontier-dominating points (Housing/8B
+69.2% @1.59ktok vs best fixed 66.4% @2.65k; ns, post-hoc lam). Wiki page
+results/alloc-internalization-rung2; design-page E1 row updated. ALSO:
+nvidia-smi settles a100-sxm4 = 80GB -> one a100s node (4x80GB) covers every
+2-H100 teacher config for free; H100 = speed, not capability.
