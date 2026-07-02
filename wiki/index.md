@@ -24,6 +24,7 @@ help retrieval and when retrieval helps answers*** — the mechanism
 - [[icml-ai4law-2026-rejection]] — criticism inventory C1–C12 + assessment (the pivot document)
 
 ## Concepts
+- [[thesis-v2]] — **the working thesis**: generation is a low-margin instrument; answer-conditioning dampens drift; after pooling, selection binds — with pre-stated falsifiable predictions
 - [[weak-vs-strong-query-regime]] — the regime law: expansion helps ∝ query–corpus gap
 - [[geometry-vs-factuality]] — mechanism + falsification: failures are geometric, not hallucinated
 - [[vocabulary-gap]] — the motivating mismatch, and why it's geometric not lexical
@@ -65,6 +66,9 @@ help retrieval and when retrieval helps answers*** — the mechanism
 - [[jiang2023syllogism]] — legal syllogism prompting (legal-reasoning tradition, C1)
 - [[legal-rag-benchmarks-src]] — LegalBench-RAG + Legal RAG Bench pair
 - [[thinking-machines-expert-judgment]] — expert-judgment replication pattern (direction inspiration)
+- [[qe-survey-2025]] — the organizing QE taxonomy; regime-gating stated as best practice; QPP named as the open gap
+- [[reuter2025sac]] — Document-Level Retrieval Mismatch + summary-augmented chunking (corpus-side dual of our lane)
+- [[lexpath2026]] — IRAC-guided expansion beats HyDE on Chinese legal; reproduces our answer-conversion gap
 
 ## Results (dated, evidence-linked)
 - [[affinity-margin-mechanism]] — the pre-registered legal mechanism result (ρ≈0.44)
