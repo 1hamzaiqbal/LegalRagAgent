@@ -22,7 +22,7 @@ Definitions up front:
   retrieved evidence. Source: [[scope]], [[scope-paper-2026]].
 - **Snap** = the private draft answer; **HyRE** = the generated retrieval-passage
   path used as `snap_hyre` or legacy `rag_snap_hyde_2call`. Source: [[scope]],
-  `CLAUDE.md`.
+  [CLAUDE.md](../../CLAUDE.md).
 - **CE** = the cross-encoder reranker, mainly
   `cross-encoder/ms-marco-MiniLM-L-6-v2`; CE affinity is the score between a
   query-like text and a passage. Source: [[scope]], [[affinity-margin-mechanism]].

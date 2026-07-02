@@ -14,7 +14,7 @@ Hub for what exists, what we use, and what the legal-NLP community expects
 [[legal-rag-benchmarks-src]] (LegalBench-RAG + Legal RAG Bench pages), and
 discovery sweep A.
 
-**We currently use** (comprehensive matrix, `docs/signoff_log.md`):
+**We currently use** (comprehensive matrix, [docs/signoff_log.md](../../docs/signoff_log.md)):
 BarExamQA (1195 MC, gold passages), HousingQA (6853 y/n, statutes +
 jurisdiction filter), Legal-Link-EU (1127, EUR-Lex anchored), MASLegalBench
 (303, no gold ids); historical: CaseHOLD, LegalBench-SCALR; widened:

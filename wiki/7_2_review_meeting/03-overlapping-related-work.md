@@ -9,10 +9,10 @@ date: 2026-07-02
 # Overlapping related work dossier
 
 Grounding note: this page is based only on the official reviews in
-`official_paper_and_review_icml_ai_4_law/feedback.md`, the extracted submitted
+[official_paper_and_review_icml_ai_4_law/feedback.md](../../official_paper_and_review_icml_ai_4_law/feedback.md), the extracted submitted
 PDF text from `official_paper_and_review_icml_ai_4_law/97_SCOPE_When_Generated_Legal_.pdf`,
 the existing `wiki/sources/` pages, and
-`paper/submission/RELATED_WORK_GROUNDING.md`. I did not download new PDFs for
+[paper/submission/RELATED_WORK_GROUNDING.md](../../paper/submission/RELATED_WORK_GROUNDING.md). I did not download new PDFs for
 this pass. "Submission cited?" means I checked the submitted PDF text; absence
 is reported as "not found in extracted PDF text" rather than as a bibliographic
 proof.

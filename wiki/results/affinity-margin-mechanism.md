@@ -34,7 +34,7 @@ mechanism claim (grounding doc's "recommended anchor"), then replicated on
 BEIR ([[beir-phase1]]) and across retrievers ([[three-retriever-generality]]),
 and got its falsification arm hardened by the credibility battery.
 Perplexity/OOV had already been ruled out
-(`docs/generated/perplexity_axis_2026-05-25.md`: per-query corr ≈ 0; only a
+([docs/generated/perplexity_axis_2026-05-25.md](../../docs/generated/perplexity_axis_2026-05-25.md): per-query corr ≈ 0; only a
 weak dataset-level regime separator — used once for the MedQA pre-screen).
 
 ## Links

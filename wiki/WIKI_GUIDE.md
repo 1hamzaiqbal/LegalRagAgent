@@ -16,7 +16,7 @@ the graph.
 
 The wiki does **not** duplicate the repo's own docs — it *links* them. Eval harness
 lives in `eval/`; run ledger in `logs/experiments.jsonl`; citation gate in
-`docs/signoff_log.md`; generated analyses in `docs/generated/`. Wiki pages
+[docs/signoff_log.md](../docs/signoff_log.md); generated analyses in `docs/generated/`. Wiki pages
 cross-reference all of these (relative links work from `wiki/`, e.g.
 `[signoff](../docs/signoff_log.md)`).
 
@@ -71,7 +71,7 @@ status: stub | draft | maintained
 
 ## Skeptic's discipline (carries over from the repo)
 - **Verify before trusting** — especially negatives and "we already addressed X"
-  claims. Check numbers against detail logs / `docs/signoff_log.md`; flag
+  claims. Check numbers against detail logs / [docs/signoff_log.md](../docs/signoff_log.md); flag
   inference vs stated fact.
 - **Traceability** — every result page links its evidence paths.
 - **No silent staleness** — when a new source contradicts a page, note the

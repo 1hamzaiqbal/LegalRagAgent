@@ -33,8 +33,8 @@ Computed statistics use local files under `datasets/` and
 HousingQA statutes were not loaded in full; the local statute corpus is recorded
 as `1,837,403` documents in the signed completion audit, and this EDA samples
 the already hydrated `500` judge-test rows instead
-[source: `docs/signoff_log.md`;
-`docs/snap_hyre_completion_audit_2026-05-12.md`;
+[source: [docs/signoff_log.md](../../docs/signoff_log.md);
+[docs/snap_hyre_completion_audit_2026-05-12.md](../../docs/snap_hyre_completion_audit_2026-05-12.md);
 `scripts/judge_pilot/data/housing_qa_test500.csv`;
 `scripts/judge_pilot/data/housing_needed_texts.jsonl`].
 
@@ -48,8 +48,8 @@ For BarExamQA, the local parser used `datasets/barexam_qa/qa/qa.csv` for
 question text and the signed completion audit for the `856,835` passage corpus
 count
 [source: `datasets/barexam_qa/qa/qa.csv`;
-`docs/signoff_log.md`;
-`docs/snap_hyre_completion_audit_2026-05-12.md`].
+[docs/signoff_log.md](../../docs/signoff_log.md);
+[docs/snap_hyre_completion_audit_2026-05-12.md](../../docs/snap_hyre_completion_audit_2026-05-12.md)].
 For BEIR, the on-disk subsets are FiQA, NFCorpus, SciFact, and SciDocs under
 `datasets/beir/`.
 
@@ -66,10 +66,10 @@ dataset table below.
 Figure source note:
 the dashed BarExam reference line marks the previously recorded Zheng CSLaw
 weak-query overlap around `0.07`
-[source: `wiki/concepts/vocabulary-gap.md`].
+[source: [[vocabulary-gap]]].
 The local BarExamQA TF-IDF overlap mean is `0.0516`
 [source: `datasets/barexam_qa/qa/qa.csv`;
-`docs/snap_hyre_completion_audit_2026-05-12.md`].
+[docs/snap_hyre_completion_audit_2026-05-12.md](../../docs/snap_hyre_completion_audit_2026-05-12.md)].
 Metric caveat: the figure plots token *Jaccard* while the roster tables report
 TF-IDF *cosine*; the two order extremely short keyword-query datasets
 differently (BEIR-NFCorpus queries average `3.4` tokens, so they score
@@ -83,27 +83,27 @@ Figure source note:
 llm-only anchors are taken from the conversion result pages:
 BarExamQA 70B `77.7%`, HousingQA 70B `54.2%`, MedQA 70B `85.6%`,
 BarExamQA 8B `54.9%`, and HousingQA 8B `62.8%`
-[source: `wiki/results/judge-answer-conversion.md`;
-`wiki/results/medqa-fulln-matrix.md`].
+[source: [[judge-answer-conversion]];
+[[medqa-fulln-matrix]]].
 
 ## Headline roster
 
 | Dataset | Role | QA format | N questions | Corpus size | Gold-label nature | Local EDA | Conversion anchors | Sources |
 |---|---:|---|---:|---:|---|---|---|---|
-| BarExamQA | Headline weak-query endpoint. | Bar-style multiple choice legal QA with long fact patterns and gold legal passages. | `1,195` | `856,835` passages | Human legal-answer labels plus curated gold passages; leakage audit keeps unmatched claims separate. | Question length mean `142.3`, median `130`, p25 `84`, p75 `190`; TF-IDF query-gold cosine mean `0.0516`, median `0.0395`, p25 `0.0172`, p75 `0.0715`. | 70B llm-only `77.7%`; 8B llm-only `54.9%`. | `datasets/barexam_qa/qa/qa.csv`; `docs/signoff_log.md`; `docs/snap_hyre_completion_audit_2026-05-12.md`; `wiki/results/leakage-audit-barexam.md`; `wiki/results/judge-answer-conversion.md`. |
-| HousingQA | Supporting contrast, deliberately de-emphasized as a headline. | Housing-law yes/no or state-specific answer-bound QA. | `6,853` | `1,837,403` statutes/passages | Noisy gold and answer-bound Y/N labels; useful for selector/conversion contrast but not the clean face of the paper. | Question length mean `21.0`, median `18`, p25 `12`, p75 `23`; hydrated judge-test overlap mean `0.0966`, median `0.0936`, p25 `0.0495`, p75 `0.1371` on `500` rows. | 70B llm-only `54.2%`; 8B llm-only `62.8%`. | `datasets/housing_qa/questions.csv`; `docs/signoff_log.md`; `docs/snap_hyre_completion_audit_2026-05-12.md`; `scripts/judge_pilot/data/housing_qa_test500.csv`; `scripts/judge_pilot/data/housing_needed_texts.jsonl`; `wiki/results/judge-answer-conversion.md`; `wiki/results/judge-pilot-housing.md`. |
-| MedQA-USMLE | Headline conversion caution. | Medical multiple-choice QA. | `1,273` | `125,847` textbook rows | Human QA answer labels; no local gold passage IDs in this EDA, so no query-gold overlap computed. | Question length mean `127.6`, median `122`, p25 `90`, p75 `158`; overlap not computed locally. | 70B llm-only `85.6%`. | `datasets/medqa_usmle/questions.csv`; `datasets/medqa_usmle/textbooks.csv`; `wiki/results/medqa-fulln-matrix.md`. |
-| BEIR-FiQA | Supporting strong-query/selector probe. | Financial QA retrieval queries. | `648` | `57,638` docs | BEIR qrels; semantic relevance labels are comparatively friendly to zero-shot judges. | Question length mean `11.2`, median `11`, p25 `8`, p75 `14`; overlap mean `0.2225`, median `0.2146`, p25 `0.1321`, p75 `0.2962`. | Not measured in the current answer-conversion matrix. | `datasets/beir/fiqa/questions.csv`; `datasets/beir/fiqa/corpus.csv`; `datasets/beir/fiqa/qrels_test.csv`; `wiki/results/judge-pilot-fiqa.md`. |
-| BEIR-SciDocs | Supporting label-semantics warning. | Scientific-paper retrieval. | `1,000` | `25,657` docs | Citation/co-view proxy labels; important because proxy labels hurt trained semantic judging. | Question length mean `10.0`, median `10`, p25 `7`, p75 `12`; overlap mean `0.2103`, median `0.1963`, p25 `0.1239`, p75 `0.2841`. | Not measured in the current answer-conversion matrix. | `datasets/beir/scidocs/questions.csv`; `datasets/beir/scidocs/corpus.csv`; `datasets/beir/scidocs/qrels_test.csv`; `wiki/results/judge-pilot-scidocs.md`. |
+| BarExamQA | Headline weak-query endpoint. | Bar-style multiple choice legal QA with long fact patterns and gold legal passages. | `1,195` | `856,835` passages | Human legal-answer labels plus curated gold passages; leakage audit keeps unmatched claims separate. | Question length mean `142.3`, median `130`, p25 `84`, p75 `190`; TF-IDF query-gold cosine mean `0.0516`, median `0.0395`, p25 `0.0172`, p75 `0.0715`. | 70B llm-only `77.7%`; 8B llm-only `54.9%`. | `datasets/barexam_qa/qa/qa.csv`; [docs/signoff_log.md](../../docs/signoff_log.md); [docs/snap_hyre_completion_audit_2026-05-12.md](../../docs/snap_hyre_completion_audit_2026-05-12.md); [[leakage-audit-barexam]]; [[judge-answer-conversion]]. |
+| HousingQA | Supporting contrast, deliberately de-emphasized as a headline. | Housing-law yes/no or state-specific answer-bound QA. | `6,853` | `1,837,403` statutes/passages | Noisy gold and answer-bound Y/N labels; useful for selector/conversion contrast but not the clean face of the paper. | Question length mean `21.0`, median `18`, p25 `12`, p75 `23`; hydrated judge-test overlap mean `0.0966`, median `0.0936`, p25 `0.0495`, p75 `0.1371` on `500` rows. | 70B llm-only `54.2%`; 8B llm-only `62.8%`. | `datasets/housing_qa/questions.csv`; [docs/signoff_log.md](../../docs/signoff_log.md); [docs/snap_hyre_completion_audit_2026-05-12.md](../../docs/snap_hyre_completion_audit_2026-05-12.md); `scripts/judge_pilot/data/housing_qa_test500.csv`; `scripts/judge_pilot/data/housing_needed_texts.jsonl`; [[judge-answer-conversion]]; [[judge-pilot-housing]]. |
+| MedQA-USMLE | Headline conversion caution. | Medical multiple-choice QA. | `1,273` | `125,847` textbook rows | Human QA answer labels; no local gold passage IDs in this EDA, so no query-gold overlap computed. | Question length mean `127.6`, median `122`, p25 `90`, p75 `158`; overlap not computed locally. | 70B llm-only `85.6%`. | `datasets/medqa_usmle/questions.csv`; `datasets/medqa_usmle/textbooks.csv`; [[medqa-fulln-matrix]]. |
+| BEIR-FiQA | Supporting strong-query/selector probe. | Financial QA retrieval queries. | `648` | `57,638` docs | BEIR qrels; semantic relevance labels are comparatively friendly to zero-shot judges. | Question length mean `11.2`, median `11`, p25 `8`, p75 `14`; overlap mean `0.2225`, median `0.2146`, p25 `0.1321`, p75 `0.2962`. | Not measured in the current answer-conversion matrix. | `datasets/beir/fiqa/questions.csv`; `datasets/beir/fiqa/corpus.csv`; `datasets/beir/fiqa/qrels_test.csv`; [[judge-pilot-fiqa]]. |
+| BEIR-SciDocs | Supporting label-semantics warning. | Scientific-paper retrieval. | `1,000` | `25,657` docs | Citation/co-view proxy labels; important because proxy labels hurt trained semantic judging. | Question length mean `10.0`, median `10`, p25 `7`, p75 `12`; overlap mean `0.2103`, median `0.1963`, p25 `0.1239`, p75 `0.2841`. | Not measured in the current answer-conversion matrix. | `datasets/beir/scidocs/questions.csv`; `datasets/beir/scidocs/corpus.csv`; `datasets/beir/scidocs/qrels_test.csv`; [[judge-pilot-scidocs]]. |
 
 ## Historical and supporting roster
 
 | Dataset | Role | QA format | N questions | Corpus size | Gold-label nature | Local EDA | Conversion anchors | Sources |
 |---|---:|---|---:|---:|---|---|---|---|
-| CaseHOLD | Historical legal baseline. | Legal holding multiple-choice / option selection. | `3,600` test questions | `51,296` holdings | Human case-holding labels; useful historical legal baseline but superseded for the active exact-scored main matrix. | Question length mean `145.7`, median `146`, p25 `141`, p75 `151`; overlap mean `0.1503`, median `0.1396`, p25 `0.0778`, p75 `0.2074`. | Not measured in the current conversion matrix. | `datasets/casehold/test.csv`; `datasets/casehold/holdings_corpus.csv`; `docs/signoff_log.md`; `CLAUDE.md`. |
-| LegalBench-SCALR | Historical legal benchmark. | LegalBench-style statutory/case-law reasoning. | `571` qrel-aligned test questions | `1,733` corpus rows | Human benchmark labels, but historical/superseded for the active exact-scored matrix unless re-added under the current contract. | Question length mean `96.3`, median `75`, p25 `44`, p75 `136`; overlap mean `0.2107`, median `0.1960`, p25 `0.1012`, p75 `0.2947`. | Not measured in the current conversion matrix. | `datasets/legalbench_scalr/test.csv`; `datasets/legalbench_scalr/holdings_corpus.csv`; `docs/signoff_log.md`; `CLAUDE.md`. |
-| BEIR-NFCorpus | Supporting strong-query retrieval. | Biomedical/nutrition retrieval queries. | `323` | `3,633` docs | BEIR qrels. | Question length mean `3.4`, median `2`, p25 `1`, p75 `5`; overlap mean `0.1683`, median `0.1656`, p25 `0.0623`, p75 `0.2586`. | Not measured in the current conversion matrix. | `datasets/beir/nfcorpus/questions.csv`; `datasets/beir/nfcorpus/corpus.csv`; `datasets/beir/nfcorpus/qrels_test.csv`; `wiki/results/beir-phase1.md`. |
-| BEIR-SciFact | Supporting strong-query retrieval. | Scientific claim verification retrieval. | `300` | `5,183` docs | BEIR qrels over scientific abstracts. | Question length mean `13.1`, median `12`, p25 `9`, p75 `16`; overlap mean `0.2315`, median `0.2300`, p25 `0.1215`, p75 `0.3234`. | Not measured in the current conversion matrix. | `datasets/beir/scifact/questions.csv`; `datasets/beir/scifact/corpus.csv`; `datasets/beir/scifact/qrels_test.csv`; `wiki/results/beir-phase1.md`. |
+| CaseHOLD | Historical legal baseline. | Legal holding multiple-choice / option selection. | `3,600` test questions | `51,296` holdings | Human case-holding labels; useful historical legal baseline but superseded for the active exact-scored main matrix. | Question length mean `145.7`, median `146`, p25 `141`, p75 `151`; overlap mean `0.1503`, median `0.1396`, p25 `0.0778`, p75 `0.2074`. | Not measured in the current conversion matrix. | `datasets/casehold/test.csv`; `datasets/casehold/holdings_corpus.csv`; [docs/signoff_log.md](../../docs/signoff_log.md); [CLAUDE.md](../../CLAUDE.md). |
+| LegalBench-SCALR | Historical legal benchmark. | LegalBench-style statutory/case-law reasoning. | `571` qrel-aligned test questions | `1,733` corpus rows | Human benchmark labels, but historical/superseded for the active exact-scored matrix unless re-added under the current contract. | Question length mean `96.3`, median `75`, p25 `44`, p75 `136`; overlap mean `0.2107`, median `0.1960`, p25 `0.1012`, p75 `0.2947`. | Not measured in the current conversion matrix. | `datasets/legalbench_scalr/test.csv`; `datasets/legalbench_scalr/holdings_corpus.csv`; [docs/signoff_log.md](../../docs/signoff_log.md); [CLAUDE.md](../../CLAUDE.md). |
+| BEIR-NFCorpus | Supporting strong-query retrieval. | Biomedical/nutrition retrieval queries. | `323` | `3,633` docs | BEIR qrels. | Question length mean `3.4`, median `2`, p25 `1`, p75 `5`; overlap mean `0.1683`, median `0.1656`, p25 `0.0623`, p75 `0.2586`. | Not measured in the current conversion matrix. | `datasets/beir/nfcorpus/questions.csv`; `datasets/beir/nfcorpus/corpus.csv`; `datasets/beir/nfcorpus/qrels_test.csv`; [[beir-phase1]]. |
+| BEIR-SciFact | Supporting strong-query retrieval. | Scientific claim verification retrieval. | `300` | `5,183` docs | BEIR qrels over scientific abstracts. | Question length mean `13.1`, median `12`, p25 `9`, p75 `16`; overlap mean `0.2315`, median `0.2300`, p25 `0.1215`, p75 `0.3234`. | Not measured in the current conversion matrix. | `datasets/beir/scifact/questions.csv`; `datasets/beir/scifact/corpus.csv`; `datasets/beir/scifact/qrels_test.csv`; [[beir-phase1]]. |
 | MuSiQue | Supporting multi-hop QA. | Multi-hop open-domain QA with supporting paragraphs. | `2,417` | `48,315` passages | Human answer/support labels through local positive contexts. | Question length mean `18.4`, median `17`, p25 `13`, p75 `23`; overlap mean `0.2934`, median `0.2756`, p25 `0.2031`, p75 `0.3656`. | Not measured in the current conversion matrix. | `datasets/musique/questions.csv`; `datasets/musique/passages.csv`. |
 | HotpotQA-distractor | Supporting multi-hop strong-evidence contrast. | Multi-hop distractor QA with supporting facts. | `7,405` | `73,700` passages | Human supporting-fact labels in a distractor setting. | Question length mean `16.0`, median `15`, p25 `12`, p75 `19`; overlap mean `0.4209`, median `0.4153`, p25 `0.3292`, p75 `0.5024`. | Not measured in the current conversion matrix. | `datasets/hotpotqa_distractor/questions.csv`; `datasets/hotpotqa_distractor/passages.csv`. |
 | MLEB-SCALR | Supporting / possible future legal generalization. | Legal reasoning retrieval/QA variant. | `120` qrels-covered queries out of `185` local queries | `523` corpus rows | Local qrels; legal but smaller and less central than BarExamQA. | Question length mean `88.3`, median `64`, p25 `40`, p75 `118.8`; overlap mean `0.2049`, median `0.1929`, p25 `0.0853`, p75 `0.3037`. | Not measured in the current conversion matrix. | `datasets/mleb_scalr/queries.csv`; `datasets/mleb_scalr/corpus.csv`; `datasets/mleb_scalr/qrels.csv`. |
@@ -117,21 +117,21 @@ The question text is long and fact-pattern-heavy, while the gold evidence is
 formal legal authority; the local TF-IDF overlap mean `0.0516` is below the
 Zheng CSLaw weak-query reference around `0.07`
 [source: `datasets/barexam_qa/qa/qa.csv`;
-`wiki/concepts/vocabulary-gap.md`;
-`docs/snap_hyre_completion_audit_2026-05-12.md`].
+[[vocabulary-gap]];
+[docs/snap_hyre_completion_audit_2026-05-12.md](../../docs/snap_hyre_completion_audit_2026-05-12.md)].
 
 This dataset measures all three dials:
 expansion margin through the affinity mechanism result,
 pool confusability through the judge pilot,
 and conversion through the reader-size matrix
-[source: `wiki/results/affinity-margin-mechanism.md`;
-`wiki/results/judge-pilot-v0-results.md`;
-`wiki/results/judge-answer-conversion.md`].
+[source: [[affinity-margin-mechanism]];
+[[judge-pilot-v0-results]];
+[[judge-answer-conversion]]].
 
 The caution is that 70B already answers many questions from parametric memory:
 llm-only is `77.7%`, so retrieval must be much better than the current pool
 to help answer accuracy reliably
-[source: `wiki/results/judge-answer-conversion.md`].
+[source: [[judge-answer-conversion]]].
 
 ### HousingQA
 
@@ -139,7 +139,7 @@ HousingQA is useful but should be deliberately de-emphasized.
 It creates a strong selector/conversion contrast, but its gold signal is noisy,
 state filtering matters, and the answer format is often bounded by yes/no
 structure rather than open-ended evidence use
-[source: `wiki/results/judge-pilot-housing.md`;
+[source: [[judge-pilot-housing]];
 `scripts/judge_pilot/build_judge_dataset_housing.py`].
 
 Its local question length mean is `21.0`, far shorter than BarExamQA mean
@@ -152,10 +152,10 @@ Its local question length mean is `21.0`, far shorter than BarExamQA mean
 HousingQA is still valuable for the selection dial:
 the trained judge reaches `55.0%` Hit@5 against a `57.0%` ceiling on `500`
 pools
-[source: `wiki/results/judge-pilot-housing.md`].
+[source: [[judge-pilot-housing]]].
 It is also valuable for conversion:
 70B llm-only `54.2%` rises to judge-evidence `65.6%`
-[source: `wiki/results/judge-answer-conversion.md`].
+[source: [[judge-answer-conversion]]].
 
 ### MedQA-USMLE
 
@@ -166,7 +166,7 @@ large and domain text is available.
 
 The full-N run uses `1,273` questions and reports 70B llm-only `85.6%`,
 raw RAG `83.1%`, HyDE `85.2%`, and SCOPE `86.1%`
-[source: `wiki/results/medqa-fulln-matrix.md`;
+[source: [[medqa-fulln-matrix]];
 `datasets/medqa_usmle/questions.csv`].
 
 The local EDA could not compute query-gold passage overlap because the local
@@ -188,15 +188,15 @@ The on-disk BEIR subsets are FiQA, NFCorpus, SciFact, and SciDocs
 The current BEIR phase result reports full-N results over `5` datasets, so the
 meeting roster should separate the on-disk local EDA subset from the previously
 run signed result matrix
-[source: `wiki/results/beir-phase1.md`].
+[source: [[beir-phase1]]].
 
 FiQA and SciDocs are especially important for the judge story.
 FiQA shows that zero-shot semantic judging can already be strong:
 zero-shot `84.0%`, trained `82.4%`, CE `70.0%` on `250` pools
-[source: `wiki/results/judge-pilot-fiqa.md`].
+[source: [[judge-pilot-fiqa]]].
 SciDocs shows the proxy-label hazard:
 zero-shot `60.5%`, trained `46.5%`, CE `52.0%` on `400` pools
-[source: `wiki/results/judge-pilot-scidocs.md`].
+[source: [[judge-pilot-scidocs]]].
 
 ### CaseHOLD, LegalBench-SCALR, and MLEB-SCALR
 
@@ -204,7 +204,7 @@ These are historical or supporting legal datasets, not the new headline.
 The repo instructions say CaseHOLD and LegalBench-SCALR are historical or
 superseded for the active exact-scored main matrix unless explicitly re-added
 under the current fixed-method contract
-[source: `CLAUDE.md`].
+[source: [CLAUDE.md](../../CLAUDE.md)].
 
 They still help with the EDA picture:
 CaseHOLD has mean query-gold overlap `0.1503`,
@@ -268,12 +268,12 @@ Dial table sources:
 `datasets/mleb_scalr/`;
 `datasets/musique/`;
 `datasets/hotpotqa_distractor/`;
-`wiki/results/judge-answer-conversion.md`;
-`wiki/results/medqa-fulln-matrix.md`;
-`wiki/results/judge-pilot-v0-results.md`;
-`wiki/results/judge-pilot-housing.md`;
-`wiki/results/judge-pilot-fiqa.md`;
-`wiki/results/judge-pilot-scidocs.md`.
+[[judge-answer-conversion]];
+[[medqa-fulln-matrix]];
+[[judge-pilot-v0-results]];
+[[judge-pilot-housing]];
+[[judge-pilot-fiqa]];
+[[judge-pilot-scidocs]].
 
 ## Takeaway for the mentor meeting
 

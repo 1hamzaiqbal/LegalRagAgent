@@ -46,7 +46,7 @@ claim, not a mean-lift claim — relevant to C7 in
 and [[snap-vs-hyde-ledger]].
 
 **Caveats.** Single generator (Gemma 26B) for this phase — model breadth added
-in phase 1b (Qwen/Mistral/DeepSeek, `docs/generated/beir_phase1b_model_breadth_2026-05-26.md`);
+in phase 1b (Qwen/Mistral/DeepSeek, [docs/generated/beir_phase1b_model_breadth_2026-05-26.md](../../docs/generated/beir_phase1b_model_breadth_2026-05-26.md));
 TREC-COVID margins mostly undefined (dense qrels); Hit@5 on BEIR ≠ nDCG
 conventions (we score exposure, not graded ranking).
 

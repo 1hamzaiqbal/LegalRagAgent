@@ -105,7 +105,7 @@ what remains.
 **Assessment**: the reviewer inferred this from paper deltas (+1.2/+0.7/+0.5pp
 Hit@5; +0.8/+1.7/−0.5pp answers; pooled +0.1pp). The bitter irony: **the tests
 existed** — 16 McNemar-tested full-N snap-vs-HyDE answer pairs sit in
-`docs/signoff_log.md`; the paper just omitted them. Verified compilation
+[docs/signoff_log.md](../../docs/signoff_log.md); the paper just omitted them. Verified compilation
 ([[snap-vs-hyde-ledger]]): 13/16 non-significant; the significant cells split
 by dataset (pro-snap Legal-Link-EU Gemma +4.17pp p=0.004; pro-HyDE HousingQA
 70B −6.45pp p=1.4e-28 unfiltered / −2.57pp p=1.7e-06 state-filtered — worse

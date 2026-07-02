@@ -48,7 +48,7 @@ significant cells split by dataset:
 **Robustness side** (the surviving snap claim): strong-query BEIR drift —
 HyDE −31.3pp vs SCOPE −12.2pp pooled Hit@5, SCOPE less-drifting on 5/5
 datasets and across 4 generators (17–29pp net gap) — [[beir-phase1]],
-`docs/generated/beir_phase1b_model_breadth_2026-05-26.md`. Now local and
+[docs/generated/beir_phase1b_model_breadth_2026-05-26.md](../../docs/generated/beir_phase1b_model_breadth_2026-05-26.md). Now local and
 artifact-backed post fast-forward, but not signoff-gated as an answer row.
 
 **The revision-safe statement** (updated 2026-07-02 after the significance

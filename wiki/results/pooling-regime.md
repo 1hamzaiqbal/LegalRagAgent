@@ -23,7 +23,7 @@ evidence: docs/generated/3scope_raw_pool_2026-05-28.md
 - **Weak regime — pooling destroys the gain**: BarExamQA SCOPE-alone **12.0**
   vs raw∪SCOPE 3.9 vs CSQE 2.0 (raw 1.4). The CE reranker buries
   generated-query candidates when plausible-looking raw candidates exist
-  (CE-buries-gold finding, `docs/generated/raw_scope_pooling_ce_separability_2026-05-25.md`).
+  (CE-buries-gold finding, [docs/generated/raw_scope_pooling_ce_separability_2026-05-25.md](../../docs/generated/raw_scope_pooling_ce_separability_2026-05-25.md)).
 - **Diversity adds nothing**: 3SCOPE+raw ≈ raw∪SCOPE everywhere (65.0 vs
   65.9 BEIR pooled) — killed.
 - Mid-regime (raw 20–30% band, credibility E): pooling gives small strict
@@ -33,7 +33,7 @@ evidence: docs/generated/3scope_raw_pool_2026-05-28.md
 forced, not optional. Also corrects an earlier over-call that pooling was a
 universal fix.
 
-**CSQE crossover** (same table + `docs/generated/casehold_csqe_collapse_2026-05-28.md`):
+**CSQE crossover** (same table + [docs/generated/casehold_csqe_collapse_2026-05-28.md](../../docs/generated/casehold_csqe_collapse_2026-05-28.md)):
 corpus-steered expansion is the robust choice on strong-query corpora (BEIR
 −2.8pp only) but **collapses on weak-query legal** (BarExam 2.0%) because
 initial retrieval surfaces nothing real to steer with — generative expansion's
