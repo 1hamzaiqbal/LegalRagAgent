@@ -70,7 +70,7 @@ vllm serve Qwen/Qwen3-8B --port "$PORT" --max-model-len 2048 \
 SERVER_PID=$!
 
 READY=0
-for _ in $(seq 1 180); do
+for _ in $(seq 1 "${OPD_READY_TRIES:-600}"); do
   if curl -sf --max-time 2 "$URL/health" >/dev/null 2>&1; then
     READY=1
     break
