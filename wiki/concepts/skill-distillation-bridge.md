@@ -82,6 +82,23 @@ distillation survey; (3) SKILL0's stack is verl+vLLM multi-GPU RL — heavier
 than our PEFT lane; a bandit-style single-turn version (retrieve-or-not +
 k choice) may be the right first rung rather than full multi-turn RL.
 
+## Rung 1 — EXECUTED same day ([[offline-bandit-v0]])
+
+The single-turn bandit was built as pure offline replay of the paired
+2026-07-02 arms (5 reader×task cells, zero new LLM calls;
+`scripts/bandit/offline_bandit_v0.py`). Verdict: **instructive negative** —
+no cheap external policy (question features + trained-judge scores, logistic
+or 1-D gate) beats the best fixed arm in any cell, while the per-question
+oracle sits 8–24pp above every fixed arm. The allocation headroom is real
+(arms are strongly complementary per-question) but unreachable from external
+features — extending [[qpp-routing-negative]] to answer-level allocation.
+**This is rung 2's motivation**: the allocation signal must live in the
+model's own state, i.e. internalize the policy (SKILL0's bet) rather than
+route around a frozen one. Rung 2 = small model *emits* the
+retrieve/k decision in its own forward pass, trained on the free EIT lane
+(supervised on oracle actions first — cheaper than RL — then RL if the
+supervised ceiling binds).
+
 ## Links
 [[skill0]] · [[thinking-machines-expert-judgment]] ·
 [[expert-judgment-replication]] · [[judge-capacity-dial]] ·

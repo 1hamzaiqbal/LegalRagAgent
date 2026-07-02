@@ -196,3 +196,18 @@ concepts/skill-distillation-bridge (cross-scale twist on SKILL0, teacher-
 access technical paths, v0 sketch on the free EIT lane; novelty checks
 queued: SDAR, SKILL1, closed-teacher distillation survey). direction-2026-07
 gained a post-meeting addendum; packet README + index updated.
+
+## [2026-07-02] idea3-dormant + bandit-rung1 | Helpfulness benchmark recorded; offline bandit built and run
+Idea 3 written up as a dormant, pickupable direction (concepts/
+helpfulness-benchmark: metric family EHE/harm-adjusted/cost-per-solved-task,
+evidence inventory from signed rows, pick-up checklist; no active work).
+Bridge rung 1 executed: scripts/bandit/offline_bandit_v0.py replays the
+paired 7/2 arms as a single-turn retrieve-or-not/arm-choice bandit (5 cells,
+zero new LLM calls). Verdict: instructive negative — no cheap policy
+(features + judge scores, logistic or gate) beats the best fixed arm
+anywhere (deltas -0.3 to -4.0pp, all ns), while the per-question oracle sits
+8-24pp above (noise-inflated but large): allocation headroom is real and
+unreachable from external features. Extends qpp-routing-negative to
+answer-level allocation; motivates rung 2 = internalized policy on the EIT
+lane. Report: docs/generated/offline_bandit_v0_2026-07-02.md + frontier PNG;
+wiki page results/offline-bandit-v0.

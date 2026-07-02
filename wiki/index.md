@@ -26,6 +26,7 @@ help retrieval and when retrieval helps answers*** — the mechanism
 
 ## Concepts
 - [[skill-distillation-bridge]] — post-meeting priority direction: internalize big-model agentic retrieval skills into a small model
+- [[helpfulness-benchmark]] — DORMANT direction (meeting Idea 3): measure whether retrieval helped the reader, not whether it hit gold; evidence inventory ready
 - [[thesis-v2]] — **the working thesis**: generation is a low-margin instrument; answer-conditioning dampens drift; after pooling, selection binds — with pre-stated falsifiable predictions
 - [[weak-vs-strong-query-regime]] — the regime law: expansion helps ∝ query–corpus gap
 - [[geometry-vs-factuality]] — mechanism + falsification: failures are geometric, not hallucinated
@@ -86,6 +87,7 @@ help retrieval and when retrieval helps answers*** — the mechanism
 - [[leakage-audit-barexam]] — **Yoon leakage account rejected, both regimes**: weak-legal lift survives unmatched (+6pp, p=1e-20); BEIR matched rates ~1%, zero leakage-gated help events (2026-07-02)
 - [[judge-pilot-housing]] — **strong-regime judge replication**: 55.0% vs CE 38.2% (p=2.5e-23), 96.5% conversion — regime routing superseded (2026-07-02)
 - [[judge-mixed-legal]] — **general legal judge**: mixed-label training holds both domains (BarExam 22.1%, Housing 55.4%), zero specialization tax, $0 EIT lane (2026-07-02)
+- [[offline-bandit-v0]] — bridge rung 1: cheap per-query retrieval allocation fails in all 5 cells; oracle headroom 8-24pp unreachable from features (2026-07-02)
 - [[judge-pilot-scidocs]] — cross-domain: zero-shot judge > CE (+8.5pp p=3e-05) but citation-proxy label training *hurts* (−14pp) — label semantics decide (2026-07-02)
 - [[judge-pilot-fiqa]] — label-semantics resolved: zero-shot judge > CE in all 4 domains; training = label quality × headroom (2026-07-02)
 - [[medqa-fulln-matrix]] — **q200 headline retired** (+5.5pp didn't replicate); raw-RAG hurts, SCOPE repairs (+3.0pp p=0.002); dial-3 law 5-for-5 (2026-07-02)
