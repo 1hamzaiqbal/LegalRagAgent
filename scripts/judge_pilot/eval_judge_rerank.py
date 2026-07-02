@@ -129,6 +129,13 @@ def main():
             "Statute passage: {passage}\n\n"
             "Does this passage provide the controlling statutory basis to answer this "
             "question? Answer Yes or No.\nAnswer:")
+    elif args.prefix.startswith("fiqa"):
+        PROMPT_TMPL = (
+            "You are a financial retrieval judge. Decide whether the document answers "
+            "or directly addresses the finance question.\n\n"
+            "Query: {question}\n\n"
+            "Document: {passage}\n\n"
+            "Does this document answer or directly address the question? Answer Yes or No.\nAnswer:")
     elif args.prefix.startswith("scidocs"):
         PROMPT_TMPL = (
             "You are a scientific retrieval judge. Decide whether the document is "
