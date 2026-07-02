@@ -184,3 +184,15 @@ superseded as a deployment limit: it was an artifact of single-domain
 training. New page results/judge-mixed-legal; thesis-v2 P3, judge-pilot-housing
 transfer §, and meeting-packet 06 updated. Scores mirrored to
 scripts/judge_pilot/data/local_{,housing_}scores_mixed_*.json.
+
+## [2026-07-02] mentor-meeting + skill0-ingest | Meeting notes recorded; distillation bridge drafted
+The mentor meeting happened. Notes at 7_2_review_meeting/08-meeting-notes
+(verbatim-ish + found-evidence annotations: the golden/neighbor/gold-absent
+experiments Idea 3 asked to find are inventoried from signed rows). Priority
+thread per HI: skill internalization x distillation — SKILL0 (arXiv
+2604.02268) ingested with PDF + SkillZero repo archived to EIT
+references/{papers,repos}; source note sources/skill0; direction draft
+concepts/skill-distillation-bridge (cross-scale twist on SKILL0, teacher-
+access technical paths, v0 sketch on the free EIT lane; novelty checks
+queued: SDAR, SKILL1, closed-teacher distillation survey). direction-2026-07
+gained a post-meeting addendum; packet README + index updated.

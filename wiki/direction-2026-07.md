@@ -223,10 +223,26 @@ one that starved.
 5. Path C pilot: yes/no on the logs-only judge experiment; if yes, where the
    eventual lawyer labels come from.
 
+## 6. Post-meeting addendum (2026-07-02 evening — the meeting happened)
+
+Full notes: [[08-meeting-notes]]. Outcomes in brief:
+- **Priority thread**: the skill-distillation bridge — internalize a big
+  model's agentic retrieval skills (search-effort control, conflict
+  arbitration) into a small model; [[skill0]] ingested (PDF + repo archived
+  on EIT), direction draft at [[skill-distillation-bridge]]. Next: SDAR /
+  SKILL1 novelty check + closed-teacher distillation survey.
+- **Recorded for later**: retrieval-effort control + conflict arbitration
+  (Ideas 1+2, jointly); a helpfulness-metric / cost-per-task RAG benchmark
+  paper (Idea 3 — flagged lowest-cost, the golden/neighbor/gold-absent
+  experiments already exist and are inventoried in [[08-meeting-notes]]);
+  HL's tree-index/metadata-tag search-space ideas; LH's benchmark
+  multi-gold-sufficiency audit; proactive-LLM search.
+
 ## Links
 [[icml-ai4law-2026-rejection]] · [[snap-vs-hyde-ledger]] ·
 [[geometry-vs-factuality]] · [[weak-vs-strong-query-regime]] ·
 [[answer-conversion-gap]] · [[regime-routing]] ·
 [[expert-judgment-replication]] · [[thinking-machines-expert-judgment]] ·
 [[yoon2025leakage]] · [[koblex-parser]] · [[gure]] · [[zheng-cslaw]] ·
+[[08-meeting-notes]] · [[skill-distillation-bridge]] · [[skill0]] ·
 [ideas.md](../ideas.md)

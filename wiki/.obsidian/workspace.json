@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "7_2_review_meeting/06-results-and-open-questions.md",
+                "file": "7_2_review_meeting/05-datasets-eda.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "06-results-and-open-questions"
+              "title": "05-datasets-eda"
             }
           },
           {
@@ -164,7 +164,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "7_2_review_meeting/06-results-and-open-questions.md",
+                "file": "7_2_review_meeting/05-datasets-eda.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -174,7 +174,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for 06-results-and-open-questions"
+              "title": "Backlinks for 05-datasets-eda"
             }
           },
           {
@@ -183,12 +183,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "7_2_review_meeting/06-results-and-open-questions.md",
+                "file": "7_2_review_meeting/05-datasets-eda.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from 06-results-and-open-questions"
+              "title": "Outgoing links from 05-datasets-eda"
             }
           },
           {
@@ -226,13 +226,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "7_2_review_meeting/06-results-and-open-questions.md",
+                "file": "7_2_review_meeting/05-datasets-eda.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of 06-results-and-open-questions"
+              "title": "Outline of 05-datasets-eda"
             }
           }
         ]
@@ -255,16 +255,25 @@
   },
   "active": "e49153d9651f8239",
   "lastOpenFiles": [
-    "7_2_review_meeting/05-datasets-eda.md",
+    "concepts/skill-distillation-bridge.md",
+    "7_2_review_meeting/08-meeting-notes.md",
+    "sources/skill0.md",
+    "results/judge-mixed-legal.md",
     "7_2_review_meeting/04-generalization-pivot.md",
-    "7_2_review_meeting/03-overlapping-related-work.md",
     "7_2_review_meeting/02-critique-analysis.md",
-    "sources/gure.md",
+    "results/judge-answer-conversion.md",
+    "7_2_review_meeting/05-datasets-eda.md",
+    "7_2_review_meeting/06-results-and-open-questions.md",
+    "7_2_review_meeting/03-overlapping-related-work.md",
+    "7_2_review_meeting/01-scope-submission.md",
+    "sources/thinking-machines-expert-judgment.md",
+    "results/judge-pilot-v0-results.md",
     "sources/koblex-parser.md",
+    "7_2_review_meeting/07-experiment-narrative.md",
+    "sources/gure.md",
     "sources/zheng-cslaw.md",
     "results/factuality-falsification.md",
     "reviews/icml-ai4law-2026-rejection.md",
-    "7_2_review_meeting/01-scope-submission.md",
     "7_2_review_meeting/00-README.md",
     "7_2_review_meeting/assets/04_three_dial_schematic.png"
   ]

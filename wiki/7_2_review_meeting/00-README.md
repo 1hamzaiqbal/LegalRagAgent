@@ -25,6 +25,7 @@ AI4Law rejection and the generalization pivot.
 | [05-datasets-eda](05-datasets-eda.md) | Dataset roster with descriptions + fresh local EDA |
 | [06-results-and-open-questions](06-results-and-open-questions.md) | Post-submission results consolidated + explicit meeting questions |
 | [07-experiment-narrative](07-experiment-narrative.md) | The narrative: everything tried since the SCOPE submission, in order |
+| [08-meeting-notes](08-meeting-notes.md) | What was actually discussed on 7/2 — ideas, found-evidence annotations, the distillation priority thread |
 
 ## Conventions used in this folder
 

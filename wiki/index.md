@@ -25,6 +25,7 @@ help retrieval and when retrieval helps answers*** — the mechanism
 - [7_2_review_meeting/](7_2_review_meeting/00-README.md) — meeting packet: submission + critique + related work + pivot + EDA + results + narrative (transient, 2026-07-02)
 
 ## Concepts
+- [[skill-distillation-bridge]] — post-meeting priority direction: internalize big-model agentic retrieval skills into a small model
 - [[thesis-v2]] — **the working thesis**: generation is a low-margin instrument; answer-conditioning dampens drift; after pooling, selection binds — with pre-stated falsifiable predictions
 - [[weak-vs-strong-query-regime]] — the regime law: expansion helps ∝ query–corpus gap
 - [[geometry-vs-factuality]] — mechanism + falsification: failures are geometric, not hallucinated
@@ -48,6 +49,7 @@ help retrieval and when retrieval helps answers*** — the mechanism
 - [[hyde]] · [[query2doc]] — zero-shot ancestors (keep-vs-discard evidence)
 - [[lamer-gar]] — answer-conditioned expansion prior art
 - [[csqe]] — corpus-steered expansion; collapses on weak-query legal
+- [[skill0]] — **skill internalization via curriculum RL** (arXiv 2604.02268, ZJU/Meituan); the meeting's distillation-bridge anchor; PDF+repo archived on EIT
 
 ## Sources — QPP / expansion-failure / RAG-control
 - [[weller-drift]] — expansion helps weak, hurts strong (macro precedent)
