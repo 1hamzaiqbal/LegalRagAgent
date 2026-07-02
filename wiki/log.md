@@ -32,6 +32,13 @@ magesh2024hallucinationfree). Discovery sweeps returned ~24 ranked candidates
 LegalAgentBench, Chain-of-Logic, Makri'08 lawyer info-seeking, Aletras'16 …)
 — unpulled ones are TODO markers.
 
+## [2026-07-02] experiment | FiQA judge: four-domain picture completes
+Zero-shot judge beats the CE in ALL FOUR domains (+8.5..+14.6pp, p≤3e-05) —
+the ms-marco CE is universally the weakest stack component. Training =
+label-quality × headroom: legal human gold helps; FiQA human labels at
+ceiling are neutral (trained≈zeroshot, p=0.52); SciDocs citation proxies
+harm. Page: [[judge-pilot-fiqa]].
+
 ## [2026-07-02] experiment | Housing answer arms: conversion pays — two-regime law complete
 Four paired Housing arms (500 questions, state-filtered strict replay,
 groq-llama70b): llm_only 54.2 → CE-ev 61.8 (+7.6, p=1.6e-04) → SCOPE-ev 63.2

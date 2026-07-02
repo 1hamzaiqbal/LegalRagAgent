@@ -78,9 +78,15 @@ trained>prompted (p=1e-04) — [[judge-pilot-v0-results]].
   MC, neighboring-provision value on statutory entailment. Full pipeline law:
   expansion ← query margin; selection ← pool confusability; conversion ←
   task evidence-value — all measurable in advance.
-- Still pending: graded-qrels BEIR domain (FiQA/NFCorpus) to separate
-  label-noise from domain-shift; pre-registered held-out validation of the
-  three-dial law on an unseen corpus.
+- **FiQA resolves the label-semantics question (2026-07-02,
+  [[judge-pilot-fiqa]])**: zero-shot judge > CE in all four domains
+  (+8.5..+14.6pp, all p≤3e-05 — the general-domain CE is universally the
+  weakest link); training = label quality × headroom (legal: helps; FiQA
+  human labels at ceiling: neutral/safe; SciDocs proxy labels: harmful). P3
+  final form.
+- Still pending: pre-registered held-out validation of the three-dial law on
+  an unseen corpus (e.g. Legal-Link-EU end-to-end); lawyer-label rung of
+  Path C.
 
 ## Falsifiable predictions (pre-stated)
 1. Leakage audit: unmatched-generation lift on BarExamQA stays > 0 (geometry
