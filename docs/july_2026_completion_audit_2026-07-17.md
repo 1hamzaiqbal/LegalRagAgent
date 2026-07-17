@@ -32,6 +32,7 @@ gate, not a new paper table. The durable research synthesis is
 | 93770 | Allocation policy trained; the EIT script did not itself perform the later paired policy evaluation | `judge_lane_93770.out`, local rung-2 analysis and wiki page | Cite the local analysis, not this stdout as an evaluated result |
 | 93773 | Incomplete first OPD smoke: cold-start/readiness window expired | `opd_smoke_93773.out` | Failure provenance only |
 | 93802 | End-to-end OPD plumbing passed: teacher ready, three finite student steps, checkpoint exists | `opd_smoke_93802.out` | Infrastructure validation only; no scientific performance claim |
+| 106078 (2026-07-17 follow-up) | End-to-end negative-gap-gated OPD plumbing passed from the clean branch worktree: three finite steps, gate mean logged, checkpoints written | `opd_gated_smoke_106078.out` | Infrastructure validation only; task reward is not integrated and no task-learning claim is allowed |
 
 ## Stable result objects
 
@@ -62,7 +63,9 @@ The July program supports four conclusions:
    `do-not-retrieve` decision for strong readers.
 4. The OPD software path works end-to-end, but job 93802 does **not** validate
    OPD as a learning method. After the SDAR read, ungated OPD is explicitly a
-   plumbing baseline, not the next scale experiment.
+   plumbing baseline, not the next scale experiment. Follow-up job 106078 also
+   validates the negative-gap-gated dense-objective path on GPU; it still does
+   not supply task reward or evidence that the learned policy improved.
 
 Anything stronger must return to the row-level detail logs, paired-answer
 analysis, and the signoff log rather than citing this prose alone.

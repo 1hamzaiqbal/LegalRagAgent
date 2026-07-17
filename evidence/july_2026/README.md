@@ -9,9 +9,10 @@ duplicating every raw artifact in Git.
 
 - `judge_results/`: stable JSON summaries for the BarExam, Housing, SciDocs,
   FiQA, and mixed-legal judge runs.
-- `eit_job_logs/`: exact stdout for the ten EIT jobs inspected during the
-  2026-07-17 reconciliation. A scheduler-level success is not assumed to be a
-  semantic success; job 93598 is the canonical counterexample.
+- `eit_job_logs/`: exact stdout for the ten historical EIT jobs inspected
+  during the 2026-07-17 reconciliation plus the gated-OPD follow-up job 106078.
+  A scheduler-level success is not assumed to be a semantic success; job 93598
+  is the canonical counterexample.
 - `manifests/local_july_detail_logs.tsv`: SHA-256, size, and source path for 71
   larger July detail logs retained outside this compact package.
 - `manifests/tracked_evidence.sha256`: integrity manifest for the original
