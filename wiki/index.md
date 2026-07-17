@@ -37,6 +37,9 @@ The SCOPE method is historical ([[scope-old]]). Start with
   SkillOpt/SKILL0/OPD synthesis: the pipeline itself and cross-reader context
   matrices are occupied; the secondary question is whether context-optimal
   skills are also target-optimal post-withdrawal teaching artifacts
+- [[self-distillation-cluster-update-2026-07-17]] — integrated OPSD/SDFT/SDPO
+  update: context-to-weights self-distillation is occupied and capability-
+  gated, while causal action value remains a separate measurement object
 - [[scope-old]] — historical SCOPE branch/archive map
 - [[literature/index]] — persistent primary-source vault and manifests
 - [[coverage-audit-2026-07-17]] — expanded novelty/coverage audit across
@@ -120,6 +123,10 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[smartad]] · [[informative-alignment-rsr]] — capacity-aligned tool-agent
   trajectory distillation and a strong student-specific post-training utility
   predictor; mandatory baselines, not immediate action-value estimators
+- [[opsd-self-distilled-reasoner]] · [[sdft-continual-learning]] ·
+  [[sdpo-rich-feedback]] — verified-solution, demonstration, and rich-feedback
+  self-distillation; together close generic context-to-weights novelty and
+  expose a scale-dependent self-teaching boundary
 
 ## Sources — QPP / expansion-failure / RAG-control
 - [[weller-drift]] — expansion helps weak, hurts strong (macro precedent)

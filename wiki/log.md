@@ -567,3 +567,35 @@ matrices; a pinned checkout is not represented as an exact reproduction when
 those payloads are absent. Duplicate SkillAdaptor manifest rows were removed.
 The RSR dataset is linked and commit-pinned but not fully mirrored; no official
 SmartAD repository was found. No experiment was launched.
+
+## [2026-07-17] self-distillation cluster audit | Context-to-weights is occupied; action value remains open
+
+Audited [[opsd-self-distilled-reasoner]], [[sdft-continual-learning]], and
+[[sdpo-rich-feedback]] from their papers and pinned official repositories, and
+recorded the integrated decision in
+[[self-distillation-cluster-update-2026-07-17]]. Together they establish a
+broad prior-art template: a same-model privileged view built from a verified
+solution, an instance-specific demonstration, or rich runtime feedback can
+re-score on-policy behavior and be distilled into an unconditioned policy.
+Generic context/feedback-to-weights internalization is therefore occupied.
+
+The primary recommendation does not change. None of the three estimates
+repeated forced internal/external task outcomes for the same reader and
+payload, incorporates action price, or evaluates the target-student regret of
+following a teacher's action rule. The cluster instead motivates a strict
+three-gate separation among acting utility, privileged-view teacher quality,
+and post-withdrawal acquisition utility. The cross-size results suggest a
+capability-relative self-teaching boundary but do not establish a transferable
+scaling law.
+
+The most important custody correction is that SDFT's paper describes reverse
+KL while its official repository says all headline experiments used
+student-prefix/on-policy sampling with full-vocabulary forward KL. That
+discrepancy is recorded prominently rather than silently normalized. The
+three methods are now downstream baselines for the gated OPD/skill work; they
+are not substitutes for the architecture-free action-value pilot.
+
+Archived three additional checksummed PDFs and three official commit-pinned
+repositories in the persistent EIT literature vault. The vault now contains
+107 unique PDFs, four web/code snapshots, and 61 unique Git checkouts. No
+experiment was launched.

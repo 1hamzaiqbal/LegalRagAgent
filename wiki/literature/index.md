@@ -15,8 +15,8 @@ in the persistent EIT vault:
 
 `/engrfs/project/jacobsn/hiqbal/literature/legalrag/`
 
-The vault currently contains **104 checksummed PDFs**, **4 checksummed primary
-web/code snapshots**, **58 Git repository checkouts pinned to exact commits**,
+The vault currently contains **107 checksummed PDFs**, **4 checksummed primary
+web/code snapshots**, **61 Git repository checkouts pinned to exact commits**,
 and one extracted non-Git anonymous code snapshot, plus a separate checksummed
 benchmark asset manifest. See
 [`eit_papers.sha256`](manifests/eit_papers.sha256) and
@@ -47,6 +47,19 @@ contain working duplicates, but it is not the source of truth.
 
 ### OPD / skill distillation
 
+- [[self-distillation-cluster-update-2026-07-17]] — integrated reading of
+  OPSD, SDFT, and SDPO: generic privileged-context-to-weights self-distillation
+  is occupied, capability-gated, and distinct from causal action value.
+- [[opsd-self-distilled-reasoner]] — verified-solution-conditioned same-model
+  on-policy soft distillation; mandatory unconditional privileged-context
+  baseline, not a forced-action-value estimator.
+- [[sdft-continual-learning]] — demonstration-conditioned same-model
+  self-distillation for skill/fact acquisition with reduced forgetting; the
+  source page records a critical paper/code reverse-KL versus forward-KL
+  mismatch.
+- [[sdpo-rich-feedback]] — feedback-conditioned hindsight pseudo-advantages,
+  scale-dependent self-teaching, and test-time context compression; its
+  log-ratio is not causal action value.
 - [[skill0]] — skills as transient scaffolding with helpfulness-driven
   withdrawal.
 - [[sdar]] — decisive safety/method correction: standalone or naively mixed
@@ -104,12 +117,18 @@ contain working duplicates, but it is not the source of truth.
 - [[continual-facts-in-weights]] — context-versus-weight creation,
   composition, retention, and rescue for invented facts; procedural skills
   remain explicitly untested.
+- [[sdft-continual-learning]], [[opsd-self-distilled-reasoner]], and
+  [[sdpo-rich-feedback]] close generic demonstration/solution/feedback-to-
+  weights claims. None ranks several fixed skill artifacts in one target's
+  context and after matched withdrawal.
 
 The pinned repositories are code-custody anchors, not complete reproductions.
 In particular, SkillGen, SkillLens, SkillRevise, MASA, and SkillMaster do not
 release every exact final/intermediate artifact, raw crossed matrix, run log,
 or checkpoint needed to reconstruct all paper claims. Their dedicated pages
-record the gaps. The Skill-Usage, Ctx2Skill, and RSR dataset links/commit
+record the gaps. The SDFT checkout omits its Medical/Wikipedia and sequential
+experiment surfaces and disagrees with the paper about the trained KL
+direction. The Skill-Usage, Ctx2Skill, and RSR dataset links/commit
 identities are recorded, but their full Hugging Face payloads are not mirrored
 in this vault.
 
@@ -175,6 +194,10 @@ in this vault.
 - [[smartad]] and [[informative-alignment-rsr]] — student-specific agent-trace
   compatibility and post-training teaching value; neither estimates immediate
   forced external-action value or target regret from a teacher boundary.
+- [[sdpo-rich-feedback]] — assigns feedback-conditioned token/logit
+  pseudo-advantages and exposes a model-scale reliability boundary, but never
+  compares forced task outcomes or transfers a teacher action policy across
+  readers.
 - [[llm-specific-utility]] — closest reader-specific evidence-value precursor;
   deterministic binary labels motivate repeated, signed, cross-fitted effects.
 

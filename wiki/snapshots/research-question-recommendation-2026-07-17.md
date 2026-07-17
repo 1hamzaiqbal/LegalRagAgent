@@ -270,6 +270,36 @@ projects would add machinery rather than insight.
 - Do not use the prior Legal-RAG results as confirmatory evidence. They are
   hypothesis generators for a new and materially different study.
 
+## Literature addendum - OPSD, SDFT, and SDPO
+
+The 2026 self-distillation cluster in
+[[self-distillation-cluster-update-2026-07-17]] strengthens the boundary around
+this recommendation without changing it. [[opsd-self-distilled-reasoner]],
+[[sdft-continual-learning]], and [[sdpo-rich-feedback]] already show that a
+same-model privileged view built from verified solutions, demonstrations, or
+rich environment feedback can be distilled into an unconditioned policy.
+Generic “context or feedback can be baked into weights” is therefore not an
+available contribution.
+
+The trio does not estimate the primary object here: repeated task outcomes
+under forced `do(internal)` and `do(external)` arms for the same payload and
+reader, incremental action price, or the target-student regret induced by a
+teacher's action oracle. SDPO's token/logit “advantage” is a
+feedback-conditioned probability ratio, not causal action value. The papers
+instead motivate a later three-gate analysis that keeps **acting utility**,
+**privileged-view teacher quality**, and **post-withdrawal acquisition
+utility** separate.
+
+Their scale results also suggest a capability-relative self-teaching boundary,
+but not yet a scaling law: SDFT is worse than SFT at 3B and better at 7B/14B,
+while SDPO loses or ties at the smallest Qwen2.5 sizes and improves at larger
+sizes. Any eventual regularity must predict untouched sizes and a held-out
+family. Finally, SDFT's paper describes reverse KL while its official code
+states that all headline results used forward KL on student/on-policy
+prefixes; [[sdft-continual-learning]] records that custody warning. Treat all
+three methods as downstream baselines only if the architecture-free pilot
+first reveals a stable phenomenon.
+
 ## Decision
 
 Proceed, when ready, with the **student-specific forced-action value pilot**.
@@ -284,4 +314,4 @@ metric, law, or method paper.
 [[compute_elasticity_handoff_2026-07-17/10-student-specific-action-value]] ·
 [[action-value-transport-reading-packet-2026-07-17]] ·
 [[skill-lifecycle-research-snapshot-2026-07-17]] · [[three-dial]] ·
-[[opd-distillation]]
+[[opd-distillation]] · [[self-distillation-cluster-update-2026-07-17]]

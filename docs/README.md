@@ -18,16 +18,19 @@ Current map as of 2026-07-17.
 6. [`../wiki/snapshots/skill-lifecycle-research-snapshot-2026-07-17.md`](../wiki/snapshots/skill-lifecycle-research-snapshot-2026-07-17.md)
    — secondary “useful context or useful curriculum?” candidate and closest-
    work audit; no experiment has been launched.
-7. [`../wiki/tracks/opd-distillation.md`](../wiki/tracks/opd-distillation.md)
+7. [`../wiki/snapshots/self-distillation-cluster-update-2026-07-17.md`](../wiki/snapshots/self-distillation-cluster-update-2026-07-17.md)
+   — OPSD/SDFT/SDPO synthesis, three-gate separation, method-custody warning,
+   and the resulting baseline boundaries; no experiment has been launched.
+8. [`../wiki/tracks/opd-distillation.md`](../wiki/tracks/opd-distillation.md)
    — gated engineering track.
-8. [`july_2026_completion_audit_2026-07-17.md`](july_2026_completion_audit_2026-07-17.md)
+9. [`july_2026_completion_audit_2026-07-17.md`](july_2026_completion_audit_2026-07-17.md)
    — local/EIT job and evidence reconciliation.
-9. [`signoff_log.md`](signoff_log.md) — cite-or-not gate.
-10. [`../wiki/literature/index.md`](../wiki/literature/index.md) — Obsidian map
+10. [`signoff_log.md`](signoff_log.md) — cite-or-not gate.
+11. [`../wiki/literature/index.md`](../wiki/literature/index.md) — Obsidian map
    into the persistent paper/repository vault.
-11. [`worktree_map_2026-07-17.md`](worktree_map_2026-07-17.md) — exact local/EIT
+12. [`worktree_map_2026-07-17.md`](worktree_map_2026-07-17.md) — exact local/EIT
    branches, storage roles, and recovery paths.
-12. [`archive_manifest_2026-07-17.md`](archive_manifest_2026-07-17.md) — what
+13. [`archive_manifest_2026-07-17.md`](archive_manifest_2026-07-17.md) — what
    left the active branches, what stayed, checksums, and restore paths.
 
 ## Evidence path

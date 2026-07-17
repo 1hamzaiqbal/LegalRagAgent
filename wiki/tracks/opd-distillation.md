@@ -110,6 +110,32 @@ post-training performance across 11 teachers and five students. Any later
 training phase must compare against both; neither estimates the student's
 immediate causal payoff from an external action.
 
+The self-distillation cluster in
+[[self-distillation-cluster-update-2026-07-17]] adds three more mandatory
+baselines and a capability gate. [[opsd-self-distilled-reasoner]] is the
+verified-solution, frozen-teacher, on-policy baseline;
+[[sdft-continual-learning]] is the same-model demonstration/skill
+internalization and forgetting baseline; and [[sdpo-rich-feedback]] is the
+rich-feedback self-teaching baseline. Before allocating training compute,
+measure whether privileged context improves the target reader's task-level
+teacher behavior. A nonzero KL or a stronger source model is not sufficient.
+
+For any later training comparison:
+
+1. include direct target SFT/RL and the applicable unconditional
+   OPSD/SDFT/SDPO arm;
+2. cross or pre-register frozen versus EMA/synchronized teachers and any
+   outcome-reward mixture, because the papers disagree by regime;
+3. stratify by target capability and preserve weak-reader failures rather
+   than averaging them away; and
+4. record SDFT's method-custody discrepancy explicitly: the paper says reverse
+   KL, while the official repository says all headline runs used forward KL
+   on student/on-policy prefixes.
+
+These methods test acquisition after a privileged view. They do not replace
+the no-training forced-action panel, and SDPO's feedback-conditioned token
+log-ratio must not be presented as causal external-action value.
+
 Direct OPCD from `teacher + skill`, PromptKD, and SEED are mandatory
 baselines. A
 teacher-first-internalization stage is justified only if it beats direct
@@ -137,4 +163,5 @@ distillation method to a task with observable skill headroom.
 [[compute_elasticity_handoff_2026-07-17/README]] ·
 [[skill-lifecycle-research-snapshot-2026-07-17]] · [[opcd]] ·
 [[promptkd]] · [[seed-self-evolving-opd]] · [[skillgen-verified]] ·
-[[skillmaster]] · [[research-question-recommendation-2026-07-17]]
+[[skillmaster]] · [[research-question-recommendation-2026-07-17]] ·
+[[self-distillation-cluster-update-2026-07-17]]

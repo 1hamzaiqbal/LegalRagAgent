@@ -507,6 +507,34 @@ Possible working titles—not novelty claims—are “From Useful Context to Use
 Curriculum,” “Whose Skill Is It?”, and “From Context to Weights: Do Optimized
 Agent Skills Preserve Their Utility?”
 
+## Literature addendum - the self-distillation cluster
+
+[[self-distillation-cluster-update-2026-07-17]] further closes the broad
+context-to-weights story. [[opsd-self-distilled-reasoner]] distills a
+verified-solution-conditioned same-model teacher on policy;
+[[sdft-continual-learning]] distills instance-specific demonstrations into a
+same model while reducing forgetting; and [[sdpo-rich-feedback]] distills
+runtime feedback and successful peer behavior into a policy. A claim that
+optimized context, interaction history, or a solution can be internalized and
+removed at deployment is now directly occupied.
+
+The fixed-artifact placement question remains narrower and testable because
+none of the three compares several independently versioned procedural skills
+for one named target both as runtime context and as reset-from-base,
+cost-matched post-withdrawal curricula. SDFT is the strongest direct collision
+and a mandatory same-model internalization baseline; OPSD is the unconditional
+privileged-context OPD baseline; SDPO is the rich-feedback baseline where the
+task exposes a verifier. Direct SFT/RL, context-only use, and the previously
+listed target-conditioned teaching baselines remain necessary.
+
+Two new gates are non-negotiable. First, measure whether privileged context
+actually makes the target reader a better task-level teacher before training;
+the cross-paper size results show that self-teaching can fail for weak models.
+Second, audit the implemented loss rather than inheriting its prose label:
+SDFT's manuscript says reverse KL, while the official repository says every
+headline result used forward KL on student/on-policy prefixes. No
+skill-lifecycle experiment was launched during this addendum.
+
 ## Immediate status
 
 - Primary-source and code custody is recorded in [[literature/index]].
@@ -515,6 +543,8 @@ Agent Skills Preserve Their Utility?”
   [[skillmaster]] materially narrowed the opening: contextual cross-reader
   ordering and aggregate post-training withdrawal are controls, not novelty.
 - The closest newly identified sources have dedicated wiki pages.
+- OPSD, SDFT, and SDPO are integrated as versioned downstream baselines in
+  [[self-distillation-cluster-update-2026-07-17]].
 - No benchmark, metric, architecture, or experiment has been committed.
 - The recommended next experiment is the action-value pilot in
   [[research-question-recommendation-2026-07-17]]; this skill study remains a
