@@ -12,14 +12,17 @@ Current map as of 2026-07-17.
    science track.
 4. [`../wiki/tracks/opd-distillation.md`](../wiki/tracks/opd-distillation.md)
    — gated engineering track.
-5. [`july_2026_completion_audit_2026-07-17.md`](july_2026_completion_audit_2026-07-17.md)
+5. [`../wiki/snapshots/self-distillation-cluster-update-2026-07-17.md`](../wiki/snapshots/self-distillation-cluster-update-2026-07-17.md)
+   — OPSD/SDFT/SDPO baseline and method-custody update; no experiment was
+   launched.
+6. [`july_2026_completion_audit_2026-07-17.md`](july_2026_completion_audit_2026-07-17.md)
    — local/EIT job and evidence reconciliation.
-6. [`signoff_log.md`](signoff_log.md) — cite-or-not gate.
-7. [`../wiki/literature/index.md`](../wiki/literature/index.md) — Obsidian map
+7. [`signoff_log.md`](signoff_log.md) — cite-or-not gate.
+8. [`../wiki/literature/index.md`](../wiki/literature/index.md) — Obsidian map
    into the persistent paper/repository vault.
-8. [`worktree_map_2026-07-17.md`](worktree_map_2026-07-17.md) — exact local/EIT
+9. [`worktree_map_2026-07-17.md`](worktree_map_2026-07-17.md) — exact local/EIT
    branches, storage roles, and recovery paths.
-9. [`archive_manifest_2026-07-17.md`](archive_manifest_2026-07-17.md) — what
+10. [`archive_manifest_2026-07-17.md`](archive_manifest_2026-07-17.md) — what
    left the active branches, what stayed, checksums, and restore paths.
 
 ## Evidence path

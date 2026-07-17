@@ -18,7 +18,7 @@ status: maintained
 | Controllable reasoning | Arora-Zanette, L1/LCPO, Inkling; secondary scan of ALP, BudgetThinker, SelfBudgeter, Thinkless | Fixed-penalty and single-model prompt-controlled reasoning effort are occupied. “Vary lambda across rollouts” is a mechanism lead, not a novelty claim. |
 | Efficient agent actions | OTC-PO, AutoSearch, Budget-Aware Tool-Use/BATS; Search-R1 and Agent Lightning infrastructure scan | Tool-call penalties, capability-aware minimal search depth, marginal intermediate-answer reward, and joint token/tool cost curves are occupied. The remaining candidate must use cross-reader counterfactual set utility and beat prompt-only budget awareness. |
 | Conflict/sufficiency | ConflictRAG, SURE-RAG, ArbGraph | Generic conflict detection/arbitration is occupied. A legal contribution needs authority, jurisdiction, date, and precedent structure, plus abstention/sufficiency. |
-| Skill internalization | SKILL0, SDAR, Skill1 | Broad skill internalization and same-policy co-evolution are occupied. Bare OPD is unsafe as the primary method; task RL and gap-gated distillation are the evidence-backed next design. |
+| Skill internalization | SKILL0, SDAR, Skill1, OPSD, SDFT, SDPO | Broad skill internalization, same-policy co-evolution, and privileged solution/demonstration/feedback-to-weights self-distillation are occupied. Bare OPD is unsafe as the primary method; target-specific teacher quality, task RL, and gap-gated distillation are required gates. |
 | Reviewer-named legal work | GuRE, KoBLEX and the existing legal-RAG pages | The old SCOPE method cannot be revived without directly engaging trained legal rewriting and provision-generation near-twins. |
 | Migrated legacy legal RAG sources | Zheng et al., LRAGE, L-MARS | The old local literature folder is now represented in the persistent vault and wiki. Component grids and generic agentic search/sufficiency loops are occupied; benchmark retrieval-dependence remains a crucial evaluation axis. |
 
@@ -45,6 +45,14 @@ SURE-RAG supplies set-level sufficiency, and budgeted search supplies fixed
 policies. AutoSearch now supplies a particularly close learned baseline for
 capability-aware minimal depth and marginal answer improvement. Our work must
 beat or explain those baselines, not rename them.
+
+The self-distillation update adds a separate boundary. OPSD, SDFT, and SDPO
+show that privileged solutions, demonstrations, and rich feedback can be
+distilled into no-context weights, but none estimates the reader-specific
+causal value of forcing an external action or the target regret of importing a
+teacher's action policy. Their cross-size failures make teacher quality a
+measured gate, not an assumption. See
+[[self-distillation-cluster-update-2026-07-17]].
 
 One possible implementation is [[effort-conditioned-resource-allocation]]:
 condition a single policy on reader, evidence-set state, hard budget, and a

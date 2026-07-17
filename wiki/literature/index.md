@@ -15,8 +15,8 @@ in the persistent EIT vault:
 
 `/engrfs/project/jacobsn/hiqbal/literature/legalrag/`
 
-The vault currently contains **27 checksummed PDFs**, **1 checksummed primary
-web snapshot**, and **11 shallow repository checkouts pinned to exact
+The shared vault currently contains **107 checksummed PDFs**, **4 checksummed
+primary web/code snapshots**, and **61 repository checkouts pinned to exact
 commits**. See
 [`eit_papers.sha256`](manifests/eit_papers.sha256) and
 [`eit_web.sha256`](manifests/eit_web.sha256), plus
@@ -41,6 +41,15 @@ contain working duplicates, but it is not the source of truth.
 
 ### OPD / skill distillation
 
+- [[self-distillation-cluster-update-2026-07-17]] — integrated OPSD/SDFT/SDPO
+  decision: context-to-weights self-distillation is occupied and capability-
+  gated, while causal action value remains a separate object.
+- [[opsd-self-distilled-reasoner]] — verified-solution-conditioned same-model
+  on-policy distillation.
+- [[sdft-continual-learning]] — demonstration-conditioned self-distillation
+  with a critical paper/code reverse-KL versus forward-KL discrepancy.
+- [[sdpo-rich-feedback]] — rich-feedback self-teaching whose token/logit
+  pseudo-advantage is not causal action value.
 - [[skill0]] — skills as transient scaffolding with helpfulness-driven
   withdrawal.
 - [[sdar]] — decisive safety/method correction: standalone or naively mixed

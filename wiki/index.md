@@ -22,6 +22,8 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[research-state-2026-07-17]] — current local/EIT/literature synthesis and decision gates
 - [[three-dial]] — primary research track
 - [[opd-distillation]] — gated skill-distillation track
+- [[self-distillation-cluster-update-2026-07-17]] — OPSD/SDFT/SDPO baseline,
+  capability, and method-custody update
 - [[scope-old]] — historical SCOPE branch/archive map
 - [[literature/index]] — persistent primary-source vault and manifests
 - [[coverage-audit-2026-07-17]] — novelty/coverage audit from nine new full-paper reads
@@ -60,6 +62,9 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[skill0]] — **skill internalization via curriculum RL** (arXiv 2604.02268, ZJU/Meituan); the meeting's distillation-bridge anchor; PDF+repo archived on EIT
 - [[sdar]] — task RL + gap-gated on-policy self-distillation; bare OPSD collapse is the OPD safety correction
 - [[skill1]] — unified skill selection/use/distillation; broad skill-internalization novelty is occupied
+- [[opsd-self-distilled-reasoner]] · [[sdft-continual-learning]] ·
+  [[sdpo-rich-feedback]] — verified-solution, demonstration, and rich-feedback
+  self-distillation; generic context-to-weights novelty is occupied
 - [[predicting-retrieval-utility]] · [[cue-r]] · [[beyond-relevance-utility]] — utility prediction/intervention landscape
 - [[budget-constrained-agentic-search]] — fixed search-budget/cost evidence
 - [[inkling-controllable-effort]] · [[training-language-models-to-reason-efficiently]] · [[l1-length-control]] — fixed-penalty versus single-model controllable reasoning-effort lineage

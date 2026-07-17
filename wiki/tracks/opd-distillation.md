@@ -15,10 +15,14 @@ The implementation path works end to end: job 93802 served a Qwen3-8B
 teacher, trained a Qwen3-1.7B student for three finite on-policy steps, and
 wrote checkpoints. This validates plumbing only.
 
-The literature gate is now closed: [[sdar]] and [[skill1]] were read. They
-invalidate broad novelty language and make bare OPD an unsafe primary arm.
-This branch now implements and CPU-tests the negative-gap-gated dense objective
-as `--mode opd_gated`; task reward is still not integrated.
+The literature gate now includes [[sdar]], [[skill1]], and the audited
+[[self-distillation-cluster-update-2026-07-17]]. Broad context-to-weights
+self-distillation is occupied: [[opsd-self-distilled-reasoner]],
+[[sdft-continual-learning]], and [[sdpo-rich-feedback]] cover verified
+solutions, demonstrations, rich feedback, and interaction history. Bare OPD
+remains an unsafe diagnostic rather than a primary arm. This branch implements
+and CPU-tests the negative-gap-gated dense objective as `--mode opd_gated`;
+task reward is still not integrated.
 
 ## Gates
 
@@ -28,6 +32,9 @@ as `--mode opd_gated`; task reward is still not integrated.
    remains a collapse diagnostic; loss finiteness is not success.
 3. **Outcome relevance:** evaluation is task accuracy and cost, including the
    BarExam/70B `llm_only` decision—not imitation loss alone.
+4. **Capability gate:** privileged context must improve the named target's
+   task-level teacher behavior before self-distillation; nonzero KL is not
+   sufficient.
 
 ## E3 arms if E2 passes
 
@@ -36,6 +43,14 @@ as `--mode opd_gated`; task reward is still not integrated.
 3. bare OPD diagnostic;
 4. student with skill in context but no training;
 5. trace KD for the closed-teacher comparison.
+6. applicable unconditional OPSD/SDFT/SDPO baseline from the same checkpoint,
+   with the implemented KL direction and teacher update recorded exactly.
+
+Keep acting utility, privileged-view teacher quality, and post-withdrawal
+acquisition utility separate. SDPO's feedback-conditioned log-ratio is a
+training signal, not causal external-action value. SDFT's paper says reverse
+KL, while its repository states that the headline runs used forward KL on
+student/on-policy prefixes.
 
 ## Candidate task extension
 
@@ -56,4 +71,5 @@ distillation method to a task with observable skill headroom.
 ## Links
 
 [[opd-skill0-design]] · [[skill-distillation-bridge]] · [[skill0]] ·
-[[sdar]] · [[skill1]] · [[alloc-internalization-rung2]]
+[[sdar]] · [[skill1]] · [[alloc-internalization-rung2]] ·
+[[self-distillation-cluster-update-2026-07-17]]

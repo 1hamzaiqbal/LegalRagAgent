@@ -387,3 +387,21 @@ snapshot were then copied to the persistent EIT vault and checksum-verified;
 Efficient Reasoning, L1, and AutoSearch code checkouts were also pinned there.
 Together with LRAGE and L-MARS repository migration, the vault now holds 27
 PDFs, one primary web snapshot, and 11 pinned repositories.
+
+## [2026-07-17] self-distillation cluster audit | OPD baselines expanded; no experiment launched
+
+Audited [[opsd-self-distilled-reasoner]], [[sdft-continual-learning]], and
+[[sdpo-rich-feedback]] from their papers and pinned official repositories.
+Recorded the integrated OPD-lane decision in
+[[self-distillation-cluster-update-2026-07-17]]. Generic solution,
+demonstration, feedback, or interaction-context distillation into weights is
+occupied. None of the three measures repeated forced-action task outcomes,
+action price, cross-reader action-value transport, or target regret from a
+teacher action oracle.
+
+The most important custody warning is SDFT's paper/code disagreement: the
+manuscript says reverse KL, while the repository says every headline result
+used forward KL on student/on-policy prefixes. The paper's knowledge-ablation
+prose also reverses its plotted answer-only and article-only ordering. The
+shared EIT vault now has manifests for 107 PDFs, four web/code snapshots, and
+61 pinned repositories. No experiment was launched.
