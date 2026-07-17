@@ -1,0 +1,991 @@
+\begin{abstract}
+    Legal RAG can fail at query formation, evidence exposure, or answer conversion;
+    a single accuracy number hides which one happened. \hll{Need some background introduction, like HyDE} We evaluate \hyre{}, a fixed
+    two-call generated-query method. The first call uses model priors to write a
+    private tentative answer and a neutral legal retrieval target; retrieval uses
+    only that target, and the second call answers from retrieved evidence. It improves over raw RAG on all three BarExamQA model
+    slices, including Gemma 4 26B (78.0\% to 82.0\%) and Llama 3.3 70B (74.6\% to
+    79.7\%). Across the broader signed/provenance ledger, 8 of 11 raw-RAG
+    comparisons improve accuracy, stay within a $\pm$1 pp downstream parity band,
+    or improve retrieval exposure. We analyze the cases where our method does not provide lift: raw anchors
+    remain hard to beat on Legal-Link-EU, MASLegalBench uses source-level proxy
+    retrieval labels, and HousingQA requires jurisdiction-aware retrieval. The
+    contribution is a coverage-explicit legal RAG evaluation that reports answer
+    accuracy, retrieval exposure, oracle controls, worked examples, and row
+    qualification notes together.
+    \end{abstract}
+
+    ----
+    \section{Introduction}\label{sec:intro}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{20_snap_hyre_pipeline_art.png}
+  \caption{Signal-preserving view of \hyre{} for legal RAG. A first model call
+  writes both a tentative answer and a retrieval-shaped legal passage, but only
+  the passage is embedded for retrieval. The second model call answers the
+  original question from retrieved legal text and does not receive the tentative
+  answer as evidence. The compact method diagram is in
+  Figure~\ref{fig:method_flow}.\hll{redraw this figure. use understandable expressions and consider providing a simple example}}
+  \label{fig:pipeline_art}
+\end{figure*}
+
+\hll{It's better to start with introducing RAG. Then, you can introduce the specialty of RAG in the legal domain. e.g., the discrepancy between abstract articles and specific cases requires reasoning along with retrieval.} Legal RAG looks, at first glance, like the cleanest case for retrieval-augmented
+generation \citep{lewis2020rag}. Legal questions point to statutes, holdings,
+regulations, administrative notices, and other textual authorities. If a system
+can retrieve the right passage, the answer should become easier; if retrieval
+misses, the answer should become harder. That simple story is appealing, but
+it is too coarse for actual legal evaluation. A raw question can have poor
+lexical overlap with the governing rule. A generated query can retrieve more
+gold evidence while also pulling in stronger distractors. A benchmark may
+already have high raw retrieval, leaving generated-query methods with little
+room to help. A model may retrieve the right passage and still choose the wrong
+multiple-choice option. A legal benchmark can also lack official passage
+labels, forcing retrieval exposure to be reported as a proxy rather than as
+passage-level Hit@k.
+
+Throughout the paper, \emph{retrieval exposure} means that retrieved context
+contains evidence that could support the right answer. \emph{Answer conversion}
+means that the final model uses that evidence to produce the correct answer.
+A system can answer incorrectly in either of these 2 ways: retrieve useful law and still
+answer wrongly, or answer correctly for reasons unrelated to retrieved
+evidence.
+
+This paper evaluates one fixed method whose prompting and retrieval procedure
+are held constant across datasets. \hll{Please explain the name when first mentioning it. What does HyRE mean? What do we want to convey with the name "snap"?}\hyre{} is a two-call generated-query
+method. \hll{The related work HyDE should be introduced here. How it does, and what is the flaw of HyDE. Then, we propose Snap-HyRE to address its flaw...}The first call is asked to do two things: produce a
+preliminary answer used only to condition the generated retrieval passage, and
+write a short neutral legal-reference passage that states the rule, standard,
+statutory condition, or legal relationship that would resolve the question. The
+retriever embeds that passage rather than the raw question. The second call
+then receives the original question and the retrieved corpus evidence; it does
+not receive the first call's preliminary answer as answer evidence. This design
+aims to separate prior-guided query formation from evidence-grounded answer
+selection, using reasoning to form a legal retrieval target, then forces the
+answer call to use retrieved evidence.
+
+The important point is that \hyre{} is presented as a solid fixed method, not
+as a method that is a panacea for retrieval. Our claim is
+that snap-conditioned generated legal passages are a good general intervention
+when the original question is a weak retrieval handle, and that their misses are
+usually predictable: they occur when the raw question already carries high-value
+document, jurisdiction, source, or notice anchors that generation can abstract
+away. In the main experiment, 6 of 9 cells where \hyre{} and raw RAG are both
+available either improve final accuracy or stay within a $\pm$1 pp downstream
+parity band; including starred HousingQA provenance rows, 8 of 11 comparisons
+improve accuracy, stay at parity, or improve retrieval exposure. On BarExamQA,
+where raw retrieval is extremely weak (Hit@5 0.0142), \hyre{} improves answer
+accuracy over raw RAG for every audited model cell: +2.4 pp for Llama 3.1 8B,
++4.0 pp for Gemma 4 26B, and +5.1 pp for Llama 3.3 70B. On HousingQA,
+generated-retrieval rows without the state filter are treated as provenance:
+they reveal wrong-jurisdiction drift in the national statute corpus and are
+not state-filtered main-matrix claims. On Legal-Link-EU the pattern mostly
+reverses: raw-question
+retrieval already retrieves a source or target gold document in most rows, so
+generated-query methods have little headroom, though Gemma 4 26B \hyre{}
+reaches answer parity with raw RAG and improves over HyDE. On MASLegalBench,
+answer accuracy is high and retrieval metrics are source-document proxies
+because per-question passage labels are absent.
+
+We report final answer
+accuracy, Hit@5/MRR@5 where the benchmark provides labeled relevant evidence
+passages or documents, source-document proxies where it does not and oracle
+gold-passage controls. The
+exact-scored main matrix is BarExamQA, HousingQA, Legal-Link-EU, and
+MASLegalBench across \method{groq-llama8b}, \method{or-gemma4-26b}, and
+\method{groq-llama70b}.
+
+We emphasize Gemma 4 26B as an interpretive center of gravity. The 8B model is
+often reasoning-limited, while the 70B model can answer from strong legal
+priors even when retrieval changes. Gemma 4 26B is strong enough to use
+evidence but still method-sensitive: on BarExamQA, \hyre{} is the best
+non-oracle canonical row; on Legal-Link-EU, it reaches raw-RAG parity while
+substantially beating HyDE.
+
+We make four contributions.
+
+\begin{enumerate}[leftmargin=*]
+\item We define and evaluate \hyre{} as a fixed snap-conditioned
+generated-query method, deliberately separating it from per-question
+method-selection claims.
+\item We assemble a legal RAG evaluation grid with explicit coverage annotations
+over four legal benchmarks and three hosted model configurations.
+\item We separate retrieval exposure from answer conversion. The audited rows
+show BarExamQA retrieval/answer gains, HousingQA jurisdiction-interface
+sensitivity, Legal-Link-EU retrieval degradation under generated queries with a
+Gemma 4 26B \hyre{} parity slice, MASLegalBench source-proxy saturation, and
+worked examples where generated legal passages repair raw-query misses.
+\item We package the evaluation with oracle controls, coverage status, and
+paper-facing qualification notes.
+\end{enumerate}
+
+---
+
+\section{Background and Related Work}\label{sec:preliminary}
+
+\paragraph{Retrieval-augmented generation.}
+RAG couples a parametric generator with a nonparametric evidence store
+\citep{lewis2020rag}. The usual promise is modular: a retriever supplies
+fresh or domain-specific evidence, and the generator conditions on that
+evidence to answer. This promise is especially plausible in law because many
+answers turn on identifiable text. But legal RAG inherits the same bottlenecks
+as open-domain RAG: the retrieval query may not match the corpus
+language, the right passage may be ranked below distractors, the generator may
+ignore or misuse evidence, and the evaluation may conflate these stages.
+Fusion-in-decoder and related architectures \citep{izacard2021fid} emphasize
+how much downstream answer quality depends on the reader's ability to use
+retrieved passages, not just on whether a retriever can surface them.
+
+\paragraph{Generated-query retrieval and HyDE.}
+\hll{Please **briefly** introduce HyDE in the Introduction section. You can introduce more details about HyDE here, if needed.}
+HyDE generates a hypothetical document from a query and embeds that document
+for dense retrieval \citep{gao2023hyde}. Query2doc and related expansion
+methods similarly ask a language model to turn sparse query text into richer
+retrieval handles \citep{wang2023query2doc}. These methods fit
+legal questions because the question stem may describe facts while the corpus
+uses doctrinal or statutory language. \hyre{} follows this generated-query
+line but adds a preliminary answer before the generated passage. The passage
+should look like the legal rule or statutory condition implicated by that
+candidate answer signal, not like a final answer explanation. The risk is that
+answer-conditioning can also import a wrong prior or erase useful anchors; the
+evaluation therefore treats \hyre{} as a hypothesis about retrieval handles, not
+as guaranteed self-verification. For example, a yes/no housing question may describe a
+tenant's conduct, while the retrieval corpus phrases the relevant law as a
+landlord's statutory remedy. In theory, the first
+call can use the model's legal priors to choose a retrieval vocabulary, while
+the second call still answers from retrieved corpus evidence.
+
+\paragraph{Fixed-method stance.}
+Some retrieval-augmented systems decide when to retrieve or how to revise
+generation at inference time, for example by learning reflection tokens or
+adding corrective retrieval steps \citep{asai2024selfrag,jiang2023flare,yan2024crag}.
+Here, every benchmark cell uses the same fixed method ladder\hll{I don't quite get the meaning of "ladder". I notice this notion is also used in the Method section. You can explain it a little bit, or use another expression.}, and the analysis
+asks where the fixed \hyre{} intervention helps or hurts. The borrowed
+evaluation discipline is
+stage separation: report not only whether an answer is right, but also which
+retrieval, oracle, or formatting stage appears to be binding.
+
+\paragraph{Legal NLP and legal RAG.}
+\hll{legal RAG is enough. No need to mention legal NLP.} Legal NLP benchmark suites and legal-text corpora have helped standardize
+language-understanding, legal-reasoning, and corpus-grounded evaluation
+\citep{guha2023legalbench,chalkidis2022lexglue,henderson2022pileoflaw}.
+Recent work has also highlighted that legal assistants can hallucinate or cite
+unreliably in practice \citep{magesh2024hallucinations}, motivating source
+grounding and careful audit trails. Legal RAG benchmarks such as LegalBench-RAG
+and Legal RAG Bench emphasize the need to evaluate retrieval and answer quality
+together \citep{pipitone2024legalbenchrag,butler2026legalragbench}. Our matrix
+uses two related legal QA tasks, BarExamQA and HousingQA, plus two project-local
+exact-scored legal retrieval-answer tasks, Legal-Link-EU and MASLegalBench.
+Legal-Link-EU provides source/target document golds for a legal-link prediction
+task over a frozen EU-law corpus. MASLegalBench provides multiple-choice
+penalty-notice questions over a frozen source corpus, but no official
+per-question passage labels; we therefore report its retrieval metrics as
+same-source-document proxies.
+
+\paragraph{Evaluation stance.}
+\hll{Please move this part to experiment section} We report only result rows whose answer, retrieval, and metric records are
+complete enough to interpret. We distinguish four kinds of numbers. Final
+answer accuracy is the downstream task metric. Hit@5/MRR@5 are retrieval
+exposure metrics only when benchmark relevance labels identify which passages
+or documents count as correct evidence: Hit@5 asks whether such evidence
+appears in the top five, while MRR@5 gives more credit when it appears earlier.
+Oracle controls inject the gold passage, or the gold passage plus
+neighbors, and are diagnostics rather than deployable systems. Finally,
+coverage describes which expected cells are complete, open, or not applicable.
+We include both downstream performance and retrieval performance, as within a real world system both are relevant.
+
+---
+\section{Method}\label{sec:method}
+
+\subsection{Fixed Method Ladder}
+\hll{Still the "ladder" thing. Explain or change an expression.}
+The experiment evaluates a fixed method ladder. Each canonical row
+changes one major source of information or one query-generation step, but the
+ladder is not chosen per question or per dataset. All non-oracle retrieval rows
+use the same final answer depth, $k=5$, in the main answer matrix.
+
+The oracle rows are not deployable methods. They answer a different question:
+if a model receives the labeled evidence, can it use that evidence to select
+the right answer? They are therefore diagnostic controls for answer synthesis,
+not retrieval baselines.
+
+\begin{table*}[t]
+\centering
+\caption{Canonical method ladder. Call counts are conceptual end-to-end LLM
+calls. The retrieval-query column names what is embedded or used to find
+context; the final-context column names what is shown to the answer call.
+Measured usage summaries in Section~\ref{sec:analysis} are reported separately
+when available.\hll{Please do not put this kind of table in a research paper. There are too many words. You can use itemize to list these methods, instead of a table.}}
+\label{tab:method_ladder}
+\scriptsize
+\begin{tabularx}{\textwidth}{llcYYY}
+\toprule
+Row & Mode & Calls & Retrieval query & Final answer context & What the row tests \\
+\midrule
+0 & \method{llm_only} & 1 & none & original question only & Parametric baseline with no retrieval. \\
+1 & \method{rag_simple} & 1 & raw question & original question plus top-$k$ retrieved evidence & Raw-question retrieval baseline. \\
+2 & \method{rag_hyde} & 2 & generated hypothetical legal passage, without a snap answer prior & original question plus top-$k$ evidence retrieved by that passage & Whether generated legal prose helps retrieval without snap conditioning. \\
+3 & \method{snap_hyre} & 2 & generated HyRE legal-reference passage, conditioned by a private candidate answer signal & original question plus top-$k$ evidence retrieved by the HyRE passage; the preliminary answer is not shown & Primary method: whether snap-conditioned legal prose is a better retrieval handle. \\
+4 & \method{rag_rewrite} & 2 & structured rewritten search query or query set & original question plus top-$k$ evidence retrieved by the rewrite & Non-HyDE generated-query control. \\
+5 & \method{golden_passage} & 1 & none; labeled evidence is supplied & original question plus the labeled gold passage & Oracle evidence control for answer use, not a deployable retrieval method. \\
+6 & \method{golden_plus_neighbors} & 1 & gold passage text used as the neighbor query & original question plus gold evidence and neighboring legal text & Whether extra plausible legal context helps or distracts once gold evidence is present. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\subsection{Dataset Interfaces}\label{sec:method:dataset_interface}
+
+The method ladder is fixed, but each benchmark has its own answer format,
+evidence corpus, and relevance labels. Table~\ref{tab:dataset_interface}
+separates those dataset-interface details from the method definitions. This is
+important because generated-query rows use a retrieval-side representation of
+the task, while raw RAG retrieves from the benchmark's raw retrieval text. For
+multiple-choice datasets, generated-query methods receive the same stem and
+fact pattern as the final answer prompt plus option texts rendered without gold
+labels or correctness markers. The final answer call still receives the
+original labeled answer format.
+
+\begin{table*}[t]
+\centering
+\caption{Dataset interfaces used by the canonical methods. The row definition
+is fixed across datasets; answer format, corpus, labels, and required metadata
+filters are dataset properties.}
+\label{tab:dataset_interface}
+\scriptsize
+\begin{tabularx}{\textwidth}{lYYYY}
+\toprule
+Dataset & Final answer format & Raw retrieval query & Generated-query input & Evidence and retrieval metric \\
+\midrule
+BarExamQA & Multiple-choice letter, A--D. & Shared fact pattern and question stem, excluding answer labels/options. & Fact pattern, stem, and option texts without correctness markers, used only to write a legal-reference passage or rewrite. & Frozen bar-support passages with official gold passage ids; Hit@5/MRR@5 over gold ids. \\
+HousingQA & \texttt{Yes}/\texttt{No}. & Question text with required jurisdiction state filter. & State-framed question, e.g. ``Regarding [state] housing law,'' with the same state filter applied at retrieval. & State housing statutes; any matching gold statute counts. Unfiltered rows are starred provenance. \\
+Legal-Link-EU & Multiple-choice letter, A--D. & Question text with explicit source document, target document, and relation anchors. & Relation type, question text, and unlabeled candidate-answer framing; generated passages are free-form rather than forced anchor copies. & Frozen EUR-Lex evidence corpus; source or target gold document exposure. \\
+MASLegalBench & Multiple-choice letter, A--D. & Question text over the penalty-notice corpus. & Question text plus unlabeled candidate-answer framing. & Penalty-notice source corpus; retrieval is a same-source proxy because official passage gold is unavailable. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+Two consequences follow. First, HousingQA's state filter is not a Snap-HyRE
+feature; it is a uniform dataset interface for all retrieval rows because the
+question names a jurisdiction and the corpus contains many jurisdictions. The
+filter is derived from the question's jurisdiction/state field and restricts
+retrieval to documents with matching state metadata. Rows without that contract
+are reported only as unfiltered provenance. Second, Legal-Link-EU and
+MASLegalBench are anchor-rich: raw questions often contain document or source
+cues that generated legal prose can accidentally abstract away. For
+MASLegalBench, same-source exposure means that a retrieved passage maps to the
+same source-document identifier as the question's source material; it is not
+evidence that the retrieved passage contains the answer-bearing span.
+
+\subsection{Snap-HyRE Mechanics}\label{sec:method:snaphyre}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.95\textwidth]{21_snap_hyre_method_flow.png}
+  \caption{\hyre{} flow. The first model call produces both a preliminary
+  answer and a retrieval-shaped hypothetical legal reference passage. Retrieval
+  uses the passage. The second model call receives the retrieved evidence and
+  the original question; the preliminary answer is recorded but not handed in as
+  evidence.}
+  \label{fig:method_flow}
+\end{figure*}
+
+For a formatted legal question $q$, \hyre{} performs:
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Preliminary answer and passage generation.} The model receives the dataset's
+direct-answer prompt plus instructions to emit a required final answer line and
+a separate \texttt{\#\# Passage} block. The preliminary answer lets model
+priors select legal vocabulary for retrieval. The passage must be short,
+neutral, and reference-style: it should describe the controlling rule,
+statutory condition, legal relationship, or doctrinal test without using answer
+labels or an \texttt{Answer:} header.
+\item \textbf{Output validation.} The first call must contain both a preliminary answer
+in the dataset's answer format and a separate retrieval passage. Outputs that
+do not satisfy this interface, that include option labels such as
+\texttt{Answer: (C)} inside the retrieval passage, or
+that produce overlong passages are excluded from reported results.
+\item \textbf{Retrieval.} The retriever uses only the hypothetical
+legal-reference passage as the query. The preliminary answer is not evidence.
+Retrieval uses the same dataset corpus, embedding model, hybrid retrieval
+stack, and cross-encoder reranking path as the other retrieval rows.
+\item \textbf{Final answer.} The final model call receives the retrieved
+evidence and the original formatted question. It must emit the dataset-specific
+final answer line, such as \texttt{Answer: (C)} or \texttt{Answer: Yes}.
+\end{enumerate}
+
+\begin{algorithm}[t]
+\caption{\hyre{} for one question}
+\label{alg:snaphyre}
+\begin{algorithmic}[1]
+\STATE Format question $q$ using the dataset answer interface.\hll{Consider adding some pseudo code. The current content doesn't look like an algorithm.}
+\STATE Generate preliminary answer $a_0$ and passage $p$ from $q$.
+\STATE Validate that $a_0$ has the required answer format and $p$ is a clean retrieval passage.
+\STATE Retrieve and rerank top-$k$ evidence using $p$ as the only query.
+\STATE Answer the original question from retrieved evidence; do not supply $a_0$ as evidence.
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Other Rows}
+\hll{This is supposed to be in the experiment section. Besides, the introduction to each method is too long. try to keep each within 1-2 sentences.}
+\paragraph{LLM only.}
+\method{llm_only} uses the final formatted question and no retrieved evidence.
+It is the parametric answer baseline.
+
+\paragraph{Raw RAG.}
+\method{rag_simple} performs no query-generation call. It retrieves with the
+raw retrieval text for the dataset: BarExamQA includes the shared fact pattern
+when present, HousingQA uses the question text under the state filter for main
+rows, and Legal-Link-EU/MASLegalBench use the question text that carries the
+benchmark's document or source anchors. The final answer call receives the
+retrieved top-$k$ evidence and the fully formatted question.
+
+\paragraph{HyDE.}
+\method{rag_hyde} generates a hypothetical legal reference passage from the
+retrieval-side question representation in Table~\ref{tab:dataset_interface}.
+For multiple-choice datasets, this representation may include unlabeled
+candidate-answer framing, but the HyDE passage is instructed not to choose an
+option or emit an answer line. The row isolates whether generated legal prose
+helps retrieval independent of the snap answer prior used by \hyre{}.
+
+\paragraph{Rewrite.}
+\method{rag_rewrite} asks a query-rewriter prompt to emit structured search
+queries from the same retrieval-side question representation used by HyDE and
+\hyre{}. The rewrite call emits JSON with a primary query and optional
+alternative queries. Retrieval pools candidates from the emitted query strings,
+deduplicates document ids, and applies the same reranking and top-$k$ truncation
+as the other retrieval rows. Invalid rewrite outputs are excluded rather than
+silently replaced with raw-question retrieval.
+
+\paragraph{Oracle controls.}
+\method{golden_passage} injects the labeled gold passage. \method{golden_plus_neighbors}
+injects the labeled gold passage as Source 1, then retrieves with the gold
+passage text as the neighbor query, removes the gold id from the neighbor pool,
+and fills the remaining $k-1$ context slots using the same corpus, metadata
+filter, deduplication, and reranking path as the dataset's retrieval rows. These
+rows are especially important in law because a single labeled passage may be
+under-specified, while additional legal neighbors may either supply needed
+context or introduce distracting authority. MASLegalBench has no official
+passage-level gold labels, so these oracle rows are not defined there.
+
+\paragraph{Probe-only exemplar variants.}
+We also track a non-canonical probe called \method{snap_hyre_exemplar}. It keeps
+the same two-call \hyre{} structure but adds one fixed, dataset-specific
+real-passage-style exemplar to the first-call generation prompt. The exemplar
+has its associated question, answer, and document id removed. It is therefore a
+style signal about what a useful corpus passage looks like, not row-specific
+answer evidence. The companion \method{rag_hyde_exemplar} control applies the
+same style signal without the preliminary answer. These rows are not part of the
+audited main matrix unless they later pass the same generation, retrieval,
+answer, and audit gates as canonical \hyre{}.
+
+\subsection{Evaluation Protocol}
+
+Retrieval exposure is evaluated at Hit@1/5/10 when passage-level gold evidence
+is available. The main answer matrix uses the same final evidence depth,
+$k=5$, for all non-oracle retrieval rows.
+
+Unless a row-level note says otherwise, runs use seed 42 for dataset sampling
+and cache naming, temperature 0 for hosted model calls, and strict
+no-silent-fallback execution. The retrieval stack uses Chroma collections built
+with \method{Alibaba-NLP/gte-large-en-v1.5} embeddings, optional BM25 candidate
+pooling when feasible for the collection, and
+\method{cross-encoder/ms-marco-MiniLM-L-6-v2} reranking before top-$k$
+truncation. Answer rows use a 2048-token completion cap with logged
+same-model/same-evidence format retries for malformed final answer lines.
+
+Rows are included in paper-facing claims only when they satisfy the following
+conditions:
+
+\begin{itemize}[leftmargin=*]
+\item The method, model, dataset, and answer depth match the intended row.
+\item Final answers are present and parseable in the dataset-specific format.
+\item Each evaluated example has one retrieval record, enough retrieved documents
+for the requested $k$, and benchmark-provided relevance labels when available.
+\item The result record names the metric values and any paper-facing note needed
+to interpret the row.
+\end{itemize}
+
+\subsection{Metrics}
+
+The downstream metric is exact answer accuracy. Multiple-choice tasks use the
+last valid answer line, such as \texttt{Answer: (A)} through
+\texttt{Answer: (D)} or \texttt{Answer: (E)} depending on the dataset. HousingQA uses
+\texttt{Answer: Yes} or \texttt{Answer: No}. Retrieval exposure is Hit@5 and
+MRR@5 where the dataset supplies benchmark relevance labels that identify the
+correct passages or documents. HousingQA also tracks
+multiple-gold statute recall internally, but the main table reports any-gold
+Hit@5/MRR@5. MASLegalBench has no official per-question gold passage ids, so
+retrieval exposure is reported as a same-source-document proxy.
+
+We also report paired McNemar tests when available, but we do not
+require every audited row to have a significance comparison. Many of the most
+important findings are directional comparisons across retrieval and oracle
+diagnostics rather than a single pairwise test.
+
+---
+\section{Experimental Setup}\label{sec:experiment}
+
+\subsection{Benchmarks}
+
+The exact-scored main matrix contains four legal benchmarks:
+BarExamQA, HousingQA, Legal-Link-EU, and MASLegalBench.\hll{Proper citations are needed.}
+
+The experiment is designed around three questions. First, when does a
+snap-conditioned generated legal passage improve retrieval exposure over the
+raw question? Second, when does that exposure convert into final answer
+accuracy? Third, when do oracle evidence controls show that retrieval is no
+longer the binding failure point?
+
+We do not treat all four benchmarks as equally probative of the same claim.
+Each benchmark was built for a different public task, and some tasks naturally
+reward raw lexical anchors more than generated abstraction. Table~\ref{tab:benchmark_role}
+therefore records the role each benchmark plays in this paper. BarExamQA and
+the state-filtered HousingQA interface are the primary method tests.
+Legal-Link-EU and MASLegalBench are boundary analyses for anchor-rich or
+proxy-labeled retrieval.
+
+\input{tables/benchmark_role.tex}
+
+\hll{The following introductions to benchmarks are too long. Conclude all of them within one short paragraph.}
+\paragraph{BarExamQA.}
+BarExamQA contains 1,195 multiple-choice bar-exam questions in the full
+evaluation split used in this paper. The task is answer selection over four options, scored by exact answer
+letter. Retrieval uses a frozen legal-passage collection with aligned gold
+passage ids. This dataset is the clearest case where raw-question retrieval is
+weak and generated legal query handles can matter.
+
+\paragraph{HousingQA.}
+HousingQA contains 6,853 yes/no statutory entailment questions. The corpus is a
+large state-housing-statute collection. Some rows have multiple gold statutes,
+so retrieval exposure is interpreted as any-gold exposure in the main tables.
+The main matrix now requires a jurisdiction state filter for HousingQA retrieval
+rows. Earlier unfiltered national-corpus rows are retained only as starred
+provenance because they often retrieve plausible statutes from the wrong state;
+the state filter is a dataset-interface correction applied uniformly to raw
+RAG, HyDE, \hyre{}, rewrite, and gold-plus-neighbor retrieval rows.
+
+\paragraph{Legal-Link-EU.}
+\hll{If we decide to remove this benchmark, please remember to delete this part.}
+Legal-Link-EU contains 1,127 four-way multiple-choice legal-link prediction
+questions over a frozen EUR-Lex evidence corpus. Rows ask which legal
+relationship holds between EU legal documents, such as whether one document is
+the source or target for the asserted relation. Retrieval exposure counts
+whether source or target gold evidence appears in the top retrieved passages.
+Because the questions and choices often preserve document titles, relation
+names, citations, and other source/target anchors, this benchmark is not a pure
+test of whether generated passages can improve weak raw retrieval. It is a
+stress test for whether generated queries can avoid erasing useful anchors.
+
+\paragraph{MASLegalBench.}
+
+MASLegalBench contributes 303 exact-scored multiple-choice questions over a
+frozen corpus of penalty-notice source material. It has no official
+per-question gold passage ids; the closest available signal is whether
+retrieved material comes from the same source document as the question.
+Therefore, MAS retrieval values in this paper
+are same-source-document proxies, not gold-passage Hit@k.
+\method{golden_passage} and \method{golden_plus_neighbors} are marked not
+applicable.
+
+\subsection{Models and Providers}
+\hll{There's no need to reveal the provider information.}
+The grid uses three hosted model configurations:
+
+\begin{itemize}[leftmargin=*]
+\item \method{groq-llama8b}: Llama 3.1 8B Instant, the small-model axis.
+\item \method{or-gemma4-26b}: Gemma 4 26B through OpenRouter.
+\item \method{groq-llama70b}: Llama 3.3 70B Versatile, the larger-model
+cross-family axis.
+\end{itemize}
+
+Provider labels identify the exact API route used for reproducibility; the main
+tables show the underlying model family. For example,
+\method{groq-llama8b} is the audit/provider label, while ``Llama 3.1 8B'' is
+the display label in result tables.
+
+\subsection{Coverage WHATS LEFT TO RUN}
+
+\input{tables/current_coverage.tex}
+
+The signed set contains 61 of 78 expected main exact-scored answer cells. Ten
+additional HousingQA retrieval-context cells are shown as unfiltered provenance
+rather than counted as main results. Two state-filtered HousingQA answer cells,
+Llama 3.1 8B raw RAG and Llama 3.3 70B \hyre{}, are marked with daggers because
+they are not signed answer results in this matrix; the HousingQA Gemma 4 26B
+LLM-only row is omitted for the same reason. The state-filtered raw HousingQA
+retrieval check has Hit@5/MRR@5 0.3695/0.2330; the corresponding
+state-filtered Llama 70B \hyre{} retrieval check is 0.2311/0.1427. These
+retrieval-side checks are not answer-accuracy claims. Cells without signed
+answer results are left blank rather than imputed. This matters for
+interpretation: cross-dataset means are unbalanced in the partially signed
+matrix.
+
+\subsection{Audit Scope}
+\hll{What does this subsection want to say?}
+All main tables are drawn from the audited result set. Missing rows remain
+missing, MASLegalBench retrieval is labeled as a same-source proxy, and starred
+HousingQA values are paper-visible provenance rows, not final state-filtered
+main-matrix claims.
+
+---
+\section{Results and Analysis}\label{sec:analysis}
+
+\subsection{Main Results}
+
+A few conventions matter before reading the tables. Asterisks mark unfiltered
+HousingQA provenance, not main claims; daggers mark state-filtered HousingQA
+answer rows without signed answer results in this matrix. MASLegalBench
+retrieval values are same-source proxies rather than passage-level gold-evidence metrics. Bold marks
+the strongest non-oracle main-matrix answer accuracy within a dataset/model
+slice, excluding starred provenance rows. Appendix~\ref{sec:appendix:additional}
+keeps the fuller plot inventory visible without making every supplemental figure
+carry the main story. We use a $\pm$1 pp answer band as practical downstream
+parity when summarizing method consistency across the partially signed matrix.
+
+\subsection{Audited Answer Matrix}
+
+\input{tables/current_answer_matrix.tex}
+
+Table~\ref{tab:answer_matrix} is the main results table. It supports four
+high-level readings.
+
+\paragraph{BarExamQA is the strongest \hyre{} setting.}
+Raw retrieval is extremely weak on BarExamQA: the audited raw RAG retrieval
+exposure is Hit@5 0.0142 and MRR@5 0.0068. Generated-query methods improve
+retrieval exposure by an order of magnitude, and \hyre{} improves final answer
+accuracy over raw RAG for all three audited models. It also beats HyDE
+retrieval on all three models, which is the most direct evidence that the snap
+answer can sharpen the generated legal passage beyond a question-only
+hypothetical answer. The strongest audited cell is Gemma 4 26B, where raw RAG
+is 932/1195 = 78.0\% and \hyre{} is 980/1195 = 82.0\%, a +4.02 pp paired
+improvement with McNemar $p=0.000699$. Llama 3.3 70B shows a similar audited
+gain: raw RAG 74.6\%, \hyre{} 79.7\%, $p = 2.70\times 10^{-5}$. This is the
+cleanest evidence for the proposed mechanism in a weak-raw-retrieval setting.
+
+\paragraph{HousingQA is a jurisdiction-interface result.}
+The signed HousingQA Llama retrieval rows in this draft are retained as
+unfiltered provenance rather than final main-matrix claims. In those rows,
+generated retrieval changes answer accuracy substantially: for Llama 70B, raw
+RAG is 47.3\%, HyDE is 58.9\%, \hyre{} is 52.4\%, and rewrite is 55.8\%; for
+Llama 8B, \hyre{} is essentially tied with raw RAG (57.4\% versus 57.3\%),
+while rewrite reaches 63.4\%. The fair main-matrix interpretation, however, is
+that HousingQA needs a state-aware retrieval interface because the unfiltered
+national corpus can retrieve plausible wrong-jurisdiction statutes. The
+state-filtered raw retrieval check raises raw Hit@5/MRR@5 from the old
+unfiltered 0.0282/0.0148 to 0.3695/0.2330. The state-filtered Llama 70B
+\hyre{} retrieval check is lower, 0.2311/0.1427. Two state-filtered answer
+rows are marked with daggers rather than cited as answer-accuracy results.
+HousingQA therefore tests whether \hyre{} adds value after jurisdiction scope
+is fixed; the unfiltered rows do not settle the method ranking.
+
+\paragraph{Legal-Link-EU is retrieval-saturated for raw RAG.}
+Legal-Link-EU has very strong raw retrieval: Hit@5 0.9059 and MRR@5 0.7621
+for the raw-question row. The generated-query methods generally retrieve less
+gold exposure than raw RAG and often reduce answer accuracy. The boundary is
+not uniform, though. For Gemma 4 26B, \hyre{} retrieves more gold exposure than
+HyDE (Hit@5 0.6788 versus 0.4898) and rewrite (0.5439), and improves final
+accuracy over HyDE (78.3\% versus 74.2\%) while remaining at practical parity
+with raw RAG (78.3\% versus 78.5\%). For Llama 70B, \hyre{} also retrieves
+more gold exposure than HyDE and rewrite (Hit@5 0.7249 versus 0.5466 and
+0.6584), but final accuracy trails raw RAG. This is a useful boundary result,
+not a harness failure: when the raw question already expresses the legal-link
+task in corpus language, a generated passage can move away from exact
+source/target document anchors.
+
+\paragraph{MASLegalBench is high-accuracy and proxy-labeled.}
+MASLegalBench answer accuracy is high for all models, especially Gemma 4 26B
+(95.7\% LLM-only, 94.7\% raw RAG, 93.4\% \hyre{}). Retrieval exposure is a
+same-source-document proxy rather than a passage-level gold-evidence metric.
+The raw same-source proxy is higher than the generated-query proxies, but
+answer accuracy is already near saturation: \hyre{} improves over raw for
+Llama 8B (88.1\% versus 86.1\%), is within the $\pm$1 pp parity band for
+Llama 70B (92.1\% versus 92.7\%), and is a modest miss for Gemma 4 26B
+(93.4\% versus 94.7\%). The paper therefore treats MAS as an answer
+consistency and source-proxy retrieval setting, not as a primary gold-passage
+retrieval benchmark.
+
+\subsection{Snap-HyRE Versus Raw RAG}
+
+\input{tables/snap_positive_ledger.tex}
+
+\input{tables/current_snap_deltas.tex}
+
+% \begin{figure*}[t]
+%   \centering
+%   \includegraphics[width=0.95\textwidth]{24_snap_vs_raw_delta.png}
+% \caption{Audited answer deltas for \hyre{} versus raw RAG. \hyre{} is
+%   consistently positive on BarExamQA, weak-to-positive on starred unfiltered
+%   HousingQA provenance rows, near parity for the Gemma 4 26B Legal-Link-EU
+%   slice, and mixed on MASLegalBench.\hll{This figure is exactly the last column of Table 7. Consider remove this figure.}}
+%   \label{fig:snap_delta}
+% \end{figure*}
+
+Table~\ref{tab:snap_positive_ledger} foregrounds the cells that support the
+positive method claim before Table~\ref{tab:snap_deltas} shows the full
+ledger, including misses. The audited \hyre{} deltas support a positive but
+qualified reading. In the signed main rows, 6 of 9 comparable raw-RAG cells
+either improve final accuracy or stay within a $\pm$1 pp downstream parity
+band. If the two starred HousingQA provenance rows are included for diagnosis,
+the broader ledger has 11 comparable cells: \hyre{} has a mean downstream delta
+of +0.7 pp, six cells improve final accuracy, three more are within the parity
+band, and eight cells either improve accuracy, stay at parity, or improve
+retrieval exposure.
+That makes \hyre{} a solid fixed generated-query method, even though it is not
+the best row in every dataset/model slice. Its misses are interpretable:
+generated legal passages are not automatically better retrieval handles for
+tasks whose raw question already names the right documents or whose answer
+space is nearly saturated. Additional control and mean-delta views are in
+Appendix~\ref{sec:appendix:additional}.
+
+\subsection{Retrieval Exposure and Answer Conversion}
+
+\input{tables/current_retrieval_matrix.tex}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.85\textwidth]{25_retrieval_answer_delta.png}
+  \caption{Retrieval accuracy versus answer accuracy delta, both relative
+  to raw RAG. Points above zero on the $y$ axis improve final accuracy; points
+  right of zero improve Hit@5 or same-source@5. MASLegalBench points use the
+  same-source@5 proxy. The mixed quadrants show why retrieval and answer
+  accuracy must be reported together. Selected point labels identify
+  large-magnitude dataset/model slices; HousingQA point labels are starred
+  because they use unfiltered provenance rows.}
+  \label{fig:retrieval_answer_delta}
+\end{figure*}
+
+Table~\ref{tab:retrieval_matrix} and Figure~\ref{fig:retrieval_answer_delta}
+diagnose whether answer changes track retrieval changes. BarExamQA sits in the
+desirable quadrant: generated queries increase Hit@5 and final accuracy.
+Legal-Link-EU is the opposite in most model slices: generated queries lower
+Hit@5 relative to a very strong raw retriever and often lower answer accuracy,
+with the Gemma \hyre{} row providing the main generated-query exception.
+HousingQA shows a retrieval-interface problem rather than a settled method
+ranking, because the visible generated rows are unfiltered provenance.
+MASLegalBench shows why proxy retrieval has to be labeled: same-source exposure
+can move in a different direction from already-high final accuracy.
+
+\subsection{Worked Examples: Why the Pattern Holds}
+
+\input{tables/worked_examples.tex}
+
+Table~\ref{tab:worked_examples} shows the mechanism behind the aggregate
+numbers. On BarExamQA, the raw question embeds as a back-injury fact pattern,
+while the \hyre{} passage names the hearsay exception for medical diagnosis and
+treatment; that shift retrieves the gold rule passage and flips the answer.
+On Legal-Link-EU, \hyre{} can also help when the generated passage preserves
+the governing act and relation, but the dataset-level boundary remains: many
+raw questions already contain the exact source/target anchors. On HousingQA,
+the example is provenance-only because it comes from the unfiltered national
+corpus, but it illustrates why jurisdiction and statutory-role vocabulary
+matter: the raw and HyDE queries miss the Hawaii landlord-remedy statute, while
+the \hyre{} query lands on the exact waste-remedy provision.
+
+\FloatBarrier
+
+\subsection{Oracle Evidence Controls}
+
+Oracle rows are not ceilings in a pure sense, but they expose how much answer
+headroom remains if retrieval is bypassed. These controls test use of a labeled
+passage under the paper's prompt and context contract; they are not upper bounds
+on task accuracy, especially when a single gold passage omits
+option-disambiguating context. The unfiltered HousingQA provenance rows have a
+large oracle gap: for Llama 70B, raw RAG is 47.3\%, gold passage is 67.3\%,
+and gold plus neighbors is 66.0\%. This is not a state-filtered HousingQA
+answer claim. Legal-Link-EU also has large oracle gains, especially for Gemma
+4 26B (raw RAG 78.5\%, gold passage 96.0\%).
+BarExamQA is different: oracle rows are only slightly above or sometimes below
+generated-query rows, which suggests that answer selection and option reasoning
+can dominate the value of a single gold passage. Across datasets,
+gold-plus-neighbor rows are often below gold-only rows, showing that extra
+plausible legal text can dilute rather than improve a gold signal.
+
+The full oracle-control table is in Appendix~\ref{sec:appendix:additional}.
+
+\subsection{Takeaway}
+\hll{You can add small text boxes after each subsection findings.}
+The audited matrix supports a positive but bounded conclusion. \hyre{} is a
+solid fixed generated-query method in the regime it was designed for: legal
+questions whose raw wording is a poor retrieval query. It does not need to be a
+universal replacement for raw RAG to be useful, because the boundary cases are
+interpretable rather than arbitrary. The value of the paper is the joint
+accounting: answer accuracy, retrieval exposure, oracle controls, coverage,
+worked examples, and qualification notes move together. That joint view turns
+mixed results into a methodologically useful result rather than a
+leaderboard-only story.
+
+---
+\section{Discussion and Conclusion}\label{sec:conclusion}
+\hll{Let conclusion be a separate section. The limitations can be put in another separate section, because the limitations don't count in the 8-page limitation.}
+\paragraph{What the evidence says.}
+\hyre{} is best understood as a fixed generated-query intervention whose
+usefulness depends on the retrieval surface of the task. It is strongest when
+the raw question fails to look like the governing legal rule, as in BarExamQA.
+It is less useful when the raw question already maps cleanly to source and
+target legal documents, as in Legal-Link-EU. It can be positive but weaker than
+plain HyDE in the unfiltered HousingQA provenance rows; those rows are not
+state-filtered main-matrix claims. On MASLegalBench, answer accuracy is high
+enough and retrieval labels
+are weak enough that source-proxy retrieval should be interpreted cautiously.
+For a page-limited workshop version, this argues for a sharper main/appendix
+split: use BarExamQA and the state-filtered HousingQA interface as primary
+method tests, and use Legal-Link-EU and MASLegalBench as boundary analyses
+showing when raw anchors or source-proxy labels dominate.
+
+\paragraph{Evaluation limitations.}
+The matrix is partially signed. It has 61 signed main-matrix cells out of 78
+expected cells under the HousingQA state-filter rule. Ten unfiltered HousingQA
+retrieval-context cells are kept as starred provenance, two state-filtered
+HousingQA answer cells are marked with daggers and excluded from signed answer
+claims, and the HousingQA Gemma 4 26B LLM-only row is omitted because it lacks
+a complete signed result. Several completed rows carry paper-facing qualification notes
+for format validation, output length, endpoint identity, segmented evaluation,
+or source-document proxy retrieval. These notes do not make the rows unusable,
+but they do constrain how strongly they should be stated. MASLegalBench also
+lacks official per-question gold evidence ids, so its retrieval results cannot
+be compared directly to BarExamQA, HousingQA, or Legal-Link-EU Hit@5 values.
+
+\paragraph{Method limitations.}
+\hyre{} can erase useful anchors. Legal-Link-EU and MASLegalBench show that a
+generated legal passage may paraphrase away source documents, relation strings,
+or source-notice cues that the raw question already exposes. HousingQA shows a
+different boundary: if retrieval is not jurisdiction-filtered, generated legal
+language may still retrieve plausible law from the wrong state. Finally,
+retrieval exposure is not answer conversion; even oracle evidence can be
+diluted by neighboring legal text or under-used by the answer model.
+
+\paragraph{Future work.}
+The natural next evaluation step is a signed state-filtered HousingQA answer
+matrix, followed by a small set of worked examples where the generated \hyre{}
+passage explains a retrieval or answer improvement over raw RAG and other
+generated-query controls. The real-passage exemplar probe is hypothesis
+generating, especially as an anchor-recovery analysis on Legal-Link-EU and
+MASLegalBench, but it should remain a probe unless it passes the same
+retrieval, answer, and inclusion criteria as the canonical method.
+The main/appendix boundary follows the same logic: BarExamQA and
+state-filtered HousingQA test the weak-query setting most directly, while the
+source-proxy and anchor-rich analyses explain why \hyre{} is not always best.
+
+\paragraph{Conclusion.}
+The main lesson is simple and sharp: legal RAG should not be evaluated as a
+single answer number or a single retrieval curve. \hyre{} uses model priors to
+form a neutral legal retrieval target, then forces the final answer to use
+retrieved evidence. On BarExamQA, that separation improves final accuracy. But
+generated-query retrieval can also move away from already-good raw retrieval,
+or fail to convert better evidence exposure into answers. A credible legal RAG
+evaluation should therefore report what was retrieved, what was answered, what
+the oracle controls show, which rows are missing, and which qualification notes
+apply.
+
+---
+\section{Appendix}\label{sec:appendix}
+
+\subsection{Result Inclusion Policy}
+
+A row can appear in this paper only when the result record names the dataset,
+provider, mode, answer depth, metric values, and any paper-facing note needed
+to interpret the result. Partial or incomplete rows are not used as paper
+claims.
+
+The exact-scored matrix is:
+
+\begin{itemize}[leftmargin=*]
+\item Benchmarks: BarExamQA, HousingQA, Legal-Link-EU, MASLegalBench.
+\item Providers: \method{groq-llama8b}, \method{or-gemma4-26b},
+\method{groq-llama70b}.
+\item Modes: \method{llm_only}, \method{rag_simple}, \method{rag_hyde},
+\method{snap_hyre}, \method{golden_passage}, \method{golden_plus_neighbors},
+\method{rag_rewrite}.
+\item Answer depth: $k=5$ for retrieval rows.
+\item HousingQA exception: retrieval-context rows must use the jurisdiction
+state filter to count as main-matrix claims. Unfiltered HousingQA rows are
+retained only as starred provenance; state-filtered answer rows require
+separate signed results.
+\item MASLegalBench exception: oracle rows are not applicable because the task
+has no official per-question gold passage ids.
+\end{itemize}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{23_audited_completion_grid.png}
+  \caption{Audited coverage of the exact-scored matrix. Green cells are
+  signed main rows, amber cells marked ``prov.'' are unfiltered HousingQA
+  provenance rows, blue cells marked ``unsigned'' are state-filtered HousingQA
+  answer rows not counted as signed results, ``--'' marks an expected row
+  without a signed result, and n/a marks MASLegalBench oracle rows that do not
+  apply. Blank cells are not imputed from partial rows.}
+  \label{fig:coverage_grid}
+\end{figure*}
+
+\FloatBarrier
+
+\subsection{Additional Result Tables}\label{sec:appendix:additional}
+
+\input{tables/current_result_anatomy.tex}
+\input{tables/current_snap_vs_controls.tex}
+\input{tables/current_oracle_summary.tex}
+\input{tables/current_usage_metrics.tex}
+\input{tables/current_audit_notes.tex}
+
+The control table preserves the fuller non-oracle comparison behind the main
+\hyre{}-versus-raw result. The usage table reports resource accounting rather
+than leaderboard evidence: starred unfiltered HousingQA provenance rows are
+excluded from the aggregate, and first-stage query-generation usage is not
+included. The row-qualification table records the audit caveats that should
+stay attached to row-level claims.
+
+\subsection{Additional Visual Analyses}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{22_audited_answer_heatmap.png}
+  \caption{Audited answer-accuracy heatmap. This is a visual companion to
+  Table~\ref{tab:answer_matrix}; it shows completed cells, blank cells, starred
+  HousingQA provenance, and MASLegalBench n/a oracle cells without averaging
+  across the incomplete matrix. Color is clamped to the 40--100\% accuracy
+  range.}
+  \label{fig:answer_heatmap}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.95\textwidth]{31_snap_vs_hyde_delta.png}
+  \caption{Audited answer deltas for \hyre{} versus HyDE. Positive bars mean the
+  snap-conditioned passage beats the question-only hypothetical passage;
+  starred HousingQA labels are unfiltered provenance.}
+  \label{fig:snap_hyde_delta}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.9\textwidth]{32_method_delta_vs_raw_by_dataset.png}
+  \caption{Dataset-level descriptive mean deltas versus raw RAG for
+  generated-query methods. The mean is over audited cells where both the
+  generated-query row and raw RAG row exist; $n$ is the number of paired model
+  slices in that dataset/method group. Starred HousingQA means are
+  provenance-only and not state-filtered answer means.}
+  \label{fig:dataset_method_delta}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{27_retrieval_exposure_by_method.png}
+  \caption{Audited retrieval exposure by method, dataset, and model. Raw RAG is
+  shown as a shared within-dataset reference line because raw-question retrieval
+  is provider-invariant; generated-query methods are bars. All panels use the
+  same 0--100\% scale. MASLegalBench uses same-source-document exposure rather
+  than passage-level gold-evidence labels; starred HousingQA panels are
+  unfiltered provenance; blank slots mark missing audited rows.}
+  \label{fig:retrieval_by_method}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{26_oracle_gap.png}
+  \caption{Oracle evidence controls relative to raw RAG. Gold passage rows show
+  the answer change when the labeled passage is supplied directly;
+  gold-plus-neighbor rows test whether adding nearby legal text helps or
+  distracts. Starred HousingQA labels use unfiltered provenance rows as the raw
+  retrieval reference. MASLegalBench has no official gold-passage rows and is
+  omitted.}
+  \label{fig:oracle_gap}
+\end{figure*}
+
+\FloatBarrier
+
+\subsection{Probe-only Exemplar Details}\label{sec:appendix:exemplar}
+
+\input{tables/exemplar_probe_q20.tex}
+
+The retrieval-passage exemplar probe note describes a probe-only
+\method{snap_hyre_exemplar} variant. It adds one fixed, sanitized
+dataset-specific real passage-style exemplar to the generation prompt without
+providing row-specific answer evidence, answer labels, or document ids. On the
+20-question Gemma 4 26B retrieval slices, \method{snap_hyre_exemplar} improves
+over canonical \hyre{} on every dataset: BarExamQA moves from Hit@5/MRR@5
+0.05/0.03 to 0.15/0.09; HousingQA moves from 0.05/0.05 to 0.10/0.10;
+Legal-Link-EU keeps Hit@5 at 0.75 but raises MRR@5 from 0.58 to 0.70; and
+MASLegalBench improves same-source@5/MRR@5 from 0.40/0.25 to 0.50/0.29. The
+only answer-side exemplar check is a 20-question BarExamQA slice, where Gemma 4
+26B reaches 19/20 = 95.0\%; this is hypothesis-generating and is not powered
+for answer claims.
+
+A larger Gemma 4 26B retrieval-only probe is outside the main grid because it
+has no signed answer row. On a 500-question slice, the
+real-passage exemplar moves BarExamQA Hit@5 from 0.1300 for canonical \hyre{}
+to 0.1360, and unfiltered HousingQA from 0.0740 to 0.0840. On Legal-Link-EU,
+it partially repairs anchor loss by moving \hyre{} Hit@5 from 0.6820 to
+0.7580, but raw-question retrieval remains higher at 0.9000. MASLegalBench
+shows the same pattern under the same-source proxy: exemplar \hyre{} improves
+over canonical \hyre{} (0.4257 versus 0.3531) but stays below raw-question
+retrieval (0.7261). These numbers support an analysis claim about query shape,
+not a canonical-method claim.
+
+\subsection{Reproducibility Statement}
+
+All tables and figures are derived from the audited result tables used for this
+draft. The released package will include the result records, plotting code, and
+paper sources needed to reproduce the reported matrices and figures.
+
+---
+\section*{Feedback Triage Summary for Current Draft}
+
+This section summarizes the highlighted \texttt{\textbackslash hll\{\}} notes
+above and how they map onto the current working paper in
+\texttt{paper/snap\_hyre\_2025\_05\_18/}. The feedback was written on an older
+four-benchmark draft, so benchmark-specific comments about Legal-Link-EU and
+MASLegalBench are treated as stale for the current two-benchmark workshop
+version.
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Abstract and introduction need RAG/HyDE background}
+(highlighted near lines 3, 33, 56, and 140). Current action: the active
+abstract now frames Snap-HyRE as building on HyDE-style generated-query
+retrieval, and the introduction already opens from RAG to legal RAG before
+introducing Snap-HyRE.
+\item \textbf{Figure 1 should be more understandable and less jargon-heavy}
+(near line 29). Current action: the active Figure 1 caption is shorter and now
+includes a concrete example, turning accident facts into a proximate-cause
+query. The generated figure labels were also simplified from ``initial
+reasoning'' to ``draft answer'' / ``search text.''
+\item \textbf{Explain the name Snap-HyRE on first use} (near line 55).
+Current action: the active introduction now explains that ``snap'' is the quick
+private draft answer and HyRE abbreviates Hypothetical Reasoning Embeddings:
+the generated legal passage is the text embedded for retrieval.
+\item \textbf{Avoid unexplained ``method ladder'' terminology} (near lines 162
+and 201). Current action: the active manuscript now describes ``comparison
+rows'' / ``methods'' rather than a visible ladder.
+\item \textbf{Do not use a wordy methods table} (near line 218). Current
+action: the active method section replaces the main comparison table with a
+compact itemized list of LLM-only, raw RAG, HyDE, Snap-HyRE, and gold-passage
+controls.
+\item \textbf{Make the algorithm/mechanics look more operational} (near line
+320). Current action: the active method section keeps the equations but adds a
+plain three-step operational description: validate draft+passage, retrieve
+with the passage only, and answer without showing the draft answer.
+\item \textbf{Move method-row and evaluation protocol details into the
+experiment/evaluation section} (near lines 186 and 329). Current status: mostly
+already addressed in the active draft; dataset interfaces, answer metrics, and
+inclusion policy live in Evaluation/Appendix rather than Related Work.
+\item \textbf{Benchmark introductions should be short} (near line 449).
+Current status: already addressed; active BarExamQA and HousingQA descriptions
+are one short paragraph each.
+\item \textbf{Do not foreground provider details in the main prose} (near line
+491). Current action: the active experiment section now names the model
+families/sizes in prose and leaves exact route labels to artifacts/appendix.
+\item \textbf{Clarify or remove vague audit/coverage subsections} (near line
+524). Current status: the active draft has a short inclusion-policy appendix
+and coverage table instead of a vague audit-scope subsection.
+\item \textbf{Remove redundant figures that duplicate tables} (near line 619).
+Current status: already addressed; the active main paper uses only the method
+diagram and a compact retrieval-gain figure, with fuller diagnostics in the
+appendix.
+\item \textbf{Consider takeaway boxes after findings} (near line 706).
+Current status: not applied as boxes; the active draft instead uses concise
+subsection prose and a compact conclusion, which fits the 8-page workshop
+constraint better.
+\item \textbf{Separate conclusion from limitations} (near line 719). Current
+status: partially addressed; the active conclusion is separate and brief, while
+limitations/boundaries are woven into Results and Appendix rather than given a
+separate main-body limitations section.
+\end{itemize}
