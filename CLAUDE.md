@@ -8,10 +8,11 @@ Read in this order:
 
 1. `wiki/snapshots/research-state-2026-07-17.md`
 2. `ACTIVE_TRACK.md`
-3. `wiki/tracks/three-dial.md` or `wiki/tracks/opd-distillation.md`
-4. `docs/july_2026_completion_audit_2026-07-17.md`
-5. `docs/signoff_log.md`
-6. `wiki/literature/index.md`
+3. `docs/OPERATIONS.md`
+4. `wiki/tracks/three-dial.md` or `wiki/tracks/opd-distillation.md`
+5. `docs/july_2026_completion_audit_2026-07-17.md`
+6. `docs/signoff_log.md`
+7. `wiki/literature/index.md`
 
 The old May Snap-HyRE operational narrative is preserved on
 `codex/scope_old` and in verified external archives. It is not the active north
@@ -58,6 +59,7 @@ historical surfaces and must not run new experiments.
 
 ```bash
 uv sync
+uv run python scripts/check_workspace.py
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 uv run pytest -q
 uv run python scripts/opd/test_opd_loss.py
 ```

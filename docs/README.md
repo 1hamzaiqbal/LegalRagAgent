@@ -6,18 +6,20 @@ Current map as of 2026-07-17.
 
 1. [`../wiki/snapshots/research-state-2026-07-17.md`](../wiki/snapshots/research-state-2026-07-17.md)
    — durable state, strongest findings, caveats, and decision gates.
-2. [`../wiki/tracks/three-dial.md`](../wiki/tracks/three-dial.md) — primary
+2. [`OPERATIONS.md`](OPERATIONS.md) — branch selection, artifact placement,
+   checks, sync, and recovery rules.
+3. [`../wiki/tracks/three-dial.md`](../wiki/tracks/three-dial.md) — primary
    science track.
-3. [`../wiki/tracks/opd-distillation.md`](../wiki/tracks/opd-distillation.md)
+4. [`../wiki/tracks/opd-distillation.md`](../wiki/tracks/opd-distillation.md)
    — gated engineering track.
-4. [`july_2026_completion_audit_2026-07-17.md`](july_2026_completion_audit_2026-07-17.md)
+5. [`july_2026_completion_audit_2026-07-17.md`](july_2026_completion_audit_2026-07-17.md)
    — local/EIT job and evidence reconciliation.
-5. [`signoff_log.md`](signoff_log.md) — cite-or-not gate.
-6. [`../wiki/literature/index.md`](../wiki/literature/index.md) — Obsidian map
+6. [`signoff_log.md`](signoff_log.md) — cite-or-not gate.
+7. [`../wiki/literature/index.md`](../wiki/literature/index.md) — Obsidian map
    into the persistent paper/repository vault.
-7. [`worktree_map_2026-07-17.md`](worktree_map_2026-07-17.md) — exact local/EIT
+8. [`worktree_map_2026-07-17.md`](worktree_map_2026-07-17.md) — exact local/EIT
    branches, storage roles, and recovery paths.
-8. [`archive_manifest_2026-07-17.md`](archive_manifest_2026-07-17.md) — what
+9. [`archive_manifest_2026-07-17.md`](archive_manifest_2026-07-17.md) — what
    left the active branches, what stayed, checksums, and restore paths.
 
 ## Evidence path

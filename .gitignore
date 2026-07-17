@@ -19,8 +19,15 @@ uv.lock
 caches/
 case_studies/
 logs/
+artifacts/
+outputs/
 .pytest_cache/
 .locks/
+
+# Generated reports may be tracked, but row-level/point-level payloads belong
+# in the EIT artifact store. Existing July audit JSONL files remain tracked as
+# explicit evidence exceptions.
+docs/generated/**/*.jsonl
 
 # Editor / OS
 .vscode/
@@ -37,7 +44,8 @@ eval/_chroma_info.py
 .claude/*.lock
 
 # Keep generated/bulk artifacts out of the active repo root. Durable papers and
-# bundles belong in the EIT vault or LegalRagAgent_archive, not beside source.
+# bundles belong in the EIT vault or checksummed archive storage, not beside
+# source.
 /*.pdf
 /*.png
 /*.tex
