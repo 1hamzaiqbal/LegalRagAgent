@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "eval"))
 
-from eval_config import format_question_prompt  # noqa: E402
+from eval_config import format_question_prompt, is_beir_dataset  # noqa: E402
 
 
 def _row(**kw):
@@ -264,7 +264,7 @@ def test_legalbench_scalr_intermediate_prompt_uses_holding_schema():
         _re.DOTALL,
     )
     assert match, "_fmt_intermediate helper not found in eval_harness.py"
-    ns = {"pd": pd}
+    ns = {"pd": pd, "is_beir_dataset": is_beir_dataset}
     exec(match.group(1), ns)
 
     row = _row(
@@ -315,7 +315,7 @@ def test_medqa_intermediate_prompt_removes_choice_letters():
         _re.DOTALL,
     )
     assert match, "_fmt_intermediate helper not found in eval_harness.py"
-    ns = {"pd": pd}
+    ns = {"pd": pd, "is_beir_dataset": is_beir_dataset}
     exec(match.group(1), ns)
 
     row = _row(
