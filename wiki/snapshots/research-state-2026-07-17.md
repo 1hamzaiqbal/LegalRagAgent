@@ -120,8 +120,9 @@ frontier.
 
 ## Literature boundary after the new primary-source pass
 
-The persistent EIT literature vault now contains 19 checksummed PDFs and six
-repository checkouts pinned to commits; navigation begins at
+The persistent EIT literature vault now contains 27 checksummed PDFs, one
+checksummed primary web snapshot, and 11 repository checkouts pinned to commits;
+navigation begins at
 [[literature/index]]. The pass materially narrowed the novelty claim:
 
 - Predicting Retrieval Utility and the Beyond Relevance tutorial occupy generic
@@ -166,8 +167,10 @@ the active framing.
 ## Cleanup and recovery state
 
 - `codex/scope_old` preserves the old submission/review package in Git.
-- A tested ZIP exists at
-  `/Users/hamzaiqbal/grad/LegalRagAgent_archives/LegalRagAgent-scope-old-20260717.zip`.
+- Tested ZIPs and per-file manifests exist at
+  `/Users/hamzaiqbal/grad/LegalRagAgent_archive/`; they cover the historical
+  SCOPE worktree, early agentic course project, class report, old paper tree,
+  and pre-pivot root surface.
 - A full pre-cleanup recovery bundle and worktree backup exists at
   `/Users/hamzaiqbal/grad/LegalRagAgent_recovery_20260717`.
 - The active clean-development branches are `codex/three_dial` and

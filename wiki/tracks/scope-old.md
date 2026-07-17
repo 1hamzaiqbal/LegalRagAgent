@@ -16,7 +16,7 @@ source of mechanism/evidence artifacts. It is not the active method framing.
 
 - Git branch: `codex/scope_old`
 - Old submission/review ZIP:
-  `/Users/hamzaiqbal/grad/LegalRagAgent_archives/LegalRagAgent-scope-old-20260717.zip`
+  `/Users/hamzaiqbal/grad/LegalRagAgent_archive/LegalRagAgent-scope-old-20260717.zip`
 - Pre-cleanup recovery bundle:
   `/Users/hamzaiqbal/grad/LegalRagAgent_recovery_20260717`
 

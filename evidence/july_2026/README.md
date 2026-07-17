@@ -31,5 +31,5 @@ Before cleanup, a complete Git bundle, tracked diff, untracked-file archive,
 and checksums were written to the sibling recovery directory
 `/Users/hamzaiqbal/grad/LegalRagAgent_recovery_20260717`. Old SCOPE submission
 artifacts were also committed on `codex/scope_old` and zipped under
-`/Users/hamzaiqbal/grad/LegalRagAgent_archives/`. Nothing in this package is a
+`/Users/hamzaiqbal/grad/LegalRagAgent_archive/`. Nothing in this package is a
 substitute for those recovery copies.

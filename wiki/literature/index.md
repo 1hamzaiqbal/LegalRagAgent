@@ -15,9 +15,11 @@ in the persistent EIT vault:
 
 `/engrfs/project/jacobsn/hiqbal/literature/legalrag/`
 
-The vault currently contains **19 checksummed PDFs** and **6 shallow repository
-checkouts pinned to exact commits**. See
+The vault currently contains **27 checksummed PDFs**, **1 checksummed primary
+web snapshot**, and **11 shallow repository checkouts pinned to exact
+commits**. See
 [`eit_papers.sha256`](manifests/eit_papers.sha256) and
+[`eit_web.sha256`](manifests/eit_web.sha256), plus
 [`eit_repos.tsv`](manifests/eit_repos.tsv). This replaces the old assumption
 that `/engrfs/tmp/.../references/` was the archival copy; scratch may still
 contain working duplicates, but it is not the source of truth.
@@ -50,6 +52,11 @@ contain working duplicates, but it is not the source of truth.
 
 - [[gure]], [[koblex-parser]], [[legal-rag-benchmarks-src]],
   [[icml-ai4law-2026-rejection]].
+- [[zheng-cslaw]] — the native BarExamQA/HousingQA retrieval benchmark and its
+  retrieval-to-answer conversion limit.
+- [[lrage]] — legal RAG component-ablation/evaluation framework.
+- [[l-mars]] — agentic legal search, sufficiency checks, and the contrast
+  between time-sensitive LegalSearchQA and nearly-flat BarExam retrieval.
 
 ## Operating rule
 

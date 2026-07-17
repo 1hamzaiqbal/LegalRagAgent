@@ -1,222 +1,87 @@
 # LegalRagAgent
 
-Legal RAG research repo for studying when retrieval helps legal QA, when it is
-flat, and when it hurts.
+Research code and evidence for studying when retrieval helps or harms a
+particular reader, and how much search effort is worth paying for.
 
-## Start Here
+## Active tracks
 
-The current navigation path, in priority order:
+- **Primary:** [`codex/three_dial`](wiki/tracks/three-dial.md) — paired,
+  reader-conditioned marginal evidence-set utility under cost.
+- **Gated engineering:** [`codex/opd_distillation`](wiki/tracks/opd-distillation.md)
+  — task reward plus gap-gated on-policy distillation, contingent on a teacher
+  skill-gap result.
+- **Historical:** `codex/scope_old` — SCOPE/Snap-HyRE, reviews, old papers, and
+  class-project provenance.
 
-1. [`paper/snap_hyre_2025_05_18/main.pdf`](paper/snap_hyre_2025_05_18/main.pdf)
-   and [`paper/snap_hyre_2025_05_18/main.tex`](paper/snap_hyre_2025_05_18/main.tex)
-   - **active ICML 2026 draft**.
-   Headline: a fixed Snap-HyRE generated-query method evaluated across
-   BarExamQA, HousingQA, Legal-Link-EU, and MASLegalBench, with retrieval
-   exposure, answer accuracy, oracle controls, coverage, and row caveats
-   reported together. See also [`paper/README.md`](paper/README.md) for build
-   instructions and active scope.
-2. [`docs/README.md`](docs/README.md) - documentation map; evidence
-   ledgers, validation rules, current meeting state.
-3. [`docs/paper_iteration_signal_2026-05-20.md`](docs/paper_iteration_signal_2026-05-20.md)
-   - paper/eval handoff for provisional rows, live checks, and non-citable
-   probe status.
-4. [`docs/signoff_log.md`](docs/signoff_log.md) - cite-or-not gate for result
-   claims.
-5. [`docs/compiled_results.md`](docs/compiled_results.md) and
-   [`logs/experiments.jsonl`](logs/experiments.jsonl) - audited result ledger
-   and raw run summaries.
+Start with the durable
+[`research-state-2026-07-17`](wiki/snapshots/research-state-2026-07-17.md)
+snapshot, then [`ACTIVE_TRACK.md`](ACTIVE_TRACK.md),
+[`docs/README.md`](docs/README.md), and the
+[`literature vault index`](wiki/literature/index.md).
 
-`RESEARCH.md`, `EXPERIMENTS.md`, and `reports/final_class_report/main.pdf`
-are historical: useful for process and provenance, superseded for current
-claims by the docs above. The pre-pivot class report's Tier-3 BarExam result
-($N{=}1{,}195$, cross-size) is preserved in the paper's appendix as a
-robustness check for the BarExam route.
+## Research question
 
-## Current Research Frame
+Given a reader, question, current evidence set, and remaining budget, can a
+policy estimate whether another retrieval action will improve task success,
+leave it unchanged, or cause harm—and stop, abstain, or arbitrate when the set
+is sufficient or conflicting?
 
-The active framing is a fixed-method Snap-HyRE evaluation, not a diagnostic
-adaptive-controller story. The work asks where one snap-conditioned
-generated-query method changes retrieval exposure and whether that converts to
-downstream answer accuracy:
+The three measured dials are:
 
-- BarExamQA is the cleanest positive Snap-HyRE setting: raw retrieval is very
-  weak, generated legal-reference passages improve exposure, and answer gains
-  appear across audited model rows.
-- HousingQA shows generated-query value but method sensitivity: HyDE and rewrite
-  controls can beat Snap-HyRE on the current national-corpus rows.
-- Legal-Link-EU is the main anchor-loss negative: raw questions already carry
-  strong source/target document anchors, and generated passages can move away
-  from them.
-- MASLegalBench is high-accuracy and source-proxy-only for retrieval exposure.
+1. evidence exposure and set quality;
+2. reader ability to convert evidence into a correct answer;
+3. retrieval/search effort, latency, and marginal cost.
 
-CaseHOLD and LegalBench-SCALR are historical/superseded for the active
-exact-scored main matrix unless explicitly re-added under the current
-fixed-method contract.
+## Active repository map
 
-For numbers, p-values, and caveats, use
-[`docs/signoff_log.md`](docs/signoff_log.md), not this README.
+```text
+ACTIVE_TRACK.md       branch entrypoint
+wiki/                 Obsidian-linked research, result, and literature pages
+evidence/july_2026/   compact reconciled evidence package
+docs/                 citation gates, completion audits, and machine map
+eval/                 controlled evaluation harness
+scripts/              analysis, audit, bandit, OPD, and HPC tooling
+tests/                focused regressions
+main.py               shared LangGraph/runtime functions imported by the harness
+rag_utils.py          retrieval, reranking, and vector-store helpers
+llm_config.py         provider/model configuration
+datasets/             local benchmark assets
+caches/               reusable generation/retrieval/document caches
+logs/                 source experiment logs and machine ledger
+references/           local working copies; EIT is the persistent source vault
+```
+
+The old `paper/`, class report, proposal, slides, root research diaries, and
+duplicate literature folder were removed from the active branches after
+byte-verified archiving. See `docs/archive_manifest_2026-07-17.md` and
+`/Users/hamzaiqbal/grad/LegalRagAgent_archive/`.
 
 ## Setup
 
 ```bash
-git clone https://github.com/shrango/adaptive-plan-and-solve-agent.git
-cd adaptive-plan-and-solve-agent
 uv sync
-```
-
-Requires Python 3.11-3.13 and [`uv`](https://docs.astral.sh/uv/). If `uv` is
-missing from PATH in this environment, use `~/.local/bin/uv`.
-
-Configure at least one provider:
-
-```bash
 cp .env.example .env
 uv run python llm_config.py
 ```
 
-## Data And Vector Stores
+Python 3.11–3.13 is supported. If `uv` is not on `PATH`, use
+`~/.local/bin/uv`.
 
-Download local datasets:
-
-```bash
-uv run python utils/download_data.py          # BarExam QA
-uv run python utils/download_housingqa.py      # HousingQA
-uv run python utils/download_new_datasets.py   # CaseHOLD, Legal-RAG-QA, Australian Legal QA
-```
-
-Build Chroma collections:
+## Core checks
 
 ```bash
-uv run python utils/fast_embed.py barexam
-uv run python utils/fast_embed.py housing
-uv run python utils/fast_embed.py housing --resume
-uv run python utils/fast_embed.py status
-```
-
-When running evals, keep offline cache flags set unless you intentionally want
-to download models:
-
-```bash
-HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 uv run python eval/eval_harness.py ...
-```
-
-## Running
-
-Demo pipeline:
-
-```bash
-uv run python main.py simple
-uv run python main.py multi_hop
-uv run python main.py medium
-uv run python main.py simple --verbose
-```
-
-Evaluation harness:
-
-```bash
-HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 uv run python eval/eval_harness.py \
-  --mode llm_only --provider groq-llama70b --questions 200 --dataset barexam
-
-HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 uv run python eval/eval_harness.py \
-  --mode rag_snap_hyde --provider groq-llama70b --questions 200 --dataset housing
-```
-
-Supported datasets are defined in `eval/eval_config.py` and currently include
-`barexam`, `housing`, `legal_rag`, `australian`, `casehold`, `musique`, and
-`legalbench_scalr`.
-
-## Architecture
-
-The repo has two main surfaces:
-
-- `main.py` - the full LangGraph legal agent demo.
-- `eval/` - the controlled research harness where retrieval variants are
-  benchmarked.
-
-Runtime graph in `main.py`:
-
-```text
-START -> router_node -> planner_node -> parallel_executor_node -> parallel_synthesizer_node
-                         ^                                           |
-                         +-- parallel_replanner_node <---------------+
-                                                                     |
-                                                                    END
-```
-
-Retrieval stack in `rag_utils.py`:
-
-- ChromaDB under `./chroma_db/`, configurable with `CHROMA_DB_DIR`.
-- Default embedding model: `Alibaba-NLP/gte-large-en-v1.5`.
-- Cross-encoder reranker: `cross-encoder/ms-marco-MiniLM-L-6-v2`.
-- Dense retrieval plus optional BM25 pooling, deduplication, and top-k rerank.
-
-## Repository Map
-
-```text
-main.py                    # Full LangGraph pipeline
-rag_utils.py               # ChromaDB, BM25, reranking, multi-query retrieval
-llm_config.py              # Provider configs and cached ChatOpenAI creation
-eval/
-  eval_harness.py          # Multi-method eval harness
-  eval_config.py           # Dataset loading, formatting, answer extraction
-  eval_analyze.py          # Post-hoc JSONL analysis
-utils/
-  fast_embed.py            # Bulk embedding with resume support
-  download_data.py         # BarExam fetcher
-  download_housingqa.py    # HousingQA fetcher
-  download_new_datasets.py # CaseHOLD, Legal-RAG-QA, Australian Legal QA
-scripts/
-  compute_mcnemar.py       # Paired McNemar tests
-  log_viewer.py            # Local JSONL detail-log viewer
-  hpc/                     # SLURM scripts
-paper/
-  main.tex, main.pdf       # ICML 2026 submission draft
-  references.bib           # 33-entry bibliography
-  sections/                # 8-file split: 0Abstract..6Conclusion + Appendix
-  figures/                 # Paper figures (10 PNG)
-  README.md                # Build/Overleaf instructions
-  TODO_for_writers.md      # Process notes, pending HPC jobs, open decisions
-  diagnosing_legal_rag_overleaf.zip   # Pre-built Overleaf bundle
-docs/
-  README.md                # Documentation map
-  signoff_log.md           # Cite-or-not gate
-  meeting_prep_2026-05-11_diagnostic_adaptation.md
-  meeting_state_2026-05-01.md
-  compiled_results.md      # Audited result ledger
-  presentation/            # Presentation figures (paper sources)
-  archive*/                # Historical docs retained for traceability
-reports/final_class_report/
-  main.tex, main.pdf       # Pre-pivot class report (historical)
-RESEARCH.md                # Historical research log
-EXPERIMENTS.md             # Historical experiment chronology
-CLAUDE.md                  # Agent operational context
-tests/                     # Formatter and sanitizer regressions
-logs/                      # Eval outputs
-datasets/                  # Downloaded datasets
-chroma_db/                 # Local vector stores
-```
-
-## Datasets
-
-| Dataset | Collection / retrieval path | QA format |
-|---|---|---|
-| BarExam QA | `legal_passages` | Multiple choice A-D |
-| HousingQA | `housing_statutes` | Yes/No |
-| CaseHOLD | `casehold_holdings` | Multiple choice A-E; historical/superseded for active paper matrix |
-| MuSiQue | in-row BM25 / `musique_passages` on cluster | Short-answer multi-hop |
-| LegalBench-SCALR | `legalbench_scalr_holdings` | Multiple choice A-E; historical/superseded for active paper matrix |
-| Legal-Link-EU | frozen EUR-Lex evidence corpus | Multiple choice A-D; active paper matrix |
-| MASLegalBench | frozen source corpus | Multiple choice A-D; active paper matrix, source-proxy retrieval |
-| Legal-RAG-QA | `legal_rag_passages` | Open-ended |
-| Australian Legal QA | `australian_legal` | Open-ended |
-
-## Development Checks
-
-```bash
-uv run python tests/test_formatter.py
-uv run python tests/test_sanitizer.py
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 uv run pytest -q
+uv run python scripts/opd/test_opd_loss.py
 git diff --check
 ```
 
-Before adding new result claims, update the relevant evidence doc and then gate
-the claim through [`docs/signoff_log.md`](docs/signoff_log.md).
+Use focused tests for the code being changed; broad model/data runs require the
+appropriate local or EIT cache and should not be launched merely as a smoke
+test.
+
+## Result and literature discipline
+
+For numbers, use `docs/signoff_log.md` and the July completion audit—not old
+narrative files. The persistent full-paper/repository vault is on EIT at
+`/engrfs/project/jacobsn/hiqbal/literature/legalrag/`; tracked PDF hashes and
+repository commits live under `wiki/literature/manifests/`.

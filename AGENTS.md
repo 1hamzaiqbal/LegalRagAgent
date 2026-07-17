@@ -2,58 +2,61 @@
 
 Repository-local instructions for coding agents.
 
-## Start Here
+## Start here
 
-1. Read `CLAUDE.md` for current operational context, commands, environment notes,
-   methodology gates, and the active result snapshot.
-2. Read `docs/README.md` for the canonical documentation map and citation path.
-3. For result claims, prefer the current citation gates in this order:
-   `docs/signoff_log.md`, `docs/compiled_results.md`,
-   `logs/experiments.jsonl`, and then older source-gated result docs listed in
-   `docs/README.md`.
+1. Read `CLAUDE.md` for the current branch, machine lanes, commands, and gates.
+2. Read `wiki/snapshots/research-state-2026-07-17.md` for the durable research
+   snapshot.
+3. Read the track page for the branch: `wiki/tracks/three-dial.md` or
+   `wiki/tracks/opd-distillation.md`.
+4. For numeric claims, use `docs/signoff_log.md`, then
+   `docs/july_2026_completion_audit_2026-07-17.md`, compact evidence under
+   `evidence/july_2026/`, and finally the named source logs.
 
-## Machine Lanes (read before touching the paper)
+## Branch and machine lanes
 
-This repo is worked from two machines with **separate lanes** to avoid
-two-writer merge conflicts on the paper:
+- `codex/three_dial` is the primary science track for reader-conditioned
+  marginal evidence-set utility under cost.
+- `codex/opd_distillation` is the gated implementation track. E2 must establish
+  a teacher skill gap before any scientific E3 distillation claim.
+- `codex/scope_old` is immutable historical provenance for SCOPE/Snap-HyRE,
+  reviews, class reports, and the old paper.
+- The Mac worktrees and persistent EIT worktrees are mapped in
+  `docs/worktree_map_2026-07-17.md`. Never run new work from the two dirty
+  historical EIT worktrees named there.
 
-- **`hamgamelaptop` (WSL experiment box) = results lane.** Produce and commit
-  experiment artifacts only: `logs/`, `logs/merged/`, `caches/`, eval/audit
-  scripts, `docs/signoff_log.md`, `docs/*_completion_audit_*.md`, and
-  `logs/experiments.jsonl`. **Do NOT edit the paper** — specifically do not
-  modify anything under `paper/submission/` or any `paper/**/tables/*.tex`,
-  `paper/**/sections/*.tex`, figures, or PDFs. If a result implies a paper
-  change, record it in the signoff log / a dated completion audit and stop
-  there.
-- **The Mac = sole paper writer.** It pulls results from this box (via
-  `ssh hamgame-key` or git) and integrates them into `paper/submission/`.
+The active branches do not contain a live submission paper. Do not recreate or
+edit old paper material here; retrieve it from `codex/scope_old` or the verified
+ZIPs in `/Users/hamzaiqbal/grad/LegalRagAgent_archive/`.
 
-When a new result completes on the experiment box, leave it discoverable: a
-row in `docs/signoff_log.md` plus a dated `docs/<benchmark>_completion_audit_*.md`
-mapping each citable cell to its source `logs/.../*.jsonl`. That is the
-contract the paper-writer reads from — it should never need to reverse-engineer
-the paper tables from this machine.
+## Methodology gates
 
-## Scope Rules
+- Verify every reported result against source logs or the signoff/audit path.
+- Do not promote plumbing success, finite loss, or checkpoint creation into a
+  task-performance claim.
+- Three-dial work must retain the paired reader × question × evidence/action
+  unit, repeated outcomes where possible, and explicit calls/tokens/latency.
+- Compare learned effort control with fixed-budget, utility-prediction,
+  intervention, and set-sufficiency baselines. Generic “retrieval helpfulness”
+  and generic agentic search are occupied claims.
+- OPD work requires task reward plus gap gating for the main arm; bare OPD is a
+  collapse diagnostic.
+- Preserve provenance. Archive or redirect historical material; never silently
+  rewrite old result records.
 
-- Verify result claims against source logs or signoff docs before repeating them.
-- Do not treat older narrative files as current unless `docs/README.md` says they
-  are current.
-- Preserve historical docs for traceability; archive or redirect stale working
-  notes instead of deleting them.
-- When running evals, keep `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1` set and use
-  `uv` or `~/.local/bin/uv` depending on PATH availability.
+## Runtime rules
 
-## Current Headline
+- Use `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1` for cached evals unless a
+  deliberate download is part of the task.
+- Use `uv` or `~/.local/bin/uv`, depending on `PATH`.
+- Keep secrets in `.env`; never print or commit them.
+- Before committing, run the focused tests for changed code plus
+  `git diff --check`.
 
-As of the 2026-05-12 branch pivot, the live framing is a fixed-method
-Snap-HyRE evaluation, not a diagnostic adaptive-controller story. The primary
-harness mode is `snap_hyre`; `rag_snap_hyde_2call` remains a legacy alias for
-older logs. The branch goal is to evaluate one straightforward Snap-HyRE method
-across BarExamQA, HousingQA, Legal-Link-EU, and MASLegalBench, with retrieval
-exposure metrics reported alongside downstream answer accuracy. CaseHOLD and
-LegalBench-SCALR are historical/superseded for the active exact-scored main
-matrix unless explicitly re-added under the current fixed-method contract. See
-`CLAUDE.md`, `docs/README.md`, `docs/snap_hyre_comprehensive_plan_2026-05-12.md`,
-and `docs/paper_iteration_signal_2026-05-20.md` for the current mission, method
-ladder, caching workflow, launch gates, and paper-facing caveats.
+## Current headline
+
+SCOPE/Snap-HyRE is closed as the primary direction. The active object is
+reader-conditioned marginal evidence-set utility: predict whether another
+retrieval action will help, do nothing, or harm a particular reader, and stop,
+abstain, or arbitrate under cost. OPD is a gated route for internalizing that
+policy, not yet a result.
