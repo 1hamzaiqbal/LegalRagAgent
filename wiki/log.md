@@ -3,11 +3,50 @@ title: Wiki Op Log
 type: hub
 tags: [log]
 created: 2026-07-02
-updated: 2026-07-02
+updated: 2026-07-17
 status: maintained
 ---
 
 # Wiki Op Log (append-only)
+
+## [2026-07-17] action-value transport audit | Seven full papers and primary artifacts
+
+Read the complete PDFs for [[student-teacher-deviations]],
+[[model-adaptive-tool-necessity]], [[tool-call-boundary-drift]],
+[[reward-gated-opd]], [[craft-counterfactual-credit]],
+[[token-teachability]], and [[llm-specific-utility]]. Added full source pages
+and [[action-value-transport-reading-packet-2026-07-17]]. The audit closes the
+generic “student disobedience,” model-specific need, OPD boundary drift,
+negative teacher credit, signal incompatibility, and reader-specific passage
+utility claims. The provisional opening is repeated, signed, cost-sensitive
+teacher-to-target forced-action value transport: value rankings may transfer
+while utility-maximizing thresholds do not.
+
+Persistent EIT custody now contains 76 checksummed PDFs, 39 Git repositories
+pinned to exact commits, and four web/code snapshots. Tool-Cognition-Action and
+TA-OPD were pinned; the complete 171-file LLM-Specific Utility anonymous
+snapshot was archived as a checksummed ZIP and extracted tree. No official
+student-teacher-deviation code was located; Tool-Call Boundary Drift plans a
+future release; the advertised RG-OPD URL returns 404; CRAFT code is withheld
+during double-blind review. No experiment was launched.
+
+## [2026-07-17] research handoff | Counterfactual price-response preservation
+Completed a second novelty and infrastructure pass around compute-elastic
+skill/OPD ideas. Twenty-five additional papers and seventeen repositories were
+archived and pinned on EIT, bringing the persistent vault to 70 PDFs and 37
+repos. INTENT, MOC, CoRL, ClawTrace, OPID, SkillMOO, SkillOpt, and current
+harness-evolution work close the broader cost-conditioned skill-distillation
+claim. The remaining candidate is a paired evaluation of whether a smaller
+student preserves a teacher's task-dependent response across seen and unseen
+tool prices, with teacher-only skills as an ablation and direct conditioned RL
+as a mandatory baseline.
+
+Created the self-contained [[compute_elasticity_handoff_2026-07-17/README]]
+covering novelty, literature, harness reuse, benchmark EDA, experiment design,
+implementation smokes, risks, execution gates, and asset custody. Reasoning Gym
+is the proposed procedural core; both public Agent Distillation trajectory
+parquets were archived and audited but are successful-only training traces with
+inconsistent score/cost encodings, not a clean evaluation benchmark.
 
 ## [2026-07-17] archive fold | One named LegalRagAgent archive root
 Renamed the persistent EIT archive root from the generic `archives/legalrag/`
@@ -387,3 +426,46 @@ snapshot were then copied to the persistent EIT vault and checksum-verified;
 Efficient Reasoning, L1, and AutoSearch code checkouts were also pinned there.
 Together with LRAGE and L-MARS repository migration, the vault now holds 27
 PDFs, one primary web snapshot, and 11 pinned repositories.
+
+## [2026-07-17] compute-elasticity-audit | SKILL0 × Inkling reframed; OPD and J-space neighbors archived
+
+Added [[compute-elasticity-distillation]] as a domain-general candidate:
+transfer a skill-augmented teacher's complete conditional accuracy–cost
+frontier into a smaller specialist. The novelty object is frontier
+preservation across held-out cost conditions—not varying lambda, generic skill
+internalization, external budget allocation, or fixed-policy distillation.
+
+Read and synthesized AdaCompute, Privileged Information Distillation,
+Rethinking OPD, Reward-Gated OPD, the privileged-OPD negative result, TurnOPD,
+implicit-CoT KD, Coconut, LoRi, Distilling Step-by-Step, DeepSeek-R1
+distillation, and Anthropic's J-lens/J-space report. The decisive safety
+correction is that privileged OPD can improve short-budget scores while
+suppressing verification/backtracking and destroying long-budget gains; the
+whole frontier is therefore a required outcome. J-space is optional white-box
+diagnosis/intervention and cannot be run from ordinary API logits.
+
+Archived 11 new PDFs, two primary web snapshots, and six new pinned repository
+checkouts in the persistent EIT vault. Updated totals: 38 PDFs, 3 web
+snapshots, 17 repositories. The PI-distillation checkout is currently a legal-
+approval placeholder, and the RG-OPD repository advertised by the paper was
+not reachable, so neither is represented as runnable code.
+
+### Same-pass novelty correction
+
+An exact “compute elasticity / budget-conditioned distillation” search found
+two decisive missed neighbors: [[elastic-language-models]] already uses
+compute elasticity for a distilled model, and
+[[bard-budget-aware-reasoning-distillation]] already distills an 8B model over
+user-specified token budgets with budget-dependent exploration, verification,
+and self-correction. The broad conditioned-frontier claim is therefore closed.
+
+Further full reads of [[rational-metareasoning]], [[crisp]],
+[[agent-distillation-tools]], [[strategy-guided-policy-optimization]], and
+[[cost-aware-skill-rewriting]] close selective reasoning, prompted-conciseness
+self-distillation, fixed-regime tool/agent distillation, reusable strategy
+distillation, and external-skill cost optimization. The surviving candidate is
+much narrower but cleaner: a small student internalizes a teacher's
+*price-conditioned choice between internal reasoning and one external tool*,
+while the relevant procedural skill is available only to the teacher during
+training. Seven more PDFs and three runnable repositories were archived.
+Final vault totals for this pass: 45 PDFs, 3 web snapshots, 20 repositories.

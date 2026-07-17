@@ -1,0 +1,10 @@
+fcac149989cbbfcdcab2a1f58ba00786e6461792a30fa715bebf3ffc91659b13  /engrfs/project/jacobsn/hiqbal/literature/legalrag/benchmarks/agent-distillation/baseline/train-0000.parquet
+9c57af51ed6c8059cf8c94b824bb7a20e55455ed287014261270eee0906395c0  /engrfs/project/jacobsn/hiqbal/literature/legalrag/benchmarks/agent-distillation/baseline/README.md
+1af1350d7404167c6f39ccf6d8dc971301086c85fd0462b76f465dc8cd3fa8b3  /engrfs/project/jacobsn/hiqbal/literature/legalrag/benchmarks/agent-distillation/first_thought_prefix/train-0000.parquet
+e01963a52da603795b106b4822129757af18d1d51202703c69e2eca68efaf0c5  /engrfs/project/jacobsn/hiqbal/literature/legalrag/benchmarks/agent-distillation/first_thought_prefix/README.md
+3fd640115e4dfd2857216dbd404e23fd3c555a0a34dea40a342df0d538c23d3b  /engrfs/project/jacobsn/hiqbal/literature/legalrag/benchmarks/compute-elasticity/generate_reasoning_gym_pilot.py
+22bfeb54bd45bd4f014751c0cb94f2c828e58f376755b814ddce23ac7783980b  /engrfs/project/jacobsn/hiqbal/literature/legalrag/benchmarks/compute-elasticity/audit_reasoning_gym_pilot.py
+b2b27e041eec4283a693026239b18fcdbab1208abf7ce46007860cd51a6fa546  /engrfs/project/jacobsn/hiqbal/literature/legalrag/benchmarks/compute-elasticity/validate_elasticity_trace.py
+1cfe214d4fd23deae219d34b161b4f1811f3910b53fd4ccd71880313de07e474  /engrfs/project/jacobsn/hiqbal/literature/legalrag/benchmarks/compute-elasticity/reasoning-gym-pilot-2026-07-17/rg_pilot.jsonl
+0705337cda362b88c3d00ec54a933e93bab2d1d737342720fa71e3850e55a427  /engrfs/project/jacobsn/hiqbal/literature/legalrag/benchmarks/compute-elasticity/reasoning-gym-pilot-2026-07-17/rg_pilot_summary.json
+16b7912a66442598de14f39cf9942ac38bc3746d1057571d33c9bdff7febc712  /engrfs/project/jacobsn/hiqbal/literature/legalrag/benchmarks/compute-elasticity/reasoning-gym-pilot-2026-07-17/rg_pilot_audit.json

@@ -37,11 +37,15 @@ The clean thesis is:
 
 No experiment was launched in this research pass.
 
+The complete seven-paper primary-source review, code-custody status, and
+cross-paper synthesis are in
+[[action-value-transport-reading-packet-2026-07-17]].
+
 ## Important title and novelty warning
 
 The exact rhetorical territory is not new. Nagarajan et al.'s NeurIPS 2023
-paper is titled [“On student-teacher deviations in distillation: does it pay to
-disobey?”](https://arxiv.org/abs/2301.12923). It studies confidence and implicit
+paper [[student-teacher-deviations]] is titled “On student-teacher deviations
+in distillation: does it pay to disobey?” It studies confidence and implicit
 bias in ordinary predictive distillation, not agent action utility, but it
 means we should not reuse “does it pay to disobey?” as our title or broad
 novelty claim.
@@ -152,11 +156,11 @@ integration, susceptibility to distraction, and verification ability.
 
 | Work | What it already establishes | What remains different here |
 |---|---|---|
-| [Model-Adaptive Tool Necessity](https://arxiv.org/abs/2605.14038) | Tool necessity and call behavior differ by model; large knowing–doing gaps exist. | Necessity is derived from repeated no-tool reliability. It does not estimate forced tool benefit, cost, or distillation regret. |
-| [Tool-Call Boundary Drift](https://arxiv.org/abs/2607.07050) | Multi-teacher OPD shifts the call/no-call boundary and can induce over-calling. | Uses fixed dataset `should-call` labels rather than the acting student's causal utility. |
-| [Reward-Gated OPD](https://arxiv.org/abs/2607.04037) | Correctness can identify teacher signals that should be ignored. | Gates realized trajectories; it does not compare teacher- and student-specific counterfactual action values. |
-| [CRAFT](https://arxiv.org/abs/2606.29476) | Signed counterfactual credit can push toward or away from teacher-preferred tokens. | Self-distilled token credit over sibling rollouts, not cross-scale external-action policy transport. |
-| [Token Teachability](https://arxiv.org/abs/2605.26844) | Teacher disagreement can be learnable or incompatible with student support. | Measures distributional learnability, not whether the teacher's action maximizes student utility. |
+| [[model-adaptive-tool-necessity]] | Tool necessity and call behavior differ by model; large knowing–doing gaps exist. | Necessity is derived from repeated no-tool reliability. It does not estimate forced tool benefit, cost, or distillation regret. |
+| [[tool-call-boundary-drift]] | Multi-teacher OPD shifts the call/no-call boundary and can induce over-calling. | Uses fixed dataset `should-call` labels rather than the acting student's causal utility. |
+| [[reward-gated-opd]] | Correctness can identify teacher signals that should be ignored. | Gates realized trajectories; it does not compare teacher- and student-specific counterfactual action values. |
+| [[craft-counterfactual-credit]] | Signed counterfactual credit can push toward or away from teacher-preferred tokens. | Self-distilled token credit over sibling rollouts, not cross-scale external-action policy transport. |
+| [[token-teachability]] | Teacher disagreement can be learnable or incompatible with student support. | Measures distributional learnability, not whether the teacher's action maximizes student utility. |
 | [Demystifying OPD](https://arxiv.org/abs/2607.13399) | A stronger teacher can produce counterproductive guidance under student–teacher mismatch. | Studies signal and reasoning-distribution mismatch, not agent-indexed action payoffs. |
 | [Learning Beyond Teacher / G-OPD](https://arxiv.org/abs/2602.12125) | Reward extrapolation can move students beyond teacher performance. | No explicit costly action or teacher-versus-student action-value disagreement. |
 | [Student-Informed Teacher Training](https://arxiv.org/abs/2412.09149) | A privileged teacher can choose behavior a partially observed student cannot imitate. | Changes the teacher to be imitable; the mismatch is observability, not same-action, capability-conditioned utility. |
@@ -164,7 +168,7 @@ integration, susceptibility to distraction, and verification ability.
 | [Agent Distillation with Retrieval and Code Tools](https://arxiv.org/abs/2505.17612) | Full retrieval/code trajectories transfer across scale. | Uses a fixed tool regime and does not evaluate model-specific action boundaries or price. |
 | [Rational Metareasoning](https://arxiv.org/abs/2410.05563) | Computation should be selected by expected value under cost. | No cross-scale teacher or distillation. |
 | [Agents Should Invoke Tools Only When Epistemically Necessary](https://arxiv.org/abs/2506.00886) | Knowledge boundaries and appropriate effort allocation are model-specific. | A position/theory paper; it does not causally audit cross-scale policy transfer. |
-| [LLM-Specific Utility](https://arxiv.org/abs/2510.11358) | The same retrieved passage has non-transferable utility across readers. | No teacher-policy distillation, action cost, or cross-scale policy regret. |
+| [[llm-specific-utility]] | The same retrieved passage has non-transferable utility across readers. | No teacher-policy distillation, action cost, or cross-scale policy regret. |
 
 As of 2026-07-17, the focused primary-source search found no paper jointly
 estimating teacher and student forced-action advantages, pricing the action,

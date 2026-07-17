@@ -22,9 +22,17 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[research-state-2026-07-17]] — current local/EIT/literature synthesis and decision gates
 - [[three-dial]] — primary research track
 - [[opd-distillation]] — gated skill-distillation track
+- [[compute_elasticity_handoff_2026-07-17/README]] — July 17 research handoff:
+  counterfactual price-response preservation, current literature, harness/data
+  setup, experiment gates, and implementation plan
+- [[action-value-transport-reading-packet-2026-07-17]] — seven-paper primary-
+  source audit of student-specific action value, policy transport, utility,
+  teachability, and teacher-credit boundaries
 - [[scope-old]] — historical SCOPE branch/archive map
 - [[literature/index]] — persistent primary-source vault and manifests
-- [[coverage-audit-2026-07-17]] — novelty/coverage audit from nine new full-paper reads
+- [[coverage-audit-2026-07-17]] — expanded novelty/coverage audit across
+  retrieval utility, compute elasticity, skill/OPD, budgeted agents, and
+  current harness work
 - [[direction-2026-07]] — direction map for the 2026-07-02 meeting (next steps, candidate anchors)
 - [[icml-ai4law-2026-rejection]] — criticism inventory C1–C12 + assessment (the pivot document)
 - [7_2_review_meeting/](7_2_review_meeting/00-README.md) — meeting packet: submission + critique + related work + pivot + EDA + results + narrative (transient, 2026-07-02)
@@ -45,6 +53,12 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[legal-rag-benchmarks]] — benchmark landscape + sharp edges
 - [[expert-judgment-replication]] — candidate new direction (Thinking Machines pattern → legal)
 - [[effort-conditioned-resource-allocation]] — candidate three-dial/OPD bridge: one policy allocates thinking, retrieval, context, and verification under reader-specific costs; novelty gates and baselines recorded
+- [[compute-elasticity-distillation]] — domain-general transfer question after
+  broad compute/skill novelty was rejected; skills are now an ablation around
+  cross-scale resource-response preservation
+- [[compute_elasticity_handoff_2026-07-17/10-student-specific-action-value]] —
+  causal, cost-sensitive audit of whether a teacher's external-action boundary
+  is wrong for the target student; measurement-first, no experiment launched
 
 ## Methods (ours)
 - [[scope]] — the two-call method: what it does, what survives of it
@@ -65,6 +79,16 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[inkling-controllable-effort]] · [[training-language-models-to-reason-efficiently]] · [[l1-length-control]] — fixed-penalty versus single-model controllable reasoning-effort lineage
 - [[acting-less-otc]] · [[autosearch]] · [[budget-aware-tool-use]] — direct action-efficiency neighbors: minimal tool calls, capability-aware search depth, and prompt-level budget awareness
 - [[sure-rag]] · [[conflictrag]] · [[arbgraph]] — set sufficiency and conflict-arbitration landscape
+- [[student-teacher-deviations]] — exact “does it pay to disobey?” title and
+  systematic predictive KD deviation; closes the slogan, not action transport
+- [[model-adaptive-tool-necessity]] · [[tool-call-boundary-drift]] —
+  model-specific no-tool reliability and OPD boundary calibration; neither
+  uses target-student forced-action value
+- [[reward-gated-opd]] · [[craft-counterfactual-credit]] ·
+  [[token-teachability]] — reward gating, signed sibling counterfactual credit,
+  and local signal absorbability
+- [[llm-specific-utility]] — closest three-dial precursor: passage utility is
+  reader-specific, but its label is deterministic, binary, and not costed
 
 ## Sources — QPP / expansion-failure / RAG-control
 - [[weller-drift]] — expansion helps weak, hurts strong (macro precedent)

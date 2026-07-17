@@ -45,6 +45,29 @@ frontier. This does not relax the gates. Direct cost-conditioned task RL is the
 primary baseline; task RL plus gap-gated OPD must beat it; and bare OPD remains
 a collapse diagnostic.
 
+## Candidate primary framing after the 2026-07-17 audit
+
+[[compute-elasticity-distillation]] is the cleaner domain-general framing, but
+the July follow-up search narrowed it again. INTENT, MOC, ClawTrace, CoRL, and
+OPID occupy dynamic tool prices, unseen-preference control, cost-aware skill
+distillation, budget-conditioned routing, and skill-conditioned OPD. The
+primary object is now whether cross-scale transfer preserves the teacher's
+paired same-task action response across seen and unseen prices. Teacher-only
+skills are a factorial condition, not the novelty claim. Start with one fixed
+token cap, one variable Python-tool price, and Reasoning Gym tasks. Legal
+retrieval becomes a later stress test, not a benchmark dependency. The full
+handoff is [[compute_elasticity_handoff_2026-07-17/README]].
+
+The literature audit adds three non-negotiable diagnostics:
+
+1. [[rethinking-opd]]: verify thinking-pattern compatibility and genuinely new
+   teacher signal;
+2. [[reward-gated-opd]]: include reward-gated supervision rather than claim
+   generic gating;
+3. [[rethinking-privileged-opd]]: measure the whole budget curve and audit
+   verification/backtracking, because privileged OPD can improve short-budget
+   scores while destroying long-budget gains.
+
 ## Kill rule
 
 If the teacher skill gap is absent or the policy cannot improve a pre-
@@ -54,4 +77,6 @@ distillation method to a task with observable skill headroom.
 ## Links
 
 [[opd-skill0-design]] · [[skill-distillation-bridge]] · [[skill0]] ·
-[[sdar]] · [[skill1]] · [[alloc-internalization-rung2]]
+[[sdar]] · [[skill1]] · [[alloc-internalization-rung2]] ·
+[[compute-elasticity-distillation]] ·
+[[compute_elasticity_handoff_2026-07-17/README]]

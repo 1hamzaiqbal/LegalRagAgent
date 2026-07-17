@@ -81,4 +81,4 @@ are agent playgrounds (ALFWorld/WebShop), not professional domains like law.
 ## Links
 [[skill-distillation-bridge]] · [[sdar]] · [[skill1]] · [[thinking-machines-expert-judgment]] ·
 [[expert-judgment-replication]] · [[judge-answer-conversion]] ·
-[[judge-mixed-legal]] · [[direction-2026-07]]
+[[judge-mixed-legal]] · [[compute-elasticity-distillation]] · [[direction-2026-07]]

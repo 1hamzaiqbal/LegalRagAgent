@@ -55,4 +55,4 @@ EIT snapshot: `web/thinking-machines-inkling.html`.
 ## Links
 
 [[training-language-models-to-reason-efficiently]] · [[l1-length-control]] ·
-[[three-dial]]
+[[compute-elasticity-distillation]] · [[three-dial]]

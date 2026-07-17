@@ -3,10 +3,10 @@ title: Learning to Replicate Expert Judgment in Financial Tasks (Thinking Machin
 type: source
 tags: [expert-judgment, llm-judge, fine-tuning, domain-adaptation, evaluation, finance]
 created: 2026-07-02
-updated: 2026-07-02
-status: draft
+updated: 2026-07-17
+status: maintained
 url: https://thinkingmachines.ai/news/learning-to-replicate-expert-judgment-in-financial-tasks/
-local: references/thinking-machines-expert-judgment.md
+local: /engrfs/project/jacobsn/hiqbal/literature/legalrag/web/thinking-machines-expert-judgment.html
 authors: Su et al. (Bridgewater AIA Labs + Thinking Machines)
 year: 2026
 venue: Thinking Machines Lab blog (not peer-reviewed)
@@ -47,4 +47,16 @@ No overlap with SCOPE's contribution: this is training-time judgment replication
 
 ## Raw source
 
-- references/thinking-machines-expert-judgment.md (full-text markdown archive of the blog post, fetched 2026-07-02; no PDF/technical report exists — chart numbers extracted from the page's embedded data attributes)
+- EIT snapshot `web/thinking-machines-expert-judgment.html` (fetched and
+  checksummed 2026-07-17; no PDF/technical report exists). The local
+  `references/` copy remains a working extraction, not the archival source.
+
+## Compute-elasticity connection
+
+This is the most direct product-shaped evidence that a trained specialist can
+beat tested frontier generalists at much lower deployment cost, but its data
+are proprietary and its base model is itself a 235B MoE. For
+[[compute-elasticity-distillation]], it motivates the target rather than
+providing a reproducible baseline: pre-register a narrow task, compare against
+current frontier APIs under matched prompts/costs, and disclose item counts,
+uncertainty, training data, and selection procedures that this post omits.

@@ -138,6 +138,14 @@ diagnostic. If direct task RL matches the OPD arm, distillation is unnecessary;
 if the privileged teacher does not improve decisions, there is no skill to
 distill.
 
+The domain-general sibling [[compute-elasticity-distillation]] asks a smaller
+question: can a student internalize a teacher's price-conditioned choice
+between internal reasoning and one external tool, when the teacher alone sees
+the procedural skill? BARD already closes generic token-frontier distillation.
+The present page remains the richer three-dial application, where effort must
+be substituted across reasoning, evidence, and verification for a specified
+downstream reader.
+
 ## Kill rules
 
 - Stop if prompt-only budget awareness matches learned control.
@@ -152,4 +160,5 @@ distill.
 ## Links
 
 [[three-dial]] · [[opd-distillation]] · [[budget-constrained-agentic-search]] ·
-[[offline-bandit-v0]] · [[judge-answer-conversion]] · [[sdar]]
+[[offline-bandit-v0]] · [[judge-answer-conversion]] · [[sdar]] ·
+[[compute-elasticity-distillation]]
