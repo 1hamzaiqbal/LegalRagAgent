@@ -49,6 +49,39 @@ def test_clamp_and_ratio_paths():
     print("PASS clamp_and_ratio_paths", flush=True)
 
 
+def test_gap_gate_attenuates_negative_teacher_gap():
+    student = torch.tensor([[-2.0, -2.0]], requires_grad=True)
+    teacher = torch.tensor([[-1.0, -3.0]])
+    loss = opd_policy_loss(
+        student,
+        teacher,
+        advantage_clip=None,
+        gap_gate_beta=5.0,
+    )
+    loss.backward()
+    positive_gap_grad = abs(float(student.grad[0, 0]))
+    negative_gap_grad = abs(float(student.grad[0, 1]))
+    if not positive_gap_grad > 100.0 * negative_gap_grad:
+        raise AssertionError(
+            "gap gate did not attenuate the negative teacher gap: "
+            f"positive={positive_gap_grad} negative={negative_gap_grad}"
+        )
+    print("PASS gap_gate_attenuates_negative_teacher_gap", flush=True)
+
+
+def test_gap_gate_rejects_nonpositive_beta():
+    student = torch.tensor([-2.0], requires_grad=True)
+    teacher = torch.tensor([-1.0])
+    try:
+        opd_policy_loss(student, teacher, gap_gate_beta=0.0)
+    except ValueError as exc:
+        if "positive" not in str(exc):
+            raise
+    else:
+        raise AssertionError("gap_gate_beta=0 should fail")
+    print("PASS gap_gate_rejects_nonpositive_beta", flush=True)
+
+
 def test_kd_forward_loss_manual_nll():
     logits = torch.tensor(
         [[[2.0, 0.0, -1.0], [0.5, 1.5, -0.5]], [[0.0, 1.0, 2.0], [3.0, 1.0, 0.0]]],
@@ -66,6 +99,8 @@ def main():
     torch.manual_seed(0)
     test_opd_step_moves_toward_teacher()
     test_clamp_and_ratio_paths()
+    test_gap_gate_attenuates_negative_teacher_gap()
+    test_gap_gate_rejects_nonpositive_beta()
     test_kd_forward_loss_manual_nll()
     print("PASS all_opd_loss_tests", flush=True)
 

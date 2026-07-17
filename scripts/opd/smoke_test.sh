@@ -11,6 +11,7 @@ OUT="$TMP/out"
 LOG="$TMP/opd_train.log"
 SERVER_LOG="$TMP/vllm.log"
 PORT="${OPD_SMOKE_PORT:-8000}"
+MODE="${OPD_SMOKE_MODE:-opd_gated}"
 URL="http://127.0.0.1:$PORT"
 SERVER_PID=""
 
@@ -85,6 +86,7 @@ done
 echo "PASS teacher_ready"
 
 if ! python "$ROOT/scripts/opd/opd_train.py" \
+  --mode "$MODE" \
   --task-file "$TASK" \
   --student Qwen/Qwen3-1.7B \
   --teacher-url "$URL" \
@@ -101,6 +103,9 @@ if grep -Eiq 'loss=(nan|inf|-inf)|non-finite' "$LOG"; then
   fail "non-finite loss detected"
 fi
 grep -q ' loss=' "$LOG" || fail "no loss lines found"
+if [[ "$MODE" == "opd_gated" ]]; then
+  grep -q 'gap_gate_mean=' "$LOG" || fail "gated mode did not log gap_gate_mean"
+fi
 find "$OUT" -maxdepth 1 -type d -name 'step_*' | grep -q . || fail "no checkpoint dir found"
 
 echo "PASS finite_loss"

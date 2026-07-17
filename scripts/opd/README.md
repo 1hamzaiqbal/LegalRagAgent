@@ -5,7 +5,19 @@ internalizing agentic retrieval behavior from a larger teacher into a smaller
 student. It follows the design in `wiki/concepts/skill-distillation-bridge.md`:
 student completions are sampled on-policy, the teacher scores those exact
 completion tokens, and the student is updated with a policy-gradient reverse-KL
-surrogate.
+surrogate. The branch also implements SDAR-style negative-gap gating as a
+stability safeguard. This is not a complete agentic-RL method: task reward and
+the retrieval environment still need to be combined with the dense objective.
+
+## Current evidence boundary
+
+- EIT job 93802 validated bare OPD plumbing: Qwen3-8B teacher,
+  Qwen3-1.7B student, three finite steps, checkpoints written.
+- That smoke is not evidence of task learning.
+- SDAR reports that standalone/naively mixed on-policy self-distillation can
+  collapse. Use `opd_gated` for the next plumbing test, and do not launch a
+  scientific E3 until the teacher skill-gap A/B is positive and task reward is
+  integrated.
 
 ## Tokenizer constraint
 
@@ -40,6 +52,7 @@ it is only contacted as an HTTP server.
 
 ```bash
 python scripts/opd/opd_train.py \
+  --mode opd_gated \
   --task-file tasks.jsonl \
   --student Qwen/Qwen3-1.7B \
   --teacher-url http://127.0.0.1:8000 \
@@ -49,6 +62,10 @@ python scripts/opd/opd_train.py \
   --group-size 4 \
   --max-new-tokens 128
 ```
+
+`opd_gated` multiplies each token update by
+`sigmoid(beta * (teacher_logp - student_logp))`; `--gap-gate-beta` defaults to
+`5.0`. `--mode opd` retains the historical bare objective as a diagnostic arm.
 
 Process 3: task data as JSONL. Each row must contain `prompt_text`.
 
@@ -92,6 +109,9 @@ checkpoint exists.
 ```bash
 bash scripts/opd/smoke_test.sh
 ```
+
+The default is now the gated plumbing mode. Set `OPD_SMOKE_MODE=opd` only to
+reproduce the historical bare-OPD smoke.
 
 The script writes only under `scripts/opd/_smoke_tmp/` and kills the vLLM server
 on exit.

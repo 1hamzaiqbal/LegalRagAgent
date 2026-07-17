@@ -13,7 +13,15 @@ OPD objective:
 
 This is the policy-gradient form of minimizing reverse KL, KL(student ||
 teacher), over completions sampled from the student. `A_t` can be clamped for
-stability. For slightly stale samples, an optional detached importance weight
+stability. Following the negative-gap safeguard studied by SDAR, an optional
+detached gate
+
+  g_t = sigmoid(beta * A_t)
+
+can attenuate tokens where the privileged teacher assigns lower probability
+than the student. This is a dense-supervision building block; it does not
+replace task reward. For slightly stale samples, an optional detached
+importance weight
 
   rho_t = exp(stopgrad(logp_current_t - logp_behavior_t))
 
@@ -54,6 +62,7 @@ def opd_policy_loss(
     behavior_logprobs: torch.Tensor | None = None,
     advantage_clip: float | None = 5.0,
     ratio_clip_eps: float | None = 0.2,
+    gap_gate_beta: float | None = None,
 ) -> torch.Tensor:
     """Policy-gradient OPD loss for token logprob tensors.
 
@@ -67,6 +76,9 @@ def opd_policy_loss(
         advantage_clip: If not None, clamp `A_t` to this absolute value.
         ratio_clip_eps: If stale-sample ratios are used, clip to
             `[1 - eps, 1 + eps]`. Set None to disable clipping.
+        gap_gate_beta: If positive, multiply each token update by
+            `sigmoid(beta * (teacher_logp - student_logp))`. This strongly
+            attenuates negative teacher gaps. Set None to use bare OPD.
     """
     _check_same_shape("student/teacher", student_logprobs, teacher_logprobs)
     weights = _float_mask(mask, student_logprobs)
@@ -75,6 +87,12 @@ def opd_policy_loss(
     if advantage_clip is not None:
         advantage = torch.clamp(advantage, min=-advantage_clip, max=advantage_clip)
 
+    gap_gate = 1.0
+    if gap_gate_beta is not None:
+        if gap_gate_beta <= 0:
+            raise ValueError("gap_gate_beta must be positive when provided")
+        gap_gate = torch.sigmoid(gap_gate_beta * advantage.detach())
+
     ratio = 1.0
     if behavior_logprobs is not None:
         _check_same_shape("student/behavior", student_logprobs, behavior_logprobs)
@@ -82,7 +100,7 @@ def opd_policy_loss(
         if ratio_clip_eps is not None:
             ratio = torch.clamp(ratio, min=1.0 - ratio_clip_eps, max=1.0 + ratio_clip_eps)
 
-    token_loss = -ratio * advantage.detach() * student_logprobs
+    token_loss = -ratio * gap_gate * advantage.detach() * student_logprobs
     return masked_mean(token_loss, weights)
 
 

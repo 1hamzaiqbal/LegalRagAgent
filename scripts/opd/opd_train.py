@@ -3,13 +3,18 @@
 
 The teacher is a separate vLLM OpenAI-compatible server. This process loads the
 student, samples completions on-policy, asks the teacher server for per-token
-logprobs on those exact completions, and applies the OPD policy-gradient loss:
+logprobs on those exact completions, and applies either the bare OPD
+policy-gradient loss or its negative-gap-gated variant:
 
   A_t = logp_teacher_t - stopgrad(logp_student_t)
   loss = -mean_t A_t * logp_student_t
 
 Teacher and student must share a tokenizer family because OPD aligns per-token
 logprobs. Use Qwen3-to-Qwen3 or Llama-3.x-to-Llama-3.x pairs.
+
+Important: gap-gated OPD is still only a dense auxiliary objective. A
+scientific E3 must combine it with task reward; this trainer does not yet
+implement the task environment/reward loop.
 """
 from __future__ import annotations
 
@@ -265,15 +270,23 @@ def opd_loss_for_samples(model, tok, samples: list[dict], args, device: str):
     if student_lps.shape != teacher.shape:
         raise RuntimeError(f"student/teacher logprob tensor mismatch: {student_lps.shape} vs {teacher.shape}")
     mask = student_mask & teacher_mask
+    gate_beta = args.gap_gate_beta if args.mode == "opd_gated" else None
     loss = opd_policy_loss(
         student_lps,
         teacher,
         mask,
         advantage_clip=args.advantage_clip,
         ratio_clip_eps=args.ratio_clip_eps,
+        gap_gate_beta=gate_beta,
     )
     rkl = reverse_kl_estimate(student_lps, teacher, mask)
-    return loss, rkl, int(mask.sum().item())
+    if gate_beta is None:
+        gate_mean = 1.0
+    else:
+        gap = teacher.detach() - student_lps.detach()
+        gate = torch.sigmoid(gate_beta * gap)
+        gate_mean = float(gate[mask].mean().item())
+    return loss, rkl, gate_mean, int(mask.sum().item())
 
 
 def save_checkpoint(model, tok, out_dir: str, name: str) -> None:
@@ -313,13 +326,13 @@ def run(args) -> None:
 
         model.train()
         opt.zero_grad(set_to_none=True)
-        if args.mode == "opd":
+        if args.mode in ("opd", "opd_gated"):
             prompts = [r["prompt_text"] for r in prompt_rows]
             samples = generate_student_samples(model, tok, prompts, args, device)
             samples = teacher_score_samples(tok, samples, args)
             model.train()
-            loss, rkl, ntok = opd_loss_for_samples(model, tok, samples, args, device)
-            metric = f"reverse_kl={rkl.item():.4f}"
+            loss, rkl, gate_mean, ntok = opd_loss_for_samples(model, tok, samples, args, device)
+            metric = f"reverse_kl={rkl.item():.4f} gap_gate_mean={gate_mean:.4f}"
         else:
             samples = teacher_kd_samples(prompt_rows, args)
             model.train()
@@ -348,7 +361,7 @@ def run(args) -> None:
 
 def parse_args():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["opd", "kd"], default="opd")
+    ap.add_argument("--mode", choices=["opd", "opd_gated", "kd"], default="opd")
     ap.add_argument("--task-file", required=True)
     ap.add_argument("--student", required=True)
     ap.add_argument("--teacher-url", required=True)
@@ -365,6 +378,12 @@ def parse_args():
     ap.add_argument("--top-p", type=float, default=1.0)
     ap.add_argument("--advantage-clip", type=float, default=5.0)
     ap.add_argument("--ratio-clip-eps", type=float, default=0.2)
+    ap.add_argument(
+        "--gap-gate-beta",
+        type=float,
+        default=5.0,
+        help="positive sigmoid-gap coefficient used only in opd_gated mode",
+    )
     ap.add_argument("--grad-clip", type=float, default=1.0)
     ap.add_argument("--save-every", type=int, default=50)
     ap.add_argument("--teacher-connect-timeout", type=float, default=10.0)

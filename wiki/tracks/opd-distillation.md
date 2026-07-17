@@ -17,6 +17,8 @@ wrote checkpoints. This validates plumbing only.
 
 The literature gate is now closed: [[sdar]] and [[skill1]] were read. They
 invalidate broad novelty language and make bare OPD an unsafe primary arm.
+This branch now implements and CPU-tests the negative-gap-gated dense objective
+as `--mode opd_gated`; task reward is still not integrated.
 
 ## Gates
 
