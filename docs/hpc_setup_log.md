@@ -1,5 +1,11 @@
 # HPC Setup Log
 
+> **Historical environment record. Do not launch from the paths below.** For
+> the current independent three-dial and OPD clones, use
+> [`OPERATIONS.md`](OPERATIONS.md) and
+> [`worktree_map_2026-07-17.md`](worktree_map_2026-07-17.md). The former
+> `/src/LegalRagAgent` tree is preserved under the EIT legacy-worktree archive.
+
 Tracking the cluster bootstrap for LegalRagAgent on the WashU Engineering HPC.
 
 ## SSH

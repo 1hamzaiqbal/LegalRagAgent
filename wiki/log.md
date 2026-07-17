@@ -9,6 +9,20 @@ status: maintained
 
 # Wiki Op Log (append-only)
 
+## [2026-07-17] consolidation | Two active EIT clones and compact generated evidence
+Replaced the shared-worktree EIT topology with independent clean clones for
+`codex/three_dial` and `codex/opd_distillation`. Moved seven predecessor
+checkouts (about 84 GB, including the 73 GB dirty common checkout) intact from
+`src/` to `archives/legalrag/2026-07-17/legacy-worktrees/`, repaired linked
+archive pointers, and recorded statuses. No Slurm job referenced the old paths.
+
+Copied and SHA-256 verified the complete 132-file `docs/generated/` tree in the
+EIT artifact store, then removed 160.65 MiB of large May point/judge JSONL from
+the active branches while retaining compact summaries and directly linked July
+evidence. Added `docs/OPERATIONS.md`, `scripts/README.md`, and a dependency-free
+workspace checker; its first run found four stale archive-era navigation links,
+which were repaired.
+
 ## [2026-07-17] storage closeout | Git archive refs and EIT-only bulky recovery
 Pushed `codex/archive/pre_cleanup_20260717` for the exact tracked state before
 cleanup and `codex/archive/early_agentic_20260717` for the 11 formerly
