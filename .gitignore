@@ -15,9 +15,6 @@ __pycache__/
 # Lock file (allows flexible dependency resolution per platform)
 uv.lock
 
-# Personal notes
-agentic_ideas/
-
 # Generated artifacts
 caches/
 case_studies/
@@ -39,16 +36,13 @@ eval/_inspect*.py
 eval/_chroma_info.py
 .claude/*.lock
 
-# Local research artifacts kept at repo root
+# Keep generated/bulk artifacts out of the active repo root. Durable papers and
+# bundles belong in the EIT vault or LegalRagAgent_archive, not beside source.
 /*.pdf
 /*.png
 /*.tex
 /*.zip
 /*.sty
-
-# Overleaf integration scratch under paper/ (canonical source is paper/submission/)
-paper/scope_edit_*
-paper/_*
 
 # Auto-generated, churns on every machine — regenerated locally, not tracked
 current_status.md

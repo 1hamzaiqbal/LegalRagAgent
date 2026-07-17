@@ -37,6 +37,16 @@ as `--mode opd_gated`; task reward is still not integrated.
 4. student with skill in context but no training;
 5. trace KD for the closed-teacher comparison.
 
+## Candidate task extension
+
+[[effort-conditioned-resource-allocation]] could provide a richer E2/E3 task
+than the current single-turn allocation labels: a privileged teacher chooses
+among thinking, search, verification, and stopping under an explicit cost
+condition, and a smaller student is evaluated on the same cost/accuracy
+frontier. This does not relax the gates. Direct cost-conditioned task RL is the
+primary baseline; task RL plus gap-gated OPD must beat it; and bare OPD remains
+a collapse diagnostic.
+
 ## Kill rule
 
 If the teacher skill gap is absent or the policy cannot improve a pre-

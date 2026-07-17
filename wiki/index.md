@@ -44,6 +44,7 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[generated-query-family]] — taxonomy: HyDE/Q2D/GAR/LameR/CSQE/ParSeR/GuRE/SCOPE
 - [[legal-rag-benchmarks]] — benchmark landscape + sharp edges
 - [[expert-judgment-replication]] — candidate new direction (Thinking Machines pattern → legal)
+- [[effort-conditioned-resource-allocation]] — candidate three-dial/OPD bridge: one policy allocates thinking, retrieval, context, and verification under reader-specific costs; novelty gates and baselines recorded
 
 ## Methods (ours)
 - [[scope]] — the two-call method: what it does, what survives of it
@@ -61,6 +62,8 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[skill1]] — unified skill selection/use/distillation; broad skill-internalization novelty is occupied
 - [[predicting-retrieval-utility]] · [[cue-r]] · [[beyond-relevance-utility]] — utility prediction/intervention landscape
 - [[budget-constrained-agentic-search]] — fixed search-budget/cost evidence
+- [[inkling-controllable-effort]] · [[training-language-models-to-reason-efficiently]] · [[l1-length-control]] — fixed-penalty versus single-model controllable reasoning-effort lineage
+- [[acting-less-otc]] · [[autosearch]] · [[budget-aware-tool-use]] — direct action-efficiency neighbors: minimal tool calls, capability-aware search depth, and prompt-level budget awareness
 - [[sure-rag]] · [[conflictrag]] · [[arbgraph]] — set sufficiency and conflict-arbitration landscape
 
 ## Sources — QPP / expansion-failure / RAG-control

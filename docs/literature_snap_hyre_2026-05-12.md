@@ -1,10 +1,14 @@
 # Literature Notes For Snap-HyRE Pivot - 2026-05-12
 
-Downloaded sources live in `literature/papers/`.
+This historical note originally used the now-archived local
+`literature/papers/` folder. The PDFs live durably in the EIT vault at
+`/engrfs/project/jacobsn/hiqbal/literature/legalrag/papers/`; the removed local
+PDF/text copies are also in the verified pre-pivot archive named in
+`docs/archive_manifest_2026-07-17.md`.
 
 ## L-MARS / LegalSearchQA
 
-Source: `literature/papers/arxiv_2509.00761v3.txt`
+Source: EIT `papers/arxiv_2509.00761v3.pdf`; current notes: `wiki/sources/l-mars.md`
 
 Relevant claim: L-MARS reports a large retrieval gain on current-law
 LegalSearchQA, while Bar Exam QA stays nearly flat with web retrieval. This is
@@ -29,7 +33,7 @@ Why not mainline now:
 
 ## A Reasoning-Focused Legal Retrieval Benchmark
 
-Source: `literature/papers/arxiv_2505.03970.txt`
+Source: EIT `papers/arxiv_2505.03970.pdf`; current notes: `wiki/sources/zheng-cslaw.md`
 
 Relevant claim: BarExamQA and HousingQA are designed so legal retrieval itself
 requires reasoning. The paper separates retrieval metrics from downstream QA
@@ -48,7 +52,7 @@ Design points to mirror:
 
 ## LRAGE
 
-Source: `literature/papers/arxiv_2504.01840v1.txt`
+Source: EIT `papers/arxiv_2504.01840v1.pdf`; current notes: `wiki/sources/lrage.md`
 
 Relevant claim: legal RAG performance is a component interaction among corpus,
 retriever, reranker, LLM backbone, top-k, and metric/rubric.

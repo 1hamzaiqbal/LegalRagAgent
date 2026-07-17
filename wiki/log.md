@@ -28,6 +28,20 @@ defensible object is paired causal, reader-conditioned evidence-set utility
 under cost. SDAR also changes E3 from bare OPD to task reward plus gap-gated
 OPD, with E2 skill-gap A/B required first.
 
+## [2026-07-17] cleanup | Root predecessor projects archived; legacy literature migrated
+Created byte-verified ZIPs for the February–March agentic course project and
+the April–June class-report/SCOPE paper surface under
+`/Users/hamzaiqbal/grad/LegalRagAgent_archive/`. Each ZIP passed `unzip -t` and
+an extract-and-rehash comparison against its per-file SHA-256 manifest. The
+active three-dial/OPD surfaces retain reusable code, datasets, caches, logs,
+July evidence, and the wiki; the historical SCOPE worktree remains untouched.
+
+Before removing the old local `literature/` duplicate, migrated LRAGE, Zheng et
+al., and L-MARS PDFs into the persistent EIT vault and verified their hashes.
+Added [[lrage]] and [[l-mars]] source pages. The vault now has 22 PDFs. LRAGE
+occupies generic legal-RAG component grids; L-MARS is direct neighboring work
+for agentic search, sufficiency-triggered effort, and legal conflict checks.
+
 ## [2026-07-17] experiment | Gap-gated OPD GPU smoke passed
 EIT job 106078 ran from the clean `codex/opd_distillation` worktree with a
 Qwen3-8B teacher and Qwen3-1.7B student. All three `opd_gated` steps were
@@ -324,3 +338,19 @@ stack is validated on free hardware. If FAIL: read
 Key infra facts: EIT account flag `-A engr-lab-jacobsn` required on sbatch;
 opd_lane venv at `/engrfs/project/jacobsn/hiqbal/envs/opd_lane` (vllm);
 judge_lane venv untouched; HF cache `/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache`.
+
+## [2026-07-17] effort-control-audit | Inkling idea added; direct novelty neighbors mapped
+
+Added [[effort-conditioned-resource-allocation]] and six primary-source pages
+covering Inkling, Arora-Zanette, L1/LCPO, OTC-PO, AutoSearch, and
+Budget-Aware Tool-Use/BATS. The exact correction is important: fixed-alpha
+efficient reasoning and per-example controllable length already exist;
+tool-call efficiency, capability-aware minimal search depth, marginal
+intermediate-answer rewards, and token/tool cost curves are also occupied.
+The remaining candidate is cross-resource allocation grounded in the causal
+effect of an evidence set on a specified downstream reader. Local raw source
+copies were added under gitignored `references/`. The five papers and Inkling
+snapshot were then copied to the persistent EIT vault and checksum-verified;
+Efficient Reasoning, L1, and AutoSearch code checkouts were also pinned there.
+Together with LRAGE and L-MARS repository migration, the vault now holds 27
+PDFs, one primary web snapshot, and 11 pinned repositories.
