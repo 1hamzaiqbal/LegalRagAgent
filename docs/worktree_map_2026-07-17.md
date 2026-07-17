@@ -36,7 +36,7 @@ targets for active research.
 LegalRagAgent clones. Seven predecessor checkouts—about 84 GB at move time—are
 preserved under:
 
-`/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/legacy-worktrees/`
+`/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/legacy-worktrees/`
 
 They include the 73 GB dirty common checkout, dirty adaptive-HyRE, HPC-setup,
 and Snap-HyRE-comprehensive checkouts, the historical SCOPE checkout, and the
@@ -47,7 +47,7 @@ They are inspectable preservation copies, not launch targets.
 Their HEADs, statuses, binary worktree/index diffs, untracked tarballs, and a
 full all-refs Git bundle are preserved at:
 
-`/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/`
+`/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/`
 
 The pre-move recovery package is 252 MB, its Git bundle verifies, its tarballs
 pass gzip checks, and `SHA256SUMS` covers the package. The full moved
@@ -56,8 +56,8 @@ namespace.
 
 The Mac cleanup payloads and full recovery bundle are stored separately at:
 
-- `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/archives/`
-- `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`
+- `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/local-cleanup/archives/`
+- `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`
 
 The archive ZIPs passed their stored SHA-256 checks and `unzip -t`; the
 recovery ZIP has SHA-256
@@ -79,6 +79,6 @@ source by relative path and SHA-256 before the local payload was removed.
 ## Operating rule
 
 New development begins from one of the two track-specific paths above. Never
-submit from `archives/legalrag/`. A later artifact-deduplication pass may remove
+submit from `archives/LegalRagAgent_archive/`. A later artifact-deduplication pass may remove
 duplicate environments, Chroma data, caches, or checkpoints inside the legacy
 archive only after mapping each payload to a canonical retained copy.

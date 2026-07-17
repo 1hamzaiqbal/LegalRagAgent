@@ -40,7 +40,7 @@ policy, branch-specific files, and stale local recovery pointers. Add
 | Large point-level/generated JSONL | EIT `artifacts/legalrag/` | Do not add to active Git |
 | Downloaded datasets, caches, vector stores, checkpoints | EIT scratch/project data or ignored local paths | Do not add to active Git |
 | Papers and related repositories | EIT `literature/legalrag/` plus wiki manifests | PDFs/repos stay on EIT |
-| Superseded project trees and recovery bundles | EIT `archives/legalrag/` plus named Git archive refs | Never mix into active worktrees |
+| Superseded project trees and recovery bundles | EIT `archives/LegalRagAgent_archive/` plus named Git archive refs | Never mix into active worktrees |
 
 The pre-trim May/July generated directory is checksummed at:
 
@@ -80,9 +80,9 @@ requires the task-specific gate recorded in `docs/signoff_log.md`.
 - Git history: `codex/scope_old`, `codex/archive/pre_cleanup_20260717`, and
   `codex/archive/early_agentic_20260717`.
 - Cleanup ZIPs:
-  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/archives/`
+  `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/local-cleanup/archives/`
 - Full recovery ZIP:
-  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`
+  `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`
 
 Restore into a new empty directory. Never unpack or apply a historical patch
 over either active worktree.
