@@ -1,0 +1,44 @@
+% DRAFT (not yet \input into main.tex) — mechanism subsection for the
+% scope-generalization reframe. Grounds the dataset-level "lexical gap" story in
+% the measured query->gold cross-encoder affinity movement.
+% Source: docs/generated/scope_gap_mechanism_2026-05-25.md (commit 47607d7).
+
+\subsection{Why \hyre{} Helps: The Query--Gold Affinity Gap}\label{subsec:mechanism}
+
+The dataset-level pattern---\hyre{} bridges retrieval on BarExamQA and reaches
+parity on HousingQA---invites a per-question explanation. We test one directly,
+in the space the retriever actually uses. For every question with a labeled gold
+passage we score the cross-encoder affinity $\mathrm{CE}(q,g)$ between the raw
+question $q$ and its gold passage $g$, and $\mathrm{CE}(s,g)$ between the
+\hyre{} search passage $s$ and the same gold. The quantity that matters is the
+\emph{movement} $\Delta_{\mathrm{CE}} = \mathrm{CE}(s,g)-\mathrm{CE}(q,g)$: how
+much the generated passage pulls the query toward its target in reranker space.
+
+$\Delta_{\mathrm{CE}}$ explains \hyre{}'s retrieval gain far better than any
+surface property of the question. Pooled across models and datasets it tracks
+the \hyre{}-minus-raw Hit@5 movement at Spearman $0.44$ (cosine-space movement
+$0.37$), versus $\le 0.07$ for question length and $\le 0.02$ for corpus
+perplexity. The relationship is monotone: binning questions by
+$\Delta_{\mathrm{CE}}$, the bottom quintile---where \hyre{} moves \emph{away}
+from gold---loses $36.4$\pp{} of retrieval exposure and $6.4$\pp{} of answer
+accuracy, while the top quintile gains $+26.9$\pp{} and $+2.6$\pp{}. \hyre{}
+moves toward the gold passage on roughly $80\%$ of questions, which is why it
+helps on net.
+
+This makes the ``lexical gap'' precise: it is not missing vocabulary
+(out-of-vocabulary rates are under $1\%$ on both corpora) but a \emph{phrasing}
+gap between how a question is asked and how its controlling authority is
+written. \hyre{} helps when its draft reconstructs that authority's framing and
+hurts when it commits to the wrong one. A HousingQA question asking whether
+eviction is ``first heard in justice-of-the-peace court'' shares almost no
+language with the statute, which grants the ``district court\,\dots
+jurisdiction over forcible entry and detainer''; \hyre{} writes that
+jurisdictional framing and recovers the gold passage. In the failure case,
+\hyre{} answers an Arkansas appeal-bond question by asserting there is ``no
+statutory requirement,'' drifts toward appellate-procedure text, and
+\emph{breaks} a retrieval the raw query had gotten right.
+
+The answer-level correlation is weak ($<0.07$ on every axis): closing the
+retrieval gap is necessary but not sufficient, and the residual
+answer-conversion bottleneck---sharpest on HousingQA's binary entailment---is
+the harder remaining problem.
