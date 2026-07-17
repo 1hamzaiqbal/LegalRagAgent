@@ -23,7 +23,7 @@ star and is intentionally absent from this file.
 |---|---|---|---|
 | Three-dial | `/Users/hamzaiqbal/grad/LegalRagAgent` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-three-dial` | `codex/three_dial` |
 | OPD/distillation | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-distillation` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-distillation` | `codex/opd_distillation` |
-| SCOPE history | `/Users/hamzaiqbal/grad/LegalRagAgent-scope-old` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-scope-old` | `codex/scope_old` |
+| SCOPE history | branch only; restore on demand | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-scope-old` | `codex/scope_old` |
 
 See `docs/worktree_map_2026-07-17.md` before touching EIT. The older
 `LegalRagAgent` and `LegalRagAgent-adaptive-hyre` EIT worktrees are dirty
@@ -71,9 +71,11 @@ retained because they are active/reusable substrate, not archival clutter.
 - Full-paper/repository vault:
   `/engrfs/project/jacobsn/hiqbal/literature/legalrag/`
 - EIT experiment scratch: `/engrfs/tmp/jacobsn/hiqbal_legalrag/`
-- Verified local archives: `/Users/hamzaiqbal/grad/LegalRagAgent_archive/`
-- Full pre-cleanup recovery:
-  `/Users/hamzaiqbal/grad/LegalRagAgent_recovery_20260717`
+- Small local archive manifests: `/Users/hamzaiqbal/grad/LegalRagAgent_archive/`
+- Verified cleanup ZIPs:
+  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/archives/`
+- Full pre-cleanup recovery ZIP:
+  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`
 - EIT historical-worktree recovery:
   `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/`
 

@@ -5,11 +5,26 @@
 The active `codex/three_dial` and `codex/opd_distillation` surfaces no longer
 carry the predecessor course project, pre-pivot class report, SCOPE paper tree,
 or stale root research/navigation files. The historical `codex/scope_old`
-branch was not changed.
+branch was not changed and its redundant Mac worktree was removed only after
+the branch was verified on GitHub and EIT.
+
+Two additional Git preservation refs were pushed:
+
+- `codex/archive/pre_cleanup_20260717` at
+  `cc872f88f04a9b703d6adccf68b04c42939e4e07` preserves the exact tracked
+  pre-cleanup state.
+- `codex/archive/early_agentic_20260717` at
+  `461dff39c88e63759f8936bdb740b92501edab2c` preserves the 11 formerly
+  untracked early-agentic files under `archive/early_agentic/`; each imported
+  file matched the source contents manifest before commit.
 
 ## Verified archives
 
-Archive directory: `/Users/hamzaiqbal/grad/LegalRagAgent_archive/`
+Canonical archive directory:
+`/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/archives/`
+
+The local `/Users/hamzaiqbal/grad/LegalRagAgent_archive/` directory retains
+only the README, EIT package manifest, and per-file restore manifests.
 
 | ZIP | SHA-256 | Source files | Contents |
 |---|---|---:|---|
@@ -21,6 +36,16 @@ For the first two ZIPs, `unzip -t` passed and a fresh extraction was hashed
 file by file; the result exactly matched the adjacent `*.contents.sha256`
 manifest before source removal. `.DS_Store` and `__pycache__` were excluded as
 disposable machine artifacts.
+
+After upload, all three EIT ZIPs passed `unzip -t` and the stored package
+hashes. The 27-file untracked SCOPE companion tree matched the Mac source by
+relative path and SHA-256. The separately zipped full recovery package passed
+outer SHA-256 and `unzip -t` at:
+
+`/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`
+
+Its SHA-256 is
+`c917458a8f6409c9c00585edc0b7a658841b43afbca7d158a91689d20dca6f17`.
 
 ## Removed from active branches
 
@@ -95,6 +120,6 @@ code/results reproduction passes are completed.
 ## Restore boundary
 
 Restore archives only into a new empty directory. For historical development,
-prefer the untouched `codex/scope_old` worktree. A broader pre-cleanup recovery
-package also remains at
-`/Users/hamzaiqbal/grad/LegalRagAgent_recovery_20260717`.
+check out `codex/scope_old` into a new worktree only when needed. Use the EIT
+paths above for ZIP recovery; the bulky Mac copies were removed after remote
+verification.

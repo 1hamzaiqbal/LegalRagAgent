@@ -36,11 +36,12 @@ files as final evidence.
 ## Historical material
 
 The SCOPE/Snap-HyRE submission, reviews, class report, old paper tree, and old
-root research diaries are preserved on `codex/scope_old` and in verified ZIPs
-under `/Users/hamzaiqbal/grad/LegalRagAgent_archive/`. Source-gated historical
-audits remain in `docs/` because current three-dial reconstruction still links
-to their logs. A later evidence-compaction pass may replace those only after a
-new master table has preserved every citable row.
+root research diaries are preserved on `codex/scope_old`, named Git archive
+branches, and verified ZIPs in persistent EIT storage. The Mac archive
+directory contains only restore manifests. Source-gated historical audits
+remain in `docs/` because current three-dial reconstruction still links to
+their logs. A later evidence-compaction pass may replace those only after a new
+master table has preserved every citable row.
 
 ## Maintenance rule
 
