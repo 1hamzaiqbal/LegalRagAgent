@@ -1,0 +1,35 @@
+{
+  "n_pools": 250,
+  "n_gold_in_pool": 227,
+  "arms": {
+    "CE (ms-marco, cached)": {
+      "hit@5": 0.7,
+      "mrr@5": 0.5549333333333333,
+      "hits": 175
+    },
+    "raw-question top5 (cached)": {
+      "hit@5": 0.648,
+      "mrr@5": 0.5034666666666666,
+      "hits": 162
+    },
+    "SCOPE top5 (cached)": {
+      "hit@5": 0.36,
+      "mrr@5": 0.21420000000000008,
+      "hits": 90
+    },
+    "judge-trained": {
+      "hit@5": 0.824,
+      "mrr@5": 0.6368666666666666,
+      "hits": 206,
+      "gold_in_pool_hit@5": 0.9074889867841409,
+      "gold_in_pool_n": 227
+    },
+    "judge-zeroshot": {
+      "hit@5": 0.84,
+      "mrr@5": 0.6288666666666667,
+      "hits": 210,
+      "gold_in_pool_hit@5": 0.9251101321585903,
+      "gold_in_pool_n": 227
+    }
+  }
+}

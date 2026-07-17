@@ -1,0 +1,134 @@
++ cd /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data
++ source /engrfs/project/jacobsn/hiqbal/envs/judge_lane/bin/activate
+++ '[' -z '' ']'
+++ '[' -n x ']'
+++ SCRIPT_PATH=/engrfs/project/jacobsn/hiqbal/envs/judge_lane/bin/activate
+++ '[' /engrfs/project/jacobsn/hiqbal/envs/judge_lane/bin/activate = /var/spool/slurmd/job93656/slurm_script ']'
+++ deactivate nondestructive
+++ unset -f pydoc
+++ '[' -z '' ']'
+++ '[' -z '' ']'
+++ hash -r
+++ '[' -z '' ']'
+++ unset VIRTUAL_ENV
+++ unset VIRTUAL_ENV_PROMPT
+++ '[' '!' nondestructive = nondestructive ']'
+++ VIRTUAL_ENV=/engrfs/project/jacobsn/hiqbal/envs/judge_lane
+++ '[' linux-gnu = cygwin ']'
+++ '[' linux-gnu = msys ']'
+++ export VIRTUAL_ENV
+++ '[' -z '' ']'
+++ unset SCRIPT_PATH
+++ _OLD_VIRTUAL_PATH=/home/compute/hiqbal/.local/bin:/home/compute/hiqbal/bin:/project/compute/slurm/bin:/usr/share/Modules/bin:/usr/condabin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+++ PATH=/engrfs/project/jacobsn/hiqbal/envs/judge_lane/bin:/home/compute/hiqbal/.local/bin:/home/compute/hiqbal/bin:/project/compute/slurm/bin:/usr/share/Modules/bin:/usr/condabin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+++ export PATH
+++ '[' x '!=' x ']'
++++ basename /engrfs/project/jacobsn/hiqbal/envs/judge_lane
+++ VIRTUAL_ENV_PROMPT=judge_lane
+++ export VIRTUAL_ENV_PROMPT
+++ '[' -z '' ']'
+++ '[' -z '' ']'
+++ _OLD_VIRTUAL_PS1=
+++ PS1='(judge_lane) '
+++ export PS1
+++ alias pydoc
+++ true
+++ hash -r
++ export HF_HOME=/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/hf_cache
++ HF_HOME=/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/hf_cache
++ export HF_HUB_OFFLINE=1
++ HF_HUB_OFFLINE=1
++ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++ export JUDGE_MICRO=4
++ JUDGE_MICRO=4
++ export JUDGE_ACCUM=32
++ JUDGE_ACCUM=32
++ python -
+mixed train rows: 8500
++ python local_judge.py train --data-dir mac_mirror --prefix mixed_ --out-dir ckpt_mixed_legal_v5
+Traceback (most recent call last):
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/transformers/utils/hub.py", line 437, in cached_files
+    hf_hub_download(
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/huggingface_hub/utils/_validators.py", line 88, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 1016, in hf_hub_download
+    return _hf_hub_download_to_cache_dir(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 1167, in _hf_hub_download_to_cache_dir
+    _raise_on_head_call_error(head_call_error, force_download, local_files_only)
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 1796, in _raise_on_head_call_error
+    raise LocalEntryNotFoundError(
+huggingface_hub.errors.LocalEntryNotFoundError: Cannot find the requested files in the disk cache and outgoing traffic has been disabled. To enable hf.co look-ups and downloads online, set 'local_files_only' to False.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/transformers/models/auto/tokenization_auto.py", line 716, in from_pretrained
+    config = AutoConfig.from_pretrained(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/transformers/models/auto/configuration_auto.py", line 376, in from_pretrained
+    config_dict, unused_kwargs = PreTrainedConfig.get_config_dict(pretrained_model_name_or_path, **kwargs)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/transformers/configuration_utils.py", line 687, in get_config_dict
+    config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/transformers/configuration_utils.py", line 742, in _get_config_dict
+    resolved_config_file = cached_file(
+                           ^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/transformers/utils/hub.py", line 293, in cached_file
+    file = cached_files(path_or_repo_id=path_or_repo_id, filenames=[filename], **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/transformers/utils/hub.py", line 513, in cached_files
+    raise OSError(
+OSError: We couldn't connect to 'https://huggingface.co' to load the files, and couldn't find them in the cached files.
+Check your internet connection or see how to run the library in offline mode at 'https://huggingface.co/docs/transformers/installation#offline-mode'.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/transformers/utils/hub.py", line 437, in cached_files
+    hf_hub_download(
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/huggingface_hub/utils/_validators.py", line 88, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 1016, in hf_hub_download
+    return _hf_hub_download_to_cache_dir(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 1167, in _hf_hub_download_to_cache_dir
+    _raise_on_head_call_error(head_call_error, force_download, local_files_only)
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 1796, in _raise_on_head_call_error
+    raise LocalEntryNotFoundError(
+huggingface_hub.errors.LocalEntryNotFoundError: Cannot find the requested files in the disk cache and outgoing traffic has been disabled. To enable hf.co look-ups and downloads online, set 'local_files_only' to False.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/local_judge.py", line 163, in <module>
+    {"train": cmd_train, "score": cmd_score}[args.cmd](args)
+  File "/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/local_judge.py", line 59, in cmd_train
+    tok, model = load_model(train_mode=True)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/local_judge.py", line 40, in load_model
+    tok = AutoTokenizer.from_pretrained(BASE_MODEL)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/transformers/models/auto/tokenization_auto.py", line 720, in from_pretrained
+    config = PreTrainedConfig.from_pretrained(pretrained_model_name_or_path, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/transformers/configuration_utils.py", line 646, in from_pretrained
+    config_dict, kwargs = cls.get_config_dict(pretrained_model_name_or_path, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/transformers/configuration_utils.py", line 687, in get_config_dict
+    config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/transformers/configuration_utils.py", line 742, in _get_config_dict
+    resolved_config_file = cached_file(
+                           ^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/transformers/utils/hub.py", line 293, in cached_file
+    file = cached_files(path_or_repo_id=path_or_repo_id, filenames=[filename], **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/envs/judge_lane/lib/python3.11/site-packages/transformers/utils/hub.py", line 513, in cached_files
+    raise OSError(
+OSError: We couldn't connect to 'https://huggingface.co' to load the files, and couldn't find them in the cached files.
+Check your internet connection or see how to run the library in offline mode at 'https://huggingface.co/docs/transformers/installation#offline-mode'.

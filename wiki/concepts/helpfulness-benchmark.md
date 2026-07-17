@@ -4,15 +4,17 @@ type: direction
 tags: [benchmark, evaluation, metric, cost-per-task, dormant]
 created: 2026-07-02
 date: 2026-07-02
-status: DORMANT — written to be picked up; no active work
+status: merged into three-dial track; generic utility framing is occupied
 ---
 
 # Idea 3 (dormant): the evidence-helpfulness benchmark / metric paper
 
-**Status: DORMANT.** Recorded from the 2026-07-02 mentor meeting
-([[08-meeting-notes]]) so it can be resumed without re-derivation. Flagged
-in the meeting as the *lowest-cost* paper candidate because most of the
-required experiments already exist as signed rows.
+**Status: merged into [[three-dial]].** The paired helpfulness evidence remains
+valuable, but the novelty search closed the generic pitch. Retrieval utility is
+explicitly studied by [[predicting-retrieval-utility]], causal item-level
+utility by [[cue-r]], and the broader area is mapped by
+[[beyond-relevance-utility]]. The remaining contribution must be paired,
+reader-conditioned, set-level, harm-aware, and cost-aware.
 
 ## The pitch (one paragraph)
 RAG benchmarks score retrieval with rank metrics (Hit@k, MRR, nDCG, F1/AUC
@@ -64,8 +66,10 @@ arrival at "helpful-to-this-policy ≠ relevant."
 3. **1–2 non-legal/general replications** (e.g. NQ or HotpotQA full-corpus
    with a gold-injection arm) — the only new compute; needed so the paper
    isn't read as legal-only.
-4. Related-work check (queued, unread): utility-based IR evaluation
-   tradition; RAGAS/ARES-style LLM-judged RAG metrics; LegalBench-RAG
+4. Related-work expansion (partially complete): utility-based IR now covered by
+   [[predicting-retrieval-utility]], [[cue-r]], and
+   [[beyond-relevance-utility]]; still archive/read the primary RAGAS/ARES-style
+   LLM-judged RAG metrics; LegalBench-RAG
    span-level eval ([[legal-rag-benchmarks-src]]); [[power-noise-lostmiddle]]
    (distractor harm); LRAGE. Position: we measure *reader-conditional task
    utility with a causal paired design*, not judged relevance.

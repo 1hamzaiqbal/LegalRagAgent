@@ -1,5 +1,23 @@
 # Documentation Index - LegalRagAgent
 
+## Current map — 2026-07-17
+
+The May Snap-HyRE index below is preserved for provenance, but its branch
+narrative is superseded. Start here now:
+
+1. `../wiki/snapshots/research-state-2026-07-17.md` — durable state snapshot,
+   strongest findings, literature boundary, and decision gates.
+2. `../wiki/tracks/three-dial.md` — primary research track.
+3. `../wiki/tracks/opd-distillation.md` — gated engineering/distillation track.
+4. `july_2026_completion_audit_2026-07-17.md` — local/EIT job and evidence
+   reconciliation.
+5. `signoff_log.md` — cite-or-not gate.
+6. `../wiki/literature/index.md` — Obsidian navigation into the persistent EIT
+   paper/repository vault.
+
+Branches: `codex/three_dial`, `codex/opd_distillation`, and historical
+`codex/scope_old`. The SCOPE/Snap-HyRE method is not the active framing.
+
 Updated 2026-05-12 for branch `snap_hyre_comprehensive`.
 
 ## Start Here

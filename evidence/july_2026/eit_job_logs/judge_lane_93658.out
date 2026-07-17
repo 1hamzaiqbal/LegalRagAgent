@@ -1,0 +1,53 @@
++ cd /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data
++ source /engrfs/project/jacobsn/hiqbal/envs/judge_lane/bin/activate
+++ '[' -z '' ']'
+++ '[' -n x ']'
+++ SCRIPT_PATH=/engrfs/project/jacobsn/hiqbal/envs/judge_lane/bin/activate
+++ '[' /engrfs/project/jacobsn/hiqbal/envs/judge_lane/bin/activate = /var/spool/slurmd/job93658/slurm_script ']'
+++ deactivate nondestructive
+++ unset -f pydoc
+++ '[' -z '' ']'
+++ '[' -z '' ']'
+++ hash -r
+++ '[' -z '' ']'
+++ unset VIRTUAL_ENV
+++ unset VIRTUAL_ENV_PROMPT
+++ '[' '!' nondestructive = nondestructive ']'
+++ VIRTUAL_ENV=/engrfs/project/jacobsn/hiqbal/envs/judge_lane
+++ '[' linux-gnu = cygwin ']'
+++ '[' linux-gnu = msys ']'
+++ export VIRTUAL_ENV
+++ '[' -z '' ']'
+++ unset SCRIPT_PATH
+++ _OLD_VIRTUAL_PATH=/home/compute/hiqbal/.local/bin:/home/compute/hiqbal/bin:/project/compute/slurm/bin:/usr/share/Modules/bin:/usr/condabin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+++ PATH=/engrfs/project/jacobsn/hiqbal/envs/judge_lane/bin:/home/compute/hiqbal/.local/bin:/home/compute/hiqbal/bin:/project/compute/slurm/bin:/usr/share/Modules/bin:/usr/condabin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+++ export PATH
+++ '[' x '!=' x ']'
++++ basename /engrfs/project/jacobsn/hiqbal/envs/judge_lane
+++ VIRTUAL_ENV_PROMPT=judge_lane
+++ export VIRTUAL_ENV_PROMPT
+++ '[' -z '' ']'
+++ '[' -z '' ']'
+++ _OLD_VIRTUAL_PS1=
+++ PS1='(judge_lane) '
+++ export PS1
+++ alias pydoc
+++ true
+++ hash -r
++ export HF_HOME=/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/hf_cache
++ HF_HOME=/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/hf_cache
++ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++ export JUDGE_MICRO=4
++ JUDGE_MICRO=4
++ export JUDGE_ACCUM=32
++ JUDGE_ACCUM=32
++ python -
+mixed train rows: 8500
++ python local_judge.py train --data-dir mac_mirror --prefix mixed_ --out-dir ckpt_mixed_legal_v5
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Fetching 4 files:   0%|          | 0/4 [00:00<?, ?it/s]Fetching 4 files:  25%|██▌       | 1/4 [00:23<01:10, 23.50s/it]Fetching 4 files:  50%|█████     | 2/4 [00:24<00:19, 10.00s/it]Fetching 4 files:  75%|███████▌  | 3/4 [00:24<00:05,  5.79s/it]Fetching 4 files: 100%|██████████| 4/4 [00:24<00:00,  6.21s/it]
+[transformers] The fast path is not available because one of the required library is not installed. Falling back to torch implementation. To install follow https://github.com/fla-org/flash-linear-attention#installation and https://github.com/Dao-AILab/causal-conv1d
+Loading weights:   0%|          | 0/427 [00:00<?, ?it/s]Loading weights:   0%|          | 1/427 [00:04<28:24,  4.00s/it]Loading weights:   0%|          | 2/427 [00:07<28:05,  3.97s/it]Loading weights:   2%|▏         | 9/427 [00:08<04:14,  1.64it/s]Loading weights:   3%|▎         | 13/427 [00:08<02:36,  2.64it/s]Loading weights:   4%|▎         | 15/427 [00:08<02:23,  2.87it/s]Loading weights:   5%|▍         | 21/427 [00:09<01:15,  5.35it/s]Loading weights:   6%|▌         | 26/427 [00:09<00:50,  7.88it/s]Loading weights:   7%|▋         | 29/427 [00:09<01:02,  6.34it/s]Loading weights:   9%|▊         | 37/427 [00:10<00:35, 10.93it/s]Loading weights:  10%|▉         | 41/427 [00:10<00:36, 10.70it/s]Loading weights:  10%|█         | 44/427 [00:10<00:41,  9.20it/s]Loading weights:  11%|█         | 46/427 [00:11<00:42,  8.91it/s]Loading weights:  11%|█         | 48/427 [00:11<00:52,  7.15it/s]Loading weights:  12%|█▏        | 52/427 [00:11<00:37, 10.06it/s]Loading weights:  13%|█▎        | 54/427 [00:11<00:35, 10.47it/s]Loading weights:  15%|█▍        | 62/427 [00:12<00:20, 17.63it/s]Loading weights:  15%|█▌        | 65/427 [00:12<00:20, 17.61it/s]Loading weights:  16%|█▌        | 68/427 [00:13<00:35, 10.03it/s]Loading weights:  18%|█▊        | 76/427 [00:13<00:21, 16.24it/s]Loading weights:  19%|█▊        | 79/427 [00:13<00:20, 16.64it/s]Loading weights:  19%|█▉        | 82/427 [00:14<00:36,  9.58it/s]Loading weights:  21%|██        | 90/427 [00:14<00:22, 15.27it/s]Loading weights:  22%|██▏       | 93/427 [00:14<00:21, 15.82it/s]Loading weights:  22%|██▏       | 96/427 [00:15<00:33,  9.75it/s]Loading weights:  23%|██▎       | 99/427 [00:15<00:31, 10.34it/s]Loading weights:  24%|██▎       | 101/427 [00:15<00:41,  7.90it/s]Loading weights:  25%|██▍       | 105/427 [00:16<00:29, 10.91it/s]Loading weights:  25%|██▌       | 108/427 [00:16<00:26, 12.22it/s]Loading weights:  27%|██▋       | 114/427 [00:16<00:17, 17.64it/s]Loading weights:  28%|██▊       | 118/427 [00:16<00:16, 19.21it/s]Loading weights:  28%|██▊       | 121/427 [00:17<00:30, 10.12it/s]Loading weights:  30%|███       | 129/427 [00:17<00:18, 16.33it/s]Loading weights:  31%|███       | 132/427 [00:17<00:17, 16.74it/s]Loading weights:  32%|███▏      | 135/427 [00:18<00:30,  9.61it/s]Loading weights:  33%|███▎      | 143/427 [00:18<00:17, 15.82it/s]Loading weights:  34%|███▍      | 147/427 [00:18<00:19, 14.02it/s]Loading weights:  35%|███▌      | 150/427 [00:19<00:25, 10.83it/s]Loading weights:  36%|███▌      | 152/427 [00:19<00:26, 10.21it/s]Loading weights:  36%|███▌      | 154/427 [00:20<00:34,  7.84it/s]Loading weights:  37%|███▋      | 160/427 [00:20<00:22, 11.69it/s]Loading weights:  39%|███▉      | 168/427 [00:20<00:14, 18.36it/s]Loading weights:  40%|████      | 171/427 [00:20<00:13, 19.06it/s]Loading weights:  41%|████      | 174/427 [00:21<00:24, 10.43it/s]Loading weights:  42%|████▏     | 181/427 [00:21<00:16, 14.82it/s]Loading weights:  44%|████▎     | 186/427 [00:21<00:15, 15.28it/s]Loading weights:  44%|████▍     | 189/427 [00:22<00:20, 11.50it/s]Loading weights:  46%|████▌     | 196/427 [00:22<00:14, 16.26it/s]Loading weights:  47%|████▋     | 199/427 [00:22<00:13, 17.02it/s]Loading weights:  47%|████▋     | 202/427 [00:23<00:20, 11.21it/s]Loading weights:  48%|████▊     | 205/427 [00:23<00:18, 12.07it/s]Loading weights:  48%|████▊     | 207/427 [00:23<00:22,  9.67it/s]Loading weights:  49%|████▉     | 211/427 [00:23<00:16, 13.07it/s]Loading weights:  50%|█████     | 214/427 [00:24<00:15, 13.83it/s]Loading weights:  51%|█████▏    | 219/427 [00:24<00:11, 17.69it/s]Loading weights:  52%|█████▏    | 223/427 [00:24<00:10, 19.36it/s]Loading weights:  53%|█████▎    | 226/427 [00:24<00:15, 13.04it/s]Loading weights:  53%|█████▎    | 228/427 [00:25<00:16, 11.82it/s]Loading weights:  55%|█████▍    | 234/427 [00:25<00:12, 15.48it/s]Loading weights:  56%|█████▌    | 239/427 [00:25<00:12, 15.50it/s]Loading weights:  56%|█████▋    | 241/427 [00:26<00:17, 10.79it/s]Loading weights:  58%|█████▊    | 248/427 [00:26<00:10, 16.27it/s]Loading weights:  59%|█████▉    | 252/427 [00:26<00:12, 13.78it/s]Loading weights:  59%|█████▉    | 254/427 [00:27<00:13, 12.51it/s]Loading weights:  60%|█████▉    | 256/427 [00:27<00:14, 11.64it/s]Loading weights:  60%|██████    | 258/427 [00:27<00:15, 11.12it/s]Loading weights:  61%|██████    | 260/427 [00:27<00:20,  7.97it/s]Loading weights:  62%|██████▏   | 265/427 [00:28<00:14, 10.90it/s]Loading weights:  64%|██████▍   | 273/427 [00:28<00:07, 19.45it/s]Loading weights:  65%|██████▍   | 277/427 [00:28<00:08, 18.40it/s]Loading weights:  66%|██████▌   | 280/427 [00:29<00:14,  9.99it/s]Loading weights:  67%|██████▋   | 288/427 [00:29<00:10, 13.63it/s]Loading weights:  68%|██████▊   | 292/427 [00:29<00:09, 14.11it/s]Loading weights:  69%|██████▉   | 294/427 [00:30<00:13, 10.08it/s]Loading weights:  70%|███████   | 301/427 [00:30<00:08, 14.89it/s]Loading weights:  71%|███████▏  | 305/427 [00:30<00:07, 16.58it/s]Loading weights:  72%|███████▏  | 308/427 [00:31<00:11,  9.98it/s]Loading weights:  73%|███████▎  | 311/427 [00:31<00:11, 10.44it/s]Loading weights:  73%|███████▎  | 313/427 [00:32<00:14,  8.11it/s]Loading weights:  74%|███████▍  | 317/427 [00:32<00:11,  9.84it/s]Loading weights:  76%|███████▋  | 326/427 [00:32<00:06, 15.88it/s]Loading weights:  78%|███████▊  | 331/427 [00:33<00:05, 16.10it/s]Loading weights:  78%|███████▊  | 333/427 [00:33<00:07, 11.83it/s]Loading weights:  80%|███████▉  | 341/427 [00:33<00:05, 16.39it/s]Loading weights:  81%|████████  | 345/427 [00:34<00:06, 12.70it/s]Loading weights:  81%|████████▏ | 347/427 [00:34<00:06, 11.73it/s]Loading weights:  83%|████████▎ | 355/427 [00:34<00:04, 17.69it/s]Loading weights:  84%|████████▍ | 358/427 [00:34<00:03, 17.77it/s]Loading weights:  85%|████████▍ | 361/427 [00:35<00:05, 11.62it/s]Loading weights:  85%|████████▌ | 364/427 [00:35<00:05, 12.40it/s]Loading weights:  86%|████████▌ | 366/427 [00:36<00:06,  9.35it/s]Loading weights:  87%|████████▋ | 371/427 [00:36<00:04, 11.77it/s]Loading weights:  89%|████████▉ | 380/427 [00:36<00:02, 17.16it/s]Loading weights:  90%|████████▉ | 384/427 [00:36<00:02, 16.08it/s]Loading weights:  90%|█████████ | 386/427 [00:37<00:03, 11.09it/s]Loading weights:  92%|█████████▏| 394/427 [00:37<00:01, 17.11it/s]Loading weights:  93%|█████████▎| 397/427 [00:37<00:01, 17.26it/s]Loading weights:  94%|█████████▎| 400/427 [00:38<00:02,  9.65it/s]Loading weights:  96%|█████████▌| 408/427 [00:38<00:01, 15.06it/s]Loading weights:  96%|█████████▋| 411/427 [00:38<00:01, 15.24it/s]Loading weights:  97%|█████████▋| 414/427 [00:39<00:01,  9.89it/s]Loading weights:  98%|█████████▊| 417/427 [00:39<00:00, 10.33it/s]Loading weights:  98%|█████████▊| 419/427 [00:40<00:01,  7.98it/s]Loading weights:  99%|█████████▉| 423/427 [00:40<00:00, 10.88it/s]Loading weights: 100%|█████████▉| 425/427 [00:40<00:00, 11.09it/s]Loading weights: 100%|██████████| 427/427 [00:40<00:00, 10.51it/s]
+[2026-07-02T14:12:09.552] error: *** JOB 93658 ON a100s-2308 CANCELLED AT 2026-07-02T14:12:09 DUE to SIGNAL Terminated ***

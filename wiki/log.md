@@ -9,6 +9,25 @@ status: maintained
 
 # Wiki Op Log (append-only)
 
+## [2026-07-17] reset | Research snapshot, persistent literature vault, and clean tracks
+Reconciled the local and EIT July work into
+[[research-state-2026-07-17]] and a source-gated completion audit. Restored the
+651-row historical ledger, merged 20 July-only rows (671 valid total), restored
+tracked detail logs, and preserved the entire pre-cleanup state in a verified
+Git bundle/tar/checksum recovery directory. Historical SCOPE artifacts moved to
+`codex/scope_old` plus a tested ZIP; active surfaces are [[three-dial]] and the
+gated [[opd-distillation]] track.
+
+Created the persistent EIT primary-source vault at
+`/engrfs/project/jacobsn/hiqbal/literature/legalrag/` with 19 checksummed PDFs
+and six repository checkouts pinned to commits. Read and synthesized SDAR,
+Skill1, Predicting Retrieval Utility, CUE-R, Beyond Relevance, BCAS,
+ConflictRAG, SURE-RAG, and ArbGraph. The pass closes generic utility, budgeted
+search, conflict-resolution, and broad skill-internalization novelty; the
+defensible object is paired causal, reader-conditioned evidence-set utility
+under cost. SDAR also changes E3 from bare OPD to task reward plus gap-gated
+OPD, with E2 skill-gap A/B required first.
+
 ## [2026-07-02] init | Wiki created
 Bootstrapped LegalRagAgent wiki in the BoundEO LLM-Wiki pattern, triggered by the
 ICML AI4Law rejection of the SCOPE paper (submission #97, two strong rejects).

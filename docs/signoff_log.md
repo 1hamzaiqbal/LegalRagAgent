@@ -1269,3 +1269,25 @@ produced and audited. See
 ### HousingQA Gemma LLM-only finalization - 2026-05-23T11:47:20Z
 
 | HousingQA | `or-gemma4-26b` | `llm_only` | `logs/merged/housing_or-gemma4-26b_llm_only_full_20260523_114720_detail.jsonl` | 3846/6853 = 56.1% | no retrieval evidence by design; merged clean canonical spans 0:10, 10:3680, and 3680:6853 without overwriting raw logs; row order matches `caches/retrieval/full/housing_qfull_seed42_statefilter_raw_question_k10.jsonl`; same model `google/gemma-4-26b-a4b-it` with provider-route provenance Cloudflare 3183 rows and Parasail 3670 rows; `scripts/analyze_detail_flags.py`: rows 6853, errors 0, missing predictions 0, parse failures 0, empty retrieval rows 6853, long rows 0, fallback markers 0, avg LLM calls 1.00, max output 824 tokens, max final-answer chars 4052 at `hqa_Connecticut_2680`; `scripts/audit_housing_llm_only_detail.py`: canonical_order_match True, wrong provider/mode/dataset 0, missing exact final answers 0, fallback 0, think tags 0, evidence payload 0, answer-format retries 2, near-cap rows 0 | ⚠️ COMPREHENSIVE-CITE-MIXED-SAME-MODEL-ROUTE/RETRY-CAVEAT |
+
+## July 2026 research-program reconciliation — audited 2026-07-17
+
+This section records the July judge/allocation/OPD program after reconciling
+local files with EIT. Full job adjudication and provenance are in
+`docs/july_2026_completion_audit_2026-07-17.md`; compact immutable summaries
+and exact Slurm stdout are under `evidence/july_2026/`.
+
+| Result family | Source | Verified result | Cite gate |
+|---|---|---|---|
+| BarExam specialist 9B judge | `evidence/july_2026/judge_results/barexam_specialist_9b_20260702.json`; EIT job 93632 | trained judge 82/399, Hit@5 0.2055; 82/91 gold-in-pool hits | ⚠️ CITE as held-out reranking on constructed pools; not downstream answer accuracy |
+| Housing specialist 9B judge | `evidence/july_2026/judge_results/housing_specialist_9b_20260702.json`; preserved per-pool score files in the July manifest | 275/500, Hit@5 0.5500; 275/285 gold-in-pool hits | ⚠️ CITE with state-filter/pool construction and recomputation provenance |
+| Mixed legal 9B judge | `evidence/july_2026/judge_results/mixed_legal_9b_20260702.json`; EIT job 93660 | BarExam 88/399 (0.2206); Housing 277/500 (0.5540) | ⚠️ CITE as mixed-label reranking generalization; not an answer-accuracy or universal legal-generalization claim |
+| SciDocs label-semantics diagnostic | `evidence/july_2026/judge_results/scidocs_20260702.json` | zero-shot 0.605 Hit@5 > CE 0.520; citation-proxy-trained 0.465 | ⚠️ CITE as a label-semantics negative on this constructed pool only |
+| FiQA label/headroom diagnostic | `evidence/july_2026/judge_results/fiqa_20260702.json` | zero-shot 0.840, trained 0.824, CE 0.700 Hit@5 | ⚠️ CITE as reranking result on this pool; trained-vs-zero-shot is not a win |
+| Reader-conditioned answer conversion | July paired detail logs listed in `evidence/july_2026/manifests/local_july_detail_logs.tsv`; synthesis `wiki/results/judge-answer-conversion.md` | BarExam/70B best evidence vs llm-only −2.5pp ns; Housing/70B +11.4pp (p≈5.5e-08); BarExam/8B +11.8pp (p≈5.6e-05); Housing/8B −2.8pp ns | ⚠️ CITE only as paired subset findings with reader/task and subset caveats; the ≈60% crossover is a hypothesis, not a universal threshold |
+| Offline allocation bandit | `docs/generated/offline_bandit_v0_2026-07-02.md`; `wiki/results/offline-bandit-v0.md` | no learned cheap policy beat the best fixed arm in 5/5 cells; per-row oracle headroom 8–24pp | ⚠️ CITE negative; oracle is noise-inflated and not an attainable policy |
+| 9B allocation internalization | `docs/generated/alloc_rung2_2026-07-02.md`; `wiki/results/alloc-internalization-rung2.md`; EIT job 93770 for training provenance | coarse regime behavior learned relative to zero-shot, but no λ=0 edge over best fixed arm; BarExam/70B chose llm-only 5/200 | ⚠️ CITE local paired policy analysis, not EIT stdout alone; cost-frontier hints were post-hoc and non-significant |
+| OPD end-to-end smoke | `evidence/july_2026/eit_job_logs/opd_smoke_93802.out` | teacher ready; three finite steps; step checkpoint and final checkpoint exist; smoke PASS | ✅ CITE for infrastructure validation only; ❌ DO NOT cite as task learning, OPD effectiveness, or scientific result |
+
+Failed/cancelled jobs 93598, 93606, 93629, 93656, 93658, and 93773 are
+preserved in the completion audit and must not be promoted into result rows.

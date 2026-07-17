@@ -65,8 +65,10 @@ scaffolding*.
   teacher and internalize into a *smaller* model — distillation of agentic
   retrieval skills, not self-internalization. Their own follow-up **SDAR
   (Self-Distilled Agentic RL, ZJU-REAL, 2026-05)** and **SKILL1**
-  (one unified policy, USTC) are adjacent and must be checked before
-  claiming novelty. UNVERIFIED: neither follow-up read yet.
+  (one unified policy, USTC) are adjacent. Both are now read: [[sdar]] shows
+  standalone/naive on-policy self-distillation can collapse and motivates
+  task RL plus gap gating; [[skill1]] occupies unified skill selection,
+  utilization, and distillation. Broad novelty is therefore closed.
 - Search-QA is their weakest domain (40.8 vs 87.9/78.6) — retrieval-heavy
   skills internalize worst. That gap is exactly where our three-dial
   machinery (what makes retrieval context helpful) has something to add.
@@ -77,6 +79,6 @@ skill libraries initialized from SkillRL (curated); 3B/7B only; benchmarks
 are agent playgrounds (ALFWorld/WebShop), not professional domains like law.
 
 ## Links
-[[skill-distillation-bridge]] · [[thinking-machines-expert-judgment]] ·
+[[skill-distillation-bridge]] · [[sdar]] · [[skill1]] · [[thinking-machines-expert-judgment]] ·
 [[expert-judgment-replication]] · [[judge-answer-conversion]] ·
 [[judge-mixed-legal]] · [[direction-2026-07]]

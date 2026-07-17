@@ -1,0 +1,84 @@
++ export HF_HOME=/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache
++ HF_HOME=/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache
++ D=/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data
++ PY=/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/bin/python
++ /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/bin/python -c 'import torch; print('\''torch'\'', torch.__version__, '\''cuda'\'', torch.cuda.is_available())'
+torch 2.10.0+cu128 cuda True
++ /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/bin/python -c 'import peft'
++ /home/compute/hiqbal/.local/bin/uv pip install --python /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/bin/python peft accelerate
+Using Python 3.11.15 environment at: src/LegalRagAgent/.venv
+Resolved 45 packages in 2.91s
+Prepared 2 packages in 985ms
+warning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.
+         If the cache and target directories are on different filesystems, hardlinking may not be supported.
+         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.
+Installed 2 packages in 3.73s
+ + accelerate==1.14.0
+ + peft==0.19.1
++ /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/bin/python -c 'import peft, transformers; print('\''peft'\'', peft.__version__, '\''tf'\'', transformers.__version__)'
+peft 0.19.1 tf 4.57.6
++ echo '=== TRAIN (barexam, full) ==='
+=== TRAIN (barexam, full) ===
++ /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/bin/python /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/local_judge.py train --data-dir /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/mac_mirror --prefix '' --out-dir /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/ckpt_barexam_9b_local
+Traceback (most recent call last):
+  File "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/lib/python3.11/site-packages/transformers/models/auto/configuration_auto.py", line 1360, in from_pretrained
+    config_class = CONFIG_MAPPING[config_dict["model_type"]]
+                   ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/lib/python3.11/site-packages/transformers/models/auto/configuration_auto.py", line 1048, in __getitem__
+    raise KeyError(key)
+KeyError: 'qwen3_5'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/local_judge.py", line 162, in <module>
+    {"train": cmd_train, "score": cmd_score}[args.cmd](args)
+  File "/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/local_judge.py", line 59, in cmd_train
+    tok, model = load_model(train_mode=True)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/local_judge.py", line 41, in load_model
+    model = AutoModelForCausalLM.from_pretrained(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/lib/python3.11/site-packages/transformers/models/auto/auto_factory.py", line 549, in from_pretrained
+    config, kwargs = AutoConfig.from_pretrained(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/lib/python3.11/site-packages/transformers/models/auto/configuration_auto.py", line 1362, in from_pretrained
+    raise ValueError(
+ValueError: The checkpoint you are trying to load has model type `qwen3_5` but Transformers does not recognize this architecture. This could be because of an issue with the checkpoint, or because your version of Transformers is out of date.
+
+You can update Transformers with the command `pip install --upgrade transformers`. If this does not work, and the checkpoint is very new, then there may not be a release version that supports this model yet. In this case, you can get the most up-to-date code by installing Transformers from source with the command `pip install git+https://github.com/huggingface/transformers.git`
++ echo '=== SCORE trained ==='
+=== SCORE trained ===
++ /engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/bin/python /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/local_judge.py score --data-dir /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/mac_mirror --prefix '' --ckpt /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/ckpt_barexam_9b_local --tag trained_local
+Traceback (most recent call last):
+  File "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/lib/python3.11/site-packages/transformers/models/auto/configuration_auto.py", line 1360, in from_pretrained
+    config_class = CONFIG_MAPPING[config_dict["model_type"]]
+                   ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/lib/python3.11/site-packages/transformers/models/auto/configuration_auto.py", line 1048, in __getitem__
+    raise KeyError(key)
+KeyError: 'qwen3_5'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/local_judge.py", line 162, in <module>
+    {"train": cmd_train, "score": cmd_score}[args.cmd](args)
+  File "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/local_judge.py", line 104, in cmd_score
+    tok, model = load_model(ckpt=args.ckpt)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/local_judge.py", line 41, in load_model
+    model = AutoModelForCausalLM.from_pretrained(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/lib/python3.11/site-packages/transformers/models/auto/auto_factory.py", line 549, in from_pretrained
+    config, kwargs = AutoConfig.from_pretrained(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent/.venv/lib/python3.11/site-packages/transformers/models/auto/configuration_auto.py", line 1362, in from_pretrained
+    raise ValueError(
+ValueError: The checkpoint you are trying to load has model type `qwen3_5` but Transformers does not recognize this architecture. This could be because of an issue with the checkpoint, or because your version of Transformers is out of date.
+
+You can update Transformers with the command `pip install --upgrade transformers`. If this does not work, and the checkpoint is very new, then there may not be a release version that supports this model yet. In this case, you can get the most up-to-date code by installing Transformers from source with the command `pip install git+https://github.com/huggingface/transformers.git`
++ echo '=== ALL DONE ==='
+=== ALL DONE ===

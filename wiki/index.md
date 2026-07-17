@@ -3,23 +3,28 @@ title: LegalRagAgent Wiki Index
 type: hub
 tags: [index]
 created: 2026-07-02
-updated: 2026-07-02
+updated: 2026-07-17
 status: maintained
 ---
 
 # LegalRagAgent Wiki — Index
 
-Compounding knowledge base for the legal-RAG / generative-query-expansion
-project. **Current north star: understand and exploit *when generated queries
-help retrieval and when retrieval helps answers*** — the mechanism
-([[geometry-vs-factuality]]), the regime law
-([[weak-vs-strong-query-regime]]), and the conversion bottleneck
-([[answer-conversion-gap]]) — after the SCOPE method paper was rejected
-([[icml-ai4law-2026-rejection]]). See [[WIKI_GUIDE]] for conventions,
-[[START_HERE]] for orientation, [[log]] for chronology.
+Compounding knowledge base for the legal-RAG project. **Current north star:
+reader-conditioned marginal evidence-set utility under search cost**
+([[three-dial]]), with [[opd-distillation]] as a gated implementation route.
+The SCOPE method is historical ([[scope-old]]). Start with
+[[research-state-2026-07-17]], then [[literature/index]] and
+[[coverage-audit-2026-07-17]]. See [[WIKI_GUIDE]] for conventions,
+[[START_HERE]] for orientation, and [[log]] for chronology.
 
 ## Hubs
 - [[START_HERE]] — orienting read
+- [[research-state-2026-07-17]] — current local/EIT/literature synthesis and decision gates
+- [[three-dial]] — primary research track
+- [[opd-distillation]] — gated skill-distillation track
+- [[scope-old]] — historical SCOPE branch/archive map
+- [[literature/index]] — persistent primary-source vault and manifests
+- [[coverage-audit-2026-07-17]] — novelty/coverage audit from nine new full-paper reads
 - [[direction-2026-07]] — direction map for the 2026-07-02 meeting (next steps, candidate anchors)
 - [[icml-ai4law-2026-rejection]] — criticism inventory C1–C12 + assessment (the pivot document)
 - [7_2_review_meeting/](7_2_review_meeting/00-README.md) — meeting packet: submission + critique + related work + pivot + EDA + results + narrative (transient, 2026-07-02)
@@ -52,6 +57,11 @@ help retrieval and when retrieval helps answers*** — the mechanism
 - [[lamer-gar]] — answer-conditioned expansion prior art
 - [[csqe]] — corpus-steered expansion; collapses on weak-query legal
 - [[skill0]] — **skill internalization via curriculum RL** (arXiv 2604.02268, ZJU/Meituan); the meeting's distillation-bridge anchor; PDF+repo archived on EIT
+- [[sdar]] — task RL + gap-gated on-policy self-distillation; bare OPSD collapse is the OPD safety correction
+- [[skill1]] — unified skill selection/use/distillation; broad skill-internalization novelty is occupied
+- [[predicting-retrieval-utility]] · [[cue-r]] · [[beyond-relevance-utility]] — utility prediction/intervention landscape
+- [[budget-constrained-agentic-search]] — fixed search-budget/cost evidence
+- [[sure-rag]] · [[conflictrag]] · [[arbgraph]] — set sufficiency and conflict-arbitration landscape
 
 ## Sources — QPP / expansion-failure / RAG-control
 - [[weller-drift]] — expansion helps weak, hurts strong (macro precedent)
@@ -104,4 +114,6 @@ help retrieval and when retrieval helps answers*** — the mechanism
 - Generated analyses: [docs/generated/](../docs/generated/) · Ideas log: [ideas.md](../ideas.md)
 - Lit repositioning (pre-review): [RELATED_WORK_GROUNDING](../paper/submission/RELATED_WORK_GROUNDING.md)
 - Submitted paper + reviews: [official_paper_and_review_icml_ai_4_law/](../official_paper_and_review_icml_ai_4_law/)
-- Raw sources: `references/` (gitignored; archived at `wustl:/engrfs/tmp/jacobsn/hiqbal_legalrag/references/papers/`)
+- Raw sources: `references/` (gitignored working copy); persistent EIT vault
+  `/engrfs/project/jacobsn/hiqbal/literature/legalrag/`, with tracked manifests
+  under `wiki/literature/manifests/`.

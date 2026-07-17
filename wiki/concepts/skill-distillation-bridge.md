@@ -4,10 +4,17 @@ type: concept
 tags: [direction, distillation, skills, judge, agentic, tinker, eit]
 created: 2026-07-02
 date: 2026-07-02
-status: direction-draft (post-meeting priority thread)
+status: gated active track — plumbing validated; novelty narrowed; E2 pending
 ---
 
 # The bridge: SKILL0 × expert-judgment distillation × our judge program
+
+> **2026-07-17 state:** E0 and E1 are complete and EIT job 93802 passed the
+> full teacher→student OPD smoke. [[sdar]] and [[skill1]] are now read. The
+> direction survives only in a narrower form: reader-conditioned legal
+> retrieval control distilled cross-scale. Bare OPD is a plumbing/collapse
+> baseline; safe E3 requires task reward plus gap-gated dense supervision and
+> is blocked on the E2 teacher skill-gap A/B.
 
 **One sentence**: [[skill0]] shows in-context skills can be *internalized
 into the same model's* weights via a helpfulness-driven curriculum; the
@@ -37,24 +44,24 @@ rather than skill-curriculum *self-internalization*.
    These are reasoning-heavy, big-model-favored behaviors — exactly what
    you'd want to distill down ([[08-meeting-notes]]).
 
-## What's novel (pending two checks)
-- SKILL0 internalizes into the **same, already-capable** model; the teacher
-  and student are one. Cross-scale skill internalization — big teacher
-  demonstrates/scaffolds, small student ends with the skill in weights and
-  **no skill context at inference** — is not what their paper does.
-- **Novelty checks required before building anything**: (a) **SDAR**
-  (ZJU-REAL, 2026-05, "Self-Distilled Agentic RL") — name suggests
-  same-model self-distillation, but must read; (b) **SKILL1** (USTC,
-  2026-05, unified-policy skill evolution). Both linked from the SkillZero
-  README. UNVERIFIED until read.
-- Differentiation from generic KD: the *object* distilled is a procedural
-  skill exercised over multi-turn tool use (retrieval calls), withdrawn on a
-  measured helpfulness schedule — not logit matching on a static dataset.
+## Novelty after the required reads
+
+- [[sdar]] already combines agentic task RL with privileged-skill on-policy
+  self-distillation and shows why negative-gap gating is necessary.
+- [[skill1]] already co-evolves skill search, selection, use, and distillation
+  in one policy.
+- Therefore neither “skill internalization” nor “self-distilled agentic RL” is
+  our contribution. The remaining wedge is **cross-scale compression of a
+  reader-conditioned retrieval-control skill**, measured on legal task success
+  and cost, with evidence utility/harm as the supervision object.
+- This wedge is still provisional: it earns a method claim only if the skill
+  improves the teacher at E2 and distillation improves a pre-registered
+  accuracy–cost frontier at E3.
 
 ## Technical paths (by teacher access)
 | Teacher | Method | Notes |
 |---|---|---|
-| Open weights (Qwen-235B, Llama-405B, or a skill-augmented mid-size) | **On-policy distillation (OPD)** — student samples, teacher top-k logprobs as dense supervision (the Tinker OPD recipe) | Cleanest; needs teacher serving with logprobs (vLLM fine; EIT can serve mid-size, API for larger) |
+| Open weights (Qwen-235B, Llama-405B, or a skill-augmented mid-size) | **Task reward + gap-gated OPD** — student samples, teacher top-k logprobs provide a small dense auxiliary signal | Primary safe design after SDAR; bare OPD remains a diagnostic only |
 | Closed (GPT/Claude) | Sequence-level KD on teacher traces (SFT); GKD-style: student samples, teacher *scores/ranks* (reward, not logits); rejection-sampling SFT | Meeting action item: **survey how people distill from closed models** — OpenAI exposes top-20 logprobs, Anthropic none, so token-level OPD is out |
 | No teacher, skills-as-teacher | SKILL0's own recipe at small scale: give the small model the skill *files* + curriculum-withdraw | Baseline arm — tests whether a teacher model is even needed vs just the skill text |
 
@@ -77,8 +84,9 @@ table above. Eval: cost-vs-accuracy frontier against fixed-k baselines
 three-dial numbers predict where effort should concentrate; the question is
 whether a small policy *learns* that allocation.
 
-Honest blockers before v0: (1) SDAR/SKILL1 novelty check; (2) closed-teacher
-distillation survey; (3) SKILL0's stack is verl+vLLM multi-GPU RL — heavier
+Honest blockers before a scientific E3: (1) E2 teacher skill-gap A/B; (2)
+gap-gated/task-reward implementation and tests; (3) closed-teacher
+distillation survey; (4) SKILL0's stack is verl+vLLM multi-GPU RL — heavier
 than our PEFT lane; a bandit-style single-turn version (retrieve-or-not +
 k choice) may be the right first rung rather than full multi-turn RL.
 
@@ -100,7 +108,7 @@ retrieve/k decision in its own forward pass, trained on the free EIT lane
 supervised ceiling binds).
 
 ## Links
-[[skill0]] · [[thinking-machines-expert-judgment]] ·
+[[skill0]] · [[sdar]] · [[skill1]] · [[thinking-machines-expert-judgment]] ·
 [[expert-judgment-replication]] · [[judge-capacity-dial]] ·
 [[judge-mixed-legal]] · [[judge-answer-conversion]] · [[08-meeting-notes]] ·
 [[direction-2026-07]]

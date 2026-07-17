@@ -1,0 +1,15 @@
+{
+  "n_pools": 500,
+  "n_gold_in_pool": 285,
+  "arms": {
+    "judge-trained-specialist": {
+      "hit@5": 0.55,
+      "mrr@5": 0.4770666666666667,
+      "hits": 275,
+      "gold_in_pool_hit@5": 0.9649122807017544,
+      "gold_in_pool_mrr@5": 0.8369590643274855,
+      "gold_in_pool_n": 285
+    }
+  },
+  "provenance": "Recomputed 2026-07-17 from the preserved 2026-07-02 per-pool scores; see manifests/local_july_detail_logs.tsv and wiki/results/judge-pilot-housing.md."
+}

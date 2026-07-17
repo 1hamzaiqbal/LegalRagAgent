@@ -1,0 +1,110 @@
++ export HF_HOME=/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache
++ HF_HOME=/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache
++ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++ export JUDGE_MICRO=2
++ JUDGE_MICRO=2
++ export JUDGE_ACCUM=64
++ JUDGE_ACCUM=64
++ D=/engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data
++ ENV=/engrfs/project/jacobsn/hiqbal/envs/judge_lane
++ UV=/home/compute/hiqbal/.local/bin/uv
++ /home/compute/hiqbal/.local/bin/uv pip install --python /engrfs/project/jacobsn/hiqbal/envs/judge_lane/bin/python flash-linear-attention
++ tail -1
+ + flash-linear-attention==0.5.1
++ PY=/engrfs/project/jacobsn/hiqbal/envs/judge_lane/bin/python
++ echo '=== SMOKE (timing probe) ==='
+=== SMOKE (timing probe) ===
+++ date +%s
++ T0=1783014461
++ timeout 1200 /engrfs/project/jacobsn/hiqbal/envs/judge_lane/bin/python /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/local_judge.py train --data-dir /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/mac_mirror --prefix '' --out-dir /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/ckpt_smoke --smoke
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Fetching 4 files:   0%|          | 0/4 [00:00<?, ?it/s]Fetching 4 files: 100%|██████████| 4/4 [00:00<00:00, 669.27it/s]
+[transformers] The fast path is not available because one of the required library is not installed. Falling back to torch implementation. To install follow https://github.com/fla-org/flash-linear-attention#installation and https://github.com/Dao-AILab/causal-conv1d
+Loading weights:   0%|          | 0/427 [00:00<?, ?it/s]Loading weights:   0%|          | 1/427 [00:01<09:11,  1.29s/it]Loading weights:   3%|▎         | 14/427 [00:01<00:30, 13.48it/s]Loading weights:   6%|▋         | 27/427 [00:01<00:14, 27.51it/s]Loading weights:   9%|▉         | 39/427 [00:01<00:09, 40.65it/s]Loading weights:  11%|█▏        | 49/427 [00:01<00:08, 42.71it/s]Loading weights:  15%|█▌        | 66/427 [00:01<00:05, 62.25it/s]Loading weights:  18%|█▊        | 77/427 [00:02<00:04, 70.70it/s]Loading weights:  21%|██        | 88/427 [00:02<00:04, 76.73it/s]Loading weights:  23%|██▎       | 99/427 [00:02<00:04, 71.80it/s]Loading weights:  25%|██▌       | 108/427 [00:02<00:04, 75.26it/s]Loading weights:  28%|██▊       | 120/427 [00:02<00:03, 83.86it/s]Loading weights:  31%|███       | 133/427 [00:02<00:03, 92.39it/s]Loading weights:  34%|███▎      | 144/427 [00:02<00:02, 95.64it/s]Loading weights:  36%|███▋      | 155/427 [00:02<00:03, 76.46it/s]Loading weights:  40%|████      | 171/427 [00:03<00:02, 90.66it/s]Loading weights:  43%|████▎     | 183/427 [00:03<00:02, 97.38it/s]Loading weights:  45%|████▌     | 194/427 [00:03<00:02, 97.73it/s]Loading weights:  48%|████▊     | 205/427 [00:03<00:02, 81.37it/s]Loading weights:  50%|█████     | 214/427 [00:03<00:02, 80.87it/s]Loading weights:  53%|█████▎    | 226/427 [00:03<00:02, 86.39it/s]Loading weights:  56%|█████▌    | 237/427 [00:03<00:02, 91.99it/s]Loading weights:  59%|█████▊    | 250/427 [00:03<00:01, 99.20it/s]Loading weights:  61%|██████    | 261/427 [00:04<00:02, 79.44it/s]Loading weights:  65%|██████▌   | 278/427 [00:04<00:01, 96.23it/s]Loading weights:  68%|██████▊   | 290/427 [00:04<00:01, 99.51it/s]Loading weights:  70%|███████   | 301/427 [00:04<00:01, 96.67it/s]Loading weights:  73%|███████▎  | 312/427 [00:04<00:01, 74.80it/s]Loading weights:  78%|███████▊  | 331/427 [00:04<00:01, 94.69it/s]Loading weights:  81%|████████  | 344/427 [00:04<00:00, 100.27it/s]Loading weights:  83%|████████▎ | 355/427 [00:05<00:00, 97.47it/s] Loading weights:  86%|████████▌ | 366/427 [00:05<00:00, 77.96it/s]Loading weights:  90%|████████▉ | 384/427 [00:05<00:00, 96.40it/s]Loading weights:  93%|█████████▎| 395/427 [00:05<00:00, 98.48it/s]Loading weights:  95%|█████████▌| 406/427 [00:05<00:00, 97.28it/s]Loading weights:  98%|█████████▊| 417/427 [00:05<00:00, 84.68it/s]Loading weights: 100%|██████████| 427/427 [00:05<00:00, 87.60it/s]Loading weights: 100%|██████████| 427/427 [00:05<00:00, 71.79it/s]
+trainable params: 58,195,968 || all params: 9,011,999,232 || trainable%: 0.6458
+train examples: 32
+[transformers] `use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`.
+epoch 0 step 1 n=32 mean_target_loss=2.2084 (3.1m)
+saved /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/ckpt_smoke
++ SMOKE_RC=0
+++ date +%s
++ T1=1783014732
++ SMOKE_S=271
++ echo 'SMOKE rc=0 elapsed=271s'
+SMOKE rc=0 elapsed=271s
++ '[' 0 -ne 0 ']'
++ '[' 271 -gt 600 ']'
++ echo '=== TRAIN (barexam, full) base= ==='
+=== TRAIN (barexam, full) base= ===
++ /engrfs/project/jacobsn/hiqbal/envs/judge_lane/bin/python /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/local_judge.py train --data-dir /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/mac_mirror --prefix '' --out-dir /engrfs/tmp/jacobsn/hiqbal_legalrag/judge_pilot_v0_data/ckpt_barexam_local_v3
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Fetching 4 files:   0%|          | 0/4 [00:00<?, ?it/s]Fetching 4 files: 100%|██████████| 4/4 [00:00<00:00, 641.55it/s]
+[transformers] The fast path is not available because one of the required library is not installed. Falling back to torch implementation. To install follow https://github.com/fla-org/flash-linear-attention#installation and https://github.com/Dao-AILab/causal-conv1d
+Loading weights:   0%|          | 0/427 [00:00<?, ?it/s]Loading weights:   0%|          | 1/427 [00:00<04:09,  1.71it/s]Loading weights:   0%|          | 2/427 [00:01<04:37,  1.53it/s]Loading weights:   3%|▎         | 14/427 [00:01<00:28, 14.35it/s]Loading weights:   7%|▋         | 28/427 [00:01<00:12, 30.85it/s]Loading weights:  10%|▉         | 41/427 [00:01<00:08, 45.70it/s]Loading weights:  12%|█▏        | 50/427 [00:01<00:07, 47.37it/s]Loading weights:  15%|█▌        | 65/427 [00:01<00:05, 63.88it/s]Loading weights:  18%|█▊        | 77/427 [00:02<00:04, 74.51it/s]Loading weights:  20%|██        | 87/427 [00:02<00:04, 77.63it/s]Loading weights:  23%|██▎       | 97/427 [00:02<00:04, 75.23it/s]Loading weights:  25%|██▍       | 106/427 [00:02<00:04, 76.78it/s]Loading weights:  28%|██▊       | 119/427 [00:02<00:03, 89.49it/s]Loading weights:  30%|███       | 129/427 [00:02<00:03, 91.50it/s]Loading weights:  33%|███▎      | 139/427 [00:02<00:03, 89.87it/s]Loading weights:  35%|███▍      | 149/427 [00:02<00:03, 82.32it/s]Loading weights:  37%|███▋      | 158/427 [00:02<00:03, 81.94it/s]Loading weights:  40%|████      | 172/427 [00:03<00:02, 95.28it/s]Loading weights:  43%|████▎     | 185/427 [00:03<00:02, 102.01it/s]Loading weights:  46%|████▌     | 196/427 [00:03<00:02, 98.13it/s] Loading weights:  48%|████▊     | 207/427 [00:03<00:02, 74.86it/s]Loading weights:  53%|█████▎    | 225/427 [00:03<00:02, 93.22it/s]Loading weights:  55%|█████▌    | 236/427 [00:03<00:01, 96.55it/s]Loading weights:  58%|█████▊    | 247/427 [00:03<00:01, 97.53it/s]Loading weights:  60%|██████    | 258/427 [00:04<00:02, 84.49it/s]Loading weights:  63%|██████▎   | 268/427 [00:04<00:01, 87.51it/s]Loading weights:  65%|██████▌   | 279/427 [00:04<00:01, 90.90it/s]Loading weights:  68%|██████▊   | 292/427 [00:04<00:01, 98.50it/s]Loading weights:  71%|███████   | 303/427 [00:04<00:01, 101.20it/s]Loading weights:  74%|███████▎  | 314/427 [00:04<00:01, 77.87it/s] Loading weights:  78%|███████▊  | 331/427 [00:04<00:01, 94.20it/s]Loading weights:  80%|████████  | 342/427 [00:04<00:00, 95.56it/s]Loading weights:  83%|████████▎ | 354/427 [00:05<00:00, 96.72it/s]Loading weights:  85%|████████▌ | 365/427 [00:05<00:00, 77.48it/s]Loading weights:  90%|████████▉ | 384/427 [00:05<00:00, 97.29it/s]Loading weights:  93%|█████████▎| 395/427 [00:05<00:00, 99.27it/s]Loading weights:  95%|█████████▌| 406/427 [00:05<00:00, 97.90it/s]Loading weights:  98%|█████████▊| 417/427 [00:05<00:00, 85.16it/s]Loading weights: 100%|██████████| 427/427 [00:05<00:00, 87.90it/s]Loading weights: 100%|██████████| 427/427 [00:05<00:00, 72.19it/s]
+trainable params: 58,195,968 || all params: 9,011,999,232 || trainable%: 0.6458
+train examples: 3500
+[transformers] `use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`.
+epoch 0 step 1 n=128 mean_target_loss=2.1723 (1.1m)
+epoch 0 step 2 n=128 mean_target_loss=0.5105 (2.1m)
+epoch 0 step 3 n=128 mean_target_loss=0.9963 (3.1m)
+epoch 0 step 4 n=128 mean_target_loss=0.4884 (4.1m)
+epoch 0 step 5 n=128 mean_target_loss=0.5115 (5.1m)
+epoch 0 step 6 n=128 mean_target_loss=0.4834 (6.1m)
+epoch 0 step 7 n=128 mean_target_loss=0.4902 (7.1m)
+epoch 0 step 8 n=128 mean_target_loss=0.4142 (8.1m)
+epoch 0 step 9 n=128 mean_target_loss=0.4846 (9.1m)
+epoch 0 step 10 n=128 mean_target_loss=0.4396 (10.1m)
+epoch 0 step 11 n=128 mean_target_loss=0.5968 (11.1m)
+epoch 0 step 12 n=128 mean_target_loss=0.5212 (12.9m)
+epoch 0 step 13 n=128 mean_target_loss=0.4585 (13.9m)
+epoch 0 step 14 n=128 mean_target_loss=0.4942 (14.9m)
+epoch 0 step 15 n=128 mean_target_loss=0.5012 (16.0m)
+epoch 0 step 16 n=128 mean_target_loss=0.4589 (17.0m)
+epoch 0 step 17 n=128 mean_target_loss=0.4042 (18.0m)
+epoch 0 step 18 n=128 mean_target_loss=0.4678 (19.0m)
+epoch 0 step 19 n=128 mean_target_loss=0.3928 (20.1m)
+epoch 0 step 20 n=128 mean_target_loss=0.4722 (21.1m)
+epoch 0 step 21 n=128 mean_target_loss=0.4024 (22.1m)
+epoch 0 step 22 n=128 mean_target_loss=0.4042 (23.1m)
+epoch 0 step 23 n=128 mean_target_loss=0.3190 (24.1m)
+epoch 0 step 24 n=128 mean_target_loss=0.5133 (25.2m)
+epoch 0 step 25 n=128 mean_target_loss=0.4475 (26.2m)
+epoch 0 step 26 n=128 mean_target_loss=0.4409 (27.2m)
+epoch 0 step 27 n=128 mean_target_loss=0.4719 (28.2m)
+epoch 0 step 28 n=44 mean_target_loss=0.4226 (28.5m)
+epoch 1 step 29 n=128 mean_target_loss=0.4228 (29.5m)
+epoch 1 step 30 n=128 mean_target_loss=0.3694 (30.6m)
+epoch 1 step 31 n=128 mean_target_loss=0.4063 (31.6m)
+epoch 1 step 32 n=128 mean_target_loss=0.4462 (32.6m)
+epoch 1 step 33 n=128 mean_target_loss=0.4865 (33.6m)
+epoch 1 step 34 n=128 mean_target_loss=0.4077 (34.6m)
+epoch 1 step 35 n=128 mean_target_loss=0.3890 (35.7m)
+epoch 1 step 36 n=128 mean_target_loss=0.3851 (36.7m)
+epoch 1 step 37 n=128 mean_target_loss=0.4417 (37.7m)
+epoch 1 step 38 n=128 mean_target_loss=0.3912 (38.7m)
+epoch 1 step 39 n=128 mean_target_loss=0.3660 (39.6m)
+epoch 1 step 40 n=128 mean_target_loss=0.5147 (40.7m)
+epoch 1 step 41 n=128 mean_target_loss=0.3084 (41.7m)
+epoch 1 step 42 n=128 mean_target_loss=0.3776 (42.7m)
+epoch 1 step 43 n=128 mean_target_loss=0.3559 (43.8m)
+epoch 1 step 44 n=128 mean_target_loss=0.3905 (44.8m)
+epoch 1 step 45 n=128 mean_target_loss=0.4214 (45.8m)
+epoch 1 step 46 n=128 mean_target_loss=0.3531 (46.8m)
+epoch 1 step 47 n=128 mean_target_loss=0.4226 (47.9m)
+epoch 1 step 48 n=128 mean_target_loss=0.2909 (48.9m)
+epoch 1 step 49 n=128 mean_target_loss=0.4312 (49.9m)
+epoch 1 step 50 n=128 mean_target_loss=0.3511 (50.9m)
+epoch 1 step 51 n=128 mean_target_loss=0.3065 (51.9m)
+epoch 1 step 52 n=128 mean_target_loss=0.3056 (52.9m)
+epoch 1 step 53 n=128 mean_target_loss=0.2884 (53.9m)
+epoch 1 step 54 n=128 mean_target_loss=0.3041 (54.8m)
+epoch 1 step 55 n=128 mean_target_loss=0.3229 (55.8m)
+epoch 1 step 56 n=44 mean_target_loss=0.5708 (56.2m)
+epoch 2 step 57 n=128 mean_target_loss=0.4563 (57.2m)
+epoch 2 step 58 n=128 mean_target_loss=0.3414 (58.2m)
+epoch 2 step 59 n=128 mean_target_loss=0.3059 (59.2m)
+epoch 2 step 60 n=128 mean_target_loss=0.2808 (60.2m)
+[2026-07-02T13:54:36.227] error: *** JOB 93629 ON osprey CANCELLED AT 2026-07-02T13:54:36 DUE to SIGNAL Terminated ***

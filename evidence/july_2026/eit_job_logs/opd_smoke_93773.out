@@ -1,0 +1,82 @@
++ BASE=/engrfs/tmp/jacobsn/hiqbal_legalrag/opd_smoke
++ ENV=/engrfs/project/jacobsn/hiqbal/envs/opd_lane
++ export HF_HOME=/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache
++ HF_HOME=/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache
++ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++ nvidia-smi --query-gpu=name,memory.total --format=csv
+name, memory.total [MiB]
+NVIDIA A100-SXM4-80GB, 81920 MiB
++ '[' '!' -x /engrfs/project/jacobsn/hiqbal/envs/opd_lane/bin/python ']'
++ /engrfs/project/jacobsn/hiqbal/envs/judge_lane/bin/python -m venv /engrfs/project/jacobsn/hiqbal/envs/opd_lane
++ /engrfs/project/jacobsn/hiqbal/envs/opd_lane/bin/pip install -q --upgrade pip
++ /engrfs/project/jacobsn/hiqbal/envs/opd_lane/bin/pip install -q vllm requests peft accelerate
++ source /engrfs/project/jacobsn/hiqbal/envs/opd_lane/bin/activate
+++ deactivate nondestructive
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
+++ '[' -n '' ']'
+++ unset VIRTUAL_ENV
+++ unset VIRTUAL_ENV_PROMPT
+++ '[' '!' nondestructive = nondestructive ']'
+++ VIRTUAL_ENV=/engrfs/project/jacobsn/hiqbal/envs/opd_lane
+++ export VIRTUAL_ENV
+++ _OLD_VIRTUAL_PATH=/home/compute/hiqbal/.local/bin:/home/compute/hiqbal/bin:/project/compute/slurm/bin:/usr/share/Modules/bin:/usr/condabin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+++ PATH=/engrfs/project/jacobsn/hiqbal/envs/opd_lane/bin:/home/compute/hiqbal/.local/bin:/home/compute/hiqbal/bin:/project/compute/slurm/bin:/usr/share/Modules/bin:/usr/condabin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+++ export PATH
+++ '[' -n '' ']'
+++ '[' -z '' ']'
+++ _OLD_VIRTUAL_PS1=
+++ PS1='(opd_lane) '
+++ export PS1
+++ VIRTUAL_ENV_PROMPT='(opd_lane) '
+++ export VIRTUAL_ENV_PROMPT
+++ hash -r
++ python -c 'import vllm, peft, requests; print('\''opd env ok'\'', vllm.__version__)'
+opd env ok 0.24.0
++ cd /engrfs/tmp/jacobsn/hiqbal_legalrag/opd_smoke/repo_root
++ export OPD_SMOKE_PORT=8877
++ OPD_SMOKE_PORT=8877
++ export OPD_TEACHER_GPU_FRAC=0.55
++ OPD_TEACHER_GPU_FRAC=0.55
++ bash scripts/opd/smoke_test.sh
+wrote /engrfs/tmp/jacobsn/hiqbal_legalrag/opd_smoke/repo_root/scripts/opd/_smoke_tmp/tasks.jsonl prompts=8
+starting vLLM teacher on http://127.0.0.1:8877
+(APIServer pid=3868356) INFO 07-02 18:14:59 [api_utils.py:339] 
+(APIServer pid=3868356) INFO 07-02 18:14:59 [api_utils.py:339]        █     █     █▄   ▄█
+(APIServer pid=3868356) INFO 07-02 18:14:59 [api_utils.py:339]  ▄▄ ▄█ █     █     █ ▀▄▀ █  version 0.24.0
+(APIServer pid=3868356) INFO 07-02 18:14:59 [api_utils.py:339]   █▄█▀ █     █     █     █  model   Qwen/Qwen3-8B
+(APIServer pid=3868356) INFO 07-02 18:14:59 [api_utils.py:339]    ▀▀  ▀▀▀▀▀ ▀▀▀▀▀ ▀     ▀
+(APIServer pid=3868356) INFO 07-02 18:14:59 [api_utils.py:339] 
+(APIServer pid=3868356) INFO 07-02 18:14:59 [api_utils.py:273] non-default args: {'model_tag': 'Qwen/Qwen3-8B', 'port': 8877, 'model': 'Qwen/Qwen3-8B', 'max_model_len': 2048, 'gpu_memory_utilization': 0.55}
+(APIServer pid=3868356) Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+(APIServer pid=3868356) INFO 07-02 18:16:02 [model.py:598] Resolved architecture: Qwen3ForCausalLM
+(APIServer pid=3868356) INFO 07-02 18:16:02 [model.py:1725] Using max model len 2048
+(APIServer pid=3868356) INFO 07-02 18:16:02 [vllm.py:1006] Asynchronous scheduling is enabled.
+(APIServer pid=3868356) INFO 07-02 18:16:02 [kernel.py:276] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'])
+(EngineCore pid=3868651) INFO 07-02 18:17:11 [core.py:114] Initializing a V1 LLM engine (v0.24.0) with config: model='Qwen/Qwen3-8B', speculative_config=None, tokenizer='Qwen/Qwen3-8B', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=2048, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, decode_context_parallel_size=1, dcp_comm_backend=ag_rs, disable_custom_all_reduce=False, quantization=None, quantization_config=None, enforce_eager=False, enable_return_routed_experts=False, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, kv_cache_metrics=False, kv_cache_metrics_sample=0.01, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False, enable_mfu_metrics=False, enable_mm_processor_stats=False, enable_logging_iteration_details=False, jit_monitor_verbose=False), seed=0, served_model_name=Qwen/Qwen3-8B, enable_prefix_caching=True, enable_chunked_prefill=True, pooler_config=None, compilation_config={'mode': <CompilationMode.VLLM_COMPILE: 3>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['none'], 'ir_enable_torch_wrap': True, 'splitting_ops': ['vllm::unified_attention_with_output', 'vllm::unified_mla_attention_with_output', 'vllm::mamba_mixer2', 'vllm::mamba_mixer', 'vllm::short_conv', 'vllm::linear_attention', 'vllm::plamo2_mamba_mixer', 'vllm::qwen_gdn_attention_core', 'vllm::gdn_attention_core_xpu', 'vllm::olmo_hybrid_gdn_full_forward', 'vllm::kda_attention', 'vllm::sparse_attn_indexer', 'vllm::rocm_aiter_sparse_attn_indexer', 'vllm::deepseek_v4_attention', 'vllm::unified_kv_cache_update', 'vllm::unified_mla_kv_cache_update'], 'compile_mm_encoder': False, 'cudagraph_mm_encoder': False, 'encoder_cudagraph_token_budgets': [], 'encoder_cudagraph_max_vision_items_per_batch': 0, 'encoder_cudagraph_max_frames_per_batch': None, 'compile_sizes': [], 'compile_ranges_endpoints': [2048], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'size_asserts': False, 'alignment_asserts': False, 'scalar_asserts': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.FULL_AND_PIECEWISE: (2, 1)>, 'cudagraph_num_of_warmups': 1, 'cudagraph_capture_sizes': [1, 2, 4, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128, 136, 144, 152, 160, 168, 176, 184, 192, 200, 208, 216, 224, 232, 240, 248, 256, 272, 288, 304, 320, 336, 352, 368, 384, 400, 416, 432, 448, 464, 480, 496, 512], 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': False, 'fuse_act_quant': False, 'fuse_attn_quant': False, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False, 'fuse_rope_kvcache_cat_mla': False, 'fuse_act_padding': False}, 'max_cudagraph_capture_size': 512, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False, 'assume_32_bit_indexing': False}, 'local_cache_dir': None, 'fast_moe_cold_start': False, 'static_all_moe_layers': []}, kernel_config=KernelConfig(ir_op_priority=IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native']), enable_flashinfer_autotune=True, moe_backend='auto', linear_backend='auto')
+(EngineCore pid=3868651) INFO 07-02 18:17:14 [parallel_state.py:1588] world_size=1 rank=0 local_rank=0 distributed_init_method=tcp://10.24.77.30:41693 backend=nccl
+(EngineCore pid=3868651) INFO 07-02 18:17:15 [parallel_state.py:1923] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, EP rank N/A, EPLB rank N/A
+(EngineCore pid=3868651) INFO 07-02 18:17:15 [gpu_worker.py:331] Using V2 Model Runner
+(EngineCore pid=3868651) INFO 07-02 18:17:15 [model_runner.py:281] Loading model from scratch...
+(EngineCore pid=3868651) INFO 07-02 18:17:44 [cuda.py:480] Using FLASH_ATTN attention backend out of potential backends: ['FLASH_ATTN', 'FLASHINFER', 'TRITON_ATTN', 'FLEX_ATTENTION'].
+(EngineCore pid=3868651) INFO 07-02 18:17:44 [flash_attn.py:670] Using FlashAttention version 2
+(EngineCore pid=3868651) Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+(EngineCore pid=3868651) INFO 07-02 18:18:22 [weight_utils.py:849] Filesystem type for checkpoints: BEEGFS. Checkpoint size: 15.26 GiB. Available RAM: 902.60 GiB.
+(EngineCore pid=3868651) INFO 07-02 18:18:22 [weight_utils.py:872] Auto-prefetch is disabled because the filesystem (BEEGFS) is not a recognized network FS (NFS/Lustre). If you want to force prefetching, start vLLM with --safetensors-load-strategy=prefetch.
+(EngineCore pid=3868651) Loading safetensors checkpoint shards:   0% Completed | 0/5 [00:00<?, ?it/s]
+(EngineCore pid=3868651) Loading safetensors checkpoint shards:  20% Completed | 1/5 [00:09<00:38,  9.66s/it]
+(EngineCore pid=3868651) Loading safetensors checkpoint shards:  40% Completed | 2/5 [00:20<00:30, 10.32s/it]
+(EngineCore pid=3868651) Loading safetensors checkpoint shards:  60% Completed | 3/5 [00:31<00:20, 10.49s/it]
+(EngineCore pid=3868651) Loading safetensors checkpoint shards:  80% Completed | 4/5 [00:39<00:09,  9.83s/it]
+(EngineCore pid=3868651) Loading safetensors checkpoint shards: 100% Completed | 5/5 [00:43<00:00,  7.51s/it]
+(EngineCore pid=3868651) Loading safetensors checkpoint shards: 100% Completed | 5/5 [00:43<00:00,  8.67s/it]
+(EngineCore pid=3868651) 
+(EngineCore pid=3868651) INFO 07-02 18:19:05 [default_loader.py:430] Loading weights took 43.39 seconds
+(EngineCore pid=3868651) INFO 07-02 18:19:06 [model_runner.py:302] Model loading took 15.27 GiB and 110.315859 seconds
+(EngineCore pid=3868651) INFO 07-02 18:19:06 [topk_topp_sampler.py:55] Using FlashInfer for top-p & top-k sampling.
+(EngineCore pid=3868651) INFO 07-02 18:19:27 [backends.py:1089] Using cache directory: /home/compute/hiqbal/.cache/vllm/torch_compile_cache/b442144aa1/rank_0_0/backbone for vLLM's torch.compile
+(EngineCore pid=3868651) INFO 07-02 18:19:27 [backends.py:1148] Dynamo bytecode transform time: 21.33 s
+FAIL vLLM readiness timed out
+[2026-07-02T18:24:19.863] error: *** JOB 93773 ON a100s-2308 CANCELLED AT 2026-07-02T18:24:19 DUE to SIGNAL Terminated ***

@@ -9,8 +9,10 @@ the graph.
 
 ## Three layers
 1. **Raw sources** (`references/`, gitignored, immutable) — downloaded papers/PDFs,
-   cloned repos, data dumps. Read from, never edit. Heavy copies archived on the
-   WUSTL EIT cluster at `/engrfs/tmp/jacobsn/hiqbal_legalrag/references/`.
+   cloned repos, data dumps. Read from, never edit. The persistent EIT archive is
+   `/engrfs/project/jacobsn/hiqbal/literature/legalrag/`; tracked paper hashes
+   and pinned repository commits live under `wiki/literature/manifests/`.
+   `/engrfs/tmp/...` is scratch and must not be treated as the only archive.
 2. **The wiki** (`wiki/`, tracked markdown) — LLM-generated, interlinked. This layer.
 3. **The schema** (this file) — conventions + workflows. Co-evolved over time.
 
@@ -32,6 +34,9 @@ wiki/
   methods/        ← things implemented in OUR code (scope, eval-harness, …)
   results/        ← dated result-family records (synthesis + links out to signed rows)
   reviews/        ← submission postmortems: criticism inventories + responses
+  snapshots/      ← dated, immutable research-state syntheses
+  tracks/         ← active/historical development-track hubs
+  literature/     ← primary-source vault index, coverage audits, manifests
 references/       ← (gitignored) raw papers/repos the source pages summarize
 ```
 

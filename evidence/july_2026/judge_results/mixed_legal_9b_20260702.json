@@ -1,0 +1,26 @@
+{
+  "model": "Qwen/Qwen3.5-9B",
+  "checkpoint": "ckpt_mixed_legal_v5",
+  "source_job": 93660,
+  "arms": {
+    "barexam": {
+      "n_pools": 399,
+      "n_gold_in_pool": 91,
+      "hit@5": 0.22055137844611528,
+      "mrr@5": 0.1421,
+      "hits": 88,
+      "gold_in_pool_hit@5": 0.967032967032967,
+      "gold_in_pool_n": 91
+    },
+    "housing": {
+      "n_pools": 500,
+      "n_gold_in_pool": 285,
+      "hit@5": 0.554,
+      "mrr@5": 0.486,
+      "hits": 277,
+      "gold_in_pool_hit@5": 0.9719298245614035,
+      "gold_in_pool_n": 285
+    }
+  },
+  "provenance": "Stable extraction of EIT job 93660; see ../eit_job_logs/judge_lane_93660.out."
+}

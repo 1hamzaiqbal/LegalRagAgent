@@ -1,5 +1,35 @@
 # CLAUDE.md
 
+## Update 2026-07-17 (active branches and research reset)
+
+**Current source of truth:**
+[`wiki/snapshots/research-state-2026-07-17.md`](wiki/snapshots/research-state-2026-07-17.md).
+The May Snap-HyRE material below is retained as historical operational
+provenance; it is no longer the project north star.
+
+Active branches:
+
+- `codex/three_dial`: primary science track—reader-conditioned marginal
+  evidence-set utility under search cost. See `ACTIVE_TRACK.md` and
+  `wiki/tracks/three-dial.md`.
+- `codex/opd_distillation`: gated implementation track for teaching that
+  policy to a small model. EIT job 93802 validates the software path only.
+  After reading SDAR, bare OPD is a diagnostic baseline; task reward plus
+  gap-gated OPD is the credible next objective, contingent on an E2 teacher
+  skill-gap result.
+- `codex/scope_old`: historical submission/review and SCOPE provenance.
+
+Read before making result claims:
+
+1. `docs/signoff_log.md`
+2. `docs/july_2026_completion_audit_2026-07-17.md`
+3. `evidence/july_2026/README.md`
+4. `wiki/literature/index.md` and its coverage audit
+
+The persistent primary-source vault is on EIT at
+`/engrfs/project/jacobsn/hiqbal/literature/legalrag/`; tracked checksums and
+repository commits are under `wiki/literature/manifests/`.
+
 ## Update 2026-05-12 (Snap-HyRE comprehensive pivot)
 
 **Current north star**: fixed-method Snap-HyRE, not a bottleneck-aware adaptive

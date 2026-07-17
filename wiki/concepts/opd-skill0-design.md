@@ -4,10 +4,16 @@ type: design
 tags: [opd, skill0, distillation, h100, eit, experiment-design]
 created: 2026-07-02
 date: 2026-07-02
-status: active design — E1 launched, E0 done, infra scaffolding in progress
+status: gated design — E0/E1 done, EIT smoke passed, E2 required before safe E3
 ---
 
 # OPD × SKILL0: experiment design for 1–2 H100s
+
+> **2026-07-17 correction after reading [[sdar]] and [[skill1]]:** job 93802
+> validates the end-to-end OPD software path (three finite steps and saved
+> checkpoints). It does not validate bare OPD as a learning method. SDAR shows
+> standalone/naively mixed OPSD can collapse; the credible E3 is task reward
+> plus gap-gated OPD, with bare OPD retained only as a diagnostic arm.
 
 Companion to [[skill-distillation-bridge]] (the *why*); this page is the
 *how*: a five-rung experiment ladder with explicit model choices, VRAM
@@ -28,7 +34,7 @@ isolates one ingredient.
 | **E0** | Is there per-question allocation headroom, and can cheap externals capture it? | Offline bandit replay | Mac, $0 | **DONE — negative/instructive**: headroom 8–24pp, unreachable from features ([[offline-bandit-v0]]) |
 | **E1** | Can a 9B *internalize* the allocation predictor from sparse outcome labels? | (question, reader, strategy)→Yes/No LoRA (judge recipe), argmax(score−λ·cost) policy | 1×A100, $0 | **DONE — mixed** ([[alloc-internalization-rung2]]): regime-level allocation learned (trained ≫ zero-shot), no per-question edge at λ=0, cost-aware frontier points positive-ns; diagnostic failure: never learns "don't retrieve for strong readers" — the exact rule in the E2/E3 skill file |
 | **E2** | Is there a *skill gap* to distill — does a big model with the skill file in context allocate/search better than without? | Inference-only A/B: teacher ± skill markdown on the same test questions | API or 1×A100/H100 inference | designed, not launched |
-| **E3** | Does **dense teacher signal (OPD)** beat sparse outcome labels (E1) for internalization? | Student samples on-policy; teacher (with skill context) scores per-token logprobs; reverse-KL update | 1–2×H100 | infra scaffolding now (`scripts/opd/`) |
+| **E3** | Does safe dense teacher signal improve task utility over E1/task reward? | Task reward + gap-gated OPD from a skill-augmented teacher; bare OPD only as collapse diagnostic | 1–2×A100/H100 | plumbing PASS (job 93802); scientific run blocked on E2 and gated-objective implementation |
 | **E4** | Does it hold for **multi-turn** search (retrieve→read→re-query→stop) with curriculum withdrawal? | SKILL0-style ICRL ± OPD hybrid on a Search-R1-style env over our corpora | 2×H100 | design only |
 
 **Decision gates.** E2 gates E3: if the teacher shows *no* skill-context
@@ -78,7 +84,8 @@ rationale). **Teacher context = student context + the allocation skill file**
 pays, cost accounting — written from [[thesis-v2]] numbers). The skill file
 is the thing being internalized; the student never sees it.
 
-**Objective** (Tinker OPD recipe, implemented in `scripts/opd/opd_loss.py`):
+**Existing plumbing objective** (Tinker OPD recipe, implemented in
+`scripts/opd/opd_loss.py`):
 sample completions from the student on-policy; per-token advantage
 A_t = logp_teacher(t) − logp_student(t); update = policy-gradient on
 −A_t·logp_student(t) (≡ minimizing reverse KL to the teacher on the
@@ -87,13 +94,21 @@ Closed-teacher fallback: sequence-level KD (`kd_forward_loss`) on teacher
 traces — this arm doubles as the **closed-model comparison** the meeting
 asked about.
 
+**Required scientific objective after [[sdar]]**: combine task reward with a
+small distillation term and downweight negative teacher–student log-probability
+gaps, e.g. a detached sigmoid gate over
+`teacher_logp - student_logp`. Exact hyperparameters must be pre-registered and
+ablated; SDAR's reported settings are a starting baseline, not a result for our
+task.
+
 **Arms for the E3 report** (all evaluated as policies on the rung-1 test
 halves, so every number is comparable back to E0/E1):
-1. E1 baseline: outcome-label LoRA (sparse signal).
-2. OPD from skill-augmented teacher (dense signal + skill).
-3. OPD from bare teacher (dense signal, no skill) — isolates the skill file.
-4. KD-on-traces from skill-augmented teacher (dense-ish, closed-teacher-compatible).
-5. Zero-shot student + skill file in context (no training — SKILL0's
+1. E1/outcome-label or task-reward baseline (sparse signal).
+2. Task reward + **gap-gated OPD** from the skill-augmented teacher.
+3. Bare OPD diagnostic (known collapse risk; never the sole primary arm).
+4. Task reward + ungated OPD ablation, if compute permits.
+5. KD-on-traces from the skill-augmented teacher (closed-teacher-compatible).
+6. Zero-shot student + skill file in context (no training — SKILL0's
    "follows but doesn't acquire" baseline).
 
 **Throughput budget** (why this fits): student 1.7B–9B sampling at
@@ -115,8 +130,10 @@ loop; do NOT build until E3 gates pass. SkillZero repo (archived on EIT)
 is the reference implementation to crib the env/loop shape from.
 
 ## Risks and open checks
-- **SDAR / SKILL1 unread** — novelty gate for the whole E3/E4 story
-  ([[skill0]] §why-we-care). Read before E3 launch.
+- **SDAR / SKILL1 read** — broad novelty is closed. [[sdar]] imposes the
+  task-RL + gap-gating safety correction; [[skill1]] occupies unified skill
+  selection/use/distillation. Differentiation must be reader-conditioned
+  retrieval utility, cross-scale compression, legal tasks, and cost.
 - vLLM `prompt_logprobs` return-size limits on long contexts — smoke test
   covers it.
 - Tokenizer drift within families (Qwen3 vs Qwen3.5 vocab — verify identical
@@ -128,6 +145,6 @@ is the reference implementation to crib the env/loop shape from.
   with more headroom (multi-turn search directly).
 
 ## Links
-[[skill-distillation-bridge]] · [[skill0]] · [[offline-bandit-v0]] ·
+[[skill-distillation-bridge]] · [[skill0]] · [[sdar]] · [[skill1]] · [[offline-bandit-v0]] ·
 [[judge-capacity-dial]] · [[thesis-v2]] · [[08-meeting-notes]] ·
 [[direction-2026-07]]
