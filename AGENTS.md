@@ -5,11 +5,13 @@ Repository-local instructions for coding agents.
 ## Start here
 
 1. Read `CLAUDE.md` for the current branch, machine lanes, commands, and gates.
-2. Read `wiki/snapshots/research-state-2026-07-17.md` for the durable research
+2. Read `docs/OPERATIONS.md` for the active paths, artifact contract, checks,
+   sync flow, and recovery boundary.
+3. Read `wiki/snapshots/research-state-2026-07-17.md` for the durable research
    snapshot.
-3. Read the track page for the branch: `wiki/tracks/three-dial.md` or
+4. Read the track page for the branch: `wiki/tracks/three-dial.md` or
    `wiki/tracks/opd-distillation.md`.
-4. For numeric claims, use `docs/signoff_log.md`, then
+5. For numeric claims, use `docs/signoff_log.md`, then
    `docs/july_2026_completion_audit_2026-07-17.md`, compact evidence under
    `evidence/july_2026/`, and finally the named source logs.
 
@@ -21,13 +23,13 @@ Repository-local instructions for coding agents.
   a teacher skill gap before any scientific E3 distillation claim.
 - `codex/scope_old` is immutable historical provenance for SCOPE/Snap-HyRE,
   reviews, class reports, and the old paper.
-- The Mac worktrees and persistent EIT worktrees are mapped in
-  `docs/worktree_map_2026-07-17.md`. Never run new work from the two dirty
-  historical EIT worktrees named there.
+- The Mac worktrees and two independent persistent EIT clones are mapped in
+  `docs/worktree_map_2026-07-17.md`. All predecessor EIT checkouts live under
+  `archives/legalrag/`; never run jobs from that namespace.
 
 The active branches do not contain a live submission paper. Do not recreate or
 edit old paper material here; retrieve it from `codex/scope_old` or the verified
-ZIPs in `/Users/hamzaiqbal/grad/LegalRagAgent_archive/`.
+ZIPs in persistent EIT archive storage.
 
 ## Methodology gates
 
@@ -50,8 +52,8 @@ ZIPs in `/Users/hamzaiqbal/grad/LegalRagAgent_archive/`.
   deliberate download is part of the task.
 - Use `uv` or `~/.local/bin/uv`, depending on `PATH`.
 - Keep secrets in `.env`; never print or commit them.
-- Before committing, run the focused tests for changed code plus
-  `git diff --check`.
+- Before committing, run `python scripts/check_workspace.py`, the focused tests
+  for changed code, and `git diff --check`.
 
 ## Current headline
 

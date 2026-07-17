@@ -177,9 +177,10 @@ the active framing.
   bundle.
 - The active clean-development branches are `codex/three_dial` and
   `codex/opd_distillation`.
-- The old dirty EIT worktrees are historical evidence until their diffs and
-  untracked files are bundled. They must not be treated as synchronized active
-  worktrees.
+- EIT exposes only two independent active clones under `src/`. Seven old dirty,
+  historical, or formerly linked checkouts were moved intact under
+  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/legacy-worktrees/`;
+  they are inspectable preservation copies and must never launch jobs.
 
 ## Next sequence and decision gates
 

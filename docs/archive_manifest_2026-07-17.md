@@ -117,6 +117,25 @@ pinned repositories. LRAGE and L-MARS also have new wiki source pages and
 repository checkouts; both pages remain marked triaged until their full
 code/results reproduction passes are completed.
 
+## EIT source-surface consolidation
+
+The EIT source namespace formerly contained seven LegalRagAgent checkouts,
+including a 73 GB dirty common checkout that also owned the Git metadata for
+four linked worktrees. Two independent clean clones were created and validated
+at the current `codex/three_dial` and `codex/opd_distillation` commits. All
+seven predecessor directories were then moved intact to:
+
+`/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/legacy-worktrees/`
+
+The linked archive pointers were repaired, status snapshots were added, and no
+active Slurm job referenced the moved paths. `/engrfs/project/jacobsn/hiqbal/src/`
+now exposes only the two active LegalRagAgent lanes.
+
+The 132-file `docs/generated/` tree was also copied and SHA-256 verified at
+`/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/2026-07-17/docs-generated-pre-trim/`.
+Seventeen large May point/judge JSONL files (160.65 MiB) were removed from the
+active branches; compact summaries and directly linked July evidence remain.
+
 ## Restore boundary
 
 Restore archives only into a new empty directory. For historical development,

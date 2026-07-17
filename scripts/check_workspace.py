@@ -43,6 +43,8 @@ ENTRYPOINTS = (
 STALE_POINTERS = (
     "/Users/hamzaiqbal/grad/LegalRagAgent_recovery_20260717",
     "/Users/hamzaiqbal/grad/LegalRagAgent_archive/LegalRagAgent-scope-old-20260717.zip",
+    "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre",
+    "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-scope-old",
 )
 WIKILINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
 MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]*\]\(([^)]+)\)")

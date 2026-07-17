@@ -1,5 +1,11 @@
 # LegalRAG Cluster Workflow
 
+> **Historical bootstrap document. Do not copy its repository paths or launch
+> commands.** The current two-lane topology and operating contract are in
+> [`OPERATIONS.md`](OPERATIONS.md) and
+> [`worktree_map_2026-07-17.md`](worktree_map_2026-07-17.md). The old
+> `/src/LegalRagAgent` checkout now lives under the EIT legacy-worktree archive.
+
 Historical/bootstrap note: the cluster is already set up. For the current realized paths, venvs, bad-node list, and completed run state, use `docs/hpc_setup_log.md` and `docs/hpc_throughput.md`.
 
 Practical plan for running LegalRagAgent on the WashU engineering cluster, using the same overall pattern as HullCLIP: **edit/orchestrate from the MacBook, push code to cluster, run heavy jobs under SLURM**.

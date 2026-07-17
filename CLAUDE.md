@@ -24,11 +24,11 @@ star and is intentionally absent from this file.
 |---|---|---|---|
 | Three-dial | `/Users/hamzaiqbal/grad/LegalRagAgent` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-three-dial` | `codex/three_dial` |
 | OPD/distillation | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-distillation` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-distillation` | `codex/opd_distillation` |
-| SCOPE history | branch only; restore on demand | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-scope-old` | `codex/scope_old` |
+| SCOPE history | branch only; restore on demand | archived; no EIT source checkout | `codex/scope_old` |
 
-See `docs/worktree_map_2026-07-17.md` before touching EIT. The older
-`LegalRagAgent` and `LegalRagAgent-adaptive-hyre` EIT worktrees are dirty
-historical surfaces and must not run new experiments.
+See `docs/worktree_map_2026-07-17.md` before touching EIT. Only the two active
+paths in the table are source/launch surfaces. Seven predecessor checkouts were
+moved under `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/legacy-worktrees/`.
 
 ## Current research state
 
@@ -80,6 +80,10 @@ retained because they are active/reusable substrate, not archival clutter.
   `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`
 - EIT historical-worktree recovery:
   `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/`
+- Archived predecessor checkouts:
+  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/legacy-worktrees/`
+- Pre-trim generated point artifacts:
+  `/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/2026-07-17/docs-generated-pre-trim/`
 
 ## Claim rules
 

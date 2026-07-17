@@ -6,10 +6,11 @@
 |---|---|---|---|---|
 | Three-dial utility | `/Users/hamzaiqbal/grad/LegalRagAgent` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-three-dial` | `codex/three_dial` | active, clean, synced |
 | OPD/distillation | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-distillation` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-distillation` | `codex/opd_distillation` | gated active track, clean, synced |
-| SCOPE history | branch only; no checked-out Mac worktree | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-scope-old` | `codex/scope_old` | historical, clean, synced |
+| SCOPE history | branch only; no checked-out Mac worktree | archived; restore only when needed | `codex/scope_old` | historical Git/archive state |
 
-All three branches are also pushed to the user-owned GitHub remote `origin` on
-the Mac and fetched through the `hamza` remote on EIT.
+The two active EIT paths are independent partial clones with the user-owned
+GitHub repository named `origin`. They no longer depend on a shared Git
+directory inside a historical checkout.
 
 The redundant 738 MB Mac SCOPE worktree was removed after its clean HEAD was
 verified against GitHub and EIT. Restore it only when needed:
@@ -29,21 +30,29 @@ git -C /Users/hamzaiqbal/grad/LegalRagAgent worktree add \
 Both branches are pushed to GitHub. They are preservation refs, not merge
 targets for active research.
 
-## Historical EIT worktrees — preserve until a later deletion pass
+## Archived EIT checkouts
 
-- `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent` — dirty historical
-  `codex/evidence-ledger-router` worktree. It is **not** the active worktree.
-- `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre` — dirty,
-  behind historical `codex/final-report-snap-hyde`. It is **not** active.
+`/engrfs/project/jacobsn/hiqbal/src/` now contains only the two active
+LegalRagAgent clones. Seven predecessor checkouts—about 84 GB at move time—are
+preserved under:
+
+`/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/legacy-worktrees/`
+
+They include the 73 GB dirty common checkout, dirty adaptive-HyRE, HPC-setup,
+and Snap-HyRE-comprehensive checkouts, the historical SCOPE checkout, and the
+two old linked active worktrees. The linked-worktree pointers were repaired
+after the move, and each directory has an `ARCHIVE_STATUS_2026-07-17.txt`.
+They are inspectable preservation copies, not launch targets.
 
 Their HEADs, statuses, binary worktree/index diffs, untracked tarballs, and a
 full all-refs Git bundle are preserved at:
 
 `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/`
 
-The archive is 252 MB, its Git bundle verifies, its tarballs pass gzip checks,
-and `SHA256SUMS` covers the package. The original worktrees have not been
-deleted or reset.
+The pre-move recovery package is 252 MB, its Git bundle verifies, its tarballs
+pass gzip checks, and `SHA256SUMS` covers the package. The full moved
+directories add a second recovery layer without occupying the source
+namespace.
 
 The Mac cleanup payloads and full recovery bundle are stored separately at:
 
@@ -69,7 +78,7 @@ source by relative path and SHA-256 before the local payload was removed.
 
 ## Operating rule
 
-New development should begin from the track-specific worktree above. Do not
-run experiments from either historical EIT worktree. A later space-reclamation
-pass may remove duplicate caches/checkpoints only after comparing them against
-the manifests and confirming that no active Slurm script references them.
+New development begins from one of the two track-specific paths above. Never
+submit from `archives/legalrag/`. A later artifact-deduplication pass may remove
+duplicate environments, Chroma data, caches, or checkpoints inside the legacy
+archive only after mapping each payload to a canonical retained copy.
