@@ -113,6 +113,15 @@ bash scripts/opd/smoke_test.sh
 The default is now the gated plumbing mode. Set `OPD_SMOKE_MODE=opd` only to
 reproduce the historical bare-OPD smoke.
 
+On EIT, submit the tracked clean-worktree launcher:
+
+```bash
+sbatch scripts/hpc/slurm_opd_gated_smoke.sh
+```
+
+It runs offline against the shared model cache and writes the exact Slurm log
+to `/engrfs/tmp/jacobsn/hiqbal_legalrag/opd_gated_smoke_<job>.out`.
+
 The script writes only under `scripts/opd/_smoke_tmp/` and kills the vLLM server
 on exit.
 
