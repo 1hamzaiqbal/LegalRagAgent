@@ -28,7 +28,7 @@ star and is intentionally absent from this file.
 
 See `docs/worktree_map_2026-07-17.md` before touching EIT. Only the two active
 paths in the table are source/launch surfaces. Seven predecessor checkouts were
-moved under `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/legacy-worktrees/`.
+moved under `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/legacy-worktrees/`.
 
 ## Current research state
 
@@ -75,13 +75,13 @@ retained because they are active/reusable substrate, not archival clutter.
 - EIT experiment scratch: `/engrfs/tmp/jacobsn/hiqbal_legalrag/`
 - Small local archive manifests: `/Users/hamzaiqbal/grad/LegalRagAgent_archive/`
 - Verified cleanup ZIPs:
-  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/archives/`
+  `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/local-cleanup/archives/`
 - Full pre-cleanup recovery ZIP:
-  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`
+  `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`
 - EIT historical-worktree recovery:
-  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/`
+  `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/`
 - Archived predecessor checkouts:
-  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/legacy-worktrees/`
+  `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/legacy-worktrees/`
 - Pre-trim generated point artifacts:
   `/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/2026-07-17/docs-generated-pre-trim/`
 

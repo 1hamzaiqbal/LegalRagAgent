@@ -9,11 +9,20 @@ status: maintained
 
 # Wiki Op Log (append-only)
 
+## [2026-07-17] archive fold | One named LegalRagAgent archive root
+Renamed the persistent EIT archive root from the generic `archives/legalrag/`
+path to `archives/LegalRagAgent_archive/`. The move folded the retired
+`LegalRagAgent-clean` and `LegalRagAgent-snap-hyre-comprehensive` workspaces,
+the other five predecessor worktrees, cleanup ZIPs, and recovery manifests
+under one date-partitioned container. Archived linked-worktree pointers were
+repaired after the same-filesystem move; the two active lanes remain the only
+LegalRagAgent directories under EIT `src/`.
+
 ## [2026-07-17] consolidation | Two active EIT clones and compact generated evidence
 Replaced the shared-worktree EIT topology with independent clean clones for
 `codex/three_dial` and `codex/opd_distillation`. Moved seven predecessor
 checkouts (about 84 GB, including the 73 GB dirty common checkout) intact from
-`src/` to `archives/legalrag/2026-07-17/legacy-worktrees/`, repaired linked
+`src/` to `archives/LegalRagAgent_archive/2026-07-17/legacy-worktrees/`, repaired linked
 archive pointers, and recorded statuses. No Slurm job referenced the old paths.
 
 Copied and SHA-256 verified the complete 132-file `docs/generated/` tree in the
@@ -28,7 +37,7 @@ Pushed `codex/archive/pre_cleanup_20260717` for the exact tracked state before
 cleanup and `codex/archive/early_agentic_20260717` for the 11 formerly
 untracked early-agentic files. Uploaded the cleanup ZIPs and a full recovery
 ZIP to persistent EIT storage under
-`/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/`.
+`/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/local-cleanup/`.
 Package hashes, ZIP structure, and the nested untracked SCOPE tree were
 re-verified on EIT before removing the bulky Mac copies and the redundant
 historical worktree.

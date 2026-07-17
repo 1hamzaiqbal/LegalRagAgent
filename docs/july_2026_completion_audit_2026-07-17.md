@@ -17,7 +17,7 @@ gate, not a new paper table. The durable research synthesis is
   at `evidence/july_2026/manifests/local_july_detail_logs.tsv`.
 - A pre-cleanup Git bundle, patch, untracked-file tarball, and checksums are
   preserved inside the verified recovery ZIP at
-  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`.
+  `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`.
 
 ## EIT job adjudication
 

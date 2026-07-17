@@ -21,7 +21,7 @@ Two additional Git preservation refs were pushed:
 ## Verified archives
 
 Canonical archive directory:
-`/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/archives/`
+`/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/local-cleanup/archives/`
 
 The local `/Users/hamzaiqbal/grad/LegalRagAgent_archive/` directory retains
 only the README, EIT package manifest, and per-file restore manifests.
@@ -42,7 +42,7 @@ hashes. The 27-file untracked SCOPE companion tree matched the Mac source by
 relative path and SHA-256. The separately zipped full recovery package passed
 outer SHA-256 and `unzip -t` at:
 
-`/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`
+`/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`
 
 Its SHA-256 is
 `c917458a8f6409c9c00585edc0b7a658841b43afbca7d158a91689d20dca6f17`.
@@ -125,7 +125,7 @@ four linked worktrees. Two independent clean clones were created and validated
 at the current `codex/three_dial` and `codex/opd_distillation` commits. All
 seven predecessor directories were then moved intact to:
 
-`/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/legacy-worktrees/`
+`/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/legacy-worktrees/`
 
 The linked archive pointers were repaired, status snapshots were added, and no
 active Slurm job referenced the moved paths. `/engrfs/project/jacobsn/hiqbal/src/`

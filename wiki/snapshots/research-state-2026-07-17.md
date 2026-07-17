@@ -171,7 +171,7 @@ the active framing.
   state, while `codex/archive/early_agentic_20260717` preserves the formerly
   untracked early course-project files.
 - Tested ZIPs and per-file manifests live in persistent EIT storage under
-  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/`;
+  `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/local-cleanup/`;
   they cover the historical SCOPE worktree, early agentic course project,
   class report, old paper tree, pre-pivot root surface, and full recovery
   bundle.
@@ -179,7 +179,7 @@ the active framing.
   `codex/opd_distillation`.
 - EIT exposes only two independent active clones under `src/`. Seven old dirty,
   historical, or formerly linked checkouts were moved intact under
-  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/legacy-worktrees/`;
+  `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/legacy-worktrees/`;
   they are inspectable preservation copies and must never launch jobs.
 
 ## Next sequence and decision gates
