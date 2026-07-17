@@ -13,7 +13,8 @@ Active branches:
   evidence-set utility under search cost. See `ACTIVE_TRACK.md` and
   `wiki/tracks/three-dial.md`.
 - `codex/opd_distillation`: gated implementation track for teaching that
-  policy to a small model. EIT job 93802 validates the software path only.
+  policy to a small model. EIT jobs 93802 (bare) and 106078 (negative-gap
+  gated) validate the software paths only.
   After reading SDAR, bare OPD is a diagnostic baseline; task reward plus
   gap-gated OPD is the credible next objective, contingent on an E2 teacher
   skill-gap result.

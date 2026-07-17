@@ -28,6 +28,14 @@ defensible object is paired causal, reader-conditioned evidence-set utility
 under cost. SDAR also changes E3 from bare OPD to task reward plus gap-gated
 OPD, with E2 skill-gap A/B required first.
 
+## [2026-07-17] experiment | Gap-gated OPD GPU smoke passed
+EIT job 106078 ran from the clean `codex/opd_distillation` worktree with a
+Qwen3-8B teacher and Qwen3-1.7B student. All three `opd_gated` steps were
+finite, gate means were logged (0.3673, 0.3002, 0.2136), step/final checkpoints
+were written, and Slurm completed 0:0. This validates the safeguarded dense
+objective and launcher only; task reward remains absent, so E2 and task-RL
+integration still gate any scientific E3 claim.
+
 ## [2026-07-02] init | Wiki created
 Bootstrapped LegalRagAgent wiki in the BoundEO LLM-Wiki pattern, triggered by the
 ICML AI4Law rejection of the SCOPE paper (submission #97, two strong rejects).

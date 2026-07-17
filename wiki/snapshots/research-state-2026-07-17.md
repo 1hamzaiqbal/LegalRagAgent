@@ -27,10 +27,11 @@ The best next scientific object is more precise than “adaptive RAG” or
 > abstain, or arbitrate when the set is sufficient or conflicting.
 
 OPD/skill distillation remains a promising implementation route for teaching a
-small policy this behavior, but it is not yet a result. The EIT smoke proves
-the plumbing works. The SDAR read changes the next step: ungated OPD is a
-baseline with known collapse risk, so a real experiment needs a skill-gap gate,
-task reward, and gap-gated dense supervision.
+small policy this behavior, but it is not yet a result. EIT jobs 93802 and the
+July 17 follow-up 106078 prove the bare and negative-gap-gated plumbing paths,
+respectively. The SDAR read changes the next step: ungated OPD is a baseline
+with known collapse risk, so a real experiment needs a skill-gap gate, task
+reward, and gap-gated dense supervision.
 
 ## What was actually done
 
@@ -63,6 +64,9 @@ The most important outcomes are:
   performed later in the local analysis, not by the EIT stdout alone;
 - job 93802: Qwen3-8B teacher → Qwen3-1.7B student, three finite OPD steps,
   checkpoint created, full smoke PASS;
+- follow-up job 106078: the clean OPD branch ran three finite `opd_gated`
+  steps, logged gate means, wrote step/final checkpoints, and completed 0:0;
+  this validates the safeguarded dense-objective implementation, not task RL;
 - jobs 93598/93606/93629/93656/93658/93773 are partial, cancelled, or failed
   and are preserved as failure provenance rather than silently counted.
 
@@ -147,7 +151,7 @@ prediction, intervention, and sufficiency baselines.
 ### Parallel, gated: [[opd-distillation]]
 
 Engineering track for internalizing the three-dial decision into a small
-policy. The software smoke is green. E2 must first establish that the
+policy. Bare and gap-gated software smokes are green. E2 must first establish that the
 allocation skill makes a teacher measurably better. If it does, E3 compares
 task-RL alone, bare OPD, gap-gated OPD+task-RL, skill-context inference, and
 trace KD. If it does not, move to a task with genuine skill headroom rather
