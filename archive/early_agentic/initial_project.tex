@@ -1,0 +1,136 @@
+\documentclass{article}
+
+\usepackage[preprint]{neurips_2024}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{xcolor}
+
+\title{Agent RAGLAW: Agentic Legal RAG}
+
+\author{%
+  Hamza Iqbal \\
+  Washington University in St.\ Louis \\
+  \texttt{hiqbal@wustl.edu}
+  \And
+  Hanson Li \\
+  Washington University in St.\ Louis \\
+  \texttt{hanson.l@wustl.edu}
+  \And
+  Josh Li \\
+  Washington University in St.\ Louis \\
+  \texttt{josh.l@wustl.edu}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Legal question answering demands RAG systems that are precise and fully grounded. Standard single-shot pipelines often fail when key facts are buried mid-document or when answering requires iterative research. We propose a legal RAG architecture with agentic capabilities: multi-turn query planning, diversified retrieval, and citation-grounded generation. We evaluate on Bar Exam QA and HousingQA against standard RAG baselines.
+\end{abstract}
+
+\section{Introduction and Problem Framing}
+
+The legal domain differs from typical RAG settings for two reasons. First, legal answers must be both correct \emph{and} precise -- small omissions can materially change meaning. Second, relevant details (exceptions, narrow holdings, definitional clauses) are often embedded mid-document, where standard chunking and retrieval strategies miss them. A legal RAG system must therefore: (i) retrieve evidence reliably, (ii) preserve fine-grained details, and (iii) ensure answers are fully supported by retrieved context.
+
+\section{Proposed Architecture}
+
+We propose a pipeline that makes query planning an explicit first-class step:
+
+\begin{quote}
+User query $\rightarrow$ \textbf{query refinement \& multi-turn planning} $\rightarrow$ document retrieval $\rightarrow$ answer generation with citations.
+\end{quote}
+
+The key departure from standard RAG is that retrieval is driven by a structured plan consisting of multiple complementary queries, rather than a single reformulation. A grading/feedback mechanism (details TBD) will detect unsupported claims and either trigger additional retrieval or constrain output to cited statements only.
+
+\section{Planned Implementation}
+
+\subsection{Query Refinement and Multi-Step Planning}
+
+Rather than relying on a single user-input query, our system generates a \emph{retrieval plan}: a structured set of diverse queries designed to cover different aspects of the legal question (broad doctrine, fact-specific details, definitions/exceptions). To support this, we will implement a ``planning table'' a structured interface the agent fills out before retrieval. The model enumerates subgoals for the query, proposes one or more queries for each subgoal, and tracks prior queries and results to ensure diversity and avoid redundant retrievals. Goals include mapping user questions to legal concepts (jurisdiction, doctrine, exceptions), ensuring query diversity, and evaluating whether the resulting query set improves retrieval over single-query baselines (evaluation method TBD). An open design question is how tightly to couple planning and retrieval: planning could be \emph{iterated} (plan $\rightarrow$ retrieve $\rightarrow$ revise plan $\rightarrow$ retrieve again) or performed in a single \emph{zoomed-out} pass that is evaluated holistically. We will experiment with both approaches.
+
+\subsection{Citation-Grounded Generation}
+
+We will require the model to ground claims in retrieved passages and produce citations. We plan to leverage existing citation pipelines (e.g., RAGFlow \cite{ragflow}) rather than building from scratch.
+
+\subsection{Model Fine-Tuning (Optional)}
+
+If time permits, we will explore fine-tuning a medium-sized open model (e.g., Qwen or LLaMA family) on Bar Exam QA using parameter-efficient methods like LoRA/qLoRA \cite{hu2021lora, dettmers2023qlora}. A key question is the tradeoff between compute cost and response accuracy---qLoRA enables fine-tuning on consumer hardware but may sacrifice some quality compared to full LoRA or full fine-tuning.
+
+\section{Related Work}
+
+\textbf{Legal benchmarks.} LegalBench provides a broad evaluation framework for legal reasoning \cite{guha2023legalbench}. Bar Exam QA and HousingQA offer retrieval-augmented legal QA settings with gold passage annotations \cite{zheng2025legalretrievalbench}.
+
+\textbf{Agentic and citation-aware RAG.} RAGFlow emphasizes document understanding and well-founded citations \cite{ragflow}. RelayLLM explores efficient reasoning by using a smaller model with special ``escalation tokens'' that route complex queries to a larger expert model \cite{huang2026relayllm}. This idea of selectively allocating reasoning effort is relevant to our pipeline---we may use different model capabilities at different stages (e.g., a lightweight model for query generation, a stronger model for final answer synthesis).
+
+\section{Evaluation Plan}
+
+\textbf{Datasets.} We will evaluate on Bar Exam QA (multiple-choice legal questions with gold passage annotations) \cite{barexamqa} and HousingQA (housing law/statute questions) \cite{housingqa}.
+
+\textbf{Baselines and Experiments.} We will compare against a standard single-shot RAG baseline, then incrementally add components: (1) multi-turn planning vs.\ single-shot retrieval, (2) query diversification ablations, and (3) fine-tuning impact (optional, compute permitting).
+
+\textbf{Metrics.} Retrieval metrics (recall@k of gold passages) and end-task metrics (multiple-choice accuracy). Citation grounding quality will be assessed by checking whether answers are attributable to retrieved chunks (exact method TBD).
+
+\section{Tentative Timeline}
+
+\textbf{Phase 1:} Reproduce standard RAG baseline; build indexing over passage pools. 
+
+\textbf{Phase 2:} Implement planning tool and multi-turn query generation. 
+
+\textbf{Phase 3:} Integrate citation-grounded generation; run ablations. 
+
+\textbf{Phase 4:} (Optional) Fine-tuning experiments; final evaluation and write-up.
+
+{\small
+\bibliographystyle{plain}
+\begin{thebibliography}{9}
+
+\bibitem{guha2023legalbench}
+N. Guha et al.
+LegalBench: Measuring legal reasoning in LLMs.
+\emph{arXiv:2308.11462}, 2023.
+
+\bibitem{zheng2025legalretrievalbench}
+L. Zheng et al.
+A reasoning-focused legal retrieval benchmark.
+\emph{arXiv:2505.03970}, 2025.
+
+\bibitem{barexamqa}
+Stanford RegLab.
+Bar Exam QA.
+\url{https://huggingface.co/datasets/reglab/barexam_qa}, 2025.
+
+\bibitem{housingqa}
+Stanford RegLab.
+HousingQA.
+\url{https://huggingface.co/datasets/reglab/housing_qa}, 2025.
+
+\bibitem{ragflow}
+Infiniflow.
+RAGFlow.
+\url{https://ragflow.io/docs/}, 2026.
+
+\bibitem{huang2026relayllm}
+C. Huang et al.
+RelayLLM: Efficient reasoning via collaborative decoding.
+\emph{arXiv:2601.05167}, 2026.
+
+\bibitem{hu2021lora}
+E. Hu et al.
+LoRA: Low-rank adaptation of large language models.
+\emph{arXiv:2106.09685}, 2021.
+
+\bibitem{dettmers2023qlora}
+T. Dettmers et al.
+QLoRA: Efficient finetuning of quantized LLMs.
+\emph{arXiv:2305.14314}, 2023.
+
+\end{thebibliography}
+}
+
+\end{document}
