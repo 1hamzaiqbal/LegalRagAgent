@@ -14,6 +14,8 @@ narrative is superseded. Start here now:
 5. `signoff_log.md` — cite-or-not gate.
 6. `../wiki/literature/index.md` — Obsidian navigation into the persistent EIT
    paper/repository vault.
+7. `worktree_map_2026-07-17.md` — exact local/EIT branch folders, historical
+   worktrees, recovery package, and storage roles.
 
 Branches: `codex/three_dial`, `codex/opd_distillation`, and historical
 `codex/scope_old`. The SCOPE/Snap-HyRE method is not the active framing.
