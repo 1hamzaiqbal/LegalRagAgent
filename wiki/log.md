@@ -9,6 +9,17 @@ status: maintained
 
 # Wiki Op Log (append-only)
 
+## [2026-07-17] framing correction | Questions first; contribution form follows evidence
+
+Revised [[action-value-transport-reading-packet-2026-07-17]] and
+[[compute_elasticity_handoff_2026-07-17/10-student-specific-action-value]] so
+that rank transport, a scaling law, a new metric, and student calibration are
+candidate findings rather than assumed paper outputs. The proposed first pass
+now asks broad causal questions, overcollects reproducible outcome/execution/
+cost/behavior fields, separates planned from exploratory analysis, and
+requires mined relationships to predict untouched items, models, or families.
+No experiment was launched.
+
 ## [2026-07-17] action-value transport audit | Seven full papers and primary artifacts
 
 Read the complete PDFs for [[student-teacher-deviations]],

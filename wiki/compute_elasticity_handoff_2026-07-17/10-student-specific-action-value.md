@@ -1,5 +1,5 @@
 ---
-title: Student-Specific Action Value — When Teacher Policies Should Not Transfer
+title: Student-Specific Action Value — Auditing Teacher Policy Transfer
 type: concept
 tags: [distillation, tool-use, causal-utility, policy-transfer, three-dial]
 created: 2026-07-17
@@ -7,7 +7,7 @@ updated: 2026-07-17
 status: research candidate — literature-audited, no experiment launched
 ---
 
-# Student-specific action value
+# Student-specific action value and teacher policy transfer
 
 ## Bottom line
 
@@ -20,20 +20,20 @@ defensible object is:
 > for the student, because the value of an external action depends on the model
 > that must execute and use it.**
 
-The strongest paper shape is therefore **measurement first, method second**:
+The right starting posture is **questions first, measurement second, paper
+shape later**:
 
-1. causally estimate the value of a fixed external action for both teacher and
-   student using repeated forced-action outcomes;
-2. identify the inputs and prices where their utility-maximizing actions differ;
-3. measure whether trace SFT or OPD imports the teacher's wrong-for-the-student
-   boundary;
-4. test whether teacher information can reduce the number of student
-   counterfactual trials needed to learn the student's own boundary.
+1. ask whether and how the same action's value differs across acting models;
+2. collect repeated forced-action outcomes and rich execution/cost metadata;
+3. examine several possible structures—agreement, reversals, ranking,
+   thresholds, advice quality, teachability—without choosing the answer;
+4. add training or calibration only if the measurement pass exposes a stable
+   question they can answer.
 
-The clean thesis is:
+One question-generating hypothesis, not a thesis to assume, is:
 
-> **Distill values or task structure, not action labels. A costly action boundary
-> must be calibrated to the model that will act.**
+> **Do values or task structure transfer better than action labels, and when
+> does the acting model need its own boundary?**
 
 No experiment was launched in this research pass.
 
@@ -59,8 +59,10 @@ Likewise, the following broad claims are closed:
 - “tool/retrieval trajectories can be distilled across scale”;
 - “a policy can respond to cost, budget, or preference conditions.”
 
-The candidate opening survives only at their intersection: **cross-scale,
-causal, cost-sensitive action-value transport**.
+The candidate research space survives only at their intersection:
+**cross-scale, causal, cost-sensitive action-value transport**. Its eventual
+contribution could be a phenomenon, null boundary, taxonomy, dataset, metric,
+empirical relationship, simple calibration, or training result.
 
 ## Formal object
 
@@ -93,8 +95,9 @@ There are actually two teacher policies worth separating:
 - `T_→S`: what the teacher recommends for a named student after receiving only
   training-side information about that student's capabilities.
 
-The first is a demonstration; the second is advice. A teacher should not be
-expected to export its own policy unchanged if it can model the target student.
+The first is a demonstration; the second is advice. Their empirical difference
+tests whether a teacher can model the target rather than merely export its own
+policy.
 
 Because item-level advantages are noisy, the primary empirical estimand should
 be the randomized causal value of the advice policy, not accuracy against hard
@@ -111,8 +114,9 @@ weighted harmful-advice mass
 
 which distinguishes consequential disagreement from harmless near-ties.
 
-This exposes why action imitation is the wrong default. The teacher's action is
-a thresholded statement about `A_T`; the deployment decision requires `A_S`.
+This makes it possible to test when action imitation is a poor default. The
+teacher's action is a thresholded statement about `A_T`; the target decision
+depends on `A_S`.
 With unit cost and both advantages inside the evaluated nonnegative price
 range, integrating student regret over all prices between the two thresholds
 gives
@@ -235,12 +239,14 @@ Use a fixed evidence-set action to test whether policy transport failure also
 appears when value depends on reader conversion, distraction, and evidence-set
 quality.
 
-## Preferred architecture-free paper shape
+## Discovery-first study; paper shape follows the evidence
 
 The contribution does **not** need to be a new agent architecture or loss. A
-stronger and cleaner paper may be an empirical causal map of how external-action
-value changes across model capability, together with a metric and a predictive
-transport law.
+clean study first builds an empirical causal map of how external-action value
+changes across model capability. Do not decide in advance that the output must
+be a metric, scaling/transfer law, or calibration setup. Those are possible
+findings if the data support them, alongside a taxonomy, benchmark, negative
+result, or sharply delimited safety condition.
 
 The earlier Legal-RAG reader crossover is only a hypothesis generator. It must
 not be treated as evidence for the cross-scale claim or used to choose the
@@ -248,7 +254,7 @@ confirmatory tasks, prices, or model pairs. The primary study should be freshly
 generated and benchmark-agnostic; legal evidence acquisition can be a later
 external-validity test.
 
-### Primary causal quantity: teacher-following causal value
+### Useful pre-specified causal summary: teacher-following value
 
 For a teacher policy `pi_T→S` and target student `S`, define
 
@@ -267,7 +273,7 @@ Always compare it with the adaptive gain over the better constant policy:
 Otherwise a teacher that always recommends the globally better action can look
 adaptive without transporting any item-specific information.
 
-### Cross-task summary: advantage-weighted transport score
+### Optional normalized summary: advantage-weighted transport
 
 A normalized secondary score is
 
@@ -287,9 +293,9 @@ This is mathematically advantage-weighted policy regret, not a new species of
 CATE or regret. The novelty claim must rest on constructing it from repeated,
 model-indexed forced actions and using it to audit cross-scale policy transfer.
 
-### Empirical law to test
+### One empirical pattern to test, not optimize toward
 
-The most compelling candidate is:
+One interpretable candidate is:
 
 > **Action-value rankings partially transfer across model capability, while
 > cardinal values and utility-maximizing action thresholds do not.**
@@ -304,10 +310,10 @@ Separate three empirical questions:
    advantage to student advantage remove that regret using fewer student
    interventions than student-only learning?
 
-The desired pattern is high enough rank transfer to make the teacher useful,
-poor enough threshold transfer to make action imitation wrong, and rapid
-recovery after a small target-student calibration set. If either the first or
-third condition fails, the distillation story is weak.
+Possible outcomes include partial ordinal transfer with threshold displacement,
+near-perfect policy transfer, no useful relationship, non-monotonic reversals,
+or family/task-specific structure. The experiment should distinguish these
+rather than treating one as the desired result.
 
 A stronger capability-normalized law can be tested by first fitting unaided
 item response as
@@ -342,7 +348,7 @@ is:
 - difficulty, payload quality, and price chosen without inspecting the earlier
   Legal-RAG effects.
 
-The minimal decisive plots would be:
+Useful diagnostic views—not a predetermined final figure set—include:
 
 1. a directed teacher-by-target TFCV or transport-regret heatmap;
 2. transport versus measured capability gap, including directionality;
@@ -351,13 +357,17 @@ The minimal decisive plots would be:
 5. teacher-informed versus student-only regret as a function of the number of
    student forced-action labels.
 
-Call the result a scaling law only if the capability-normalized curve predicts
-held-out sizes and transfers across families. Otherwise, call it a causal
-transport audit.
+Call any result a scaling law only if a discovered capability-normalized curve
+predicts untouched sizes and transfers across families. Otherwise describe the
+observed heterogeneity without forcing that label.
 
 ## Experiment program
 
 ## Phase A — forced-action audit before any training
+
+Phase A is a question-generating and validity-establishing panel. Its schema
+should support analyses beyond the first hypothesis while preserving a clean
+held-out test for relationships discovered during exploration.
 
 ### A1. Smallest clean environment
 
@@ -370,9 +380,10 @@ transport audit.
   verifier across models and arms.
 - Frozen train/calibration/test generator seeds and held-out templates.
 
-This two-model study is only a measurement pilot. It cannot establish the
-architecture-free paper claim above; a confirmatory run must use the fresh
-multi-scale, multi-family matrix.
+This two-model study is only a measurement pilot. It can reveal failure modes,
+variance, and promising questions, but cannot establish a general cross-model
+claim. Any relationship mined from it needs a fresh multi-scale,
+multi-family confirmation.
 
 The forced arms should not display a price. Estimate action outcomes once and
 analytically rescore them over all prices. Price-conditioned free choice is a
@@ -419,12 +430,15 @@ curve rather than a few arbitrary points.
 - teacher and student free-choice regret to their own optima;
 - heterogeneity by task family, difficulty, and surface features.
 
-## Phase B — value transfer with a small student calibration set
+## Phase B — characterize whatever transfer structure emerges
 
-Treat Phase B as a sample-efficiency experiment, not yet an LLM-training paper.
-Train a lightweight router/value head on frozen item/model signals.
+Run Phase B only if Phase A reveals reproducible structure worth predicting.
+Treat it as a characterization and sample-efficiency study, not yet an
+LLM-training paper. Lightweight routers, value heads, affine maps, and isotonic
+maps are probes of the structure—not predetermined methods the project must
+produce.
 
-### Required baselines
+### Candidate comparison menu
 
 1. always external and always internal;
 2. task-family, prompt-length, and declared-difficulty heuristics;
@@ -441,24 +455,28 @@ Train a lightweight router/value head on frozen item/model signals.
 13. student-only predictor trained on the same number of student forced pairs;
 14. teacher-informed predictor with the same student-label budget.
 
-### Primary metric
+### Core evaluation views
 
-Use **student utility regret integrated over a predeclared price distribution**.
-Report action accuracy and teacher agreement only as diagnostics. A policy can
-agree with the teacher more often and still be worse for the student.
+Retain ordinary target success, action rate, cost, policy value, regret over a
+predeclared price distribution, teacher agreement, and uncertainty. No single
+new metric has to be the contribution. Teacher agreement must not substitute
+for target outcomes: a policy can agree with the teacher more often and still
+be worse for the student.
 
 ### Sample-efficiency curve
 
-Evaluate teacher-informed and student-only predictors at increasing fractions
-of student counterfactual labels. The important positive result would be:
+If prediction is supported by Phase A, evaluate teacher-informed and
+student-only predictors at increasing fractions of student counterfactual
+labels. One possible positive result would be:
 
 > Teacher advantage supplies transferable ordering, while a small number of
 > student interventions relocates the threshold and reaches a given regret
 > with materially fewer student rollouts.
 
-## Phase C — distillation only after the phenomenon passes
+## Phase C — distillation only if the measurements raise a training question
 
-If Phases A and B establish a substantial, learnable transport gap, compare:
+If Phases A and B reveal a substantial phenomenon that static analysis cannot
+answer, compare:
 
 1. base student with prompt-only/free-choice tool access;
 2. teacher-action or teacher-trajectory SFT;
@@ -520,31 +538,35 @@ mandatory.
    8B training split.
 5. Treat the 70B oracle action, self-policy, and target-conditioned advice as
    distinct teacher policies and estimate their randomized value for 8B.
-6. Compare teacher imitation, direct student utility prediction, and a
-   teacher-value-plus-student-calibration rule.
+6. Compare teacher imitation and direct student utility prediction; add simple
+   teacher-value calibration only if the main pilot shows transferable teacher
+   structure.
 7. Stratify by gold present/absent, evidence-set quality, and context length.
 
 This connects the projects elegantly without importing tree search, conflict
 arbitration, variable `k`, or a multidimensional controller into the first
 study.
 
-## Go/no-go gates
+## Decision gates after the pilot
 
-### Continue to a paper if
+### Continue the broader study if one or more robust questions emerge
 
-1. `A_T` and `A_S` differ enough to create a stable disagreement set across at
-   least two task families and more than one model pair or external action;
-2. teacher signals predict student advantage beyond question-only difficulty;
-3. teacher self-policy or target-conditioned advice causes measurable student
-   regret on the disagreement set;
-4. teacher-informed calibration beats a student-only predictor at a matched
-   student-intervention budget;
-5. the result survives held-out templates, repeated outcomes, and a strong
-   scalar-threshold baseline.
+Examples include:
 
-The ideal transfer regime is partial: teacher and student advantages share
-structure, but not a common threshold. If they are identical, disobedience is
-unnecessary. If they are unrelated, the teacher is useless.
+- stable cross-model action-value heterogeneity or directional reversals;
+- teacher self-policy and target-conditioned advice having different target
+  value;
+- teacher signals predicting target advantage beyond simple item difficulty;
+- utility and teachability separating in consequential cases;
+- a simple or complex cross-model relationship surviving untouched data;
+- a clear null boundary showing when policy transfer is safe;
+- a training intervention changing teacher agreement and target utility in
+  different directions.
+
+Partial rank transfer with threshold displacement is only one interesting
+regime. Near-identical values, unrelated values, family-specific patterns, and
+stable null effects answer different scientific questions and should not be
+treated as failed attempts to obtain the preferred story.
 
 ### Kill or sharply downgrade if
 
@@ -553,27 +575,31 @@ unnecessary. If they are unrelated, the teacher is useless.
 - task family, prompt length, or declared difficulty explains the result;
 - post-hoc scalar calibration solves everything and the paper claims a complex
   neural method;
-- teacher signals do not reduce student counterfactual sample requirements;
+- no model, task, advice, or training comparison yields structure beyond
+  sampling noise and simple item covariates;
 - the effect exists only in synthetic arithmetic;
 - only observed free-choice actions, rather than forced potential outcomes,
   show a difference;
 - a current paper is found that already measures student-specific forced-action
   value and cross-scale distillation regret.
 
-## Plausible paper contributions, in order
+## Possible contribution forms, selected after observing robust results
 
-1. **Evaluation/estimand:** a forced-action, model-indexed audit of cross-scale
-   tool-policy transport under cost.
-2. **Empirical finding:** teacher policy fidelity can be anti-correlated with
-   student utility on a stable disagreement set.
-3. **Transfer law:** teacher value rankings partially transfer, but action
-   thresholds do not.
-4. **Simple method:** a few student counterfactuals calibrate teacher value more
-   efficiently than learning the student's router from scratch.
-5. **LLM-training method:** only if standard distillation exhibits an unresolved
-   replicated failure after the simple controls.
+- **Measurement resource:** a repeated, model-indexed forced-action panel.
+- **Empirical phenomenon or taxonomy:** robust regimes of helpful, harmful,
+  irrelevant, or target-dependent teacher advice.
+- **Null/safety boundary:** conditions under which teacher policy transfer is
+  already reliable.
+- **Metric or evaluation protocol:** only if existing policy-value summaries
+  fail to capture an important repeated pattern.
+- **Predictive or scaling relation:** only if it forecasts untouched sizes,
+  families, or tasks.
+- **Simple calibration or method:** only if teacher structure exists and target
+  feedback exploits it more efficiently than student-only learning.
+- **Training result:** only if standard distillation creates a replicated
+  failure that simpler controls do not answer.
 
-Candidate title directions that avoid the NeurIPS 2023 collision:
+Possible later title directions, only if the corresponding finding emerges:
 
 - **Whose Tool Boundary? Causal Auditing of Cross-Scale Agent Distillation**
 - **Distill Values, Not Calls: Student-Calibrated Tool Policy Transfer**
@@ -586,8 +612,9 @@ Candidate title directions that avoid the NeurIPS 2023 collision:
 
 This idea is worth pursuing as a gated research program. The next scientific
 step, when authorized, is not OPD training and not a large price sweep. It is a
-small forced-action audit that tells us whether teacher advantage contains
-transferable structure while teacher action labels create student regret.
+small forced-action audit designed to reveal how teacher and target action
+values relate, including the possibility that no simple transport structure
+exists.
 
 Do not build the main claim on the earlier BarExam/Housing reader crossover.
 Those observations can motivate reader-conditioned utility and later serve as
@@ -595,9 +622,11 @@ an external-validity test, but this project is sufficiently different that its
 primary evidence should come from the fresh forced-action scale ladder.
 
 When experiments are authorized, begin with a small measurement pilot on
-deterministic actions, then run the multi-scale, multi-family confirmatory
-matrix. Add fixed evidence acquisition as a distinct action family rather than
-as the evidentiary foundation.
+deterministic actions. Collect rich outcomes, behavior, execution, and cost
+telemetry; distinguish planned analyses from exploratory mining; then use a
+fresh multi-scale, multi-family matrix to confirm whatever patterns merit
+follow-up. Add fixed evidence acquisition as a distinct action family rather
+than as the evidentiary foundation.
 
 For the three-dial paper, use student disobedience as a reader-conditioning
 analysis. For a separate domain-general distillation paper, use Python as the

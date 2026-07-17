@@ -93,8 +93,8 @@ contain working duplicates, but it is not the source of truth.
 ### Student-specific action value / policy transport
 
 - [[action-value-transport-reading-packet-2026-07-17]] — full seven-paper
-  synthesis, novelty boundary, causal estimands, code custody, and the
-  architecture-free rank-versus-threshold hypothesis.
+  synthesis, novelty boundary, causal estimands, code custody, and a
+  question-first discovery plan with several candidate empirical patterns.
 - [[compute_elasticity_handoff_2026-07-17/10-student-specific-action-value]] —
   the proposed forced-action measurement program, metrics, go/no-go gates, and
   clean connection to the three dials.

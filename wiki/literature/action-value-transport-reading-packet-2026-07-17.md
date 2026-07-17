@@ -16,22 +16,52 @@ teachers” framing non-novel. They do **not** close the narrower, more useful
 question:
 
 > When the same costly external action is available to two models, does a
-> teacher's utility-maximizing action boundary transfer to the target student,
-> and how many target-student interventions are needed to calibrate it?
+> teacher's action or advice help the target student, hurt it, or cease to be
+> informative—and how does that vary across items, models, actions, and costs?
 
-The architecture-free paper opportunity is a causal transport audit and an
-empirical law, not necessarily a new agent or OPD loss. The clean candidate
-finding is:
+The immediate opportunity is a rich causal measurement surface, not a
+preselected paper form. A metric, scaling/transfer law, taxonomy, calibration
+rule, or training method would be a welcome **result of the investigation**,
+not an assumption built into its design.
+
+One plausible pattern worth testing—among several—is:
 
 > **Action-value rankings may partially transfer across model capability even
 > when cardinal values and utility-maximizing thresholds do not.**
 
-That claim is valuable only if both halves hold. If rankings do not transfer,
-the teacher is not useful. If thresholds already transfer, direct imitation is
-adequate. The interesting regime is shared structure plus a stable,
-student-specific calibration shift.
+It may hold, partially hold, reverse by task, or fail entirely. Each outcome is
+informative if the experiment measures the relevant counterfactuals cleanly.
 
 No experiment was launched during this reading pass.
+
+## Research posture: questions first, contribution later
+
+The first pass should be designed to answer questions rather than validate a
+chosen artifact:
+
+1. Does the same external action have measurably different signed value for
+   different acting models?
+2. When teacher and target values differ, which direction dominates:
+   inherited underuse, inherited overuse, or task-dependent reversals?
+3. Is the teacher's self-policy different from its advice for a named target,
+   and does target-conditioned advice actually improve target outcomes?
+4. Which structure, if any, transfers across scale and family: signs, ranks,
+   magnitudes, thresholds, difficulty ordering, or nothing stable?
+5. What explains heterogeneity—unaided competence, payload quality,
+   readability, context burden, tool execution, verification ability, or
+   surface task features?
+6. Are valuable signals also teachable, and are harmful teacher signals
+   sometimes especially easy to imitate?
+7. If training is later introduced, does it improve target utility, merely
+   increase teacher agreement, or change the action-value surface itself?
+8. Does the phenomenon replicate across deterministic tools, fixed evidence,
+   and verification actions?
+
+These questions support multiple legitimate outcomes. A stable relationship
+could justify a law; a useful summary could justify a metric; a low-dimensional
+repair could justify calibration; a heterogeneous failure could justify a
+taxonomy or benchmark; and a null result could sharply delimit when teacher
+policy transfer is safe.
 
 ## What the seven papers actually identify
 
@@ -182,9 +212,9 @@ This test is important because the original diagonal dominance is partly
 mechanical: each model's “gold” passages are selected using the same
 deterministic outcomes later used to show that own-gold evidence is best.
 
-## Candidate empirical laws
+## Candidate patterns to test, not assumed results
 
-### 1. Rank transports; threshold does not
+### 1. Rank may transport while thresholds do not
 
 Fit teacher-versus-student advantage maps and separately report:
 
@@ -195,9 +225,11 @@ Fit teacher-versus-student advantage maps and separately report:
 - target-student labels required by an affine or isotonic calibration to
   reach a prespecified regret.
 
-The simplest positive result is that a one- or two-parameter map outperforms
+One possible positive result is that a one- or two-parameter map outperforms
 teacher action imitation and reaches the student-only predictor's regret with
-substantially fewer student interventions.
+fewer student interventions. Equally important alternatives are no ordinal
+transport, near-perfect direct transport, family-specific maps, or
+non-monotonic reversals.
 
 ### 2. Zone of actionable difficulty
 
@@ -206,11 +238,12 @@ action gain follows a held-out-predictive curve in relative difficulty:
 
 `A_mi = g(item_difficulty - model_capability, payload_quality, action_type)`.
 
-The hypothesized curve is small when the item is already easy, positive when
+One hypothesized curve is small when the item is already easy, positive when
 external help can rescue the model, and small or negative when the payload is
 beyond the model's conversion ability. This is the cleanest connection to the
 three-dial reader-conversion story. It is a scaling law only if it predicts a
-held-out size and family; otherwise report it as a causal heterogeneity map.
+held-out size and family; otherwise it is one possible heterogeneity pattern,
+not a law.
 
 ### 3. Teacher suitability is target-specific
 
@@ -220,7 +253,7 @@ target is suboptimal for another. This turns “stronger teacher” into a
 measurable transport relation and can reveal both inherited underuse and
 inherited overuse.
 
-## Minimal analyses before any training
+## Measurements to collect before any training
 
 The measurement pass should precede OPD:
 
@@ -239,6 +272,32 @@ simple calibration baseline exposes but does not fully solve. A later training
 comparison should include direct task reward, scalar entry-bias/threshold
 calibration, vanilla OPD, RG-OPD, CRAFT or its proxy, teachability filtering,
 and student-value gating at matched compute.
+
+### Overcollect observables, not claims
+
+The run schema should retain more than the minimum needed for the first plot:
+
+- immutable item, task-family, model, checkpoint, prompt, action, payload, and
+  tool-interface identifiers;
+- randomized arm, generation seed, repeat index, raw answer, parsed answer,
+  verifier output, and failure reason;
+- requested and realized tool calls, schema validity, execution success,
+  observations returned, and whether the final answer used them;
+- input/output/reasoning tokens, context length, wall time, tool latency, and
+  enough raw accounting to apply alternative cost functions later;
+- no-action confidence/consistency, available token probabilities or logits,
+  free-choice action, teacher self-action, target-conditioned advice, and raw
+  rationales where collection is affordable;
+- item difficulty, unaided model competence, payload quality/readability,
+  evidence overlap, distractor/conflict features, and teachability proxies;
+- checkpoint and training-stage identifiers if a later intervention changes
+  the student.
+
+Overcollection should not turn exploratory mining into confirmatory evidence.
+Freeze schemas and randomization before running, preserve an untouched
+held-out slice, label analyses as planned versus discovered, and require any
+mined relationship to predict new items, seeds, models, or families before
+calling it a transferable finding.
 
 ## Connection to the three dials
 
@@ -271,17 +330,17 @@ Closed claims:
 - Not all teacher disagreement is locally learnable.
 - Passage utility is LLM-specific.
 
-Provisional available claims, subject to a final date-bounded search:
+Provisional questions with room for a contribution, subject to a final
+date-bounded search and the observed results:
 
-- teacher and target-student **forced-action advantages** can imply different
-  cost-optimal boundaries;
-- uncalibrated teacher policy transfer can have negative target-student causal
-  value;
-- value ranking transfers more robustly than action thresholds;
-- a small target-student calibration set can exploit teacher structure while
-  avoiding teacher-boundary regret;
-- utility and teachability form distinct axes, including a harmful-but-easy-
-  to-distill regime.
+- do teacher and target-student **forced-action advantages** imply different
+  cost-optimal boundaries?
+- can following a teacher have negative target-student causal value?
+- which aspects of action value, if any, transfer across models?
+- does target-student feedback make teacher information useful, and at what
+  sample cost relative to student-only learning?
+- do utility and teachability form distinct empirical axes, including a
+  harmful-but-easy-to-distill regime?
 
 ## Primary-source and code custody
 

@@ -95,6 +95,12 @@ regret. The strongest architecture-free hypothesis is that advantage rankings
 partially transfer while cardinal values and zero-crossings require a small
 target-student calibration set.
 
+This is a candidate pattern, not a committed contribution. The first study
+should ask broad causal questions and retain enough outcome, execution,
+behavior, and cost information for alternative structures to emerge. A metric,
+law, or calibration method should be claimed only if it earns that role on
+untouched models/items rather than being chosen a priori.
+
 This correction also separates four layers that current framing had mixed:
 task/action value, teacher-policy transport, token-level absorbability, and
 training credit. OPD should remain downstream of the causal measurement pass.
