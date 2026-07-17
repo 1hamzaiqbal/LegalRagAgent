@@ -68,6 +68,61 @@ The literature audit adds three non-negotiable diagnostics:
    verification/backtracking, because privileged OPD can improve short-budget
    scores while destroying long-budget gains.
 
+## Adjacent candidate: skill lifecycle, not another OPD architecture
+
+[[skill-lifecycle-research-snapshot-2026-07-17]] audits the proposed
+`SkillOpt → SKILL0 → OPD` chain. The literal method claim is closed:
+
+- [[opcd]] already performs context-conditioned, on-policy reverse-KL from a
+  larger teacher to a smaller context-free student, including optimized system
+  prompts;
+- [[promptkd]] already adapts teacher-side soft context using the student's
+  distribution specifically to produce student-friendly generative KD;
+- [[skill-sd]] and [[seed-self-evolving-opd]] already combine teacher-only or
+  hindsight skills, OPD, and task reward with no skill at deployment;
+- [[skillc]] already turns paired skill/no-skill behavior into direct
+  internalization credit; and
+- [[latent-skill]] plus [[skill-zero-five]] already make context-versus-weights
+  placement and modular weight skills explicit.
+
+[[skillgen-verified]], [[masa]], and [[skilllens]] now add an important
+correction: the contextual ranking of fixed skills across readers is already a
+direct empirical object. [[skillmaster]] also supplies an aggregate
+retrieval-withdrawal control after skill-guided training. The remaining
+question is narrower: for a named target student, does its own contextual
+ordering over exact skill artifacts predict their no-context acquisition
+ordering after reset-from-base, matched training? If studied, retain three
+quantities separately: source-context utility, frozen-target-context utility,
+and target no-context utility after matched training.
+
+The broad executor-versus-teacher mismatch is not novel. [[lgtm-student-level-kd]]
+already uses student validation influence to train a better teacher,
+[[personalized-teacher-selection]] routes prompts using student likelihood,
+and [[distillation-traps-guards]] directly changes downstream distillability
+while preserving teacher task utility. Those signals are predictors/baselines;
+the remaining object is the ranking and selection regret of fixed,
+human-readable procedural artifacts across reader and placement.
+
+The final ACL 2026 check tightens this again: [[smartad]] performs
+student-NLL selection of successful tool-agent trajectories and weights
+action/final spans during SFT, while [[informative-alignment-rsr]] predicts
+post-training performance across 11 teachers and five students. Any later
+training phase must compare against both; neither estimates the student's
+immediate causal payoff from an external action.
+
+Direct OPCD from `teacher + skill`, PromptKD, and SEED are mandatory
+baselines. A
+teacher-first-internalization stage is justified only if it beats direct
+OPCD; the large teacher is justified only if it beats direct student
+internalization and matched task RL. Frozen versus synchronized teachers is a
+factor to cross, not a settled design choice: OPCD and continual fact writing
+favor a frozen teacher in their regimes, while Skill-SD and SEED obtain value
+from synchronization during joint RL.
+
+No skill-lifecycle experiment was launched in this audit.
+[[research-question-recommendation-2026-07-17]] ranks the forced-action-value
+measurement pilot ahead of this more expensive placement study.
+
 ## Kill rule
 
 If the teacher skill gap is absent or the policy cannot improve a pre-
@@ -79,4 +134,7 @@ distillation method to a task with observable skill headroom.
 [[opd-skill0-design]] · [[skill-distillation-bridge]] · [[skill0]] ·
 [[sdar]] · [[skill1]] · [[alloc-internalization-rung2]] ·
 [[compute-elasticity-distillation]] ·
-[[compute_elasticity_handoff_2026-07-17/README]]
+[[compute_elasticity_handoff_2026-07-17/README]] ·
+[[skill-lifecycle-research-snapshot-2026-07-17]] · [[opcd]] ·
+[[promptkd]] · [[seed-self-evolving-opd]] · [[skillgen-verified]] ·
+[[skillmaster]] · [[research-question-recommendation-2026-07-17]]

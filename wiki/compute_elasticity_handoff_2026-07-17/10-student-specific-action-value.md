@@ -37,6 +37,11 @@ One question-generating hypothesis, not a thesis to assume, is:
 
 No experiment was launched in this research pass.
 
+The concise decision, priority relative to the skill-lifecycle direction, and
+smallest useful experiment are recorded in
+[[research-question-recommendation-2026-07-17]]. This page remains the full
+technical design.
+
 The complete seven-paper primary-source review, code-custody status, and
 cross-paper synthesis are in
 [[action-value-transport-reading-packet-2026-07-17]].
@@ -66,20 +71,30 @@ empirical relationship, simple calibration, or training result.
 
 ## Formal object
 
-Start with one binary external action, such as one Python call or receiving one
-fixed evidence set. For model `m`, item `x`, and action `a` in `{internal,
-external}`, define the forced-action success probability
+Start with one binary external intervention: the harness either injects one
+canonical deterministic-computation result/fixed evidence payload or does not.
+Let reader configuration `r` include the exact checkpoint, harness, system
+prompt, renderer/tool adapter, decoding protocol, and tokenizer; freeze and
+version evaluation metric `q`. For item `x` and action `a` in `{internal,
+external}`, define the forced-action task-reward expectation
 
-`p_m^a(x) = E[Y_m | do(a), x]`.
+`p_(r,q)^a(x) = E[Y_q | do(a), r, x]`.
 
-The model-specific external-action advantage is
+The reader-specific success/reward advantage is
 
-`A_m(x) = p_m^external(x) - p_m^internal(x)`.
+`A_(r,q)(x) = p_(r,q)^external(x) - p_(r,q)^internal(x)`.
 
-For one action with cost `c` and deployment price `lambda`, the transparent
-utility-optimal policy is
+Record a cost vector `C` separately and define incremental cost
 
-`a_m*(x, lambda) = external iff A_m(x) > lambda * c`.
+`DeltaC_r(x) = E[C | do(external),r,x] - E[C | do(internal),r,x]`.
+
+For deployment price vector `lambda`, define net advantage
+
+`V_r(x,lambda) = A_(r,q)(x) - lambda^T DeltaC_r(x)`.
+
+Define `a_r*(x,lambda)` to choose external iff `V_r(x,lambda) > 0`. This permits nonzero internal
+cost and reader-dependent incremental cost. The simpler `A > lambda*c` rule
+is only a fixed-cost special case.
 
 The teacher–student disagreement set is
 
@@ -87,7 +102,19 @@ The teacher–student disagreement set is
 
 If the student obeys the teacher's oracle action, its per-item regret is
 
-`R_T->S(x, lambda) = |A_S(x) - lambda*c| * D(x, lambda)`.
+`R_T->S(x, lambda) = |V_S(x,lambda)| * D(x, lambda)`.
+
+Let `pi_T^lambda(x) = 1[V_T(x,lambda)>0]` be the forced-outcome teacher
+oracle, with analogous target oracle `pi_S*`. For policy value
+`J_S(pi;lambda) = E[Y_q - lambda^T C | actions chosen by pi]`, the primary
+transport test is held-out regret
+
+`Regret_T->S(lambda) = J_S(pi_S*;lambda) - J_S(pi_T^lambda;lambda)`.
+
+Fit/estimate the teacher rule on disjoint items or repeat folds and evaluate
+the target value with held-out items and independent outcome repeats. Do not
+call the teacher oracle its observed policy; free-choice behavior is a
+separate metacognitive measurement.
 
 There are actually two teacher policies worth separating:
 
@@ -99,9 +126,9 @@ The first is a demonstration; the second is advice. Their empirical difference
 tests whether a teacher can model the target rather than merely export its own
 policy.
 
-Because item-level advantages are noisy, the primary empirical estimand should
-be the randomized causal value of the advice policy, not accuracy against hard
-per-item oracle labels. Let `V_S(x, lambda) = A_S(x) - lambda*c`. Then
+Because item-level advantages are noisy, the primary empirical estimand for an
+actual advice policy should be its randomized causal value, not accuracy
+against hard per-item oracle labels. Then
 
 `Gamma_T→S(lambda) = E[(2*T_→S(x)-1) * V_S(x, lambda)]`.
 
@@ -115,9 +142,10 @@ weighted harmful-advice mass
 which distinguishes consequential disagreement from harmless near-ties.
 
 This makes it possible to test when action imitation is a poor default. The
-teacher's action is a thresholded statement about `A_T`; the target decision
-depends on `A_S`.
-With unit cost and both advantages inside the evaluated nonnegative price
+teacher's oracle action is a thresholded statement about `A_T`; the target
+decision depends on `A_S` and its incremental costs.
+In the special case of equal unit incremental cost and both advantages inside
+the evaluated nonnegative price
 range, integrating student regret over all prices between the two thresholds
 gives
 
@@ -343,8 +371,9 @@ is:
 - fresh exact-scored task generators with three external-action families:
   deterministic compute, fixed information acquisition, and verification;
 - a common `{none, cheap, rich}` action menu with deterministic payloads;
-- randomized forced action for every `(model, item, action)` cell, repeated
-  generations, and cross-fitting of policy construction versus evaluation;
+- randomized forced action for every `(reader configuration, item, action)`
+  cell, repeated generations, and cross-fitting of policy construction versus
+  evaluation;
 - difficulty, payload quality, and price chosen without inspecting the earlier
   Legal-RAG effects.
 
@@ -353,7 +382,7 @@ Useful diagnostic views—not a predetermined final figure set—include:
 1. a directed teacher-by-target TFCV or transport-regret heatmap;
 2. transport versus measured capability gap, including directionality;
 3. teacher-advantage quantile versus target advantage for every target scale;
-4. action-switch displacement over price;
+4. oracle action-switch displacement over hypothetical price;
 5. teacher-informed versus student-only regret as a function of the number of
    student forced-action labels.
 
@@ -373,11 +402,13 @@ held-out test for relationships discovered during exploration.
 
 - One same-family teacher/student pair, initially Qwen 8B-class to 1.5B–4B-class.
 - Two procedurally distinct, exact-scored arithmetic/algorithmic families.
-- One external Python/calculator action.
-- Three conditions per item: forced internal, forced exactly one tool action,
-  and free choice.
-- Matched prompt, output-token cap, decoding policy, tool interface, and
-  verifier across models and arms.
+- One canonical result from a deterministic Python/calculator computation,
+  injected identically through the harness.
+- Two causal conditions per item: forced internal and forced canonical payload.
+  A separate free-choice arm may measure metacognition; autonomous tool-call
+  generation is a later tool-access/execution estimand.
+- Matched task prompt, output-token cap, decoding policy, payload
+  format/position, evaluation metric, and verifier across readers and arms.
 - Frozen train/calibration/test generator seeds and held-out templates.
 
 This two-model study is only a measurement pilot. It can reveal failure modes,
@@ -385,13 +416,16 @@ variance, and promising questions, but cannot establish a general cross-model
 claim. Any relationship mined from it needs a fresh multi-scale,
 multi-family confirmation.
 
-The forced arms should not display a price. Estimate action outcomes once and
-analytically rescore them over all prices. Price-conditioned free choice is a
-separate behavioral intervention.
+The forced arms should not display a price. Estimate action outcomes and
+incremental costs once and analytically rescore them over price vectors. This
+is an oracle cost-sensitivity curve, not behavioral price response.
+Price-conditioned free choice with displayed randomized prices is a separate
+behavioral intervention.
 
 ### A2. Repeated outcomes
 
-Use repeated stochastic generations for every `(item, model, forced action)`.
+Use repeated stochastic generations for every
+`(item, reader configuration, forced action)`.
 An initial 4–8 repeats per cell is a screening range, not a final power claim.
 Allocate additional repeats to near-boundary or high-uncertainty items using a
 predeclared rule. Fit a hierarchical/binomial model or use empirical-Bayes
@@ -415,8 +449,9 @@ mechanically dominated. Do not reuse the earlier `{0, .25, 1, 4, 8}` grid.
 
 Choose evaluation prices from quantiles of the observed training-side
 advantage distribution and keep them inside the nontrivial switching region.
-Because forced outcomes can be rescored analytically, report a dense price
-curve rather than a few arbitrary points.
+Because forced outcomes can be rescored analytically, report a dense oracle
+cost-sensitivity curve rather than a few arbitrary points. Reserve “price
+response” for the separate displayed-price free-choice experiment.
 
 ### A4. Phase-A outputs
 
@@ -501,12 +536,12 @@ post-training optimum.
 This idea should not become a fourth dial. It is a sharp diagnostic of **reader
 conversion**, the second dial in [[three-dial]].
 
-For a fixed evidence set `E`, define
+For a fixed evidence set `E`, reader configuration `r`, and metric `q`, define
 
-`A_m(x, E) = P(correct | m, x, E) - P(correct | m, x, no evidence)`.
+`A_(r,q)(x,E) = P(correct | r,x,E,q) - P(correct | r,x,no evidence,q)`.
 
 Expansion and selection determine which evidence set is available. Reader
-conversion determines `A_m`. Effort/cost determines whether that value exceeds
+conversion determines `A_(r,q)`. Effort/cost determines whether that value exceeds
 the retrieval/context price. A teacher can therefore transfer useful search
 structure while still supplying the wrong deployment action:
 
@@ -598,6 +633,44 @@ treated as failed attempts to obtain the preferred story.
   feedback exploits it more efficiently than student-only learning.
 - **Training result:** only if standard distillation creates a replicated
   failure that simpler controls do not answer.
+
+## Relationship to optimized skill artifacts
+
+The separate [[skill-lifecycle-research-snapshot-2026-07-17]] asks whether a
+skill optimized for source-model contextual execution is also good context or
+teaching material for a target student. That question intersects this program
+only when the skill encodes a costly action policy such as search, retrieval,
+verification, or tool use.
+
+In that case, source-side SkillOpt may encode a boundary like
+`external iff A_T(x) > price`, while the target-optimal boundary depends on
+`A_S(x)`. Distilling or directly copying the artifact can increase agreement
+with the teacher while increasing target-student regret. This gives the skill
+pipeline a sharp diagnostic target, but it does not make the pipeline itself
+novel: [[opcd]] already covers cross-size context distillation and
+[[seed-self-evolving-opd]] already covers self-evolving, gap-gated skill OPD.
+
+Keep the programs separable:
+
+1. establish repeated student-specific forced-action values first;
+2. if stable teacher/target reversals exist, test whether source-optimized
+   skills import the wrong boundary;
+3. only then ask whether a small target-student calibration set can retarget
+   the artifact more efficiently than direct target learning.
+
+If the forced-action audit yields no causal heterogeneity, do not use the
+skill chain to manufacture complexity. If it yields robust reversals, the
+action-value question remains the primary science and skill placement becomes
+a controlled mechanism/ablation.
+
+This must be distinguished from established student-friendly distillation.
+[[lgtm-student-level-kd]], [[promptkd]],
+[[personalized-teacher-selection]], [[distillation-traps-guards]], and
+[[token-teachability]] already show that teacher quality, compatibility, and
+learnability differ. They do not estimate the acting target's repeated
+forced-action potential outcomes or regret from obeying the teacher's
+utility-maximizing action. The causal action-value estimand—not the slogan that
+teachers differ in teachability—is what remains distinctive here.
 
 Possible later title directions, only if the corresponding finding emerges:
 

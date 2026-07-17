@@ -10,8 +10,10 @@ status: maintained
 # LegalRagAgent Wiki — Index
 
 Compounding knowledge base for the legal-RAG project. **Current north star:
-reader-conditioned marginal evidence-set utility under search cost**
-([[three-dial]]), with [[opd-distillation]] as a gated implementation route.
+reader/actor-conditioned external-action value under cost** ([[three-dial]]).
+[[research-question-recommendation-2026-07-17]] recommends measuring whether a
+teacher's action value transports to its target student before using
+[[opd-distillation]] as an implementation route.
 The SCOPE method is historical ([[scope-old]]). Start with
 [[research-state-2026-07-17]], then [[literature/index]] and
 [[coverage-audit-2026-07-17]]. See [[WIKI_GUIDE]] for conventions,
@@ -20,6 +22,9 @@ The SCOPE method is historical ([[scope-old]]). Start with
 ## Hubs
 - [[START_HERE]] — orienting read
 - [[research-state-2026-07-17]] — current local/EIT/literature synthesis and decision gates
+- [[research-question-recommendation-2026-07-17]] — current research decision:
+  a causal, architecture-free student-specific action-value study first; the
+  skill-placement question second
 - [[three-dial]] — primary research track
 - [[opd-distillation]] — gated skill-distillation track
 - [[compute_elasticity_handoff_2026-07-17/README]] — July 17 research handoff:
@@ -28,6 +33,10 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[action-value-transport-reading-packet-2026-07-17]] — seven-paper primary-
   source audit of student-specific action value, policy transport, utility,
   teachability, and teacher-credit boundaries
+- [[skill-lifecycle-research-snapshot-2026-07-17]] — primary-source-audited
+  SkillOpt/SKILL0/OPD synthesis: the pipeline itself and cross-reader context
+  matrices are occupied; the secondary question is whether context-optimal
+  skills are also target-optimal post-withdrawal teaching artifacts
 - [[scope-old]] — historical SCOPE branch/archive map
 - [[literature/index]] — persistent primary-source vault and manifests
 - [[coverage-audit-2026-07-17]] — expanded novelty/coverage audit across
@@ -89,6 +98,28 @@ The SCOPE method is historical ([[scope-old]]). Start with
   and local signal absorbability
 - [[llm-specific-utility]] — closest three-dial precursor: passage utility is
   reader-specific, but its label is deterministic, binary, and not costed
+- [[skillopt]] · [[promptkd]] · [[opcd]] · [[skill-sd]] ·
+  [[seed-self-evolving-opd]] — optimized external skills, student-friendly
+  teacher prompts, and the closest context-conditioned/self-evolving OPD
+  systems
+- [[skillc]] · [[skill-zero-five]] · [[latent-skill]] — paired
+  internalization credit, mixed context/weight placement, and modular
+  text-to-LoRA compilation
+- [[continual-facts-in-weights]] · [[structured-prompt-optimization-extc]] —
+  context-versus-weight retention evidence and the closest three-stage
+  optimize-text → distill → RL analogue
+- [[lgtm-student-level-kd]] · [[personalized-teacher-selection]] ·
+  [[distillation-traps-guards]] — student-specific validation influence,
+  learnability-aware teacher routing, and direct control of LLM distillability
+- [[skillgen-verified]] · [[masa]] · [[skilllens]] · [[skillrevise]] — fixed
+  skill transfer and reader-crossing evidence that closes generic contextual
+  artifact-ranking novelty
+- [[skillmaster]] · [[lifeskill]] — aggregate skill-guided persistence and
+  scaffold-removed learning; neither attributes matched acquisition utility
+  to several fixed artifacts
+- [[smartad]] · [[informative-alignment-rsr]] — capacity-aligned tool-agent
+  trajectory distillation and a strong student-specific post-training utility
+  predictor; mandatory baselines, not immediate action-value estimators
 
 ## Sources — QPP / expansion-failure / RAG-control
 - [[weller-drift]] — expansion helps weak, hurts strong (macro precedent)

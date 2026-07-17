@@ -480,3 +480,90 @@ much narrower but cleaner: a small student internalizes a teacher's
 while the relevant procedural skill is available only to the teacher during
 training. Seven more PDFs and three runnable repositories were archived.
 Final vault totals for this pass: 45 PDFs, 3 web snapshots, 20 repositories.
+
+## [2026-07-17] skill-lifecycle audit | The pipeline is occupied; the teaching-artifact question remains
+
+Audited the proposed `SkillOpt → SKILL0 → OPD` chain against thirteen primary
+sources and their available code. The literal architecture/stage-composition
+claim is closed: [[opcd]] already performs cross-size on-policy context
+distillation from optimized prompts; [[skill-sd]] and
+[[seed-self-evolving-opd]] already combine training-only skills, OPD, and task
+reward; [[skillc]] and [[skill-zero-five]] cover contrastive internalization
+and mixed context/weight placement; [[latent-skill]] compiles textual skills
+into selectable LoRAs; and [[structured-prompt-optimization-extc]] already has
+the optimize-rulebook → large-to-small trace distillation → RL shape.
+
+A targeted student-friendly-KD search added a second correction:
+[[lgtm-student-level-kd]], [[promptkd]],
+[[personalized-teacher-selection]], [[distillation-traps-guards]], and
+[[token-teachability]] already establish that teacher task performance,
+student compatibility, and teaching value differ. The broad “best executor is
+not the best teacher” idea is therefore occupied. The narrower candidate is
+artifact-level utility transport and selection regret for fixed,
+human-readable procedural skills across source context, target context, and
+post-withdrawal target weights.
+
+Recorded [[skill-lifecycle-research-snapshot-2026-07-17]] as a durable,
+question-first snapshot. Its candidate object is the possible ordering
+mismatch among source-model contextual utility, target-model contextual
+utility, and target post-withdrawal acquisition—not a preselected metric,
+scaling law, calibration method, or architecture. The full experiment ladder
+requires direct target training, direct target internalization, direct OPCD,
+teacher-first internalization, SEED, and context-only/modular-weight shortcuts.
+The action-value program remains independently sharper; skills join it only if
+the artifact encodes a costly action boundary and repeated forced-action tests
+show genuine teacher/student reversals.
+
+Archived twelve additional PDFs and seven official/high-confidence
+first-author repositories in the persistent EIT literature vault. The vault
+now holds 88 checksummed PDFs, four checksummed web/code snapshots, and 46
+pinned Git checkouts. The PerSyn public/anonymous mirror relationship is
+recorded explicitly. No usable official repository was available for the
+continual-facts paper, Skill-SD, SkillC, eXTC, or Distillation Traps and Guards
+as of this audit. No experiment was launched.
+
+## [2026-07-17] final collision and decision pass | Action value first; skill placement second
+
+A last-mile primary-source search materially narrowed the skill direction.
+[[skillgen-verified]] already crosses six fixed source-conditioned skills with
+six readers on common held-out instances; [[masa]] crosses three fixed
+granularity variants with seven readers; [[skilllens]] crosses two identical
+skills with six consumers; and [[skillrevise]] compares fixed source-artifact
+transfer with target-conditioned revision. Generic fixed-artifact contextual
+rank transport is therefore prior art. [[skillmaster]] additionally reports
+aggregate persistence after skill-guided training when retrieval is removed,
+although it cannot attribute that gain to individual fixed artifacts.
+
+The remaining skill question is now exactly: does the target's contextual
+ordering over several versioned artifacts predict their post-withdrawal
+acquisition ordering under reset-from-base, matched training? This is recorded
+in [[skill-lifecycle-research-snapshot-2026-07-17]] as a secondary “useful
+context or useful curriculum?” study, not a new SkillOpt → SKILL0 → OPD
+architecture claim.
+
+Recorded [[research-question-recommendation-2026-07-17]] as the current
+research decision. The recommended first study estimates repeated, signed
+teacher and student values for the same canonical payload forced through the
+harness and asks which aspects—sign, ordering, threshold, or difficulty-
+conditioned shape—transport across reader configurations. The primary test is
+held-out target regret from the forced-outcome teacher oracle. It does not
+precommit to a metric, law, calibrator, or training method. Distillation starts
+only if teacher-side information adds predictive or sample-efficiency value
+for the named target.
+
+A final exact-object venue search added [[smartad]] and
+[[informative-alignment-rsr]]. SmartAD occupies student-NLL selection of
+successful tool-agent trajectories and segment-weighted agent SFT. RSR
+predicts post-training performance over 11 teachers and five students and
+strongly closes generic student-specific teaching-utility metrics. Neither
+contains matched forced internal/external arms, an identical payload across
+readers, action cost, or teacher-oracle target regret. Both are mandatory
+training-stage baselines, not collisions with the no-training causal pilot.
+
+The persistent EIT vault now contains 104 unique checksummed PDFs, four
+checksummed web/code snapshots, and 58 unique pinned Git repositories. New
+source pages record paper/code mismatches and missing exact artifacts or raw
+matrices; a pinned checkout is not represented as an exact reproduction when
+those payloads are absent. Duplicate SkillAdaptor manifest rows were removed.
+The RSR dataset is linked and commit-pinned but not fully mirrored; no official
+SmartAD repository was found. No experiment was launched.

@@ -15,8 +15,8 @@ in the persistent EIT vault:
 
 `/engrfs/project/jacobsn/hiqbal/literature/legalrag/`
 
-The vault currently contains **76 checksummed PDFs**, **4 checksummed primary
-web/code snapshots**, **39 Git repository checkouts pinned to exact commits**,
+The vault currently contains **104 checksummed PDFs**, **4 checksummed primary
+web/code snapshots**, **58 Git repository checkouts pinned to exact commits**,
 and one extracted non-Git anonymous code snapshot, plus a separate checksummed
 benchmark asset manifest. See
 [`eit_papers.sha256`](manifests/eit_papers.sha256) and
@@ -27,6 +27,10 @@ that `/engrfs/tmp/.../references/` was the archival copy; scratch may still
 contain working duplicates, but it is not the source of truth.
 
 ## Read first for the live directions
+
+- [[research-question-recommendation-2026-07-17]] — current decision snapshot:
+  student-specific forced-action value is the primary measurement question;
+  placement-conditioned skill utility is the narrower secondary candidate.
 
 ### Three-dial / reader-conditioned evidence utility
 
@@ -49,6 +53,65 @@ contain working duplicates, but it is not the source of truth.
   on-policy self-distillation can collapse; task RL plus gap gating matters.
 - [[skill1]] — unified selection, use, and distillation of skills; broad
   “skill internalization” novelty is already occupied.
+
+### Skill lifecycle — context, weights, and teaching material
+
+- [[skill-lifecycle-research-snapshot-2026-07-17]] — question-first synthesis,
+  exact novelty boundary, crossed source/target/teaching-utility measurements,
+  shortcut controls, and durability tests. No experiment has been launched.
+- [[skillopt]] — held-out-gated optimization of an external textual skill;
+  the paper itself names later weight internalization as future work.
+- [[skillgen-verified]] — the strongest direct contextual collision: six fixed
+  source-conditioned skills crossed with six readers on common held-out
+  instances; context rank/reversal is a control, not the contribution.
+- [[masa]] and [[skilllens]] — controlled three-artifact × seven-reader and
+  two-artifact × six-reader matrices, respectively.
+- [[skillrevise]] — fixed source-selected artifact transfer versus
+  target-conditioned revision across four target readers.
+- [[skillmaster]] — counterfactual skill-bank edit utility and aggregate
+  retrieval-withdrawal persistence after skill-guided training; no
+  fixed-artifact causal attribution.
+- [[skilladaptor]] — training-free step-level skill repair; useful operational
+  neighbor but not a collision with matched post-withdrawal acquisition.
+- [[smartad]] — target-student-NLL selection of successful agent trajectories
+  plus action/final-span-weighted SFT; capacity-aligned agent distillation is
+  occupied.
+- [[informative-alignment-rsr]] — 11-teacher × five-student post-training panel
+  and Rank–Surprisal Ratio; generic student-specific teaching-utility metrics
+  are occupied.
+- [[promptkd]] — direct conceptual correction: teacher-side soft context is
+  already optimized with student guidance for generative distillation;
+  “student-friendly teaching context” is not a new general claim.
+- [[lgtm-student-level-kd]], [[personalized-teacher-selection]], and
+  [[distillation-traps-guards]] — teacher validation influence, per-student
+  teacher routing, and direct control of LLM distillability. Together they
+  close broad “best executor is not best teacher” and generic teachability
+  claims; the surviving object is fixed procedural-artifact utility transport.
+- [[opcd]] and [[skill-sd]] — direct context-conditioned OPD and dynamic
+  teacher-only trajectory skills; they close the generic skills-plus-OPD
+  method claim.
+- [[seed-self-evolving-opd]] — self-evolving hindsight skills, task RL, and
+  gap-gated OPD with no skill at deployment; the closest corrected-E3
+  collision.
+- [[skillc]] and [[skill-zero-five]] — paired skill/no-skill internalization
+  credit and deliberate splitting of general in-weight versus task-specific
+  external skills.
+- [[latent-skill]] — textual skills compiled into selectable LoRA adapters;
+  permanent weight internalization is not the only alternative to context.
+- [[structured-prompt-optimization-extc]] — the literal structured-text
+  optimization → large-to-small trace distillation → RL pipeline, including a
+  legal classification benchmark.
+- [[continual-facts-in-weights]] — context-versus-weight creation,
+  composition, retention, and rescue for invented facts; procedural skills
+  remain explicitly untested.
+
+The pinned repositories are code-custody anchors, not complete reproductions.
+In particular, SkillGen, SkillLens, SkillRevise, MASA, and SkillMaster do not
+release every exact final/intermediate artifact, raw crossed matrix, run log,
+or checkpoint needed to reconstruct all paper claims. Their dedicated pages
+record the gaps. The Skill-Usage, Ctx2Skill, and RSR dataset links/commit
+identities are recorded, but their full Hugging Face payloads are not mirrored
+in this vault.
 
 ### Compute elasticity / specialist distillation
 
@@ -109,6 +172,9 @@ contain working duplicates, but it is not the source of truth.
   cross-scale forced-action transport regret.
 - [[token-teachability]] — distributional absorbability is distinct from task
   utility; supplies the utility×teachability risk analysis.
+- [[smartad]] and [[informative-alignment-rsr]] — student-specific agent-trace
+  compatibility and post-training teaching value; neither estimates immediate
+  forced external-action value or target regret from a teacher boundary.
 - [[llm-specific-utility]] — closest reader-specific evidence-value precursor;
   deterministic binary labels motivate repeated, signed, cross-fitted effects.
 
