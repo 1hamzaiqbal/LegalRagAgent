@@ -15,8 +15,9 @@ gate, not a new paper table. The durable research synthesis is
 - All 50 tracked detail logs that had appeared deleted were restored from Git.
 - The larger July logs are represented by the 71-entry SHA/size/path manifest
   at `evidence/july_2026/manifests/local_july_detail_logs.tsv`.
-- A pre-cleanup Git bundle, patch, untracked-file tarball, and checksums exist at
-  `/Users/hamzaiqbal/grad/LegalRagAgent_recovery_20260717`.
+- A pre-cleanup Git bundle, patch, untracked-file tarball, and checksums are
+  preserved inside the verified recovery ZIP at
+  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`.
 
 ## EIT job adjudication
 

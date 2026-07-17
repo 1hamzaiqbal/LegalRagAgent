@@ -167,12 +167,14 @@ the active framing.
 ## Cleanup and recovery state
 
 - `codex/scope_old` preserves the old submission/review package in Git.
-- Tested ZIPs and per-file manifests exist at
-  `/Users/hamzaiqbal/grad/LegalRagAgent_archive/`; they cover the historical
-  SCOPE worktree, early agentic course project, class report, old paper tree,
-  and pre-pivot root surface.
-- A full pre-cleanup recovery bundle and worktree backup exists at
-  `/Users/hamzaiqbal/grad/LegalRagAgent_recovery_20260717`.
+- `codex/archive/pre_cleanup_20260717` preserves the exact tracked pre-cleanup
+  state, while `codex/archive/early_agentic_20260717` preserves the formerly
+  untracked early course-project files.
+- Tested ZIPs and per-file manifests live in persistent EIT storage under
+  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/`;
+  they cover the historical SCOPE worktree, early agentic course project,
+  class report, old paper tree, pre-pivot root surface, and full recovery
+  bundle.
 - The active clean-development branches are `codex/three_dial` and
   `codex/opd_distillation`.
 - The old dirty EIT worktrees are historical evidence until their diffs and

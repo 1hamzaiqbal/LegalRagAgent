@@ -53,8 +53,9 @@ references/           local working copies; EIT is the persistent source vault
 
 The old `paper/`, class report, proposal, slides, root research diaries, and
 duplicate literature folder were removed from the active branches after
-byte-verified archiving. See `docs/archive_manifest_2026-07-17.md` and
-`/Users/hamzaiqbal/grad/LegalRagAgent_archive/`.
+byte-verified archiving. The payloads live in persistent EIT storage and the
+exact Git states have named archive branches; the Mac keeps only small restore
+manifests. See `docs/archive_manifest_2026-07-17.md`.
 
 ## Setup
 

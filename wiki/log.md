@@ -9,6 +9,16 @@ status: maintained
 
 # Wiki Op Log (append-only)
 
+## [2026-07-17] storage closeout | Git archive refs and EIT-only bulky recovery
+Pushed `codex/archive/pre_cleanup_20260717` for the exact tracked state before
+cleanup and `codex/archive/early_agentic_20260717` for the 11 formerly
+untracked early-agentic files. Uploaded the cleanup ZIPs and a full recovery
+ZIP to persistent EIT storage under
+`/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/`.
+Package hashes, ZIP structure, and the nested untracked SCOPE tree were
+re-verified on EIT before removing the bulky Mac copies and the redundant
+historical worktree.
+
 ## [2026-07-17] reset | Research snapshot, persistent literature vault, and clean tracks
 Reconciled the local and EIT July work into
 [[research-state-2026-07-17]] and a source-gated completion audit. Restored the
