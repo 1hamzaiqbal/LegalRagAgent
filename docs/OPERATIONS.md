@@ -1,0 +1,88 @@
+# LegalRagAgent operations guide
+
+This is the practical runbook for choosing a surface, placing new artifacts,
+checking a change, and recovering historical material. Research claims belong
+in the snapshot, track pages, and signoff log; this file governs mechanics.
+
+## Choose one active lane
+
+| Work | Mac path | EIT path | Branch |
+|---|---|---|---|
+| Three-dial science, evaluation, and marginal-utility control | `/Users/hamzaiqbal/grad/LegalRagAgent` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-three-dial` | `codex/three_dial` |
+| OPD/distillation and teacher-student engineering | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-distillation` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-distillation` | `codex/opd_distillation` |
+
+Do not launch new work from `codex/scope_old`, an archive branch, or a path
+under `/engrfs/project/jacobsn/hiqbal/archives/`. Historical checkouts are
+restored only for inspection and removed afterward.
+
+## Fast orientation
+
+```bash
+git status --short --branch
+uv run python scripts/check_workspace.py
+sed -n '1,220p' ACTIVE_TRACK.md
+sed -n '1,240p' wiki/snapshots/research-state-2026-07-17.md
+```
+
+The workspace checker validates required entrypoints, forbidden predecessor
+directories, current Markdown links, Obsidian wikilinks, generated-artifact
+policy, branch-specific files, and stale local recovery pointers. Add
+`--strict-clean` in CI or before handoff when a dirty tree must fail.
+
+## Artifact placement contract
+
+| Artifact | Location | Git policy |
+|---|---|---|
+| Reusable code, configs, and tests | `eval/`, `scripts/`, `utils/`, `tests/` | Track |
+| Current compact result/citation evidence | `evidence/<campaign>/` | Track with manifest |
+| Experiment ledger and necessary row logs | `logs/` | Track only when named by a signoff/audit gate |
+| Compact generated summaries, tables, and plots | `docs/generated/` | Track selectively |
+| Large point-level/generated JSONL | EIT `artifacts/legalrag/` | Do not add to active Git |
+| Downloaded datasets, caches, vector stores, checkpoints | EIT scratch/project data or ignored local paths | Do not add to active Git |
+| Papers and related repositories | EIT `literature/legalrag/` plus wiki manifests | PDFs/repos stay on EIT |
+| Superseded project trees and recovery bundles | EIT `archives/legalrag/` plus named Git archive refs | Never mix into active worktrees |
+
+The pre-trim May/July generated directory is checksummed at:
+
+`/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/2026-07-17/docs-generated-pre-trim/`
+
+## Change and evidence workflow
+
+1. Confirm the active branch and read its `ACTIVE_TRACK.md`.
+2. Name the question, reader, evidence action/set, budget, and outcome schema.
+3. Reuse or extend a source log; do not promote a narrative file to evidence.
+4. Put compact citable outputs under `evidence/` or `docs/generated/` and add a
+   manifest/signoff pointer.
+5. Run focused tests, the workspace checker, and `git diff --check`.
+6. Commit on exactly one active lane. Port shared documentation/interfaces by
+   cherry-pick; do not merge an entire lane into the other.
+7. Push to GitHub, then fast-forward the matching EIT checkout.
+
+## Validation ladder
+
+```bash
+# Always
+uv run python scripts/check_workspace.py
+git diff --check
+
+# Evaluation changes
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 uv run pytest -q
+
+# OPD changes
+uv run python scripts/opd/test_opd_loss.py
+```
+
+GPU or API smoke completion proves plumbing only. Scientific promotion still
+requires the task-specific gate recorded in `docs/signoff_log.md`.
+
+## Recovery
+
+- Git history: `codex/scope_old`, `codex/archive/pre_cleanup_20260717`, and
+  `codex/archive/early_agentic_20260717`.
+- Cleanup ZIPs:
+  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/archives/`
+- Full recovery ZIP:
+  `/engrfs/project/jacobsn/hiqbal/archives/legalrag/2026-07-17/local-cleanup/recovery-package/LegalRagAgent-recovery-20260717.zip`
+
+Restore into a new empty directory. Never unpack or apply a historical patch
+over either active worktree.

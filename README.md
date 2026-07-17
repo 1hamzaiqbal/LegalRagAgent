@@ -16,6 +16,7 @@ particular reader, and how much search effort is worth paying for.
 Start with the durable
 [`research-state-2026-07-17`](wiki/snapshots/research-state-2026-07-17.md)
 snapshot, then [`ACTIVE_TRACK.md`](ACTIVE_TRACK.md),
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md),
 [`docs/README.md`](docs/README.md), and the
 [`literature vault index`](wiki/literature/index.md).
 
@@ -71,6 +72,7 @@ Python 3.11–3.13 is supported. If `uv` is not on `PATH`, use
 ## Core checks
 
 ```bash
+uv run python scripts/check_workspace.py
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 uv run pytest -q
 uv run python scripts/opd/test_opd_loss.py
 git diff --check

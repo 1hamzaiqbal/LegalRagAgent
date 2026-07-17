@@ -3,7 +3,7 @@ title: Start Here
 type: hub
 tags: [orientation]
 created: 2026-07-02
-updated: 2026-07-02
+updated: 2026-07-17
 status: maintained
 ---
 
@@ -48,8 +48,9 @@ tables. LLM-only is the primary baseline in every comparison, always.
 
 **Repo map (not duplicated here):** eval harness `eval/eval_harness.py`
 (65 modes); caches under `caches/`; generated analyses `docs/generated/`;
-run ledger `logs/experiments.jsonl`; ideas log [ideas.md](../ideas.md);
-cluster runbook [docs/hpc_setup_log.md](../docs/hpc_setup_log.md) + WUSTL EIT.
+run ledger `logs/experiments.jsonl`; operating contract
+[docs/OPERATIONS.md](../docs/OPERATIONS.md); cluster history
+[docs/hpc_setup_log.md](../docs/hpc_setup_log.md) + WUSTL EIT.
 Persistent literature lives at
 `/engrfs/project/jacobsn/hiqbal/literature/legalrag/`; scratch experiment
 artifacts remain under `/engrfs/tmp/jacobsn/hiqbal_legalrag/`.

@@ -114,9 +114,9 @@ The SCOPE method is historical ([[scope-old]]). Start with
 
 ## Anchors into the repo (linked, not duplicated)
 - Citation gate: [signoff_log](../docs/signoff_log.md) · Run ledger: [experiments.jsonl](../logs/experiments.jsonl)
-- Generated analyses: [docs/generated/](../docs/generated/) · Ideas log: [ideas.md](../ideas.md)
-- Lit repositioning (pre-review): [RELATED_WORK_GROUNDING](../paper/submission/RELATED_WORK_GROUNDING.md)
-- Submitted paper + reviews: [official_paper_and_review_icml_ai_4_law/](../official_paper_and_review_icml_ai_4_law/)
+- Generated analyses: [docs/generated/](../docs/generated/) · Operating runbook: [OPERATIONS](../docs/OPERATIONS.md)
+- Current literature boundary: [[coverage-audit-2026-07-17]] · Historical direction log: [[direction-2026-07]]
+- Submitted paper/review provenance and recovery map: [[scope-old]] · Review synthesis: [[icml-ai4law-2026-rejection]]
 - Raw sources: `references/` (gitignored working copy); persistent EIT vault
   `/engrfs/project/jacobsn/hiqbal/literature/legalrag/`, with tracked manifests
   under `wiki/literature/manifests/`.
