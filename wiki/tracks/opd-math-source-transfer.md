@@ -4,7 +4,7 @@ type: track
 tags: [opd, distillation, math, teacher-data, source-transfer]
 created: 2026-07-17
 updated: 2026-07-18
-status: implementation
+status: bounded plumbing validated; science gated
 ---
 
 # OPD math source transfer
@@ -186,15 +186,18 @@ The linked `One-Shot-RLVR-Qwen2.5-Math-1.5B-7.5k-MATH` object is a model, not
 the MATH dataset. The named third-party Qwen3-8B-DAPO repository has no weights.
 Both are recorded as provenance; neither is silently used.
 
-As of this snapshot, the isolated branch, data contract, exact-token sampled
-reverse-KL path,
-reward integration, quality gates, and Slurm launch surfaces are being
-validated. No new task-performance result is claimed until EIT logs and gate
-manifests are present.
+The bounded EIT path is now validated through both physical student-source
+role files. [[opd-math-eit-handoff-2026-07-18]] records the exact execution
+commits, environments, audit manifest, jobs, update evidence, custody-label
+correction, and remaining gates. The completed M->M and O->O smokes establish
+exact-token teacher scoring and real parameter movement only. They used
+partial non-scientific data, a raw teacher, and flat all-zero task-reward
+groups, so no task-performance or source-transfer result is claimed.
 
 ## Links
 
 [[opd-distillation]] · [[self-distillation-cluster-update-2026-07-17]] ·
+[[opd-math-eit-handoff-2026-07-18]] ·
 [[sdar]] · [[ema-policy-gradient]] · [[verl-opd-trainer]] ·
 [[opsd-self-distilled-reasoner]] · [[sdft-continual-learning]] ·
 [[sdpo-rich-feedback]]

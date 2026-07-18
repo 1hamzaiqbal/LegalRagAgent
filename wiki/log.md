@@ -420,3 +420,24 @@ Archived the paper plus the official `ema-pg` and `verl` repositories in the
 persistent EIT literature vault. The tracked vault now records 108 PDFs, four
 web/code snapshots, and 63 repositories pinned to exact commits. This was
 literature and implementation custody only; no training result was created.
+
+## [2026-07-18] OPD math EIT handoff | bounded plumbing passes; science remains gated
+
+Completed the bounded EIT bring-up recorded in
+[[opd-math-eit-handoff-2026-07-18]]. Exact model caching, isolated train/serve
+preflights, a fail-closed 64-row-per-split data audit, both teacher-source
+smokes, and both physical student-source smokes completed. The M->M and O->O
+student jobs each produced a finite nonzero auxiliary gradient, changed LoRA
+parameters, and promoted stable artifacts, but both task-reward groups were
+all wrong. The smokes used the raw 8B teacher, partial data, one prompt, and no
+teacher-gap or student-support gate. They are plumbing, not source-transfer or
+task-performance evidence.
+
+An independent manifest audit found that the smoke bypass was mislabeled as a
+validated local-server binding. Commit `80836d4` now separates whether process
+custody is required from whether it actually passed. EIT regression job
+`106687` completed with a real update while correctly recording
+`required=false`, `validated=false`, and no custody claim. All 121 local tests
+pass. No full teacher/student run was launched; the next gate is full canonical
+data preparation followed by raw-student support and held-out teacher-gap
+evaluation.

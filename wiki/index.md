@@ -3,7 +3,7 @@ title: LegalRagAgent Wiki Index
 type: hub
 tags: [index]
 created: 2026-07-02
-updated: 2026-07-17
+updated: 2026-07-18
 status: maintained
 ---
 
@@ -24,6 +24,8 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[opd-distillation]] — gated skill-distillation track
 - [[opd-math-source-transfer]] — M/O teacher-training versus student-rollout
   source matrix with task reward and an exact-token sampled reverse-KL path
+- [[opd-math-eit-handoff-2026-07-18]] — exact EIT commits, environments,
+  bounded smoke evidence, custody correction, scientific blockers, and gates
 - [[self-distillation-cluster-update-2026-07-17]] — OPSD/SDFT/SDPO baseline,
   capability, and method-custody update
 - [[scope-old]] — historical SCOPE branch/archive map

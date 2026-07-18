@@ -10,6 +10,11 @@ is the recommended `default` config of OpenR1-Math-220k. A pair `(T, S)` means
 the Qwen3 teacher is trained on source `T`, while the Qwen3-1.7B student
 generates OPD rollouts on source `S`.
 
+The current bounded EIT state, exact execution commits, artifact roots, job
+ledger, custody correction, and remaining scientific gates are recorded in
+[`opd-math-eit-handoff-2026-07-18.md`](../../wiki/snapshots/opd-math-eit-handoff-2026-07-18.md).
+That snapshot validates plumbing only; it is not a task-performance result.
+
 ## Non-negotiable design choices
 
 - Main same-source arms use disjoint problem clusters. Exact-row reuse is a

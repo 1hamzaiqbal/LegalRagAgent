@@ -3,7 +3,7 @@ title: OPD and Retrieval-Skill Distillation Track
 type: hub
 tags: [active-track, opd, distillation, agentic-rl]
 created: 2026-07-17
-updated: 2026-07-17
+updated: 2026-07-18
 status: gated
 ---
 
@@ -25,6 +25,14 @@ remains an unsafe diagnostic rather than a primary arm. The isolated
 verifiable task reward, its matched `task_rl` baseline, and the gap-gated
 score-function OPD auxiliary. No task-performance claim exists until EIT
 quality gates and held-out evaluation pass.
+
+The bounded EIT implementation pass is recorded in
+[[opd-math-eit-handoff-2026-07-18]]. It confirms exact-token serving and real
+student parameter updates on both M and O role files, while also preserving the
+negative evidence: one-step teacher rewards were flat, student task reward was
+zero, the data were deliberately partial, and no scientific gate passed. A
+smoke-only custody-label inconsistency was corrected and regression-tested;
+the scientific process-binding gate itself was never bypassed.
 
 ## Gates
 
@@ -80,4 +88,5 @@ distillation method to a task with observable skill headroom.
 [[opd-skill0-design]] · [[skill-distillation-bridge]] · [[skill0]] ·
 [[sdar]] · [[skill1]] · [[alloc-internalization-rung2]] ·
 [[self-distillation-cluster-update-2026-07-17]] · [[opd-math-source-transfer]] ·
-[[ema-policy-gradient]] · [[verl-opd-trainer]]
+[[opd-math-eit-handoff-2026-07-18]] · [[ema-policy-gradient]] ·
+[[verl-opd-trainer]]
