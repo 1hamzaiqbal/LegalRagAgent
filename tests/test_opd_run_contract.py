@@ -370,8 +370,8 @@ def test_gate_must_bind_the_current_prepared_and_source_manifests(tmp_path):
 
 def test_scientific_environment_contract_binds_commit_freeze_and_runtime(tmp_path, monkeypatch):
     commit = "a" * 40
-    freeze_dir = tmp_path / commit
-    freeze_dir.mkdir()
+    freeze_dir = tmp_path / "environment_freezes" / commit
+    freeze_dir.mkdir(parents=True)
     train_freeze = freeze_dir / "train.freeze.txt"
     train_freeze.write_text(
         "".join(f"{name}=={version}\n" for name, version in EXPECTED_TRAIN_PACKAGES.items())
@@ -384,8 +384,33 @@ def test_scientific_environment_contract_binds_commit_freeze_and_runtime(tmp_pat
         "scripts.opd.opd_train.installed_package_versions",
         lambda expected: dict(expected),
     )
+    environment_root = tmp_path / "train_environment"
+    environment_root.mkdir()
+    verification = {
+        "schema_version": 1,
+        "schema": "opd_math_environment_verification_v1",
+        "status": "passed",
+        "environment_root": str(environment_root.resolve()),
+        "expected_commit": commit,
+        "freeze_kind": "train",
+        "commit_freeze": {
+            "path": str(train_freeze.resolve()),
+            "sha256": digest(train_freeze),
+            "byte_identical_to_requirements_freeze": True,
+        },
+    }
+    monkeypatch.setattr(
+        "scripts.opd.opd_train.verify_live_environment",
+        lambda **kwargs: dict(verification),
+    )
+    monkeypatch.setattr(
+        "scripts.opd.opd_train.reverify_recorded_environment",
+        lambda recorded, **kwargs: dict(recorded),
+    )
     run_args = Namespace(
+        train_environment_root=str(environment_root),
         train_environment_freeze=str(train_freeze),
+        serve_environment_root=None,
         serve_environment_freeze=None,
     )
     contract = validate_environment_contract(run_args, require_serve=False)

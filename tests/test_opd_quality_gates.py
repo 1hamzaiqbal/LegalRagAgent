@@ -2,10 +2,12 @@ from argparse import Namespace
 import hashlib
 import json
 from pathlib import Path
+import sys
 
 import pytest
 
 from tests.opd_evaluation_fixture import write_merged_evaluation
+from scripts.opd_math import quality_gates
 
 from scripts.opd_math.quality_gates import (
     CANONICAL_TEACHER_TRAINING_PLAN,
@@ -16,12 +18,16 @@ from scripts.opd_math.quality_gates import (
     TEACHER_GATE_TYPE,
     TEACHER_GAP_DECODING,
     TEACHER_SMOKE_GATE_TYPE,
+    TEACHER_TARGET_REPORT_RECORDS,
+    TEACHER_TARGET_REPORT_TYPE,
     canonical_json_sha256,
     recompute_student_gate,
+    recompute_teacher_target_report,
     sha256_file,
     sha256_tree,
     student_support,
     teacher_gap,
+    teacher_target_report,
 )
 
 
@@ -416,6 +422,217 @@ def passing_scientific_teacher_fixture(tmp_path):
         prepared_manifest=prepared_manifest,
         teacher_run_manifest=run_manifest,
     )
+
+
+def teacher_target_args(
+    tmp_path,
+    *,
+    teacher_source="M",
+    target_source="O",
+    selected_records=TEACHER_TARGET_REPORT_RECORDS,
+    base_reward=0,
+    trained_reward=1,
+):
+    prepared_manifest, prepared, role_paths, _ = write_prepared(
+        tmp_path,
+        teacher_gap_count=TEACHER_TARGET_REPORT_RECORDS,
+        source=teacher_source,
+    )
+    target_relative = f"roles/{target_source}/teacher_gap_dev.jsonl"
+    target_path = tmp_path / target_relative
+    target_rows = write_task(
+        target_path,
+        TEACHER_TARGET_REPORT_RECORDS + 1,
+        source=target_source,
+        role="teacher_gap_dev",
+    )
+    prepared["files"][target_relative] = {
+        "rows": len(target_rows),
+        "sha256": sha256_file(target_path),
+    }
+    teacher_relative = f"roles/{teacher_source}/teacher_gap_dev.jsonl"
+    pair = {
+        "id": f"{teacher_source}_{target_source}",
+        "teacher_source": teacher_source,
+        "opd_source": target_source,
+        "same_items": False,
+        "teacher_skill_dev_limit": TEACHER_TARGET_REPORT_RECORDS,
+        "target_gap_dev_limit": TEACHER_TARGET_REPORT_RECORDS,
+    }
+    for field, relative in (
+        ("teacher_skill_dev_file", teacher_relative),
+        ("target_gap_dev_file", target_relative),
+    ):
+        entry = prepared["files"][relative]
+        pair[field] = relative
+        pair[f"{field}_rows"] = entry["rows"]
+        pair[f"{field}_sha256"] = entry["sha256"]
+    prepared["pairs"] = [pair]
+    prepared_manifest.write_text(json.dumps(prepared, indent=2, sort_keys=True) + "\n")
+
+    adapter = tmp_path / "cross-source-teacher-adapter"
+    adapter.mkdir()
+    (adapter / "adapter_config.json").write_text('{"r": 8}\n')
+    teacher_run_manifest = write_teacher_run(
+        tmp_path,
+        prepared_manifest,
+        adapter,
+        source=teacher_source,
+    )
+    selected = target_rows[:selected_records]
+    base_summary, base_samples = write_evaluation(
+        tmp_path,
+        "target-base",
+        target_path,
+        {
+            row["record_id"]: [base_reward] * 4
+            for row in selected
+        },
+    )
+    trained_summary, trained_samples = write_evaluation(
+        tmp_path,
+        "target-trained",
+        target_path,
+        {
+            row["record_id"]: [trained_reward] * 4
+            for row in selected
+        },
+        adapter=adapter,
+    )
+    return Namespace(
+        base_summary=base_summary,
+        base_samples=base_samples,
+        trained_summary=trained_summary,
+        trained_samples=trained_samples,
+        base_model=MODEL,
+        base_revision=REVISION,
+        trained_adapter=adapter,
+        prepared_manifest=prepared_manifest,
+        teacher_run_manifest=teacher_run_manifest,
+        teacher_source=teacher_source,
+        target_source=target_source,
+        task_role="teacher_gap_dev",
+        bootstrap_draws=10_000,
+        seed=0,
+    )
+
+
+def test_teacher_target_report_is_exact_deterministic_and_non_authorizing(tmp_path):
+    args = teacher_target_args(tmp_path)
+    report = teacher_target_report(args)
+
+    assert report["report"] == TEACHER_TARGET_REPORT_TYPE
+    assert report["report_strength"] == "scientific_measurement"
+    assert report["valid"] is True
+    assert report["teacher_source"] == "M"
+    assert report["target_source"] == "O"
+    assert report["pair_id"] == "M_O"
+    assert report["shared_records"] == TEACHER_TARGET_REPORT_RECORDS
+    assert report["target_gap_dev_limit"] == TEACHER_TARGET_REPORT_RECORDS
+    assert report["target_gap_dev_file_rows"] == TEACHER_TARGET_REPORT_RECORDS + 1
+    assert report["paired_delta"] == 1.0
+    assert report["bootstrap_95_ci"] == [1.0, 1.0]
+    assert report["bootstrap_draws"] == 10_000
+    assert report["bootstrap_seed"] == 0
+    assert report["authorizes_scientific_merge"] is False
+    assert report["authorizes_scientific_training"] is False
+    assert "gate" not in report
+    assert "passed" not in report
+    assert recompute_teacher_target_report(report) == report
+
+
+def test_teacher_target_report_retains_negative_effect_as_valid_measurement(tmp_path):
+    report = teacher_target_report(
+        teacher_target_args(tmp_path, base_reward=1, trained_reward=0)
+    )
+
+    assert report["valid"] is True
+    assert report["paired_delta"] == -1.0
+    assert report["bootstrap_95_ci"] == [-1.0, -1.0]
+    assert report["authorizes_scientific_merge"] is False
+
+
+def test_teacher_target_report_rejects_source_budget_and_pair_forgery(tmp_path):
+    args = teacher_target_args(tmp_path)
+    args.teacher_source = args.target_source
+    with pytest.raises(ValueError, match="distinct teacher and target sources"):
+        teacher_target_report(args)
+
+    args.teacher_source = "M"
+    args.bootstrap_draws = 9_999
+    with pytest.raises(ValueError, match="exactly 10000"):
+        teacher_target_report(args)
+
+    args.bootstrap_draws = 10_000
+    prepared = json.loads(args.prepared_manifest.read_text())
+    prepared["pairs"][0]["target_gap_dev_limit"] = 352
+    args.prepared_manifest.write_text(
+        json.dumps(prepared, indent=2, sort_keys=True) + "\n"
+    )
+    with pytest.raises(ValueError, match="target-gap limit is not exactly 353"):
+        teacher_target_report(args)
+
+
+def test_teacher_target_report_rejects_nonexact_target_prefix(tmp_path):
+    args = teacher_target_args(tmp_path, selected_records=352)
+    with pytest.raises(ValueError, match="require exactly 353 target records"):
+        teacher_target_report(args)
+
+
+def test_teacher_target_report_cli_writes_fresh_sorted_json_and_exits_zero(
+    tmp_path, monkeypatch
+):
+    output = tmp_path / "teacher-target-report.json"
+    payload = {
+        "schema_version": 3,
+        "report": TEACHER_TARGET_REPORT_TYPE,
+        "valid": True,
+        "authorizes_scientific_merge": False,
+        "authorizes_scientific_training": False,
+        "paired_delta": -0.25,
+    }
+    monkeypatch.setattr(
+        quality_gates,
+        "teacher_target_report",
+        lambda args: payload,
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "quality_gates.py",
+            "teacher-target-report",
+            "--base-summary",
+            "/tmp/base-summary.json",
+            "--base-samples",
+            "/tmp/base-samples.jsonl",
+            "--trained-summary",
+            "/tmp/trained-summary.json",
+            "--trained-samples",
+            "/tmp/trained-samples.jsonl",
+            "--base-model",
+            MODEL,
+            "--base-revision",
+            REVISION,
+            "--trained-adapter",
+            "/tmp/adapter",
+            "--prepared-manifest",
+            "/tmp/prepared.json",
+            "--teacher-run-manifest",
+            "/tmp/teacher-run.json",
+            "--teacher-source",
+            "M",
+            "--target-source",
+            "O",
+            "--output",
+            str(output),
+        ],
+    )
+
+    assert quality_gates.main() == 0
+    assert output.read_text() == json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    with pytest.raises(FileExistsError, match="refusing to overwrite"):
+        quality_gates.main()
 
 
 def test_scientific_teacher_gate_rejects_legacy_monolithic_summary(tmp_path):

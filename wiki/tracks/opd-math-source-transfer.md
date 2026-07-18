@@ -4,7 +4,7 @@ type: track
 tags: [opd, distillation, math, teacher-data, source-transfer]
 created: 2026-07-17
 updated: 2026-07-18
-status: bounded plumbing validated; science gated
+status: raw-student support passed; teacher science pending
 ---
 
 # OPD math source transfer
@@ -193,6 +193,14 @@ correction, and remaining gates. The completed M->M and O->O smokes establish
 exact-token teacher scoring and real parameter movement only. They used
 partial non-scientific data, a raw teacher, and flat all-zero task-reward
 groups, so no task-performance or source-transfer result is claimed.
+
+The complete raw Qwen3-1.7B support campaign now passes on both canonical
+2,161-row student sources: M pass@4 is 0.6201 with 0.1981 mixed-reward groups;
+O pass@4 is 0.1772 with 0.1273 mixed-reward groups. The gates authorize an
+attempt at scientific task-reward training, not a claim that training or OPD
+works. [[opd-math-eit-handoff-2026-07-18]] records the exact gate hashes,
+Slurm jobs, independent recomputation, and preserved login-lane anomaly. The
+100-step teachers and their own-source skill-gap gates remain pending.
 
 ## Links
 

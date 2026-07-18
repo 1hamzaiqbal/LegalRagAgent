@@ -21,6 +21,8 @@ from scripts.opd_math.quality_gates import sha256_file, sha256_tree
 
 LOCAL_BINDING_SCOPE = "local_linux_proc_process_binding_not_remote_cryptographic_attestation"
 PROVENANCE_FILENAME = "merge_provenance.json"
+SCIENTIFIC_SERVER_HOST = "127.0.0.1"
+SCIENTIFIC_GPU_MEMORY_UTILIZATION = "0.55"
 
 
 def _json_object(path: Path, label: str) -> dict[str, Any]:
@@ -64,16 +66,21 @@ def _status_uid(status_text: str, pid: int) -> int:
     raise ValueError(f"/proc/{pid}/status lacks Uid")
 
 
-def _option_value(argv: list[str], option: str) -> str | None:
+def _required_unique_option_value(argv: list[str], option: str) -> str:
+    values: list[str] = []
     for index, value in enumerate(argv):
         if value == option:
             if index + 1 >= len(argv):
                 raise ValueError(f"server command line ends after {option}")
-            return argv[index + 1]
+            values.append(argv[index + 1])
         prefix = option + "="
         if value.startswith(prefix):
-            return value[len(prefix) :]
-    return None
+            values.append(value[len(prefix) :])
+    if len(values) != 1:
+        raise ValueError(
+            f"server command line must contain exactly one {option}; found {len(values)}"
+        )
+    return values[0]
 
 
 def _served_checkpoint_arg(argv: list[str]) -> str:
@@ -81,6 +88,46 @@ def _served_checkpoint_arg(argv: list[str]) -> str:
     if len(indices) != 1 or indices[0] + 1 >= len(argv):
         raise ValueError("server command line must contain exactly one `serve CHECKPOINT` pair")
     return argv[indices[0] + 1]
+
+
+def expected_serve_environment_launcher(environment_root: Path) -> dict[str, Any]:
+    root = Path(environment_root).resolve(strict=True)
+    python = root / "bin" / "python"
+    vllm = root / "bin" / "vllm"
+    resolved_python_executable = python.resolve(strict=True)
+    return {
+        "environment_root": str(root),
+        "python": str(python),
+        "resolved_python_executable": str(resolved_python_executable),
+        "vllm": str(vllm),
+        "argv_prefix": [str(python), str(vllm)],
+    }
+
+
+def _canonical_scientific_server_argv(
+    *,
+    launcher: dict[str, Any],
+    checkpoint: Path,
+    server_model: str,
+    server_port: int,
+    server_max_model_len: int,
+) -> list[str]:
+    return [
+        launcher["python"],
+        launcher["vllm"],
+        "serve",
+        str(checkpoint),
+        "--host",
+        SCIENTIFIC_SERVER_HOST,
+        "--served-model-name",
+        server_model,
+        "--port",
+        str(server_port),
+        "--max-model-len",
+        str(server_max_model_len),
+        "--gpu-memory-utilization",
+        SCIENTIFIC_GPU_MEMORY_UTILIZATION,
+    ]
 
 
 def _read_proc_identity(pid: int, *, proc_root: Path = Path("/proc")) -> dict[str, Any]:
@@ -142,6 +189,7 @@ def build_local_process_binding(
     server_url: str,
     server_model: str,
     server_max_model_len: int,
+    serve_environment_root: Path | None = None,
     proc_root: Path = Path("/proc"),
     verify_checkpoint_tree: bool = True,
 ) -> dict[str, Any]:
@@ -186,6 +234,31 @@ def build_local_process_binding(
 
     proc = _read_proc_identity(server_pid, proc_root=proc_root)
     argv = proc.pop("argv")
+    serve_environment_launcher = None
+    if serve_environment_root is not None:
+        serve_environment_launcher = expected_serve_environment_launcher(
+            serve_environment_root
+        )
+        expected_argv = _canonical_scientific_server_argv(
+            launcher=serve_environment_launcher,
+            checkpoint=checkpoint,
+            server_model=server_model,
+            server_port=parsed.port,
+            server_max_model_len=server_max_model_len,
+        )
+        if argv != expected_argv:
+            raise ValueError(
+                "local vLLM process does not match the exact canonical scientific "
+                "launcher argv: "
+                f"expected={expected_argv!r}, actual={argv!r}"
+            )
+        if proc["executable"] != serve_environment_launcher["resolved_python_executable"]:
+            raise ValueError(
+                "local vLLM process executable does not resolve to the selected serve "
+                "environment interpreter: "
+                f"expected={serve_environment_launcher['resolved_python_executable']!r}, "
+                f"actual={proc['executable']!r}"
+            )
     checkpoint_arg = _served_checkpoint_arg(argv)
     checkpoint_arg_path = Path(checkpoint_arg)
     if not checkpoint_arg_path.is_absolute():
@@ -194,19 +267,19 @@ def build_local_process_binding(
         raise ValueError(
             "local vLLM process command line is not serving the gated teacher checkpoint"
         )
-    served_model = _option_value(argv, "--served-model-name")
+    served_model = _required_unique_option_value(argv, "--served-model-name")
     if served_model != server_model:
         raise ValueError(
             f"local vLLM served-model alias mismatch: expected={server_model!r}, actual={served_model!r}"
         )
-    port = _option_value(argv, "--port")
+    port = _required_unique_option_value(argv, "--port")
     if port != str(parsed.port):
         raise ValueError(
             f"local vLLM port mismatch: expected={parsed.port!r}, actual={port!r}"
         )
-    max_model_len = _option_value(argv, "--max-model-len")
+    max_model_len = _required_unique_option_value(argv, "--max-model-len")
     try:
-        parsed_max_model_len = int(max_model_len) if max_model_len is not None else None
+        parsed_max_model_len = int(max_model_len)
     except ValueError as exc:
         raise ValueError(
             f"local vLLM max model length is not an integer: {max_model_len!r}"
@@ -216,7 +289,7 @@ def build_local_process_binding(
             "local vLLM max model length mismatch: "
             f"expected={server_max_model_len!r}, actual={parsed_max_model_len!r}"
         )
-    return {
+    result = {
         "schema_version": 1,
         "scope": LOCAL_BINDING_SCOPE,
         "validated": True,
@@ -230,6 +303,10 @@ def build_local_process_binding(
         "teacher_provenance_manifest": str(provenance_path),
         "teacher_provenance_manifest_sha256": sha256_file(provenance_path),
     }
+    if serve_environment_launcher is not None:
+        result["serve_environment_launcher"] = serve_environment_launcher
+        result["canonical_scientific_argv"] = argv
+    return result
 
 
 def revalidate_local_process_binding(
@@ -240,6 +317,7 @@ def revalidate_local_process_binding(
     server_url: str,
     server_model: str,
     server_max_model_len: int,
+    serve_environment_root: Path | None = None,
     proc_root: Path = Path("/proc"),
     verify_checkpoint_tree: bool = False,
 ) -> dict[str, Any]:
@@ -259,6 +337,7 @@ def revalidate_local_process_binding(
         server_url=server_url,
         server_model=server_model,
         server_max_model_len=server_max_model_len,
+        serve_environment_root=serve_environment_root,
         proc_root=proc_root,
         verify_checkpoint_tree=verify_checkpoint_tree,
     )
@@ -278,17 +357,19 @@ def scientific_binding_inputs_complete(
     teacher_checkpoint: Path | None,
     teacher_provenance_manifest: Path | None,
     server_max_model_len: int | None,
+    serve_environment_root: Path | None,
 ) -> bool:
     supplied = [
         server_pid is not None,
         teacher_checkpoint is not None,
         teacher_provenance_manifest is not None,
         server_max_model_len is not None,
+        serve_environment_root is not None,
     ]
     if any(supplied) and not all(supplied):
         raise ValueError(
-            "--server-pid, --teacher-checkpoint, --teacher-provenance-manifest, and "
-            "--teacher-server-max-model-len "
+            "--server-pid, --teacher-checkpoint, --teacher-provenance-manifest, "
+            "--teacher-server-max-model-len, and --serve-environment-root "
             "must be supplied together"
         )
     return all(supplied)
@@ -304,6 +385,7 @@ def main() -> int:
     parser.add_argument("--teacher-checkpoint", type=Path)
     parser.add_argument("--teacher-provenance-manifest", type=Path)
     parser.add_argument("--teacher-server-max-model-len", type=int)
+    parser.add_argument("--serve-environment-root", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--local-files-only", action="store_true")
     args = parser.parse_args()
@@ -313,6 +395,7 @@ def main() -> int:
         args.teacher_checkpoint,
         args.teacher_provenance_manifest,
         args.teacher_server_max_model_len,
+        args.serve_environment_root,
     )
     if args.output.exists() or args.output.is_symlink():
         raise FileExistsError(f"refusing to overwrite scoring probe: {args.output}")
@@ -325,6 +408,7 @@ def main() -> int:
             server_url=args.server_url,
             server_model=args.server_model,
             server_max_model_len=args.teacher_server_max_model_len,
+            serve_environment_root=args.serve_environment_root,
         )
 
     from transformers import AutoTokenizer
@@ -359,6 +443,7 @@ def main() -> int:
             server_url=args.server_url,
             server_model=args.server_model,
             server_max_model_len=args.teacher_server_max_model_len,
+            serve_environment_root=args.serve_environment_root,
         )
     result = {
         "schema_version": 2,
@@ -374,8 +459,9 @@ def main() -> int:
         "local_process_binding": local_process_binding,
         "claim_boundary": (
             "When present, the binding proves same-host Linux /proc custody for the named "
-            "PID, command line, checkpoint, and provenance at probe time. It is not "
-            "cryptographic remote attestation."
+            "PID, exact loopback-bound command line, selected serve-environment launcher, "
+            "checkpoint, and provenance at probe time. It is not cryptographic remote "
+            "attestation."
         ),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)

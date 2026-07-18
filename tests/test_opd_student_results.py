@@ -21,6 +21,11 @@ def clean_result_builder(monkeypatch):
     monkeypatch.setattr(
         results, "git_state", lambda: {"commit": COMMIT, "dirty": False}
     )
+    monkeypatch.setattr(
+        results,
+        "reverify_recorded_environment",
+        lambda recorded, **kwargs: dict(recorded),
+    )
 
 
 def write_jsonl(path, rows):
@@ -55,6 +60,48 @@ def write_freeze(path, packages):
         "path": str(path.resolve()),
         "sha256": results.sha256_file(path),
         "required_packages": packages,
+    }
+
+
+def write_environment_verification(root, freeze, *, kind):
+    root = root.resolve()
+    bin_dir = root / "bin"
+    bin_dir.mkdir(parents=True)
+    python = bin_dir / "python"
+    python.write_bytes(b"python")
+    python.chmod(0o755)
+    requirements = root / "requirements.freeze.txt"
+    requirements.write_bytes(Path(freeze["path"]).read_bytes())
+    executable = None
+    if kind == "serve":
+        vllm = bin_dir / "vllm"
+        vllm.write_text(f"#!{python}\n")
+        vllm.chmod(0o755)
+        executable = {
+            "path": str(vllm),
+            "sha256": results.sha256_file(vllm),
+            "shebang": f"#!{python}",
+        }
+    return {
+        "schema_version": 1,
+        "schema": results.ENVIRONMENT_VERIFICATION_SCHEMA,
+        "status": "passed",
+        "environment_root": str(root),
+        "live_python": str(python),
+        "expected_commit": COMMIT,
+        "freeze_kind": kind,
+        "installed_distribution_count": len(freeze["required_packages"]),
+        "installed_distribution_map_sha256": "a" * 64,
+        "requirements_freeze": {
+            "path": str(requirements),
+            "sha256": results.sha256_file(requirements),
+        },
+        "commit_freeze": {
+            "path": freeze["path"],
+            "sha256": freeze["sha256"],
+            "byte_identical_to_requirements_freeze": True,
+        },
+        "expected_executable": executable,
     }
 
 
@@ -214,14 +261,24 @@ def student_run_fixture(tmp_path, prepared_path, prepared, train, train_rows, ad
     write_jsonl(samples_path, samples)
     state = {"commit": COMMIT, "dirty": False}
     train_freeze = write_freeze(
-        tmp_path / COMMIT / "train.freeze.txt", results.EXPECTED_TRAIN_PACKAGES
+        tmp_path / "environment_freezes" / COMMIT / "train.freeze.txt",
+        results.EXPECTED_TRAIN_PACKAGES,
+    )
+    train_verification = write_environment_verification(
+        tmp_path / "environments" / "train", train_freeze, kind="train"
     )
     environment = {
-        "schema_version": 1,
+        "schema_version": 2,
         "git_commit": COMMIT,
+        "verifier": {
+            "path": str(results.ENVIRONMENT_VERIFIER.resolve()),
+            "sha256": results.sha256_file(results.ENVIRONMENT_VERIFIER),
+        },
         "train_runtime_packages": results.EXPECTED_TRAIN_PACKAGES,
         "train_freeze": train_freeze,
+        "train_verification": train_verification,
         "serve_freeze": None,
+        "serve_verification": None,
     }
     adapter_hash = results.sha256_tree(adapter)
     completion = {
@@ -298,6 +355,7 @@ def student_run_fixture(tmp_path, prepared_path, prepared, train, train_rows, ad
         "local_checkpoint_custody_validated": False,
         "server_alias_and_token_contract_validated": False,
         "live_local_server_process_binding_validated": False,
+        "serve_environment_process_binding_validated": False,
         "server_binding_claim_boundary": "test",
         "environment_contract": environment,
         "student_training_plan": plan_binding(),
@@ -655,6 +713,31 @@ def synthetic_matrix_gate(key, rewards, *, support, teacher, root):
     records = {f"{source}:{i}": [float(value)] * 4 for i, value in enumerate(rewards)}
     run_path = root / key / "run_manifest.json"
     adapter_path = root / key / "adapter"
+    freeze_root = (root / "environment_freezes" / COMMIT).resolve()
+    environment = {
+        "verifier": {
+            "path": str(results.ENVIRONMENT_VERIFIER.resolve()),
+            "sha256": results.sha256_file(results.ENVIRONMENT_VERIFIER),
+        },
+        "train_freeze": {
+            "path": str(freeze_root / "train.freeze.txt"),
+            "sha256": "8" * 64,
+        },
+        "train_verification": {"identity": "shared-train-environment"},
+        "serve_freeze": (
+            {
+                "path": str(freeze_root / "serve.freeze.txt"),
+                "sha256": "9" * 64,
+            }
+            if teacher is not None
+            else None
+        ),
+        "serve_verification": (
+            {"identity": "shared-serve-environment"}
+            if teacher is not None
+            else None
+        ),
+    }
     return {
         "schema_version": 1,
         "gate": results.STUDENT_HELDOUT_GATE,
@@ -685,6 +768,7 @@ def synthetic_matrix_gate(key, rewards, *, support, teacher, root):
             "git_commit": COMMIT,
             "student_support": support,
             "teacher": teacher,
+            "environment": environment,
             "run_manifest": str(run_path),
             "student_adapter": str(adapter_path),
             "trace": {
@@ -768,6 +852,20 @@ def test_matrix_reports_four_baseline_deltas_and_stratified_interaction(tmp_path
     assert matrix["same_vs_cross"]["equal_stratum_mean"]["estimate"] == 0.75
     assert matrix["stratified_interaction"]["estimate"] == 1.5
     assert matrix["bootstrap"]["draws"] == 10_000
+    assert matrix["environment_freezes"] == {
+        "train": {
+            "path": str(
+                (tmp_path / "environment_freezes" / COMMIT / "train.freeze.txt").resolve()
+            ),
+            "sha256": "8" * 64,
+        },
+        "serve": {
+            "path": str(
+                (tmp_path / "environment_freezes" / COMMIT / "serve.freeze.txt").resolve()
+            ),
+            "sha256": "9" * 64,
+        },
+    }
     assert "OPD math six-run" in results.matrix_markdown(matrix)
 
 
@@ -796,6 +894,60 @@ def test_matrix_requires_matched_realized_training_sequence_within_source(
     paths["O_M"].write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
 
     with pytest.raises(ValueError, match="realized training sequence"):
+        results.matrix_readout(paths)
+
+
+@pytest.mark.parametrize(
+    ("key", "field", "replacement"),
+    (
+        ("baseline_O", "sha256", "0" * 64),
+        ("M_O", "path", "/different/train.freeze.txt"),
+    ),
+)
+def test_matrix_requires_one_exact_train_freeze_across_all_six_arms(
+    tmp_path, monkeypatch, key, field, replacement
+):
+    monkeypatch.setattr(results, "recompute_student_heldout_result", lambda gate: dict(gate))
+    paths = write_synthetic_matrix(tmp_path)
+    payload = json.loads(paths[key].read_text())
+    payload["student_run_binding"]["environment"]["train_freeze"][field] = replacement
+    paths[key].write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
+    with pytest.raises(ValueError, match="train_freeze mismatch"):
+        results.matrix_readout(paths)
+
+
+@pytest.mark.parametrize(
+    ("key", "replacement", "message"),
+    (
+        (
+            "baseline_M",
+            {"path": "/unexpected/serve.freeze.txt", "sha256": "9" * 64},
+            "serve_freeze mismatch",
+        ),
+        ("M_M", None, "lacks a validated teacher serve environment freeze"),
+        (
+            "M_O",
+            {"path": "/different/serve.freeze.txt", "sha256": "9" * 64},
+            "serve_freeze mismatch",
+        ),
+        (
+            "O_O",
+            {"path": "/shared/serve.freeze.txt", "sha256": "0" * 64},
+            "serve_freeze mismatch",
+        ),
+    ),
+)
+def test_matrix_requires_null_baseline_and_one_exact_main_serve_freeze(
+    tmp_path, monkeypatch, key, replacement, message
+):
+    monkeypatch.setattr(results, "recompute_student_heldout_result", lambda gate: dict(gate))
+    paths = write_synthetic_matrix(tmp_path)
+    payload = json.loads(paths[key].read_text())
+    payload["student_run_binding"]["environment"]["serve_freeze"] = replacement
+    paths[key].write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
+    with pytest.raises(ValueError, match=message):
         results.matrix_readout(paths)
 
 

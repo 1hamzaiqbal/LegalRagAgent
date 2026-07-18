@@ -9,7 +9,7 @@
 
 set -euo pipefail
 : "${OPD_MATH_DATA_ROOT:?Set the exact reviewed canonical data root}"
-: "${OPD_MATH_GATE_KIND:?Set teacher_gap or student_support}"
+: "${OPD_MATH_GATE_KIND:?Set teacher_gap, teacher_target_report, or student_support}"
 : "${OPD_MATH_GATE_SOURCE:?Set M or O}"
 : "${OPD_MATH_GATE_OUTPUT:?Set a new persistent output JSON path}"
 case "$OPD_MATH_GATE_SOURCE" in M|O) ;; *) echo "invalid OPD_MATH_GATE_SOURCE" >&2; exit 2 ;; esac
@@ -58,6 +58,41 @@ if [[ "$OPD_MATH_GATE_KIND" == teacher_gap ]]; then
     --seed "${OPD_MATH_SEED:-0}" \
     --output "$OPD_MATH_GATE_OUTPUT" \
     "${SMOKE_ARGS[@]}"
+elif [[ "$OPD_MATH_GATE_KIND" == teacher_target_report ]]; then
+  test "$STRENGTH" = scientific || {
+    echo "teacher_target_report has no smoke mode" >&2
+    exit 2
+  }
+  : "${OPD_MATH_GATE_TEACHER_SOURCE:?Set the trained teacher source M or O}"
+  case "$OPD_MATH_GATE_TEACHER_SOURCE" in M|O) ;; *) echo "invalid OPD_MATH_GATE_TEACHER_SOURCE" >&2; exit 2 ;; esac
+  test "$OPD_MATH_GATE_TEACHER_SOURCE" != "$OPD_MATH_GATE_SOURCE" || {
+    echo "teacher_target_report requires distinct teacher and target sources" >&2
+    exit 2
+  }
+  : "${OPD_MATH_GATE_BASE_SUMMARY:?Set target base summary.json}"
+  : "${OPD_MATH_GATE_BASE_SAMPLES:?Set target base samples.jsonl}"
+  : "${OPD_MATH_GATE_TRAINED_SUMMARY:?Set target trained summary.json}"
+  : "${OPD_MATH_GATE_TRAINED_SAMPLES:?Set target trained samples.jsonl}"
+  : "${OPD_MATH_GATE_BASE_MODEL:?Set the pinned teacher base model}"
+  : "${OPD_MATH_GATE_BASE_REVISION:?Set the pinned teacher base revision}"
+  : "${OPD_MATH_GATE_TRAINED_ADAPTER:?Set the evaluated teacher adapter}"
+  : "${OPD_MATH_GATE_TEACHER_RUN_MANIFEST:?Set the completed teacher run_manifest.json}"
+  "$ENV_DIR/bin/python" "$REPO/scripts/opd_math/quality_gates.py" teacher-target-report \
+    --base-summary "$OPD_MATH_GATE_BASE_SUMMARY" \
+    --base-samples "$OPD_MATH_GATE_BASE_SAMPLES" \
+    --trained-summary "$OPD_MATH_GATE_TRAINED_SUMMARY" \
+    --trained-samples "$OPD_MATH_GATE_TRAINED_SAMPLES" \
+    --base-model "$OPD_MATH_GATE_BASE_MODEL" \
+    --base-revision "$OPD_MATH_GATE_BASE_REVISION" \
+    --trained-adapter "$OPD_MATH_GATE_TRAINED_ADAPTER" \
+    --prepared-manifest "$PREPARED_MANIFEST" \
+    --teacher-run-manifest "$OPD_MATH_GATE_TEACHER_RUN_MANIFEST" \
+    --teacher-source "$OPD_MATH_GATE_TEACHER_SOURCE" \
+    --target-source "$OPD_MATH_GATE_SOURCE" \
+    --task-role teacher_gap_dev \
+    --bootstrap-draws "${OPD_MATH_GATE_BOOTSTRAP_DRAWS:-10000}" \
+    --seed "${OPD_MATH_SEED:-0}" \
+    --output "$OPD_MATH_GATE_OUTPUT"
 elif [[ "$OPD_MATH_GATE_KIND" == student_support ]]; then
   : "${OPD_MATH_GATE_STUDENT_SUMMARY:?Set raw-student summary.json}"
   : "${OPD_MATH_GATE_STUDENT_SAMPLES:?Set raw-student samples.jsonl}"
@@ -79,4 +114,8 @@ else
   echo "invalid OPD_MATH_GATE_KIND" >&2
   exit 2
 fi
-echo "PASS gate computation completed; inspect passed/strength before use: $OPD_MATH_GATE_OUTPUT"
+if [[ "$OPD_MATH_GATE_KIND" == teacher_target_report ]]; then
+  echo "PASS non-authorizing teacher-target report completed: $OPD_MATH_GATE_OUTPUT"
+else
+  echo "PASS gate computation completed; inspect passed/strength before use: $OPD_MATH_GATE_OUTPUT"
+fi

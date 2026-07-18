@@ -36,6 +36,11 @@ try:
         sha256_file,
         sha256_tree,
     )
+    from .verify_environment import (
+        SCHEMA as ENVIRONMENT_VERIFICATION_SCHEMA,
+        reverify_recorded_environment,
+    )
+    from .server_scoring_probe import expected_serve_environment_launcher
 except ImportError:
     from data_contract import iter_jsonl  # type: ignore
     from math_reward import verify_completion  # type: ignore
@@ -50,12 +55,20 @@ except ImportError:
         sha256_file,
         sha256_tree,
     )
+    from verify_environment import (  # type: ignore
+        SCHEMA as ENVIRONMENT_VERIFICATION_SCHEMA,
+        reverify_recorded_environment,
+    )
+    from server_scoring_probe import (  # type: ignore
+        expected_serve_environment_launcher,
+    )
 
 
 ROOT = Path(__file__).resolve().parents[2]
 CANONICAL_STUDENT_TRAINING_PLAN = (
     ROOT / "configs" / "opd_math" / "student_training_plan.json"
 )
+ENVIRONMENT_VERIFIER = ROOT / "scripts" / "opd_math" / "verify_environment.py"
 SCHEMA_VERSION = 1
 STUDENT_HELDOUT_GATE = "student_heldout_result_v1"
 MATRIX_READOUT = "opd_math_six_run_matrix_v1"
@@ -253,7 +266,11 @@ def _validate_freeze(
     if not isinstance(binding, dict):
         raise ValueError(f"{label} lacks an environment-freeze binding")
     path = _absolute(binding.get("path"), CANONICAL_STUDENT_TRAINING_PLAN, label)
-    if path.name != filename or path.parent.name != commit:
+    if (
+        path.name != filename
+        or path.parent.name != commit
+        or path.parent.parent.name != "environment_freezes"
+    ):
         raise ValueError(f"{label} is not the commit-specific {filename}")
     digest = _file_binding(path, binding.get("sha256"), label)
     _expect(binding, "required_packages", dict(expected_packages), label)
@@ -268,13 +285,110 @@ def _validate_freeze(
     return {"path": str(path), "sha256": digest}
 
 
+def _validate_environment_verification(
+    recorded: Any,
+    *,
+    freeze: Mapping[str, Any],
+    commit: str,
+    kind: str,
+) -> dict[str, Any]:
+    if not isinstance(recorded, dict):
+        raise ValueError(f"student {kind} environment lacks exact live verification")
+    _expect(recorded, "schema_version", 1, f"student {kind} verification")
+    _expect(
+        recorded,
+        "schema",
+        ENVIRONMENT_VERIFICATION_SCHEMA,
+        f"student {kind} verification",
+    )
+    _expect(recorded, "status", "passed", f"student {kind} verification")
+    _expect(recorded, "expected_commit", commit, f"student {kind} verification")
+    _expect(recorded, "freeze_kind", kind, f"student {kind} verification")
+    root = _absolute(
+        recorded.get("environment_root"),
+        CANONICAL_STUDENT_TRAINING_PLAN,
+        f"student {kind} environment root",
+    )
+    _expect(
+        recorded,
+        "live_python",
+        str(root / "bin" / "python"),
+        f"student {kind} verification",
+    )
+    distribution_count = recorded.get("installed_distribution_count")
+    if not isinstance(distribution_count, int) or distribution_count <= 0:
+        raise ValueError(f"student {kind} verification lacks a full distribution count")
+    _hash_identity(
+        recorded.get("installed_distribution_map_sha256"),
+        f"student {kind} installed distribution map",
+    )
+
+    commit_freeze = recorded.get("commit_freeze")
+    expected_commit_freeze = {
+        "path": freeze["path"],
+        "sha256": freeze["sha256"],
+        "byte_identical_to_requirements_freeze": True,
+    }
+    if commit_freeze != expected_commit_freeze:
+        raise ValueError(f"student {kind} verification commit-freeze identity drifted")
+    requirements = recorded.get("requirements_freeze")
+    if not isinstance(requirements, dict):
+        raise ValueError(f"student {kind} verification lacks requirements.freeze.txt")
+    requirements_path = root / "requirements.freeze.txt"
+    _expect(
+        requirements,
+        "path",
+        str(requirements_path),
+        f"student {kind} requirements freeze",
+    )
+    requirements_hash = _file_binding(
+        requirements_path,
+        requirements.get("sha256"),
+        f"student {kind} requirements freeze",
+    )
+    if requirements_hash != freeze["sha256"]:
+        raise ValueError(
+            f"student {kind} requirements freeze differs from the commit freeze"
+        )
+
+    executable = recorded.get("expected_executable")
+    if kind == "train":
+        if executable is not None:
+            raise ValueError("student train verification unexpectedly binds vLLM")
+    else:
+        if not isinstance(executable, dict):
+            raise ValueError("student serve verification lacks bin/vllm custody")
+        vllm = root / "bin" / "vllm"
+        _expect(executable, "path", str(vllm), "student serve executable")
+        _file_binding(vllm, executable.get("sha256"), "student serve executable")
+        _expect(
+            executable,
+            "shebang",
+            f"#!{root}/bin/python",
+            "student serve executable",
+        )
+
+    try:
+        current = reverify_recorded_environment(recorded, in_process=kind == "train")
+    except (OSError, TypeError, ValueError) as exc:
+        raise ValueError(f"student {kind} live environment no longer verifies") from exc
+    if current != recorded:
+        raise ValueError(f"student {kind} live environment identity changed")
+    return dict(recorded)
+
+
 def _validate_environment(
     environment: Any, *, commit: str, requires_teacher: bool
 ) -> dict[str, Any]:
     if not isinstance(environment, dict):
         raise ValueError("student run lacks its scientific environment contract")
-    _expect(environment, "schema_version", 1, "student environment")
+    _expect(environment, "schema_version", 2, "student environment")
     _expect(environment, "git_commit", commit, "student environment")
+    verifier = {
+        "path": str(ENVIRONMENT_VERIFIER.resolve()),
+        "sha256": sha256_file(ENVIRONMENT_VERIFIER),
+    }
+    _expect(environment, "verifier", verifier, "student environment")
     _expect(
         environment,
         "train_runtime_packages",
@@ -288,6 +402,12 @@ def _validate_environment(
         expected_packages=EXPECTED_TRAIN_PACKAGES,
         label="student train freeze",
     )
+    train_verification = _validate_environment_verification(
+        environment.get("train_verification"),
+        freeze=train,
+        commit=commit,
+        kind="train",
+    )
     serve_binding = environment.get("serve_freeze")
     if requires_teacher:
         serve = _validate_freeze(
@@ -297,11 +417,26 @@ def _validate_environment(
             expected_packages=EXPECTED_SERVE_PACKAGES,
             label="student serve freeze",
         )
+        serve_verification = _validate_environment_verification(
+            environment.get("serve_verification"),
+            freeze=serve,
+            commit=commit,
+            kind="serve",
+        )
     else:
-        if serve_binding is not None:
-            raise ValueError("task-RL baseline unexpectedly carries a teacher serve freeze")
+        if serve_binding is not None or environment.get("serve_verification") is not None:
+            raise ValueError(
+                "task-RL baseline unexpectedly carries a teacher serve environment"
+            )
         serve = None
-    return {"train_freeze": train, "serve_freeze": serve}
+        serve_verification = None
+    return {
+        "verifier": verifier,
+        "train_freeze": train,
+        "train_verification": train_verification,
+        "serve_freeze": serve,
+        "serve_verification": serve_verification,
+    }
 
 
 def _gate_without_file_hash(gate: Mapping[str, Any]) -> dict[str, Any]:
@@ -1028,6 +1163,12 @@ def _validate_student_run(
             False,
             "task-RL completion",
         )
+        _expect(
+            binding,
+            "serve_environment_process_binding_validated",
+            False,
+            "task-RL binding",
+        )
         teacher_identity = None
     else:
         _expect(
@@ -1055,6 +1196,12 @@ def _validate_student_run(
             "main-arm binding",
         )
         _expect(
+            binding,
+            "serve_environment_process_binding_validated",
+            True,
+            "main-arm binding",
+        )
+        _expect(
             completion,
             "local_server_process_binding_error",
             None,
@@ -1065,6 +1212,18 @@ def _validate_student_run(
             server_contract.get("local_process_binding"), dict
         ):
             raise ValueError("main-arm run lacks its initial local process binding")
+        serve_verification = environment_identity.get("serve_verification")
+        if not isinstance(serve_verification, dict):
+            raise ValueError("main-arm run lacks exact serve-environment verification")
+        expected_launcher = expected_serve_environment_launcher(
+            Path(serve_verification["environment_root"])
+        )
+        _expect(
+            server_contract["local_process_binding"],
+            "serve_environment_launcher",
+            expected_launcher,
+            "main-arm server/serve-environment binding",
+        )
         _expect(
             completion,
             "local_server_process_binding_end",
@@ -1429,6 +1588,78 @@ def matrix_readout(
                 f"held-out gate {key} evaluation",
             )
 
+    reference_environment = reference["student_run_binding"].get("environment")
+    if not isinstance(reference_environment, dict):
+        raise ValueError("baseline_M lacks validated environment custody")
+    reference_verifier = reference_environment.get("verifier")
+    if not isinstance(reference_verifier, dict):
+        raise ValueError("baseline_M lacks environment-verifier code custody")
+    reference_train_freeze = reference_environment.get("train_freeze")
+    if not isinstance(reference_train_freeze, dict):
+        raise ValueError("baseline_M lacks a validated train environment freeze")
+    reference_train_verification = reference_environment.get("train_verification")
+    if not isinstance(reference_train_verification, dict):
+        raise ValueError("baseline_M lacks exact live train environment verification")
+    for key, gate in gates.items():
+        environment = gate["student_run_binding"].get("environment")
+        if not isinstance(environment, dict):
+            raise ValueError(f"held-out gate {key} lacks validated environment custody")
+        _expect(
+            environment,
+            "verifier",
+            reference_verifier,
+            f"held-out gate {key} environment",
+        )
+        _expect(
+            environment,
+            "train_freeze",
+            reference_train_freeze,
+            f"held-out gate {key} environment",
+        )
+        _expect(
+            environment,
+            "train_verification",
+            reference_train_verification,
+            f"held-out gate {key} environment",
+        )
+
+    for key in ("baseline_M", "baseline_O"):
+        _expect(
+            gates[key]["student_run_binding"]["environment"],
+            "serve_freeze",
+            None,
+            f"held-out gate {key} baseline environment",
+        )
+        _expect(
+            gates[key]["student_run_binding"]["environment"],
+            "serve_verification",
+            None,
+            f"held-out gate {key} baseline environment",
+        )
+    reference_serve_freeze = gates["M_M"]["student_run_binding"]["environment"].get(
+        "serve_freeze"
+    )
+    if not isinstance(reference_serve_freeze, dict):
+        raise ValueError("M_M lacks a validated teacher serve environment freeze")
+    reference_serve_verification = gates["M_M"]["student_run_binding"][
+        "environment"
+    ].get("serve_verification")
+    if not isinstance(reference_serve_verification, dict):
+        raise ValueError("M_M lacks exact live teacher serve environment verification")
+    for key in ("M_M", "M_O", "O_M", "O_O"):
+        _expect(
+            gates[key]["student_run_binding"]["environment"],
+            "serve_freeze",
+            reference_serve_freeze,
+            f"held-out gate {key} environment",
+        )
+        _expect(
+            gates[key]["student_run_binding"]["environment"],
+            "serve_verification",
+            reference_serve_verification,
+            f"held-out gate {key} environment",
+        )
+
     for source, keys in (("M", ("baseline_M", "M_M", "O_M")), ("O", ("baseline_O", "M_O", "O_O"))):
         expected_ids = sorted(gates[keys[0]]["record_rewards"])
         expected_task_hash = gates[keys[0]]["evaluation_binding"]["task_file_sha256"]
@@ -1587,6 +1818,10 @@ def matrix_readout(
         "baseline_deltas": baseline_deltas,
         "same_vs_cross": same_vs_cross,
         "stratified_interaction": stratified_interaction,
+        "environment_freezes": {
+            "train": reference_train_freeze,
+            "serve": reference_serve_freeze,
+        },
         "result_builder": result_builder,
         "bootstrap": {
             "unit": "paired record within held-out source stratum",

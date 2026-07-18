@@ -64,7 +64,13 @@ from scripts.opd_math.quality_gates import (
 )
 from scripts.opd_math.server_scoring_probe import (
     LOCAL_BINDING_SCOPE,
+    expected_serve_environment_launcher,
     revalidate_local_process_binding,
+)
+from scripts.opd_math.verify_environment import (
+    reverify_recorded_environment,
+    run_external_environment_verification,
+    verify_environment as verify_live_environment,
 )
 
 
@@ -78,6 +84,7 @@ MERGER_FILE = ROOT / "scripts" / "opd_math" / "merge_adapter.py"
 CANONICAL_STUDENT_TRAINING_PLAN = (
     ROOT / "configs" / "opd_math" / "student_training_plan.json"
 )
+ENVIRONMENT_VERIFIER = ROOT / "scripts" / "opd_math" / "verify_environment.py"
 EXPECTED_TRAIN_PACKAGES = {
     "torch": "2.11.0",
     "transformers": "4.57.6",
@@ -695,7 +702,7 @@ def _freeze_package_versions(path: Path) -> dict[str, str]:
 
 
 def validate_environment_contract(args, *, require_serve: bool) -> dict:
-    """Bind a scientific run to commit-specific immutable environment freezes."""
+    """Bind exact live train/serve environments to immutable commit freezes."""
 
     state = git_state()
     commit = state.get("commit")
@@ -711,7 +718,11 @@ def validate_environment_contract(args, *, require_serve: bool) -> dict:
         if path.is_symlink() or not path.is_file():
             raise ValueError(f"environment freeze must be a regular non-symlink file: {path}")
         path = path.resolve()
-        if path.name != filename or path.parent.name != commit:
+        if (
+            path.name != filename
+            or path.parent.name != commit
+            or path.parent.parent.name != "environment_freezes"
+        ):
             raise ValueError(
                 f"environment freeze must be the commit-specific {filename} under a {commit} directory"
             )
@@ -729,49 +740,180 @@ def validate_environment_contract(args, *, require_serve: bool) -> dict:
             "required_packages": expected,
         }
 
+    def checked_live_environment(
+        raw_root: str | None, flag: str, kind: str, freeze: dict
+    ) -> dict:
+        if not raw_root:
+            raise ValueError(f"scientific runs require {flag}")
+        root = Path(raw_root).resolve(strict=True)
+        expected_executable = root / "bin" / "vllm" if kind == "serve" else None
+        verify = (
+            verify_live_environment
+            if kind == "train"
+            else run_external_environment_verification
+        )
+        verification = verify(
+            environment_root=root,
+            commit_freeze=freeze["path"],
+            expected_commit=commit,
+            freeze_kind=kind,
+            expected_executable=expected_executable,
+        )
+        if verification.get("commit_freeze") != {
+            "path": freeze["path"],
+            "sha256": freeze["sha256"],
+            "byte_identical_to_requirements_freeze": True,
+        }:
+            raise ValueError(f"{kind} verification does not bind the selected commit freeze")
+        return verification
+
     runtime_packages = installed_package_versions(EXPECTED_TRAIN_PACKAGES)
     if runtime_packages != EXPECTED_TRAIN_PACKAGES:
         raise ValueError(
             "live training packages differ from the pinned environment: "
             f"expected={EXPECTED_TRAIN_PACKAGES}, actual={runtime_packages}"
         )
+    train_freeze = checked_freeze(
+        args.train_environment_freeze,
+        "--train-environment-freeze",
+        "train.freeze.txt",
+        EXPECTED_TRAIN_PACKAGES,
+    )
+    train_verification = checked_live_environment(
+        getattr(args, "train_environment_root", None),
+        "--train-environment-root",
+        "train",
+        train_freeze,
+    )
     contract = {
-        "schema_version": 1,
+        "schema_version": 2,
         "git_commit": commit,
+        "verifier": {
+            "path": str(ENVIRONMENT_VERIFIER.resolve()),
+            "sha256": sha256_file(ENVIRONMENT_VERIFIER),
+        },
         "train_runtime_packages": runtime_packages,
-        "train_freeze": checked_freeze(
-            args.train_environment_freeze,
-            "--train-environment-freeze",
-            "train.freeze.txt",
-            EXPECTED_TRAIN_PACKAGES,
-        ),
+        "train_freeze": train_freeze,
+        "train_verification": train_verification,
         "serve_freeze": None,
+        "serve_verification": None,
     }
     if require_serve:
-        contract["serve_freeze"] = checked_freeze(
+        serve_freeze = checked_freeze(
             args.serve_environment_freeze,
             "--serve-environment-freeze",
             "serve.freeze.txt",
             EXPECTED_SERVE_PACKAGES,
         )
+        contract["serve_freeze"] = serve_freeze
+        contract["serve_verification"] = checked_live_environment(
+            getattr(args, "serve_environment_root", None),
+            "--serve-environment-root",
+            "serve",
+            serve_freeze,
+        )
+    elif getattr(args, "serve_environment_root", None) or args.serve_environment_freeze:
+        raise ValueError("task-RL baseline must not bind a teacher serve environment")
     return contract
 
 
 def environment_contract_unchanged(contract: dict | None) -> bool:
     if not contract:
         return True
-    for key in ("train_freeze", "serve_freeze"):
-        binding = contract.get(key)
-        if binding is None:
-            continue
-        path = Path(binding["path"])
-        if path.is_symlink() or not path.is_file() or sha256_file(path) != binding["sha256"]:
-            return False
-    try:
-        runtime = installed_package_versions(EXPECTED_TRAIN_PACKAGES)
-    except ValueError:
+    if not isinstance(contract, dict):
         return False
-    return runtime == contract.get("train_runtime_packages") == EXPECTED_TRAIN_PACKAGES
+    try:
+        if contract.get("schema_version") != 2:
+            return False
+        verifier = contract.get("verifier")
+        if verifier != {
+            "path": str(ENVIRONMENT_VERIFIER.resolve()),
+            "sha256": sha256_file(ENVIRONMENT_VERIFIER),
+        }:
+            return False
+        for key in ("train_freeze", "serve_freeze"):
+            binding = contract.get(key)
+            if binding is None:
+                continue
+            path = Path(binding["path"])
+            if (
+                path.is_symlink()
+                or not path.is_file()
+                or sha256_file(path) != binding["sha256"]
+            ):
+                return False
+        runtime = installed_package_versions(EXPECTED_TRAIN_PACKAGES)
+        if runtime != contract.get("train_runtime_packages") or runtime != EXPECTED_TRAIN_PACKAGES:
+            return False
+        for kind in ("train", "serve"):
+            freeze = contract.get(f"{kind}_freeze")
+            recorded = contract.get(f"{kind}_verification")
+            if freeze is None:
+                if recorded is not None or kind == "train":
+                    return False
+                continue
+            if not isinstance(recorded, dict):
+                return False
+            reverify_recorded_environment(recorded, in_process=kind == "train")
+            commit_binding = recorded.get("commit_freeze")
+            if not isinstance(commit_binding, dict):
+                return False
+            if (
+                commit_binding.get("path") != freeze.get("path")
+                or commit_binding.get("sha256") != freeze.get("sha256")
+                or commit_binding.get("byte_identical_to_requirements_freeze") is not True
+                or recorded.get("expected_commit") != contract.get("git_commit")
+                or recorded.get("freeze_kind") != kind
+            ):
+                return False
+    except (OSError, TypeError, ValueError):
+        return False
+    return True
+
+
+def final_promotion_custody_failure_status(
+    *,
+    stable_final_artifact: bool,
+    intended_scientific_run: bool,
+    clean_stable_code: bool,
+    stable_environment_end: bool,
+) -> str | None:
+    if not stable_final_artifact:
+        return "failed_final_artifact_hash_custody"
+    if intended_scientific_run and not clean_stable_code:
+        return "failed_code_custody_after_promotion"
+    if intended_scientific_run and not stable_environment_end:
+        return "failed_environment_custody_after_promotion"
+    return None
+
+
+def validate_server_environment_process_binding(
+    local_binding: dict, environment_contract: dict
+) -> dict:
+    verification = environment_contract.get("serve_verification")
+    if not isinstance(verification, dict):
+        raise ValueError("scientific main arm lacks exact serve-environment verification")
+    executable = verification.get("expected_executable")
+    if not isinstance(executable, dict):
+        raise ValueError("serve-environment verification lacks bin/vllm custody")
+    expected = expected_serve_environment_launcher(
+        Path(verification["environment_root"])
+    )
+    if (
+        verification.get("live_python") != expected["python"]
+        or executable.get("path") != expected["vllm"]
+    ):
+        raise ValueError("serve-environment verification and launcher identity disagree")
+    if local_binding.get("serve_environment_launcher") != expected:
+        raise ValueError(
+            "live local vLLM PID was not launched by the verified serve environment"
+        )
+    if local_binding.get("executable") != expected["resolved_python_executable"]:
+        raise ValueError(
+            "live local vLLM PID executable was not the resolved verified serve "
+            "environment interpreter"
+        )
+    return expected
 
 
 def git_worktree_is_clean() -> bool:
@@ -1092,6 +1234,7 @@ def _validate_server_scoring_contract(path: str | None, *, args) -> dict:
             server_url=args.teacher_url,
             server_model=args.teacher_model,
             server_max_model_len=args.teacher_server_max_model_len,
+            serve_environment_root=Path(args.serve_environment_root),
         )
     probe["manifest_sha256"] = sha256_file(probe_path)
     return probe
@@ -1264,6 +1407,7 @@ def validate_run_contract(
         "local_checkpoint_custody_validated": False,
         "server_alias_and_token_contract_validated": False,
         "live_local_server_process_binding_validated": False,
+        "serve_environment_process_binding_validated": False,
         "server_binding_claim_boundary": (
             "Local Linux process custody is not cryptographic remote attestation."
         ),
@@ -1410,9 +1554,13 @@ def validate_run_contract(
                     teacher_provenance["manifest_sha256"],
                     "server scoring local process binding",
                 )
+                validate_server_environment_process_binding(
+                    local_binding, binding["environment_contract"]
+                )
                 binding["local_checkpoint_custody_validated"] = True
                 binding["server_alias_and_token_contract_validated"] = True
                 binding["live_local_server_process_binding_validated"] = True
+                binding["serve_environment_process_binding_validated"] = True
         prepared_manifest = {
             "path": str(Path(args.prepared_manifest).resolve()),
             "sha256": sha256_file(args.prepared_manifest),
@@ -2000,6 +2148,10 @@ def run(args) -> None:
                 server_url=args.teacher_url,
                 server_model=args.teacher_model,
                 server_max_model_len=args.teacher_server_max_model_len,
+                serve_environment_root=Path(args.serve_environment_root),
+            )
+            validate_server_environment_process_binding(
+                server_process_binding_end, binding["environment_contract"]
             )
         except (OSError, ValueError, RuntimeError) as exc:
             server_process_binding_validated = False
@@ -2169,20 +2321,18 @@ def run(args) -> None:
     completion["stable_environment_end"] = stable_environment_end
     stable_final_artifact = final_hash == candidate_hash
     completion["stable_final_artifact_hash"] = stable_final_artifact
-    if not stable_final_artifact or (
-        intended_scientific_run and (not clean_stable_code or not stable_environment_end)
-    ):
+    final_custody_failure = final_promotion_custody_failure_status(
+        stable_final_artifact=stable_final_artifact,
+        intended_scientific_run=intended_scientific_run,
+        clean_stable_code=clean_stable_code,
+        stable_environment_end=stable_environment_end,
+    )
+    if final_custody_failure is not None:
         rejected_adapter = (Path(args.out_dir) / "rejected_final_custody").resolve()
         final_adapter.rename(rejected_adapter)
-        completion["status"] = (
-            "failed_final_artifact_hash_custody"
-            if not stable_final_artifact
-            else (
-                "failed_code_custody_after_promotion"
-                if not clean_stable_code
-                else "failed_environment_custody_after_promotion"
-            )
-        )
+        completion["status"] = final_custody_failure
+        completion["training_artifact_eligible_for_held_out_evaluation"] = False
+        completion["scientific_use_allowed"] = False
         completion["rejected_adapter"] = str(rejected_adapter)
         write_completion_manifests(trace_dir, run_manifest, completion)
         raise RuntimeError(
@@ -2285,7 +2435,9 @@ def parse_args():
     ap.add_argument("--student-support-manifest")
     ap.add_argument("--tokenizer-contract")
     ap.add_argument("--prepared-manifest")
+    ap.add_argument("--train-environment-root")
     ap.add_argument("--train-environment-freeze")
+    ap.add_argument("--serve-environment-root")
     ap.add_argument("--serve-environment-freeze")
     ap.add_argument(
         "--allow-ungated-smoke",

@@ -5,10 +5,13 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 EVALUATE = ROOT / "scripts" / "hpc" / "slurm_opd_math_evaluate.sh"
 MERGE = ROOT / "scripts" / "hpc" / "slurm_opd_math_merge_evaluation.sh"
+QUALITY_GATE = ROOT / "scripts" / "hpc" / "slurm_opd_math_quality_gate.sh"
 
 
 def test_evaluation_wrappers_have_valid_bash_syntax():
-    subprocess.run(["bash", "-n", str(EVALUATE), str(MERGE)], check=True)
+    subprocess.run(
+        ["bash", "-n", str(EVALUATE), str(MERGE), str(QUALITY_GATE)], check=True
+    )
 
 
 def test_array_wrapper_keeps_global_budget_and_stable_shard_identity():
@@ -51,8 +54,24 @@ def test_scientific_wrappers_require_an_explicit_canonical_data_root():
 
 
 def test_quality_gate_has_headroom_for_full_o_reward_recomputation():
-    script = (ROOT / "scripts" / "hpc" / "slurm_opd_math_quality_gate.sh").read_text()
+    script = QUALITY_GATE.read_text()
     assert "#SBATCH --time=04:00:00" in script
+
+
+def test_quality_wrapper_exposes_only_non_authorizing_cross_source_report():
+    script = QUALITY_GATE.read_text()
+    assert '[[ "$OPD_MATH_GATE_KIND" == teacher_target_report ]]' in script
+    assert "quality_gates.py\" teacher-target-report" in script
+    assert '--teacher-source "$OPD_MATH_GATE_TEACHER_SOURCE"' in script
+    assert '--target-source "$OPD_MATH_GATE_SOURCE"' in script
+    assert "teacher_target_report has no smoke mode" in script
+    assert "teacher_target_report requires distinct teacher and target sources" in script
+    assert "PASS non-authorizing teacher-target report completed" in script
+    # Preserve the established gate handoff string for teacher/support jobs.
+    assert (
+        "PASS gate computation completed; inspect passed/strength before use"
+        in script
+    )
 
 
 def test_student_checkpointing_is_explicit_not_ambient():

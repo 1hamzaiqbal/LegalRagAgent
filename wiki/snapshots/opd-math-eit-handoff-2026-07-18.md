@@ -4,7 +4,7 @@ type: snapshot
 tags: [opd, math, eit, source-transfer, plumbing, custody]
 created: 2026-07-18
 updated: 2026-07-18
-status: bounded plumbing validated; science gated
+status: canonical data and raw-student support passed; teacher science pending
 ---
 
 # OPD math EIT plumbing handoff - 2026-07-18
@@ -275,9 +275,55 @@ The evaluator now supports immutable contiguous Slurm arrays.
 Every record receives a task-hash/index/ID-derived seed; GPU tasks write fresh
 transactional schema-v2 shards; a CPU merger proves complete disjoint coverage,
 recomputes rewards, and emits one canonical artifact; the quality gate
-independently reconstructs it from the bound shards. The planned full support
-run uses 34 balanced shards per source with four-way concurrency. This
-continuation still creates no teacher, OPD, or held-out performance claim.
+independently reconstructs it from the bound shards. At that checkpoint, the
+full support run was predeclared as 34 balanced shards per source with four-way
+concurrency. No teacher, OPD, or held-out performance claim had been created.
+
+## Complete raw-student support gate
+
+The planned support campaign subsequently completed from clean execution commit
+`f283c9c22251bb5dc9693754dfd8282afb07b61e`. For each source, 34 balanced
+GPU shards covered the exact registered 2,161-row `student_opd` surface once,
+with four non-thinking samples per problem under temperature 1, top-p 1,
+top-k 0, a 512-token completion cap, and seed 0. The array roots were jobs
+`106974` (M) and `106977` (O); CPU merges were `106978` and `106979`; and
+scientific gates were `106983` and `106984`. Every task, merge, and gate
+completed with exit code `0:0`.
+
+| Source | Records | Samples | Sample accuracy | pass@4 | Mixed-reward groups | Gate SHA-256 |
+|---|---:|---:|---:|---:|---:|---|
+| M | 2,161 | 8,644 | 0.5243 | 0.6201 | 0.1981 | `352c7763545376d883d2c1758126977b4045cf2ce373446b72b7520e14342c44` |
+| O | 2,161 | 8,644 | 0.1041 | 0.1772 | 0.1273 | `1b7628759f8d9e2e45fa595870455e9268f312d0fb772f4964a2efca26997eee` |
+
+Both schema-v3 gates set `passed=true` and
+`authorizes_scientific_training=true`. This establishes the preregistered
+raw-student support needed to attempt task-reward training on both sources. It
+does not show that training improves the student, that either teacher is
+useful, or that OPD beats the matched task-RL baseline.
+
+The M gate was independently reproduced byte for byte on the login lane and is
+retained as diagnostic evidence. An initial O
+recomputation on the login lane hit a transient `gold_parse_failed` on the
+valid registered gold `\\boxed{x^2=80}`; that failed diagnostic is preserved
+rather than erased. Two independent allocated-CPU jobs, `107137` and `107138`,
+then reproduced the canonical O gate byte for byte. The immutable audit lives
+at
+`artifacts/legalrag/opd_math/audits/student_support_recompute_f283c9c_verified_v2/`;
+its manifest SHA-256 is
+`4c2488587bdfa0866fc181c7e992dc6d1ef037d21ff6778cd13b73ddbf54ea04`.
+Its operational conclusion is that future scientific gate recomputations must
+run on allocated Slurm CPU nodes rather than the login node.
+
+The predecessor bundle ending in `_verified/` is also preserved. Its data
+files and hashes are correct, but three manifest artifact fields retained the
+transactional `.partial.1625416` path after promotion. The v2 manifest names
+that predecessor and corrects only those paths plus the login-versus-allocated
+lane wording; no gate file or numeric result changed.
+
+This closes only the data and raw-student-support prerequisites. The next
+scientific work remains the exact 100-step M and O teacher recipes, each
+teacher's own-source held-out gap gate, and then the matched two-baseline plus
+four-OPD student matrix.
 
 ## Known nonblocking hardening work
 

@@ -66,12 +66,21 @@ That snapshot validates plumbing only; it is not a task-performance result.
   only. The main OPD arm also requires a positive held-out teacher gap and a
   student-support gate with nonzero/mixed-reward rollouts.
 - The scientific exact-token probe binds the same-host Linux vLLM PID,
-  `/proc` start time and command line to the merged checkpoint, its in-tree
-  provenance manifest, served-model alias, port, and declared maximum context
-  length. The student rechecks that live identity before and
-  after training. This is local process custody, not cryptographic remote
-  attestation. Student artifact eligibility also requires the same clean Git
-  commit at training start and end.
+  `/proc` start time, command line, and resolved launcher interpreter to the
+  verified serve environment, merged checkpoint, its in-tree provenance
+  manifest, served-model alias, port, and declared maximum context length. The
+  scientific command line must exactly match the committed wrapper, including
+  the explicit loopback bind `--host 127.0.0.1` and
+  `--gpu-memory-utilization 0.55`; missing, wildcard, or alternate hosts,
+  aliases, abbreviations, config files, reordering, and extra options are
+  rejected. The
+  train and serve contracts require exact full installed-distribution maps
+  equal to their immutable commit freezes; serve custody also hashes `bin/vllm`
+  and requires its exact environment-Python shebang. The student rechecks the
+  environments and live process identity before and after training. This is
+  local process custody, not cryptographic remote attestation. Student artifact
+  eligibility also requires the same clean Git commit at training start and
+  end.
 
 ## Pinned inputs
 
@@ -408,6 +417,31 @@ The scientific base and trained evaluations therefore use 353 M rows and 4,585
 O rows respectively. Run a timing-only O prefix before choosing its shard count;
 do not silently cap the O gate at 353.
 
+Cross-source target performance is a measurement, not another merge gate. Use
+the exact matched 353-record `target_gap_dev` prefix, CPU-merge both base and
+trained evaluations with identical shards and seeds, then set:
+
+```text
+OPD_MATH_GATE_KIND=teacher_target_report
+OPD_MATH_GATE_SOURCE=<target source M|O>
+OPD_MATH_GATE_TEACHER_SOURCE=<distinct trained-teacher source M|O>
+OPD_MATH_GATE_BASE_{SUMMARY,SAMPLES}=<matching target-base artifacts>
+OPD_MATH_GATE_TRAINED_{SUMMARY,SAMPLES}=<matching target-trained artifacts>
+OPD_MATH_GATE_BASE_MODEL=<pinned teacher>
+OPD_MATH_GATE_BASE_REVISION=<40-hex revision>
+OPD_MATH_GATE_TRAINED_ADAPTER=<exact evaluated adapter>
+OPD_MATH_GATE_TEACHER_RUN_MANIFEST=<that adapter's run_manifest.json>
+OPD_MATH_GATE_BOOTSTRAP_DRAWS=10000
+OPD_MATH_SEED=0
+OPD_MATH_GATE_OUTPUT=<new persistent report JSON path>
+```
+
+The report binds the cross-source pair registry, teacher run, adapter, complete
+evaluation custody, and paired record bootstrap. It has no `gate` or `passed`
+field, records both scientific authorization fields as false, exits zero for a
+valid negative/tied/positive effect, and cannot authorize checkpoint merging or
+student training.
+
 ### Student support, merge, and student runs
 
 Evaluate the pinned raw student with role `student_support`, record count exactly
@@ -481,10 +515,20 @@ four baseline deltas, same-versus-cross contrasts, and stratified interaction;
 
 ## Current boundary
 
-EIT job `106884` produced a complete semantic candidate surface, but its old
-partition code retained only 4,995 of 5,000 MATH test questions and its 666
-review decisions were not yet applied to a fresh canonical directory. It is an
-audit artifact, not canonical data. The repaired code and CPU tests establish
-the intended data, reward, trace, held-out, and matrix contracts. No scientific
-teacher or student training result exists until the reviewed canonical rerun
-and the ordered gates above complete.
+The reviewed canonical preparation is complete at
+`/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1_canonical_reviewed_19b24c2`.
+Its manifest SHA-256 is
+`dc4cf7dc36ae5b5178b782bb9c9841e096fbf42dabcbebaa74fb0ed6afcdf430`.
+The frozen MATH test has all 5,000 records, its scientific blocker list is
+empty, and its matched teacher/student/gap/holdout budgets are
+4,322/2,161/353/370. The complete raw-student gates also pass on both 2,161-row
+student sources: M pass@4 is 0.6201 with 0.1981 mixed-reward groups, while O
+pass@4 is 0.1772 with 0.1273 mixed-reward groups. Their exact gates and
+independent recomputation are recorded in
+[`opd-math-eit-handoff-2026-07-18.md`](../../wiki/snapshots/opd-math-eit-handoff-2026-07-18.md).
+
+These facts authorize attempting the matched task-reward training recipe; they
+are not evidence that training improves performance. No scientific teacher,
+teacher-gap, student-training, held-out, OPD-effectiveness, or source-transfer
+result exists yet. The next gates are the exact 100-step M/O teachers and their
+own-source teacher-gap evaluations.

@@ -46,6 +46,7 @@ COMMIT="$(git -C "$REPO" rev-parse HEAD)"
 FREEZE_ROOT="$RUN_ROOT/environment_freezes/$COMMIT"
 TRAIN_FREEZE="$FREEZE_ROOT/train.freeze.txt"
 SERVE_FREEZE="$FREEZE_ROOT/serve.freeze.txt"
+VERIFY_ENVIRONMENT="$REPO/scripts/opd_math/verify_environment.py"
 OUT="$RUN_ROOT/students/$RUN_KEY/$MODE/run_${SLURM_JOB_ID}"
 TASK="$DATA_ROOT/roles/$STUDENT_SOURCE/student_opd.jsonl"
 PORT=""
@@ -65,6 +66,12 @@ test -f "$TASK"
 test -f "$DATA_ROOT/prepared_manifest.json"
 test -f "$OPD_MATH_STUDENT_SUPPORT_MANIFEST"
 test -f "$TRAIN_FREEZE"
+echo "Verifying live train environment before student execution"
+"$TRAIN_ENV/bin/python" "$VERIFY_ENVIRONMENT" \
+  --environment-root "$TRAIN_ENV" \
+  --commit-freeze "$TRAIN_FREEZE" \
+  --expected-commit "$COMMIT" \
+  --freeze-kind train
 for artifact in \
   "$OUT" \
   "$OUT.vllm.log" \
@@ -91,6 +98,7 @@ TRAIN_ARGS=(
   --student "$STUDENT"
   --student-revision "$STUDENT_REVISION"
   --student-support-manifest "$OPD_MATH_STUDENT_SUPPORT_MANIFEST"
+  --train-environment-root "$TRAIN_ENV"
   --train-environment-freeze "$TRAIN_FREEZE"
   --out-dir "$OUT"
   --steps "$OPD_MATH_STUDENT_STEPS"
@@ -122,9 +130,17 @@ if [[ "$MODE" == task_rl_k1_gap ]]; then
   test -f "$OPD_MATH_TEACHER_GAP_MANIFEST"
   test -f "$OPD_MATH_TEACHER_PROVENANCE_MANIFEST"
   test -f "$SERVE_FREEZE"
+  echo "Verifying live serve environment before vLLM execution"
+  "$SERVE_ENV/bin/python" "$VERIFY_ENVIRONMENT" \
+    --environment-root "$SERVE_ENV" \
+    --commit-freeze "$SERVE_FREEZE" \
+    --expected-commit "$COMMIT" \
+    --freeze-kind serve \
+    --expected-executable "$SERVE_ENV/bin/vllm"
   PORT="$("$TRAIN_ENV/bin/python" -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
   URL="http://127.0.0.1:$PORT"
   "$SERVE_ENV/bin/vllm" serve "$OPD_MATH_TEACHER_CHECKPOINT" \
+    --host 127.0.0.1 \
     --served-model-name opd-math-teacher \
     --port "$PORT" \
     --max-model-len 4096 \
@@ -159,6 +175,7 @@ if [[ "$MODE" == task_rl_k1_gap ]]; then
     --teacher-checkpoint "$OPD_MATH_TEACHER_CHECKPOINT" \
     --teacher-provenance-manifest "$OPD_MATH_TEACHER_PROVENANCE_MANIFEST" \
     --teacher-server-max-model-len 4096 \
+    --serve-environment-root "$SERVE_ENV" \
     --output "$LIVE_SCORING_CONTRACT" \
     --local-files-only
   TRAIN_ARGS+=(
@@ -172,9 +189,25 @@ if [[ "$MODE" == task_rl_k1_gap ]]; then
     --teacher-provenance-manifest "$OPD_MATH_TEACHER_PROVENANCE_MANIFEST"
     --tokenizer-contract "$LIVE_TOKENIZER_CONTRACT"
     --server-scoring-contract "$LIVE_SCORING_CONTRACT"
+    --serve-environment-root "$SERVE_ENV"
     --serve-environment-freeze "$SERVE_FREEZE"
   )
 fi
 
 "$TRAIN_ENV/bin/python" "$REPO/scripts/opd/opd_train.py" "${TRAIN_ARGS[@]}"
+echo "Re-verifying live train environment after student training"
+"$TRAIN_ENV/bin/python" "$VERIFY_ENVIRONMENT" \
+  --environment-root "$TRAIN_ENV" \
+  --commit-freeze "$TRAIN_FREEZE" \
+  --expected-commit "$COMMIT" \
+  --freeze-kind train
+if [[ "$MODE" == task_rl_k1_gap ]]; then
+  echo "Re-verifying live serve environment after student training"
+  "$SERVE_ENV/bin/python" "$VERIFY_ENVIRONMENT" \
+    --environment-root "$SERVE_ENV" \
+    --commit-freeze "$SERVE_FREEZE" \
+    --expected-commit "$COMMIT" \
+    --freeze-kind serve \
+    --expected-executable "$SERVE_ENV/bin/vllm"
+fi
 echo "Student run completed; task metrics still require held-out evaluation: $OUT"

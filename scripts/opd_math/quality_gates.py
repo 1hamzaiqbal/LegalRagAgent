@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create identity-bound teacher-gap and student-support gate manifests.
+"""Create identity-bound teacher-gap, teacher-target, and student-support manifests.
 
 Scientific gates are deliberately harder to create than smoke gates.  A smoke
 gate can establish that the plumbing works, but its distinct type can never be
@@ -28,6 +28,7 @@ except ImportError:
 SCHEMA_VERSION = 3
 TEACHER_GATE_TYPE = "teacher_gap_v1"
 TEACHER_SMOKE_GATE_TYPE = "teacher_gap_smoke_v1"
+TEACHER_TARGET_REPORT_TYPE = "teacher_target_report_v1"
 STUDENT_GATE_TYPE = "student_support_v1"
 STUDENT_SMOKE_GATE_TYPE = "student_support_smoke_v1"
 DEFAULT_TEACHER_MIN_RECORDS = 200
@@ -36,6 +37,7 @@ DEFAULT_MIN_PASS_AT_K = 0.01
 DEFAULT_MIN_MIXED_GROUP_FRACTION = 0.01
 DEFAULT_SCIENTIFIC_BOOTSTRAP_DRAWS = 10_000
 MIN_SCIENTIFIC_BOOTSTRAP_DRAWS = 1_000
+TEACHER_TARGET_REPORT_RECORDS = 353
 SCIENTIFIC_SAMPLES_PER_PROBLEM = 4
 TEACHER_GAP_DECODING = {
     "thinking": False,
@@ -315,6 +317,108 @@ def _prepared_role_binding(
         "pinned_model_kind": model_kind,
         "pinned_model": model,
         "pinned_model_revision": revision,
+    }
+
+
+def _prepared_target_pair_binding(
+    prepared_manifest_path: Path,
+    *,
+    teacher_source: str,
+    target_source: str,
+    task_file: Path,
+    selected_records: int,
+    model: str,
+    revision: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Bind a cross-source report to its exact prepared pair and target prefix."""
+
+    if teacher_source not in {"M", "O"} or target_source not in {"M", "O"}:
+        raise ValueError("teacher and target sources must each be M or O")
+    if teacher_source == target_source:
+        raise ValueError("teacher-target reports require distinct teacher and target sources")
+    prepared, prepared_binding = _prepared_role_binding(
+        prepared_manifest_path,
+        source=target_source,
+        role=TEACHER_GAP_ROLE,
+        task_file=task_file,
+        selected_records=selected_records,
+        strength="target_report",
+        model_kind="teacher",
+        model=model,
+        revision=revision,
+    )
+    if prepared.get("scientific_use_allowed") is not True:
+        raise ValueError("teacher-target reports require prepared data authorized for scientific use")
+    code_state = prepared.get("code_git_state")
+    if not isinstance(code_state, dict) or code_state.get("dirty") is not False:
+        raise ValueError("teacher-target reports require prepared data from a clean Git state")
+    _immutable_revision(code_state.get("commit"), "prepared-data Git commit")
+
+    primary_budget = prepared.get("primary_matched_budgets", {}).get(TEACHER_GAP_ROLE)
+    if primary_budget != TEACHER_TARGET_REPORT_RECORDS:
+        raise ValueError(
+            "teacher-target reports require the registered 353-record matched target budget"
+        )
+    if selected_records != TEACHER_TARGET_REPORT_RECORDS:
+        raise ValueError(
+            f"teacher-target reports require exactly {TEACHER_TARGET_REPORT_RECORDS} "
+            f"target records; got {selected_records}"
+        )
+
+    pairs = prepared.get("pairs")
+    if not isinstance(pairs, list) or any(not isinstance(pair, dict) for pair in pairs):
+        raise ValueError("prepared manifest lacks a valid primary-pair registry")
+    matches = [
+        pair
+        for pair in pairs
+        if pair.get("teacher_source") == teacher_source
+        and pair.get("opd_source") == target_source
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            "prepared manifest must register exactly one requested cross-source pair"
+        )
+    pair = matches[0]
+    expected_pair_id = f"{teacher_source}_{target_source}"
+    if pair.get("id") != expected_pair_id or pair.get("same_items") is not False:
+        raise ValueError("prepared cross-source pair has an invalid identity or reuse policy")
+
+    files = prepared.get("files")
+    if not isinstance(files, dict):
+        raise ValueError("prepared manifest lacks its file registry")
+
+    def require_pair_file(field: str, relative: str) -> dict[str, Any]:
+        entry = files.get(relative)
+        if not isinstance(entry, dict):
+            raise ValueError(f"prepared manifest does not register {relative}")
+        if (
+            pair.get(field) != relative
+            or pair.get(f"{field}_rows") != entry.get("rows")
+            or pair.get(f"{field}_sha256") != entry.get("sha256")
+        ):
+            raise ValueError(f"prepared pair binding has drifted for {field}")
+        return entry
+
+    target_relative = f"roles/{target_source}/{TEACHER_GAP_ROLE}.jsonl"
+    target_entry = require_pair_file("target_gap_dev_file", target_relative)
+    teacher_relative = f"roles/{teacher_source}/{TEACHER_GAP_ROLE}.jsonl"
+    require_pair_file("teacher_skill_dev_file", teacher_relative)
+    if pair.get("target_gap_dev_limit") != TEACHER_TARGET_REPORT_RECORDS:
+        raise ValueError("prepared pair target-gap limit is not exactly 353 records")
+    if pair.get("teacher_skill_dev_limit") != TEACHER_TARGET_REPORT_RECORDS:
+        raise ValueError("prepared pair teacher-skill limit is not exactly 353 records")
+    if target_entry.get("sha256") != sha256_file(task_file):
+        raise ValueError("prepared pair target-gap task hash has drifted")
+
+    return prepared, {
+        **prepared_binding,
+        "pair_id": expected_pair_id,
+        "teacher_source": teacher_source,
+        "target_source": target_source,
+        "target_gap_dev_file": target_relative,
+        "target_gap_dev_file_rows": target_entry.get("rows"),
+        "target_gap_dev_file_sha256": target_entry.get("sha256"),
+        "target_gap_dev_limit": TEACHER_TARGET_REPORT_RECORDS,
     }
 
 
@@ -1528,6 +1632,184 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def teacher_target_report(args: argparse.Namespace) -> dict[str, Any]:
+    """Create a scientific-strength but strictly non-authorizing target report."""
+
+    if args.teacher_source not in {"M", "O"} or args.target_source not in {"M", "O"}:
+        raise ValueError("teacher and target sources must each be M or O")
+    if args.teacher_source == args.target_source:
+        raise ValueError("teacher-target reports require distinct teacher and target sources")
+    if args.task_role != TEACHER_GAP_ROLE:
+        raise ValueError("teacher-target reports require task_role=teacher_gap_dev")
+    if args.bootstrap_draws != DEFAULT_SCIENTIFIC_BOOTSTRAP_DRAWS:
+        raise ValueError(
+            "teacher-target reports require exactly 10000 paired bootstrap draws"
+        )
+    if args.seed != 0:
+        raise ValueError("teacher-target reports require bootstrap seed zero")
+
+    adapter = Path(args.trained_adapter).resolve()
+    adapter_hash = sha256_tree(adapter)
+    base_summary, base, base_binding = checked_evaluation(
+        args.base_summary,
+        args.base_samples,
+        expected_model=args.base_model,
+        expected_revision=args.base_revision,
+        expected_source=args.target_source,
+        expected_role=args.task_role,
+    )
+    trained_summary, trained, trained_binding = checked_evaluation(
+        args.trained_summary,
+        args.trained_samples,
+        expected_model=args.base_model,
+        expected_revision=args.base_revision,
+        expected_source=args.target_source,
+        expected_role=args.task_role,
+    )
+    if base_summary.get("adapter") is not None:
+        raise ValueError("teacher-target base evaluation must not use an adapter")
+    if base_summary.get("adapter_tree_sha256") is not None:
+        raise ValueError("teacher-target base evaluation has unexpected adapter identity")
+    trained_adapter = _path_from_manifest(
+        trained_summary.get("adapter"), Path(args.trained_summary).resolve(), "adapter"
+    )
+    if trained_adapter != adapter:
+        raise ValueError(
+            f"trained adapter mismatch: summary={trained_adapter}, supplied={adapter}"
+        )
+    if trained_summary.get("adapter_tree_sha256") != adapter_hash:
+        raise ValueError("trained adapter tree differs from the target evaluation identity")
+    if base_binding["task_file_sha256"] != trained_binding["task_file_sha256"]:
+        raise ValueError("base and trained target evaluations use different task files")
+    if base_summary["decoding"] != trained_summary["decoding"]:
+        raise ValueError("base and trained target evaluations use different decoding contracts")
+    _require_scientific_evaluation_contract(
+        base_summary,
+        base_binding,
+        decoding=TEACHER_GAP_DECODING,
+        label="teacher-target",
+    )
+    _require_scientific_evaluation_contract(
+        trained_summary,
+        trained_binding,
+        decoding=TEACHER_GAP_DECODING,
+        label="teacher-target",
+    )
+    for field in (
+        "evaluation_git_commit",
+        "evaluator_file_sha256",
+        "evaluation_packages",
+        "tokenizer_contract_sha256",
+        "record_seed_contract",
+        "selected_record_ids_sha256",
+        "evaluation_shard_count",
+        "evaluation_shard_strategy",
+        "evaluation_merge_strategy",
+    ):
+        if base_binding[field] != trained_binding[field]:
+            raise ValueError(f"base and trained target evaluations differ in {field}")
+
+    keys, delta, low, high = bootstrap_delta(
+        base, trained, args.seed, args.bootstrap_draws
+    )
+    prepared, prepared_binding = _prepared_target_pair_binding(
+        args.prepared_manifest,
+        teacher_source=args.teacher_source,
+        target_source=args.target_source,
+        task_file=Path(base_binding["task_file"]),
+        selected_records=len(keys),
+        model=args.base_model,
+        revision=args.base_revision,
+    )
+    run_binding = _teacher_run_binding(
+        args.teacher_run_manifest,
+        prepared=prepared,
+        prepared_binding=prepared_binding,
+        source=args.teacher_source,
+        model=args.base_model,
+        revision=args.base_revision,
+        adapter=adapter,
+        adapter_hash=adapter_hash,
+        strength="scientific",
+    )
+    base_accuracy = sum(sum(base[key]) / len(base[key]) for key in keys) / len(keys)
+    trained_accuracy = (
+        sum(sum(trained[key]) / len(trained[key]) for key in keys) / len(keys)
+    )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "report": TEACHER_TARGET_REPORT_TYPE,
+        "report_strength": "scientific_measurement",
+        "valid": True,
+        "authorizes_scientific_merge": False,
+        "authorizes_scientific_training": False,
+        "claim_boundary": (
+            "Cross-source target-distribution measurement only; this report cannot "
+            "authorize a teacher merge or student training."
+        ),
+        "shared_records": len(keys),
+        "base_accuracy": base_accuracy,
+        "trained_accuracy": trained_accuracy,
+        "paired_delta": delta,
+        "bootstrap_95_ci": [low, high],
+        "bootstrap_draws": args.bootstrap_draws,
+        "bootstrap_seed": args.seed,
+        "base_model": args.base_model,
+        "base_model_revision": args.base_revision,
+        "trained_adapter": str(adapter),
+        "trained_adapter_tree_sha256": adapter_hash,
+        "task_file": base_binding["task_file"],
+        "task_file_sha256": base_binding["task_file_sha256"],
+        "task_sources": [args.target_source],
+        "task_roles": [args.task_role],
+        "decoding": base_summary["decoding"],
+        "base_summary": base_binding["summary"],
+        "base_summary_sha256": base_binding["summary_sha256"],
+        "trained_summary": trained_binding["summary"],
+        "trained_summary_sha256": trained_binding["summary_sha256"],
+        "base_samples": base_binding["samples"],
+        "base_samples_sha256": base_binding["samples_sha256"],
+        "trained_samples": trained_binding["samples"],
+        "trained_samples_sha256": trained_binding["samples_sha256"],
+        "evaluation_git_commit": base_binding["evaluation_git_commit"],
+        "evaluator_file_sha256": base_binding["evaluator_file_sha256"],
+        "evaluation_packages": base_binding["evaluation_packages"],
+        "tokenizer_contract_sha256": base_binding["tokenizer_contract_sha256"],
+        "base_evaluation_artifact_kind": base_binding["evaluation_artifact_kind"],
+        "trained_evaluation_artifact_kind": trained_binding[
+            "evaluation_artifact_kind"
+        ],
+        "base_evaluation_contract_sha256": base_binding[
+            "evaluation_contract_sha256"
+        ],
+        "trained_evaluation_contract_sha256": trained_binding[
+            "evaluation_contract_sha256"
+        ],
+        "record_seed_contract": base_binding["record_seed_contract"],
+        "selected_record_ids_sha256": base_binding["selected_record_ids_sha256"],
+        "evaluation_shard_count": base_binding["evaluation_shard_count"],
+        "evaluation_shard_strategy": base_binding["evaluation_shard_strategy"],
+        "evaluation_merge_strategy": base_binding["evaluation_merge_strategy"],
+        "base_evaluation_merge_provenance_sha256": base_binding[
+            "evaluation_merge_provenance_sha256"
+        ],
+        "trained_evaluation_merge_provenance_sha256": trained_binding[
+            "evaluation_merge_provenance_sha256"
+        ],
+        "base_evaluation_merge_custody_sha256": base_binding[
+            "evaluation_merge_custody_sha256"
+        ],
+        "trained_evaluation_merge_custody_sha256": trained_binding[
+            "evaluation_merge_custody_sha256"
+        ],
+        "evaluation_merger_file_sha256": base_binding[
+            "evaluation_merger_file_sha256"
+        ],
+        **prepared_binding,
+        **run_binding,
+    }
+
+
 def student_support(args: argparse.Namespace) -> dict[str, Any]:
     strength = _gate_strength(args)
     minimum_records = _minimum_records(args, DEFAULT_STUDENT_MIN_RECORDS)
@@ -1689,6 +1971,58 @@ def recompute_teacher_gate(gate: dict[str, Any]) -> dict[str, Any]:
     )
 
 
+def recompute_teacher_target_report(report: dict[str, Any]) -> dict[str, Any]:
+    """Recompute a teacher-target report from its identity-bound artifacts."""
+
+    if report.get("report") != TEACHER_TARGET_REPORT_TYPE:
+        raise ValueError("not a canonical teacher-target report")
+    required_paths = (
+        "base_summary",
+        "base_samples",
+        "trained_summary",
+        "trained_samples",
+        "trained_adapter",
+        "prepared_manifest",
+        "teacher_run_manifest",
+    )
+    paths: dict[str, Path] = {}
+    for field in required_paths:
+        value = report.get(field)
+        if not isinstance(value, str) or not Path(value).is_absolute():
+            raise ValueError(
+                f"teacher-target report lacks an absolute {field} recomputation binding"
+            )
+        paths[field] = Path(value)
+    teacher_source = report.get("teacher_source")
+    target_source = report.get("target_source")
+    roles = report.get("task_roles")
+    if (
+        teacher_source not in {"M", "O"}
+        or target_source not in {"M", "O"}
+        or teacher_source == target_source
+        or roles != [TEACHER_GAP_ROLE]
+    ):
+        raise ValueError("teacher-target report lacks a canonical cross-source contract")
+    return teacher_target_report(
+        argparse.Namespace(
+            base_summary=paths["base_summary"],
+            base_samples=paths["base_samples"],
+            trained_summary=paths["trained_summary"],
+            trained_samples=paths["trained_samples"],
+            base_model=report.get("base_model"),
+            base_revision=report.get("base_model_revision"),
+            trained_adapter=paths["trained_adapter"],
+            prepared_manifest=paths["prepared_manifest"],
+            teacher_run_manifest=paths["teacher_run_manifest"],
+            teacher_source=teacher_source,
+            target_source=target_source,
+            task_role=roles[0],
+            bootstrap_draws=report.get("bootstrap_draws"),
+            seed=report.get("bootstrap_seed"),
+        )
+    )
+
+
 def recompute_student_gate(gate: dict[str, Any]) -> dict[str, Any]:
     """Recompute a scientific student-support gate from its bound raw artifacts."""
 
@@ -1747,6 +2081,27 @@ def main() -> int:
     )
     teacher.add_argument("--output", type=Path, required=True)
 
+    target = sub.add_parser("teacher-target-report")
+    target.add_argument("--base-summary", type=Path, required=True)
+    target.add_argument("--base-samples", type=Path, required=True)
+    target.add_argument("--trained-summary", type=Path, required=True)
+    target.add_argument("--trained-samples", type=Path, required=True)
+    target.add_argument("--base-model", required=True)
+    target.add_argument("--base-revision", required=True)
+    target.add_argument("--trained-adapter", type=Path, required=True)
+    target.add_argument("--prepared-manifest", type=Path, required=True)
+    target.add_argument("--teacher-run-manifest", type=Path, required=True)
+    target.add_argument("--teacher-source", choices=("M", "O"), required=True)
+    target.add_argument("--target-source", choices=("M", "O"), required=True)
+    target.add_argument("--task-role", default="teacher_gap_dev")
+    target.add_argument(
+        "--bootstrap-draws",
+        type=int,
+        default=DEFAULT_SCIENTIFIC_BOOTSTRAP_DRAWS,
+    )
+    target.add_argument("--seed", type=int, default=0)
+    target.add_argument("--output", type=Path, required=True)
+
     student = sub.add_parser("student-support")
     student.add_argument("--student-summary", type=Path, required=True)
     student.add_argument("--student-samples", type=Path, required=True)
@@ -1770,12 +2125,19 @@ def main() -> int:
     student.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
-    result = teacher_gap(args) if args.gate_command == "teacher-gap" else student_support(args)
+    if args.gate_command == "teacher-gap":
+        result = teacher_gap(args)
+    elif args.gate_command == "teacher-target-report":
+        result = teacher_target_report(args)
+    else:
+        result = student_support(args)
     if args.output.exists() or args.output.is_symlink():
         raise FileExistsError(f"refusing to overwrite an existing gate manifest: {args.output}")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     print(json.dumps(result, sort_keys=True))
+    if args.gate_command == "teacher-target-report":
+        return 0
     return 0 if result["passed"] else 2
 
 

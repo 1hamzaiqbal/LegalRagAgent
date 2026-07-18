@@ -85,6 +85,7 @@ uv run pytest -q \
   tests/test_opd_merge_custody.py \
   tests/test_opd_teacher_recipe.py \
   tests/test_opd_run_contract.py \
+  tests/test_opd_environment_custody.py \
   tests/test_opd_student_results.py \
   tests/test_opd_server_process_binding.py
 ```
