@@ -443,7 +443,10 @@ OPD_MATH_MERGE_OUTPUT=<new merged-checkpoint directory>
 
 Run one `task_rl` baseline for each student source before the four main pairs.
 Every baseline/main comparison must reuse the same explicit steps, task limit,
-group size, seed, and rollout length. Baselines require
+group size, seed, rollout length, and enabled gradient checkpointing. The
+checkpointing choice is registered in `student_training_plan.json`, passed by
+the full launcher, and recorded in each run manifest; no ambient environment
+toggle participates in the scientific contract. Baselines require
 `OPD_MATH_STUDENT_SOURCE=M|O`; main runs require `OPD_MATH_PAIR=M_M|M_O|O_M|O_O`
 plus the merged checkpoint, teacher gate, merge provenance, and teacher base
 identity required by `slurm_opd_math_student_train.sh`. Its internal tokenizer

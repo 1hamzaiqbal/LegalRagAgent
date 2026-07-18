@@ -328,6 +328,12 @@ def student_run_fixture(tmp_path, prepared_path, prepared, train, train_rows, ad
         "micro_prompts_per_step": 1,
         "planned_rollout_samples": 400,
         "seed": 0,
+        "optimization": {
+            "attn_implementation": fixed["attn_implementation"],
+            "gradient_checkpointing": fixed["gradient_checkpointing"],
+            "learning_rate": fixed["learning_rate"],
+            "lora_r": fixed["lora_r"],
+        },
         "generation": {
             "group_size": 4,
             "temperature": 1.0,
@@ -493,6 +499,25 @@ def test_heldout_gate_recomputes_and_requires_realized_training_geometry(
     args.student_run_manifest.write_text(json.dumps(run, indent=2, sort_keys=True) + "\n")
 
     with pytest.raises(ValueError, match="realized_training_geometry_observed"):
+        results.student_heldout_result(args)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "disabled"])
+def test_heldout_gate_requires_registered_checkpointing_record(
+    tmp_path, monkeypatch, mutation
+):
+    monkeypatch.setattr(results, "verify_completion", fake_verify)
+    monkeypatch.setattr(quality_gates, "verify_completion", fake_verify)
+    monkeypatch.setattr(results, "recompute_student_gate", lambda gate: gate)
+    args = heldout_args(tmp_path)
+    run = json.loads(args.student_run_manifest.read_text())
+    if mutation == "missing":
+        run.pop("optimization")
+    else:
+        run["optimization"]["gradient_checkpointing"] = False
+    args.student_run_manifest.write_text(json.dumps(run, indent=2, sort_keys=True) + "\n")
+
+    with pytest.raises(ValueError, match="student run optimization mismatch"):
         results.student_heldout_result(args)
 
 

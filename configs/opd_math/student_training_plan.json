@@ -14,6 +14,7 @@
     "enable_thinking": false,
     "gap_gate_beta": 5.0,
     "grad_clip": 1.0,
+    "gradient_checkpointing": true,
     "group_size": 4,
     "k1_coef": 0.01,
     "learning_rate": 1e-05,

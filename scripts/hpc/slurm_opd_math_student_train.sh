@@ -99,6 +99,7 @@ TRAIN_ARGS=(
   --max-new-tokens "${OPD_MATH_STUDENT_MAX_NEW_TOKENS:-512}"
   --seed "${OPD_MATH_SEED:-0}"
   --top-k 0
+  --gradient-checkpointing
   --min-informative-group-fraction "${OPD_MATH_MIN_INFORMATIVE_GROUP_FRACTION:-0.05}"
   --require-parameter-update
   --local-files-only

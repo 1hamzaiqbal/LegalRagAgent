@@ -30,6 +30,7 @@ def args_for(task_file, prepared, **overrides):
         "max_prompt_tokens": 128,
         "lr": 1e-5,
         "grad_clip": 1.0,
+        "gradient_checkpointing": True,
         "lora": 8,
         "group_size": 2,
         "micro_prompts": 1,
@@ -186,6 +187,7 @@ def test_primary_student_plan_is_exact_and_predeclared():
         enable_thinking=False,
         gap_gate_beta=5.0,
         grad_clip=1.0,
+        gradient_checkpointing=True,
         group_size=4,
         k1_coef=0.01,
         lr=1e-5,
@@ -208,6 +210,11 @@ def test_primary_student_plan_is_exact_and_predeclared():
 
     args.steps = 99
     with pytest.raises(ValueError, match="optimizer_steps"):
+        validate_student_training_plan_contract(args)
+
+    args.steps = 100
+    args.gradient_checkpointing = False
+    with pytest.raises(ValueError, match="gradient_checkpointing"):
         validate_student_training_plan_contract(args)
 
 

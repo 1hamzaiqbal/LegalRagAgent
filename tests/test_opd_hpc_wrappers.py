@@ -53,3 +53,12 @@ def test_scientific_wrappers_require_an_explicit_canonical_data_root():
 def test_quality_gate_has_headroom_for_full_o_reward_recomputation():
     script = (ROOT / "scripts" / "hpc" / "slurm_opd_math_quality_gate.sh").read_text()
     assert "#SBATCH --time=04:00:00" in script
+
+
+def test_student_checkpointing_is_explicit_not_ambient():
+    trainer = (ROOT / "scripts" / "opd" / "opd_train.py").read_text()
+    wrapper = (ROOT / "scripts" / "hpc" / "slurm_opd_math_student_train.sh").read_text()
+    assert "OPD_GRAD_CKPT" not in trainer
+    assert 'if args.gradient_checkpointing:' in trainer
+    assert '"gradient_checkpointing": args.gradient_checkpointing' in trainer
+    assert "--gradient-checkpointing" in wrapper

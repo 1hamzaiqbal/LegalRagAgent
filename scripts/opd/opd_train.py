@@ -26,7 +26,6 @@ import hashlib
 import importlib.metadata
 import json
 import math
-import os
 import random
 import re
 import subprocess
@@ -132,6 +131,7 @@ def normalized_student_training_config(args) -> dict:
         "enable_thinking": args.enable_thinking,
         "gap_gate_beta": args.gap_gate_beta,
         "grad_clip": args.grad_clip,
+        "gradient_checkpointing": args.gradient_checkpointing,
         "group_size": args.group_size,
         "k1_coef": args.k1_coef,
         "learning_rate": args.lr,
@@ -308,7 +308,7 @@ def load_student(args, device: str):
         model = get_peft_model(model, cfg)
         model.print_trainable_parameters()
 
-    if os.getenv("OPD_GRAD_CKPT", "1") not in ("0", "false", "False"):
+    if args.gradient_checkpointing:
         model.enable_input_require_grads()
         model.gradient_checkpointing_enable(
             gradient_checkpointing_kwargs={"use_reentrant": False}
@@ -1761,6 +1761,12 @@ def run(args) -> None:
         "micro_prompts_per_step": micro,
         "planned_rollout_samples": args.steps * micro * args.group_size,
         "seed": args.seed,
+        "optimization": {
+            "attn_implementation": args.attn_implementation,
+            "gradient_checkpointing": args.gradient_checkpointing,
+            "learning_rate": args.lr,
+            "lora_r": args.lora,
+        },
         "generation": {
             "group_size": args.group_size,
             "temperature": args.temperature,
@@ -2251,6 +2257,12 @@ def parse_args():
         help="positive sigmoid-gap coefficient used only in opd_gated mode",
     )
     ap.add_argument("--grad-clip", type=float, default=1.0)
+    ap.add_argument(
+        "--gradient-checkpointing",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="explicitly bind activation checkpointing; scientific plans require it enabled",
+    )
     ap.add_argument("--task-reward-coef", type=float, default=1.0)
     ap.add_argument(
         "--k1-coef",

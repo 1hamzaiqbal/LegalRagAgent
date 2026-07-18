@@ -942,6 +942,13 @@ def _validate_student_run(
         "enable_thinking": fixed["enable_thinking"],
     }
     _expect(run, "generation", expected_generation, "student run")
+    expected_optimization = {
+        "attn_implementation": fixed["attn_implementation"],
+        "gradient_checkpointing": fixed["gradient_checkpointing"],
+        "learning_rate": fixed["learning_rate"],
+        "lora_r": fixed["lora_r"],
+    }
+    _expect(run, "optimization", expected_optimization, "student run")
     expected_loss = {
         "task_reward_coef": fixed["task_reward_coef"],
         "k1_coef": fixed["k1_coef"],
