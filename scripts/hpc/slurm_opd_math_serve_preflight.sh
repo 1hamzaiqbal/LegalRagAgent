@@ -17,6 +17,7 @@ source "$ENV_DIR/bin/activate"
 python - <<'PY'
 import importlib.metadata as m
 import torch
+import vllm
 
 expected = {
     "torch": "2.11.0",
@@ -33,7 +34,7 @@ print({
     "cuda_runtime": torch.version.cuda,
     "gpu": torch.cuda.get_device_name(0),
     "bf16": torch.cuda.is_bf16_supported(),
+    "vllm_import_version": vllm.__version__,
 })
 PY
-vllm --version
 echo "PASS opd-math serving environment GPU preflight"
