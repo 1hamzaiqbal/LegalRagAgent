@@ -3,11 +3,12 @@
 #SBATCH --partition=general-cpu
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=8G
-#SBATCH --time=00:30:00
+#SBATCH --time=04:00:00
 #SBATCH -A engr-lab-jacobsn
 #SBATCH --output=/engrfs/tmp/jacobsn/hiqbal_legalrag/opd_math_gate_%j.out
 
 set -euo pipefail
+: "${OPD_MATH_DATA_ROOT:?Set the exact reviewed canonical data root}"
 : "${OPD_MATH_GATE_KIND:?Set teacher_gap or student_support}"
 : "${OPD_MATH_GATE_SOURCE:?Set M or O}"
 : "${OPD_MATH_GATE_OUTPUT:?Set a new persistent output JSON path}"
@@ -17,7 +18,7 @@ case "$STRENGTH" in scientific|smoke) ;; *) echo "invalid OPD_MATH_GATE_STRENGTH
 
 REPO="${OPD_MATH_REPO:-/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math}"
 ENV_DIR="${OPD_MATH_TRAIN_ENV:-/engrfs/project/jacobsn/hiqbal/envs/opd_math_train}"
-DATA_ROOT="${OPD_MATH_DATA_ROOT:-/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1}"
+DATA_ROOT="$OPD_MATH_DATA_ROOT"
 PREPARED_MANIFEST="${OPD_MATH_PREPARED_MANIFEST:-$DATA_ROOT/prepared_manifest.json}"
 test -x "$ENV_DIR/bin/python"
 test -f "$PREPARED_MANIFEST"

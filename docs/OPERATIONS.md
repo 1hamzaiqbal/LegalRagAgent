@@ -79,6 +79,8 @@ uv run pytest -q \
   tests/test_opd_reward_loss.py \
   tests/test_teacher_client_token_ids.py \
   tests/test_opd_tokenizer_contract.py \
+  tests/test_opd_evaluation_shards.py \
+  tests/test_opd_hpc_wrappers.py \
   tests/test_opd_quality_gates.py \
   tests/test_opd_merge_custody.py \
   tests/test_opd_teacher_recipe.py \

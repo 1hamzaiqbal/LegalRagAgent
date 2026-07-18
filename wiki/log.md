@@ -464,3 +464,26 @@ paired-bootstrap readout. All 143 tests passed before this documentation pass.
 At this checkpoint the review file still needed durable EIT persistence and the
 fresh canonical rerun remained pending. No scientific GPU training was
 launched.
+
+## [2026-07-18] OPD reviewed canonical data + resumable evaluation | raw support next
+
+Persisted the complete review provenance and finished EIT canonical-preparation
+job `106951`. The promotable manifest is
+`dc4cf7dc36ae5b5178b782bb9c9841e096fbf42dabcbebaa74fb0ed6afcdf430`:
+all 13 registered artifacts independently rehash, the MATH test retains 5,000
+questions, and the matched M/O budgets are 4,322 teacher-train, 2,161
+student-OPD, 353 teacher-gap, and 370 source-holdout rows.
+For teacher-gap promotion specifically, the complete registered-role rule
+supersedes that matched-budget number: M evaluates 353 rows and O evaluates
+4,585. A 353-row O prefix cannot feed the scientific gate.
+
+Timing-only raw-student job `106955` completed 64 M records x four samples in
+710 seconds, with 601.904 seconds in generation. That prefix is not gate
+evidence. Job `106956` completed the corresponding O prefix in 876 seconds,
+with 770.424 seconds in generation and 9.8% sample accuracy; it too is timing
+evidence only. Added deterministic per-record RNG, immutable transactional
+evaluation shards, a fail-closed CPU merge, and
+independent gate-time reconstruction of every bound shard. The full raw support
+plan is 34 balanced shards per source at four-way concurrency, followed by two
+scientific support gates. No teacher or student training result is inferred by
+this bookkeeping and throughput work.

@@ -73,6 +73,13 @@ EXPECTED_TEACHER_TRAIN_PACKAGES = {
     "requests": "2.32.5",
     "math-verify": "0.9.0",
 }
+EVALUATION_SCHEMA_VERSION = 2
+EVALUATION_SHARD_KIND = "opd_math_evaluation_shard_v1"
+EVALUATION_MERGED_KIND = "opd_math_evaluation_merged_v1"
+EVALUATION_CONTRACT = "opd_math_evaluation_contract_v1"
+RECORD_SEED_STRATEGY = "task_hash_global_index_record_id_sha256_v1"
+SHARD_STRATEGY = "contiguous_balanced_v1"
+MERGE_STRATEGY = "ordered_contiguous_shards_v1"
 ROOT = Path(__file__).resolve().parents[2]
 CANONICAL_TEACHER_TRAINING_PLAN = (
     ROOT / "configs" / "opd_math" / "teacher_training_plan.json"
@@ -824,6 +831,281 @@ def reward_by_record(
     return grouped
 
 
+def _record_sampling_seed_v1(
+    base_seed: int, task_hash: str, global_record_index: int, record_id: str
+) -> int:
+    payload = {
+        "strategy": RECORD_SEED_STRATEGY,
+        "base_seed": base_seed,
+        "task_file_sha256": task_hash,
+        "global_record_index": global_record_index,
+        "record_id": record_id,
+    }
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).digest()
+    return int.from_bytes(digest[:8], "big") % (2**63 - 1)
+
+
+def _evaluation_canonical_sha256(payload: object) -> str:
+    encoded = json.dumps(
+        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _checked_merged_evaluation_provenance(
+    summary_path: Path,
+    samples_path: Path,
+    summary: dict[str, Any],
+) -> dict[str, Any]:
+    """Independently reconstruct a schema-v2 merged evaluation from its shards."""
+
+    kind = summary.get("artifact_kind")
+    if kind == EVALUATION_SHARD_KIND:
+        raise ValueError(
+            f"an incomplete evaluation shard cannot feed a quality gate: {summary_path}"
+        )
+    if kind != EVALUATION_MERGED_KIND:
+        raise ValueError(f"unsupported schema-v2 evaluation kind in {summary_path}: {kind!r}")
+
+    contract = summary.get("evaluation_contract")
+    if not isinstance(contract, dict):
+        raise ValueError(f"merged evaluation lacks an evaluation contract: {summary_path}")
+    if contract.get("schema_version") != 1 or contract.get("contract") != EVALUATION_CONTRACT:
+        raise ValueError(f"unsupported merged evaluation contract: {summary_path}")
+    contract_hash = _evaluation_canonical_sha256(contract)
+    if summary.get("evaluation_contract_sha256") != contract_hash:
+        raise ValueError(f"merged evaluation contract hash mismatch: {summary_path}")
+
+    task_path = _path_from_manifest(contract.get("task_file"), summary_path, "task_file")
+    if task_path.is_symlink() or not task_path.is_file():
+        raise ValueError(f"merged evaluation task must be a regular file: {task_path}")
+    task_hash = sha256_file(task_path)
+    if contract.get("task_file_sha256") != task_hash:
+        raise ValueError(f"merged evaluation task changed after generation: {task_path}")
+    task_rows = list(iter_jsonl(task_path))
+    eligible = contract.get("eligible_records")
+    if type(eligible) is not int or eligible <= 0 or eligible > len(task_rows):
+        raise ValueError(f"merged evaluation has invalid eligible_records: {summary_path}")
+    selected_rows = task_rows[:eligible]
+    selected_ids = [row.get("record_id") for row in selected_rows]
+    if any(not isinstance(record_id, str) or not record_id for record_id in selected_ids):
+        raise ValueError(f"merged evaluation task prefix lacks record IDs: {task_path}")
+    if len(set(selected_ids)) != len(selected_ids):
+        raise ValueError(f"merged evaluation task prefix has duplicate record IDs: {task_path}")
+    selected_ids_hash = _evaluation_canonical_sha256(selected_ids)
+    if contract.get("eligible_record_ids_sha256") != selected_ids_hash:
+        raise ValueError(f"merged evaluation selected-record hash mismatch: {summary_path}")
+
+    seed_contract = contract.get("record_seed_contract")
+    decoding = contract.get("decoding")
+    if not isinstance(decoding, dict):
+        raise ValueError(f"merged evaluation contract lacks decoding: {summary_path}")
+    expected_seed_contract = {
+        "strategy": RECORD_SEED_STRATEGY,
+        "base_seed": decoding.get("seed"),
+    }
+    if (
+        type(expected_seed_contract["base_seed"]) is not int
+        or expected_seed_contract["base_seed"] < 0
+        or seed_contract != expected_seed_contract
+    ):
+        raise ValueError(f"merged evaluation has an invalid record-seed contract: {summary_path}")
+    shard_contract = contract.get("shard")
+    if not isinstance(shard_contract, dict) or shard_contract.get("strategy") != SHARD_STRATEGY:
+        raise ValueError(f"merged evaluation has an invalid shard contract: {summary_path}")
+    shard_count = shard_contract.get("shard_count")
+    if type(shard_count) is not int or shard_count <= 0 or shard_count > eligible:
+        raise ValueError(f"merged evaluation has an invalid shard count: {summary_path}")
+
+    mirrored_fields = (
+        "model",
+        "model_revision",
+        "adapter",
+        "adapter_tree_sha256",
+        "task_file",
+        "task_file_sha256",
+        "tokenizer_contract_sha256",
+        "samples_per_problem",
+        "decoding",
+        "record_seed_contract",
+    )
+    for field in mirrored_fields:
+        if summary.get(field) != contract.get(field):
+            raise ValueError(f"merged evaluation {field} differs from its contract")
+    if summary.get("records") != eligible or summary.get("eligible_records") != eligible:
+        raise ValueError(f"merged evaluation record count differs from its contract")
+
+    code = contract.get("code")
+    if not isinstance(code, dict):
+        raise ValueError(f"merged evaluation contract lacks code identity: {summary_path}")
+    expected_code = {
+        "git": {"commit": code.get("git_commit"), "worktree_clean": True},
+        "evaluator_file_sha256": code.get("evaluator_file_sha256"),
+        "packages": code.get("packages"),
+    }
+    if summary.get("code") != expected_code:
+        raise ValueError(f"merged evaluation code identity differs from its contract")
+
+    merge_custody = summary.get("merge_custody")
+    if not isinstance(merge_custody, dict) or merge_custody.get("stable") is not True:
+        raise ValueError(f"merged evaluation lacks stable merge custody: {summary_path}")
+    merger_path = Path(__file__).resolve().parent / "merge_evaluations.py"
+    merger_hash = sha256_file(merger_path)
+    for position in ("start", "end"):
+        git = merge_custody.get(f"git_{position}")
+        if git != expected_code["git"]:
+            raise ValueError(f"merged evaluation Git {position} custody mismatch")
+        if merge_custody.get(f"merger_file_sha256_{position}") != merger_hash:
+            raise ValueError(f"merged evaluation merger-code {position} custody mismatch")
+        if merge_custody.get(f"packages_{position}") != code.get("packages"):
+            raise ValueError(f"merged evaluation package {position} custody mismatch")
+        if merge_custody.get(f"task_file_sha256_{position}") != task_hash:
+            raise ValueError(f"merged evaluation task {position} custody mismatch")
+        if (
+            merge_custody.get(f"adapter_tree_sha256_{position}")
+            != contract.get("adapter_tree_sha256")
+        ):
+            raise ValueError(f"merged evaluation adapter {position} custody mismatch")
+    if merge_custody.get("evaluator_file_sha256") != code.get("evaluator_file_sha256"):
+        raise ValueError(f"merged evaluation evaluator-code custody mismatch")
+    adapter = contract.get("adapter")
+    if adapter is None:
+        if contract.get("adapter_tree_sha256") is not None:
+            raise ValueError("merged raw-model evaluation has an unexpected adapter hash")
+    else:
+        adapter_path = _path_from_manifest(adapter, summary_path, "adapter")
+        if adapter_path.is_symlink() or not adapter_path.is_dir():
+            raise ValueError(f"merged evaluation adapter is not a regular directory: {adapter_path}")
+        if sha256_tree(adapter_path) != contract.get("adapter_tree_sha256"):
+            raise ValueError(f"merged evaluation adapter changed after generation: {adapter_path}")
+
+    merge = summary.get("merge")
+    if not isinstance(merge, dict):
+        raise ValueError(f"merged evaluation lacks shard provenance: {summary_path}")
+    expected_merge_header = {
+        "strategy": MERGE_STRATEGY,
+        "shard_count": shard_count,
+        "global_records": eligible,
+        "selected_record_ids_sha256": selected_ids_hash,
+    }
+    for field, expected in expected_merge_header.items():
+        if merge.get(field) != expected:
+            raise ValueError(f"merged evaluation {field} provenance mismatch")
+    shard_bindings = merge.get("shards")
+    if not isinstance(shard_bindings, list) or len(shard_bindings) != shard_count:
+        raise ValueError(f"merged evaluation lacks the exact shard set: {summary_path}")
+
+    sample_count = contract.get("samples_per_problem")
+    if type(sample_count) is not int or sample_count <= 0:
+        raise ValueError(f"merged evaluation has invalid samples_per_problem: {summary_path}")
+    reconstructed = bytearray()
+    prior_stop = 0
+    for expected_index, binding in enumerate(shard_bindings):
+        if not isinstance(binding, dict) or binding.get("shard_index") != expected_index:
+            raise ValueError(f"merged evaluation shard ordering is not canonical")
+        record_start = eligible * expected_index // shard_count
+        record_stop = eligible * (expected_index + 1) // shard_count
+        if record_start != prior_stop:
+            raise ValueError("merged evaluation shard coverage has a gap or overlap")
+        prior_stop = record_stop
+        expected_slice = selected_rows[record_start:record_stop]
+        expected_slice_ids = selected_ids[record_start:record_stop]
+        expected_slice_hash = _evaluation_canonical_sha256(expected_slice_ids)
+        for field, expected in (
+            ("record_start", record_start),
+            ("record_stop", record_stop),
+            ("selected_record_ids_sha256", expected_slice_hash),
+        ):
+            if binding.get(field) != expected:
+                raise ValueError(f"merged evaluation shard {expected_index} {field} mismatch")
+
+        shard_summary_path = _path_from_manifest(
+            binding.get("summary"), summary_path, f"shard {expected_index} summary"
+        )
+        shard_samples_path = _path_from_manifest(
+            binding.get("samples"), summary_path, f"shard {expected_index} samples"
+        )
+        if shard_summary_path.is_symlink() or shard_samples_path.is_symlink():
+            raise ValueError("evaluation shard provenance may not use symlinks")
+        if sha256_file(shard_summary_path) != binding.get("summary_sha256"):
+            raise ValueError(f"evaluation shard {expected_index} summary changed after merge")
+        if sha256_file(shard_samples_path) != binding.get("samples_sha256"):
+            raise ValueError(f"evaluation shard {expected_index} samples changed after merge")
+        shard_summary = _json_object(shard_summary_path, "evaluation shard summary")
+        if (
+            shard_summary.get("schema_version") != EVALUATION_SCHEMA_VERSION
+            or shard_summary.get("artifact_kind") != EVALUATION_SHARD_KIND
+            or shard_summary.get("evaluation_contract") != contract
+            or shard_summary.get("evaluation_contract_sha256") != contract_hash
+        ):
+            raise ValueError(f"evaluation shard {expected_index} contract mismatch")
+        expected_shard = {
+            "strategy": SHARD_STRATEGY,
+            "shard_count": shard_count,
+            "shard_index": expected_index,
+            "global_records": eligible,
+            "record_start": record_start,
+            "record_stop": record_stop,
+            "selected_record_ids_sha256": expected_slice_hash,
+        }
+        if shard_summary.get("shard") != expected_shard:
+            raise ValueError(f"evaluation shard {expected_index} task slice mismatch")
+        declared_shard_samples = _path_from_manifest(
+            shard_summary.get("samples_file"), shard_summary_path, "samples_file"
+        )
+        if declared_shard_samples != shard_samples_path:
+            raise ValueError(f"evaluation shard {expected_index} sample path mismatch")
+        if shard_summary.get("samples_file_sha256") != binding.get("samples_sha256"):
+            raise ValueError(f"evaluation shard {expected_index} sample hash mismatch")
+
+        rows = list(iter_jsonl(shard_samples_path))
+        if len(rows) != len(expected_slice) * sample_count:
+            raise ValueError(f"evaluation shard {expected_index} sample count mismatch")
+        cursor = 0
+        for offset, task_row in enumerate(expected_slice):
+            global_index = record_start + offset
+            record_id = str(task_row["record_id"])
+            expected_seed = _record_sampling_seed_v1(
+                seed_contract["base_seed"], task_hash, global_index, record_id
+            )
+            for sample_idx in range(sample_count):
+                row = rows[cursor]
+                cursor += 1
+                if (
+                    row.get("schema_version") != EVALUATION_SCHEMA_VERSION
+                    or row.get("record_id") != record_id
+                    or row.get("global_record_index") != global_index
+                    or row.get("record_seed") != expected_seed
+                    or row.get("sample_idx") != sample_idx
+                ):
+                    raise ValueError(
+                        f"evaluation shard {expected_index} sample order/seed mismatch"
+                    )
+        shard_bytes = shard_samples_path.read_bytes()
+        if not shard_bytes or not shard_bytes.endswith(b"\n"):
+            raise ValueError(f"evaluation shard {expected_index} samples are incomplete")
+        reconstructed.extend(shard_bytes)
+    if prior_stop != eligible:
+        raise ValueError("merged evaluation shard coverage is incomplete")
+    if samples_path.read_bytes() != bytes(reconstructed):
+        raise ValueError("merged samples are not the exact ordered concatenation of shards")
+
+    return {
+        "evaluation_artifact_kind": EVALUATION_MERGED_KIND,
+        "evaluation_contract_sha256": contract_hash,
+        "record_seed_contract": seed_contract,
+        "selected_record_ids_sha256": selected_ids_hash,
+        "evaluation_shard_count": shard_count,
+        "evaluation_shard_strategy": SHARD_STRATEGY,
+        "evaluation_merge_strategy": MERGE_STRATEGY,
+        "evaluation_merge_provenance_sha256": _evaluation_canonical_sha256(merge),
+        "evaluation_merge_custody_sha256": _evaluation_canonical_sha256(merge_custody),
+        "evaluation_merger_file_sha256": merger_hash,
+    }
+
+
 def checked_evaluation(
     summary_path: Path,
     samples_path: Path,
@@ -838,7 +1120,25 @@ def checked_evaluation(
     summary_path = Path(summary_path).resolve()
     samples_path = Path(samples_path).resolve()
     summary = _json_object(summary_path, "evaluation summary")
-    if summary.get("schema_version") != 1:
+    schema_version = summary.get("schema_version")
+    if schema_version == 1:
+        evaluation_provenance = {
+            "evaluation_artifact_kind": "legacy_monolithic_v1",
+            "evaluation_contract_sha256": None,
+            "record_seed_contract": None,
+            "selected_record_ids_sha256": None,
+            "evaluation_shard_count": 1,
+            "evaluation_shard_strategy": None,
+            "evaluation_merge_strategy": None,
+            "evaluation_merge_provenance_sha256": None,
+            "evaluation_merge_custody_sha256": None,
+            "evaluation_merger_file_sha256": None,
+        }
+    elif schema_version == EVALUATION_SCHEMA_VERSION:
+        evaluation_provenance = _checked_merged_evaluation_provenance(
+            summary_path, samples_path, summary
+        )
+    else:
         raise ValueError(f"unsupported evaluation summary schema: {summary_path}")
     if summary.get("model") != expected_model or summary.get("model_revision") != expected_revision:
         raise ValueError(
@@ -980,6 +1280,7 @@ def checked_evaluation(
         "evaluator_file_sha256": evaluator_hash,
         "evaluation_packages": packages,
         "tokenizer_contract_sha256": tokenizer_hash,
+        **evaluation_provenance,
     }
     return summary, grouped, binding
 
@@ -1019,6 +1320,10 @@ def _gate_strength(args: argparse.Namespace) -> str:
 def _require_scientific_evaluation_contract(
     summary: dict[str, Any], binding: dict[str, Any], *, decoding: dict[str, Any], label: str
 ) -> None:
+    if binding.get("evaluation_artifact_kind") != EVALUATION_MERGED_KIND:
+        raise ValueError(
+            f"scientific {label} evaluation requires a schema-v2 merged artifact"
+        )
     if binding.get("samples_per_problem") != SCIENTIFIC_SAMPLES_PER_PROBLEM:
         raise ValueError(
             f"scientific {label} evaluation requires exactly "
@@ -1106,6 +1411,11 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
         "evaluator_file_sha256",
         "evaluation_packages",
         "tokenizer_contract_sha256",
+        "record_seed_contract",
+        "selected_record_ids_sha256",
+        "evaluation_shard_count",
+        "evaluation_shard_strategy",
+        "evaluation_merge_strategy",
     ):
         if base_binding[field] != trained_binding[field]:
             raise ValueError(f"base and trained teacher evaluations differ in {field}")
@@ -1185,6 +1495,34 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
         "evaluator_file_sha256": base_binding["evaluator_file_sha256"],
         "evaluation_packages": base_binding["evaluation_packages"],
         "tokenizer_contract_sha256": base_binding["tokenizer_contract_sha256"],
+        "base_evaluation_artifact_kind": base_binding["evaluation_artifact_kind"],
+        "trained_evaluation_artifact_kind": trained_binding["evaluation_artifact_kind"],
+        "base_evaluation_contract_sha256": base_binding[
+            "evaluation_contract_sha256"
+        ],
+        "trained_evaluation_contract_sha256": trained_binding[
+            "evaluation_contract_sha256"
+        ],
+        "record_seed_contract": base_binding["record_seed_contract"],
+        "selected_record_ids_sha256": base_binding["selected_record_ids_sha256"],
+        "evaluation_shard_count": base_binding["evaluation_shard_count"],
+        "evaluation_shard_strategy": base_binding["evaluation_shard_strategy"],
+        "evaluation_merge_strategy": base_binding["evaluation_merge_strategy"],
+        "base_evaluation_merge_provenance_sha256": base_binding[
+            "evaluation_merge_provenance_sha256"
+        ],
+        "trained_evaluation_merge_provenance_sha256": trained_binding[
+            "evaluation_merge_provenance_sha256"
+        ],
+        "base_evaluation_merge_custody_sha256": base_binding[
+            "evaluation_merge_custody_sha256"
+        ],
+        "trained_evaluation_merge_custody_sha256": trained_binding[
+            "evaluation_merge_custody_sha256"
+        ],
+        "evaluation_merger_file_sha256": base_binding[
+            "evaluation_merger_file_sha256"
+        ],
         **prepared_binding,
         **run_binding,
     }
@@ -1287,6 +1625,22 @@ def student_support(args: argparse.Namespace) -> dict[str, Any]:
         "evaluator_file_sha256": binding["evaluator_file_sha256"],
         "evaluation_packages": binding["evaluation_packages"],
         "tokenizer_contract_sha256": binding["tokenizer_contract_sha256"],
+        "evaluation_artifact_kind": binding["evaluation_artifact_kind"],
+        "evaluation_contract_sha256": binding["evaluation_contract_sha256"],
+        "record_seed_contract": binding["record_seed_contract"],
+        "selected_record_ids_sha256": binding["selected_record_ids_sha256"],
+        "evaluation_shard_count": binding["evaluation_shard_count"],
+        "evaluation_shard_strategy": binding["evaluation_shard_strategy"],
+        "evaluation_merge_strategy": binding["evaluation_merge_strategy"],
+        "evaluation_merge_provenance_sha256": binding[
+            "evaluation_merge_provenance_sha256"
+        ],
+        "evaluation_merge_custody_sha256": binding[
+            "evaluation_merge_custody_sha256"
+        ],
+        "evaluation_merger_file_sha256": binding[
+            "evaluation_merger_file_sha256"
+        ],
         **prepared_binding,
     }
 

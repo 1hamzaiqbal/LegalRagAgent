@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.opd_evaluation_fixture import write_merged_evaluation
+
 from scripts.opd_math.merge_adapter import (
     clean_stable_git_custody,
     require_same_custody,
@@ -61,58 +63,22 @@ def task_rows(source, role, count):
 
 
 def write_evaluation(tmp_path, name, task, rows, reward, *, adapter=None):
-    samples = tmp_path / f"{name}-samples.jsonl"
-    write_jsonl(
-        samples,
-        [
-            {
-                "record_id": row["record_id"],
-                "sample_idx": sample_idx,
-                "source": "M",
-                "reward": reward,
-                "reward_status": "correct" if reward else "incorrect",
-                "completion_text": (
-                    f"Final answer: {row['solution']}."
-                    if reward
-                    else r"Final answer: \boxed{-999999}."
-                ),
-            }
-            for row in rows
-            for sample_idx in range(4)
-        ],
-    )
-    summary = tmp_path / f"{name}-summary.json"
-    payload = {
-        "schema_version": 1,
-        "model": MODEL,
-        "model_revision": REVISION,
-        "code": {
-            "git": {"commit": "e" * 40, "worktree_clean": True},
-            "evaluator_file_sha256": sha256_file(EVALUATOR),
-            "packages": {
-                "torch": "2.11.0",
-                "transformers": "4.57.6",
-                "peft": "0.19.1",
-                "math-verify": "0.9.0",
-            },
+    return write_merged_evaluation(
+        tmp_path,
+        name,
+        task,
+        {row["record_id"]: [reward] * 4 for row in rows},
+        model=MODEL,
+        revision=REVISION,
+        adapter=adapter,
+        packages={
+            "torch": "2.11.0",
+            "transformers": "4.57.6",
+            "peft": "0.19.1",
+            "math-verify": "0.9.0",
         },
-        "tokenizer_contract_sha256": "d" * 64,
-        "adapter": None if adapter is None else str(adapter.resolve()),
-        "adapter_tree_sha256": None if adapter is None else sha256_tree(adapter),
-        "task_file": str(task.resolve()),
-        "task_file_sha256": sha256_file(task),
-        "records": len(rows),
-        "task_sources": ["M"],
-        "task_roles": ["teacher_gap_dev"],
-        "samples_per_problem": 4,
-        "samples": len(rows) * 4,
-        "accuracy": float(reward),
-        "decoding": DECODING,
-        "samples_file": str(samples.resolve()),
-        "samples_file_sha256": sha256_file(samples),
-    }
-    summary.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
-    return summary, samples
+        decoding=DECODING,
+    )
 
 
 def write_gate_fixture(tmp_path):
@@ -446,15 +412,15 @@ def test_merge_custody_rejects_rehashed_completion_reward_tampering(tmp_path):
     summary["samples_file_sha256"] = sha256_file(trained_samples)
     trained_summary.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
 
-    # Simulate an attacker updating every directly exposed content hash while
-    # retaining the fabricated reward/status pair. Semantic recomputation must
-    # still reject the gate before merge.
+    # Simulate an attacker updating every directly exposed merged-content hash
+    # while retaining the fabricated reward/status pair. Shard reconstruction
+    # should reject this even before semantic reward recomputation is needed.
     gate["trained_samples_sha256"] = sha256_file(trained_samples)
     gate["trained_summary_sha256"] = sha256_file(trained_summary)
     forged = tmp_path / "completion-tampered-gate.json"
     forged.write_text(json.dumps(gate, indent=2, sort_keys=True) + "\n")
 
-    with pytest.raises(ValueError, match="verifier recomputation"):
+    with pytest.raises(ValueError, match="exact ordered concatenation"):
         validate_teacher_gate_for_merge(
             forged, base_model=MODEL, base_revision=REVISION, adapter=adapter
         )

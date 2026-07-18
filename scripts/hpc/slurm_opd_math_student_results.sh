@@ -8,11 +8,12 @@
 #SBATCH --output=/engrfs/tmp/jacobsn/hiqbal_legalrag/opd_math_result_%j.out
 
 set -euo pipefail
+: "${OPD_MATH_DATA_ROOT:?Set the exact reviewed canonical data root}"
 : "${OPD_MATH_RESULT_KIND:?Set heldout or matrix}"
 
 REPO="${OPD_MATH_REPO:-/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math}"
 ENV_DIR="${OPD_MATH_TRAIN_ENV:-/engrfs/project/jacobsn/hiqbal/envs/opd_math_train}"
-DATA_ROOT="${OPD_MATH_DATA_ROOT:-/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1}"
+DATA_ROOT="$OPD_MATH_DATA_ROOT"
 STUDENT="${OPD_MATH_STUDENT_MODEL:-Qwen/Qwen3-1.7B}"
 STUDENT_REVISION="${OPD_MATH_STUDENT_REVISION:-70d244cc86ccca08cf5af4e1e306ecf908b1ad5e}"
 

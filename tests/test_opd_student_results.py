@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.opd_evaluation_fixture import write_merged_evaluation
+
 from scripts.opd_math import quality_gates
 from scripts.opd_math import student_results as results
 
@@ -365,56 +367,22 @@ def student_run_fixture(tmp_path, prepared_path, prepared, train, train_rows, ad
 
 def evaluation_fixture(tmp_path, holdout, holdout_rows, adapter, source="M", rewards=None):
     rewards = rewards or [[0, 0, 0, 0] for _ in holdout_rows]
-    sample_rows = []
-    for row, row_rewards in zip(holdout_rows, rewards):
-        for sample_idx, reward in enumerate(row_rewards):
-            completion = (
-                r"Final answer: \boxed{1}." if reward else r"Final answer: \boxed{999}."
-            )
-            sample_rows.append(
-                {
-                    "schema_version": 1,
-                    "record_id": row["record_id"],
-                    "cluster_id": row["cluster_id"],
-                    "source": source,
-                    "sample_idx": sample_idx,
-                    "reward": float(reward),
-                    "reward_status": "correct" if reward else "incorrect",
-                    "completion_text": completion,
-                }
-            )
-    samples = tmp_path / "heldout" / "samples.jsonl"
-    write_jsonl(samples, sample_rows)
-    summary = {
-        "schema_version": 1,
-        "model": STUDENT,
-        "model_revision": STUDENT_REVISION,
-        "code": {
-            "git": {"commit": COMMIT, "worktree_clean": True},
-            "evaluator_file_sha256": results.sha256_file(
-                Path(results.__file__).parent / "evaluate_math.py"
-            ),
-            "packages": quality_gates.EXPECTED_EVALUATION_PACKAGES,
+    return write_merged_evaluation(
+        tmp_path,
+        "heldout",
+        holdout,
+        {
+            row["record_id"]: [float(value) for value in row_rewards]
+            for row, row_rewards in zip(holdout_rows, rewards)
         },
-        "tokenizer_contract_sha256": "b" * 64,
-        "adapter": str(adapter.resolve()),
-        "adapter_tree_sha256": results.sha256_tree(adapter),
-        "task_file": str(holdout.resolve()),
-        "task_file_sha256": results.sha256_file(holdout),
-        "records": len(holdout_rows),
-        "task_sources": [source],
-        "task_roles": ["source_holdout"],
-        "samples_per_problem": 4,
-        "samples": len(sample_rows),
-        "accuracy": sum(sum(row) for row in rewards) / len(sample_rows),
-        "prediction_parse_failure_fraction": 0.0,
-        "decoding": results.HELDOUT_DECODING,
-        "samples_file": str(samples.resolve()),
-        "samples_file_sha256": results.sha256_file(samples),
-    }
-    summary_path = tmp_path / "heldout" / "summary.json"
-    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
-    return summary_path, samples
+        model=STUDENT,
+        revision=STUDENT_REVISION,
+        adapter=adapter,
+        packages=quality_gates.EXPECTED_EVALUATION_PACKAGES,
+        git_commit=COMMIT,
+        tokenizer_contract_sha256="b" * 64,
+        decoding=results.HELDOUT_DECODING,
+    )
 
 
 def heldout_args(tmp_path):
@@ -438,6 +406,26 @@ def heldout_args(tmp_path):
         student_revision=STUDENT_REVISION,
         task_source="M",
     )
+
+
+def test_heldout_gate_rejects_legacy_monolithic_evaluation(tmp_path):
+    args = heldout_args(tmp_path)
+    payload = json.loads(Path(args.student_summary).read_text())
+    payload["schema_version"] = 1
+    for field in (
+        "artifact_kind",
+        "evaluation_contract",
+        "evaluation_contract_sha256",
+        "merge",
+        "merge_custody",
+        "record_seed_contract",
+    ):
+        payload.pop(field, None)
+    legacy = Path(args.student_summary).parent / "legacy-summary.json"
+    legacy.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    args.student_summary = legacy
+    with pytest.raises(ValueError, match="requires a schema-v2 merged artifact"):
+        results.student_heldout_result(args)
 
 
 def test_zero_accuracy_result_is_authorized_and_deterministically_recomputed(tmp_path, monkeypatch):

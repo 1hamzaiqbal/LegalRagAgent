@@ -234,13 +234,50 @@ student performance result was created.
    environment freezes.
 7. Run one `task_rl` baseline per student source, then the four M/M, M/O, O/M,
    and O/O `task_rl_k1_gap` arms.
-8. Evaluate all six adapters on their complete `source_holdout` files, create
-   six held-out custody gates, and build the exact six-arm readout with 10,000
+8. Evaluate all six adapters on the exact matched 370-row prefix of each
+   registered `source_holdout` file, create six held-out custody gates, and
+   build the exact six-arm readout with 10,000
    paired record-bootstrap draws. Compare reward, learning curves, token/latency
    cost, mixed-group frequency, teacher NLL, and gap strata.
 
 The stop rule remains simple: without a reproducible teacher skill gap and
 raw-student task support, do not launch the scientific OPD main arm.
+
+## Canonical reviewed data and raw-support continuation
+
+The conservative 666-row review file is now durably stored under
+`/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/reviews/v1`, together
+with the initial decisions, 59 reconciliation overrides, duplicate spot audit,
+and verified checksums. EIT job `106951` completed the repaired reviewed
+canonical preparation at
+`/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1_canonical_reviewed_19b24c2`.
+Its manifest SHA-256 is
+`dc4cf7dc36ae5b5178b782bb9c9841e096fbf42dabcbebaa74fb0ed6afcdf430`;
+`scientific_use_allowed=true` and the blocker list is empty. An independent
+streaming audit rehashed all 13 registered files and row counts. The frozen
+MATH test contains all 5,000 questions. Matched role budgets are 4,322 teacher
+training records, 2,161 student records, 353 teacher-gap records, and 370
+source-holdout records per source. That 353 gap value is the primary matched
+budget, not the scientific gate size: the full registered gap files contain 353
+M rows and 4,585 O rows, and the predeclared scientific gate rejects a prefix.
+
+Timing-only raw-student jobs `106955` (M) and `106956` (O) were launched on
+64-record prefixes from clean commit `19b24c2`. Job `106955` completed 64 x 4
+samples in 710 wall-clock seconds, including 601.904 generation seconds. Its
+55% sample accuracy is a timing/support diagnostic only; the favorable prefix
+cannot feed a scientific gate. Job `106956` completed in 876 wall-clock
+seconds, including 770.424 generation seconds; its sample accuracy was 9.8%.
+The O prefix likewise cannot feed a gate. Together they project roughly 12.9
+GPU-hours of generation for the two complete 2,161-record support surfaces,
+before model-load and filesystem overhead.
+
+The evaluator now supports immutable contiguous Slurm arrays.
+Every record receives a task-hash/index/ID-derived seed; GPU tasks write fresh
+transactional schema-v2 shards; a CPU merger proves complete disjoint coverage,
+recomputes rewards, and emits one canonical artifact; the quality gate
+independently reconstructs it from the bound shards. The planned full support
+run uses 34 balanced shards per source with four-way concurrency. This
+continuation still creates no teacher, OPD, or held-out performance claim.
 
 ## Known nonblocking hardening work
 

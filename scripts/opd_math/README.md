@@ -131,18 +131,19 @@ eligible role-file row or a training-seed study.
    `slurm_opd_math_quality_gate.sh`. A scientific teacher gate requires
    `OPD_MATH_EVAL_MAX_RECORDS=0`, meaning the complete registered
    `teacher_gap_dev` role file; a favorable prefix is not accepted. Before the
-   full O evaluation, run a labeled timing-only prefix and require its projected
-   full runtime to fit the 24-hour job with at least 25% headroom. Otherwise stop
-   and extend or make evaluation resumable; do not feed the prefix to a gate.
+   full O evaluation, run a labeled timing-only prefix, choose enough immutable
+   shards that every projected shard fits 24 hours with at least 25% headroom,
+   and record the aggregate GPU-hour budget. Do not feed the prefix to a gate.
 6. Merge only a teacher that passed its gate with
    `slurm_opd_math_merge_teacher.sh`, serve it with the separate vLLM
    environment, and run both the tokenizer and exact-token scoring probes.
 7. Run one `task_rl` baseline per student source (`M`, `O`), then compare each
    to `task_rl_k1_gap` for M_M, M_O, O_M, and O_O. Do not manufacture four
    baseline labels when the teacher coordinate is unused.
-8. Evaluate every promoted student adapter on the complete matching
-   `source_holdout` file with four samples and the exact student decoding
-   contract. Build six independent held-out custody gates, then combine exactly
+8. Evaluate every promoted student adapter on the exact matched 370-row prefix
+   of its registered `source_holdout` file with four samples and the exact
+   student decoding contract. Build six independent held-out custody gates,
+   then combine exactly
    `baseline_M`, `baseline_O`, `M_M`, `M_O`, `O_M`, and `O_O` into the matrix
    readout. Authorization is independent of whether an effect helps, harms, or
    is inconclusive.
@@ -159,7 +160,7 @@ fixed trained teacher into a lagged student and answers a different question.
 ## Artifact layout on EIT
 
 ```text
-/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1/
+/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1_canonical_reviewed_19b24c2/
   prepared_manifest.json
   roles/{M,O}/{teacher_train,student_opd,teacher_gap_dev,source_holdout}.jsonl
   eval/M_test.jsonl
@@ -190,7 +191,7 @@ export OPD_MATH_TRAIN_ENV=/engrfs/project/jacobsn/hiqbal/envs/opd_math_train
 export OPD_MATH_SERVE_ENV=/engrfs/project/jacobsn/hiqbal/envs/opd_math_serve
 export OPD_MATH_HF_HOME=/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache
 export OPD_MATH_RUN_ROOT=/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math
-export OPD_MATH_DATA_ROOT=/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1
+export OPD_MATH_DATA_ROOT=/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1_canonical_reviewed_19b24c2
 mkdir -p /engrfs/tmp/jacobsn/hiqbal_legalrag
 test ! -e "$OPD_MATH_REPO"
 git clone --branch codex/opd_math_pipeline --single-branch \
@@ -213,11 +214,12 @@ The stages, launch surfaces, and required per-job settings are:
 | Teacher signal smoke | `slurm_opd_math_teacher_smoke.sh` | `OPD_MATH_TEACHER_SOURCE=M` or `O`; audit or canonical data root | plumbing only |
 | Teacher training | `slurm_opd_math_teacher_train.sh` | source, exact teacher limit, explicit steps, `primary_matched` | eligible run manifest; quality still unknown |
 | Repeated evaluation | `slurm_opd_math_evaluate.sh` | source, role, pinned model/revision, explicit record count and label; adapter only for trained model | artifact only |
+| Evaluation merge | `slurm_opd_math_merge_evaluation.sh` | same source/role/label/run ID, exact shard count and task root; CPU dependency after every shard succeeds | one reconstruction-checked evaluation artifact; still no task claim |
 | Teacher gate | `slurm_opd_math_quality_gate.sh` | base/trained summaries and samples, adapter, teacher run manifest, source | scientific gate passes |
 | Student-support gate | same quality-gate launcher | raw-student summary/samples, pinned identity, source | scientific gate passes; otherwise stop |
 | Teacher merge | `slurm_opd_math_merge_teacher.sh` | passing gate, exact adapter/base identity, fresh output | provenance and checkpoint hash exist |
 | Student baseline/main | `slurm_opd_math_student_train.sh` | explicit mode, steps, task limit, budget and support gate; commit-specific train freeze; main also needs pair, teacher gate/checkpoint/provenance, and serve freeze | training artifact only; held-out evaluation remains required |
-| Held-out student result / matrix | `slurm_opd_math_student_results.sh` | `heldout`: one eligible run, completion, exact adapter, and complete `source_holdout` evaluation; `matrix`: exactly six passing held-out gates | deterministic custody readout; effect sign does not determine authorization |
+| Held-out student result / matrix | `slurm_opd_math_student_results.sh` | `heldout`: one eligible run, completion, exact adapter, and exact matched 370-row `source_holdout` prefix; `matrix`: exactly six passing held-out gates | deterministic custody readout; effect sign does not determine authorization |
 
 Create the environments on a networked login node, fill the shared model cache
 online, and only then run the offline GPU preflights:
@@ -270,7 +272,7 @@ OPD_MATH_AUDIT_LIMIT=64 sbatch scripts/hpc/slurm_opd_math_prepare_data.sh
 OPD_MATH_DATA_ROOT=/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1_semantic_audit \
 sbatch scripts/hpc/slurm_opd_math_prepare_data.sh
 
-OPD_MATH_DATA_ROOT=/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1 \
+OPD_MATH_DATA_ROOT=/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1_canonical_reviewed_19b24c2 \
 OPD_MATH_SEMANTIC_REVIEW_JSONL=/absolute/path/to/reviewed-decisions.jsonl \
 sbatch scripts/hpc/slurm_opd_math_prepare_data.sh
 ```
@@ -340,13 +342,47 @@ OPD_MATH_EVAL_MODEL_REVISION=<40-hex revision>
 OPD_MATH_EVAL_MAX_RECORDS=<explicit integer; 0 means the complete role>
 OPD_MATH_EVAL_LABEL=<new filesystem-safe label>
 OPD_MATH_EVAL_ADAPTER=<adapter directory; omit for a base/raw-model evaluation>
+OPD_MATH_EVAL_SHARDS=<positive contiguous shard count; default 1>
+OPD_MATH_EVAL_RUN_ID=<stable filesystem-safe ID; required for every evaluation>
 ```
 
-For the O teacher, first run a timing-only base-model prefix, for example 128
-records. Use its `total_generation_latency_seconds` to project the complete role
-runtime. The prefix is not gate evidence. Launch `MAX_RECORDS=0` base and trained
-evaluations only when the projection is at most 18 hours; otherwise stop and
-change the walltime or add resumable evaluation first.
+Every evaluation writes an immutable schema-v2 shard, including a one-shard
+run; anything intended for a gate must pass through the CPU merger. `MAX_RECORDS` is the
+global selected prefix, not a per-shard budget. Each record's RNG seed binds
+the base seed, complete task-file hash, global row index, and record ID, so a
+retry or a different shard count cannot change that record's random stream.
+Each array task writes transactionally to
+`.../$RUN_ID/shards/shard_NNNNN`; a failed task leaves only a separately named
+partial directory. Resume by submitting only the missing shard indices. Never
+append to or replace a completed shard. If the original array failed, its
+`afterok` merge dependency will not run; after the missing-index retry succeeds,
+submit a fresh CPU merge job against the same stable run ID.
+
+After every shard succeeds, merge on CPU with the matching source, role,
+label, run ID, shard count, data root, and run root:
+
+```bash
+ARRAY_RAW=$(sbatch --parsable --array=0-33%4 \
+  scripts/hpc/slurm_opd_math_evaluate.sh)
+ARRAY_JOB=${ARRAY_RAW%%;*}
+MERGE_JOB=$(sbatch --parsable --dependency="afterok:$ARRAY_JOB" \
+  scripts/hpc/slurm_opd_math_merge_evaluation.sh)
+printf 'array=%s merge=%s\n' "$ARRAY_JOB" "$MERGE_JOB"
+```
+
+The merger requires the exact numbered shard set, reopens the task and any
+adapter, verifies clean start/end code custody, recomputes record seeds and
+math rewards, proves gap-free coverage and canonical sample order, and emits a
+fresh merged summary plus samples. A raw shard is never accepted by a quality
+gate. The gate independently reopens every bound shard and reconstructs the
+merged byte stream, so deleting or mutating a shard invalidates the result.
+
+For the O teacher, first run a timing-only base-model prefix, for example 32
+records. Use its `total_generation_latency_seconds` to choose a shard count
+whose projected **per-shard** runtime is at most 18 hours, and separately record
+the complete campaign's projected GPU-hours. The prefix is not gate evidence.
+The full base and trained contracts still use `MAX_RECORDS=0`; resumability is
+provided by immutable shards, not by truncating the registered O role.
 
 A teacher gate additionally requires all of the following, with a fresh output:
 
@@ -365,13 +401,23 @@ OPD_MATH_GATE_OUTPUT=<new persistent JSON path>
 `teacher_skill_dev` and `target_gap_dev` are evaluator aliases for the
 source-specific physical `teacher_gap_dev` file. Only the teacher's own-source
 `teacher_skill_dev` base/trained pair feeds its scientific teacher gate;
-`target_gap_dev` is reported separately.
+`target_gap_dev` is reported separately. Do not confuse the manifest's 353-row
+primary matched budget with the scientific gate's complete-role requirement:
+the registered M gap file has 353 rows and the registered O gap file has 4,585.
+The scientific base and trained evaluations therefore use 353 M rows and 4,585
+O rows respectively. Run a timing-only O prefix before choosing its shard count;
+do not silently cap the O gate at 353.
 
 ### Student support, merge, and student runs
 
 Evaluate the pinned raw student with role `student_support`, record count exactly
 `$STUDENT_LIMIT`, and the future training contract: four samples, temperature
-1, top-p 1, top-k 0, max-new-tokens 512, and the same seed. Then set:
+1, top-p 1, top-k 0, max-new-tokens 512, and the same seed. The reviewed
+canonical budget is 2,161 records per source. The measured M timing prefix took
+601.904 generation seconds for 64 records; the matching O prefix took 770.424
+seconds. Use 34 balanced shards (63--64 records each) and `%4` concurrency for
+both sources. Timing prefixes are not gate evidence. Feed only each CPU-merged
+`summary.json` and `samples.jsonl` to the gate. Then set:
 
 ```text
 OPD_MATH_GATE_KIND=student_support
@@ -405,9 +451,10 @@ and exact-token probes must pass. Final adapters still require repeated held-out
 evaluation; the training completion manifest is not a task-performance result.
 
 For each promoted adapter, run the evaluation launcher with role
-`source_holdout`, `OPD_MATH_EVAL_MAX_RECORDS=0`, four samples, temperature 1,
-top-p 1, top-k 0, max-new-tokens 512, and seed zero. Then create a fresh held-out
-gate with:
+`source_holdout`, `OPD_MATH_EVAL_MAX_RECORDS=370`, four samples, temperature 1,
+top-p 1, top-k 0, max-new-tokens 512, and seed zero. The physical O file is
+larger; `MAX_RECORDS=0` would violate the matched held-out contract and fail the
+result gate. Then create a fresh held-out gate with:
 
 ```text
 OPD_MATH_RESULT_KIND=heldout
@@ -415,7 +462,7 @@ OPD_MATH_MATRIX_KEY=baseline_M|baseline_O|M_M|M_O|O_M|O_O
 OPD_MATH_RESULT_SOURCE=M|O
 OPD_MATH_STUDENT_RUN_MANIFEST=<eligible run_manifest.json>
 OPD_MATH_STUDENT_COMPLETION_MANIFEST=<sibling completion_manifest.json>
-OPD_MATH_STUDENT_EVAL_{SUMMARY,SAMPLES}=<complete source_holdout artifacts>
+OPD_MATH_STUDENT_EVAL_{SUMMARY,SAMPLES}=<exact merged 370-row holdout artifacts>
 OPD_MATH_STUDENT_ADAPTER=<exact evaluated final adapter>
 OPD_MATH_RESULT_OUTPUT=<new held-out gate JSON>
 ```

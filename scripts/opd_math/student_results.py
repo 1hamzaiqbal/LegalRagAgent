@@ -26,6 +26,7 @@ try:
     from .data_contract import iter_jsonl
     from .math_reward import verify_completion
     from .quality_gates import (
+        EVALUATION_MERGED_KIND,
         EXPECTED_TEACHER_TRAIN_PACKAGES,
         _prepared_role_binding,
         canonical_json_sha256,
@@ -39,6 +40,7 @@ except ImportError:
     from data_contract import iter_jsonl  # type: ignore
     from math_reward import verify_completion  # type: ignore
     from quality_gates import (  # type: ignore
+        EVALUATION_MERGED_KIND,
         EXPECTED_TEACHER_TRAIN_PACKAGES,
         _prepared_role_binding,
         canonical_json_sha256,
@@ -1142,6 +1144,10 @@ def student_heldout_result(args: Namespace) -> dict[str, Any]:
         expected_source=args.task_source,
         expected_role=SOURCE_HOLDOUT_ROLE,
     )
+    if evaluation_binding.get("evaluation_artifact_kind") != EVALUATION_MERGED_KIND:
+        raise ValueError(
+            "scientific held-out evaluation requires a schema-v2 merged artifact"
+        )
     if evaluation_binding["samples_per_problem"] != SAMPLES_PER_PROBLEM:
         raise ValueError("scientific held-out evaluation requires exactly four samples per record")
     if summary.get("decoding") != HELDOUT_DECODING:

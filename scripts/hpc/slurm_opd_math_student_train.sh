@@ -10,6 +10,7 @@
 #SBATCH --output=/engrfs/tmp/jacobsn/hiqbal_legalrag/opd_math_student_full_%j.out
 
 set -euo pipefail
+: "${OPD_MATH_DATA_ROOT:?Set the exact reviewed canonical data root}"
 : "${OPD_MATH_STUDENT_MODE:?Set task_rl or task_rl_k1_gap explicitly}"
 : "${OPD_MATH_STUDENT_STEPS:?Set an explicit student optimizer-step budget}"
 : "${OPD_MATH_TASK_LIMIT:?Set the matched student-pool limit from prepared_manifest.json}"
@@ -36,7 +37,7 @@ fi
 REPO="${OPD_MATH_REPO:-/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math}"
 TRAIN_ENV="${OPD_MATH_TRAIN_ENV:-/engrfs/project/jacobsn/hiqbal/envs/opd_math_train}"
 SERVE_ENV="${OPD_MATH_SERVE_ENV:-/engrfs/project/jacobsn/hiqbal/envs/opd_math_serve}"
-DATA_ROOT="${OPD_MATH_DATA_ROOT:-/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1}"
+DATA_ROOT="$OPD_MATH_DATA_ROOT"
 RUN_ROOT="${OPD_MATH_RUN_ROOT:-/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math}"
 HF_CACHE="${OPD_MATH_HF_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache}"
 STUDENT="Qwen/Qwen3-1.7B"

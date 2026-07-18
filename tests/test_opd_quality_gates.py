@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.opd_evaluation_fixture import write_merged_evaluation
+
 from scripts.opd_math.quality_gates import (
     CANONICAL_TEACHER_TRAINING_PLAN,
     EXPECTED_TEACHER_TRAIN_PACKAGES,
@@ -318,65 +320,39 @@ def write_evaluation(
     decoding=DECODING,
 ):
     directory.mkdir(parents=True, exist_ok=True)
-    samples_path = directory / f"{name}-samples.jsonl"
-    summary_path = directory / f"{name}-summary.json"
-    task_by_record = {
-        row["record_id"]: row
-        for row in (json.loads(line) for line in task_path.read_text().splitlines())
-    }
-    sample_rows = []
-    for record_id, rewards in rewards_by_record.items():
-        for sample_idx, reward in enumerate(rewards):
-            completion = (
-                f"Final answer: {task_by_record[record_id]['solution']}."
-                if reward
-                else r"Final answer: \boxed{-999999}."
-            )
-            sample_rows.append(
-                {
-                    "record_id": record_id,
-                    "source": source,
-                    "sample_idx": sample_idx,
-                    "reward": reward,
-                    "reward_status": "correct" if reward else "incorrect",
-                    "completion_text": completion,
-                }
-            )
-    write_jsonl(samples_path, sample_rows)
-    total = len(sample_rows)
-    samples_per_problem = len(next(iter(rewards_by_record.values())))
-    summary = {
-        "schema_version": 1,
-        "model": model,
-        "model_revision": revision,
-        "code": {
-            "git": {"commit": "e" * 40, "worktree_clean": True},
-            "evaluator_file_sha256": sha256_file(EVALUATOR),
-            "packages": {
-                "torch": "2.11.0",
-                "transformers": "4.57.6",
-                "peft": "0.19.1",
-                "math-verify": "0.9.0",
-            },
+    return write_merged_evaluation(
+        directory,
+        name,
+        task_path,
+        rewards_by_record,
+        model=model,
+        revision=revision,
+        adapter=adapter,
+        packages={
+            "torch": "2.11.0",
+            "transformers": "4.57.6",
+            "peft": "0.19.1",
+            "math-verify": "0.9.0",
         },
-        "tokenizer_contract_sha256": "d" * 64,
-        "adapter": None if adapter is None else str(adapter.resolve()),
-        "adapter_tree_sha256": None if adapter is None else sha256_tree(adapter),
-        "task_file": str(task_path.resolve()),
-        "task_file_sha256": sha256_file(task_path),
-        "records": len(rewards_by_record),
-        "task_sources": [source],
-        "task_roles": [role],
-        "samples_per_problem": samples_per_problem,
-        "samples": total,
-        "accuracy": sum(row["reward"] for row in sample_rows) / total,
-        "prediction_parse_failure_fraction": 0.0,
-        "decoding": decoding,
-        "samples_file": str(samples_path.resolve()),
-        "samples_file_sha256": sha256_file(samples_path),
-    }
-    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
-    return summary_path, samples_path
+        decoding=decoding,
+    )
+
+
+def legacy_summary_copy(summary_path, name):
+    payload = json.loads(Path(summary_path).read_text())
+    payload["schema_version"] = 1
+    for field in (
+        "artifact_kind",
+        "evaluation_contract",
+        "evaluation_contract_sha256",
+        "merge",
+        "merge_custody",
+        "record_seed_contract",
+    ):
+        payload.pop(field, None)
+    path = Path(summary_path).parent / name
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    return path
 
 
 def teacher_args(
@@ -440,6 +416,48 @@ def passing_scientific_teacher_fixture(tmp_path):
         prepared_manifest=prepared_manifest,
         teacher_run_manifest=run_manifest,
     )
+
+
+def test_scientific_teacher_gate_rejects_legacy_monolithic_summary(tmp_path):
+    args = passing_scientific_teacher_fixture(tmp_path)
+    args.base_summary = legacy_summary_copy(args.base_summary, "legacy-summary.json")
+    with pytest.raises(ValueError, match="requires a schema-v2 merged artifact"):
+        teacher_gap(args)
+
+
+def test_scientific_student_support_rejects_legacy_monolithic_summary(tmp_path):
+    prepared_manifest, _, role_paths, role_rows = write_prepared(
+        tmp_path, student_count=100
+    )
+    task = role_paths["student_opd"]
+    rows = role_rows["student_opd"]
+    summary, samples = write_evaluation(
+        tmp_path,
+        "student-legacy",
+        task,
+        {row["record_id"]: [0, 1, 0, 1] for row in rows},
+        model=STUDENT_MODEL,
+        revision=STUDENT_REVISION,
+        role="student_opd",
+        decoding=STUDENT_SUPPORT_DECODING,
+    )
+    legacy = legacy_summary_copy(summary, "legacy-summary.json")
+    with pytest.raises(ValueError, match="requires a schema-v2 merged artifact"):
+        student_support(
+            Namespace(
+                student_summary=legacy,
+                student_samples=samples,
+                student_model=STUDENT_MODEL,
+                student_revision=STUDENT_REVISION,
+                prepared_manifest=prepared_manifest,
+                task_source="M",
+                task_role="student_opd",
+                min_pass_at_k=0.1,
+                min_mixed_group_fraction=0.1,
+                min_records=None,
+                smoke_gate=False,
+            )
+        )
 
 
 def rewrite_teacher_trace_claim(run_manifest, trace_rows, realized_training):
@@ -792,7 +810,7 @@ def test_teacher_gate_rejects_adapter_changed_after_evaluation(tmp_path):
         tmp_path, prepared_manifest, adapter, scientific=False
     )
     (adapter / "adapter_config.json").write_text('{"r": 16}\n')
-    with pytest.raises(ValueError, match="differs from the identity recorded"):
+    with pytest.raises(ValueError, match="adapter changed after generation"):
         teacher_gap(
             teacher_args(
                 base_summary=base_summary,

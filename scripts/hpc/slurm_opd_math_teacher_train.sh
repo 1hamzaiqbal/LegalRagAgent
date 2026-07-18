@@ -10,11 +10,12 @@
 #SBATCH --output=/engrfs/tmp/jacobsn/hiqbal_legalrag/opd_math_teacher_full_%j.out
 
 set -euo pipefail
+: "${OPD_MATH_DATA_ROOT:?Set the exact reviewed canonical data root}"
 : "${OPD_MATH_TEACHER_LIMIT:?Set the matched teacher-example limit from prepared_manifest.json}"
 
 REPO="${OPD_MATH_REPO:-/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math}"
 ENV_DIR="${OPD_MATH_TRAIN_ENV:-/engrfs/project/jacobsn/hiqbal/envs/opd_math_train}"
-DATA_ROOT="${OPD_MATH_DATA_ROOT:-/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1}"
+DATA_ROOT="$OPD_MATH_DATA_ROOT"
 RUN_ROOT="${OPD_MATH_RUN_ROOT:-/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math}"
 HF_CACHE="${OPD_MATH_HF_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache}"
 SOURCE="${OPD_MATH_TEACHER_SOURCE:-M}"

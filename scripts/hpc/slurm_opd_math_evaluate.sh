@@ -16,6 +16,8 @@ set -euo pipefail
 : "${OPD_MATH_EVAL_MODEL_REVISION:?Set the pinned base model revision}"
 : "${OPD_MATH_EVAL_MAX_RECORDS:?Set an explicit record budget; use 0 only for the full role file}"
 : "${OPD_MATH_EVAL_LABEL:?Set a filesystem-safe output label such as M_base or M_trained}"
+: "${OPD_MATH_EVAL_RUN_ID:?Set a stable filesystem-safe evaluation run ID}"
+: "${OPD_MATH_DATA_ROOT:?Set the exact reviewed canonical data root}"
 
 case "$OPD_MATH_EVAL_SOURCE" in M|O) ;; *) echo "invalid OPD_MATH_EVAL_SOURCE" >&2; exit 2 ;; esac
 case "$OPD_MATH_EVAL_ROLE" in
@@ -40,14 +42,32 @@ else
   EVAL_MAX_NEW_TOKENS="${OPD_MATH_EVAL_MAX_NEW_TOKENS:-1024}"
 fi
 [[ "$OPD_MATH_EVAL_LABEL" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "unsafe OPD_MATH_EVAL_LABEL" >&2; exit 2; }
+SHARD_COUNT="${OPD_MATH_EVAL_SHARDS:-1}"
+[[ "$SHARD_COUNT" =~ ^[1-9][0-9]*$ ]] || { echo "OPD_MATH_EVAL_SHARDS must be a positive integer" >&2; exit 2; }
+if [[ -z "${OPD_MATH_EVAL_SHARD_INDEX:-}" && -z "${SLURM_ARRAY_TASK_ID:-}" ]] && (( SHARD_COUNT > 1 )); then
+  echo "sharded evaluation requires SLURM_ARRAY_TASK_ID or OPD_MATH_EVAL_SHARD_INDEX" >&2
+  exit 2
+fi
+if [[ -n "${OPD_MATH_EVAL_SHARD_INDEX:-}" && -n "${SLURM_ARRAY_TASK_ID:-}" && "$OPD_MATH_EVAL_SHARD_INDEX" != "$SLURM_ARRAY_TASK_ID" ]]; then
+  echo "explicit shard index conflicts with SLURM_ARRAY_TASK_ID" >&2
+  exit 2
+fi
+SHARD_INDEX="${SLURM_ARRAY_TASK_ID:-${OPD_MATH_EVAL_SHARD_INDEX:-0}}"
+[[ "$SHARD_INDEX" =~ ^[0-9]+$ ]] || { echo "evaluation shard index must be nonnegative" >&2; exit 2; }
+if (( SHARD_INDEX >= SHARD_COUNT )); then
+  echo "evaluation shard index must be smaller than OPD_MATH_EVAL_SHARDS" >&2
+  exit 2
+fi
 
 REPO="${OPD_MATH_REPO:-/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math}"
 ENV_DIR="${OPD_MATH_TRAIN_ENV:-/engrfs/project/jacobsn/hiqbal/envs/opd_math_train}"
-DATA_ROOT="${OPD_MATH_DATA_ROOT:-/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1}"
+DATA_ROOT="$OPD_MATH_DATA_ROOT"
 RUN_ROOT="${OPD_MATH_RUN_ROOT:-/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math}"
 HF_CACHE="${OPD_MATH_HF_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache}"
 TASK="$DATA_ROOT/$TASK_REL"
-OUT="$RUN_ROOT/evaluations/$OPD_MATH_EVAL_ROLE/$OPD_MATH_EVAL_LABEL/run_${SLURM_JOB_ID}"
+[[ "$OPD_MATH_EVAL_RUN_ID" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "unsafe OPD_MATH_EVAL_RUN_ID" >&2; exit 2; }
+printf -v SHARD_NAME 'shard_%05d' "$SHARD_INDEX"
+OUT="$RUN_ROOT/evaluations/$OPD_MATH_EVAL_ROLE/$OPD_MATH_EVAL_LABEL/$OPD_MATH_EVAL_RUN_ID/shards/$SHARD_NAME"
 
 test -x "$ENV_DIR/bin/python"
 test -f "$TASK"
@@ -71,6 +91,8 @@ ARGS=(
   --top-p "$EVAL_TOP_P"
   --top-k "$EVAL_TOP_K"
   --seed "${OPD_MATH_SEED:-0}"
+  --shard-count "$SHARD_COUNT"
+  --shard-index "$SHARD_INDEX"
   --write-completions
   --local-files-only
 )
