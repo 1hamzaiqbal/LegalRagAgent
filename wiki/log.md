@@ -441,3 +441,26 @@ custody is required from whether it actually passed. EIT regression job
 pass. No full teacher/student run was launched; the next gate is full canonical
 data preparation followed by raw-student support and held-out teacher-gap
 evaluation.
+
+## [2026-07-18] OPD full semantic audit + scientific-contract hardening | canonical rerun pending
+
+EIT job `106884` completed the full M/O semantic scan with no skipped buckets.
+The audit manifest is
+`2fdedc71e9426c66ec971d146c325bff41f248220441432b91a8fe44ff8b6698`;
+its 666-row review packet is
+`b44faf43cbf062397101b1185e8aacb06413500b2704e5bd0d9d3301c40842b4`.
+All 666 pairs were conservatively finalized as duplicate, producing decision
+SHA `e135fd2994f5d9ff243ccd392116661ff2a7a69e35ce9544ad3736445122ee4c`.
+The audit also exposed a 4,995-versus-5,000 frozen-test defect: shared-stem
+subquestions were being removed rather than retained while only touching
+training rows were quarantined. The partition contract and regression tests now
+require all 5,000 MATH test questions.
+
+The same pass bound the two baselines and four OPD arms to one committed
+100-step student plan; added exact teacher/student sample geometry, prompt and
+token custody, independent TRL teacher-reward recomputation, realized training
+sequence hashes, complete held-out result gates, and a deterministic six-arm
+paired-bootstrap readout. All 143 tests passed before this documentation pass.
+At this checkpoint the review file still needed durable EIT persistence and the
+fresh canonical rerun remained pending. No scientific GPU training was
+launched.

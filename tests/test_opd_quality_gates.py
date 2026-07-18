@@ -1,4 +1,5 @@
 from argparse import Namespace
+import hashlib
 import json
 from pathlib import Path
 
@@ -34,6 +35,14 @@ def write_jsonl(path, rows):
     path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows))
 
 
+def teacher_trace_completion(solution, sample_idx):
+    return (
+        f"Final answer: {solution}."
+        if sample_idx == 0
+        else r"Final answer: \boxed{-999999}."
+    )
+
+
 def write_task(path, count, *, source="M", role="teacher_gap_dev"):
     path.parent.mkdir(parents=True, exist_ok=True)
     rows = [
@@ -42,6 +51,7 @@ def write_task(path, count, *, source="M", role="teacher_gap_dev"):
             "cluster_id": f"cluster:{source}:{index}",
             "source": source,
             "role": role,
+            "prompt": [{"role": "user", "content": f"Solve problem {index}."}],
             "solution": rf"\boxed{{{index + 1}}}",
         }
         for index in range(count)
@@ -122,15 +132,112 @@ def write_teacher_run(tmp_path, prepared_manifest, adapter, *, source="M", scien
     )
     trainer_log = tmp_path / "trainer_log_history.json"
     trainer_log.write_text(
-        json.dumps([{"step": fixed_config["max_steps"], "loss": 0.0}], sort_keys=True)
+        json.dumps(
+            [
+                {
+                    "step": fixed_config["max_steps"],
+                    "loss": 0.0,
+                    "frac_reward_zero_std": 0.0,
+                    "reward_std": 0.5,
+                    "completions/clipped_ratio": 0.0,
+                }
+            ],
+            sort_keys=True,
+        )
         + "\n"
     )
+    reward_signal = {
+        "informative_reward_observed": True,
+        "reward_log_entries": 1,
+        "frac_reward_zero_std": [0.0],
+        "max_mixed_reward_sample_fraction": 1.0,
+        "reward_std": [0.5],
+        "completion_clipped_ratio": [0.0],
+    }
     train_metrics = tmp_path / "train_metrics.json"
     train_metrics.write_text(
         json.dumps(
             {
                 "actual_optimizer_steps": fixed_config["max_steps"],
                 "optimizer_progress_complete": True,
+            },
+            sort_keys=True,
+        )
+        + "\n"
+    )
+    teacher_samples = tmp_path / "teacher_samples.jsonl"
+    training_rows = [
+        json.loads(line) for line in training_path.read_text().splitlines() if line.strip()
+    ]
+    teacher_samples.write_text(
+        "".join(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "reward_batch_index": step,
+                    "sample_idx": sample_idx,
+                    "record_id": training_rows[step % len(training_rows)]["record_id"],
+                    "source": source,
+                    "solution": training_rows[step % len(training_rows)]["solution"],
+                    "prompt_sha256": canonical_json_sha256(
+                        training_rows[step % len(training_rows)]["prompt"]
+                    ),
+                    "prompt_tokens": 12,
+                    "prompt_token_ids": list(range(12)),
+                    "completion_tokens": 32,
+                    "completion_token_ids": list(range(32)),
+                    "completion_text": teacher_trace_completion(
+                        training_rows[step % len(training_rows)]["solution"],
+                        sample_idx,
+                    ),
+                    "completion_sha256": hashlib.sha256(
+                        teacher_trace_completion(
+                            training_rows[step % len(training_rows)]["solution"],
+                            sample_idx,
+                        ).encode()
+                    ).hexdigest(),
+                    "reward": 1.0 if sample_idx == 0 else 0.0,
+                },
+                sort_keys=True,
+            )
+            + "\n"
+            for step in range(fixed_config["max_steps"])
+            for sample_idx in range(fixed_config["num_generations"])
+        )
+    )
+    realized_training = {
+        "reward_batches": fixed_config["max_steps"],
+        "completion_samples": fixed_config["max_steps"] * fixed_config["num_generations"],
+        "unique_training_records": len(training_rows),
+        "realized_record_ids_sha256": canonical_json_sha256(
+            [
+                training_rows[step % len(training_rows)]["record_id"]
+                for step in range(fixed_config["max_steps"])
+            ]
+        ),
+        "realized_training_indices_sha256": canonical_json_sha256(
+            [step % len(training_rows) for step in range(fixed_config["max_steps"])]
+        ),
+        "prompt_group_tokens": fixed_config["max_steps"] * 12,
+        "sample_expanded_prompt_tokens": (
+            fixed_config["max_steps"] * 12 * fixed_config["num_generations"]
+        ),
+        "total_completion_tokens": (
+            fixed_config["max_steps"] * fixed_config["num_generations"] * 32
+        ),
+        "reward_sum": float(fixed_config["max_steps"]),
+        "reward_mean": 1.0 / fixed_config["num_generations"],
+        "informative_reward_groups": fixed_config["max_steps"],
+        "informative_reward_group_fraction": 1.0,
+        "expected_geometry_observed": True,
+    }
+    train_metrics.write_text(
+        json.dumps(
+            {
+                "actual_optimizer_steps": fixed_config["max_steps"],
+                "optimizer_progress_complete": True,
+                "reward_signal": reward_signal,
+                "realized_training": realized_training,
             },
             sort_keys=True,
         )
@@ -167,12 +274,17 @@ def write_teacher_run(tmp_path, prepared_manifest, adapter, *, source="M", scien
         "actual_optimizer_steps": fixed_config["max_steps"],
         "trainer_log_max_step": fixed_config["max_steps"],
         "optimizer_progress_complete": True,
+        "reward_signal": reward_signal,
         "trainer_state": str(trainer_state.resolve()),
         "trainer_state_sha256": sha256_file(trainer_state),
         "trainer_log_history": str(trainer_log.resolve()),
         "trainer_log_history_sha256": sha256_file(trainer_log),
         "train_metrics": str(train_metrics.resolve()),
         "train_metrics_sha256": sha256_file(train_metrics),
+        "teacher_samples": str(teacher_samples.resolve()),
+        "teacher_samples_sha256": sha256_file(teacher_samples),
+        "teacher_samples_rows": realized_training["completion_samples"],
+        "realized_training": realized_training,
         "prompt_token_diagnostics": {
             "selected_prompts": prepared["primary_matched_budgets"]["teacher_train"],
             "max_prompt_tokens_allowed": fixed_config["max_prompt_tokens"],
@@ -298,6 +410,53 @@ def teacher_args(
     )
 
 
+def passing_scientific_teacher_fixture(tmp_path):
+    prepared_manifest, _, role_paths, role_rows = write_prepared(tmp_path)
+    task = role_paths["teacher_gap_dev"]
+    task_rows = role_rows["teacher_gap_dev"]
+    adapter = tmp_path / "teacher-adapter"
+    adapter.mkdir()
+    (adapter / "adapter_config.json").write_text('{"r": 8}\n')
+    run_manifest = write_teacher_run(tmp_path, prepared_manifest, adapter)
+    base_summary, base_samples = write_evaluation(
+        tmp_path,
+        "base",
+        task,
+        {row["record_id"]: [0, 0, 0, 0] for row in task_rows},
+    )
+    trained_summary, trained_samples = write_evaluation(
+        tmp_path,
+        "trained",
+        task,
+        {row["record_id"]: [1, 1, 1, 1] for row in task_rows},
+        adapter=adapter,
+    )
+    return teacher_args(
+        base_summary=base_summary,
+        base_samples=base_samples,
+        trained_summary=trained_summary,
+        trained_samples=trained_samples,
+        adapter=adapter,
+        prepared_manifest=prepared_manifest,
+        teacher_run_manifest=run_manifest,
+    )
+
+
+def rewrite_teacher_trace_claim(run_manifest, trace_rows, realized_training):
+    run = json.loads(run_manifest.read_text())
+    trace_path = Path(run["teacher_samples"])
+    write_jsonl(trace_path, trace_rows)
+    metrics_path = Path(run["train_metrics"])
+    metrics = json.loads(metrics_path.read_text())
+    metrics["realized_training"] = realized_training
+    metrics_path.write_text(json.dumps(metrics, sort_keys=True) + "\n")
+    run["teacher_samples_sha256"] = sha256_file(trace_path)
+    run["teacher_samples_rows"] = len(trace_rows)
+    run["realized_training"] = realized_training
+    run["train_metrics_sha256"] = sha256_file(metrics_path)
+    run_manifest.write_text(json.dumps(run, indent=2, sort_keys=True) + "\n")
+
+
 def test_scientific_teacher_gate_requires_records_strict_gain_and_positive_ci(tmp_path):
     prepared_manifest, _, role_paths, role_rows = write_prepared(tmp_path)
     task = role_paths["teacher_gap_dev"]
@@ -357,6 +516,28 @@ def test_scientific_teacher_gate_requires_records_strict_gain_and_positive_ci(tm
         == better["teacher_training_config_sha256"]
     )
 
+    intact_run = json.loads(teacher_run_manifest.read_text())
+    trace_path = Path(intact_run["teacher_samples"])
+    intact_trace = trace_path.read_text()
+    trace_path.write_text("".join("{}\n" for _ in range(400)))
+    forged_run = dict(intact_run)
+    forged_run["teacher_samples_sha256"] = sha256_file(trace_path)
+    teacher_run_manifest.write_text(json.dumps(forged_run, indent=2, sort_keys=True) + "\n")
+    with pytest.raises(ValueError, match="trace row 1"):
+        teacher_gap(
+            teacher_args(
+                base_summary=base_summary,
+                base_samples=base_samples,
+                trained_summary=better_summary,
+                trained_samples=better_samples,
+                adapter=adapter,
+                prepared_manifest=prepared_manifest,
+                teacher_run_manifest=teacher_run_manifest,
+            )
+        )
+    trace_path.write_text(intact_trace)
+    teacher_run_manifest.write_text(json.dumps(intact_run, indent=2, sort_keys=True) + "\n")
+
     mismatched_run = json.loads(teacher_run_manifest.read_text())
     mismatched_run["packages"]["trl"] = "0.0.0"
     teacher_run_manifest.write_text(json.dumps(mismatched_run, indent=2, sort_keys=True) + "\n")
@@ -393,6 +574,62 @@ def test_scientific_teacher_gate_requires_records_strict_gain_and_positive_ci(tm
                 teacher_run_manifest=teacher_run_manifest,
             )
         )
+
+
+def test_scientific_teacher_gate_rejects_all_zero_training_trace(tmp_path):
+    args = passing_scientific_teacher_fixture(tmp_path)
+    assert teacher_gap(args)["passed"]
+    run = json.loads(args.teacher_run_manifest.read_text())
+    trace_path = Path(run["teacher_samples"])
+    trace_rows = [json.loads(line) for line in trace_path.read_text().splitlines()]
+    for row in trace_rows:
+        row["reward"] = 0.0
+    realized = dict(run["realized_training"])
+    realized.update(
+        {
+            "reward_sum": 0.0,
+            "reward_mean": 0.0,
+            "informative_reward_groups": 0,
+            "informative_reward_group_fraction": 0.0,
+        }
+    )
+    rewrite_teacher_trace_claim(args.teacher_run_manifest, trace_rows, realized)
+
+    with pytest.raises(ValueError, match="reward disagrees with TRL accuracy"):
+        teacher_gap(args)
+
+
+def test_scientific_teacher_gate_rejects_repeated_record_sampler_collapse(tmp_path):
+    args = passing_scientific_teacher_fixture(tmp_path)
+    assert teacher_gap(args)["passed"]
+    run = json.loads(args.teacher_run_manifest.read_text())
+    trace_path = Path(run["teacher_samples"])
+    trace_rows = [json.loads(line) for line in trace_path.read_text().splitlines()]
+    first = trace_rows[0]
+    for row in trace_rows:
+        row["record_id"] = first["record_id"]
+        row["solution"] = first["solution"]
+        row["prompt_sha256"] = first["prompt_sha256"]
+        row["completion_text"] = teacher_trace_completion(
+            first["solution"], row["sample_idx"]
+        )
+        row["completion_sha256"] = hashlib.sha256(
+            row["completion_text"].encode()
+        ).hexdigest()
+    realized = dict(run["realized_training"])
+    realized.update(
+        {
+            "unique_training_records": 1,
+            "realized_record_ids_sha256": canonical_json_sha256(
+                [first["record_id"]] * 100
+            ),
+            "realized_training_indices_sha256": canonical_json_sha256([0] * 100),
+        }
+    )
+    rewrite_teacher_trace_claim(args.teacher_run_manifest, trace_rows, realized)
+
+    with pytest.raises(ValueError, match="trace-recomputed prompt geometry"):
+        teacher_gap(args)
 
 
 def test_small_smoke_teacher_gate_has_distinct_non_authorizing_type(tmp_path):

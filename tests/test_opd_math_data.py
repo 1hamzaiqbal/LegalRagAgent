@@ -170,7 +170,7 @@ def test_conflicting_duplicate_golds_are_quarantined_and_logged():
     assert any(edge["edge_type"] == "label_conflict" for edge in result.collision_edges)
 
 
-def test_m_test_cluster_has_one_canonical_row_and_persists_removed_members():
+def test_m_test_cluster_retains_every_frozen_row_and_quarantines_train_only():
     result = cluster_and_partition(
         [
             record("M", "test", 0, "frozen problem"),
@@ -178,11 +178,33 @@ def test_m_test_cluster_has_one_canonical_row_and_persists_removed_members():
             record("M", "train", 2, "frozen problem"),
         ]
     )
-    assert len(result.external_eval) == 1
-    assert result.stats["duplicate_M_test_rows_removed"] == 1
+    assert len(result.external_eval) == 2
+    assert result.stats["duplicate_M_test_rows_removed"] == 0
+    assert result.stats["duplicate_M_test_rows_retained"] == 1
+    assert result.stats["quarantine_rows_by_reason"] == {"touches_M_test": 1}
+
+
+def test_m_test_subquestion_family_keeps_all_labels_but_blocks_touching_train():
+    result = cluster_and_partition(
+        [
+            record("M", "test", 0, "shared diagram find area", answer="10"),
+            record("M", "test", 1, "shared diagram find length", answer="5"),
+            record("M", "train", 2, "shared diagram find angle", answer="30"),
+        ],
+        semantic_edges=[
+            (0, 1, "semantic_reviewed_duplicate"),
+            (1, 2, "semantic_reviewed_duplicate"),
+        ],
+    )
+
+    assert len(result.external_eval) == 2
+    assert {row["solution"] for row in result.external_eval} == {
+        r"\boxed{10}",
+        r"\boxed{5}",
+    }
+    assert result.stats["conflicting_M_test_rows_retained"] == 2
     assert result.stats["quarantine_rows_by_reason"] == {
-        "duplicate_M_test": 1,
-        "touches_M_test": 1,
+        "touches_M_test_label_conflict": 1
     }
 
 

@@ -75,6 +75,7 @@ uv run python scripts/opd/test_opd_loss.py
 # OPD math changes
 uv run pytest -q \
   tests/test_opd_math_data.py \
+  tests/test_opd_finalize_semantic_reviews.py \
   tests/test_opd_reward_loss.py \
   tests/test_teacher_client_token_ids.py \
   tests/test_opd_tokenizer_contract.py \
@@ -82,6 +83,7 @@ uv run pytest -q \
   tests/test_opd_merge_custody.py \
   tests/test_opd_teacher_recipe.py \
   tests/test_opd_run_contract.py \
+  tests/test_opd_student_results.py \
   tests/test_opd_server_process_binding.py
 ```
 

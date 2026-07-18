@@ -1,4 +1,5 @@
 from argparse import Namespace
+import hashlib
 import json
 from pathlib import Path
 
@@ -27,7 +28,7 @@ DECODING = {
     "temperature": 0.7,
     "top_p": 0.8,
     "top_k": 20,
-    "max_new_tokens": 128,
+    "max_new_tokens": 1024,
     "seed": 0,
 }
 
@@ -37,6 +38,14 @@ def write_jsonl(path, rows):
     path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows))
 
 
+def teacher_trace_completion(solution, sample_idx):
+    return (
+        f"Final answer: {solution}."
+        if sample_idx == 0
+        else r"Final answer: \boxed{-999999}."
+    )
+
+
 def task_rows(source, role, count):
     return [
         {
@@ -44,6 +53,7 @@ def task_rows(source, role, count):
             "cluster_id": f"cluster:{source}:{role}:{index}",
             "source": source,
             "role": role,
+            "prompt": [{"role": "user", "content": f"Solve problem {index}."}],
             "solution": rf"\boxed{{{index + 1}}}",
         }
         for index in range(count)
@@ -57,7 +67,7 @@ def write_evaluation(tmp_path, name, task, rows, reward, *, adapter=None):
         [
             {
                 "record_id": row["record_id"],
-                "sample_idx": 0,
+                "sample_idx": sample_idx,
                 "source": "M",
                 "reward": reward,
                 "reward_status": "correct" if reward else "incorrect",
@@ -68,6 +78,7 @@ def write_evaluation(tmp_path, name, task, rows, reward, *, adapter=None):
                 ),
             }
             for row in rows
+            for sample_idx in range(4)
         ],
     )
     summary = tmp_path / f"{name}-summary.json"
@@ -93,8 +104,8 @@ def write_evaluation(tmp_path, name, task, rows, reward, *, adapter=None):
         "records": len(rows),
         "task_sources": ["M"],
         "task_roles": ["teacher_gap_dev"],
-        "samples_per_problem": 1,
-        "samples": len(rows),
+        "samples_per_problem": 4,
+        "samples": len(rows) * 4,
         "accuracy": float(reward),
         "decoding": DECODING,
         "samples_file": str(samples.resolve()),
@@ -158,15 +169,104 @@ def write_gate_fixture(tmp_path):
     )
     trainer_log = tmp_path / "trainer_log_history.json"
     trainer_log.write_text(
-        json.dumps([{"step": fixed_config["max_steps"], "loss": 0.0}], sort_keys=True)
+        json.dumps(
+            [
+                {
+                    "step": fixed_config["max_steps"],
+                    "loss": 0.0,
+                    "frac_reward_zero_std": 0.0,
+                    "reward_std": 0.5,
+                    "completions/clipped_ratio": 0.0,
+                }
+            ],
+            sort_keys=True,
+        )
         + "\n"
     )
+    reward_signal = {
+        "informative_reward_observed": True,
+        "reward_log_entries": 1,
+        "frac_reward_zero_std": [0.0],
+        "max_mixed_reward_sample_fraction": 1.0,
+        "reward_std": [0.5],
+        "completion_clipped_ratio": [0.0],
+    }
     train_metrics = tmp_path / "train_metrics.json"
     train_metrics.write_text(
         json.dumps(
             {
                 "actual_optimizer_steps": fixed_config["max_steps"],
                 "optimizer_progress_complete": True,
+            },
+            sort_keys=True,
+        )
+        + "\n"
+    )
+    teacher_samples = tmp_path / "teacher_samples.jsonl"
+    write_jsonl(
+        teacher_samples,
+        [
+            {
+                "schema_version": 1,
+                "reward_batch_index": step,
+                "sample_idx": sample_idx,
+                "record_id": train_rows[step % len(train_rows)]["record_id"],
+                "source": "M",
+                "solution": train_rows[step % len(train_rows)]["solution"],
+                "prompt_sha256": canonical_json_sha256(
+                    train_rows[step % len(train_rows)]["prompt"]
+                ),
+                "prompt_tokens": 12,
+                "prompt_token_ids": list(range(12)),
+                "completion_tokens": 32,
+                "completion_token_ids": list(range(32)),
+                "completion_text": teacher_trace_completion(
+                    train_rows[step % len(train_rows)]["solution"], sample_idx
+                ),
+                "completion_sha256": hashlib.sha256(
+                    teacher_trace_completion(
+                        train_rows[step % len(train_rows)]["solution"], sample_idx
+                    ).encode()
+                ).hexdigest(),
+                "reward": 1.0 if sample_idx == 0 else 0.0,
+            }
+            for step in range(fixed_config["max_steps"])
+            for sample_idx in range(fixed_config["num_generations"])
+        ],
+    )
+    realized_training = {
+        "reward_batches": fixed_config["max_steps"],
+        "completion_samples": fixed_config["max_steps"] * fixed_config["num_generations"],
+        "unique_training_records": len(train_rows),
+        "realized_record_ids_sha256": canonical_json_sha256(
+            [
+                train_rows[step % len(train_rows)]["record_id"]
+                for step in range(fixed_config["max_steps"])
+            ]
+        ),
+        "realized_training_indices_sha256": canonical_json_sha256(
+            [step % len(train_rows) for step in range(fixed_config["max_steps"])]
+        ),
+        "prompt_group_tokens": fixed_config["max_steps"] * 12,
+        "sample_expanded_prompt_tokens": (
+            fixed_config["max_steps"] * 12 * fixed_config["num_generations"]
+        ),
+        "total_completion_tokens": (
+            fixed_config["max_steps"] * fixed_config["num_generations"] * 32
+        ),
+        "reward_sum": float(fixed_config["max_steps"]),
+        "reward_mean": 1.0 / fixed_config["num_generations"],
+        "informative_reward_groups": fixed_config["max_steps"],
+        "informative_reward_group_fraction": 1.0,
+        "expected_geometry_observed": True,
+    }
+    train_metrics.write_text(
+        json.dumps(
+            {
+                "actual_optimizer_steps": fixed_config["max_steps"],
+                "optimizer_progress_complete": True,
+                "reward_signal": reward_signal,
+                "realized_training": realized_training,
             },
             sort_keys=True,
         )
@@ -206,12 +306,17 @@ def write_gate_fixture(tmp_path):
                 "actual_optimizer_steps": fixed_config["max_steps"],
                 "trainer_log_max_step": fixed_config["max_steps"],
                 "optimizer_progress_complete": True,
+                "reward_signal": reward_signal,
                 "trainer_state": str(trainer_state.resolve()),
                 "trainer_state_sha256": sha256_file(trainer_state),
                 "trainer_log_history": str(trainer_log.resolve()),
                 "trainer_log_history_sha256": sha256_file(trainer_log),
                 "train_metrics": str(train_metrics.resolve()),
                 "train_metrics_sha256": sha256_file(train_metrics),
+                "teacher_samples": str(teacher_samples.resolve()),
+                "teacher_samples_sha256": sha256_file(teacher_samples),
+                "teacher_samples_rows": realized_training["completion_samples"],
+                "realized_training": realized_training,
                 "prompt_token_diagnostics": {
                     "selected_prompts": 2,
                     "max_prompt_tokens_allowed": fixed_config["max_prompt_tokens"],

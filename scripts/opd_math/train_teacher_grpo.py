@@ -10,6 +10,7 @@ import math
 import os
 import re
 import subprocess
+from collections import defaultdict
 from pathlib import Path
 
 try:
@@ -37,6 +38,94 @@ def sha256_file(path: Path) -> str:
 def canonical_json_sha256(payload: object) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def append_jsonl(path: Path, row: dict) -> None:
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(row, sort_keys=True, separators=(",", ":")) + "\n")
+
+
+def summarize_teacher_trace(
+    path: Path,
+    *,
+    expected_steps: int,
+    num_generations: int,
+    record_index_by_id: dict[str, int],
+) -> dict[str, object]:
+    rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    grouped: dict[int, list[dict]] = defaultdict(list)
+    for row_number, row in enumerate(rows, start=1):
+        batch_index = row.get("reward_batch_index")
+        sample_idx = row.get("sample_idx")
+        if not isinstance(batch_index, int) or batch_index < 0:
+            raise ValueError(f"teacher trace row {row_number} has invalid reward_batch_index")
+        if not isinstance(sample_idx, int) or sample_idx < 0:
+            raise ValueError(f"teacher trace row {row_number} has invalid sample_idx")
+        grouped[batch_index].append(row)
+    if sorted(grouped) != list(range(expected_steps)):
+        raise ValueError(
+            "teacher trace reward batches do not equal the expected optimizer-step geometry"
+        )
+
+    realized_record_ids = []
+    realized_record_indices = []
+    prompt_group_tokens = 0
+    informative_reward_groups = 0
+    reward_sum = 0.0
+    for batch_index in sorted(grouped):
+        batch = sorted(grouped[batch_index], key=lambda row: row["sample_idx"])
+        if [row["sample_idx"] for row in batch] != list(range(num_generations)):
+            raise ValueError(f"teacher trace batch {batch_index} has incomplete generations")
+        record_ids = {row.get("record_id") for row in batch}
+        prompt_counts = {row.get("prompt_tokens") for row in batch}
+        if len(record_ids) != 1 or None in record_ids or len(prompt_counts) != 1:
+            raise ValueError(f"teacher trace batch {batch_index} is not one stable prompt group")
+        realized_record_ids.append(str(next(iter(record_ids))))
+        record_id = realized_record_ids[-1]
+        if record_id not in record_index_by_id:
+            raise ValueError(
+                f"teacher trace batch {batch_index} uses an unregistered record_id"
+            )
+        realized_record_indices.append(record_index_by_id[record_id])
+        prompt_tokens = next(iter(prompt_counts))
+        if not isinstance(prompt_tokens, int) or prompt_tokens <= 0:
+            raise ValueError(f"teacher trace batch {batch_index} has invalid prompt tokens")
+        prompt_group_tokens += prompt_tokens
+        rewards = [row.get("reward") for row in batch]
+        if any(
+            type(value) not in (int, float)
+            or not math.isfinite(float(value))
+            or float(value) not in {0.0, 1.0}
+            for value in rewards
+        ):
+            raise ValueError(f"teacher trace batch {batch_index} has invalid binary rewards")
+        numeric_rewards = [float(value) for value in rewards]
+        reward_sum += sum(numeric_rewards)
+        if len(set(numeric_rewards)) > 1:
+            informative_reward_groups += 1
+
+    completion_tokens = [row.get("completion_tokens") for row in rows]
+    if any(not isinstance(value, int) or value <= 0 for value in completion_tokens):
+        raise ValueError("teacher trace has invalid completion token counts")
+    return {
+        "reward_batches": len(grouped),
+        "completion_samples": len(rows),
+        "unique_training_records": len(set(realized_record_ids)),
+        "realized_record_ids_sha256": canonical_json_sha256(realized_record_ids),
+        "realized_training_indices_sha256": canonical_json_sha256(
+            realized_record_indices
+        ),
+        "prompt_group_tokens": prompt_group_tokens,
+        "sample_expanded_prompt_tokens": prompt_group_tokens * num_generations,
+        "total_completion_tokens": sum(completion_tokens),
+        "reward_sum": reward_sum,
+        "reward_mean": reward_sum / len(rows),
+        "informative_reward_groups": informative_reward_groups,
+        "informative_reward_group_fraction": informative_reward_groups / len(grouped),
+        "expected_geometry_observed": (
+            len(grouped) == expected_steps and len(rows) == expected_steps * num_generations
+        ),
+    }
 
 
 def max_logged_optimizer_step(log_history: list[dict]) -> int | None:
@@ -123,6 +212,7 @@ def read_rows(path: Path, limit: int, source: str) -> tuple[list[dict], int]:
     """Read the selected prefix while validating every row in the bound role file."""
     rows: list[dict] = []
     total_rows = 0
+    seen_record_ids: set[str] = set()
     with path.open(encoding="utf-8") as handle:
         for line_no, line in enumerate(handle, 1):
             if not line.strip():
@@ -138,6 +228,12 @@ def read_rows(path: Path, limit: int, source: str) -> tuple[list[dict], int]:
                 raise ValueError(
                     f"{path}:{line_no}: expected role={TEACHER_ROLE!r}, got {row.get('role')!r}"
                 )
+            record_id = row.get("record_id")
+            if not isinstance(record_id, str) or not record_id:
+                raise ValueError(f"{path}:{line_no}: teacher row lacks a stable record_id")
+            if record_id in seen_record_ids:
+                raise ValueError(f"{path}:{line_no}: duplicate teacher record_id {record_id!r}")
+            seen_record_ids.add(record_id)
             total_rows += 1
             if len(rows) < limit:
                 rows.append(row)
@@ -468,6 +564,91 @@ def main() -> int:
     if false_render == true_render:
         raise RuntimeError("pinned tokenizer ignored enable_thinking=False")
     prompt_diagnostics = prompt_token_diagnostics(tokenizer, rows, args.max_prompt_tokens)
+    teacher_trace_path = args.output_dir / "teacher_samples.jsonl"
+    reward_batch_index = 0
+
+    def traced_accuracy_reward(
+        completions,
+        solution,
+        *,
+        prompts,
+        completion_ids,
+        record_id,
+        source,
+        log_extra=None,
+        **kwargs,
+    ):
+        nonlocal reward_batch_index
+        rewards = accuracy_reward(completions, solution, log_extra=log_extra)
+        lengths = {
+            len(completions),
+            len(solution),
+            len(prompts),
+            len(completion_ids),
+            len(record_id),
+            len(source),
+            len(rewards),
+        }
+        if len(lengths) != 1:
+            raise RuntimeError("teacher reward trace inputs have inconsistent batch lengths")
+        for sample_idx, (prompt, completion, token_ids, gold, rid, src, reward) in enumerate(
+            zip(
+                prompts,
+                completions,
+                completion_ids,
+                solution,
+                record_id,
+                source,
+                rewards,
+                strict=True,
+            )
+        ):
+            if not isinstance(rid, str) or not rid:
+                raise RuntimeError("teacher reward trace lacks a stable record_id")
+            content = completion[0].get("content") if isinstance(completion, list) else None
+            if not isinstance(content, str):
+                raise RuntimeError("teacher reward trace completion is not conversational text")
+            prompt_token_ids = tokenizer.apply_chat_template(
+                prompt,
+                tokenize=True,
+                add_generation_prompt=True,
+                enable_thinking=False,
+            )
+            completion_token_ids = [int(value) for value in token_ids]
+            if (
+                not prompt_token_ids
+                or any(type(value) is not int or value < 0 for value in prompt_token_ids)
+                or len(prompt_token_ids) > args.max_prompt_tokens
+            ):
+                raise RuntimeError("teacher reward trace has invalid exact prompt token IDs")
+            decoded_completion = tokenizer.decode(
+                completion_token_ids, skip_special_tokens=True
+            )
+            if decoded_completion != content:
+                raise RuntimeError(
+                    "teacher reward trace completion text differs from its exact token IDs"
+                )
+            append_jsonl(
+                teacher_trace_path,
+                {
+                    "schema_version": 1,
+                    "reward_batch_index": reward_batch_index,
+                    "sample_idx": sample_idx,
+                    "record_id": rid,
+                    "source": src,
+                    "prompt_sha256": canonical_json_sha256(prompt),
+                    "prompt_tokens": len(prompt_token_ids),
+                    "prompt_token_ids": [int(value) for value in prompt_token_ids],
+                    "completion_tokens": len(completion_token_ids),
+                    "completion_token_ids": completion_token_ids,
+                    "completion_text": content,
+                    "completion_sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+                    "solution": gold,
+                    "reward": reward,
+                },
+            )
+        reward_batch_index += 1
+        return rewards
 
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
@@ -569,12 +750,21 @@ def main() -> int:
     trainer = GRPOTrainer(
         model=model,
         args=config,
-        reward_funcs=accuracy_reward,
+        reward_funcs=traced_accuracy_reward,
         train_dataset=dataset,
         processing_class=tokenizer,
         peft_config=peft_config,
     )
     result = trainer.train()
+    record_index_by_id = {
+        str(row["record_id"]): index for index, row in enumerate(rows)
+    }
+    teacher_trace = summarize_teacher_trace(
+        teacher_trace_path,
+        expected_steps=args.max_steps,
+        num_generations=args.num_generations,
+        record_index_by_id=record_index_by_id,
+    )
     log_history = [dict(row) for row in trainer.state.log_history]
     trainer_log_path = args.output_dir / "trainer_log_history.json"
     trainer_log_path.write_text(
@@ -594,6 +784,7 @@ def main() -> int:
     metrics["actual_optimizer_steps"] = actual_optimizer_steps
     metrics["optimizer_progress_complete"] = progress_complete
     metrics["reward_signal"] = signal
+    metrics["realized_training"] = teacher_trace
     metrics["peak_cuda_memory_bytes"] = (
         int(torch.cuda.max_memory_allocated()) if torch.cuda.is_available() else None
     )
@@ -613,6 +804,10 @@ def main() -> int:
             "trainer_log_history_sha256": sha256_file(trainer_log_path),
             "train_metrics": str(metrics_path.resolve()),
             "train_metrics_sha256": sha256_file(metrics_path),
+            "teacher_samples": str(teacher_trace_path.resolve()),
+            "teacher_samples_sha256": sha256_file(teacher_trace_path),
+            "teacher_samples_rows": teacher_trace["completion_samples"],
+            "realized_training": teacher_trace,
         }
     )
     (args.output_dir / "run_manifest.json").write_text(
@@ -626,13 +821,29 @@ def main() -> int:
         raise RuntimeError(
             f"trainer completed {actual_optimizer_steps} optimizer steps; expected exactly {args.max_steps}"
         )
-    if args.require_informative_reward and not signal["informative_reward_observed"]:
+    if args.require_informative_reward and (
+        not signal["informative_reward_observed"]
+        or teacher_trace["informative_reward_groups"] <= 0
+    ):
         run_manifest["status"] = "failed_informative_reward_gate"
         (args.output_dir / "run_manifest.json").write_text(
             json.dumps(run_manifest, indent=2, sort_keys=True) + "\n"
         )
         raise RuntimeError(
             "no mixed-reward prompt group was observed; diagnostics were persisted and no adapter was promoted"
+        )
+    expected_unique_records = min(len(rows), args.max_steps)
+    if intended_scientific_run and (
+        teacher_trace["unique_training_records"] != expected_unique_records
+    ):
+        run_manifest["status"] = "failed_sampler_diversity_gate"
+        (args.output_dir / "run_manifest.json").write_text(
+            json.dumps(run_manifest, indent=2, sort_keys=True) + "\n"
+        )
+        raise RuntimeError(
+            "teacher prompt sampling did not realize the expected without-replacement "
+            f"diversity: expected={expected_unique_records}, "
+            f"actual={teacher_trace['unique_training_records']}"
         )
 
     final_dir = args.output_dir / "final_adapter"
@@ -651,6 +862,9 @@ def main() -> int:
         and args.budget_mode == "primary_matched"
         and progress_complete
         and signal["informative_reward_observed"]
+        and teacher_trace["informative_reward_groups"] > 0
+        and teacher_trace["unique_training_records"] == min(len(rows), args.max_steps)
+        and teacher_trace["expected_geometry_observed"] is True
         and prepared.get("scientific_use_allowed") is True
         and plan_contract["training_plan_compliant"] is True
         and clean_stable_code

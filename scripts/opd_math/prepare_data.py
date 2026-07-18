@@ -390,6 +390,8 @@ def main() -> int:
         scientific_blockers.append("one or more output golds are not math-verify parseable")
     if math_test_excluded or m_test_verifier_excluded:
         scientific_blockers.append("frozen MATH test lost one or more records during ingestion")
+    if len(clustered.external_eval) != len(math_test):
+        scientific_blockers.append("frozen MATH test lost one or more records during partitioning")
     if any(value <= 0 for value in matched_budgets.values()):
         scientific_blockers.append("one or more primary matched role budgets are empty")
 

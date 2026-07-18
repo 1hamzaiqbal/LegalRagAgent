@@ -8,6 +8,7 @@ from scripts.opd_math.train_teacher_grpo import (
     prompt_token_diagnostics,
     reward_signal_diagnostics,
     sha256_file,
+    summarize_teacher_trace,
     validate_prepared_contract,
     validate_static_args,
     validate_training_plan_contract,
@@ -65,8 +66,9 @@ def prepared_fixture(tmp_path, rows):
     return task_file, manifest, source_manifest, prepared
 
 
-def row(source="M", role="teacher_train"):
+def row(record_id="M:one", source="M", role="teacher_train"):
     return {
+        "record_id": record_id,
         "source": source,
         "role": role,
         "prompt": [{"role": "user", "content": "2+2"}],
@@ -127,7 +129,9 @@ def test_prompt_contract_rejects_implicit_truncation():
 
 
 def test_primary_contract_binds_exact_role_file_and_budget(tmp_path):
-    task_file, manifest, source_manifest, prepared = prepared_fixture(tmp_path, [row(), row()])
+    task_file, manifest, source_manifest, prepared = prepared_fixture(
+        tmp_path, [row("M:one"), row("M:two")]
+    )
     run_args = args(
         task_file=task_file,
         prepared_manifest=manifest,
@@ -145,7 +149,7 @@ def test_primary_contract_binds_exact_role_file_and_budget(tmp_path):
 
 def test_role_validation_scans_rows_beyond_selected_smoke_prefix(tmp_path):
     task_file, manifest, source_manifest, prepared = prepared_fixture(
-        tmp_path, [row(), row(source="O")]
+        tmp_path, [row("M:one"), row("O:two", source="O")]
     )
     run_args = args(
         task_file=task_file,
@@ -159,7 +163,9 @@ def test_role_validation_scans_rows_beyond_selected_smoke_prefix(tmp_path):
 
 
 def test_teacher_contract_rejects_unpinned_model_or_mutated_source_manifest(tmp_path):
-    task_file, manifest, source_manifest, prepared = prepared_fixture(tmp_path, [row(), row()])
+    task_file, manifest, source_manifest, prepared = prepared_fixture(
+        tmp_path, [row("M:one"), row("M:two")]
+    )
     with pytest.raises(ValueError, match="not the pinned primary teacher"):
         validate_prepared_contract(
             args(
@@ -189,3 +195,49 @@ def test_reward_signal_requires_a_mixed_group_entry():
     assert not flat["informative_reward_observed"]
     assert mixed["informative_reward_observed"]
     assert not missing["informative_reward_observed"]
+
+
+def test_teacher_trace_reports_realized_prompt_geometry(tmp_path):
+    path = tmp_path / "teacher_samples.jsonl"
+    rows = []
+    for step, record_id in enumerate(("M:one", "M:two")):
+        for sample_idx in range(4):
+            rows.append(
+                {
+                    "reward_batch_index": step,
+                    "sample_idx": sample_idx,
+                    "record_id": record_id,
+                    "prompt_tokens": 10 + step,
+                    "completion_tokens": 20 + sample_idx,
+                    "reward": 1.0 if sample_idx == 0 else 0.0,
+                }
+            )
+    path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+    record_indices = {"M:one": 0, "M:two": 1}
+    summary = summarize_teacher_trace(
+        path,
+        expected_steps=2,
+        num_generations=4,
+        record_index_by_id=record_indices,
+    )
+
+    assert summary["reward_batches"] == 2
+    assert summary["completion_samples"] == 8
+    assert summary["unique_training_records"] == 2
+    assert summary["prompt_group_tokens"] == 21
+    assert summary["sample_expanded_prompt_tokens"] == 84
+    assert summary["total_completion_tokens"] == 172
+    assert summary["informative_reward_groups"] == 2
+    assert summary["reward_sum"] == 2.0
+    assert summary["expected_geometry_observed"]
+
+    rows.pop()
+    path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    with pytest.raises(ValueError, match="incomplete generations"):
+        summarize_teacher_trace(
+            path,
+            expected_steps=2,
+            num_generations=4,
+            record_index_by_id=record_indices,
+        )

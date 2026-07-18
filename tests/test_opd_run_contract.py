@@ -7,9 +7,14 @@ import pytest
 from scripts.opd.opd_train import (
     EXPECTED_TRAIN_PACKAGES,
     _validate_gate_prepared_binding,
+    count_jsonl_objects,
     environment_contract_unchanged,
+    recompute_student_trace_geometry,
+    resolve_trace_directory,
+    validate_student_training_plan_contract,
     validate_environment_contract,
     validate_run_contract,
+    write_completion_manifests,
 )
 
 
@@ -171,6 +176,160 @@ def test_advantage_clip_and_signal_fraction_are_bounded(tmp_path):
         validate_run_contract(
             args_for(task, prepared, min_informative_group_fraction=1.1), [row]
         )
+
+
+def test_primary_student_plan_is_exact_and_predeclared():
+    args = Namespace(
+        advantage_clip=5.0,
+        attn_implementation="sdpa",
+        budget_mode="primary_matched",
+        enable_thinking=False,
+        gap_gate_beta=5.0,
+        grad_clip=1.0,
+        group_size=4,
+        k1_coef=0.01,
+        lr=1e-5,
+        lora=32,
+        max_new_tokens=512,
+        max_prompt_tokens=1536,
+        micro_prompts=1,
+        min_informative_group_fraction=0.05,
+        steps=100,
+        seed=0,
+        task_reward_coef=1.0,
+        temperature=1.0,
+        top_k=0,
+        top_p=1.0,
+    )
+    contract = validate_student_training_plan_contract(args)
+    assert contract["plan_id"] == "opd_math_student_primary_pilot_v1"
+    assert contract["compliant"]
+    assert contract["plan_config_sha256"] == contract["actual_config_sha256"]
+
+    args.steps = 99
+    with pytest.raises(ValueError, match="optimizer_steps"):
+        validate_student_training_plan_contract(args)
+
+
+def test_completion_manifest_binds_training_trace_files(tmp_path):
+    trace_dir = tmp_path / "traces"
+    trace_dir.mkdir()
+    (trace_dir / "steps.jsonl").write_text('{"step":1}\n{"step":2}\n')
+    (trace_dir / "samples.jsonl").write_text('{"sample":1}\n')
+    run = {}
+    completion = {
+        "status": "completed",
+        "scientific_use_allowed": False,
+        "training_artifact_eligible_for_held_out_evaluation": True,
+    }
+
+    write_completion_manifests(trace_dir, run, completion)
+
+    written = json.loads((trace_dir / "completion_manifest.json").read_text())
+    assert written["trace_artifacts"]["steps.jsonl"]["rows"] == 2
+    assert written["trace_artifacts"]["samples.jsonl"]["rows"] == 1
+    assert len(written["trace_artifacts"]["steps.jsonl"]["sha256"]) == 64
+    assert json.loads((trace_dir / "run_manifest.json").read_text())["completion"] == written
+
+
+def test_generic_trace_counter_accepts_trace_rows_not_task_rows(tmp_path):
+    trace = tmp_path / "steps.jsonl"
+    trace.write_text('{"step":1}\n\n{"step":2,"samples":4}\n')
+    assert count_jsonl_objects(trace) == 2
+
+    trace.write_text('{"step":1}\n[]\n')
+    with pytest.raises(ValueError, match="JSON object"):
+        count_jsonl_objects(trace)
+
+
+def test_student_trace_geometry_recomputes_exact_group_and_sample_identity(tmp_path):
+    steps = tmp_path / "steps.jsonl"
+    samples = tmp_path / "samples.jsonl"
+    steps.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "step": 1,
+                "mode": "task_rl",
+                "prompts": 1,
+                "samples": 2,
+                "total_loss": 0.5,
+                "gradient_norm_before_clip": 1.0,
+            }
+        )
+        + "\n"
+    )
+    prompt_sha = "a" * 64
+    completion = "answer"
+    rows = []
+    for sample_idx in range(2):
+        rows.append(
+            {
+                "schema_version": 1,
+                "step": 1,
+                "group_id": 0,
+                "sample_idx": sample_idx,
+                "record_id": "M:1",
+                "source": "M",
+                "prompt_sha256": prompt_sha,
+                "prompt_token_ids": [1, 2],
+                "prompt_tokens": 2,
+                "completion_token_ids": [3],
+                "completion_tokens": 1,
+                "completion_text": completion,
+                "completion_sha256": hashlib.sha256(completion.encode()).hexdigest(),
+                "terminated_by_eos": True,
+                "rollout_batch_latency_seconds": 0.1,
+                "teacher_scoring_latency_seconds": None,
+            }
+        )
+    samples.write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+    class FakeTokenizer:
+        def decode(self, token_ids, *, skip_special_tokens):
+            assert token_ids == [3]
+            assert skip_special_tokens is True
+            return completion
+
+    kwargs = {
+        "steps_path": steps,
+        "samples_path": samples,
+        "mode": "task_rl",
+        "expected_steps": 1,
+        "micro_prompts": 1,
+        "group_size": 2,
+        "max_prompt_tokens": 8,
+        "max_completion_tokens": 4,
+        "expected_groups": {
+            (1, 0): {
+                "record_id": "M:1",
+                "source": "M",
+                "prompt_sha256": prompt_sha,
+                "prompt_token_ids": [1, 2],
+            }
+        },
+        "tokenizer": FakeTokenizer(),
+    }
+    recomputed = recompute_student_trace_geometry(**kwargs)
+    assert recomputed["step_trace_rows"] == 1
+    assert recomputed["sample_trace_rows"] == 2
+    assert recomputed["expected_geometry_observed"] is True
+
+    rows[1]["sample_idx"] = 0
+    samples.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    with pytest.raises(ValueError, match="missing/duplicate"):
+        recompute_student_trace_geometry(**kwargs)
+
+
+def test_trace_directory_rejects_reserved_output_subpaths(tmp_path):
+    out = tmp_path / "run"
+    assert resolve_trace_directory(out, None) == (out / "traces").resolve()
+    assert resolve_trace_directory(out, tmp_path / "external") == (
+        tmp_path / "external"
+    ).resolve()
+    for reserved in (out, out / "final", out / "final_candidate"):
+        with pytest.raises(ValueError, match="disjoint"):
+            resolve_trace_directory(out, reserved)
 
 
 def test_gate_must_bind_the_current_prepared_and_source_manifests(tmp_path):

@@ -19,10 +19,10 @@ from typing import Any, Iterable
 
 try:
     from .data_contract import iter_jsonl
-    from .math_reward import verify_completion
+    from .math_reward import verify_completion, verify_trl_accuracy_completion
 except ImportError:
     from data_contract import iter_jsonl  # type: ignore
-    from math_reward import verify_completion  # type: ignore
+    from math_reward import verify_completion, verify_trl_accuracy_completion  # type: ignore
 
 
 SCHEMA_VERSION = 3
@@ -159,6 +159,45 @@ def _trainer_log_max_step(path: Path) -> int | None:
     return max(steps) if steps else None
 
 
+def _teacher_reward_signal_from_log(path: Path) -> dict[str, Any]:
+    try:
+        rows = json.loads(path.read_text())
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"trainer log history is not valid JSON: {path}") from exc
+    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+        raise ValueError(f"trainer log history must be a list of objects: {path}")
+    zero_std_fractions: list[float] = []
+    clipped_ratios: list[float] = []
+    reward_stds: list[float] = []
+    for row in rows:
+        for field, target in (
+            ("frac_reward_zero_std", zero_std_fractions),
+            ("completions/clipped_ratio", clipped_ratios),
+            ("reward_std", reward_stds),
+        ):
+            value = row.get(field)
+            if value is None:
+                continue
+            if type(value) not in (int, float) or not math.isfinite(float(value)):
+                raise ValueError(f"trainer log contains invalid {field}: {value!r}")
+            target.append(float(value))
+    informative = bool(zero_std_fractions) and any(
+        value < 1.0 for value in zero_std_fractions
+    )
+    return {
+        "informative_reward_observed": informative,
+        "reward_log_entries": len(zero_std_fractions),
+        "frac_reward_zero_std": zero_std_fractions,
+        "max_mixed_reward_sample_fraction": (
+            max(1.0 - value for value in zero_std_fractions)
+            if zero_std_fractions
+            else None
+        ),
+        "reward_std": reward_stds,
+        "completion_clipped_ratio": clipped_ratios,
+    }
+
+
 def _path_from_manifest(raw: Any, manifest_path: Path, field: str) -> Path:
     if not isinstance(raw, str) or not raw.strip():
         raise ValueError(f"{manifest_path} lacks a non-empty {field}")
@@ -272,6 +311,164 @@ def _prepared_role_binding(
     }
 
 
+def recompute_teacher_trace(
+    path: Path,
+    *,
+    expected_steps: int,
+    num_generations: int,
+    source: str,
+    selected_training_rows: list[dict[str, Any]],
+    max_prompt_tokens: int,
+    max_completion_tokens: int,
+) -> dict[str, Any]:
+    """Recompute teacher prompt-group geometry from the immutable sample trace."""
+
+    registered: dict[str, dict[str, Any]] = {}
+    registered_index: dict[str, int] = {}
+    for row_number, row in enumerate(selected_training_rows, 1):
+        record_id = row.get("record_id")
+        if not isinstance(record_id, str) or not record_id:
+            raise ValueError(f"teacher training row {row_number} lacks a stable record_id")
+        if record_id in registered:
+            raise ValueError(f"teacher training rows repeat record_id {record_id!r}")
+        if row.get("source") != source or row.get("role") != TEACHER_TRAIN_ROLE:
+            raise ValueError("teacher training rows violate source/role custody")
+        if not isinstance(row.get("prompt"), list) or not isinstance(row.get("solution"), str):
+            raise ValueError("teacher training row lacks prompt/solution custody")
+        registered[record_id] = row
+        registered_index[record_id] = row_number - 1
+
+    grouped: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    completion_token_total = 0
+    for row_number, row in enumerate(iter_jsonl(path), 1):
+        if row.get("schema_version") != 1:
+            raise ValueError(f"teacher trace row {row_number} has unsupported schema")
+        batch_index = row.get("reward_batch_index")
+        sample_idx = row.get("sample_idx")
+        if type(batch_index) is not int or not 0 <= batch_index < expected_steps:
+            raise ValueError(f"teacher trace row {row_number} has invalid reward_batch_index")
+        if type(sample_idx) is not int or not 0 <= sample_idx < num_generations:
+            raise ValueError(f"teacher trace row {row_number} has invalid sample_idx")
+        record_id = row.get("record_id")
+        if record_id not in registered:
+            raise ValueError(
+                f"teacher trace row {row_number} uses an unregistered training record: "
+                f"{record_id!r}"
+            )
+        registered_row = registered[str(record_id)]
+        if row.get("source") != source:
+            raise ValueError(f"teacher trace row {row_number} has the wrong source")
+        if row.get("solution") != registered_row["solution"]:
+            raise ValueError(f"teacher trace row {row_number} has solution drift")
+        if row.get("prompt_sha256") != canonical_json_sha256(registered_row["prompt"]):
+            raise ValueError(f"teacher trace row {row_number} has prompt identity drift")
+        prompt_tokens = row.get("prompt_tokens")
+        prompt_ids = row.get("prompt_token_ids")
+        if (
+            type(prompt_tokens) is not int
+            or prompt_tokens <= 0
+            or prompt_tokens > max_prompt_tokens
+            or not isinstance(prompt_ids, list)
+            or not prompt_ids
+            or any(type(value) is not int or value < 0 for value in prompt_ids)
+            or len(prompt_ids) != prompt_tokens
+        ):
+            raise ValueError(f"teacher trace row {row_number} has invalid prompt token IDs")
+        completion_ids = row.get("completion_token_ids")
+        if (
+            not isinstance(completion_ids, list)
+            or not completion_ids
+            or any(type(value) is not int or value < 0 for value in completion_ids)
+            or len(completion_ids) > max_completion_tokens
+        ):
+            raise ValueError(f"teacher trace row {row_number} has invalid completion token IDs")
+        if row.get("completion_tokens") != len(completion_ids):
+            raise ValueError(f"teacher trace row {row_number} has completion-token drift")
+        completion_text = row.get("completion_text")
+        if not isinstance(completion_text, str):
+            raise ValueError(f"teacher trace row {row_number} lacks completion text")
+        if row.get("completion_sha256") != hashlib.sha256(
+            completion_text.encode("utf-8")
+        ).hexdigest():
+            raise ValueError(f"teacher trace row {row_number} has completion identity drift")
+        reward = row.get("reward")
+        if (
+            type(reward) not in (int, float)
+            or not math.isfinite(float(reward))
+            or float(reward) not in {0.0, 1.0}
+        ):
+            raise ValueError(f"teacher trace row {row_number} has invalid binary reward")
+        verdict = verify_trl_accuracy_completion(
+            completion_text, str(registered_row["solution"])
+        )
+        recomputed_reward = verdict.get("reward")
+        if recomputed_reward is None:
+            raise ValueError(
+                f"teacher trace row {row_number} cannot be independently verified: {verdict}"
+            )
+        if float(reward) != float(recomputed_reward):
+            raise ValueError(
+                f"teacher trace row {row_number} reward disagrees with TRL accuracy "
+                f"recomputation: recorded={reward}, recomputed={recomputed_reward}"
+            )
+        completion_token_total += len(completion_ids)
+        grouped[batch_index].append(row)
+
+    if sorted(grouped) != list(range(expected_steps)):
+        raise ValueError("teacher trace does not contain every expected reward batch")
+    realized_record_ids: list[str] = []
+    realized_training_indices: list[int] = []
+    prompt_group_tokens = 0
+    informative_reward_groups = 0
+    reward_sum = 0.0
+    for batch_index in sorted(grouped):
+        batch = sorted(grouped[batch_index], key=lambda row: row["sample_idx"])
+        if [row["sample_idx"] for row in batch] != list(range(num_generations)):
+            raise ValueError(f"teacher trace batch {batch_index} has missing/duplicate samples")
+        for field in (
+            "record_id",
+            "source",
+            "solution",
+            "prompt_sha256",
+            "prompt_tokens",
+        ):
+            if len({row[field] for row in batch}) != 1:
+                raise ValueError(f"teacher trace batch {batch_index} mixes {field}")
+        if len({tuple(row["prompt_token_ids"]) for row in batch}) != 1:
+            raise ValueError(f"teacher trace batch {batch_index} mixes prompt token IDs")
+        realized_record_ids.append(str(batch[0]["record_id"]))
+        realized_training_indices.append(
+            registered_index[realized_record_ids[-1]]
+        )
+        prompt_group_tokens += int(batch[0]["prompt_tokens"])
+        rewards = [float(row["reward"]) for row in batch]
+        reward_sum += sum(rewards)
+        if len(set(rewards)) > 1:
+            informative_reward_groups += 1
+
+    return {
+        "reward_batches": len(grouped),
+        "completion_samples": sum(len(batch) for batch in grouped.values()),
+        "unique_training_records": len(set(realized_record_ids)),
+        "realized_record_ids_sha256": canonical_json_sha256(realized_record_ids),
+        "realized_training_indices_sha256": canonical_json_sha256(
+            realized_training_indices
+        ),
+        "prompt_group_tokens": prompt_group_tokens,
+        "sample_expanded_prompt_tokens": prompt_group_tokens * num_generations,
+        "total_completion_tokens": completion_token_total,
+        "reward_sum": reward_sum,
+        "reward_mean": reward_sum / (expected_steps * num_generations),
+        "informative_reward_groups": informative_reward_groups,
+        "informative_reward_group_fraction": informative_reward_groups / expected_steps,
+        "expected_geometry_observed": (
+            len(grouped) == expected_steps
+            and sum(len(batch) for batch in grouped.values())
+            == expected_steps * num_generations
+        ),
+    }
+
+
 def _teacher_run_binding(
     run_manifest_path: Path,
     *,
@@ -356,6 +553,9 @@ def _teacher_run_binding(
         raise ValueError("teacher run did not use the registered teacher_train role file")
     if run.get("task_file_sha256") != train_entry.get("sha256"):
         raise ValueError("teacher run teacher_train hash differs from prepared data")
+    registered_training_rows = list(iter_jsonl(expected_train_path))
+    if len(registered_training_rows) != train_entry.get("rows"):
+        raise ValueError("prepared teacher_train role row count has drifted")
     train_budget = prepared.get("primary_matched_budgets", {}).get(TEACHER_TRAIN_ROLE)
     if not isinstance(train_budget, int) or train_budget <= 0:
         raise ValueError("prepared manifest lacks a positive teacher_train budget")
@@ -409,6 +609,9 @@ def _teacher_run_binding(
         train_metrics = _json_object(artifact_paths["train_metrics"], "train metrics")
         expected_steps = fixed_config.get("max_steps")
         log_max_step = _trainer_log_max_step(artifact_paths["trainer_log_history"])
+        reward_signal = _teacher_reward_signal_from_log(
+            artifact_paths["trainer_log_history"]
+        )
         if trainer_state.get("global_step") != expected_steps:
             raise ValueError("trainer state does not confirm the exact optimizer-step budget")
         if (
@@ -418,6 +621,14 @@ def _teacher_run_binding(
             raise ValueError("train metrics do not confirm the exact optimizer-step budget")
         if log_max_step != expected_steps or run.get("trainer_log_max_step") != expected_steps:
             raise ValueError("trainer log does not confirm the exact optimizer-step budget")
+        if (
+            reward_signal.get("informative_reward_observed") is not True
+            or run.get("reward_signal") != reward_signal
+            or train_metrics.get("reward_signal") != reward_signal
+        ):
+            raise ValueError(
+                "teacher run/metrics do not bind an informative trainer reward signal"
+            )
         training_artifact_binding = {
             "teacher_trainer_state": str(artifact_paths["trainer_state"]),
             "teacher_trainer_state_sha256": run["trainer_state_sha256"],
@@ -426,6 +637,7 @@ def _teacher_run_binding(
             "teacher_train_metrics": str(artifact_paths["train_metrics"]),
             "teacher_train_metrics_sha256": run["train_metrics_sha256"],
             "teacher_trainer_log_max_step": log_max_step,
+            "teacher_reward_signal": reward_signal,
         }
         prompt_diagnostics = run.get("prompt_token_diagnostics")
         if not isinstance(prompt_diagnostics, dict):
@@ -441,6 +653,49 @@ def _teacher_run_binding(
             raise ValueError("teacher run does not satisfy the plan's prompt-length contract")
         if run.get("clean_stable_code") is not True:
             raise ValueError("scientific teacher gate requires clean, stable training code")
+        teacher_samples = _path_from_manifest(
+            run.get("teacher_samples"), run_manifest_path, "teacher_samples"
+        )
+        if teacher_samples != (run_manifest_path.parent / "teacher_samples.jsonl").resolve():
+            raise ValueError("teacher run samples are not the canonical sibling artifact")
+        teacher_samples_hash = sha256_file(teacher_samples)
+        if run.get("teacher_samples_sha256") != teacher_samples_hash:
+            raise ValueError("teacher run sample-trace hash has drifted")
+        expected_sample_rows = fixed_config["max_steps"] * fixed_config["num_generations"]
+        expected_unique_records = min(train_budget, fixed_config["max_steps"])
+        recomputed_realized = recompute_teacher_trace(
+            teacher_samples,
+            expected_steps=fixed_config["max_steps"],
+            num_generations=fixed_config["num_generations"],
+            source=source,
+            selected_training_rows=registered_training_rows[:train_budget],
+            max_prompt_tokens=fixed_config["max_prompt_tokens"],
+            max_completion_tokens=fixed_config["max_completion_length"],
+        )
+        teacher_sample_rows = recomputed_realized["completion_samples"]
+        realized = run.get("realized_training")
+        if (
+            realized != recomputed_realized
+            or train_metrics.get("realized_training") != recomputed_realized
+            or run.get("teacher_samples_rows") != expected_sample_rows
+            or teacher_sample_rows != expected_sample_rows
+            or recomputed_realized.get("expected_geometry_observed") is not True
+            or recomputed_realized["unique_training_records"]
+            != expected_unique_records
+            or recomputed_realized["informative_reward_groups"] <= 0
+        ):
+            raise ValueError(
+                "teacher run/metrics do not equal trace-recomputed prompt geometry"
+            )
+        training_artifact_binding.update(
+            {
+                "teacher_samples": str(teacher_samples),
+                "teacher_samples_sha256": teacher_samples_hash,
+                "teacher_samples_rows": teacher_sample_rows,
+                "teacher_realized_training": recomputed_realized,
+                "teacher_expected_unique_training_records": expected_unique_records,
+            }
+        )
         start = run.get("git_state_start")
         end = run.get("git_state_end")
         if not isinstance(start, dict) or not isinstance(end, dict):

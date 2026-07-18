@@ -28,7 +28,7 @@ case "$OPD_MATH_EVAL_ROLE" in
     ;;
   *) echo "invalid OPD_MATH_EVAL_ROLE" >&2; exit 2 ;;
 esac
-if [[ "$OPD_MATH_EVAL_ROLE" == student_support ]]; then
+if [[ "$OPD_MATH_EVAL_ROLE" == student_support || "$OPD_MATH_EVAL_ROLE" == source_holdout ]]; then
   EVAL_TEMPERATURE="${OPD_MATH_EVAL_TEMPERATURE:-1.0}"
   EVAL_TOP_P="${OPD_MATH_EVAL_TOP_P:-1.0}"
   EVAL_TOP_K="${OPD_MATH_EVAL_TOP_K:-0}"

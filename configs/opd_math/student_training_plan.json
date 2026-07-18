@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "plan_id": "opd_math_student_primary_pilot_v1",
+  "purpose": "Predeclare one matched 100-prompt-compute student recipe for the two task-RL baselines and four teacher-source transfer arms.",
+  "claim_boundary": "The role file defines the eligible sampling pool. With one prompt group per optimizer step, this 100-step pilot does not expose the student to every row in that pool and does not estimate training-seed variance.",
+  "objectives": [
+    "task_rl",
+    "task_rl_k1_gap"
+  ],
+  "fixed_config": {
+    "advantage_clip": 5.0,
+    "attn_implementation": "sdpa",
+    "budget_mode": "primary_matched",
+    "enable_thinking": false,
+    "gap_gate_beta": 5.0,
+    "grad_clip": 1.0,
+    "group_size": 4,
+    "k1_coef": 0.01,
+    "learning_rate": 1e-05,
+    "lora_r": 32,
+    "max_new_tokens": 512,
+    "max_prompt_tokens": 1536,
+    "micro_prompts": 1,
+    "min_informative_group_fraction": 0.05,
+    "optimizer_steps": 100,
+    "seed": 0,
+    "task_reward_coef": 1.0,
+    "temperature": 1.0,
+    "top_k": 0,
+    "top_p": 1.0
+  }
+}

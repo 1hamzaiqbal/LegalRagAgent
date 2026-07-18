@@ -2,7 +2,7 @@
   "schema_version": 1,
   "plan_id": "opd_math_teacher_primary_v1",
   "purpose": "Predeclare one source-independent teacher recipe for the matched M versus O post-training-source comparison.",
-  "claim_boundary": "This plan matches controlled post-training compute. It does not establish equal token counts, equal source difficulty, or complete historical pretraining exposure.",
+  "claim_boundary": "This plan matches controlled post-training compute. With generation_batch_size equal to num_generations, 100 optimizer steps expose about 100 prompt groups sampled from the registered matched pool, not every pool row. It does not establish equal token counts, equal source difficulty, training-seed robustness, or complete historical pretraining exposure.",
   "sources": [
     "M",
     "O"

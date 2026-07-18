@@ -506,7 +506,8 @@ def cluster_and_partition(
     eligible: list[tuple[ProblemRecord, str]] = []
     reasons: dict[str, int] = defaultdict(int)
     duplicate_rows = 0
-    duplicate_eval_rows = 0
+    duplicate_eval_rows_retained = 0
+    conflicting_eval_rows_retained = 0
     cluster_by_record_id: dict[str, str] = {}
     record_by_id = {record.record_id: record for record in records}
 
@@ -533,31 +534,24 @@ def cluster_and_partition(
                     "answer_sha256s": sorted({sha256_text(key) for key in m_test_answer_keys}),
                 }
             )
-            for record in members:
-                row = record.task_row(cluster_id, "quarantine")
-                row["quarantine_reason"] = "label_conflict_M_test"
-                quarantined.append(row)
-                reasons["label_conflict_M_test"] += 1
-            continue
+            # A leakage cluster can legitimately contain several frozen MATH
+            # test subquestions that share a diagram or stem but have different
+            # answers.  That relationship must quarantine touching training
+            # records, not delete benchmark questions from external evaluation.
+            conflicting_eval_rows_retained += len(m_test_members)
 
         if m_test_members:
-            canonical_test = min(m_test_members, key=lambda r: stable_rank(r.record_id, salt))
-            external_eval.append(canonical_test.task_row(cluster_id, "external_eval"))
-            duplicate_eval_rows += len(m_test_members) - 1
-            for duplicate in m_test_members:
-                if duplicate.record_id == canonical_test.record_id:
-                    continue
-                row = duplicate.task_row(cluster_id, "quarantine")
-                row["quarantine_reason"] = "duplicate_M_test"
-                row["representative_record_id"] = canonical_test.record_id
-                quarantined.append(row)
-                reasons["duplicate_M_test"] += 1
+            external_eval.extend(
+                record.task_row(cluster_id, "external_eval") for record in m_test_members
+            )
+            duplicate_eval_rows_retained += len(m_test_members) - 1
 
         if not train_members:
             continue
         if has_m_test:
-            test_answer_key = next(iter(m_test_answer_keys))
-            label_conflict = any(key != test_answer_key for key in train_answer_keys)
+            label_conflict = len(m_test_answer_keys) > 1 or any(
+                key not in m_test_answer_keys for key in train_answer_keys
+            )
             reason = "touches_M_test_label_conflict" if label_conflict else "touches_M_test"
             if label_conflict:
                 collision_edges.append(
@@ -641,7 +635,9 @@ def cluster_and_partition(
         "input_rows": len(records),
         "problem_clusters": len(groups),
         "within_source_duplicate_train_rows_removed": duplicate_rows,
-        "duplicate_M_test_rows_removed": duplicate_eval_rows,
+        "duplicate_M_test_rows_removed": 0,
+        "duplicate_M_test_rows_retained": duplicate_eval_rows_retained,
+        "conflicting_M_test_rows_retained": conflicting_eval_rows_retained,
         "quarantine_rows_by_reason": dict(sorted(reasons.items())),
         "collision_edges_by_type": {
             edge_type: sum(edge["edge_type"] == edge_type for edge in collision_edges)

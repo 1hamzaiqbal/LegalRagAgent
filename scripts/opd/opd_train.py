@@ -76,6 +76,9 @@ TASK_REWARD_MODES = {"task_rl", "task_rl_k1_gap"}
 TEACHER_MODES = K1_MODES | {"kd"}
 MERGED_TEACHER_SCHEMA = "opd_math_merged_teacher_v2"
 MERGER_FILE = ROOT / "scripts" / "opd_math" / "merge_adapter.py"
+CANONICAL_STUDENT_TRAINING_PLAN = (
+    ROOT / "configs" / "opd_math" / "student_training_plan.json"
+)
 EXPECTED_TRAIN_PACKAGES = {
     "torch": "2.11.0",
     "transformers": "4.57.6",
@@ -104,6 +107,80 @@ def log(msg: str) -> None:
     print(msg, flush=True)
 
 
+def canonical_json_sha256(payload: object) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def task_prompt_sha256(row: dict) -> str:
+    prompt = row.get("prompt")
+    if prompt is not None:
+        if not isinstance(prompt, list):
+            raise ValueError("conversational prompt must be a list for prompt identity")
+        return canonical_json_sha256(prompt)
+    prompt_text = row.get("prompt_text")
+    if not isinstance(prompt_text, str) or not prompt_text:
+        raise ValueError("task row lacks a stable prompt identity")
+    return canonical_json_sha256(prompt_text)
+
+
+def normalized_student_training_config(args) -> dict:
+    return {
+        "advantage_clip": args.advantage_clip,
+        "attn_implementation": args.attn_implementation,
+        "budget_mode": args.budget_mode,
+        "enable_thinking": args.enable_thinking,
+        "gap_gate_beta": args.gap_gate_beta,
+        "grad_clip": args.grad_clip,
+        "group_size": args.group_size,
+        "k1_coef": args.k1_coef,
+        "learning_rate": args.lr,
+        "lora_r": args.lora,
+        "max_new_tokens": args.max_new_tokens,
+        "max_prompt_tokens": args.max_prompt_tokens,
+        "micro_prompts": args.micro_prompts,
+        "min_informative_group_fraction": args.min_informative_group_fraction,
+        "optimizer_steps": args.steps,
+        "seed": args.seed,
+        "task_reward_coef": args.task_reward_coef,
+        "temperature": args.temperature,
+        "top_k": args.top_k,
+        "top_p": args.top_p,
+    }
+
+
+def validate_student_training_plan_contract(args) -> dict:
+    plan = json.loads(CANONICAL_STUDENT_TRAINING_PLAN.read_text())
+    if (
+        plan.get("schema_version") != 1
+        or plan.get("plan_id") != "opd_math_student_primary_pilot_v1"
+        or plan.get("objectives") != ["task_rl", "task_rl_k1_gap"]
+    ):
+        raise ValueError("student training plan has an unsupported identity")
+    fixed = plan.get("fixed_config")
+    if not isinstance(fixed, dict) or not fixed:
+        raise ValueError("student training plan lacks fixed_config")
+    actual = normalized_student_training_config(args)
+    compliant = actual == fixed
+    if not compliant:
+        differing = sorted(
+            key for key in set(actual) | set(fixed) if actual.get(key) != fixed.get(key)
+        )
+        raise ValueError(
+            "primary scientific student training differs from the predeclared matched recipe: "
+            f"fields={differing}"
+        )
+    return {
+        "path": str(CANONICAL_STUDENT_TRAINING_PLAN.resolve()),
+        "sha256": sha256_file(CANONICAL_STUDENT_TRAINING_PLAN),
+        "plan_id": plan["plan_id"],
+        "plan_config_sha256": canonical_json_sha256(fixed),
+        "actual_config_sha256": canonical_json_sha256(actual),
+        "config": actual,
+        "compliant": compliant,
+    }
+
+
 def read_jsonl(path: str, limit: int = 0) -> list[dict]:
     rows = []
     with open(path) as f:
@@ -120,6 +197,43 @@ def read_jsonl(path: str, limit: int = 0) -> list[dict]:
     if not rows:
         raise ValueError(f"{path} contained no task rows")
     return rows
+
+
+def read_jsonl_objects(path: str | Path) -> list[dict]:
+    """Read generic JSONL trace objects without applying the task-row schema."""
+
+    rows: list[dict] = []
+    with Path(path).open(encoding="utf-8") as handle:
+        for line_no, line in enumerate(handle, 1):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                row = json.loads(stripped)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"{path}:{line_no} contains invalid JSON") from exc
+            if not isinstance(row, dict):
+                raise ValueError(f"{path}:{line_no} must contain a JSON object")
+            rows.append(row)
+    return rows
+
+
+def count_jsonl_objects(path: str | Path) -> int:
+    return len(read_jsonl_objects(path))
+
+
+def resolve_trace_directory(out_path: str | Path, trace_dir: str | Path | None) -> Path:
+    resolved_out = Path(out_path).resolve()
+    resolved_trace = Path(trace_dir or (resolved_out / "traces")).resolve()
+    canonical_internal_trace = (resolved_out / "traces").resolve()
+    if resolved_trace != canonical_internal_trace and (
+        resolved_trace.is_relative_to(resolved_out)
+        or resolved_out.is_relative_to(resolved_trace)
+    ):
+        raise ValueError(
+            "--trace-dir must be the canonical OUT/traces directory or a disjoint external path"
+        )
+    return resolved_trace
 
 
 def prompt_stream(rows: list[dict], rng: random.Random):
@@ -285,6 +399,7 @@ def generate_student_samples(model, tok, prompt_rows: list[dict], args, device: 
                 "group_id": prompt_idx,
                 "sample_idx": sample_idx,
                 "prompt_text": prompts[prompt_idx],
+                "prompt_sha256": task_prompt_sha256(source),
                 "prompt_token_ids": list(source["prompt_token_ids"]),
                 "completion_text": completion,
                 "completion_token_ids": comp_ids,
@@ -519,6 +634,19 @@ def append_jsonl(path: Path, row: dict) -> None:
 
 
 def write_completion_manifests(trace_dir: Path, run_manifest: dict, completion: dict) -> None:
+    trace_artifacts = {}
+    for name in ("steps.jsonl", "samples.jsonl"):
+        path = (trace_dir / name).resolve()
+        if not path.is_file():
+            continue
+        with path.open(encoding="utf-8") as handle:
+            rows = sum(bool(line.strip()) for line in handle)
+        trace_artifacts[name] = {
+            "path": str(path),
+            "rows": rows,
+            "sha256": sha256_file(path),
+        }
+    completion["trace_artifacts"] = trace_artifacts
     run_manifest.update(
         {
             "status": completion["status"],
@@ -1103,6 +1231,13 @@ def validate_run_contract(
                 "sampled reverse KL requires untruncated on-policy sampling: "
                 "--temperature 1 --top-p 1 --top-k 0"
             )
+    student_training_plan = None
+    if (
+        args.mode in TASK_REWARD_MODES
+        and not args.allow_ungated_smoke
+        and args.budget_mode == "primary_matched"
+    ):
+        student_training_plan = validate_student_training_plan_contract(args)
     if args.mode in TASK_REWARD_MODES:
         if not args.allow_ungated_smoke and args.enable_thinking:
             raise ValueError("scientific OPD-math runs require Qwen3 non-thinking mode")
@@ -1133,6 +1268,7 @@ def validate_run_contract(
             "Local Linux process custody is not cryptographic remote attestation."
         ),
         "environment_contract": None,
+        "student_training_plan": student_training_plan,
     }
     if args.mode in TASK_REWARD_MODES:
         if not args.allow_ungated_smoke:
@@ -1342,6 +1478,10 @@ def sample_trace_rows(samples, student_lps, teacher_lps, mask, rewards, statuses
             "rollout_batch_latency_seconds": sample.get("rollout_batch_latency_seconds"),
             "teacher_scoring_latency_seconds": sample.get("teacher_scoring_latency_seconds"),
             "completion_sha256": hashlib.sha256(sample["completion_text"].encode("utf-8")).hexdigest(),
+            "prompt_sha256": sample["prompt_sha256"],
+            "prompt_token_ids": list(sample["prompt_token_ids"]),
+            "completion_token_ids": list(sample["completion_token_ids"]),
+            "completion_text": sample["completion_text"],
             "student_nll": float(-student_values.mean().item()),
             "teacher_nll_on_student_trajectory": (
                 None if teacher_values is None else float(-teacher_values.mean().item())
@@ -1376,6 +1516,165 @@ def sample_trace_rows(samples, student_lps, teacher_lps, mask, rewards, statuses
     return rows
 
 
+def recompute_student_trace_geometry(
+    *,
+    steps_path: Path,
+    samples_path: Path,
+    mode: str,
+    expected_steps: int,
+    micro_prompts: int,
+    group_size: int,
+    max_prompt_tokens: int,
+    max_completion_tokens: int,
+    expected_groups: dict[tuple[int, int], dict],
+    tokenizer,
+) -> dict:
+    """Fail closed on the exact student step, group, sample, and prompt trace."""
+
+    step_rows = read_jsonl_objects(steps_path)
+    if len(step_rows) != expected_steps:
+        raise ValueError("student step trace does not match the planned optimizer-step count")
+    for expected_step, row in enumerate(step_rows, 1):
+        if (
+            row.get("schema_version") != 1
+            or row.get("step") != expected_step
+            or row.get("mode") != mode
+            or row.get("prompts") != micro_prompts
+            or row.get("samples") != micro_prompts * group_size
+        ):
+            raise ValueError(f"student step trace geometry drifted at step {expected_step}")
+        for field in ("total_loss", "gradient_norm_before_clip"):
+            value = row.get(field)
+            if type(value) not in (int, float) or not math.isfinite(float(value)):
+                raise ValueError(
+                    f"student step trace has invalid {field} at step {expected_step}"
+                )
+
+    expected_keys = {
+        (step, group_id)
+        for step in range(1, expected_steps + 1)
+        for group_id in range(micro_prompts)
+    }
+    if set(expected_groups) != expected_keys:
+        raise ValueError("in-memory student prompt groups do not match the planned geometry")
+
+    sample_rows = read_jsonl_objects(samples_path)
+    expected_samples = expected_steps * micro_prompts * group_size
+    if len(sample_rows) != expected_samples:
+        raise ValueError("student sample trace does not match the planned rollout count")
+    grouped: dict[tuple[int, int], list[dict]] = {}
+    completion_tokens = 0
+    sample_expanded_prompt_tokens = 0
+    for row_number, row in enumerate(sample_rows, 1):
+        if row.get("schema_version") != 1:
+            raise ValueError(f"student sample trace row {row_number} has an invalid schema")
+        step = row.get("step")
+        group_id = row.get("group_id")
+        sample_idx = row.get("sample_idx")
+        if type(step) is not int or not 1 <= step <= expected_steps:
+            raise ValueError(f"student sample trace row {row_number} has an invalid step")
+        if type(group_id) is not int or not 0 <= group_id < micro_prompts:
+            raise ValueError(f"student sample trace row {row_number} has an invalid group_id")
+        if type(sample_idx) is not int or not 0 <= sample_idx < group_size:
+            raise ValueError(f"student sample trace row {row_number} has an invalid sample_idx")
+        key = (step, group_id)
+        expected = expected_groups.get(key)
+        if expected is None:
+            raise ValueError(f"student sample trace row {row_number} has an unknown prompt group")
+        for field in ("record_id", "source", "prompt_sha256"):
+            if row.get(field) != expected[field]:
+                raise ValueError(
+                    f"student sample trace row {row_number} has {field} identity drift"
+                )
+        prompt_ids = row.get("prompt_token_ids")
+        completion_ids = row.get("completion_token_ids")
+        if (
+            not isinstance(prompt_ids, list)
+            or not prompt_ids
+            or any(type(value) is not int or value < 0 for value in prompt_ids)
+            or len(prompt_ids) > max_prompt_tokens
+            or prompt_ids != expected["prompt_token_ids"]
+        ):
+            raise ValueError(f"student sample trace row {row_number} has invalid prompt tokens")
+        if (
+            not isinstance(completion_ids, list)
+            or not completion_ids
+            or any(type(value) is not int or value < 0 for value in completion_ids)
+            or len(completion_ids) > max_completion_tokens
+        ):
+            raise ValueError(
+                f"student sample trace row {row_number} has invalid completion tokens"
+            )
+        if row.get("prompt_tokens") != len(prompt_ids):
+            raise ValueError(f"student sample trace row {row_number} has prompt-token drift")
+        if row.get("completion_tokens") != len(completion_ids):
+            raise ValueError(f"student sample trace row {row_number} has completion-token drift")
+        completion_text = row.get("completion_text")
+        if not isinstance(completion_text, str):
+            raise ValueError(f"student sample trace row {row_number} lacks completion text")
+        if row.get("completion_sha256") != hashlib.sha256(
+            completion_text.encode("utf-8")
+        ).hexdigest():
+            raise ValueError(f"student sample trace row {row_number} has completion drift")
+        if tokenizer.decode(completion_ids, skip_special_tokens=True) != completion_text:
+            raise ValueError(
+                f"student sample trace row {row_number} text does not decode from its token IDs"
+            )
+        if type(row.get("terminated_by_eos")) is not bool:
+            raise ValueError(f"student sample trace row {row_number} lacks EOS termination state")
+        for field in ("rollout_batch_latency_seconds",):
+            value = row.get(field)
+            if type(value) not in (int, float) or not math.isfinite(float(value)) or value < 0:
+                raise ValueError(f"student sample trace row {row_number} has invalid {field}")
+        teacher_latency = row.get("teacher_scoring_latency_seconds")
+        if teacher_latency is not None and (
+            type(teacher_latency) not in (int, float)
+            or not math.isfinite(float(teacher_latency))
+            or teacher_latency < 0
+        ):
+            raise ValueError(
+                f"student sample trace row {row_number} has invalid teacher-scoring latency"
+            )
+        grouped.setdefault(key, []).append(row)
+        completion_tokens += len(completion_ids)
+        sample_expanded_prompt_tokens += len(prompt_ids)
+
+    if set(grouped) != expected_keys:
+        raise ValueError("student sample trace has missing or unexpected prompt groups")
+    realized_record_ids: list[str] = []
+    realized_prompt_sequence: list[dict[str, str]] = []
+    prompt_group_tokens = 0
+    for key in sorted(expected_keys):
+        group = sorted(grouped[key], key=lambda row: row["sample_idx"])
+        if [row["sample_idx"] for row in group] != list(range(group_size)):
+            raise ValueError(f"student sample trace group {key} has missing/duplicate samples")
+        expected = expected_groups[key]
+        realized_record_ids.append(expected["record_id"])
+        realized_prompt_sequence.append(
+            {
+                "record_id": expected["record_id"],
+                "prompt_sha256": expected["prompt_sha256"],
+            }
+        )
+        prompt_group_tokens += len(expected["prompt_token_ids"])
+
+    return {
+        "step_trace_rows": len(step_rows),
+        "sample_trace_rows": len(sample_rows),
+        "prompt_groups": len(expected_keys),
+        "rollout_samples": len(sample_rows),
+        "unique_training_records": len(set(realized_record_ids)),
+        "realized_record_ids_sha256": canonical_json_sha256(realized_record_ids),
+        "realized_prompt_sequence_sha256": canonical_json_sha256(
+            realized_prompt_sequence
+        ),
+        "prompt_group_tokens": prompt_group_tokens,
+        "sample_expanded_prompt_tokens": sample_expanded_prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "expected_geometry_observed": True,
+    }
+
+
 def run(args) -> None:
     code_state_start = git_state()
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -1404,6 +1703,14 @@ def run(args) -> None:
         out_path.exists() and (not out_path.is_dir() or any(out_path.iterdir()))
     ):
         raise FileExistsError(f"refusing to overwrite non-empty output directory: {out_path}")
+    trace_dir = resolve_trace_directory(out_path, args.trace_dir)
+    if trace_dir.is_symlink() or (
+        trace_dir.exists()
+        and (not trace_dir.is_dir() or any(trace_dir.iterdir()))
+    ):
+        raise FileExistsError(
+            f"refusing to use a symlink or non-empty trace directory: {trace_dir}"
+        )
     if args.mode in TEACHER_MODES:
         teacher_client.healthcheck(
             args.teacher_url,
@@ -1423,10 +1730,6 @@ def run(args) -> None:
     opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=args.lr)
     initial_parameter_signature = trainable_parameter_signature(model)
     out_path.mkdir(parents=True, exist_ok=True)
-    trace_dir = Path(args.trace_dir or (Path(args.out_dir) / "traces"))
-    for path in (trace_dir / "run_manifest.json", trace_dir / "steps.jsonl", trace_dir / "samples.jsonl"):
-        if path.exists():
-            raise FileExistsError(f"refusing to append to or overwrite existing trace: {path}")
     trace_dir.mkdir(parents=True, exist_ok=True)
     objective_contract = {
         "task_rl": "grouped_verifiable_math_task_reward_v1",
@@ -1483,22 +1786,42 @@ def run(args) -> None:
     }
     (trace_dir / "run_manifest.json").write_text(json.dumps(run_manifest, indent=2, sort_keys=True) + "\n")
 
-    t0 = time.time()
+    run_started = time.time()
+    t0 = run_started
     informative_task_steps = 0
     informative_task_groups = 0
     total_task_groups = 0
     total_scored_completion_tokens = 0
     total_rollout_samples = 0
+    prompt_group_tokens = 0
+    total_rollout_latency_seconds = 0.0
+    total_teacher_scoring_latency_seconds = 0.0
+    prompt_groups_seen = 0
+    realized_record_ids: list[str] = []
+    expected_trace_groups: dict[tuple[int, int], dict] = {}
     gradient_norms: list[float] = []
     for step in range(1, args.steps + 1):
         raw_batch = [next(stream) for _ in range(micro)]
         prompt_rows = []
-        for row in raw_batch:
+        for group_id, row in enumerate(raw_batch):
             item = dict(row)
             item["prompt_text"], item["prompt_token_ids"] = render_prompt(
                 tok, item, args.max_prompt_tokens, args.enable_thinking
             )
             prompt_rows.append(item)
+            prompt_groups_seen += 1
+            prompt_group_tokens += len(item["prompt_token_ids"])
+            record_id = item.get("record_id")
+            if intended_scientific_run and (not isinstance(record_id, str) or not record_id):
+                raise ValueError("scientific training rows require a stable record_id")
+            if isinstance(record_id, str) and record_id:
+                realized_record_ids.append(record_id)
+            expected_trace_groups[(step, group_id)] = {
+                "record_id": record_id,
+                "source": item.get("source"),
+                "prompt_sha256": task_prompt_sha256(item),
+                "prompt_token_ids": list(item["prompt_token_ids"]),
+            }
 
         opt.zero_grad(set_to_none=True)
         if args.mode != "kd":
@@ -1529,6 +1852,14 @@ def run(args) -> None:
             )
         total_scored_completion_tokens += int(ntok)
         total_rollout_samples += len(samples)
+        if args.mode != "kd":
+            total_rollout_latency_seconds += float(
+                samples[0]["rollout_batch_latency_seconds"]
+            )
+            total_teacher_scoring_latency_seconds += sum(
+                float(sample.get("teacher_scoring_latency_seconds") or 0.0)
+                for sample in samples
+            )
 
         if not torch.isfinite(loss):
             raise RuntimeError(f"non-finite loss at step {step}: {loss.item()}")
@@ -1586,6 +1917,59 @@ def run(args) -> None:
         args.mode not in TASK_REWARD_MODES
         or informative_group_fraction >= args.min_informative_group_fraction
     )
+    step_trace_rows = count_jsonl_objects(trace_dir / "steps.jsonl")
+    sample_trace_path = trace_dir / "samples.jsonl"
+    sample_trace_rows = (
+        count_jsonl_objects(sample_trace_path) if sample_trace_path.is_file() else 0
+    )
+    expected_prompt_groups = args.steps * micro
+    expected_rollout_samples = expected_prompt_groups * args.group_size
+    selected_record_ids = {
+        row.get("record_id")
+        for row in rows
+        if isinstance(row.get("record_id"), str) and row.get("record_id")
+    }
+    trace_geometry = None
+    if args.mode != "kd":
+        trace_geometry = recompute_student_trace_geometry(
+            steps_path=trace_dir / "steps.jsonl",
+            samples_path=sample_trace_path,
+            mode=args.mode,
+            expected_steps=args.steps,
+            micro_prompts=micro,
+            group_size=args.group_size,
+            max_prompt_tokens=args.max_prompt_tokens,
+            max_completion_tokens=args.max_new_tokens,
+            expected_groups=expected_trace_groups,
+            tokenizer=tok,
+        )
+    realized_record_ids_sha256 = canonical_json_sha256(realized_record_ids)
+    realized_prompt_sequence_sha256 = canonical_json_sha256(
+        [
+            {
+                "record_id": expected_trace_groups[key]["record_id"],
+                "prompt_sha256": expected_trace_groups[key]["prompt_sha256"],
+            }
+            for key in sorted(expected_trace_groups)
+        ]
+    )
+    realized_training_geometry_observed = (
+        trace_geometry is not None
+        and trace_geometry["expected_geometry_observed"] is True
+        and prompt_groups_seen == expected_prompt_groups
+        and total_task_groups == expected_prompt_groups
+        and total_rollout_samples == expected_rollout_samples
+        and trace_geometry["step_trace_rows"] == args.steps
+        and trace_geometry["sample_trace_rows"] == expected_rollout_samples
+        and trace_geometry["completion_tokens"] == total_scored_completion_tokens
+        and trace_geometry["prompt_group_tokens"] == prompt_group_tokens
+        and trace_geometry["realized_record_ids_sha256"]
+        == realized_record_ids_sha256
+        and trace_geometry["realized_prompt_sequence_sha256"]
+        == realized_prompt_sequence_sha256
+        and len(realized_record_ids) == expected_prompt_groups
+        and set(realized_record_ids).issubset(selected_record_ids)
+    )
     code_state_training_end = git_state()
     clean_stable_training_code = clean_stable_git_custody(
         code_state_start, code_state_training_end
@@ -1626,6 +2010,25 @@ def run(args) -> None:
         "optimizer_steps_completed": args.steps,
         "rollout_samples": total_rollout_samples,
         "scored_completion_tokens": total_scored_completion_tokens,
+        "prompt_group_tokens": prompt_group_tokens,
+        "sample_expanded_prompt_tokens": (
+            trace_geometry["sample_expanded_prompt_tokens"]
+            if trace_geometry is not None
+            else prompt_group_tokens * args.group_size
+        ),
+        "prompt_groups_seen": prompt_groups_seen,
+        "step_trace_rows": step_trace_rows,
+        "sample_trace_rows": sample_trace_rows,
+        "realized_training_geometry_observed": realized_training_geometry_observed,
+        "unique_training_records": len(set(realized_record_ids)),
+        "realized_record_ids_sha256": realized_record_ids_sha256,
+        "realized_prompt_sequence_sha256": realized_prompt_sequence_sha256,
+        "total_training_elapsed_seconds": time.time() - run_started,
+        "total_rollout_latency_seconds": total_rollout_latency_seconds,
+        "total_teacher_scoring_latency_seconds": total_teacher_scoring_latency_seconds,
+        "peak_cuda_memory_bytes": (
+            int(torch.cuda.max_memory_allocated()) if torch.cuda.is_available() else None
+        ),
         "intended_scientific_run": intended_scientific_run,
         "informative_task_steps": informative_task_steps,
         "informative_task_groups": informative_task_groups,
@@ -1659,6 +2062,13 @@ def run(args) -> None:
             )
         ),
     }
+    if intended_scientific_run and not realized_training_geometry_observed:
+        completion["status"] = "failed_realized_training_geometry_gate"
+        write_completion_manifests(trace_dir, run_manifest, completion)
+        raise RuntimeError(
+            "realized prompt/sample/trace geometry differs from the predeclared student plan; "
+            "no final adapter was promoted"
+        )
     if intended_scientific_run and not task_signal_observed:
         write_completion_manifests(trace_dir, run_manifest, completion)
         raise RuntimeError(
@@ -1782,6 +2192,7 @@ def run(args) -> None:
         and clean_stable_code
         and stable_environment_end
         and stable_final_artifact
+        and realized_training_geometry_observed
         and _server_process_binding_gate_satisfied(
             server_process_binding_required, server_process_binding_validated
         )

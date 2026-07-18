@@ -183,6 +183,34 @@ claimed for this run.” Scientific `task_rl_k1_gap` runs still require and
 revalidate the binding; the corrected smoke does not pretend that a waived
 requirement passed.
 
+## Canonical-preparation continuation - prelaunch checkpoint
+
+Job `106884` completed the first full source audit at
+`/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1_semantic_audit_ab9b289_b256`.
+Its manifest SHA-256 is
+`2fdedc71e9426c66ec971d146c325bff41f248220441432b91a8fe44ff8b6698`.
+The semantic scan was complete and skipped no bucket, but it surfaced 666
+unresolved review pairs. The review packet contains 666 rows with SHA-256
+`b44faf43cbf062397101b1185e8aacb06413500b2704e5bd0d9d3301c40842b4`.
+Under the conservative leakage policy, all 666 were finalized as `duplicate`;
+the decision file has SHA-256
+`e135fd2994f5d9ff243ccd392116661ff2a7a69e35ce9544ad3736445122ee4c`.
+
+This audit cannot be promoted. In addition to unresolved decisions at creation
+time, the old partition path emitted only 4,995 of the 5,000 frozen MATH-test
+questions: five legitimate related subquestions shared a stem or diagram and
+were incorrectly removed. The repaired contract retains every frozen question
+while quarantining any touching training records, and fails closed unless the
+partitioned test count equals the parsed input count.
+
+At this checkpoint, the finalized decisions had not yet been persisted to the
+canonical EIT review path and the reviewed canonical preparation had not run.
+The hardened branch also adds exact teacher/student trace geometry, independent
+TRL-reward recomputation, a committed 100-step student plan, full held-out
+student custody, and the deterministic six-arm matrix readout. All 143 local
+tests passed before this prelaunch documentation pass. No scientific teacher or
+student performance result was created.
+
 ## Remaining gates before a scientific run
 
 1. Prepare the full M/O source surface in a fresh directory. Complete the
@@ -195,7 +223,9 @@ requirement passed.
    otherwise stop rather than interpreting a KL-only update as learning.
 4. Run the committed 100-step, matched-budget teacher recipe separately on M
    and O. Informative reward is required for the scientific teacher run even
-   though it was correctly optional for a one-step plumbing smoke.
+   though it was correctly optional for a one-step plumbing smoke. Require an
+   informative trainer signal, an independently verified mixed-reward trace
+   group, and the exact expected without-replacement record diversity.
 5. Evaluate each trained teacher against its own raw checkpoint on the complete
    registered teacher-gap role with repeated samples. Require the paired
    teacher-quality gate; ties fail.
@@ -203,8 +233,11 @@ requirement passed.
    provenance, model tree hash, tokenizer contract, process binding, and both
    environment freezes.
 7. Run one `task_rl` baseline per student source, then the four M/M, M/O, O/M,
-   and O/O `task_rl_k1_gap` arms. Compare held-out reward, learning curves,
-   token/latency cost, mixed-group frequency, teacher NLL, and gap strata.
+   and O/O `task_rl_k1_gap` arms.
+8. Evaluate all six adapters on their complete `source_holdout` files, create
+   six held-out custody gates, and build the exact six-arm readout with 10,000
+   paired record-bootstrap draws. Compare reward, learning curves, token/latency
+   cost, mixed-group frequency, teacher NLL, and gap strata.
 
 The stop rule remains simple: without a reproducible teacher skill gap and
 raw-student task support, do not launch the scientific OPD main arm.
@@ -228,7 +261,8 @@ alternates. No dataset, model, environment, experiment artifact, archive, or
 literature-vault material was deleted.
 
 An 82 MB local temporary dependency target used to supply the pinned math
-verifier for the full test suite was also removed after all 121 tests passed.
+verifier for the initial handoff suite was also removed after all 121 tests
+then present passed.
 
 ## Links
 

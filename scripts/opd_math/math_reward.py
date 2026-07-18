@@ -60,6 +60,46 @@ def verify_completion(completion: str, gold_solution: str) -> dict[str, Any]:
     return {"reward": float(correct), "status": "correct" if correct else "incorrect"}
 
 
+def verify_trl_accuracy_completion(completion: str, gold_solution: str) -> dict[str, Any]:
+    """Recompute TRL 1.8 ``accuracy_reward`` for one traced teacher sample.
+
+    The teacher deliberately uses TRL's reward contract, whose prediction
+    normalization differs from the student reward above.  Keep the two paths
+    separate so a scientific teacher gate can verify the exact reward that was
+    optimized rather than silently substituting the student verifier.
+    """
+
+    NormalizationConfig, LatexExtractionConfig, parse, verify = _verifier_imports()
+    gold = parse(str(gold_solution), parsing_timeout=10)
+    if not gold:
+        return {"reward": None, "status": "gold_parse_failed"}
+
+    prediction = parse(
+        str(completion),
+        extraction_config=[
+            LatexExtractionConfig(
+                normalization_config=NormalizationConfig(units=True),
+                boxed_match_priority=0,
+                try_extract_without_anchor=False,
+            )
+        ],
+        extraction_mode="first_match",
+        parsing_timeout=10,
+    )
+    try:
+        correct = bool(verify(gold, prediction, timeout_seconds=5))
+    except Exception as exc:  # verifier failures are infrastructure failures
+        return {
+            "reward": None,
+            "status": "verifier_error",
+            "error_type": type(exc).__name__,
+            "error": str(exc)[:500],
+        }
+    if not prediction:
+        return {"reward": 0.0, "status": "prediction_parse_failed"}
+    return {"reward": float(correct), "status": "correct" if correct else "incorrect"}
+
+
 def rewards_for_samples(samples: list[dict]) -> tuple[list[float], list[str]]:
     rewards: list[float] = []
     statuses: list[str] = []

@@ -19,7 +19,9 @@ That snapshot validates plumbing only; it is not a task-performance result.
 
 - Main same-source arms use disjoint problem clusters. Exact-row reuse is a
   separately named `same_items` memorization positive control.
-- MATH test stays frozen external evaluation. Any train cluster touching it is
+- MATH test stays frozen external evaluation. All 5,000 benchmark questions are
+  retained, including legitimate related subquestions that share a stem or
+  diagram. Any training record in a cluster touching one of those questions is
   quarantined. Cross-M/O exact, formatting-only, or reviewed semantic clusters
   are quarantined from the primary matrix. Formatting normalization retains
   semantic whitespace, so `a b` is never silently equated with `ab`.
@@ -89,6 +91,13 @@ any fixed field fails before loading a model; both source gates carry the same
 plan and config hashes. The selected prompts are explicitly measured and any
 rendered prompt over 1,536 tokens is rejected rather than silently truncated.
 
+The two student baselines and four main arms are bound to the committed
+[`student_training_plan.json`](../../configs/opd_math/student_training_plan.json):
+100 optimizer steps, one prompt group per step, four rollouts per group, seed
+zero, 1,536 prompt tokens, 512 completion tokens, and the exact task-reward and
+K1-gap settings. This is a matched 100-prompt pilot, not full exposure to every
+eligible role-file row or a training-seed study.
+
 ## Stage order
 
 1. Create the isolated TRL environment with
@@ -103,9 +112,19 @@ rendered prompt over 1,536 tokens is rejected rather than silently truncated.
    review every `requires_review` row, and run a fresh canonical path with
    `OPD_MATH_SEMANTIC_REVIEW_JSONL` set. Do not reuse an output directory or
    treat the first full candidate surface as the canonical dataset.
-3. Run the one-step teacher smoke. Then train both M and O teachers with
-   matched budgets.
-4. Evaluate each base/trained teacher pair on identical frozen
+3. Evaluate the raw student on the complete matched M and O `student_opd`
+   surfaces and build both `student-support` manifests. If either source has
+   nearly all-zero groups, stop. This repository does not implement an
+   identity-bound warm-start path, and an ungated smoke is not a scientific
+   substitute. Sampling must exactly match training (`temperature=1`,
+   `top_p=1`, `top_k=0`, `max_new_tokens=512`, seed zero, group size four).
+4. Run the one-step teacher smoke to validate the current callback and trace
+   schema. Then train both M and O teachers with the matched 100-step recipe.
+   Scientific eligibility requires an informative trainer-log signal, at least
+   one mixed-reward trace group whose stored reward independently recomputes
+   under TRL's exact accuracy contract, and exactly
+   `min(matched_teacher_pool_rows, 100)` unique realized records.
+5. Evaluate each base/trained teacher pair on identical frozen
    `teacher_skill_dev` records and separately report the `target_gap_dev`
    distribution. Use repeated non-thinking samples and build `teacher-gap`
    manifests with `slurm_opd_math_evaluate.sh` followed by
@@ -115,21 +134,19 @@ rendered prompt over 1,536 tokens is rejected rather than silently truncated.
    full O evaluation, run a labeled timing-only prefix and require its projected
    full runtime to fit the 24-hour job with at least 25% headroom. Otherwise stop
    and extend or make evaluation resumable; do not feed the prefix to a gate.
-5. Evaluate the raw student and build its `student-support` manifest. If it has
-   nearly all-zero groups, stop. This repository does not yet implement an
-   identity-bound student warm-start path, and an ungated smoke is not a
-   scientific substitute.
-   Its sampling contract must exactly match training (`temperature=1`,
-   `top_p=1`, `top_k=0`, `max_new_tokens=512`, and the same seed/group size).
-   For a scientific support gate, set `OPD_MATH_EVAL_MAX_RECORDS` to the exact
-   `primary_matched_budgets.student_opd` value in `prepared_manifest.json`.
 6. Merge only a teacher that passed its gate with
    `slurm_opd_math_merge_teacher.sh`, serve it with the separate vLLM
    environment, and run both the tokenizer and exact-token scoring probes.
 7. Run one `task_rl` baseline per student source (`M`, `O`), then compare each
    to `task_rl_k1_gap` for M_M, M_O, O_M, and O_O. Do not manufacture four
    baseline labels when the teacher coordinate is unused.
-8. Mine the over-collected traces for accuracy, mixed-group frequency,
+8. Evaluate every promoted student adapter on the complete matching
+   `source_holdout` file with four samples and the exact student decoding
+   contract. Build six independent held-out custody gates, then combine exactly
+   `baseline_M`, `baseline_O`, `M_M`, `M_O`, `O_M`, and `O_O` into the matrix
+   readout. Authorization is independent of whether an effect helps, harms, or
+   is inconclusive.
+9. Mine the over-collected traces for accuracy, mixed-group frequency,
    completion length, student NLL, and **teacher NLL on the student
    trajectory**. Low teacher NLL is not assumed to imply correctness.
 
@@ -200,6 +217,7 @@ The stages, launch surfaces, and required per-job settings are:
 | Student-support gate | same quality-gate launcher | raw-student summary/samples, pinned identity, source | scientific gate passes; otherwise stop |
 | Teacher merge | `slurm_opd_math_merge_teacher.sh` | passing gate, exact adapter/base identity, fresh output | provenance and checkpoint hash exist |
 | Student baseline/main | `slurm_opd_math_student_train.sh` | explicit mode, steps, task limit, budget and support gate; commit-specific train freeze; main also needs pair, teacher gate/checkpoint/provenance, and serve freeze | training artifact only; held-out evaluation remains required |
+| Held-out student result / matrix | `slurm_opd_math_student_results.sh` | `heldout`: one eligible run, completion, exact adapter, and complete `source_holdout` evaluation; `matrix`: exactly six passing held-out gates | deterministic custody readout; effect sign does not determine authorization |
 
 Create the environments on a networked login node, fill the shared model cache
 online, and only then run the offline GPU preflights:
@@ -255,6 +273,23 @@ sbatch scripts/hpc/slurm_opd_math_prepare_data.sh
 OPD_MATH_DATA_ROOT=/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1 \
 OPD_MATH_SEMANTIC_REVIEW_JSONL=/absolute/path/to/reviewed-decisions.jsonl \
 sbatch scripts/hpc/slurm_opd_math_prepare_data.sh
+```
+
+Freeze review decisions with the tracked finalizer before the canonical run.
+It requires exactly one decision for every packet pair, rejects unknown or
+duplicate pair IDs, applies only explicit override files, preserves packet
+order, and refuses to overwrite an existing output:
+
+```bash
+REVIEW_ROOT=/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/reviews/v1
+mkdir -p "$REVIEW_ROOT"
+test ! -e "$REVIEW_ROOT/reviewed-decisions.jsonl"
+"$OPD_MATH_TRAIN_ENV/bin/python" scripts/opd_math/finalize_semantic_reviews.py \
+  --packet /absolute/path/to/full-audit-review-packet.jsonl \
+  --review /absolute/path/to/complete-initial-review-decisions.jsonl \
+  --override /absolute/path/to/explicit-reconciliation-overrides.jsonl \
+  --output "$REVIEW_ROOT/reviewed-decisions.jsonl"
+sha256sum "$REVIEW_ROOT/reviewed-decisions.jsonl"
 ```
 
 If the full audit records skipped buckets, rerun another new audit path with a
@@ -369,8 +404,37 @@ identity required by `slurm_opd_math_student_train.sh`. Its internal tokenizer
 and exact-token probes must pass. Final adapters still require repeated held-out
 evaluation; the training completion manifest is not a task-performance result.
 
+For each promoted adapter, run the evaluation launcher with role
+`source_holdout`, `OPD_MATH_EVAL_MAX_RECORDS=0`, four samples, temperature 1,
+top-p 1, top-k 0, max-new-tokens 512, and seed zero. Then create a fresh held-out
+gate with:
+
+```text
+OPD_MATH_RESULT_KIND=heldout
+OPD_MATH_MATRIX_KEY=baseline_M|baseline_O|M_M|M_O|O_M|O_O
+OPD_MATH_RESULT_SOURCE=M|O
+OPD_MATH_STUDENT_RUN_MANIFEST=<eligible run_manifest.json>
+OPD_MATH_STUDENT_COMPLETION_MANIFEST=<sibling completion_manifest.json>
+OPD_MATH_STUDENT_EVAL_{SUMMARY,SAMPLES}=<complete source_holdout artifacts>
+OPD_MATH_STUDENT_ADAPTER=<exact evaluated final adapter>
+OPD_MATH_RESULT_OUTPUT=<new held-out gate JSON>
+```
+
+The gate recomputes held-out rewards and exact 100-step/400-sample training
+geometry. The matrix requires the same realized record/prompt sequence within
+each M or O student-source stratum. Once all six held-out gates pass, run
+`OPD_MATH_RESULT_KIND=matrix` with
+`OPD_MATH_RESULT_{BASELINE_M,BASELINE_O,M_M,M_O,O_M,O_O}` and fresh JSON and
+Markdown outputs. The readout uses 10,000 paired record-bootstrap draws for the
+four baseline deltas, same-versus-cross contrasts, and stratified interaction;
+`helps`, `harms`, and `inconclusive` are all valid signed results.
+
 ## Current boundary
 
-The code and CPU tests establish the intended data/objective contracts. Until
-the EIT Slurm logs exist, there is no new teacher-training or OPD performance
-result from this branch.
+EIT job `106884` produced a complete semantic candidate surface, but its old
+partition code retained only 4,995 of 5,000 MATH test questions and its 666
+review decisions were not yet applied to a fresh canonical directory. It is an
+audit artifact, not canonical data. The repaired code and CPU tests establish
+the intended data, reward, trace, held-out, and matrix contracts. No scientific
+teacher or student training result exists until the reviewed canonical rerun
+and the ordered gates above complete.
