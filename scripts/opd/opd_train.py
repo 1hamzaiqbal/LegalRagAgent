@@ -1304,6 +1304,19 @@ def validate_run_contract(
     )
 
 
+def _local_server_process_binding_state(
+    mode: str, intended_scientific_run: bool, binding: dict
+) -> tuple[bool, bool]:
+    """Return whether live binding is required and whether it actually passed.
+
+    An ungated smoke is allowed to omit local process custody, but omission is
+    not validation.  Keep these two facts separate in the completion manifest.
+    """
+    required = intended_scientific_run and mode == "task_rl_k1_gap"
+    validated = binding.get("live_local_server_process_binding_validated") is True
+    return required, validated
+
+
 def sample_trace_rows(samples, student_lps, teacher_lps, mask, rewards, statuses, step: int):
     rows = []
     for i, sample in enumerate(samples):
@@ -1574,14 +1587,15 @@ def run(args) -> None:
     stable_training_environment = environment_contract_unchanged(
         binding.get("environment_contract")
     )
-    server_process_binding_validated = (
-        args.mode != "task_rl_k1_gap"
-        or not intended_scientific_run
-        or binding.get("live_local_server_process_binding_validated") is True
+    (
+        server_process_binding_required,
+        server_process_binding_validated,
+    ) = _local_server_process_binding_state(
+        args.mode, intended_scientific_run, binding
     )
     server_process_binding_end = None
     server_process_binding_error = None
-    if intended_scientific_run and args.mode == "task_rl_k1_gap":
+    if server_process_binding_required:
         try:
             server_process_binding_end = revalidate_local_process_binding(
                 server_scoring_contract["local_process_binding"],
@@ -1620,6 +1634,7 @@ def run(args) -> None:
         "git_state_end": None,
         "clean_stable_code": False,
         "stable_training_environment": stable_training_environment,
+        "local_server_process_binding_required": server_process_binding_required,
         "live_local_server_process_binding_validated": server_process_binding_validated,
         "local_server_process_binding_end": server_process_binding_end,
         "local_server_process_binding_error": server_process_binding_error,
@@ -1628,10 +1643,14 @@ def run(args) -> None:
         "training_artifact_eligible_for_held_out_evaluation": False,
         "scientific_use_allowed": False,
         "claim_boundary": (
-            "Completion establishes an optimizer run under the validated contract; "
+            "Completion establishes an optimizer run under the applicable contract; "
             "task performance requires held-out evaluation and uncertainty analysis. "
-            "The local server binding is same-host Linux process custody, not "
-            "cryptographic remote attestation."
+            + (
+                "The validated local server binding is same-host Linux process custody, "
+                "not cryptographic remote attestation."
+                if server_process_binding_validated
+                else "No local server process custody is claimed for this run."
+            )
         ),
     }
     if intended_scientific_run and not task_signal_observed:
@@ -1655,7 +1674,7 @@ def run(args) -> None:
             "training package identity or an environment freeze changed during training; "
             "no final adapter was promoted"
         )
-    if intended_scientific_run and not server_process_binding_validated:
+    if server_process_binding_required and not server_process_binding_validated:
         completion["status"] = "failed_local_server_process_binding_gate"
         completion["training_artifact_eligible_for_held_out_evaluation"] = False
         write_completion_manifests(trace_dir, run_manifest, completion)

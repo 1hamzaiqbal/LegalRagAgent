@@ -9,6 +9,7 @@ from scripts.opd.opd_train import (
     EXPECTED_MERGE_PACKAGES,
     MERGED_TEACHER_SCHEMA,
     MERGER_FILE,
+    _local_server_process_binding_state,
     _validate_server_scoring_contract,
     _validate_teacher_provenance,
     clean_stable_git_custody,
@@ -26,6 +27,25 @@ from scripts.opd_math.server_scoring_probe import (
 PID = 4312
 PORT = 18432
 MODEL = "opd-math-teacher"
+
+
+def test_local_server_process_binding_state_separates_requirement_from_validation():
+    missing = {"live_local_server_process_binding_validated": False}
+    validated = {"live_local_server_process_binding_validated": True}
+
+    assert _local_server_process_binding_state("task_rl_k1_gap", False, missing) == (
+        False,
+        False,
+    )
+    assert _local_server_process_binding_state("task_rl_k1_gap", True, missing) == (
+        True,
+        False,
+    )
+    assert _local_server_process_binding_state("task_rl_k1_gap", True, validated) == (
+        True,
+        True,
+    )
+    assert _local_server_process_binding_state("task_rl", True, missing) == (False, False)
 
 
 def write_checkpoint(tmp_path):
