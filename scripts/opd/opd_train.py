@@ -1317,6 +1317,12 @@ def _local_server_process_binding_state(
     return required, validated
 
 
+def _server_process_binding_gate_satisfied(required: bool, validated: bool) -> bool:
+    """A teacher-server binding must validate only when the mode requires one."""
+
+    return not required or validated
+
+
 def sample_trace_rows(samples, student_lps, teacher_lps, mask, rewards, statuses, step: int):
     rows = []
     for i, sample in enumerate(samples):
@@ -1776,7 +1782,9 @@ def run(args) -> None:
         and clean_stable_code
         and stable_environment_end
         and stable_final_artifact
-        and server_process_binding_validated
+        and _server_process_binding_gate_satisfied(
+            server_process_binding_required, server_process_binding_validated
+        )
     )
     completion["final_adapter"] = str(final_adapter)
     completion["final_adapter_tree_sha256"] = final_hash

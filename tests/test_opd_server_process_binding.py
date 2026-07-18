@@ -10,6 +10,7 @@ from scripts.opd.opd_train import (
     MERGED_TEACHER_SCHEMA,
     MERGER_FILE,
     _local_server_process_binding_state,
+    _server_process_binding_gate_satisfied,
     _validate_server_scoring_contract,
     _validate_teacher_provenance,
     clean_stable_git_custody,
@@ -46,6 +47,13 @@ def test_local_server_process_binding_state_separates_requirement_from_validatio
         True,
     )
     assert _local_server_process_binding_state("task_rl", True, missing) == (False, False)
+
+
+def test_server_process_binding_gate_accepts_modes_without_a_teacher_server():
+    assert _server_process_binding_gate_satisfied(False, False)
+    assert _server_process_binding_gate_satisfied(False, True)
+    assert _server_process_binding_gate_satisfied(True, True)
+    assert not _server_process_binding_gate_satisfied(True, False)
 
 
 def write_checkpoint(tmp_path):

@@ -36,6 +36,23 @@ DEFAULT_MIN_PASS_AT_K = 0.01
 DEFAULT_MIN_MIXED_GROUP_FRACTION = 0.01
 DEFAULT_SCIENTIFIC_BOOTSTRAP_DRAWS = 10_000
 MIN_SCIENTIFIC_BOOTSTRAP_DRAWS = 1_000
+SCIENTIFIC_SAMPLES_PER_PROBLEM = 4
+TEACHER_GAP_DECODING = {
+    "thinking": False,
+    "temperature": 0.7,
+    "top_p": 0.8,
+    "top_k": 20,
+    "max_new_tokens": 1024,
+    "seed": 0,
+}
+STUDENT_SUPPORT_DECODING = {
+    "thinking": False,
+    "temperature": 1.0,
+    "top_p": 1.0,
+    "top_k": 0,
+    "max_new_tokens": 512,
+    "seed": 0,
+}
 TEACHER_TRAIN_ROLE = "teacher_train"
 TEACHER_GAP_ROLE = "teacher_gap_dev"
 STUDENT_SUPPORT_ROLE = "student_opd"
@@ -744,6 +761,21 @@ def _gate_strength(args: argparse.Namespace) -> str:
     return "smoke" if bool(getattr(args, "smoke_gate", False)) else "scientific"
 
 
+def _require_scientific_evaluation_contract(
+    summary: dict[str, Any], binding: dict[str, Any], *, decoding: dict[str, Any], label: str
+) -> None:
+    if binding.get("samples_per_problem") != SCIENTIFIC_SAMPLES_PER_PROBLEM:
+        raise ValueError(
+            f"scientific {label} evaluation requires exactly "
+            f"{SCIENTIFIC_SAMPLES_PER_PROBLEM} samples per problem"
+        )
+    if summary.get("decoding") != decoding:
+        raise ValueError(
+            f"scientific {label} evaluation decoding differs from the predeclared contract: "
+            f"expected={decoding}, actual={summary.get('decoding')}"
+        )
+
+
 def _minimum_records(args: argparse.Namespace, scientific_default: int) -> int:
     strength = _gate_strength(args)
     requested = getattr(args, "min_records", None)
@@ -801,6 +833,19 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("base and trained teacher evaluations use different task files")
     if base_summary["decoding"] != trained_summary["decoding"]:
         raise ValueError("base and trained teacher evaluations use different decoding contracts")
+    if strength == "scientific":
+        _require_scientific_evaluation_contract(
+            base_summary,
+            base_binding,
+            decoding=TEACHER_GAP_DECODING,
+            label="teacher-gap",
+        )
+        _require_scientific_evaluation_contract(
+            trained_summary,
+            trained_binding,
+            decoding=TEACHER_GAP_DECODING,
+            label="teacher-gap",
+        )
     for field in (
         "evaluation_git_commit",
         "evaluator_file_sha256",
@@ -923,6 +968,13 @@ def student_support(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("student-support gate currently requires the raw, no-adapter student")
     if summary.get("adapter_tree_sha256") is not None:
         raise ValueError("raw student evaluation has unexpected adapter identity")
+    if strength == "scientific":
+        _require_scientific_evaluation_contract(
+            summary,
+            binding,
+            decoding=STUDENT_SUPPORT_DECODING,
+            label="student-support",
+        )
     _, prepared_binding = _prepared_role_binding(
         args.prepared_manifest,
         source=args.task_source,

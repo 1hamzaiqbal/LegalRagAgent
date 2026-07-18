@@ -9,7 +9,9 @@ from scripts.opd_math.quality_gates import (
     EXPECTED_TEACHER_TRAIN_PACKAGES,
     STUDENT_GATE_TYPE,
     STUDENT_SMOKE_GATE_TYPE,
+    STUDENT_SUPPORT_DECODING,
     TEACHER_GATE_TYPE,
+    TEACHER_GAP_DECODING,
     TEACHER_SMOKE_GATE_TYPE,
     canonical_json_sha256,
     recompute_student_gate,
@@ -24,14 +26,7 @@ MODEL = "Qwen/Qwen3-8B"
 REVISION = "a" * 40
 STUDENT_MODEL = "Qwen/Qwen3-1.7B"
 STUDENT_REVISION = "b" * 40
-DECODING = {
-    "thinking": False,
-    "temperature": 0.7,
-    "top_p": 0.8,
-    "top_k": 20,
-    "max_new_tokens": 128,
-    "seed": 0,
-}
+DECODING = TEACHER_GAP_DECODING
 EVALUATOR = Path(__file__).resolve().parents[1] / "scripts" / "opd_math" / "evaluate_math.py"
 
 
@@ -208,6 +203,7 @@ def write_evaluation(
     adapter=None,
     source="M",
     role="teacher_gap_dev",
+    decoding=DECODING,
 ):
     directory.mkdir(parents=True, exist_ok=True)
     samples_path = directory / f"{name}-samples.jsonl"
@@ -263,7 +259,7 @@ def write_evaluation(
         "samples": total,
         "accuracy": sum(row["reward"] for row in sample_rows) / total,
         "prediction_parse_failure_fraction": 0.0,
-        "decoding": DECODING,
+        "decoding": decoding,
         "samples_file": str(samples_path.resolve()),
         "samples_file_sha256": sha256_file(samples_path),
     }
@@ -310,9 +306,9 @@ def test_scientific_teacher_gate_requires_records_strict_gain_and_positive_ci(tm
     adapter.mkdir()
     (adapter / "adapter_config.json").write_text('{"r": 8}\n')
     teacher_run_manifest = write_teacher_run(tmp_path, prepared_manifest, adapter)
-    base_rewards = {row["record_id"]: [0] for row in task_rows}
-    tied_rewards = {row["record_id"]: [0] for row in task_rows}
-    better_rewards = {row["record_id"]: [1] for row in task_rows}
+    base_rewards = {row["record_id"]: [0, 0, 0, 0] for row in task_rows}
+    tied_rewards = {row["record_id"]: [0, 0, 0, 0] for row in task_rows}
+    better_rewards = {row["record_id"]: [1, 1, 1, 1] for row in task_rows}
     base_summary, base_samples = write_evaluation(tmp_path, "base", task, base_rewards)
     tied_summary, tied_samples = write_evaluation(
         tmp_path, "tied", task, tied_rewards, adapter=adapter
@@ -412,13 +408,19 @@ def test_small_smoke_teacher_gate_has_distinct_non_authorizing_type(tmp_path):
         tmp_path, prepared_manifest, adapter, scientific=False
     )
     base_summary, base_samples = write_evaluation(
-        tmp_path, "smoke-base", task, {row["record_id"]: [0] for row in task_rows}
+        tmp_path,
+        "smoke-base",
+        task,
+        {row["record_id"]: [0, 0, 0, 0] for row in task_rows},
     )
     trained_summary, trained_samples = write_evaluation(
         tmp_path,
         "smoke-trained",
         task,
-        {task_rows[0]["record_id"]: [1], task_rows[1]["record_id"]: [0]},
+        {
+            task_rows[0]["record_id"]: [1, 1, 1, 1],
+            task_rows[1]["record_id"]: [0, 0, 0, 0],
+        },
         adapter=adapter,
     )
     args = teacher_args(
@@ -447,7 +449,7 @@ def test_scientific_student_support_binds_model_task_and_support(tmp_path):
     task = role_paths["student_opd"]
     task_rows = role_rows["student_opd"]
     rewards = {
-        row["record_id"]: ([0, 1] if index < 50 else [0, 0])
+        row["record_id"]: ([0, 1, 0, 1] if index < 50 else [0, 0, 0, 0])
         for index, row in enumerate(task_rows)
     }
     summary, samples = write_evaluation(
@@ -458,6 +460,7 @@ def test_scientific_student_support_binds_model_task_and_support(tmp_path):
         model=STUDENT_MODEL,
         revision=STUDENT_REVISION,
         role="student_opd",
+        decoding=STUDENT_SUPPORT_DECODING,
     )
     result = student_support(
         Namespace(
@@ -491,8 +494,8 @@ def test_small_student_support_is_smoke_only(tmp_path):
     task = role_paths["student_opd"]
     task_rows = role_rows["student_opd"]
     rewards = {
-        task_rows[0]["record_id"]: [0, 1],
-        task_rows[1]["record_id"]: [0, 0],
+        task_rows[0]["record_id"]: [0, 1, 0, 1],
+        task_rows[1]["record_id"]: [0, 0, 0, 0],
     }
     summary, samples = write_evaluation(
         tmp_path,
@@ -502,6 +505,7 @@ def test_small_student_support_is_smoke_only(tmp_path):
         model=STUDENT_MODEL,
         revision=STUDENT_REVISION,
         role="student_opd",
+        decoding=STUDENT_SUPPORT_DECODING,
     )
     args = Namespace(
         student_summary=summary,
@@ -577,13 +581,16 @@ def test_scientific_teacher_gate_rejects_prefix_or_ineligible_run(tmp_path):
     (adapter / "adapter_config.json").write_text("{}\n")
     run_manifest = write_teacher_run(tmp_path, prepared_manifest, adapter)
     base_summary, base_samples = write_evaluation(
-        tmp_path, "prefix-base", task, {row["record_id"]: [0] for row in selected}
+        tmp_path,
+        "prefix-base",
+        task,
+        {row["record_id"]: [0, 0, 0, 0] for row in selected},
     )
     trained_summary, trained_samples = write_evaluation(
         tmp_path,
         "prefix-trained",
         task,
-        {row["record_id"]: [1] for row in selected},
+        {row["record_id"]: [1, 1, 1, 1] for row in selected},
         adapter=adapter,
     )
     gate_args = teacher_args(
@@ -602,13 +609,16 @@ def test_scientific_teacher_gate_rejects_prefix_or_ineligible_run(tmp_path):
     # run cannot be promoted through the scientific teacher gate.
     all_rows = role_rows["teacher_gap_dev"]
     base_summary, base_samples = write_evaluation(
-        tmp_path, "full-base", task, {row["record_id"]: [0] for row in all_rows}
+        tmp_path,
+        "full-base",
+        task,
+        {row["record_id"]: [0, 0, 0, 0] for row in all_rows},
     )
     trained_summary, trained_samples = write_evaluation(
         tmp_path,
         "full-trained",
         task,
-        {row["record_id"]: [1] for row in all_rows},
+        {row["record_id"]: [1, 1, 1, 1] for row in all_rows},
         adapter=adapter,
     )
     run = json.loads(run_manifest.read_text())
@@ -632,7 +642,7 @@ def test_scientific_student_support_rejects_cherry_picked_prefix(tmp_path):
     prepared_manifest, _, role_paths, role_rows = write_prepared(tmp_path, student_count=100)
     task = role_paths["student_opd"]
     selected = role_rows["student_opd"][:99]
-    rewards = {row["record_id"]: [0, 1] for row in selected}
+    rewards = {row["record_id"]: [0, 1, 0, 1] for row in selected}
     summary, samples = write_evaluation(
         tmp_path,
         "student-prefix",
@@ -641,6 +651,7 @@ def test_scientific_student_support_rejects_cherry_picked_prefix(tmp_path):
         model=STUDENT_MODEL,
         revision=STUDENT_REVISION,
         role="student_opd",
+        decoding=STUDENT_SUPPORT_DECODING,
     )
     with pytest.raises(ValueError, match="must use exactly 100"):
         student_support(
