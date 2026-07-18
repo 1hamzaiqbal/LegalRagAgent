@@ -405,3 +405,18 @@ used forward KL on student/on-policy prefixes. The paper's knowledge-ablation
 prose also reverses its plotted answer-only and article-only ordering. The
 shared EIT vault now has manifests for 107 PDFs, four web/code snapshots, and
 61 pinned repositories. No experiment was launched.
+
+## [2026-07-17] OPD KL custody | K1/K4 corrected; EMA-PG and veRL archived
+
+Read [[ema-policy-gradient]] from the full paper and official code, visually
+checking the estimator table and derivation, and audited the current integrated
+[[verl-opd-trainer]]. Corrected the active OPD track: K1 is an unbiased sampled
+reverse-KL value but has zero expected direct-autodiff gradient; our detached
+log-ratio score-function surrogate is K4/r-trick-equivalent only in the
+unclipped, ungated on-policy case. Top-k is now a later estimator ablation, not
+a novelty claim or a silent rewrite of the first matrix.
+
+Archived the paper plus the official `ema-pg` and `verl` repositories in the
+persistent EIT literature vault. The tracked vault now records 108 PDFs, four
+web/code snapshots, and 63 repositories pinned to exact commits. This was
+literature and implementation custody only; no training result was created.

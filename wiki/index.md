@@ -22,6 +22,8 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[research-state-2026-07-17]] — current local/EIT/literature synthesis and decision gates
 - [[three-dial]] — primary research track
 - [[opd-distillation]] — gated skill-distillation track
+- [[opd-math-source-transfer]] — M/O teacher-training versus student-rollout
+  source matrix with task reward and an exact-token sampled reverse-KL path
 - [[self-distillation-cluster-update-2026-07-17]] — OPSD/SDFT/SDPO baseline,
   capability, and method-custody update
 - [[scope-old]] — historical SCOPE branch/archive map
@@ -61,6 +63,10 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[csqe]] — corpus-steered expansion; collapses on weak-query legal
 - [[skill0]] — **skill internalization via curriculum RL** (arXiv 2604.02268, ZJU/Meituan); the meeting's distillation-bridge anchor; PDF+repo archived on EIT
 - [[sdar]] — task RL + gap-gated on-policy self-distillation; bare OPSD collapse is the OPD safety correction
+- [[ema-policy-gradient]] — K1/K4 gradient correction, Top-k KL, and why EMA
+  anchoring is a different teacher experiment
+- [[verl-opd-trainer]] — pinned upstream veRL OPD implementation, objectives,
+  token custody, and hardware boundary
 - [[skill1]] — unified skill selection/use/distillation; broad skill-internalization novelty is occupied
 - [[opsd-self-distilled-reasoner]] · [[sdft-continual-learning]] ·
   [[sdpo-rich-feedback]] — verified-solution, demonstration, and rich-feedback

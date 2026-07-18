@@ -24,10 +24,11 @@ star and is intentionally absent from this file.
 |---|---|---|---|
 | Three-dial | `/Users/hamzaiqbal/grad/LegalRagAgent` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-three-dial` | `codex/three_dial` |
 | OPD/distillation | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-distillation` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-distillation` | `codex/opd_distillation` |
+| OPD math experiment | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-math` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math` | `codex/opd_math_pipeline` |
 | SCOPE history | branch only; restore on demand | archived; no EIT source checkout | `codex/scope_old` |
 
-See `docs/worktree_map_2026-07-17.md` before touching EIT. Only the two active
-paths in the table are source/launch surfaces. Seven predecessor checkouts were
+See `docs/worktree_map_2026-07-17.md` before touching EIT. Only the active paths
+in the table are source/launch surfaces. Seven predecessor checkouts were
 moved under `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/legacy-worktrees/`.
 
 ## Current research state

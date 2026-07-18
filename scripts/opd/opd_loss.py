@@ -6,21 +6,24 @@ the same shape and must refer to the same completion token positions. Upstream
 code must use a teacher/student tokenizer-family pair such as Qwen3-to-Qwen3 or
 Llama-3.x-to-Llama-3.x.
 
-OPD objective:
+OPD score-function objective:
 
   A_t = log p_teacher(y_t | x, y_<t) - stopgrad(log p_student(y_t | x, y_<t))
   L   = - mean_t A_t * log p_student(y_t | x, y_<t)
 
-This is the policy-gradient form of minimizing reverse KL, KL(student ||
-teacher), over completions sampled from the student. `A_t` can be clamped for
-stability. Following the negative-gap safeguard studied by SDAR, an optional
-detached gate
+The detached multiplier contains the K1 log-ratio value. The loss itself is a
+score-function surrogate: without clipping or gating, its expected gradient is
+equivalent to the K4/r-trick reverse-KL gradient described by Zhang and Ba
+(2026). It is *not* direct autodiff through K1; that gradient averages to zero.
+`A_t` can be clamped for stability. An optional detached, SDAR-inspired
+positive-gap gate
 
   g_t = sigmoid(beta * A_t)
 
 can attenuate tokens where the privileged teacher assigns lower probability
-than the student. This is a dense-supervision building block; it does not
-replace task reward. For slightly stale samples, an optional detached
+than the student. Because the K1 advantage remains in the gradient multiplier,
+this is not an exact reproduction of SDAR's auxiliary loss. This dense building
+block does not replace task reward. For slightly stale samples, an optional detached
 importance weight
 
   rho_t = exp(stopgrad(logp_current_t - logp_behavior_t))
@@ -54,7 +57,7 @@ def masked_mean(values: torch.Tensor, mask: torch.Tensor | None = None) -> torch
     return (values * weights).sum() / denom
 
 
-def opd_policy_loss(
+def reverse_kl_score_function_loss(
     student_logprobs: torch.Tensor,
     teacher_logprobs: torch.Tensor,
     mask: torch.Tensor | None = None,
@@ -64,7 +67,12 @@ def opd_policy_loss(
     ratio_clip_eps: float | None = 0.2,
     gap_gate_beta: float | None = None,
 ) -> torch.Tensor:
-    """Policy-gradient OPD loss for token logprob tensors.
+    """Score-function reverse-KL surrogate for aligned sampled tokens.
+
+    With on-policy samples, no gap gate, and no advantage clipping, the
+    expected gradient matches the K4/r-trick reverse-KL gradient. The scalar
+    returned here is a surrogate loss, not a KL value estimate. Use
+    :func:`sampled_k1_estimate` for the sampled K1 value.
 
     Args:
         student_logprobs: Current student log p for sampled completion tokens.
@@ -104,14 +112,94 @@ def opd_policy_loss(
     return masked_mean(token_loss, weights)
 
 
+def opd_policy_loss(*args, **kwargs) -> torch.Tensor:
+    """Compatibility alias for :func:`reverse_kl_score_function_loss`."""
+    return reverse_kl_score_function_loss(*args, **kwargs)
+
+
 def reverse_kl_estimate(
     student_logprobs: torch.Tensor,
     teacher_logprobs: torch.Tensor,
     mask: torch.Tensor | None = None,
 ) -> torch.Tensor:
-    """Sample estimate of mean `logp_student - logp_teacher` on sampled tokens."""
+    """Deprecated name for the sampled K1 estimate; not a full-vocabulary KL."""
     _check_same_shape("student/teacher", student_logprobs, teacher_logprobs)
     return masked_mean(student_logprobs.detach() - teacher_logprobs.detach(), mask)
+
+
+def sampled_k1_estimate(
+    student_logprobs: torch.Tensor,
+    teacher_logprobs: torch.Tensor,
+    mask: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Monte Carlo K1 value on student-sampled tokens.
+
+    A finite batch estimate may be negative even though the exact reverse KL is
+    nonnegative. It must not be reported as a full-vocabulary KL measurement.
+    """
+    return reverse_kl_estimate(student_logprobs, teacher_logprobs, mask)
+
+
+def group_reward_advantages(
+    rewards: torch.Tensor,
+    group_ids: torch.Tensor,
+    *,
+    eps: float = 1e-6,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Standardize detached rewards within each prompt group.
+
+    Returns `(advantages, informative_group_mask)`, where the second tensor has
+    one boolean per unique group and is true exactly when that group has reward
+    variation. Population standard deviation avoids NaNs for small groups.
+    """
+    if rewards.ndim != 1 or group_ids.ndim != 1 or rewards.shape != group_ids.shape:
+        raise ValueError(
+            f"rewards/group_ids must be matching vectors, got {tuple(rewards.shape)} and {tuple(group_ids.shape)}"
+        )
+    unique = torch.unique(group_ids, sorted=True)
+    advantages = torch.zeros_like(rewards, dtype=torch.float32)
+    informative = torch.zeros(unique.shape, dtype=torch.bool, device=rewards.device)
+    detached = rewards.detach().float()
+    for j, group_id in enumerate(unique):
+        selected = group_ids.eq(group_id)
+        values = detached[selected]
+        if values.numel() < 2:
+            raise ValueError(f"reward group {int(group_id.item())} has fewer than two samples")
+        mean = values.mean()
+        std = values.std(unbiased=False)
+        if std.item() > eps:
+            advantages[selected] = (values - mean) / (std + eps)
+            informative[j] = True
+    return advantages, informative
+
+
+def task_reward_policy_loss(
+    student_logprobs: torch.Tensor,
+    rewards: torch.Tensor,
+    group_ids: torch.Tensor,
+    mask: torch.Tensor | None = None,
+    *,
+    eps: float = 1e-6,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Grouped task-reward score-function loss using mean sequence logprob.
+
+    All-equal reward groups intentionally contribute zero task gradient. The
+    returned advantages and informative-group mask are detached diagnostics.
+    """
+    if student_logprobs.ndim != 2:
+        raise ValueError(f"student_logprobs must be [batch,time], got {tuple(student_logprobs.shape)}")
+    if rewards.shape != (student_logprobs.shape[0],):
+        raise ValueError("one reward is required per sampled completion")
+    if group_ids.shape != rewards.shape:
+        raise ValueError("one group ID is required per sampled completion")
+    weights = _float_mask(mask, student_logprobs)
+    lengths = weights.sum(dim=1)
+    if torch.any(lengths <= 0):
+        raise ValueError("each completion must contain at least one scored token")
+    sequence_mean_logp = (student_logprobs * weights).sum(dim=1) / lengths
+    advantages, informative = group_reward_advantages(rewards, group_ids, eps=eps)
+    loss = (-advantages.detach() * sequence_mean_logp).mean()
+    return loss, advantages.detach(), informative.detach()
 
 
 def kd_forward_loss(

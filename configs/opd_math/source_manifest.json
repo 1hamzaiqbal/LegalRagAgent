@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-07-17",
+  "experiment": "opd_math_source_transfer_v1",
+  "interpretation": "Each pair is (teacher-training source, student OPD-prompt source).",
+  "datasets": {
+    "M": {
+      "id": "DigitalLearningGmbH/MATH-lighteval",
+      "revision": "0530c78699ea5e8eb5530600900e1f328b48acad",
+      "config": "default",
+      "license": "MIT",
+      "train_split": "train",
+      "external_eval_split": "test",
+      "expected_train_rows": 7500,
+      "expected_external_eval_rows": 5000
+    },
+    "O": {
+      "id": "open-r1/OpenR1-Math-220k",
+      "revision": "e4e141ec9dea9f8326f4d347be56105859b2bd68",
+      "config": "default",
+      "license": "Apache-2.0",
+      "train_split": "train",
+      "external_eval_split": null,
+      "expected_train_rows": 93733
+    }
+  },
+  "models": {
+    "teacher": {
+      "id": "Qwen/Qwen3-8B",
+      "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+      "license": "Apache-2.0"
+    },
+    "teacher_memory_fallback": {
+      "id": "Qwen/Qwen3-4B",
+      "revision": "1cfa9a7208912126459214e8b04321603b3df60c",
+      "license": "Apache-2.0"
+    },
+    "student": {
+      "id": "Qwen/Qwen3-1.7B",
+      "revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+      "license": "Apache-2.0"
+    }
+  },
+  "reference_only": {
+    "one_shot_model": {
+      "id": "ypwang61/One-Shot-RLVR-Qwen2.5-Math-1.5B-7.5k-MATH",
+      "revision": "26cb10cc5a247d931c1305c3d5dd98b550184515",
+      "note": "This URL is a model, not the 7,500-row MATH dataset. It is not an input to the primary matrix."
+    },
+    "one_shot_dataset": {
+      "id": "ypwang61/One-Shot-RLVR-Datasets",
+      "revision": "5d37ffc0b9f44f454da37fe7d76c82c82e4a979f",
+      "note": "Recorded for provenance only; it is not silently substituted for MATH-lighteval."
+    },
+    "unusable_named_checkpoint": {
+      "id": "AaronHuangWei/Qwen3-8B-DAPO",
+      "revision": "ca55de698a3e48194af260857f0864074b43ef1f",
+      "note": "The pinned repository has no model weights. Train the teacher from the pinned Qwen3 checkpoint instead."
+    }
+  },
+  "partition": {
+    "algorithm": "source_stratum_largest_remainder_v1",
+    "salt": "legalrag-opd-math-v1",
+    "normalization_version": "nfkc-casefold-ws-v1",
+    "role_weights": {
+      "teacher_train": 0.6,
+      "student_opd": 0.3,
+      "teacher_gap_dev": 0.05,
+      "source_holdout": 0.05
+    },
+    "semantic_audit_version": "global-prefix-token5-jaccard-v2",
+    "semantic_policy": "globally order token-5 shingles by document frequency and index at least |S|-ceil(0.85*|S|)+1 per record so every pair with Jaccard >= 0.85 shares an indexed shingle unless an explicit bucket cap is hit; cluster only pairs with Jaccard >= 0.95 and identical ordered numeric tokens; retain >= 0.85 candidates in the audit ledger; fail scientific preparation if any blocking bucket is skipped",
+    "primary_collision_policy": "quarantine every train cluster spanning M and O; quarantine every train cluster touching M test",
+    "same_source_policy": "disjoint problem clusters",
+    "same_items_policy": "positive-control ablation only"
+  },
+  "primary_pairs": [
+    {"id": "M_M", "teacher_source": "M", "opd_source": "M"},
+    {"id": "M_O", "teacher_source": "M", "opd_source": "O"},
+    {"id": "O_M", "teacher_source": "O", "opd_source": "M"},
+    {"id": "O_O", "teacher_source": "O", "opd_source": "O"}
+  ],
+  "objective_contract": {
+    "teacher_stage": "GRPO with verifiable math task reward",
+    "student_main_arm": "task reward plus a clipped positive-gap-gated K1-value score-function reverse-KL surrogate; only the ungated unclipped on-policy limit is K4/r-trick gradient-equivalent",
+    "student_primary_baseline": "task reward with identical student rollouts and update budget",
+    "bare_opd": "collapse diagnostic only",
+    "thinking_mode": "disabled",
+    "token_alignment": "exact token IDs plus a pinned tokenizer fingerprint and live server probe; same-family names alone are insufficient",
+    "primary_budget": "matched unique examples and optimizer steps; prompt and completion tokens are measured rather than assumed equal across sources",
+    "teacher_gap_semantics": "teacher_skill_dev is held out from the teacher's training source; target_gap_dev is held out from the student rollout source and is reported separately"
+  }
+}

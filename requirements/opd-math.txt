@@ -1,0 +1,12 @@
+# EIT teacher/student training environment for the bounded OPD-math lane.
+# vLLM is intentionally absent: TRL 1.8 caps its optional vLLM integration at
+# 0.23, while the already validated OPD serving environment uses vLLM 0.24.
+accelerate==1.14.0
+datasets==4.8.5
+huggingface-hub==0.36.2
+math-verify[antlr4_13_2]==0.9.0
+peft==0.19.1
+requests==2.32.5
+torch==2.11.0
+transformers==4.57.6
+trl==1.8.0

@@ -1,27 +1,35 @@
 #!/usr/bin/env python
-"""Single-GPU student trainer for on-policy distillation.
+"""Single-GPU student trainer for task reward plus sampled reverse KL.
 
 The teacher is a separate vLLM OpenAI-compatible server. This process loads the
 student, samples completions on-policy, asks the teacher server for per-token
-logprobs on those exact completions, and applies either the bare OPD
-policy-gradient loss or its negative-gap-gated variant:
+logprobs on those exact token IDs, and applies a score-function reverse-KL
+surrogate or its positive-gap-gated variant:
 
   A_t = logp_teacher_t - stopgrad(logp_student_t)
   loss = -mean_t A_t * logp_student_t
 
-Teacher and student must share a tokenizer family because OPD aligns per-token
-logprobs. Use Qwen3-to-Qwen3 or Llama-3.x-to-Llama-3.x pairs.
+Teacher and student must pass the pinned tokenizer/server fingerprint because
+OPD aligns exact token IDs. Matching family names alone is insufficient.
 
-Important: gap-gated OPD is still only a dense auxiliary objective. A
-scientific E3 must combine it with task reward; this trainer does not yet
-implement the task environment/reward loop.
+The scientific main arm is ``task_rl_k1_gap``: grouped verifiable task reward
+plus a weighted, clipped, positive-gap-gated K1-value score-function auxiliary.
+Only its ungated, unclipped, on-policy limit is K4/r-trick gradient-equivalent.
+``task_rl`` is the required primary baseline; distillation-only modes remain
+plumbing/collapse diagnostics. The sampled K1 value is not a full-vocabulary
+KL, and the gate is not an exact reproduction of SDAR.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
+import importlib.metadata
 import json
+import math
 import os
 import random
+import re
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -30,21 +38,73 @@ import torch
 
 try:
     from . import teacher_client
-    from .opd_loss import kd_forward_loss, opd_policy_loss, reverse_kl_estimate
+    from .opd_loss import (
+        kd_forward_loss,
+        reverse_kl_score_function_loss,
+        sampled_k1_estimate,
+        task_reward_policy_loss,
+    )
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import teacher_client
-    from opd_loss import kd_forward_loss, opd_policy_loss, reverse_kl_estimate
+    from opd_loss import (
+        kd_forward_loss,
+        reverse_kl_score_function_loss,
+        sampled_k1_estimate,
+        task_reward_policy_loss,
+    )
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from scripts.opd_math.math_reward import rewards_for_samples
+from scripts.opd_math.quality_gates import (
+    recompute_student_gate,
+    recompute_teacher_gate,
+    sha256_tree,
+)
+from scripts.opd_math.server_scoring_probe import (
+    LOCAL_BINDING_SCOPE,
+    revalidate_local_process_binding,
+)
 
 
 LORA_TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+K1_MODES = {"opd", "opd_gated", "k1_bare", "k1_gap_only", "task_rl_k1_gap"}
+GATED_K1_MODES = {"opd_gated", "k1_gap_only", "task_rl_k1_gap"}
+TASK_REWARD_MODES = {"task_rl", "task_rl_k1_gap"}
+TEACHER_MODES = K1_MODES | {"kd"}
+MERGED_TEACHER_SCHEMA = "opd_math_merged_teacher_v2"
+MERGER_FILE = ROOT / "scripts" / "opd_math" / "merge_adapter.py"
+EXPECTED_TRAIN_PACKAGES = {
+    "torch": "2.11.0",
+    "transformers": "4.57.6",
+    "peft": "0.19.1",
+    "trl": "1.8.0",
+    "datasets": "4.8.5",
+    "accelerate": "1.14.0",
+    "huggingface-hub": "0.36.2",
+    "requests": "2.32.5",
+    "math-verify": "0.9.0",
+}
+EXPECTED_MERGE_PACKAGES = {
+    name: EXPECTED_TRAIN_PACKAGES[name] for name in ("torch", "transformers", "peft")
+}
+EXPECTED_SERVE_PACKAGES = {
+    "torch": "2.11.0",
+    "transformers": "5.12.1",
+    "peft": "0.19.1",
+    "accelerate": "1.14.0",
+    "requests": "2.32.5",
+    "vllm": "0.24.0",
+}
 
 
 def log(msg: str) -> None:
     print(msg, flush=True)
 
 
-def read_jsonl(path: str) -> list[dict]:
+def read_jsonl(path: str, limit: int = 0) -> list[dict]:
     rows = []
     with open(path) as f:
         for line_no, line in enumerate(f, 1):
@@ -52,9 +112,11 @@ def read_jsonl(path: str) -> list[dict]:
             if not line:
                 continue
             row = json.loads(line)
-            if "prompt_text" not in row:
-                raise ValueError(f"{path}:{line_no} missing required prompt_text")
+            if "prompt_text" not in row and "prompt" not in row:
+                raise ValueError(f"{path}:{line_no} missing prompt_text or conversational prompt")
             rows.append(row)
+            if limit > 0 and len(rows) >= limit:
+                break
     if not rows:
         raise ValueError(f"{path} contained no task rows")
     return rows
@@ -72,25 +134,51 @@ def encode(tokenizer, text: str) -> list[int]:
     return list(tokenizer.encode(text, add_special_tokens=False))
 
 
-def maybe_truncate_prompt(tokenizer, text: str, max_prompt_tokens: int) -> str:
+def render_prompt(tokenizer, row: dict, max_prompt_tokens: int, enable_thinking: bool) -> tuple[str, list[int]]:
+    if row.get("prompt") is not None:
+        prompt = row["prompt"]
+        if not isinstance(prompt, list):
+            raise ValueError("conversational prompt must be a list of role/content messages")
+        text = tokenizer.apply_chat_template(
+            prompt,
+            tokenize=False,
+            add_generation_prompt=True,
+            enable_thinking=enable_thinking,
+        )
+    else:
+        text = str(row["prompt_text"])
     ids = encode(tokenizer, text)
+    if not ids:
+        raise ValueError("prompt tokenization is empty")
     if max_prompt_tokens > 0 and len(ids) > max_prompt_tokens:
-        ids = ids[-max_prompt_tokens:]
-        return tokenizer.decode(ids, skip_special_tokens=False)
-    return text
+        raise ValueError(
+            f"rendered prompt has {len(ids)} tokens, above --max-prompt-tokens={max_prompt_tokens}; "
+            "the scientific path rejects rather than tail-truncating the chat template"
+        )
+    return text, ids
 
 
 def load_student(args, device: str):
     from peft import LoraConfig, get_peft_model
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    tok = AutoTokenizer.from_pretrained(args.student)
+    tok = AutoTokenizer.from_pretrained(
+        args.student,
+        revision=args.student_revision,
+        local_files_only=args.local_files_only,
+    )
     if tok.pad_token_id is None:
         tok.pad_token = tok.eos_token
     tok.padding_side = "left"
 
     dtype = torch.bfloat16 if device == "cuda" else torch.float32
-    model = AutoModelForCausalLM.from_pretrained(args.student, torch_dtype=dtype)
+    model = AutoModelForCausalLM.from_pretrained(
+        args.student,
+        revision=args.student_revision,
+        local_files_only=args.local_files_only,
+        torch_dtype=dtype,
+        attn_implementation=args.attn_implementation,
+    )
     model.to(device)
     model.config.use_cache = False
 
@@ -107,60 +195,130 @@ def load_student(args, device: str):
         model.print_trainable_parameters()
 
     if os.getenv("OPD_GRAD_CKPT", "1") not in ("0", "false", "False"):
-        model.gradient_checkpointing_enable()
+        model.enable_input_require_grads()
+        model.gradient_checkpointing_enable(
+            gradient_checkpointing_kwargs={"use_reentrant": False}
+        )
     return tok, model
 
 
 @torch.no_grad()
-def generate_student_samples(model, tok, prompts: list[str], args, device: str) -> list[dict]:
+def trainable_parameter_signature(model) -> dict[str, float | int]:
+    total = 0.0
+    squared = 0.0
+    count = 0
+    for parameter in model.parameters():
+        if not parameter.requires_grad:
+            continue
+        values = parameter.detach().float()
+        total += float(values.sum().item())
+        squared += float(values.square().sum().item())
+        count += values.numel()
+    if count == 0:
+        raise RuntimeError("student model has no trainable parameters")
+    if not math.isfinite(total) or not math.isfinite(squared):
+        raise RuntimeError("student trainable parameters contain non-finite values")
+    return {"elements": count, "sum": total, "squared_l2": squared}
+
+
+def signatures_differ(before: dict, after: dict) -> bool:
+    if before["elements"] != after["elements"]:
+        raise RuntimeError("trainable parameter count changed during the run")
+    return any(
+        not math.isclose(float(before[key]), float(after[key]), rel_tol=0.0, abs_tol=1e-12)
+        for key in ("sum", "squared_l2")
+    )
+
+
+@torch.no_grad()
+def generate_student_samples(model, tok, prompt_rows: list[dict], args, device: str) -> list[dict]:
     model.eval()
+    prompts = [row["prompt_text"] for row in prompt_rows]
     enc = tok(prompts, return_tensors="pt", padding=True, add_special_tokens=False)
+    for i, source in enumerate(prompt_rows):
+        actual = enc["input_ids"][i][enc["attention_mask"][i].bool()].tolist()
+        if actual != source["prompt_token_ids"]:
+            raise RuntimeError(f"batch tokenization drifted for prompt group {i}")
     enc = {k: v.to(device) for k, v in enc.items()}
     prompt_width = enc["input_ids"].shape[1]
+    rollout_started = time.perf_counter()
     gen = model.generate(
         **enc,
         do_sample=True,
         temperature=args.temperature,
         top_p=args.top_p,
+        top_k=args.top_k,
+        min_p=0.0,
+        typical_p=1.0,
+        epsilon_cutoff=0.0,
+        eta_cutoff=0.0,
+        repetition_penalty=1.0,
         max_new_tokens=args.max_new_tokens,
         num_return_sequences=args.group_size,
         pad_token_id=tok.pad_token_id,
         eos_token_id=tok.eos_token_id,
     )
+    rollout_latency = time.perf_counter() - rollout_started
     samples = []
     for i, row in enumerate(gen):
         prompt_idx = i // args.group_size
-        comp_ids = row[prompt_width:].detach().cpu().tolist()
-        comp_ids = [t for t in comp_ids if t != tok.pad_token_id]
-        if tok.eos_token_id in comp_ids:
-            comp_ids = comp_ids[:comp_ids.index(tok.eos_token_id)]
+        sample_idx = i % args.group_size
+        comp_ids = [int(t) for t in row[prompt_width:].detach().cpu().tolist()]
+        # With Qwen, pad_token_id commonly equals eos_token_id. Retain the
+        # first EOS as a scored action and discard only tokens after it.
+        terminated_by_eos = tok.eos_token_id in comp_ids
+        if terminated_by_eos:
+            comp_ids = comp_ids[: comp_ids.index(tok.eos_token_id) + 1]
+        elif tok.pad_token_id is not None:
+            while comp_ids and comp_ids[-1] == tok.pad_token_id:
+                comp_ids.pop()
+        if not comp_ids:
+            raise RuntimeError(f"empty completion token sequence for prompt group {prompt_idx}")
         completion = tok.decode(comp_ids, skip_special_tokens=True)
-        if not encode(tok, completion):
-            continue
-        samples.append({"prompt_text": prompts[prompt_idx], "completion_text": completion})
-    if not samples:
-        raise RuntimeError("student generated no non-empty completions")
+        source = prompt_rows[prompt_idx]
+        sample = {
+            key: source.get(key)
+            for key in ("record_id", "cluster_id", "source", "source_split", "solution", "answer")
+        }
+        sample.update(
+            {
+                "group_id": prompt_idx,
+                "sample_idx": sample_idx,
+                "prompt_text": prompts[prompt_idx],
+                "prompt_token_ids": list(source["prompt_token_ids"]),
+                "completion_text": completion,
+                "completion_token_ids": comp_ids,
+                "terminated_by_eos": terminated_by_eos,
+                "rollout_batch_latency_seconds": rollout_latency,
+            }
+        )
+        samples.append(sample)
+    expected = len(prompt_rows) * args.group_size
+    if len(samples) != expected:
+        raise RuntimeError(f"rollout grouping broke: expected {expected} samples, got {len(samples)}")
     return samples
 
 
-def teacher_score_samples(tok, samples: list[dict], args) -> list[dict]:
+def teacher_score_samples(samples: list[dict], args) -> list[dict]:
     scored = []
     timeout = (args.teacher_connect_timeout, args.teacher_read_timeout)
     for sample in samples:
-        lps = teacher_client.score_completion_logprobs(
+        scoring_started = time.perf_counter()
+        lps = teacher_client.score_completion_token_logprobs(
             args.teacher_url,
             args.teacher_model,
-            sample["prompt_text"],
-            sample["completion_text"],
-            tok,
+            sample["prompt_token_ids"],
+            sample["completion_token_ids"],
             timeout=timeout,
             retries=args.teacher_retries,
         )
-        comp_len = len(encode(tok, sample["completion_text"]))
+        scoring_latency = time.perf_counter() - scoring_started
+        comp_len = len(sample["completion_token_ids"])
         if len(lps) != comp_len:
             raise RuntimeError(f"teacher/student token count mismatch: teacher={len(lps)} student={comp_len}")
         row = dict(sample)
         row["teacher_logprobs"] = lps
+        row["teacher_scoring_latency_seconds"] = scoring_latency
         scored.append(row)
     return scored
 
@@ -196,8 +354,8 @@ def build_batch(tok, samples: list[dict], device: str, require_teacher: bool):
     pad = tok.pad_token_id
     seqs, label_masks, teacher_lps = [], [], []
     for sample in samples:
-        p_ids = encode(tok, sample["prompt_text"])
-        c_ids = encode(tok, sample["completion_text"])
+        p_ids = list(sample.get("prompt_token_ids") or encode(tok, sample["prompt_text"]))
+        c_ids = list(sample.get("completion_token_ids") or encode(tok, sample["completion_text"]))
         if not p_ids:
             raise ValueError("prompt tokenization is empty; cannot score first completion token")
         if not c_ids:
@@ -263,30 +421,87 @@ def kd_loss_for_samples(model, tok, samples: list[dict], device: str) -> tuple[t
     return loss, int(label_mask.sum().item())
 
 
-def opd_loss_for_samples(model, tok, samples: list[dict], args, device: str):
-    ids, att, label_mask, teacher, teacher_mask = build_batch(tok, samples, device, require_teacher=True)
+def completion_logprobs_for_samples(model, tok, samples: list[dict], device: str, require_teacher: bool):
+    ids, att, label_mask, teacher, teacher_mask = build_batch(
+        tok, samples, device, require_teacher=require_teacher
+    )
+    # Gradients work in eval mode. Keeping generation and recomputation in eval
+    # avoids dropout-induced behavior/current policy drift.
+    model.eval()
     out = model(input_ids=ids, attention_mask=att)
     student_lps, student_mask = current_completion_logprobs(out.logits, ids, label_mask)
-    if student_lps.shape != teacher.shape:
+    if require_teacher and student_lps.shape != teacher.shape:
         raise RuntimeError(f"student/teacher logprob tensor mismatch: {student_lps.shape} vs {teacher.shape}")
-    mask = student_mask & teacher_mask
-    gate_beta = args.gap_gate_beta if args.mode == "opd_gated" else None
-    loss = opd_policy_loss(
-        student_lps,
-        teacher,
-        mask,
-        advantage_clip=args.advantage_clip,
-        ratio_clip_eps=args.ratio_clip_eps,
-        gap_gate_beta=gate_beta,
+    mask = student_mask & teacher_mask if require_teacher else student_mask
+    return student_lps, teacher, mask
+
+
+def training_loss_for_samples(model, tok, samples: list[dict], args, device: str):
+    needs_teacher = args.mode in K1_MODES
+    student_lps, teacher, mask = completion_logprobs_for_samples(
+        model, tok, samples, device, require_teacher=needs_teacher
     )
-    rkl = reverse_kl_estimate(student_lps, teacher, mask)
-    if gate_beta is None:
-        gate_mean = 1.0
-    else:
+    zero = student_lps.sum() * 0.0
+    reverse_kl_sf_loss = zero
+    task_loss = zero
+    k1_value = None
+    gate_mean = None
+    positive_gap_fraction = None
+    reward_mean = None
+    informative_group_fraction = None
+    rewards: list[float] | None = None
+    reward_statuses: list[str] | None = None
+
+    if needs_teacher:
+        gate_beta = args.gap_gate_beta if args.mode in GATED_K1_MODES else None
+        reverse_kl_sf_loss = reverse_kl_score_function_loss(
+            student_lps,
+            teacher,
+            mask,
+            advantage_clip=args.advantage_clip,
+            ratio_clip_eps=None,
+            gap_gate_beta=gate_beta,
+        )
+        k1_value = sampled_k1_estimate(student_lps, teacher, mask)
         gap = teacher.detach() - student_lps.detach()
-        gate = torch.sigmoid(gate_beta * gap)
-        gate_mean = float(gate[mask].mean().item())
-    return loss, rkl, gate_mean, int(mask.sum().item())
+        executed_advantage = torch.clamp(
+            gap, min=-args.advantage_clip, max=args.advantage_clip
+        )
+        positive_gap_fraction = float(gap[mask].gt(0).float().mean().item())
+        gate_mean = (
+            1.0
+            if gate_beta is None
+            else float(torch.sigmoid(gate_beta * executed_advantage)[mask].mean().item())
+        )
+
+    if args.mode in TASK_REWARD_MODES:
+        rewards, reward_statuses = rewards_for_samples(samples)
+        reward_tensor = torch.tensor(rewards, dtype=torch.float32, device=device)
+        group_ids = torch.tensor([int(s["group_id"]) for s in samples], dtype=torch.long, device=device)
+        task_loss, _, informative = task_reward_policy_loss(
+            student_lps, reward_tensor, group_ids, mask
+        )
+        reward_mean = float(reward_tensor.mean().item())
+        informative_group_fraction = float(informative.float().mean().item())
+
+    if args.mode == "task_rl":
+        total = args.task_reward_coef * task_loss
+    elif args.mode == "task_rl_k1_gap":
+        total = args.task_reward_coef * task_loss + args.k1_coef * reverse_kl_sf_loss
+    else:
+        total = reverse_kl_sf_loss
+
+    metrics = {
+        "task_loss": float(task_loss.detach().item()),
+        "reverse_kl_score_function_surrogate": float(reverse_kl_sf_loss.detach().item()),
+        "sampled_k1_estimate": None if k1_value is None else float(k1_value.item()),
+        "gap_gate_mean": gate_mean,
+        "positive_gap_fraction": positive_gap_fraction,
+        "reward_mean": reward_mean,
+        "informative_group_fraction": informative_group_fraction,
+        "tokens": int(mask.sum().item()),
+    }
+    return total, metrics, student_lps, teacher if needs_teacher else None, mask, rewards, reward_statuses
 
 
 def save_checkpoint(model, tok, out_dir: str, name: str) -> None:
@@ -297,55 +512,1037 @@ def save_checkpoint(model, tok, out_dir: str, name: str) -> None:
     log(f"saved {path}")
 
 
-def run(args) -> None:
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    log(f"device={device} student={args.student} mode={args.mode}")
-    teacher_client.healthcheck(
-        args.teacher_url,
-        timeout=args.teacher_read_timeout,
-        retries=args.teacher_retries,
-        raise_on_error=True,
+def append_jsonl(path: Path, row: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(row, sort_keys=True, separators=(",", ":")) + "\n")
+
+
+def write_completion_manifests(trace_dir: Path, run_manifest: dict, completion: dict) -> None:
+    run_manifest.update(
+        {
+            "status": completion["status"],
+            "scientific_use_allowed": completion["scientific_use_allowed"],
+            "training_artifact_eligible_for_held_out_evaluation": completion.get(
+                "training_artifact_eligible_for_held_out_evaluation", False
+            ),
+            "completion": completion,
+        }
+    )
+    (trace_dir / "run_manifest.json").write_text(
+        json.dumps(run_manifest, indent=2, sort_keys=True) + "\n"
+    )
+    (trace_dir / "completion_manifest.json").write_text(
+        json.dumps(completion, indent=2, sort_keys=True) + "\n"
     )
 
+
+def sha256_file(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def installed_package_versions(expected: dict[str, str]) -> dict[str, str]:
+    versions: dict[str, str] = {}
+    for name in expected:
+        try:
+            versions[name] = importlib.metadata.version(name)
+        except importlib.metadata.PackageNotFoundError as exc:
+            raise ValueError(f"required training package is not installed: {name}") from exc
+    return versions
+
+
+def _freeze_package_versions(path: Path) -> dict[str, str]:
+    versions: dict[str, str] = {}
+    for line in path.read_text().splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "==" not in stripped:
+            continue
+        name, version = stripped.split("==", 1)
+        versions[name.lower().replace("_", "-")] = version
+    return versions
+
+
+def validate_environment_contract(args, *, require_serve: bool) -> dict:
+    """Bind a scientific run to commit-specific immutable environment freezes."""
+
+    state = git_state()
+    commit = state.get("commit")
+    if not clean_stable_git_custody(state, state):
+        raise ValueError("scientific environment custody requires a clean 40-hex Git commit")
+
+    def checked_freeze(
+        raw: str | None, flag: str, filename: str, expected: dict[str, str]
+    ) -> dict:
+        if not raw:
+            raise ValueError(f"scientific runs require {flag}")
+        path = Path(raw)
+        if path.is_symlink() or not path.is_file():
+            raise ValueError(f"environment freeze must be a regular non-symlink file: {path}")
+        path = path.resolve()
+        if path.name != filename or path.parent.name != commit:
+            raise ValueError(
+                f"environment freeze must be the commit-specific {filename} under a {commit} directory"
+            )
+        frozen = _freeze_package_versions(path)
+        mismatched = {
+            name: {"expected": version, "actual": frozen.get(name)}
+            for name, version in expected.items()
+            if frozen.get(name) != version
+        }
+        if mismatched:
+            raise ValueError(f"environment freeze does not contain the pinned package set: {mismatched}")
+        return {
+            "path": str(path),
+            "sha256": sha256_file(path),
+            "required_packages": expected,
+        }
+
+    runtime_packages = installed_package_versions(EXPECTED_TRAIN_PACKAGES)
+    if runtime_packages != EXPECTED_TRAIN_PACKAGES:
+        raise ValueError(
+            "live training packages differ from the pinned environment: "
+            f"expected={EXPECTED_TRAIN_PACKAGES}, actual={runtime_packages}"
+        )
+    contract = {
+        "schema_version": 1,
+        "git_commit": commit,
+        "train_runtime_packages": runtime_packages,
+        "train_freeze": checked_freeze(
+            args.train_environment_freeze,
+            "--train-environment-freeze",
+            "train.freeze.txt",
+            EXPECTED_TRAIN_PACKAGES,
+        ),
+        "serve_freeze": None,
+    }
+    if require_serve:
+        contract["serve_freeze"] = checked_freeze(
+            args.serve_environment_freeze,
+            "--serve-environment-freeze",
+            "serve.freeze.txt",
+            EXPECTED_SERVE_PACKAGES,
+        )
+    return contract
+
+
+def environment_contract_unchanged(contract: dict | None) -> bool:
+    if not contract:
+        return True
+    for key in ("train_freeze", "serve_freeze"):
+        binding = contract.get(key)
+        if binding is None:
+            continue
+        path = Path(binding["path"])
+        if path.is_symlink() or not path.is_file() or sha256_file(path) != binding["sha256"]:
+            return False
+    try:
+        runtime = installed_package_versions(EXPECTED_TRAIN_PACKAGES)
+    except ValueError:
+        return False
+    return runtime == contract.get("train_runtime_packages") == EXPECTED_TRAIN_PACKAGES
+
+
+def git_worktree_is_clean() -> bool:
+    try:
+        status = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=ROOT,
+            check=True,
+            text=True,
+            capture_output=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return False
+    return not status.strip()
+
+
+def git_state() -> dict[str, str | bool | None]:
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            check=True,
+            text=True,
+            capture_output=True,
+        ).stdout.strip()
+        status = subprocess.run(
+            ["git", "status", "--porcelain=v1"],
+            cwd=ROOT,
+            check=True,
+            text=True,
+            capture_output=True,
+        ).stdout
+        return {"commit": commit, "dirty": bool(status.strip())}
+    except (OSError, subprocess.CalledProcessError):
+        return {"commit": None, "dirty": None}
+
+
+def clean_stable_git_custody(start: dict, end: dict) -> bool:
+    commit = start.get("commit")
+    return bool(
+        isinstance(commit, str)
+        and re.fullmatch(r"[0-9a-f]{40}", commit)
+        and start.get("dirty") is False
+        and end.get("dirty") is False
+        and end.get("commit") == commit
+    )
+
+
+def immutable_hub_revision(revision: str | None) -> bool:
+    return bool(revision and re.fullmatch(r"[0-9a-fA-F]{40}", revision))
+
+
+def checked_gate(
+    path: str | None,
+    name: str,
+    allow_smoke: bool,
+    *,
+    expected_gate: str,
+) -> dict | None:
+    if not path:
+        if allow_smoke:
+            return None
+        raise ValueError(f"{name} is required for this non-smoke run")
+    payload = json.loads(Path(path).read_text())
+    if payload.get("gate") != expected_gate:
+        raise ValueError(
+            f"{name} has gate={payload.get('gate')!r}, expected {expected_gate!r}: {path}"
+        )
+    if not payload.get("passed"):
+        raise ValueError(f"{name} did not pass: {path}")
+    payload["manifest_sha256"] = sha256_file(path)
+    return payload
+
+
+def _expect_equal(payload: dict, key: str, expected, label: str) -> None:
+    actual = payload.get(key)
+    if actual != expected:
+        raise ValueError(f"{label} {key} mismatch: expected={expected!r}, actual={actual!r}")
+
+
+def _manifest_file(prepared: dict, relative_path: str) -> dict:
+    files = prepared.get("files")
+    if not isinstance(files, dict) or relative_path not in files:
+        raise ValueError(f"prepared manifest does not register required role file: {relative_path}")
+    entry = files[relative_path]
+    if not isinstance(entry, dict) or not entry.get("sha256"):
+        raise ValueError(f"prepared manifest has an invalid file entry: {relative_path}")
+    return entry
+
+
+def _pair_by_id(prepared: dict, pair_id: str) -> dict:
+    matches = [pair for pair in prepared.get("pairs", []) if pair.get("id") == pair_id]
+    if len(matches) != 1:
+        raise ValueError(f"prepared manifest does not contain exactly one pair {pair_id!r}")
+    return matches[0]
+
+
+def _validate_role_rows(rows: list[dict], *, source: str, role: str) -> None:
+    mismatched = [
+        index
+        for index, row in enumerate(rows)
+        if row.get("source") != source or row.get("role") != role
+    ]
+    if mismatched:
+        raise ValueError(
+            f"selected task rows must all be source={source!r}, role={role!r}; "
+            f"mismatches at {mismatched[:10]}"
+        )
+
+
+def _validate_full_role_file(path: Path, *, source: str, role: str) -> int:
+    count = 0
+    with path.open(encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, 1):
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if row.get("source") != source or row.get("role") != role:
+                raise ValueError(
+                    f"{path}:{line_number}: expected source={source!r}, role={role!r}"
+                )
+            count += 1
+    if count <= 0:
+        raise ValueError(f"registered role file is empty: {path}")
+    return count
+
+
+def _validate_gate_prepared_binding(
+    gate: dict,
+    *,
+    prepared: dict,
+    prepared_manifest_path: str,
+    relative_task: str,
+    label: str,
+) -> None:
+    manifest_path = Path(prepared_manifest_path).resolve()
+    _expect_equal(gate, "prepared_manifest", str(manifest_path), label)
+    _expect_equal(gate, "prepared_manifest_sha256", sha256_file(manifest_path), label)
+    _expect_equal(gate, "registered_task_file", relative_task, label)
+    role_entry = _manifest_file(prepared, relative_task)
+    _expect_equal(gate, "registered_task_rows", int(role_entry["rows"]), label)
+
+    source_raw = prepared.get("source_manifest_path")
+    if not isinstance(source_raw, str) or not source_raw:
+        raise ValueError("prepared manifest lacks source_manifest_path")
+    source_path = Path(source_raw)
+    if not source_path.is_absolute():
+        source_path = manifest_path.parent / source_path
+    source_path = source_path.resolve()
+    source_hash = sha256_file(source_path)
+    _expect_equal(prepared, "source_manifest_sha256", source_hash, "prepared manifest")
+    _expect_equal(gate, "source_manifest", str(source_path), label)
+    _expect_equal(gate, "source_manifest_sha256", source_hash, label)
+
+
+def _validate_deterministic_gate_recomputation(gate: dict, *, kind: str) -> None:
+    original = dict(gate)
+    original.pop("manifest_sha256", None)
+    if kind == "student":
+        recomputed = recompute_student_gate(original)
+    elif kind == "teacher":
+        recomputed = recompute_teacher_gate(original)
+    else:
+        raise ValueError(f"unknown gate recomputation kind: {kind}")
+    if recomputed != original:
+        changed = sorted(
+            key
+            for key in set(original) | set(recomputed)
+            if original.get(key) != recomputed.get(key)
+        )
+        raise ValueError(
+            f"{kind} gate differs from deterministic recomputation of its bound artifacts; "
+            f"changed_fields={changed[:20]}"
+        )
+
+
+def _validate_student_gate(
+    gate: dict,
+    *,
+    args,
+    task_hash: str,
+    student_source: str,
+    prepared: dict,
+) -> None:
+    _expect_equal(gate, "schema_version", 3, "student support gate")
+    _expect_equal(gate, "student_model", args.student, "student support gate")
+    _expect_equal(gate, "student_model_revision", args.student_revision, "student support gate")
+    _expect_equal(gate, "task_file_sha256", task_hash, "student support gate")
+    _expect_equal(gate, "task_sources", [student_source], "student support gate")
+    _expect_equal(gate, "task_roles", ["student_opd"], "student support gate")
+    relative_task = f"roles/{student_source}/student_opd.jsonl"
+    _validate_gate_prepared_binding(
+        gate,
+        prepared=prepared,
+        prepared_manifest_path=args.prepared_manifest,
+        relative_task=relative_task,
+        label="student support gate",
+    )
+    _expect_equal(
+        gate,
+        "primary_matched_role_budget",
+        int(prepared["primary_matched_budgets"]["student_opd"]),
+        "student support gate",
+    )
+    _expect_equal(gate, "pinned_model_kind", "student", "student support gate")
+    _expect_equal(gate, "pinned_model", args.student, "student support gate")
+    _expect_equal(
+        gate, "pinned_model_revision", args.student_revision, "student support gate"
+    )
+    _expect_equal(gate, "samples_per_problem", args.group_size, "student support gate")
+    decoding = gate.get("decoding") or {}
+    for key, expected in (
+        ("thinking", False),
+        ("temperature", args.temperature),
+        ("top_p", args.top_p),
+        ("top_k", args.top_k),
+        ("max_new_tokens", args.max_new_tokens),
+        ("seed", args.seed),
+    ):
+        _expect_equal(decoding, key, expected, "student support gate decoding")
+    if not args.allow_ungated_smoke and gate.get("gate_strength") != "scientific":
+        raise ValueError("student support gate is not a scientific-strength gate")
+    if not args.allow_ungated_smoke and gate.get("authorizes_scientific_training") is not True:
+        raise ValueError("student support gate does not authorize scientific training")
+    if not args.allow_ungated_smoke:
+        _validate_deterministic_gate_recomputation(gate, kind="student")
+
+
+def _validate_teacher_gate(
+    gate: dict, *, pair: dict, prepared: dict, prepared_manifest_path: str
+) -> None:
+    _expect_equal(gate, "schema_version", 3, "teacher gap gate")
+    teacher_source = pair["teacher_source"]
+    skill_file = pair["teacher_skill_dev_file"]
+    skill_entry = _manifest_file(prepared, skill_file)
+    _validate_gate_prepared_binding(
+        gate,
+        prepared=prepared,
+        prepared_manifest_path=prepared_manifest_path,
+        relative_task=skill_file,
+        label="teacher gap gate",
+    )
+    _expect_equal(gate, "task_file_sha256", skill_entry["sha256"], "teacher gap gate")
+    _expect_equal(gate, "task_sources", [teacher_source], "teacher gap gate")
+    _expect_equal(gate, "task_roles", ["teacher_gap_dev"], "teacher gap gate")
+    _expect_equal(gate, "pinned_model_kind", "teacher", "teacher gap gate")
+    if gate.get("gate_strength") != "scientific":
+        raise ValueError("teacher gap gate is not a scientific-strength gate")
+    if gate.get("authorizes_scientific_merge") is not True:
+        raise ValueError("teacher gap gate does not authorize scientific checkpoint use")
+    _validate_deterministic_gate_recomputation(gate, kind="teacher")
+
+
+def _validate_tokenizer_contract(contract: dict, *, args) -> None:
+    student = contract.get("student") or {}
+    _expect_equal(student, "model", args.student, "tokenizer contract student")
+    _expect_equal(student, "revision", args.student_revision, "tokenizer contract student")
+    teacher = contract.get("teacher") or {}
+    _expect_equal(teacher, "model", args.teacher_checkpoint, "tokenizer contract teacher")
+    if not contract.get("exact_contract_match"):
+        raise ValueError("tokenizer contract lacks an exact local tokenizer match")
+    _expect_equal(
+        contract.get("server") or {},
+        "url",
+        args.teacher_url.rstrip("/"),
+        "tokenizer contract server",
+    )
+    _expect_equal(
+        contract.get("server") or {},
+        "model",
+        args.teacher_model,
+        "tokenizer contract server",
+    )
+    if not (contract.get("server_probe") or {}).get("matches"):
+        raise ValueError("tokenizer contract lacks a passing live server probe")
+
+
+def _validate_server_scoring_contract(path: str | None, *, args) -> dict:
+    if not path:
+        if args.allow_ungated_smoke:
+            return {}
+        raise ValueError("--server-scoring-contract is required for the scientific main arm")
+    probe_path = Path(path)
+    probe = json.loads(probe_path.read_text())
+    _expect_equal(probe, "schema_version", 2, "server scoring contract")
+    _expect_equal(probe, "probe", "exact_token_teacher_scoring_v1", "server scoring contract")
+    _expect_equal(probe, "passed", True, "server scoring contract")
+    _expect_equal(probe, "tokenizer", args.student, "server scoring contract")
+    _expect_equal(probe, "tokenizer_revision", args.student_revision, "server scoring contract")
+    _expect_equal(
+        probe, "server_url", args.teacher_url.rstrip("/"), "server scoring contract"
+    )
+    _expect_equal(probe, "server_model", args.teacher_model, "server scoring contract")
+    if not args.allow_ungated_smoke:
+        _expect_equal(
+            probe,
+            "local_process_binding_validated",
+            True,
+            "server scoring contract",
+        )
+        binding = probe.get("local_process_binding")
+        if not isinstance(binding, dict):
+            raise ValueError("server scoring contract lacks a local process binding")
+        _expect_equal(
+            binding,
+            "scope",
+            LOCAL_BINDING_SCOPE,
+            "server scoring local process binding",
+        )
+        if not args.teacher_provenance_manifest:
+            raise ValueError(
+                "scientific local server revalidation requires --teacher-provenance-manifest"
+            )
+        revalidate_local_process_binding(
+            binding,
+            teacher_checkpoint=Path(args.teacher_checkpoint),
+            teacher_provenance_manifest=Path(args.teacher_provenance_manifest),
+            server_url=args.teacher_url,
+            server_model=args.teacher_model,
+            server_max_model_len=args.teacher_server_max_model_len,
+        )
+    probe["manifest_sha256"] = sha256_file(probe_path)
+    return probe
+
+
+def _validate_teacher_provenance(path: str | None, teacher_gate: dict, args) -> dict:
+    if not path:
+        raise ValueError("--teacher-provenance-manifest is required for the scientific main arm")
+    provenance_path = Path(path)
+    provenance = json.loads(provenance_path.read_text())
+    if provenance.get("schema_version") != 1 or provenance.get("schema") != MERGED_TEACHER_SCHEMA:
+        raise ValueError("teacher provenance has the wrong schema")
+    _expect_equal(provenance, "status", "completed", "teacher provenance")
+    _expect_equal(
+        provenance,
+        "teacher_gap_manifest_sha256",
+        teacher_gate["manifest_sha256"],
+        "teacher provenance",
+    )
+    _expect_equal(provenance, "base_model", args.teacher_base_model, "teacher provenance")
+    _expect_equal(provenance, "base_revision", args.teacher_base_revision, "teacher provenance")
+    _expect_equal(
+        provenance,
+        "adapter",
+        teacher_gate["trained_adapter"],
+        "teacher provenance",
+    )
+    _expect_equal(
+        provenance,
+        "adapter_tree_sha256",
+        teacher_gate["trained_adapter_tree_sha256"],
+        "teacher provenance",
+    )
+    _expect_equal(
+        provenance,
+        "output_checkpoint",
+        str(Path(args.teacher_checkpoint).resolve()),
+        "teacher provenance",
+    )
+    checkpoint_hash = provenance.get("output_checkpoint_tree_sha256")
+    if not isinstance(checkpoint_hash, str) or len(checkpoint_hash) != 64:
+        raise ValueError("teacher provenance lacks output checkpoint tree identity")
+    live_checkpoint_hash = sha256_tree(
+        Path(args.teacher_checkpoint), exclude_relative_paths=("merge_provenance.json",)
+    )
+    if live_checkpoint_hash != checkpoint_hash:
+        raise ValueError("merged teacher checkpoint changed after provenance was written")
+
+    merge_code = provenance.get("merge_code")
+    if not isinstance(merge_code, dict):
+        raise ValueError("teacher provenance lacks merge-code custody")
+    merge_states = []
+    for field in (
+        "git_state_start",
+        "git_state_after_merge",
+        "git_state_before_promotion",
+        "git_state_end",
+    ):
+        state = merge_code.get(field)
+        if not isinstance(state, dict):
+            raise ValueError(f"teacher provenance lacks merge-code {field}")
+        merge_states.append(state)
+    merge_start = merge_states[0]
+    if any(not clean_stable_git_custody(merge_start, state) for state in merge_states):
+        raise ValueError("teacher provenance merge Git custody is not clean and stable")
+    if merge_code.get("clean_stable_code") is not True:
+        raise ValueError("teacher provenance does not attest completed clean merge code")
+    current_code = git_state()
+    if not clean_stable_git_custody(merge_start, current_code):
+        raise ValueError(
+            "teacher checkpoint was not merged by the same clean Git commit as student training"
+        )
+    _expect_equal(
+        merge_code,
+        "merger_file_sha256",
+        sha256_file(MERGER_FILE),
+        "teacher provenance merge code",
+    )
+    _expect_equal(
+        merge_code,
+        "packages",
+        EXPECTED_MERGE_PACKAGES,
+        "teacher provenance merge code",
+    )
+    provenance["manifest_sha256"] = sha256_file(provenance_path)
+    return provenance
+
+
+def validate_run_contract(
+    args, rows: list[dict]
+) -> tuple[
+    dict | None,
+    dict | None,
+    dict | None,
+    dict | None,
+    dict | None,
+    dict | None,
+    dict,
+]:
+    if args.steps <= 0:
+        raise ValueError("--steps must be positive")
+    if args.max_new_tokens <= 0 or args.max_prompt_tokens <= 0:
+        raise ValueError("prompt and completion token limits must be positive")
+    if args.lr <= 0 or args.grad_clip <= 0 or args.lora <= 0:
+        raise ValueError("learning rate, gradient clip, and LoRA rank must be positive")
+    if args.group_size <= 0:
+        raise ValueError("--group-size must be positive")
+    if args.micro_prompts <= 0:
+        raise ValueError("--micro-prompts must be positive")
+    if not math.isfinite(args.advantage_clip) or args.advantage_clip <= 0:
+        raise ValueError("--advantage-clip must be finite and positive")
+    if not 0.0 <= args.min_informative_group_fraction <= 1.0:
+        raise ValueError("--min-informative-group-fraction must be in [0, 1]")
+    if args.task_reward_coef <= 0 and args.mode in TASK_REWARD_MODES:
+        raise ValueError("task-reward modes require --task-reward-coef > 0")
+    if args.k1_coef <= 0 and args.mode in K1_MODES:
+        raise ValueError("sampled reverse-KL modes require --k1-coef > 0")
+    if args.gap_gate_beta <= 0 and args.mode in GATED_K1_MODES:
+        raise ValueError("gap-gated reverse-KL modes require --gap-gate-beta > 0")
+    if args.teacher_connect_timeout <= 0 or args.teacher_read_timeout <= 0 or args.teacher_retries <= 0:
+        raise ValueError("teacher timeout and retry settings must be positive")
+    if args.mode in TEACHER_MODES and (not args.teacher_url or not args.teacher_model):
+        raise ValueError(f"mode {args.mode} requires --teacher-url and --teacher-model")
+    if args.mode in K1_MODES and not args.teacher_checkpoint:
+        raise ValueError(f"mode {args.mode} requires --teacher-checkpoint for identity custody")
+    if args.mode in K1_MODES:
+        if args.teacher_server_max_model_len <= 0:
+            raise ValueError("sampled reverse-KL modes require --teacher-server-max-model-len")
+        required_context = args.max_prompt_tokens + args.max_new_tokens + 1
+        if required_context > args.teacher_server_max_model_len:
+            raise ValueError(
+                "teacher context overflow: max_prompt_tokens + max_new_tokens + 1 "
+                f"is {required_context}, server limit is {args.teacher_server_max_model_len}"
+            )
+        if (args.temperature, args.top_p, args.top_k) != (1.0, 1.0, 0):
+            raise ValueError(
+                "sampled reverse KL requires untruncated on-policy sampling: "
+                "--temperature 1 --top-p 1 --top-k 0"
+            )
+    if args.mode in TASK_REWARD_MODES:
+        if not args.allow_ungated_smoke and args.enable_thinking:
+            raise ValueError("scientific OPD-math runs require Qwen3 non-thinking mode")
+        if not args.allow_ungated_smoke and not immutable_hub_revision(args.student_revision):
+            raise ValueError(
+                "scientific OPD-math runs require an immutable 40-hex --student-revision"
+            )
+        if not args.allow_ungated_smoke and not git_worktree_is_clean():
+            raise ValueError("scientific OPD-math runs require a clean Git worktree")
+        if args.group_size < 2:
+            raise ValueError("task reward requires --group-size >= 2")
+        missing = [i for i, row in enumerate(rows) if not row.get("solution")]
+        if missing:
+            raise ValueError(f"task rows missing solution at indices {missing[:10]}")
+
+    teacher_gate = student_gate = tokenizer_contract = teacher_provenance = None
+    server_scoring_contract = None
+    prepared_manifest = None
+    binding: dict = {
+        "pair_id": None,
+        "student_source": args.student_source,
+        "teacher_source": None,
+        "budget_mode": args.budget_mode,
+        "local_checkpoint_custody_validated": False,
+        "server_alias_and_token_contract_validated": False,
+        "live_local_server_process_binding_validated": False,
+        "server_binding_claim_boundary": (
+            "Local Linux process custody is not cryptographic remote attestation."
+        ),
+        "environment_contract": None,
+    }
+    if args.mode in TASK_REWARD_MODES:
+        if not args.allow_ungated_smoke:
+            binding["environment_contract"] = validate_environment_contract(
+                args, require_serve=args.mode == "task_rl_k1_gap"
+            )
+        if not args.prepared_manifest:
+            raise ValueError("task-reward runs require --prepared-manifest")
+        if args.budget_mode not in {"primary_matched", "dose_response"}:
+            raise ValueError("task-reward runs require an explicit --budget-mode")
+        prepared = json.loads(Path(args.prepared_manifest).read_text())
+        if not args.allow_ungated_smoke and not prepared.get("scientific_use_allowed"):
+            raise ValueError("prepared data manifest is marked non-scientific")
+        if args.mode == "task_rl":
+            if args.pair_id:
+                raise ValueError("task_rl has no teacher coordinate; use --student-source, not --pair-id")
+            if args.student_source not in {"M", "O"}:
+                raise ValueError("task_rl requires --student-source M or O")
+            pair = None
+            student_source = args.student_source
+            relative_task = f"roles/{student_source}/student_opd.jsonl"
+        else:
+            if not args.pair_id:
+                raise ValueError("task_rl_k1_gap requires --pair-id")
+            if args.student_source:
+                raise ValueError("task_rl_k1_gap infers student source from --pair-id")
+            pair = _pair_by_id(prepared, args.pair_id)
+            student_source = pair["opd_source"]
+            relative_task = pair["student_opd_file"]
+            binding.update(
+                {
+                    "pair_id": pair["id"],
+                    "student_source": student_source,
+                    "teacher_source": pair["teacher_source"],
+                }
+            )
+        file_entry = _manifest_file(prepared, relative_task)
+        expected_task_path = (Path(args.prepared_manifest).resolve().parent / relative_task).resolve()
+        actual_task_path = Path(args.task_file).resolve()
+        if actual_task_path != expected_task_path:
+            raise ValueError(
+                f"student task file must be the exact prepared role path: "
+                f"expected={expected_task_path}, actual={actual_task_path}"
+            )
+        task_hash = sha256_file(args.task_file)
+        _expect_equal(file_entry, "sha256", task_hash, "prepared student task file")
+        physical_rows = _validate_full_role_file(
+            actual_task_path, source=student_source, role="student_opd"
+        )
+        _expect_equal(file_entry, "rows", physical_rows, "prepared student task file")
+        _validate_role_rows(rows, source=student_source, role="student_opd")
+        if args.task_limit <= 0:
+            raise ValueError("task-reward runs require a positive --task-limit")
+        if args.task_limit > int(file_entry["rows"]):
+            raise ValueError("--task-limit exceeds the registered student role file")
+        matched_limit = int(prepared["primary_matched_budgets"]["student_opd"])
+        if args.budget_mode == "primary_matched" and args.task_limit != matched_limit:
+            raise ValueError(
+                f"primary matched student runs require --task-limit={matched_limit}, "
+                f"got {args.task_limit}"
+            )
+        binding.update(
+            {
+                "task_role_file": relative_task,
+                "task_file_rows": int(file_entry["rows"]),
+                "matched_task_limit": matched_limit,
+            }
+        )
+        student_gate = checked_gate(
+            args.student_support_manifest,
+            "student support manifest",
+            args.allow_ungated_smoke,
+            expected_gate="student_support_v1",
+        )
+        if student_gate is not None:
+            _validate_student_gate(
+                student_gate,
+                args=args,
+                task_hash=task_hash,
+                student_source=student_source,
+                prepared=prepared,
+            )
+        if args.mode == "task_rl_k1_gap":
+            teacher_gate = checked_gate(
+                args.teacher_gap_manifest,
+                "teacher gap manifest",
+                args.allow_ungated_smoke,
+                expected_gate="teacher_gap_v1",
+            )
+            if teacher_gate is not None:
+                _validate_teacher_gate(
+                    teacher_gate,
+                    pair=pair,
+                    prepared=prepared,
+                    prepared_manifest_path=args.prepared_manifest,
+                )
+                if not args.allow_ungated_smoke and (
+                    not args.teacher_base_model or not args.teacher_base_revision
+                ):
+                    raise ValueError(
+                        "scientific main arm requires teacher base model and revision identity"
+                    )
+                if args.teacher_base_model:
+                    _expect_equal(
+                        teacher_gate, "base_model", args.teacher_base_model, "teacher gap gate"
+                    )
+                if args.teacher_base_revision:
+                    _expect_equal(
+                        teacher_gate,
+                        "base_model_revision",
+                        args.teacher_base_revision,
+                        "teacher gap gate",
+                    )
+            tokenizer_contract = checked_gate(
+                args.tokenizer_contract,
+                "tokenizer contract",
+                args.allow_ungated_smoke,
+                expected_gate="tokenizer_contract_v1",
+            )
+            if tokenizer_contract is not None:
+                _validate_tokenizer_contract(tokenizer_contract, args=args)
+            server_scoring_contract = _validate_server_scoring_contract(
+                args.server_scoring_contract, args=args
+            )
+            if not args.allow_ungated_smoke:
+                teacher_provenance = _validate_teacher_provenance(
+                    args.teacher_provenance_manifest, teacher_gate, args
+                )
+                local_binding = server_scoring_contract["local_process_binding"]
+                _expect_equal(
+                    local_binding,
+                    "teacher_checkpoint_tree_sha256",
+                    teacher_provenance["output_checkpoint_tree_sha256"],
+                    "server scoring local process binding",
+                )
+                _expect_equal(
+                    local_binding,
+                    "teacher_provenance_manifest_sha256",
+                    teacher_provenance["manifest_sha256"],
+                    "server scoring local process binding",
+                )
+                binding["local_checkpoint_custody_validated"] = True
+                binding["server_alias_and_token_contract_validated"] = True
+                binding["live_local_server_process_binding_validated"] = True
+        prepared_manifest = {
+            "path": str(Path(args.prepared_manifest).resolve()),
+            "sha256": sha256_file(args.prepared_manifest),
+            "task_role_file": relative_task,
+            "task_file_sha256": task_hash,
+            "scientific_use_allowed": prepared.get("scientific_use_allowed"),
+        }
+    elif args.mode in K1_MODES:
+        tokenizer_contract = checked_gate(
+            args.tokenizer_contract,
+            "tokenizer contract",
+            args.allow_ungated_smoke,
+            expected_gate="tokenizer_contract_v1",
+        )
+        if tokenizer_contract is not None:
+            _validate_tokenizer_contract(tokenizer_contract, args=args)
+    return (
+        teacher_gate,
+        student_gate,
+        tokenizer_contract,
+        teacher_provenance,
+        server_scoring_contract,
+        prepared_manifest,
+        binding,
+    )
+
+
+def sample_trace_rows(samples, student_lps, teacher_lps, mask, rewards, statuses, step: int):
+    rows = []
+    for i, sample in enumerate(samples):
+        selected = mask[i]
+        student_values = student_lps[i][selected].detach().float()
+        teacher_values = None if teacher_lps is None else teacher_lps[i][selected].detach().float()
+        row = {
+            "schema_version": 1,
+            "step": step,
+            "record_id": sample.get("record_id"),
+            "source": sample.get("source"),
+            "group_id": int(sample["group_id"]),
+            "sample_idx": int(sample["sample_idx"]),
+            "completion_tokens": int(selected.sum().item()),
+            "prompt_tokens": len(sample["prompt_token_ids"]),
+            "terminated_by_eos": bool(sample.get("terminated_by_eos")),
+            "rollout_batch_latency_seconds": sample.get("rollout_batch_latency_seconds"),
+            "teacher_scoring_latency_seconds": sample.get("teacher_scoring_latency_seconds"),
+            "completion_sha256": hashlib.sha256(sample["completion_text"].encode("utf-8")).hexdigest(),
+            "student_nll": float(-student_values.mean().item()),
+            "teacher_nll_on_student_trajectory": (
+                None if teacher_values is None else float(-teacher_values.mean().item())
+            ),
+            "mean_teacher_student_gap": (
+                None if teacher_values is None else float((teacher_values - student_values).mean().item())
+            ),
+            "mean_abs_k1_log_ratio": (
+                None
+                if teacher_values is None
+                else float((student_values - teacher_values).abs().mean().item())
+            ),
+            "min_teacher_student_gap": (
+                None
+                if teacher_values is None
+                else float((teacher_values - student_values).min().item())
+            ),
+            "max_teacher_student_gap": (
+                None
+                if teacher_values is None
+                else float((teacher_values - student_values).max().item())
+            ),
+            "positive_teacher_gap_fraction": (
+                None
+                if teacher_values is None
+                else float((teacher_values - student_values).gt(0).float().mean().item())
+            ),
+            "reward": None if rewards is None else float(rewards[i]),
+            "reward_status": None if statuses is None else statuses[i],
+        }
+        rows.append(row)
+    return rows
+
+
+def run(args) -> None:
+    code_state_start = git_state()
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    log(f"device={device} student={args.student} mode={args.mode}")
+    rows = read_jsonl(args.task_file, args.task_limit)
+    (
+        teacher_gate,
+        student_gate,
+        tokenizer_contract,
+        teacher_provenance,
+        server_scoring_contract,
+        prepared_manifest,
+        binding,
+    ) = validate_run_contract(args, rows)
+    intended_scientific_run = (
+        args.mode in TASK_REWARD_MODES
+        and not args.allow_ungated_smoke
+        and args.budget_mode == "primary_matched"
+    )
+    if intended_scientific_run and not clean_stable_git_custody(
+        code_state_start, code_state_start
+    ):
+        raise ValueError("scientific OPD-math runs require a clean, identifiable Git start state")
+    out_path = Path(args.out_dir)
+    if out_path.is_symlink() or (
+        out_path.exists() and (not out_path.is_dir() or any(out_path.iterdir()))
+    ):
+        raise FileExistsError(f"refusing to overwrite non-empty output directory: {out_path}")
+    if args.mode in TEACHER_MODES:
+        teacher_client.healthcheck(
+            args.teacher_url,
+            timeout=args.teacher_read_timeout,
+            retries=args.teacher_retries,
+            raise_on_error=True,
+        )
+
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
     tok, model = load_student(args, device)
-    rows = read_jsonl(args.task_file)
     rng = random.Random(args.seed)
     stream = prompt_stream(rows, rng)
-    micro = int(os.getenv("JUDGE_MICRO", "1"))
+    micro = args.micro_prompts
     opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=args.lr)
-    Path(args.out_dir).mkdir(parents=True, exist_ok=True)
+    initial_parameter_signature = trainable_parameter_signature(model)
+    out_path.mkdir(parents=True, exist_ok=True)
+    trace_dir = Path(args.trace_dir or (Path(args.out_dir) / "traces"))
+    for path in (trace_dir / "run_manifest.json", trace_dir / "steps.jsonl", trace_dir / "samples.jsonl"):
+        if path.exists():
+            raise FileExistsError(f"refusing to append to or overwrite existing trace: {path}")
+    trace_dir.mkdir(parents=True, exist_ok=True)
+    objective_contract = {
+        "task_rl": "grouped_verifiable_math_task_reward_v1",
+        "task_rl_k1_gap": "grouped_task_reward_plus_clipped_positive_gap_k1_value_reverse_kl_sf_surrogate_v1",
+        "kd": "teacher_completion_supervised_nll_v1",
+    }.get(args.mode, "sampled_k1_value_reverse_kl_sf_diagnostic_v1")
+    run_manifest = {
+        "schema_version": 1,
+        "objective": args.mode,
+        "objective_contract": objective_contract,
+        "status": "started",
+        "intended_scientific_run": intended_scientific_run,
+        "scientific_use_allowed": False,
+        "git_commit": code_state_start["commit"],
+        "git_worktree_clean": code_state_start["dirty"] is False,
+        "git_state_start": code_state_start,
+        "task_file": str(Path(args.task_file).resolve()),
+        "task_file_sha256": sha256_file(args.task_file),
+        "selected_task_rows": len(rows),
+        "task_limit": args.task_limit,
+        "binding": binding,
+        "student": args.student,
+        "student_revision": args.student_revision,
+        "teacher_model": args.teacher_model,
+        "teacher_checkpoint": args.teacher_checkpoint,
+        "teacher_base_model": args.teacher_base_model,
+        "teacher_base_revision": args.teacher_base_revision,
+        "optimizer_steps_planned": args.steps,
+        "micro_prompts_per_step": micro,
+        "planned_rollout_samples": args.steps * micro * args.group_size,
+        "seed": args.seed,
+        "generation": {
+            "group_size": args.group_size,
+            "temperature": args.temperature,
+            "top_p": args.top_p,
+            "top_k": args.top_k,
+            "max_new_tokens": args.max_new_tokens,
+            "enable_thinking": args.enable_thinking,
+        },
+        "loss": {
+            "task_reward_coef": args.task_reward_coef,
+            "k1_coef": args.k1_coef,
+            "gap_gate_beta": args.gap_gate_beta,
+            "advantage_clip": args.advantage_clip,
+        },
+        "gates": {
+            "prepared_data": prepared_manifest,
+            "teacher_gap": teacher_gate,
+            "teacher_provenance": teacher_provenance,
+            "server_scoring_contract": server_scoring_contract,
+            "student_support": student_gate,
+            "tokenizer_contract": tokenizer_contract,
+        },
+    }
+    (trace_dir / "run_manifest.json").write_text(json.dumps(run_manifest, indent=2, sort_keys=True) + "\n")
 
     t0 = time.time()
+    informative_task_steps = 0
+    informative_task_groups = 0
+    total_task_groups = 0
+    total_scored_completion_tokens = 0
+    total_rollout_samples = 0
+    gradient_norms: list[float] = []
     for step in range(1, args.steps + 1):
         raw_batch = [next(stream) for _ in range(micro)]
         prompt_rows = []
         for row in raw_batch:
             item = dict(row)
-            item["prompt_text"] = maybe_truncate_prompt(tok, str(item["prompt_text"]), args.max_prompt_tokens)
+            item["prompt_text"], item["prompt_token_ids"] = render_prompt(
+                tok, item, args.max_prompt_tokens, args.enable_thinking
+            )
             prompt_rows.append(item)
 
-        model.train()
         opt.zero_grad(set_to_none=True)
-        if args.mode in ("opd", "opd_gated"):
-            prompts = [r["prompt_text"] for r in prompt_rows]
-            samples = generate_student_samples(model, tok, prompts, args, device)
-            samples = teacher_score_samples(tok, samples, args)
-            model.train()
-            loss, rkl, gate_mean, ntok = opd_loss_for_samples(model, tok, samples, args, device)
-            metric = f"reverse_kl={rkl.item():.4f} gap_gate_mean={gate_mean:.4f}"
+        if args.mode != "kd":
+            samples = generate_student_samples(model, tok, prompt_rows, args, device)
+            if args.mode in K1_MODES:
+                samples = teacher_score_samples(samples, args)
+            loss, metrics, student_lps, teacher_lps, score_mask, rewards, statuses = training_loss_for_samples(
+                model, tok, samples, args, device
+            )
+            ntok = metrics["tokens"]
         else:
             samples = teacher_kd_samples(prompt_rows, args)
-            model.train()
+            model.eval()
             loss, ntok = kd_loss_for_samples(model, tok, samples, device)
-            metric = "reverse_kl=NA"
+            metrics = {
+                "tokens": ntok,
+                "task_loss": None,
+                "reverse_kl_score_function_surrogate": None,
+            }
+            student_lps = teacher_lps = score_mask = rewards = statuses = None
+
+        if args.mode in TASK_REWARD_MODES and float(metrics["informative_group_fraction"]) > 0:
+            informative_task_steps += 1
+        if args.mode in TASK_REWARD_MODES:
+            total_task_groups += len(prompt_rows)
+            informative_task_groups += int(
+                round(float(metrics["informative_group_fraction"]) * len(prompt_rows))
+            )
+        total_scored_completion_tokens += int(ntok)
+        total_rollout_samples += len(samples)
 
         if not torch.isfinite(loss):
             raise RuntimeError(f"non-finite loss at step {step}: {loss.item()}")
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
+        gradient_norm = float(torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip).item())
+        if not math.isfinite(gradient_norm):
+            raise RuntimeError(
+                f"non-finite gradient norm at step {step}; optimizer step was not applied"
+            )
+        gradient_norms.append(gradient_norm)
         opt.step()
 
         elapsed = max(time.time() - t0, 1e-9)
+        step_row = {
+            "schema_version": 1,
+            "step": step,
+            "mode": args.mode,
+            "prompts": len(prompt_rows),
+            "samples": len(samples),
+            "total_loss": float(loss.item()),
+            "gradient_norm_before_clip": gradient_norm,
+            "tokens_per_second": ntok / elapsed,
+            **metrics,
+        }
+        append_jsonl(trace_dir / "steps.jsonl", step_row)
+        if args.mode != "kd":
+            for trace_row in sample_trace_rows(
+                samples, student_lps, teacher_lps, score_mask, rewards, statuses, step
+            ):
+                append_jsonl(trace_dir / "samples.jsonl", trace_row)
+        metric = " ".join(
+            f"{key}={value:.4f}" for key, value in metrics.items() if isinstance(value, float)
+        )
         log(
             f"step {step}/{args.steps} mode={args.mode} prompts={len(prompt_rows)} "
             f"samples={len(samples)} tokens={ntok} loss={loss.item():.4f} "
@@ -356,19 +1553,244 @@ def run(args) -> None:
         if args.save_every > 0 and step % args.save_every == 0:
             save_checkpoint(model, tok, args.out_dir, f"step_{step:06d}")
 
-    save_checkpoint(model, tok, args.out_dir, "final")
+    final_parameter_signature = trainable_parameter_signature(model)
+    parameter_update_observed = signatures_differ(
+        initial_parameter_signature, final_parameter_signature
+    )
+    finite_nonzero_gradient_observed = any(
+        math.isfinite(value) and value > 0 for value in gradient_norms
+    )
+    informative_group_fraction = (
+        1.0 if args.mode not in TASK_REWARD_MODES else informative_task_groups / total_task_groups
+    )
+    task_signal_observed = (
+        args.mode not in TASK_REWARD_MODES
+        or informative_group_fraction >= args.min_informative_group_fraction
+    )
+    code_state_training_end = git_state()
+    clean_stable_training_code = clean_stable_git_custody(
+        code_state_start, code_state_training_end
+    )
+    stable_training_environment = environment_contract_unchanged(
+        binding.get("environment_contract")
+    )
+    server_process_binding_validated = (
+        args.mode != "task_rl_k1_gap"
+        or not intended_scientific_run
+        or binding.get("live_local_server_process_binding_validated") is True
+    )
+    server_process_binding_end = None
+    server_process_binding_error = None
+    if intended_scientific_run and args.mode == "task_rl_k1_gap":
+        try:
+            server_process_binding_end = revalidate_local_process_binding(
+                server_scoring_contract["local_process_binding"],
+                teacher_checkpoint=Path(args.teacher_checkpoint),
+                teacher_provenance_manifest=Path(args.teacher_provenance_manifest),
+                server_url=args.teacher_url,
+                server_model=args.teacher_model,
+                server_max_model_len=args.teacher_server_max_model_len,
+            )
+        except (OSError, ValueError, RuntimeError) as exc:
+            server_process_binding_validated = False
+            server_process_binding_error = f"{type(exc).__name__}: {exc}"
+    require_parameter_update = args.require_parameter_update or intended_scientific_run
+    completion = {
+        "schema_version": 1,
+        "status": (
+            "completed"
+            if task_signal_observed
+            else ("failed_task_signal_gate" if intended_scientific_run else "completed_zero_task_signal_smoke")
+        ),
+        "objective": args.mode,
+        "optimizer_steps_completed": args.steps,
+        "rollout_samples": total_rollout_samples,
+        "scored_completion_tokens": total_scored_completion_tokens,
+        "intended_scientific_run": intended_scientific_run,
+        "informative_task_steps": informative_task_steps,
+        "informative_task_groups": informative_task_groups,
+        "total_task_groups": total_task_groups,
+        "informative_group_fraction": informative_group_fraction,
+        "minimum_informative_group_fraction": args.min_informative_group_fraction,
+        "task_signal_observed": task_signal_observed,
+        "finite_nonzero_gradient_observed": finite_nonzero_gradient_observed,
+        "parameter_update_observed": parameter_update_observed,
+        "git_state_start": code_state_start,
+        "git_state_training_end": code_state_training_end,
+        "git_state_end": None,
+        "clean_stable_code": False,
+        "stable_training_environment": stable_training_environment,
+        "live_local_server_process_binding_validated": server_process_binding_validated,
+        "local_server_process_binding_end": server_process_binding_end,
+        "local_server_process_binding_error": server_process_binding_error,
+        "initial_parameter_signature": initial_parameter_signature,
+        "final_parameter_signature": final_parameter_signature,
+        "training_artifact_eligible_for_held_out_evaluation": False,
+        "scientific_use_allowed": False,
+        "claim_boundary": (
+            "Completion establishes an optimizer run under the validated contract; "
+            "task performance requires held-out evaluation and uncertainty analysis. "
+            "The local server binding is same-host Linux process custody, not "
+            "cryptographic remote attestation."
+        ),
+    }
+    if intended_scientific_run and not task_signal_observed:
+        write_completion_manifests(trace_dir, run_manifest, completion)
+        raise RuntimeError(
+            "the predeclared mixed-reward group fraction was not met; traces were preserved "
+            "and no final adapter was promoted"
+        )
+    if intended_scientific_run and not clean_stable_training_code:
+        completion["status"] = "failed_code_custody_gate"
+        completion["training_artifact_eligible_for_held_out_evaluation"] = False
+        write_completion_manifests(trace_dir, run_manifest, completion)
+        raise RuntimeError(
+            "Git commit or cleanliness changed during training; no final adapter was promoted"
+        )
+    if intended_scientific_run and not stable_training_environment:
+        completion["status"] = "failed_environment_custody_gate"
+        completion["training_artifact_eligible_for_held_out_evaluation"] = False
+        write_completion_manifests(trace_dir, run_manifest, completion)
+        raise RuntimeError(
+            "training package identity or an environment freeze changed during training; "
+            "no final adapter was promoted"
+        )
+    if intended_scientific_run and not server_process_binding_validated:
+        completion["status"] = "failed_local_server_process_binding_gate"
+        completion["training_artifact_eligible_for_held_out_evaluation"] = False
+        write_completion_manifests(trace_dir, run_manifest, completion)
+        raise RuntimeError(
+            "local vLLM process binding was not validated; no final adapter was promoted"
+        )
+    if require_parameter_update and (
+        not finite_nonzero_gradient_observed or not parameter_update_observed
+    ):
+        completion["status"] = "failed_parameter_update_gate"
+        completion["scientific_use_allowed"] = False
+        completion["training_artifact_eligible_for_held_out_evaluation"] = False
+        write_completion_manifests(trace_dir, run_manifest, completion)
+        raise RuntimeError(
+            "no finite nonzero gradient/parameter update was observed; no final adapter was promoted"
+        )
+    candidate_adapter = (Path(args.out_dir) / "final_candidate").resolve()
+    save_checkpoint(model, tok, args.out_dir, candidate_adapter.name)
+    candidate_hash = sha256_tree(candidate_adapter)
+    code_state_after_save = git_state()
+    clean_stable_after_save = clean_stable_git_custody(
+        code_state_start, code_state_after_save
+    )
+    stable_environment_after_save = environment_contract_unchanged(
+        binding.get("environment_contract")
+    )
+    completion["git_state_after_candidate_save"] = code_state_after_save
+    completion["candidate_adapter"] = str(candidate_adapter)
+    completion["candidate_adapter_tree_sha256"] = candidate_hash
+    completion["stable_environment_after_candidate_save"] = stable_environment_after_save
+    if intended_scientific_run and not clean_stable_after_save:
+        completion["status"] = "failed_code_custody_after_candidate_save"
+        completion["git_state_end"] = code_state_after_save
+        completion["clean_stable_code"] = False
+        write_completion_manifests(trace_dir, run_manifest, completion)
+        raise RuntimeError(
+            "Git commit or cleanliness changed while saving the candidate adapter; "
+            "no final adapter was promoted"
+        )
+    if intended_scientific_run and not stable_environment_after_save:
+        completion["status"] = "failed_environment_custody_after_candidate_save"
+        completion["git_state_end"] = code_state_after_save
+        completion["clean_stable_code"] = clean_stable_after_save
+        write_completion_manifests(trace_dir, run_manifest, completion)
+        raise RuntimeError(
+            "training package identity or an environment freeze changed while saving the "
+            "candidate adapter; no final adapter was promoted"
+        )
+
+    final_adapter = (Path(args.out_dir) / "final").resolve()
+    candidate_adapter.rename(final_adapter)
+    try:
+        final_hash = sha256_tree(final_adapter)
+    except (OSError, ValueError) as exc:
+        rejected_adapter = (Path(args.out_dir) / "rejected_final_artifact_custody").resolve()
+        final_adapter.rename(rejected_adapter)
+        completion["status"] = "failed_final_artifact_rehash"
+        completion["rejected_adapter"] = str(rejected_adapter)
+        write_completion_manifests(trace_dir, run_manifest, completion)
+        raise RuntimeError(
+            "final adapter could not be rehashed after promotion; it was moved to a rejected path"
+        ) from exc
+    code_state_end = git_state()
+    clean_stable_code = clean_stable_git_custody(code_state_start, code_state_end)
+    stable_environment_end = environment_contract_unchanged(
+        binding.get("environment_contract")
+    )
+    completion["git_state_end"] = code_state_end
+    completion["clean_stable_code"] = clean_stable_code
+    completion["stable_environment_end"] = stable_environment_end
+    stable_final_artifact = final_hash == candidate_hash
+    completion["stable_final_artifact_hash"] = stable_final_artifact
+    if not stable_final_artifact or (
+        intended_scientific_run and (not clean_stable_code or not stable_environment_end)
+    ):
+        rejected_adapter = (Path(args.out_dir) / "rejected_final_custody").resolve()
+        final_adapter.rename(rejected_adapter)
+        completion["status"] = (
+            "failed_final_artifact_hash_custody"
+            if not stable_final_artifact
+            else (
+                "failed_code_custody_after_promotion"
+                if not clean_stable_code
+                else "failed_environment_custody_after_promotion"
+            )
+        )
+        completion["rejected_adapter"] = str(rejected_adapter)
+        write_completion_manifests(trace_dir, run_manifest, completion)
+        raise RuntimeError(
+            "Git commit or cleanliness changed during final adapter promotion; "
+            "or the bound environment changed; the adapter was moved to a rejected diagnostic path"
+        )
+
+    completion["training_artifact_eligible_for_held_out_evaluation"] = (
+        intended_scientific_run
+        and task_signal_observed
+        and finite_nonzero_gradient_observed
+        and parameter_update_observed
+        and clean_stable_code
+        and stable_environment_end
+        and stable_final_artifact
+        and server_process_binding_validated
+    )
+    completion["final_adapter"] = str(final_adapter)
+    completion["final_adapter_tree_sha256"] = final_hash
+    completion.pop("candidate_adapter", None)
+    completion.pop("candidate_adapter_tree_sha256", None)
+    write_completion_manifests(trace_dir, run_manifest, completion)
 
 
 def parse_args():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["opd", "opd_gated", "kd"], default="opd")
+    ap.add_argument(
+        "--mode",
+        choices=["task_rl", "task_rl_k1_gap", "k1_bare", "k1_gap_only", "opd", "opd_gated", "kd"],
+        required=True,
+    )
     ap.add_argument("--task-file", required=True)
+    ap.add_argument("--task-limit", type=int, default=0)
+    ap.add_argument("--pair-id", choices=["M_M", "M_O", "O_M", "O_O"])
+    ap.add_argument("--student-source", choices=["M", "O"])
+    ap.add_argument("--budget-mode", choices=["primary_matched", "dose_response"])
     ap.add_argument("--student", required=True)
-    ap.add_argument("--teacher-url", required=True)
-    ap.add_argument("--teacher-model", required=True)
+    ap.add_argument("--student-revision")
+    ap.add_argument("--teacher-url")
+    ap.add_argument("--teacher-model")
+    ap.add_argument("--teacher-checkpoint")
+    ap.add_argument("--teacher-server-max-model-len", type=int, default=0)
+    ap.add_argument("--teacher-base-model")
+    ap.add_argument("--teacher-base-revision")
     ap.add_argument("--out-dir", required=True)
+    ap.add_argument("--trace-dir")
     ap.add_argument("--steps", type=int, default=100)
     ap.add_argument("--group-size", type=int, default=4)
+    ap.add_argument("--micro-prompts", type=int, default=1)
     ap.add_argument("--max-new-tokens", type=int, default=128)
     ap.add_argument("--max-prompt-tokens", type=int, default=1536)
     ap.add_argument("--lr", type=float, default=1e-5)
@@ -376,8 +1798,14 @@ def parse_args():
     ap.add_argument("--temperature", type=float, default=1.0)
     ap.add_argument("--kd-temperature", type=float, default=0.7)
     ap.add_argument("--top-p", type=float, default=1.0)
+    ap.add_argument("--top-k", type=int, default=0)
     ap.add_argument("--advantage-clip", type=float, default=5.0)
-    ap.add_argument("--ratio-clip-eps", type=float, default=0.2)
+    ap.add_argument(
+        "--min-informative-group-fraction",
+        type=float,
+        default=0.05,
+        help="scientific runs fail unless at least this fraction of rollout groups has mixed reward",
+    )
     ap.add_argument(
         "--gap-gate-beta",
         type=float,
@@ -385,10 +1813,38 @@ def parse_args():
         help="positive sigmoid-gap coefficient used only in opd_gated mode",
     )
     ap.add_argument("--grad-clip", type=float, default=1.0)
+    ap.add_argument("--task-reward-coef", type=float, default=1.0)
+    ap.add_argument(
+        "--k1-coef",
+        type=float,
+        default=0.01,
+        help="starting auxiliary weight only; must be swept rather than treated as established",
+    )
     ap.add_argument("--save-every", type=int, default=50)
+    ap.add_argument(
+        "--require-parameter-update",
+        action="store_true",
+        help="fail after preserving diagnostics unless a finite gradient changes trainable parameters",
+    )
     ap.add_argument("--teacher-connect-timeout", type=float, default=10.0)
     ap.add_argument("--teacher-read-timeout", type=float, default=120.0)
     ap.add_argument("--teacher-retries", type=int, default=3)
+    ap.add_argument("--teacher-gap-manifest")
+    ap.add_argument("--teacher-provenance-manifest")
+    ap.add_argument("--server-scoring-contract")
+    ap.add_argument("--student-support-manifest")
+    ap.add_argument("--tokenizer-contract")
+    ap.add_argument("--prepared-manifest")
+    ap.add_argument("--train-environment-freeze")
+    ap.add_argument("--serve-environment-freeze")
+    ap.add_argument(
+        "--allow-ungated-smoke",
+        action="store_true",
+        help="plumbing only: bypass quality/support/tokenizer manifests and mark output non-scientific",
+    )
+    ap.add_argument("--enable-thinking", action="store_true", help="default is Qwen3 non-thinking mode")
+    ap.add_argument("--local-files-only", action="store_true")
+    ap.add_argument("--attn-implementation", default="sdpa")
     ap.add_argument("--seed", type=int, default=0)
     return ap.parse_args()
 

@@ -61,7 +61,7 @@ rather than skill-curriculum *self-internalization*.
 ## Technical paths (by teacher access)
 | Teacher | Method | Notes |
 |---|---|---|
-| Open weights (Qwen-235B, Llama-405B, or a skill-augmented mid-size) | **Task reward + gap-gated OPD** — student samples, teacher top-k logprobs provide a small dense auxiliary signal | Primary safe design after SDAR; bare OPD remains a diagnostic only |
+| Open weights (Qwen-235B, Llama-405B, or a skill-augmented mid-size) | **Task reward + gap-gated OPD** — student samples; the minimal path uses exact sampled-token teacher scores, while Top-k requires a wider logit protocol | Primary safe design after SDAR; bare OPD remains a diagnostic only; see [[ema-policy-gradient]] |
 | Closed (GPT/Claude) | Sequence-level KD on teacher traces (SFT); GKD-style: student samples, teacher *scores/ranks* (reward, not logits); rejection-sampling SFT | Meeting action item: **survey how people distill from closed models** — OpenAI exposes top-20 logprobs, Anthropic none, so token-level OPD is out |
 | No teacher, skills-as-teacher | SKILL0's own recipe at small scale: give the small model the skill *files* + curriculum-withdraw | Baseline arm — tests whether a teacher model is even needed vs just the skill text |
 

@@ -44,16 +44,26 @@ def _entry_logprob(entry: Any, token_id: int, pos: int) -> float:
     if entry is None:
         raise ValueError(f"missing logprob at token position {pos}")
     if isinstance(entry, (float, int)):
-        return float(entry)
+        raise ValueError(
+            f"unkeyed scalar logprob at token position {pos} cannot prove "
+            f"identity for expected token_id={token_id}"
+        )
     if not isinstance(entry, dict):
         raise ValueError(f"unexpected logprob entry at position {pos}: {entry!r}")
-
-    if "logprob" in entry:
-        return _logprob_value(entry)
 
     for key in (token_id, str(token_id)):
         if key in entry:
             return _logprob_value(entry[key])
+
+    if "token_id" in entry:
+        observed = int(entry["token_id"])
+        if observed != token_id:
+            raise ValueError(
+                f"teacher returned token_id={observed} for expected token_id={token_id} "
+                f"at position {pos}"
+            )
+        if "logprob" in entry:
+            return _logprob_value(entry)
 
     keys = ", ".join(str(k) for k in list(entry)[:8])
     raise ValueError(
@@ -131,32 +141,33 @@ def healthcheck(base_url: str, timeout: float = 5.0, retries: int = 3, raise_on_
     return False
 
 
-def score_completion_logprobs(
+def score_completion_token_logprobs(
     base_url: str,
     model: str,
-    prompt_text: str,
-    completion_text: str,
-    tokenizer: Any,
+    prompt_token_ids: list[int],
+    completion_token_ids: list[int],
     *,
     timeout: tuple[float, float] = (10.0, 120.0),
     retries: int = 3,
 ) -> list[float]:
-    """Return teacher logprobs for exactly the completion tokens.
+    """Return teacher logprobs for exact student-generated token IDs.
 
-    The request sends `prompt_text + completion_text` to `/v1/completions` with
+    The request sends one tokenized prompt to `/v1/completions` with
     `echo=True`, `logprobs=1`, and vLLM `prompt_logprobs=1`. The returned prompt
-    logprobs cover the full echoed text. We count `prompt_text` tokens with the
-    provided tokenizer and slice off those positions, leaving one logprob per
-    completion token.
+    logprobs cover the exact concatenated token sequence. This avoids the BPE
+    boundary bug caused by decoding and re-tokenizing prompt+completion text.
     """
-    completion_ids = _encode(tokenizer, completion_text)
+    prompt_ids = [int(x) for x in prompt_token_ids]
+    completion_ids = [int(x) for x in completion_token_ids]
+    if not prompt_ids:
+        raise ValueError("prompt_token_ids must not be empty")
     if not completion_ids:
         return []
-    prompt_count = len(_encode(tokenizer, prompt_text))
+    prompt_count = len(prompt_ids)
 
     payload = {
         "model": model,
-        "prompt": prompt_text + completion_text,
+        "prompt": prompt_ids + completion_ids,
         "max_tokens": 1,
         "temperature": 0.0,
         "echo": True,
@@ -192,18 +203,35 @@ def score_completion_logprobs(
             out.append(_entry_logprob(prompt_logprobs[pos], token_id, pos))
         return out
 
-    logprobs = choice.get("logprobs") or {}
-    token_logprobs = logprobs.get("token_logprobs")
-    if token_logprobs is None:
-        raise RuntimeError(f"teacher response lacked prompt_logprobs and token_logprobs: {data}")
-    start = prompt_count
-    end = start + len(completion_ids)
-    if len(token_logprobs) < end:
-        raise RuntimeError(f"teacher returned {len(token_logprobs)} token logprobs, need at least {end}")
-    out = token_logprobs[start:end]
-    if any(x is None for x in out):
-        raise RuntimeError(f"teacher returned null completion logprobs in positions {start}:{end}")
-    return [float(x) for x in out]
+    raise RuntimeError(
+        "teacher response lacked token-ID-keyed prompt_logprobs; plain token_logprobs "
+        "cannot prove exact student/teacher token alignment"
+    )
+
+
+def score_completion_logprobs(
+    base_url: str,
+    model: str,
+    prompt_text: str,
+    completion_text: str,
+    tokenizer: Any,
+    *,
+    timeout: tuple[float, float] = (10.0, 120.0),
+    retries: int = 3,
+) -> list[float]:
+    """Compatibility wrapper that tokenizes each segment independently.
+
+    New OPD code should preserve rollout token IDs and call
+    :func:`score_completion_token_logprobs` directly.
+    """
+    return score_completion_token_logprobs(
+        base_url,
+        model,
+        _encode(tokenizer, prompt_text),
+        _encode(tokenizer, completion_text),
+        timeout=timeout,
+        retries=retries,
+    )
 
 
 def sample_from_server(

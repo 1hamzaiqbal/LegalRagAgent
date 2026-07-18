@@ -6,9 +6,10 @@
 |---|---|---|---|---|
 | Three-dial utility | `/Users/hamzaiqbal/grad/LegalRagAgent` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-three-dial` | `codex/three_dial` | active, clean, synced |
 | OPD/distillation | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-distillation` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-distillation` | `codex/opd_distillation` | gated active track, clean, synced |
+| OPD math source transfer | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-math` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math` | `codex/opd_math_pipeline` | isolated implementation child; no task result yet |
 | SCOPE history | branch only; no checked-out Mac worktree | archived; restore only when needed | `codex/scope_old` | historical Git/archive state |
 
-The two active EIT paths are independent partial clones with the user-owned
+The active EIT paths are independent partial clones with the user-owned
 GitHub repository named `origin`. They no longer depend on a shared Git
 directory inside a historical checkout.
 
@@ -32,9 +33,9 @@ targets for active research.
 
 ## Archived EIT checkouts
 
-`/engrfs/project/jacobsn/hiqbal/src/` now contains only the two active
-LegalRagAgent clones. Seven predecessor checkouts—about 84 GB at move time—are
-preserved under:
+Before the math child lane was created, `/engrfs/project/jacobsn/hiqbal/src/`
+contained only the two canonical LegalRagAgent clones. Seven predecessor
+checkouts—about 84 GB at move time—remain preserved under:
 
 `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-07-17/legacy-worktrees/`
 

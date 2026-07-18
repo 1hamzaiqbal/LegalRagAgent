@@ -21,6 +21,7 @@ case_studies/
 logs/
 artifacts/
 outputs/
+scripts/opd/_smoke_tmp/
 .pytest_cache/
 .locks/
 

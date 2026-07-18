@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ACTIVE_BRANCHES = {"codex/three_dial", "codex/opd_distillation"}
+ACTIVE_BRANCHES = {"codex/three_dial", "codex/opd_distillation", "codex/opd_math_pipeline"}
 REQUIRED = (
     "ACTIVE_TRACK.md",
     "CLAUDE.md",
@@ -45,6 +45,25 @@ STALE_POINTERS = (
     "/Users/hamzaiqbal/grad/LegalRagAgent_archive/LegalRagAgent-scope-old-20260717.zip",
     "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-adaptive-hyre",
     "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-scope-old",
+)
+OPD_MATH_REQUIRED = (
+    "wiki/tracks/opd-math-source-transfer.md",
+    "configs/opd_math/source_manifest.json",
+    "configs/opd_math/teacher_training_plan.json",
+    "requirements/opd-math.txt",
+    "requirements/opd-math-serve.txt",
+    "scripts/opd_math/README.md",
+    "scripts/opd_math/prepare_data.py",
+    "scripts/opd_math/train_teacher_grpo.py",
+    "scripts/opd_math/evaluate_math.py",
+    "scripts/opd_math/quality_gates.py",
+    "scripts/opd_math/tokenizer_contract.py",
+    "scripts/opd_math/server_scoring_probe.py",
+    "scripts/hpc/setup_opd_math_env.sh",
+    "scripts/hpc/setup_opd_math_serve_env.sh",
+    "scripts/hpc/slurm_opd_math_cache_models.sh",
+    "scripts/hpc/slurm_opd_math_env_preflight.sh",
+    "scripts/hpc/slurm_opd_math_serve_preflight.sh",
 )
 WIKILINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
 MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]*\]\(([^)]+)\)")
@@ -136,11 +155,15 @@ def check_branch(branch: str, errors: list[str], warnings: list[str]) -> None:
     active_text = (ROOT / "ACTIVE_TRACK.md").read_text(errors="replace")
     if branch == "codex/three_dial" and "three-dial" not in active_text.lower():
         errors.append("ACTIVE_TRACK.md does not describe the three-dial lane")
-    if branch == "codex/opd_distillation":
+    if branch in ("codex/opd_distillation", "codex/opd_math_pipeline"):
         if "opd" not in active_text.lower():
             errors.append("ACTIVE_TRACK.md does not describe the OPD lane")
         if not (ROOT / "scripts/hpc/slurm_opd_gated_smoke.sh").is_file():
             errors.append("OPD branch is missing its gated smoke launcher")
+    if branch == "codex/opd_math_pipeline":
+        for relative in OPD_MATH_REQUIRED:
+            if not (ROOT / relative).is_file():
+                errors.append(f"OPD math branch is missing required surface: {relative}")
 
 
 def main() -> int:

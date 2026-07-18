@@ -12,6 +12,8 @@ LOG="$TMP/opd_train.log"
 SERVER_LOG="$TMP/vllm.log"
 PORT="${OPD_SMOKE_PORT:-8000}"
 MODE="${OPD_SMOKE_MODE:-opd_gated}"
+TEACHER_REVISION="${OPD_TEACHER_REVISION:-b968826d9c46dd6066d109eabc6255188de91218}"
+STUDENT_REVISION="${OPD_STUDENT_REVISION:-70d244cc86ccca08cf5af4e1e306ecf908b1ad5e}"
 URL="http://127.0.0.1:$PORT"
 SERVER_PID=""
 
@@ -66,7 +68,7 @@ print(f"wrote {out} prompts={min(len(prompts), 8)}", flush=True)
 PY
 
 echo "starting vLLM teacher on $URL"
-vllm serve Qwen/Qwen3-8B --port "$PORT" --max-model-len 2048 \
+vllm serve Qwen/Qwen3-8B --revision "$TEACHER_REVISION" --port "$PORT" --max-model-len 2048 \
   --gpu-memory-utilization "${OPD_TEACHER_GPU_FRAC:-0.55}" >"$SERVER_LOG" 2>&1 &
 SERVER_PID=$!
 
@@ -89,12 +91,20 @@ if ! python "$ROOT/scripts/opd/opd_train.py" \
   --mode "$MODE" \
   --task-file "$TASK" \
   --student Qwen/Qwen3-1.7B \
+  --student-revision "$STUDENT_REVISION" \
   --teacher-url "$URL" \
   --teacher-model Qwen/Qwen3-8B \
+  --teacher-checkpoint Qwen/Qwen3-8B \
+  --teacher-server-max-model-len 2048 \
   --out-dir "$OUT" \
   --steps 3 \
   --group-size 2 \
+  --micro-prompts 1 \
   --max-new-tokens 16 \
+  --top-k 0 \
+  --allow-ungated-smoke \
+  --require-parameter-update \
+  --local-files-only \
   --save-every 1 2>&1 | tee "$LOG"; then
   fail "opd_train.py failed"
 fi

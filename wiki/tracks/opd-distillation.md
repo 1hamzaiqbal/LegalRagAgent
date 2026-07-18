@@ -20,9 +20,11 @@ The literature gate now includes [[sdar]], [[skill1]], and the audited
 self-distillation is occupied: [[opsd-self-distilled-reasoner]],
 [[sdft-continual-learning]], and [[sdpo-rich-feedback]] cover verified
 solutions, demonstrations, rich feedback, and interaction history. Bare OPD
-remains an unsafe diagnostic rather than a primary arm. This branch implements
-and CPU-tests the negative-gap-gated dense objective as `--mode opd_gated`;
-task reward is still not integrated.
+remains an unsafe diagnostic rather than a primary arm. The isolated
+[[opd-math-source-transfer]] branch now implements and CPU-tests grouped
+verifiable task reward, its matched `task_rl` baseline, and the gap-gated
+score-function OPD auxiliary. No task-performance claim exists until EIT
+quality gates and held-out evaluation pass.
 
 ## Gates
 
@@ -62,6 +64,11 @@ frontier. This does not relax the gates. Direct cost-conditioned task RL is the
 primary baseline; task RL plus gap-gated OPD must beat it; and bare OPD remains
 a collapse diagnostic.
 
+The isolated [[opd-math-source-transfer]] child track tests a narrower
+prerequisite: whether the teacher-training source changes distillation value
+after controlling teacher task quality and exact item overlap. It is a method
+characterization surface, not evidence that retrieval skills were internalized.
+
 ## Kill rule
 
 If the teacher skill gap is absent or the policy cannot improve a pre-
@@ -72,4 +79,5 @@ distillation method to a task with observable skill headroom.
 
 [[opd-skill0-design]] · [[skill-distillation-bridge]] · [[skill0]] ·
 [[sdar]] · [[skill1]] · [[alloc-internalization-rung2]] ·
-[[self-distillation-cluster-update-2026-07-17]]
+[[self-distillation-cluster-update-2026-07-17]] · [[opd-math-source-transfer]] ·
+[[ema-policy-gradient]] · [[verl-opd-trainer]]

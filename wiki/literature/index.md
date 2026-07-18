@@ -15,8 +15,8 @@ in the persistent EIT vault:
 
 `/engrfs/project/jacobsn/hiqbal/literature/legalrag/`
 
-The shared vault currently contains **107 checksummed PDFs**, **4 checksummed
-primary web/code snapshots**, and **61 repository checkouts pinned to exact
+The shared vault currently contains **108 checksummed PDFs**, **4 checksummed
+primary web/code snapshots**, and **63 repository checkouts pinned to exact
 commits**. See
 [`eit_papers.sha256`](manifests/eit_papers.sha256) and
 [`eit_web.sha256`](manifests/eit_web.sha256), plus
@@ -54,6 +54,11 @@ contain working duplicates, but it is not the source of truth.
   withdrawal.
 - [[sdar]] — decisive safety/method correction: standalone or naively mixed
   on-policy self-distillation can collapse; task RL plus gap gating matters.
+- [[ema-policy-gradient]] — separates K1 values from K4-equivalent gradients
+  and supplies the exact-head plus sampled-tail Top-k KL comparison.
+- [[verl-opd-trainer]] — pinned upstream OPD implementation and its much
+  heavier actor/teacher resource contract; reference implementation, not our
+  task-reward gate.
 - [[skill1]] — unified selection, use, and distillation of skills; broad
   “skill internalization” novelty is already occupied.
 

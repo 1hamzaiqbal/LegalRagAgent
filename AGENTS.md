@@ -9,8 +9,9 @@ Repository-local instructions for coding agents.
    sync flow, and recovery boundary.
 3. Read `wiki/snapshots/research-state-2026-07-17.md` for the durable research
    snapshot.
-4. Read the track page for the branch: `wiki/tracks/three-dial.md` or
-   `wiki/tracks/opd-distillation.md`.
+4. Read the track page for the branch: `wiki/tracks/three-dial.md`,
+   `wiki/tracks/opd-distillation.md`, or
+   `wiki/tracks/opd-math-source-transfer.md`.
 5. For numeric claims, use `docs/signoff_log.md`, then
    `docs/july_2026_completion_audit_2026-07-17.md`, compact evidence under
    `evidence/july_2026/`, and finally the named source logs.
@@ -21,6 +22,10 @@ Repository-local instructions for coding agents.
   marginal evidence-set utility under cost.
 - `codex/opd_distillation` is the gated implementation track. E2 must establish
   a teacher skill gap before any scientific E3 distillation claim.
+- `codex/opd_math_pipeline` is the isolated math source-transfer child track.
+  It uses `(teacher-training source, student-rollout source)` pairs and must
+  preserve the data, teacher, student-support, and tokenizer gates recorded in
+  `wiki/tracks/opd-math-source-transfer.md`.
 - `codex/scope_old` is immutable historical provenance for SCOPE/Snap-HyRE,
   reviews, class reports, and the old paper.
 - The Mac worktrees and two independent persistent EIT clones are mapped in

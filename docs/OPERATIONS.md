@@ -10,6 +10,7 @@ in the snapshot, track pages, and signoff log; this file governs mechanics.
 |---|---|---|---|
 | Three-dial science, evaluation, and marginal-utility control | `/Users/hamzaiqbal/grad/LegalRagAgent` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-three-dial` | `codex/three_dial` |
 | OPD/distillation and teacher-student engineering | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-distillation` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-distillation` | `codex/opd_distillation` |
+| Bounded OPD math source-transfer experiment | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-math` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math` | `codex/opd_math_pipeline` |
 
 Do not launch new work from `codex/scope_old`, an archive branch, or a path
 under `/engrfs/project/jacobsn/hiqbal/archives/`. Historical checkouts are
@@ -70,6 +71,18 @@ HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 uv run pytest -q
 
 # OPD changes
 uv run python scripts/opd/test_opd_loss.py
+
+# OPD math changes
+uv run pytest -q \
+  tests/test_opd_math_data.py \
+  tests/test_opd_reward_loss.py \
+  tests/test_teacher_client_token_ids.py \
+  tests/test_opd_tokenizer_contract.py \
+  tests/test_opd_quality_gates.py \
+  tests/test_opd_merge_custody.py \
+  tests/test_opd_teacher_recipe.py \
+  tests/test_opd_run_contract.py \
+  tests/test_opd_server_process_binding.py
 ```
 
 GPU or API smoke completion proves plumbing only. Scientific promotion still
