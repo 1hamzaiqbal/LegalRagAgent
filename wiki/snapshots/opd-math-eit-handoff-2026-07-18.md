@@ -325,6 +325,50 @@ scientific work remains the exact 100-step M and O teacher recipes, each
 teacher's own-source held-out gap gate, and then the matched two-baseline plus
 four-OPD student matrix.
 
+## First frozen-commit preflight and recovered code defect
+
+Commit `248f9e75893abcc8742099b0d0a9b85e08e6e5d0` was pushed, cleanly
+fast-forwarded to EIT, and bound to fresh read-only train/serve freezes. Their
+SHA-256 values remained
+`69edfc8f75927379124c88391578097fed7fa66d6e779df593b297cbbf2ada06`
+and
+`f36743fed4fe4c1b8a7fefaac39d9ce8a6f441897920c75ca11de8c487bf443d`;
+the new exact live-environment verifier passed both full installed-distribution
+maps and the serve executable/shebang. Allocated CPU jobs `107169` and
+`107170` then regenerated the M and O support gates byte for byte under the
+new code before any GPU smoke.
+
+Teacher smoke `107171` completed `0:0`. Its single M prompt group produced
+four incorrect 256-token-capped samples, zero reward variance, zero gradient,
+and a final adapter. Its run manifest is explicitly non-scientific; the four-row
+teacher trace SHA-256 is
+`53b9b44f2f52354be55c6078dc51c78cf03b1c11e3a878aeb038cfa22a96685a`,
+and the independently rehashed final-adapter tree is
+`17b0c8ee9db3f28e4081c272e54af6b81fd5a489f87474390048d452113c74bf`.
+This validates the current callback, trace, and save path only; it is not the
+required informative 100-step teacher run.
+
+The first full-wrapper M task-RL smoke, job `107172`, failed `1:0` after one
+optimizer step because a later local integer named `sample_trace_rows`
+shadowed the same-named trace-builder function. The preserved step row shows
+that this was not the predeclared homogeneous-reward fallback case: reward mean
+was 0.5, informative-group fraction 1.0, task loss 0.0408608, and pre-clip
+gradient norm 0.783315. However, the crash occurred before sample-trace,
+completion-manifest, parameter-signature, or final-adapter promotion, so none
+of those missing checks may be inferred from the step row. The incomplete run
+remains at `students/baseline_M/task_rl/run_107172/`, and its stdout SHA-256 is
+`31088242cd4e08f1399ff1cf630aefdf1fb6bbb6fa863cf2a9f1ea4b7aab4f34`.
+
+The branch fix renames the local count and adds a regression proving that
+`run` cannot bind the trace-builder name. The prelaunch decision record is the
+read-only EIT artifact
+`campaigns/scientific_preflight_248f9e7/smoke_fallback_policy.json`, SHA-256
+`d8d96d3c0b42c3540af4690ad891e0d22faadc17f2c4fdae994d74ea48e92eb1`.
+Its predeclared 20-step stochastic fallback was not activated: this was a code
+failure, and the observed group was already informative. A new frozen commit
+must repeat the same one-step contract as a code-fix regression before full
+training proceeds.
+
 ## Known nonblocking hardening work
 
 - Scientific same-host process custody validates the live PID, start identity,

@@ -11,11 +11,20 @@ from scripts.opd.opd_train import (
     environment_contract_unchanged,
     recompute_student_trace_geometry,
     resolve_trace_directory,
+    run,
+    sample_trace_rows,
     validate_student_training_plan_contract,
     validate_environment_contract,
     validate_run_contract,
     write_completion_manifests,
 )
+
+
+def test_run_does_not_shadow_sample_trace_rows_callable():
+    assert callable(sample_trace_rows)
+    assert "sample_trace_rows" not in run.__code__.co_varnames
+    assert "sample_trace_rows" in run.__code__.co_names
+    assert "observed_sample_trace_rows" in run.__code__.co_varnames
 
 
 def digest(path):

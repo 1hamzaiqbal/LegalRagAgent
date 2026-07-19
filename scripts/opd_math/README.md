@@ -530,5 +530,10 @@ independent recomputation are recorded in
 These facts authorize attempting the matched task-reward training recipe; they
 are not evidence that training improves performance. No scientific teacher,
 teacher-gap, student-training, held-out, OPD-effectiveness, or source-transfer
-result exists yet. The next gates are the exact 100-step M/O teachers and their
-own-source teacher-gap evaluations.
+result exists yet. Frozen-commit preflight job `107171` passed the one-step M
+teacher callback/save path but had flat all-zero reward. The first task-RL
+wrapper smoke, `107172`, reached an informative nonzero-gradient step and then
+exposed a local-name shadowing defect before trace completion or adapter
+promotion. That defect is fixed and regression-tested on the branch; the same
+one-step contract must pass from a new frozen commit before the exact 100-step
+M/O teachers and task-RL baselines launch.

@@ -2073,7 +2073,7 @@ def run(args) -> None:
     )
     step_trace_rows = count_jsonl_objects(trace_dir / "steps.jsonl")
     sample_trace_path = trace_dir / "samples.jsonl"
-    sample_trace_rows = (
+    observed_sample_trace_rows = (
         count_jsonl_objects(sample_trace_path) if sample_trace_path.is_file() else 0
     )
     expected_prompt_groups = args.steps * micro
@@ -2176,7 +2176,7 @@ def run(args) -> None:
         ),
         "prompt_groups_seen": prompt_groups_seen,
         "step_trace_rows": step_trace_rows,
-        "sample_trace_rows": sample_trace_rows,
+        "sample_trace_rows": observed_sample_trace_rows,
         "realized_training_geometry_observed": realized_training_geometry_observed,
         "unique_training_records": len(set(realized_record_ids)),
         "realized_record_ids_sha256": realized_record_ids_sha256,
