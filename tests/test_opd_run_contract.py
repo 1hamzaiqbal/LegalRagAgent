@@ -1,9 +1,11 @@
 import hashlib
 import json
 from argparse import Namespace
+from pathlib import Path
 
 import pytest
 
+from scripts.opd import opd_train as train_module
 from scripts.opd.opd_train import (
     EXPECTED_TRAIN_PACKAGES,
     _validate_gate_prepared_binding,
@@ -18,6 +20,7 @@ from scripts.opd.opd_train import (
     validate_run_contract,
     write_completion_manifests,
 )
+from scripts.opd_math.quality_gates import EVALUATION_CONTRACT, STUDENT_GATE_TYPE
 
 
 def test_run_does_not_shadow_sample_trace_rows_callable():
@@ -175,6 +178,90 @@ def test_scientific_path_rejects_thinking_before_gate_loading(tmp_path):
     with pytest.raises(ValueError, match="non-thinking"):
         validate_run_contract(
             args_for(task, prepared, allow_ungated_smoke=False, enable_thinking=True), [row]
+        )
+
+
+def test_scientific_support_gate_must_share_training_commit_and_environment(
+    tmp_path, monkeypatch
+):
+    task, _, prepared_path = prepared_fixture(tmp_path)
+    prepared = json.loads(prepared_path.read_text())
+    args = args_for(task, prepared_path, allow_ungated_smoke=False)
+    commit = "c" * 40
+    verifier = {"path": "/repo/verify_environment.py", "sha256": "1" * 64}
+    freeze = {"path": "/freeze/train.freeze.txt", "sha256": "2" * 64}
+    verification = {"identity": "same-live-environment"}
+    current_environment = {
+        "git_commit": commit,
+        "verifier": verifier,
+        "train_freeze": freeze,
+        "train_verification": verification,
+    }
+    source_path = Path(prepared["source_manifest_path"])
+    gate = {
+        "schema_version": 3,
+        "gate": STUDENT_GATE_TYPE,
+        "gate_strength": "scientific",
+        "passed": True,
+        "authorizes_scientific_training": True,
+        "student_model": args.student,
+        "student_model_revision": args.student_revision,
+        "task_file_sha256": digest(task),
+        "task_sources": ["M"],
+        "task_roles": ["student_opd"],
+        "prepared_manifest": str(prepared_path.resolve()),
+        "prepared_manifest_sha256": digest(prepared_path),
+        "registered_task_file": "roles/M/student_opd.jsonl",
+        "registered_task_rows": 1,
+        "source_manifest": str(source_path.resolve()),
+        "source_manifest_sha256": digest(source_path),
+        "primary_matched_role_budget": 1,
+        "pinned_model_kind": "student",
+        "pinned_model": args.student,
+        "pinned_model_revision": args.student_revision,
+        "samples_per_problem": args.group_size,
+        "decoding": {
+            "thinking": False,
+            "temperature": args.temperature,
+            "top_p": args.top_p,
+            "top_k": args.top_k,
+            "max_new_tokens": args.max_new_tokens,
+            "seed": 0,
+        },
+        "evaluation_contract": EVALUATION_CONTRACT,
+        "evaluation_git_commit": commit,
+        "evaluation_environment": {
+            "verifier": verifier,
+            "train_freeze": freeze,
+            "train_verification": verification,
+        },
+        "evaluation_post_promotion_custody": {"sha256": "3" * 64},
+    }
+    args.seed = 0
+    monkeypatch.setattr(
+        train_module,
+        "_validate_deterministic_gate_recomputation",
+        lambda gate, *, kind: None,
+    )
+
+    train_module._validate_student_gate(
+        gate,
+        args=args,
+        task_hash=digest(task),
+        student_source="M",
+        prepared=prepared,
+        current_environment=current_environment,
+    )
+
+    gate["evaluation_git_commit"] = "d" * 40
+    with pytest.raises(ValueError, match="current training commit"):
+        train_module._validate_student_gate(
+            gate,
+            args=args,
+            task_hash=digest(task),
+            student_source="M",
+            prepared=prepared,
+            current_environment=current_environment,
         )
 
 

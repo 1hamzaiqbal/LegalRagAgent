@@ -58,6 +58,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 from scripts.opd_math.math_reward import rewards_for_samples
 from scripts.opd_math.quality_gates import (
+    EVALUATION_CONTRACT,
+    STUDENT_GATE_TYPE,
     recompute_student_gate,
     recompute_teacher_gate,
     sha256_tree,
@@ -977,14 +979,16 @@ def checked_gate(
         if allow_smoke:
             return None
         raise ValueError(f"{name} is required for this non-smoke run")
-    payload = json.loads(Path(path).read_text())
+    gate_path = Path(path)
+    raw = gate_path.read_bytes()
+    payload = json.loads(raw)
     if payload.get("gate") != expected_gate:
         raise ValueError(
             f"{name} has gate={payload.get('gate')!r}, expected {expected_gate!r}: {path}"
         )
     if not payload.get("passed"):
         raise ValueError(f"{name} did not pass: {path}")
-    payload["manifest_sha256"] = sha256_file(path)
+    payload["manifest_sha256"] = hashlib.sha256(raw).hexdigest()
     return payload
 
 
@@ -1097,8 +1101,10 @@ def _validate_student_gate(
     task_hash: str,
     student_source: str,
     prepared: dict,
+    current_environment: dict | None,
 ) -> None:
     _expect_equal(gate, "schema_version", 3, "student support gate")
+    _expect_equal(gate, "gate", STUDENT_GATE_TYPE, "student support gate")
     _expect_equal(gate, "student_model", args.student, "student support gate")
     _expect_equal(gate, "student_model_revision", args.student_revision, "student support gate")
     _expect_equal(gate, "task_file_sha256", task_hash, "student support gate")
@@ -1124,6 +1130,49 @@ def _validate_student_gate(
         gate, "pinned_model_revision", args.student_revision, "student support gate"
     )
     _expect_equal(gate, "samples_per_problem", args.group_size, "student support gate")
+    _expect_equal(
+        gate,
+        "evaluation_contract",
+        EVALUATION_CONTRACT,
+        "student support gate",
+    )
+    if not isinstance(gate.get("evaluation_environment"), dict):
+        raise ValueError("student support gate lacks exact evaluation environment custody")
+    if not isinstance(gate.get("evaluation_post_promotion_custody"), dict):
+        raise ValueError("student support gate lacks post-promotion evaluation custody")
+    if not args.allow_ungated_smoke:
+        if not isinstance(current_environment, dict):
+            raise ValueError("scientific student training lacks its current environment")
+        _expect_equal(
+            gate,
+            "evaluation_git_commit",
+            current_environment.get("git_commit"),
+            "student support gate/current training commit",
+        )
+        gate_environment = gate["evaluation_environment"]
+        _expect_equal(
+            gate_environment,
+            "verifier",
+            current_environment.get("verifier"),
+            "student support gate/current training environment",
+        )
+        gate_freeze = gate_environment.get("train_freeze")
+        current_freeze = current_environment.get("train_freeze")
+        if not isinstance(gate_freeze, dict) or not isinstance(current_freeze, dict):
+            raise ValueError("student support/current training freeze binding is incomplete")
+        for field in ("path", "sha256"):
+            _expect_equal(
+                gate_freeze,
+                field,
+                current_freeze.get(field),
+                "student support gate/current training freeze",
+            )
+        _expect_equal(
+            gate_environment,
+            "train_verification",
+            current_environment.get("train_verification"),
+            "student support gate/current training environment",
+        )
     decoding = gate.get("decoding") or {}
     for key, expected in (
         ("thinking", False),
@@ -1494,7 +1543,7 @@ def validate_run_contract(
             args.student_support_manifest,
             "student support manifest",
             args.allow_ungated_smoke,
-            expected_gate="student_support_v1",
+            expected_gate=STUDENT_GATE_TYPE,
         )
         if student_gate is not None:
             _validate_student_gate(
@@ -1503,6 +1552,7 @@ def validate_run_contract(
                 task_hash=task_hash,
                 student_source=student_source,
                 prepared=prepared,
+                current_environment=binding["environment_contract"],
             )
         if args.mode == "task_rl_k1_gap":
             teacher_gate = checked_gate(

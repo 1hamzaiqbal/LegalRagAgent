@@ -64,26 +64,80 @@ ENV_DIR="${OPD_MATH_TRAIN_ENV:-/engrfs/project/jacobsn/hiqbal/envs/opd_math_trai
 DATA_ROOT="$OPD_MATH_DATA_ROOT"
 RUN_ROOT="${OPD_MATH_RUN_ROOT:-/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math}"
 HF_CACHE="${OPD_MATH_HF_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache}"
+COMMIT="$(git -C "$REPO" rev-parse HEAD)"
+[[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "repository HEAD is not immutable" >&2; exit 2; }
+test -z "$(git -C "$REPO" status --porcelain=v1)" || { echo "evaluation requires a clean worktree" >&2; exit 2; }
+FREEZE_ROOT="$RUN_ROOT/environment_freezes/$COMMIT"
+TRAIN_FREEZE="$FREEZE_ROOT/train.freeze.txt"
+VERIFY_ENVIRONMENT="$REPO/scripts/opd_math/verify_environment.py"
+PLAN_VALIDATOR="$REPO/scripts/opd_math/plan_evaluation_shards.py"
 TASK="$DATA_ROOT/$TASK_REL"
 [[ "$OPD_MATH_EVAL_RUN_ID" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "unsafe OPD_MATH_EVAL_RUN_ID" >&2; exit 2; }
 printf -v SHARD_NAME 'shard_%05d' "$SHARD_INDEX"
 OUT="$RUN_ROOT/evaluations/$OPD_MATH_EVAL_ROLE/$OPD_MATH_EVAL_LABEL/$OPD_MATH_EVAL_RUN_ID/shards/$SHARD_NAME"
 
 test -x "$ENV_DIR/bin/python"
+test -f "$VERIFY_ENVIRONMENT"
+test ! -L "$VERIFY_ENVIRONMENT"
+test -f "$PLAN_VALIDATOR"
+test ! -L "$PLAN_VALIDATOR"
+VERIFY_SHA="$(sha256sum "$VERIFY_ENVIRONMENT" | awk '{print $1}')"
+[[ "$VERIFY_SHA" =~ ^[0-9a-f]{64}$ ]] || { echo "could not hash environment verifier" >&2; exit 2; }
+echo "Environment verifier SHA-256: $VERIFY_SHA"
+test -f "$TRAIN_FREEZE"
 test -f "$TASK"
 test -f "$DATA_ROOT/prepared_manifest.json"
+if [[ "$OPD_MATH_EVAL_SOURCE" == O && "$OPD_MATH_EVAL_ROLE" == teacher_skill_dev && "$OPD_MATH_EVAL_MAX_RECORDS" == 0 ]]; then
+  : "${OPD_MATH_EVAL_SHARD_PLAN:?Full O teacher evaluation requires the immutable shard plan}"
+  : "${OPD_MATH_EVAL_PLAN_ARM:?Set base or trained for the full O plan}"
+  : "${SLURM_ARRAY_TASK_COUNT:?Full O teacher evaluation must launch as the planned array}"
+  : "${SLURM_ARRAY_TASK_MIN:?Full O teacher evaluation lacks array minimum custody}"
+  : "${SLURM_ARRAY_TASK_MAX:?Full O teacher evaluation lacks array maximum custody}"
+  PLAN_ADAPTER_ARGS=()
+  if [[ -n "${OPD_MATH_EVAL_ADAPTER:-}" ]]; then
+    PLAN_ADAPTER_ARGS=(--adapter "$OPD_MATH_EVAL_ADAPTER")
+  fi
+  "$ENV_DIR/bin/python" "$PLAN_VALIDATOR" validate-launch \
+    --plan "$OPD_MATH_EVAL_SHARD_PLAN" \
+    --arm "$OPD_MATH_EVAL_PLAN_ARM" \
+    --phase shard \
+    --source O \
+    --role teacher_gap_dev \
+    --model "$OPD_MATH_EVAL_MODEL" \
+    --model-revision "$OPD_MATH_EVAL_MODEL_REVISION" \
+    --task-file "$TASK" \
+    --max-records "$OPD_MATH_EVAL_MAX_RECORDS" \
+    --shard-count "$SHARD_COUNT" \
+    --git-commit "$COMMIT" \
+    --train-freeze "$TRAIN_FREEZE" \
+    --array-task-count "$SLURM_ARRAY_TASK_COUNT" \
+    --array-task-min "$SLURM_ARRAY_TASK_MIN" \
+    --array-task-max "$SLURM_ARRAY_TASK_MAX" \
+    "${PLAN_ADAPTER_ARGS[@]}"
+elif [[ -n "${OPD_MATH_EVAL_SHARD_PLAN:-}" || -n "${OPD_MATH_EVAL_PLAN_ARM:-}" ]]; then
+  echo "O shard plans may only be supplied to the full O teacher_skill_dev evaluation" >&2
+  exit 2
+fi
 mkdir -p "$(dirname "$OUT")"
 export HF_HOME="$HF_CACHE"
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export TOKENIZERS_PARALLELISM=false
 source "$ENV_DIR/bin/activate"
+echo "Verifying live train environment before evaluation"
+"$ENV_DIR/bin/python" "$VERIFY_ENVIRONMENT" \
+  --environment-root "$ENV_DIR" \
+  --commit-freeze "$TRAIN_FREEZE" \
+  --expected-commit "$COMMIT" \
+  --freeze-kind train
 
 ARGS=(
   --model "$OPD_MATH_EVAL_MODEL"
   --model-revision "$OPD_MATH_EVAL_MODEL_REVISION"
   --task-file "$TASK"
   --output-dir "$OUT"
+  --train-environment-root "$ENV_DIR"
+  --train-environment-freeze "$TRAIN_FREEZE"
   --max-records "$OPD_MATH_EVAL_MAX_RECORDS"
   --samples-per-problem "${OPD_MATH_EVAL_SAMPLES_PER_PROBLEM:-4}"
   --max-new-tokens "$EVAL_MAX_NEW_TOKENS"
@@ -100,7 +154,8 @@ if [[ -n "${OPD_MATH_EVAL_ADAPTER:-}" ]]; then
   test -f "$OPD_MATH_EVAL_ADAPTER/adapter_config.json"
   ARGS+=(--adapter "$OPD_MATH_EVAL_ADAPTER")
 fi
-python "$REPO/scripts/opd_math/evaluate_math.py" "${ARGS[@]}"
+"$ENV_DIR/bin/python" "$REPO/scripts/opd_math/evaluate_math.py" "${ARGS[@]}"
 test -f "$OUT/summary.json"
 test -f "$OUT/samples.jsonl"
+test -f "$OUT.custody.json"
 echo "PASS evaluation artifact only; no gate inferred: $OUT"

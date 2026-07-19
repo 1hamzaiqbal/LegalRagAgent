@@ -14,9 +14,12 @@ try:
     from .data_contract import iter_jsonl
     from .evaluate_math import (
         EVALUATION_CONTRACT,
+        LEGACY_EVALUATION_CONTRACT,
         EVALUATION_MERGED_KIND,
         EVALUATION_SHARD_KIND,
         MERGE_STRATEGY,
+        POST_PROMOTION_CUSTODY_SCHEMA_VERSION,
+        POST_PROMOTION_TREE_ALGORITHM,
         RECORD_SEED_STRATEGY,
         ROOT,
         SAMPLE_SCHEMA_VERSION,
@@ -26,10 +29,14 @@ try:
         begin_transactional_directory,
         git_identity,
         package_versions,
+        post_promotion_custody_path,
         promote_transactional_directory,
+        publish_transactional_artifact,
         record_sampling_seed,
         sha256_file,
         sha256_tree,
+        validate_evaluation_environment_contract,
+        evaluation_environment_contract_unchanged,
         write_text_fsync,
     )
     from .math_reward import verify_completion
@@ -38,9 +45,12 @@ except ImportError:
     from data_contract import iter_jsonl  # type: ignore
     from evaluate_math import (  # type: ignore
         EVALUATION_CONTRACT,
+        LEGACY_EVALUATION_CONTRACT,
         EVALUATION_MERGED_KIND,
         EVALUATION_SHARD_KIND,
         MERGE_STRATEGY,
+        POST_PROMOTION_CUSTODY_SCHEMA_VERSION,
+        POST_PROMOTION_TREE_ALGORITHM,
         RECORD_SEED_STRATEGY,
         ROOT,
         SAMPLE_SCHEMA_VERSION,
@@ -50,10 +60,14 @@ except ImportError:
         begin_transactional_directory,
         git_identity,
         package_versions,
+        post_promotion_custody_path,
         promote_transactional_directory,
+        publish_transactional_artifact,
         record_sampling_seed,
         sha256_file,
         sha256_tree,
+        validate_evaluation_environment_contract,
+        evaluation_environment_contract_unchanged,
         write_text_fsync,
     )
     from math_reward import verify_completion  # type: ignore
@@ -92,6 +106,8 @@ def _absolute(raw: Any, anchor: Path, label: str) -> Path:
     path = Path(raw).expanduser()
     if not path.is_absolute():
         path = anchor.parent / path
+    if path.is_symlink() or path.parent.is_symlink():
+        raise ValueError(f"{label} may not traverse a symlinked artifact leaf: {path}")
     return path.resolve()
 
 
@@ -148,7 +164,9 @@ def _validate_contract(
     if not isinstance(contract, dict):
         raise ValueError("evaluation shard lacks an evaluation_contract")
     _expect(contract, "schema_version", 1, "evaluation contract")
-    _expect(contract, "contract", EVALUATION_CONTRACT, "evaluation contract")
+    contract_name = contract.get("contract")
+    if contract_name not in {EVALUATION_CONTRACT, LEGACY_EVALUATION_CONTRACT}:
+        raise ValueError("evaluation contract has an unsupported version")
     _expect(contract, "task_file", str(task_file.resolve()), "evaluation contract")
     _expect(contract, "task_file_sha256", task_hash, "evaluation contract")
     eligible = contract.get("eligible_records")
@@ -202,6 +220,17 @@ def _validate_contract(
     _hash(code.get("evaluator_file_sha256"), "evaluation code")
     if not isinstance(code.get("packages"), dict) or not code["packages"]:
         raise ValueError("evaluation contract lacks package custody")
+    environment_contract = code.get("environment_contract")
+    if environment_contract is not None and not isinstance(environment_contract, dict):
+        raise ValueError("evaluation contract has invalid train-environment custody")
+    if contract_name == EVALUATION_CONTRACT and environment_contract is None:
+        raise ValueError("exact-environment evaluation contract lacks environment custody")
+    if contract_name == LEGACY_EVALUATION_CONTRACT and environment_contract is not None:
+        raise ValueError("legacy evaluation contract cannot claim exact environment custody")
+    if environment_contract is not None and (
+        code.get("packages") != environment_contract.get("train_runtime_packages")
+    ):
+        raise ValueError("evaluation package custody differs from the exact environment")
     expected_sources = sorted({str(row.get("source")) for row in selected_rows})
     expected_roles = sorted({str(row.get("role")) for row in selected_rows})
     _expect(contract, "task_sources", expected_sources, "evaluation contract")
@@ -231,6 +260,19 @@ def _validate_shard_custody(summary: Mapping[str, Any], contract: Mapping[str, A
             contract["code"]["packages"],
             "shard custody",
         )
+        if contract["code"].get("environment_contract") is not None:
+            _expect(
+                custody,
+                f"environment_contract_{position}",
+                contract["code"]["environment_contract"],
+                "shard custody",
+            )
+            _expect(
+                custody,
+                f"stable_environment_{position}",
+                True,
+                "shard custody",
+            )
         _expect(
             custody,
             f"task_file_sha256_{position}",
@@ -243,6 +285,73 @@ def _validate_shard_custody(summary: Mapping[str, Any], contract: Mapping[str, A
             contract["adapter_tree_sha256"],
             "shard custody",
         )
+
+
+def validate_post_promotion_companion(
+    summary_path: Path,
+    summary: Mapping[str, Any],
+    contract: Mapping[str, Any],
+    *,
+    producer: str,
+    expected_state: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Recompute the atomic authorization companion for one v2 artifact."""
+
+    if contract.get("contract") == LEGACY_EVALUATION_CONTRACT:
+        return None
+    output_dir = Path(summary_path).parent
+    if output_dir.is_symlink() or not output_dir.is_dir():
+        raise ValueError("published evaluation output must be a regular directory")
+    expected_files = {"summary.json", "samples.jsonl"}
+    children = list(output_dir.iterdir())
+    if {path.name for path in children} != expected_files or any(
+        path.is_symlink() or not path.is_file() for path in children
+    ):
+        raise ValueError(
+            "published evaluation output must contain exactly summary.json and samples.jsonl"
+        )
+    companion_path = post_promotion_custody_path(output_dir)
+    companion = _json_object(companion_path, "post-promotion custody companion")
+    summary_file = output_dir / "summary.json"
+    samples_file = output_dir / "samples.jsonl"
+    tree_hash = sha256_tree(output_dir)
+    stable_state = dict(expected_state)
+    expected = {
+        "schema_version": POST_PROMOTION_CUSTODY_SCHEMA_VERSION,
+        "custody_kind": f"opd_math_{producer}_post_promotion_v2",
+        "artifact_kind": summary.get("artifact_kind"),
+        "evaluation_contract": contract.get("contract"),
+        "evaluation_contract_sha256": canonical_sha256(contract),
+        "output_dir": str(output_dir.resolve()),
+        "tree_hash_algorithm": POST_PROMOTION_TREE_ALGORITHM,
+        "output_tree_sha256": tree_hash,
+        "summary": str(summary_file.resolve()),
+        "summary_sha256": sha256_file(summary_file),
+        "samples": str(samples_file.resolve()),
+        "samples_sha256": sha256_file(samples_file),
+        "model": summary.get("model"),
+        "model_revision": summary.get("model_revision"),
+        "adapter_tree_sha256": summary.get("adapter_tree_sha256"),
+        "task_file_sha256": summary.get("task_file_sha256"),
+        "selected_record_ids_sha256": contract.get("eligible_record_ids_sha256"),
+        "shard": summary.get("shard"),
+        "merge": summary.get("merge"),
+        "producer_custody_start": stable_state,
+        "post_promotion_custody_a": stable_state,
+        "post_promotion_custody_b": stable_state,
+        "post_promotion_custody_c": stable_state,
+        "stable_environment_after_promotion": True,
+        "stable_final_artifact_hash": True,
+        "publication_commit_point": True,
+    }
+    if companion != expected:
+        raise ValueError("post-promotion custody companion does not match the artifact")
+    return {
+        "path": companion_path,
+        "sha256": sha256_file(companion_path),
+        "tree_sha256": tree_hash,
+        "payload": companion,
+    }
 
 
 def validate_sample_rows(
@@ -358,7 +467,10 @@ def validate_shard_artifact(
     task_hash: str | None = None,
     expected_contract: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    summary_path = Path(summary_path).resolve()
+    raw_summary_path = Path(summary_path).expanduser()
+    if raw_summary_path.is_symlink() or raw_summary_path.parent.is_symlink():
+        raise ValueError("shard summary or output directory may not be a symlink")
+    summary_path = raw_summary_path.resolve()
     if summary_path.name != "summary.json":
         raise ValueError("shard summary must use the canonical summary.json filename")
     summary = _json_object(summary_path, "evaluation shard summary")
@@ -403,8 +515,33 @@ def validate_shard_artifact(
         "evaluator_file_sha256": contract["code"]["evaluator_file_sha256"],
         "packages": contract["code"]["packages"],
     }
+    if contract["code"].get("environment_contract") is not None:
+        expected_code["environment_contract"] = contract["code"]["environment_contract"]
     _expect(summary, "code", expected_code, "evaluation shard")
     _expect(summary, "completion_text_in_samples", True, "evaluation shard")
+    expected_producer_state = {
+        "git": expected_code["git"],
+        "evaluator_file_sha256": contract["code"]["evaluator_file_sha256"],
+        "packages": contract["code"]["packages"],
+        "task_file": contract["task_file"],
+        "task_file_sha256": contract["task_file_sha256"],
+        "adapter": contract["adapter"],
+        "adapter_tree_sha256": contract["adapter_tree_sha256"],
+    }
+    if contract["code"].get("environment_contract") is not None:
+        expected_producer_state.update(
+            {
+                "environment_contract": contract["code"]["environment_contract"],
+                "stable_environment": True,
+            }
+        )
+    companion = validate_post_promotion_companion(
+        summary_path,
+        summary,
+        contract,
+        producer="evaluation_shard",
+        expected_state=expected_producer_state,
+    )
 
     shard = summary.get("shard")
     if not isinstance(shard, dict):
@@ -475,17 +612,25 @@ def validate_shard_artifact(
         "record_start": record_start,
         "record_stop": record_stop,
         "shard_index": shard_index,
+        "post_promotion_companion": companion,
     }
 
 
-def capture_merge_custody(task_file: Path, adapter: str | None) -> dict[str, Any]:
+def capture_merge_custody(
+    task_file: Path,
+    adapter: str | None,
+    environment_contract: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     adapter_hash = None
     if adapter is not None:
         adapter_path = Path(adapter)
         if adapter_path.is_symlink() or not adapter_path.is_dir():
             raise ValueError("merge adapter is not a regular directory")
         adapter_hash = sha256_tree(adapter_path)
-    return {
+    stable_environment = evaluation_environment_contract_unchanged(environment_contract)
+    if environment_contract is not None and not stable_environment:
+        raise RuntimeError("merge train environment changed during execution")
+    custody = {
         "git": git_identity(),
         "merger_file_sha256": sha256_file(MERGER_PATH),
         "evaluator_file_sha256": sha256_file(EVALUATOR_PATH),
@@ -493,6 +638,14 @@ def capture_merge_custody(task_file: Path, adapter: str | None) -> dict[str, Any
         "task_file_sha256": sha256_file(task_file),
         "adapter_tree_sha256": adapter_hash,
     }
+    if environment_contract is not None:
+        custody.update(
+            {
+                "environment_contract": dict(environment_contract),
+                "stable_environment": stable_environment,
+            }
+        )
+    return custody
 
 
 def require_clean_stable_merge_custody(
@@ -511,6 +664,14 @@ def require_clean_stable_merge_custody(
             f"merge {label}",
         )
         _expect(state, "packages", contract["code"]["packages"], f"merge {label}")
+        if contract["code"].get("environment_contract") is not None:
+            _expect(
+                state,
+                "environment_contract",
+                contract["code"]["environment_contract"],
+                f"merge {label}",
+            )
+            _expect(state, "stable_environment", True, f"merge {label}")
         _expect(
             state,
             "task_file_sha256",
@@ -533,7 +694,7 @@ def require_clean_stable_merge_custody(
 def merge_custody_manifest(
     start: Mapping[str, Any], end: Mapping[str, Any]
 ) -> dict[str, Any]:
-    return {
+    manifest = {
         "git_start": start["git"],
         "git_end": end["git"],
         "merger_file_sha256_start": start["merger_file_sha256"],
@@ -547,6 +708,16 @@ def merge_custody_manifest(
         "adapter_tree_sha256_end": end["adapter_tree_sha256"],
         "stable": True,
     }
+    if start.get("environment_contract") is not None or end.get("environment_contract") is not None:
+        manifest.update(
+            {
+                "environment_contract_start": start.get("environment_contract"),
+                "environment_contract_end": end.get("environment_contract"),
+                "stable_environment_start": start.get("stable_environment"),
+                "stable_environment_end": end.get("stable_environment"),
+            }
+        )
+    return manifest
 
 
 def _expected_shard_paths(shard_root: Path, shard_count: int) -> list[Path]:
@@ -575,7 +746,13 @@ def _expected_shard_paths(shard_root: Path, shard_count: int) -> list[Path]:
 
 
 def merge_shards(
-    *, shard_root: Path, shard_count: int, task_file: Path, output_dir: Path
+    *,
+    shard_root: Path,
+    shard_count: int,
+    task_file: Path,
+    output_dir: Path,
+    train_environment_root: Path | None = None,
+    train_environment_freeze: Path | None = None,
 ) -> dict[str, Any]:
     task_file = Path(task_file).expanduser().resolve()
     task_rows, task_hash = _checked_task_rows(task_file)
@@ -588,7 +765,29 @@ def merge_shards(
         task_hash=task_hash,
     )
     _expect(contract["shard"], "shard_count", shard_count, "merge contract")
-    custody_start = capture_merge_custody(task_file, contract.get("adapter"))
+    environment_contract = contract["code"].get("environment_contract")
+    if environment_contract is None:
+        if train_environment_root is not None or train_environment_freeze is not None:
+            raise ValueError(
+                "merge inputs specify an exact train environment but shards lack its custody"
+            )
+    else:
+        live_git = git_identity()
+        live_environment = validate_evaluation_environment_contract(
+            argparse.Namespace(
+                train_environment_root=train_environment_root,
+                train_environment_freeze=train_environment_freeze,
+            ),
+            live_git,
+            required=True,
+        )
+        if live_environment != environment_contract:
+            raise ValueError(
+                "merge live train environment differs from the exact shard contract"
+            )
+    custody_start = capture_merge_custody(
+        task_file, contract.get("adapter"), environment_contract
+    )
     require_clean_stable_merge_custody(custody_start, custody_start, contract)
 
     validated = [
@@ -630,7 +829,9 @@ def merge_shards(
         task_hash=task_hash,
         base_seed=contract["record_seed_contract"]["base_seed"],
     )
-    custody_end = capture_merge_custody(task_file, contract.get("adapter"))
+    custody_end = capture_merge_custody(
+        task_file, contract.get("adapter"), environment_contract
+    )
     require_clean_stable_merge_custody(custody_start, custody_end, contract)
 
     shard_bindings = [
@@ -645,6 +846,21 @@ def merge_shards(
             "selected_record_ids_sha256": item["summary"]["shard"][
                 "selected_record_ids_sha256"
             ],
+            **(
+                {}
+                if item["post_promotion_companion"] is None
+                else {
+                    "post_promotion_custody": str(
+                        item["post_promotion_companion"]["path"]
+                    ),
+                    "post_promotion_custody_sha256": item[
+                        "post_promotion_companion"
+                    ]["sha256"],
+                    "output_tree_sha256": item["post_promotion_companion"][
+                        "tree_sha256"
+                    ],
+                }
+            ),
         }
         for item in validated
     ]
@@ -653,6 +869,16 @@ def merge_shards(
         for item in validated
         if item["summary"].get("peak_cuda_memory_bytes") is not None
     ]
+    summary_code = {
+        "git": {
+            "commit": contract["code"]["git_commit"],
+            "worktree_clean": True,
+        },
+        "evaluator_file_sha256": contract["code"]["evaluator_file_sha256"],
+        "packages": contract["code"]["packages"],
+    }
+    if environment_contract is not None:
+        summary_code["environment_contract"] = environment_contract
     summary = {
         "schema_version": SUMMARY_SCHEMA_VERSION,
         "artifact_kind": EVALUATION_MERGED_KIND,
@@ -660,14 +886,7 @@ def merge_shards(
         "evaluation_contract_sha256": canonical_sha256(contract),
         "model": contract["model"],
         "model_revision": contract["model_revision"],
-        "code": {
-            "git": {
-                "commit": contract["code"]["git_commit"],
-                "worktree_clean": True,
-            },
-            "evaluator_file_sha256": contract["code"]["evaluator_file_sha256"],
-            "packages": contract["code"]["packages"],
-        },
+        "code": summary_code,
         "merge_custody": merge_custody_manifest(custody_start, custody_end),
         "tokenizer_contract_sha256": contract["tokenizer_contract_sha256"],
         "adapter": contract["adapter"],
@@ -711,7 +930,28 @@ def merge_shards(
         partial_output / "summary.json",
         json.dumps(summary, indent=2, sort_keys=True) + "\n",
     )
-    promote_transactional_directory(partial_output, final_output)
+    custody_before_promotion = capture_merge_custody(
+        task_file, contract.get("adapter"), environment_contract
+    )
+    require_clean_stable_merge_custody(
+        custody_start, custody_before_promotion, contract
+    )
+    if contract.get("contract") == EVALUATION_CONTRACT:
+        publish_transactional_artifact(
+            partial_output,
+            final_output,
+            summary=summary,
+            producer="evaluation_merge",
+            custody_start=custody_start,
+            capture_custody=lambda: capture_merge_custody(
+                task_file, contract.get("adapter"), environment_contract
+            ),
+            require_stable_custody=lambda start, end: require_clean_stable_merge_custody(
+                start, end, contract
+            ),
+        )
+    else:
+        promote_transactional_directory(partial_output, final_output)
     return summary
 
 
@@ -721,6 +961,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--shard-count", type=int, required=True)
     parser.add_argument("--task-file", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--train-environment-root", type=Path, required=True)
+    parser.add_argument("--train-environment-freeze", type=Path, required=True)
     return parser.parse_args()
 
 
@@ -731,6 +973,8 @@ def main() -> int:
         shard_count=args.shard_count,
         task_file=args.task_file,
         output_dir=args.output_dir,
+        train_environment_root=args.train_environment_root,
+        train_environment_freeze=args.train_environment_freeze,
     )
     print(json.dumps(summary, sort_keys=True))
     return 0

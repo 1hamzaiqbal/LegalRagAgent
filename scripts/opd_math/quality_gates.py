@@ -11,8 +11,10 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import random
 import re
+import uuid
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable
@@ -31,7 +33,7 @@ SCHEMA_VERSION = 3
 TEACHER_GATE_TYPE = "teacher_gap_v1"
 TEACHER_SMOKE_GATE_TYPE = "teacher_gap_smoke_v1"
 TEACHER_TARGET_REPORT_TYPE = "teacher_target_report_v1"
-STUDENT_GATE_TYPE = "student_support_v1"
+STUDENT_GATE_TYPE = "student_support_v2_exact_environment"
 STUDENT_SMOKE_GATE_TYPE = "student_support_smoke_v1"
 DEFAULT_TEACHER_MIN_RECORDS = 200
 DEFAULT_STUDENT_MIN_RECORDS = 100
@@ -80,10 +82,13 @@ EXPECTED_TEACHER_TRAIN_PACKAGES = {
 EVALUATION_SCHEMA_VERSION = 2
 EVALUATION_SHARD_KIND = "opd_math_evaluation_shard_v1"
 EVALUATION_MERGED_KIND = "opd_math_evaluation_merged_v1"
-EVALUATION_CONTRACT = "opd_math_evaluation_contract_v1"
+LEGACY_EVALUATION_CONTRACT = "opd_math_evaluation_contract_v1"
+EVALUATION_CONTRACT = "opd_math_evaluation_contract_v2_exact_environment"
 RECORD_SEED_STRATEGY = "task_hash_global_index_record_id_sha256_v1"
 SHARD_STRATEGY = "contiguous_balanced_v1"
 MERGE_STRATEGY = "ordered_contiguous_shards_v1"
+POST_PROMOTION_CUSTODY_SCHEMA_VERSION = 1
+POST_PROMOTION_TREE_ALGORITHM = "opd-math-tree-v1"
 ROOT = Path(__file__).resolve().parents[2]
 CANONICAL_TEACHER_TRAINING_PLAN = (
     ROOT / "configs" / "opd_math" / "teacher_training_plan.json"
@@ -100,6 +105,47 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def write_text_exclusive_fsync(path: Path, content: str, *, label: str) -> Path:
+    """Publish one complete file atomically without overwriting any target."""
+
+    raw = Path(path).expanduser()
+    if raw.is_symlink() or raw.exists():
+        raise FileExistsError(f"refusing to overwrite {label}: {raw}")
+    if raw.parent.is_symlink():
+        raise ValueError(f"{label} parent may not be a symlink")
+    raw.parent.mkdir(parents=True, exist_ok=True)
+    parent = raw.parent.resolve()
+    final = parent / raw.name
+    if final.is_symlink() or final.exists():
+        raise FileExistsError(f"refusing to overwrite {label}: {final}")
+    temporary = parent / f".{raw.name}.partial.{os.getpid()}.{uuid.uuid4().hex}"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    fd = os.open(temporary, flags, 0o644)
+    try:
+        handle = os.fdopen(fd, "w", encoding="utf-8")
+        fd = -1
+        with handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            os.link(temporary, final, follow_symlinks=False)
+        except FileExistsError as exc:
+            raise FileExistsError(f"refusing to overwrite {label}: {final}") from exc
+        directory_fd = os.open(parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        if fd >= 0:
+            os.close(fd)
+        temporary.unlink(missing_ok=True)
+    return final
 
 
 def canonical_json_sha256(payload: object) -> str:
@@ -141,8 +187,11 @@ def sha256_tree(path: Path, *, exclude_relative_paths: Iterable[str] = ()) -> st
 
 
 def _json_object(path: Path, label: str) -> dict[str, Any]:
+    path = Path(path)
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"{label} must be a regular non-symlink file: {path}")
     try:
-        payload = json.loads(Path(path).read_text())
+        payload = json.loads(path.read_text())
     except json.JSONDecodeError as exc:
         raise ValueError(f"{label} is not valid JSON: {path}") from exc
     if not isinstance(payload, dict):
@@ -216,6 +265,44 @@ def _path_from_manifest(raw: Any, manifest_path: Path, field: str) -> Path:
     candidate = Path(raw).expanduser()
     if not candidate.is_absolute():
         candidate = manifest_path.parent / candidate
+    return candidate.resolve()
+
+
+def _regular_file_path_from_manifest(raw: Any, manifest_path: Path, field: str) -> Path:
+    """Resolve a manifest file only after rejecting a symlink at the claimed path."""
+
+    if not isinstance(raw, str) or not raw.strip():
+        raise ValueError(f"{manifest_path} lacks a non-empty {field}")
+    candidate = Path(raw).expanduser()
+    if not candidate.is_absolute():
+        candidate = manifest_path.parent / candidate
+    if candidate.is_symlink() or candidate.parent.is_symlink() or not candidate.is_file():
+        raise ValueError(f"{field} is not a regular non-symlink file: {candidate}")
+    return candidate.resolve()
+
+
+def _regular_supplied_file(path: Path, label: str) -> Path:
+    candidate = Path(path).expanduser()
+    if candidate.is_symlink() or candidate.parent.is_symlink() or not candidate.is_file():
+        raise ValueError(f"{label} must be a regular file outside a symlinked artifact leaf")
+    return candidate.resolve()
+
+
+def _regular_directory_path_from_manifest(raw: Any, manifest_path: Path, field: str) -> Path:
+    if not isinstance(raw, str) or not raw.strip():
+        raise ValueError(f"{manifest_path} lacks a non-empty {field}")
+    candidate = Path(raw).expanduser()
+    if not candidate.is_absolute():
+        candidate = manifest_path.parent / candidate
+    if candidate.is_symlink() or candidate.parent.is_symlink() or not candidate.is_dir():
+        raise ValueError(f"{field} is not a regular non-symlink directory: {candidate}")
+    return candidate.resolve()
+
+
+def _regular_supplied_directory(path: Path, label: str) -> Path:
+    candidate = Path(path).expanduser()
+    if candidate.is_symlink() or candidate.parent.is_symlink() or not candidate.is_dir():
+        raise ValueError(f"{label} must be a regular non-symlink directory")
     return candidate.resolve()
 
 
@@ -608,7 +695,7 @@ def _teacher_environment_binding(
     recorded = environment.get("train_verification")
     if not isinstance(freeze, dict) or not isinstance(recorded, dict):
         raise ValueError("teacher train-environment binding is incomplete")
-    freeze_path = _path_from_manifest(
+    freeze_path = _regular_file_path_from_manifest(
         freeze.get("path"), CANONICAL_TEACHER_TRAINING_PLAN, "teacher train freeze"
     )
     if (
@@ -617,8 +704,6 @@ def _teacher_environment_binding(
         or freeze_path.parent.parent.name != "environment_freezes"
     ):
         raise ValueError("teacher train freeze is not commit-specific")
-    if freeze_path.is_symlink() or not freeze_path.is_file():
-        raise ValueError("teacher train freeze is not a regular non-symlink file")
     freeze_hash = sha256_file(freeze_path)
     if freeze.get("sha256") != freeze_hash:
         raise ValueError("teacher train freeze hash has drifted")
@@ -651,6 +736,76 @@ def _teacher_environment_binding(
             "path": str(freeze_path),
             "sha256": freeze_hash,
             "required_packages": EXPECTED_TEACHER_TRAIN_PACKAGES,
+        },
+        "train_verification": recorded,
+        "serve_freeze": None,
+        "serve_verification": None,
+    }
+
+
+def _evaluation_environment_binding(
+    environment: Any,
+    *,
+    evaluation_commit: str,
+    summary_path: Path,
+) -> dict[str, Any]:
+    """Validate and live-reverify one exact scientific evaluation environment."""
+
+    if not isinstance(environment, dict) or environment.get("schema_version") != 2:
+        raise ValueError("scientific evaluation lacks exact train-environment custody")
+    if environment.get("git_commit") != evaluation_commit:
+        raise ValueError("evaluation train-environment commit differs from Git custody")
+    expected_verifier = {
+        "path": str(ENVIRONMENT_VERIFIER.resolve()),
+        "sha256": sha256_file(ENVIRONMENT_VERIFIER),
+    }
+    if environment.get("verifier") != expected_verifier:
+        raise ValueError("evaluation train-environment verifier identity has drifted")
+    if environment.get("train_runtime_packages") != EXPECTED_EVALUATION_PACKAGES:
+        raise ValueError("evaluation train-environment runtime package subset has drifted")
+    if environment.get("serve_freeze") is not None or environment.get("serve_verification") is not None:
+        raise ValueError("evaluation must not bind a serve environment")
+
+    freeze = environment.get("train_freeze")
+    recorded = environment.get("train_verification")
+    if not isinstance(freeze, dict) or not isinstance(recorded, dict):
+        raise ValueError("evaluation train-environment binding is incomplete")
+    freeze_path = _regular_file_path_from_manifest(
+        freeze.get("path"), summary_path, "evaluation train freeze"
+    )
+    if (
+        freeze_path.name != "train.freeze.txt"
+        or freeze_path.parent.name != evaluation_commit
+        or freeze_path.parent.parent.name != "environment_freezes"
+    ):
+        raise ValueError("evaluation train freeze is not commit-specific")
+    freeze_hash = sha256_file(freeze_path)
+    if freeze.get("sha256") != freeze_hash:
+        raise ValueError("evaluation train freeze hash has drifted")
+    if freeze.get("required_packages") != EXPECTED_EVALUATION_PACKAGES:
+        raise ValueError("evaluation train freeze lacks the pinned package subset")
+    if recorded.get("expected_commit") != evaluation_commit or recorded.get("freeze_kind") != "train":
+        raise ValueError("evaluation live-environment verification has the wrong commit or kind")
+    if environment.get("train_environment_root") != recorded.get("environment_root"):
+        raise ValueError("evaluation train-environment root differs from live verification")
+    if recorded.get("commit_freeze") != {
+        "path": str(freeze_path),
+        "sha256": freeze_hash,
+        "byte_identical_to_requirements_freeze": True,
+    }:
+        raise ValueError("evaluation live-environment verification does not bind the freeze")
+    if reverify_recorded_environment(recorded, in_process=True) != recorded:
+        raise ValueError("evaluation live train environment differs from its recorded identity")
+    return {
+        "schema_version": 2,
+        "git_commit": evaluation_commit,
+        "verifier": expected_verifier,
+        "train_runtime_packages": EXPECTED_EVALUATION_PACKAGES,
+        "train_environment_root": recorded["environment_root"],
+        "train_freeze": {
+            "path": str(freeze_path),
+            "sha256": freeze_hash,
+            "required_packages": EXPECTED_EVALUATION_PACKAGES,
         },
         "train_verification": recorded,
         "serve_freeze": None,
@@ -723,8 +878,10 @@ def _teacher_run_binding(
     if run.get("teacher_training_config_sha256") != actual_config_hash:
         raise ValueError("teacher run actual training-config hash has drifted")
 
-    final_adapter = run.get("final_adapter")
-    if not isinstance(final_adapter, str) or Path(final_adapter).resolve() != adapter:
+    final_adapter = _regular_directory_path_from_manifest(
+        run.get("final_adapter"), run_manifest_path, "final_adapter"
+    )
+    if final_adapter != adapter:
         raise ValueError("teacher run final-adapter path differs from the evaluated adapter")
     if run.get("final_adapter_tree_sha256") != adapter_hash:
         raise ValueError("teacher run final-adapter tree hash differs from the evaluated adapter")
@@ -1052,6 +1209,73 @@ def _evaluation_canonical_sha256(payload: object) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def _post_promotion_custody_path(output_dir: Path) -> Path:
+    output = Path(output_dir)
+    return output.parent / f"{output.name}.custody.json"
+
+
+def _checked_post_promotion_companion(
+    summary_path: Path,
+    summary: dict[str, Any],
+    contract: dict[str, Any],
+    *,
+    producer: str,
+    expected_state: dict[str, Any],
+) -> dict[str, Any]:
+    """Independently validate the v2 atomic authorization companion."""
+
+    output_dir = Path(summary_path).parent
+    if output_dir.is_symlink() or not output_dir.is_dir():
+        raise ValueError("published evaluation output must be a regular directory")
+    children = list(output_dir.iterdir())
+    if {path.name for path in children} != {"summary.json", "samples.jsonl"} or any(
+        path.is_symlink() or not path.is_file() for path in children
+    ):
+        raise ValueError(
+            "published evaluation output must contain exactly summary.json and samples.jsonl"
+        )
+    companion_path = _post_promotion_custody_path(output_dir)
+    companion = _json_object(companion_path, "post-promotion custody companion")
+    summary_file = output_dir / "summary.json"
+    samples_file = output_dir / "samples.jsonl"
+    tree_hash = sha256_tree(output_dir)
+    expected = {
+        "schema_version": POST_PROMOTION_CUSTODY_SCHEMA_VERSION,
+        "custody_kind": f"opd_math_{producer}_post_promotion_v2",
+        "artifact_kind": summary.get("artifact_kind"),
+        "evaluation_contract": contract.get("contract"),
+        "evaluation_contract_sha256": _evaluation_canonical_sha256(contract),
+        "output_dir": str(output_dir.resolve()),
+        "tree_hash_algorithm": POST_PROMOTION_TREE_ALGORITHM,
+        "output_tree_sha256": tree_hash,
+        "summary": str(summary_file.resolve()),
+        "summary_sha256": sha256_file(summary_file),
+        "samples": str(samples_file.resolve()),
+        "samples_sha256": sha256_file(samples_file),
+        "model": summary.get("model"),
+        "model_revision": summary.get("model_revision"),
+        "adapter_tree_sha256": summary.get("adapter_tree_sha256"),
+        "task_file_sha256": summary.get("task_file_sha256"),
+        "selected_record_ids_sha256": contract.get("eligible_record_ids_sha256"),
+        "shard": summary.get("shard"),
+        "merge": summary.get("merge"),
+        "producer_custody_start": expected_state,
+        "post_promotion_custody_a": expected_state,
+        "post_promotion_custody_b": expected_state,
+        "post_promotion_custody_c": expected_state,
+        "stable_environment_after_promotion": True,
+        "stable_final_artifact_hash": True,
+        "publication_commit_point": True,
+    }
+    if companion != expected:
+        raise ValueError("post-promotion custody companion does not match the artifact")
+    return {
+        "path": str(companion_path.resolve()),
+        "sha256": sha256_file(companion_path),
+        "tree_sha256": tree_hash,
+    }
+
+
 def _checked_merged_evaluation_provenance(
     summary_path: Path,
     samples_path: Path,
@@ -1070,7 +1294,11 @@ def _checked_merged_evaluation_provenance(
     contract = summary.get("evaluation_contract")
     if not isinstance(contract, dict):
         raise ValueError(f"merged evaluation lacks an evaluation contract: {summary_path}")
-    if contract.get("schema_version") != 1 or contract.get("contract") != EVALUATION_CONTRACT:
+    contract_name = contract.get("contract")
+    if contract.get("schema_version") != 1 or contract_name not in {
+        EVALUATION_CONTRACT,
+        LEGACY_EVALUATION_CONTRACT,
+    }:
         raise ValueError(f"unsupported merged evaluation contract: {summary_path}")
     contract_hash = _evaluation_canonical_sha256(contract)
     if summary.get("evaluation_contract_sha256") != contract_hash:
@@ -1138,13 +1366,45 @@ def _checked_merged_evaluation_provenance(
     code = contract.get("code")
     if not isinstance(code, dict):
         raise ValueError(f"merged evaluation contract lacks code identity: {summary_path}")
+    evaluation_commit = _immutable_revision(
+        code.get("git_commit"), "evaluation Git commit"
+    )
+    environment_binding = None
+    if code.get("environment_contract") is not None:
+        environment_binding = _evaluation_environment_binding(
+            code["environment_contract"],
+            evaluation_commit=evaluation_commit,
+            summary_path=summary_path,
+        )
+    if contract_name == EVALUATION_CONTRACT and environment_binding is None:
+        raise ValueError("exact-environment evaluation contract lacks environment custody")
+    if contract_name == LEGACY_EVALUATION_CONTRACT and environment_binding is not None:
+        raise ValueError("legacy evaluation contract cannot claim exact environment custody")
     expected_code = {
-        "git": {"commit": code.get("git_commit"), "worktree_clean": True},
+        "git": {"commit": evaluation_commit, "worktree_clean": True},
         "evaluator_file_sha256": code.get("evaluator_file_sha256"),
         "packages": code.get("packages"),
     }
+    if environment_binding is not None:
+        expected_code["environment_contract"] = environment_binding
     if summary.get("code") != expected_code:
         raise ValueError(f"merged evaluation code identity differs from its contract")
+    expected_evaluator_state = {
+        "git": expected_code["git"],
+        "evaluator_file_sha256": code.get("evaluator_file_sha256"),
+        "packages": code.get("packages"),
+        "task_file": str(task_path),
+        "task_file_sha256": task_hash,
+        "adapter": contract.get("adapter"),
+        "adapter_tree_sha256": contract.get("adapter_tree_sha256"),
+    }
+    if environment_binding is not None:
+        expected_evaluator_state.update(
+            {
+                "environment_contract": environment_binding,
+                "stable_environment": True,
+            }
+        )
 
     merge_custody = summary.get("merge_custody")
     if not isinstance(merge_custody, dict) or merge_custody.get("stable") is not True:
@@ -1159,6 +1419,18 @@ def _checked_merged_evaluation_provenance(
             raise ValueError(f"merged evaluation merger-code {position} custody mismatch")
         if merge_custody.get(f"packages_{position}") != code.get("packages"):
             raise ValueError(f"merged evaluation package {position} custody mismatch")
+        if environment_binding is not None:
+            if (
+                merge_custody.get(f"environment_contract_{position}")
+                != environment_binding
+            ):
+                raise ValueError(
+                    f"merged evaluation train-environment {position} custody mismatch"
+                )
+            if merge_custody.get(f"stable_environment_{position}") is not True:
+                raise ValueError(
+                    f"merged evaluation train environment was not stable at {position}"
+                )
         if merge_custody.get(f"task_file_sha256_{position}") != task_hash:
             raise ValueError(f"merged evaluation task {position} custody mismatch")
         if (
@@ -1168,14 +1440,29 @@ def _checked_merged_evaluation_provenance(
             raise ValueError(f"merged evaluation adapter {position} custody mismatch")
     if merge_custody.get("evaluator_file_sha256") != code.get("evaluator_file_sha256"):
         raise ValueError(f"merged evaluation evaluator-code custody mismatch")
+    expected_merge_state = {
+        "git": expected_code["git"],
+        "merger_file_sha256": merger_hash,
+        "evaluator_file_sha256": code.get("evaluator_file_sha256"),
+        "packages": code.get("packages"),
+        "task_file_sha256": task_hash,
+        "adapter_tree_sha256": contract.get("adapter_tree_sha256"),
+    }
+    if environment_binding is not None:
+        expected_merge_state.update(
+            {
+                "environment_contract": environment_binding,
+                "stable_environment": True,
+            }
+        )
     adapter = contract.get("adapter")
     if adapter is None:
         if contract.get("adapter_tree_sha256") is not None:
             raise ValueError("merged raw-model evaluation has an unexpected adapter hash")
     else:
-        adapter_path = _path_from_manifest(adapter, summary_path, "adapter")
-        if adapter_path.is_symlink() or not adapter_path.is_dir():
-            raise ValueError(f"merged evaluation adapter is not a regular directory: {adapter_path}")
+        adapter_path = _regular_directory_path_from_manifest(
+            adapter, summary_path, "adapter"
+        )
         if sha256_tree(adapter_path) != contract.get("adapter_tree_sha256"):
             raise ValueError(f"merged evaluation adapter changed after generation: {adapter_path}")
 
@@ -1219,10 +1506,10 @@ def _checked_merged_evaluation_provenance(
             if binding.get(field) != expected:
                 raise ValueError(f"merged evaluation shard {expected_index} {field} mismatch")
 
-        shard_summary_path = _path_from_manifest(
+        shard_summary_path = _regular_file_path_from_manifest(
             binding.get("summary"), summary_path, f"shard {expected_index} summary"
         )
-        shard_samples_path = _path_from_manifest(
+        shard_samples_path = _regular_file_path_from_manifest(
             binding.get("samples"), summary_path, f"shard {expected_index} samples"
         )
         if shard_summary_path.is_symlink() or shard_samples_path.is_symlink():
@@ -1239,6 +1526,56 @@ def _checked_merged_evaluation_provenance(
             or shard_summary.get("evaluation_contract_sha256") != contract_hash
         ):
             raise ValueError(f"evaluation shard {expected_index} contract mismatch")
+        if shard_summary.get("code") != expected_code:
+            raise ValueError(
+                f"evaluation shard {expected_index} code identity differs from its contract"
+            )
+        shard_custody = shard_summary.get("custody")
+        if not isinstance(shard_custody, dict) or shard_custody.get("stable") is not True:
+            raise ValueError(
+                f"evaluation shard {expected_index} lacks stable start/end custody"
+            )
+        for position in ("start", "end"):
+            if shard_custody.get(f"git_{position}") != expected_code["git"]:
+                raise ValueError(
+                    f"evaluation shard {expected_index} Git {position} custody mismatch"
+                )
+            if (
+                shard_custody.get(f"evaluator_file_sha256_{position}")
+                != code.get("evaluator_file_sha256")
+            ):
+                raise ValueError(
+                    f"evaluation shard {expected_index} evaluator {position} custody mismatch"
+                )
+            if shard_custody.get(f"packages_{position}") != code.get("packages"):
+                raise ValueError(
+                    f"evaluation shard {expected_index} package {position} custody mismatch"
+                )
+            if shard_custody.get(f"task_file_sha256_{position}") != task_hash:
+                raise ValueError(
+                    f"evaluation shard {expected_index} task {position} custody mismatch"
+                )
+            if (
+                shard_custody.get(f"adapter_tree_sha256_{position}")
+                != contract.get("adapter_tree_sha256")
+            ):
+                raise ValueError(
+                    f"evaluation shard {expected_index} adapter {position} custody mismatch"
+                )
+            if environment_binding is not None:
+                if (
+                    shard_custody.get(f"environment_contract_{position}")
+                    != environment_binding
+                ):
+                    raise ValueError(
+                        f"evaluation shard {expected_index} train-environment "
+                        f"{position} custody mismatch"
+                    )
+                if shard_custody.get(f"stable_environment_{position}") is not True:
+                    raise ValueError(
+                        f"evaluation shard {expected_index} train environment was not "
+                        f"stable at {position}"
+                    )
         expected_shard = {
             "strategy": SHARD_STRATEGY,
             "shard_count": shard_count,
@@ -1250,6 +1587,30 @@ def _checked_merged_evaluation_provenance(
         }
         if shard_summary.get("shard") != expected_shard:
             raise ValueError(f"evaluation shard {expected_index} task slice mismatch")
+        companion_fields = {
+            "post_promotion_custody",
+            "post_promotion_custody_sha256",
+            "output_tree_sha256",
+        }
+        if contract_name == EVALUATION_CONTRACT:
+            shard_companion = _checked_post_promotion_companion(
+                shard_summary_path,
+                shard_summary,
+                contract,
+                producer="evaluation_shard",
+                expected_state=expected_evaluator_state,
+            )
+            expected_binding = {
+                "post_promotion_custody": shard_companion["path"],
+                "post_promotion_custody_sha256": shard_companion["sha256"],
+                "output_tree_sha256": shard_companion["tree_sha256"],
+            }
+            if any(binding.get(key) != value for key, value in expected_binding.items()):
+                raise ValueError(
+                    f"evaluation shard {expected_index} post-promotion custody mismatch"
+                )
+        elif any(key in binding for key in companion_fields):
+            raise ValueError("legacy evaluation cannot claim v2 post-promotion custody")
         declared_shard_samples = _path_from_manifest(
             shard_summary.get("samples_file"), shard_summary_path, "samples_file"
         )
@@ -1290,9 +1651,20 @@ def _checked_merged_evaluation_provenance(
     if samples_path.read_bytes() != bytes(reconstructed):
         raise ValueError("merged samples are not the exact ordered concatenation of shards")
 
+    merged_companion = None
+    if contract_name == EVALUATION_CONTRACT:
+        merged_companion = _checked_post_promotion_companion(
+            summary_path,
+            summary,
+            contract,
+            producer="evaluation_merge",
+            expected_state=expected_merge_state,
+        )
+
     return {
         "evaluation_artifact_kind": EVALUATION_MERGED_KIND,
         "evaluation_contract_sha256": contract_hash,
+        "evaluation_contract": contract_name,
         "record_seed_contract": seed_contract,
         "selected_record_ids_sha256": selected_ids_hash,
         "evaluation_shard_count": shard_count,
@@ -1301,6 +1673,8 @@ def _checked_merged_evaluation_provenance(
         "evaluation_merge_provenance_sha256": _evaluation_canonical_sha256(merge),
         "evaluation_merge_custody_sha256": _evaluation_canonical_sha256(merge_custody),
         "evaluation_merger_file_sha256": merger_hash,
+        "evaluation_environment": environment_binding,
+        "evaluation_post_promotion_custody": merged_companion,
     }
 
 
@@ -1315,14 +1689,15 @@ def checked_evaluation(
 ) -> tuple[dict[str, Any], dict[str, list[float]], dict[str, Any]]:
     """Validate a summary against its exact samples and task-file inputs."""
 
-    summary_path = Path(summary_path).resolve()
-    samples_path = Path(samples_path).resolve()
+    summary_path = _regular_supplied_file(Path(summary_path), "evaluation summary")
+    samples_path = _regular_supplied_file(Path(samples_path), "evaluation samples")
     summary = _json_object(summary_path, "evaluation summary")
     schema_version = summary.get("schema_version")
     if schema_version == 1:
         evaluation_provenance = {
             "evaluation_artifact_kind": "legacy_monolithic_v1",
             "evaluation_contract_sha256": None,
+            "evaluation_contract": None,
             "record_seed_contract": None,
             "selected_record_ids_sha256": None,
             "evaluation_shard_count": 1,
@@ -1331,6 +1706,8 @@ def checked_evaluation(
             "evaluation_merge_provenance_sha256": None,
             "evaluation_merge_custody_sha256": None,
             "evaluation_merger_file_sha256": None,
+            "evaluation_environment": None,
+            "evaluation_post_promotion_custody": None,
         }
     elif schema_version == EVALUATION_SCHEMA_VERSION:
         evaluation_provenance = _checked_merged_evaluation_provenance(
@@ -1358,13 +1735,17 @@ def checked_evaluation(
     if not isinstance(evaluator_hash, str) or evaluator_hash != sha256_file(local_evaluator):
         raise ValueError(f"evaluation code hash differs from the current evaluator: {summary_path}")
     packages = code.get("packages")
-    if not isinstance(packages, dict) or any(
-        packages.get(name) != version
-        for name, version in EXPECTED_EVALUATION_PACKAGES.items()
-    ):
+    if packages != EXPECTED_EVALUATION_PACKAGES:
         raise ValueError(
             f"evaluation package identity differs from the pinned evaluation environment: "
             f"expected={EXPECTED_EVALUATION_PACKAGES}, actual={packages}, summary={summary_path}"
+        )
+    evaluation_environment = evaluation_provenance.get("evaluation_environment")
+    if isinstance(evaluation_environment, dict) and (
+        evaluation_environment.get("train_runtime_packages") != packages
+    ):
+        raise ValueError(
+            f"evaluation package identity differs from exact environment custody: {summary_path}"
         )
     tokenizer_hash = summary.get("tokenizer_contract_sha256")
     if not isinstance(tokenizer_hash, str) or re.fullmatch(r"[0-9a-f]{64}", tokenizer_hash) is None:
@@ -1516,7 +1897,12 @@ def _gate_strength(args: argparse.Namespace) -> str:
 
 
 def _require_scientific_evaluation_contract(
-    summary: dict[str, Any], binding: dict[str, Any], *, decoding: dict[str, Any], label: str
+    summary: dict[str, Any],
+    binding: dict[str, Any],
+    *,
+    decoding: dict[str, Any],
+    label: str,
+    require_exact_environment: bool = False,
 ) -> None:
     if binding.get("evaluation_artifact_kind") != EVALUATION_MERGED_KIND:
         raise ValueError(
@@ -1531,6 +1917,22 @@ def _require_scientific_evaluation_contract(
         raise ValueError(
             f"scientific {label} evaluation decoding differs from the predeclared contract: "
             f"expected={decoding}, actual={summary.get('decoding')}"
+        )
+    if require_exact_environment and not isinstance(
+        binding.get("evaluation_environment"), dict
+    ):
+        raise ValueError(
+            f"scientific {label} evaluation requires exact train-environment custody"
+        )
+    if require_exact_environment and binding.get("evaluation_contract") != EVALUATION_CONTRACT:
+        raise ValueError(
+            f"scientific {label} evaluation requires the exact-environment v2 contract"
+        )
+    if require_exact_environment and not isinstance(
+        binding.get("evaluation_post_promotion_custody"), dict
+    ):
+        raise ValueError(
+            f"scientific {label} evaluation requires post-promotion custody"
         )
 
 
@@ -1558,7 +1960,7 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
             f"scientific gates require at least {MIN_SCIENTIFIC_BOOTSTRAP_DRAWS} bootstrap draws"
         )
 
-    adapter = Path(args.trained_adapter).resolve()
+    adapter = _regular_supplied_directory(Path(args.trained_adapter), "trained_adapter")
     adapter_hash = sha256_tree(adapter)
     base_summary, base, base_binding = checked_evaluation(
         args.base_summary,
@@ -1580,7 +1982,7 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("teacher gap base evaluation must not use an adapter")
     if base_summary.get("adapter_tree_sha256") is not None:
         raise ValueError("teacher gap base evaluation has unexpected adapter identity")
-    trained_adapter = _path_from_manifest(
+    trained_adapter = _regular_directory_path_from_manifest(
         trained_summary.get("adapter"), Path(args.trained_summary).resolve(), "adapter"
     )
     if trained_adapter != adapter:
@@ -1597,12 +1999,14 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
             base_binding,
             decoding=TEACHER_GAP_DECODING,
             label="teacher-gap",
+            require_exact_environment=True,
         )
         _require_scientific_evaluation_contract(
             trained_summary,
             trained_binding,
             decoding=TEACHER_GAP_DECODING,
             label="teacher-gap",
+            require_exact_environment=True,
         )
     for field in (
         "evaluation_git_commit",
@@ -1614,6 +2018,8 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
         "evaluation_shard_count",
         "evaluation_shard_strategy",
         "evaluation_merge_strategy",
+        "evaluation_environment",
+        "evaluation_contract",
     ):
         if base_binding[field] != trained_binding[field]:
             raise ValueError(f"base and trained teacher evaluations differ in {field}")
@@ -1641,6 +2047,13 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
         adapter_hash=adapter_hash,
         strength=strength,
     )
+    if strength == "scientific" and (
+        base_binding["evaluation_git_commit"]
+        != run_binding["teacher_training_git_commit"]
+    ):
+        raise ValueError(
+            "scientific teacher evaluation Git commit differs from teacher training custody"
+        )
     base_accuracy = sum(sum(base[key]) / len(base[key]) for key in keys) / len(keys)
     trained_accuracy = sum(sum(trained[key]) / len(trained[key]) for key in keys) / len(keys)
     record_requirement_met = len(keys) >= minimum_records
@@ -1692,6 +2105,13 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
         "evaluation_git_commit": base_binding["evaluation_git_commit"],
         "evaluator_file_sha256": base_binding["evaluator_file_sha256"],
         "evaluation_packages": base_binding["evaluation_packages"],
+        "evaluation_environment": base_binding["evaluation_environment"],
+        "base_evaluation_post_promotion_custody": base_binding[
+            "evaluation_post_promotion_custody"
+        ],
+        "trained_evaluation_post_promotion_custody": trained_binding[
+            "evaluation_post_promotion_custody"
+        ],
         "tokenizer_contract_sha256": base_binding["tokenizer_contract_sha256"],
         "base_evaluation_artifact_kind": base_binding["evaluation_artifact_kind"],
         "trained_evaluation_artifact_kind": trained_binding["evaluation_artifact_kind"],
@@ -1742,7 +2162,7 @@ def teacher_target_report(args: argparse.Namespace) -> dict[str, Any]:
     if args.seed != 0:
         raise ValueError("teacher-target reports require bootstrap seed zero")
 
-    adapter = Path(args.trained_adapter).resolve()
+    adapter = _regular_supplied_directory(Path(args.trained_adapter), "trained_adapter")
     adapter_hash = sha256_tree(adapter)
     base_summary, base, base_binding = checked_evaluation(
         args.base_summary,
@@ -1764,7 +2184,7 @@ def teacher_target_report(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("teacher-target base evaluation must not use an adapter")
     if base_summary.get("adapter_tree_sha256") is not None:
         raise ValueError("teacher-target base evaluation has unexpected adapter identity")
-    trained_adapter = _path_from_manifest(
+    trained_adapter = _regular_directory_path_from_manifest(
         trained_summary.get("adapter"), Path(args.trained_summary).resolve(), "adapter"
     )
     if trained_adapter != adapter:
@@ -1782,12 +2202,14 @@ def teacher_target_report(args: argparse.Namespace) -> dict[str, Any]:
         base_binding,
         decoding=TEACHER_GAP_DECODING,
         label="teacher-target",
+        require_exact_environment=True,
     )
     _require_scientific_evaluation_contract(
         trained_summary,
         trained_binding,
         decoding=TEACHER_GAP_DECODING,
         label="teacher-target",
+        require_exact_environment=True,
     )
     for field in (
         "evaluation_git_commit",
@@ -1799,6 +2221,8 @@ def teacher_target_report(args: argparse.Namespace) -> dict[str, Any]:
         "evaluation_shard_count",
         "evaluation_shard_strategy",
         "evaluation_merge_strategy",
+        "evaluation_environment",
+        "evaluation_contract",
     ):
         if base_binding[field] != trained_binding[field]:
             raise ValueError(f"base and trained target evaluations differ in {field}")
@@ -1826,6 +2250,13 @@ def teacher_target_report(args: argparse.Namespace) -> dict[str, Any]:
         adapter_hash=adapter_hash,
         strength="scientific",
     )
+    if (
+        base_binding["evaluation_git_commit"]
+        != run_binding["teacher_training_git_commit"]
+    ):
+        raise ValueError(
+            "scientific target evaluation Git commit differs from teacher training custody"
+        )
     base_accuracy = sum(sum(base[key]) / len(base[key]) for key in keys) / len(keys)
     trained_accuracy = (
         sum(sum(trained[key]) / len(trained[key]) for key in keys) / len(keys)
@@ -1868,6 +2299,13 @@ def teacher_target_report(args: argparse.Namespace) -> dict[str, Any]:
         "evaluation_git_commit": base_binding["evaluation_git_commit"],
         "evaluator_file_sha256": base_binding["evaluator_file_sha256"],
         "evaluation_packages": base_binding["evaluation_packages"],
+        "evaluation_environment": base_binding["evaluation_environment"],
+        "base_evaluation_post_promotion_custody": base_binding[
+            "evaluation_post_promotion_custody"
+        ],
+        "trained_evaluation_post_promotion_custody": trained_binding[
+            "evaluation_post_promotion_custody"
+        ],
         "tokenizer_contract_sha256": base_binding["tokenizer_contract_sha256"],
         "base_evaluation_artifact_kind": base_binding["evaluation_artifact_kind"],
         "trained_evaluation_artifact_kind": trained_binding[
@@ -1943,6 +2381,7 @@ def student_support(args: argparse.Namespace) -> dict[str, Any]:
             binding,
             decoding=STUDENT_SUPPORT_DECODING,
             label="student-support",
+            require_exact_environment=True,
         )
     _, prepared_binding = _prepared_role_binding(
         args.prepared_manifest,
@@ -2002,7 +2441,12 @@ def student_support(args: argparse.Namespace) -> dict[str, Any]:
         "evaluation_packages": binding["evaluation_packages"],
         "tokenizer_contract_sha256": binding["tokenizer_contract_sha256"],
         "evaluation_artifact_kind": binding["evaluation_artifact_kind"],
+        "evaluation_contract": binding["evaluation_contract"],
         "evaluation_contract_sha256": binding["evaluation_contract_sha256"],
+        "evaluation_environment": binding["evaluation_environment"],
+        "evaluation_post_promotion_custody": binding[
+            "evaluation_post_promotion_custody"
+        ],
         "record_seed_contract": binding["record_seed_contract"],
         "selected_record_ids_sha256": binding["selected_record_ids_sha256"],
         "evaluation_shard_count": binding["evaluation_shard_count"],
@@ -2225,10 +2669,11 @@ def main() -> int:
         result = teacher_target_report(args)
     else:
         result = student_support(args)
-    if args.output.exists() or args.output.is_symlink():
-        raise FileExistsError(f"refusing to overwrite an existing gate manifest: {args.output}")
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    write_text_exclusive_fsync(
+        args.output,
+        json.dumps(result, indent=2, sort_keys=True) + "\n",
+        label="an existing gate manifest",
+    )
     print(json.dumps(result, sort_keys=True))
     if args.gate_command == "teacher-target-report":
         return 0

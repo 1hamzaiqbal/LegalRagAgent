@@ -505,3 +505,204 @@ def test_quality_gate_rejects_bound_shard_mutation_after_merge(tmp_path):
             expected_source="M",
             expected_role="student_opd",
         )
+
+
+def publication_fixture(tmp_path, name="published"):
+    final, partial = evaluation.begin_transactional_directory(tmp_path / name)
+    (partial / "samples.jsonl").write_text('{"sample":1}\n')
+    summary = {
+        "artifact_kind": evaluation.EVALUATION_SHARD_KIND,
+        "evaluation_contract": {
+            "contract": evaluation.EVALUATION_CONTRACT,
+            "eligible_record_ids_sha256": "1" * 64,
+        },
+        "evaluation_contract_sha256": "2" * 64,
+        "model": "test-model",
+        "model_revision": MODEL_REVISION,
+        "adapter_tree_sha256": None,
+        "task_file_sha256": "3" * 64,
+        "shard": {"shard_index": 0, "shard_count": 1},
+    }
+    (partial / "summary.json").write_text(
+        json.dumps(summary, indent=2, sort_keys=True) + "\n"
+    )
+    state = {
+        "git": {"commit": COMMIT, "worktree_clean": True},
+        "stable_environment": True,
+    }
+
+    def require(start, end):
+        if dict(start) != dict(end):
+            raise RuntimeError("injected custody drift")
+
+    return final, partial, summary, state, require
+
+
+def test_post_promotion_companion_is_published_last_without_overwrite(tmp_path):
+    final, partial, summary, state, require = publication_fixture(tmp_path)
+    payload = evaluation.publish_transactional_artifact(
+        partial,
+        final,
+        summary=summary,
+        producer="evaluation_shard",
+        custody_start=state,
+        capture_custody=lambda: dict(state),
+        require_stable_custody=require,
+    )
+
+    companion = evaluation.post_promotion_custody_path(final)
+    assert final.is_dir()
+    assert companion.is_file() and not companion.is_symlink()
+    assert json.loads(companion.read_text()) == payload
+    assert payload["post_promotion_custody_a"] == state
+    assert payload["post_promotion_custody_b"] == state
+    assert payload["post_promotion_custody_c"] == state
+    assert payload["output_tree_sha256"] == gates.sha256_tree(final)
+    assert not list(tmp_path.glob(".published.custody.partial.*"))
+
+
+@pytest.mark.parametrize("drift_capture", [1, 2, 3, 4])
+def test_post_promotion_custody_drift_quarantines_without_authorizing(
+    tmp_path, drift_capture
+):
+    final, partial, summary, state, require = publication_fixture(
+        tmp_path, f"drift-{drift_capture}"
+    )
+    calls = 0
+
+    def capture():
+        nonlocal calls
+        calls += 1
+        result = dict(state)
+        if calls == drift_capture:
+            result["stable_environment"] = False
+        return result
+
+    with pytest.raises(RuntimeError, match="custody drift"):
+        evaluation.publish_transactional_artifact(
+            partial,
+            final,
+            summary=summary,
+            producer="evaluation_shard",
+            custody_start=state,
+            capture_custody=capture,
+            require_stable_custody=require,
+        )
+    assert not final.exists()
+    assert not evaluation.post_promotion_custody_path(final).exists()
+    assert list((tmp_path / "rejected").glob(f"drift-{drift_capture}_*"))
+
+
+def test_post_promotion_tree_mutation_is_quarantined(tmp_path):
+    final, partial, summary, state, require = publication_fixture(tmp_path, "tree-drift")
+    calls = 0
+
+    def capture():
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            (final / "samples.jsonl").write_text('{"mutated":true}\n')
+        return dict(state)
+
+    with pytest.raises(RuntimeError, match="final artifact changed"):
+        evaluation.publish_transactional_artifact(
+            partial,
+            final,
+            summary=summary,
+            producer="evaluation_shard",
+            custody_start=state,
+            capture_custody=capture,
+            require_stable_custody=require,
+        )
+    assert not final.exists()
+    assert not evaluation.post_promotion_custody_path(final).exists()
+
+
+def test_target_appearing_after_lock_is_not_quarantined_as_foreign(tmp_path, monkeypatch):
+    final, partial, summary, state, require = publication_fixture(tmp_path, "foreign")
+    real_open = evaluation.os.open
+    injected = False
+
+    def open_with_foreign_target(path, flags, mode=0o777):
+        nonlocal injected
+        descriptor = real_open(path, flags, mode)
+        if Path(path).name == ".foreign.promotion.lock" and not injected:
+            final.mkdir()
+            (final / "owner.txt").write_text("foreign artifact\n")
+            injected = True
+        return descriptor
+
+    monkeypatch.setattr(evaluation.os, "open", open_with_foreign_target)
+    with pytest.raises(FileExistsError, match="replace published"):
+        evaluation.publish_transactional_artifact(
+            partial,
+            final,
+            summary=summary,
+            producer="evaluation_shard",
+            custody_start=state,
+            capture_custody=lambda: dict(state),
+            require_stable_custody=require,
+        )
+    assert (final / "owner.txt").read_text() == "foreign artifact\n"
+    assert partial.is_dir()
+    assert not (tmp_path / "rejected").exists()
+
+
+def test_companion_eexist_never_overwrites_and_revokes_output(tmp_path):
+    final, partial, summary, state, require = publication_fixture(tmp_path, "eexist")
+    companion = evaluation.post_promotion_custody_path(final)
+    calls = 0
+
+    def capture():
+        nonlocal calls
+        calls += 1
+        if calls == 4:
+            companion.write_text("foreign companion\n")
+        return dict(state)
+
+    with pytest.raises(FileExistsError):
+        evaluation.publish_transactional_artifact(
+            partial,
+            final,
+            summary=summary,
+            producer="evaluation_shard",
+            custody_start=state,
+            capture_custody=capture,
+            require_stable_custody=require,
+        )
+    assert not final.exists()
+    assert not companion.exists()
+    rejected_companions = list((tmp_path / "rejected").glob("eexist_*.custody.json"))
+    assert len(rejected_companions) == 1
+    assert rejected_companions[0].read_text() == "foreign companion\n"
+
+
+def test_gate_rejects_symlinked_shard_path_before_resolution(tmp_path):
+    task_path = tmp_path / "task.jsonl"
+    task_rows = write_task(task_path)
+    shard_root = tmp_path / "shards"
+    write_valid_shards(shard_root, task_path, task_rows, shard_count=1)
+    output = tmp_path / "merged"
+    merger.merge_shards(
+        shard_root=shard_root,
+        shard_count=1,
+        task_file=task_path,
+        output_dir=output,
+    )
+    summary_path = output / "summary.json"
+    summary = json.loads(summary_path.read_text())
+    real_shard_summary = shard_root / "shard_00000" / "summary.json"
+    linked_summary = tmp_path / "linked-shard-summary.json"
+    linked_summary.symlink_to(real_shard_summary)
+    summary["merge"]["shards"][0]["summary"] = str(linked_summary)
+    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+
+    with pytest.raises(ValueError, match="regular non-symlink file"):
+        gates.checked_evaluation(
+            summary_path,
+            output / "samples.jsonl",
+            expected_model="Qwen/Qwen3-1.7B",
+            expected_revision=MODEL_REVISION,
+            expected_source="M",
+            expected_role="student_opd",
+        )

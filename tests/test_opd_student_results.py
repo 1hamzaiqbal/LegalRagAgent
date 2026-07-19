@@ -26,6 +26,11 @@ def clean_result_builder(monkeypatch):
         "reverify_recorded_environment",
         lambda recorded, **kwargs: dict(recorded),
     )
+    monkeypatch.setattr(
+        quality_gates,
+        "reverify_recorded_environment",
+        lambda recorded, **kwargs: dict(recorded),
+    )
 
 
 def write_jsonl(path, rows):
@@ -174,7 +179,7 @@ def prepared_fixture(tmp_path, source="M"):
 def support_gate(prepared_path, train, source="M"):
     return {
         "schema_version": 3,
-        "gate": "student_support_v1",
+        "gate": quality_gates.STUDENT_GATE_TYPE,
         "gate_strength": "scientific",
         "passed": True,
         "authorizes_scientific_training": True,
@@ -187,6 +192,9 @@ def support_gate(prepared_path, train, source="M"):
         "prepared_manifest_sha256": results.sha256_file(prepared_path),
         "decoding": results.HELDOUT_DECODING,
         "samples_per_problem": 4,
+        "evaluation_contract": quality_gates.EVALUATION_CONTRACT,
+        "evaluation_environment": {"synthetic": True},
+        "evaluation_post_promotion_custody": {"synthetic": True},
         "manifest_sha256": "a" * 64,
     }
 
@@ -429,7 +437,16 @@ def student_run_fixture(tmp_path, prepared_path, prepared, train, train_rows, ad
     return run_path, completion_path
 
 
-def evaluation_fixture(tmp_path, holdout, holdout_rows, adapter, source="M", rewards=None):
+def evaluation_fixture(
+    tmp_path,
+    holdout,
+    holdout_rows,
+    adapter,
+    *,
+    environment_contract,
+    source="M",
+    rewards=None,
+):
     rewards = rewards or [[0, 0, 0, 0] for _ in holdout_rows]
     return write_merged_evaluation(
         tmp_path,
@@ -446,6 +463,8 @@ def evaluation_fixture(tmp_path, holdout, holdout_rows, adapter, source="M", rew
         git_commit=COMMIT,
         tokenizer_contract_sha256="b" * 64,
         decoding=results.HELDOUT_DECODING,
+        exact_environment=True,
+        environment_contract=environment_contract,
     )
 
 
@@ -457,7 +476,24 @@ def heldout_args(tmp_path):
     run, completion = student_run_fixture(
         tmp_path, prepared_path, prepared, train, train_rows, adapter
     )
-    summary, samples = evaluation_fixture(tmp_path, holdout, holdout_rows, adapter)
+    run_environment = json.loads(run.read_text())["binding"]["environment_contract"]
+    evaluation_environment = json.loads(json.dumps(run_environment))
+    evaluation_environment["train_environment_root"] = evaluation_environment[
+        "train_verification"
+    ]["environment_root"]
+    evaluation_environment["train_runtime_packages"] = (
+        quality_gates.EXPECTED_EVALUATION_PACKAGES
+    )
+    evaluation_environment["train_freeze"]["required_packages"] = (
+        quality_gates.EXPECTED_EVALUATION_PACKAGES
+    )
+    summary, samples = evaluation_fixture(
+        tmp_path,
+        holdout,
+        holdout_rows,
+        adapter,
+        environment_contract=evaluation_environment,
+    )
     return Namespace(
         matrix_key="baseline_M",
         student_run_manifest=run,
@@ -489,6 +525,36 @@ def test_heldout_gate_rejects_legacy_monolithic_evaluation(tmp_path):
     legacy.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
     args.student_summary = legacy
     with pytest.raises(ValueError, match="requires a schema-v2 merged artifact"):
+        results.student_heldout_result(args)
+
+
+def test_heldout_gate_rejects_environment_less_v1_merged_evaluation(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(results, "verify_completion", fake_verify)
+    monkeypatch.setattr(quality_gates, "verify_completion", fake_verify)
+    monkeypatch.setattr(results, "recompute_student_gate", lambda gate: gate)
+    args = heldout_args(tmp_path)
+    (tmp_path / "legacy").mkdir()
+    prepared_path, _, _, _, holdout, holdout_rows = prepared_fixture(tmp_path / "legacy")
+    summary, samples = write_merged_evaluation(
+        tmp_path / "legacy",
+        "heldout-legacy-v1",
+        holdout,
+        {row["record_id"]: [0.0, 0.0, 0.0, 0.0] for row in holdout_rows},
+        model=STUDENT,
+        revision=STUDENT_REVISION,
+        adapter=args.trained_adapter,
+        packages=quality_gates.EXPECTED_EVALUATION_PACKAGES,
+        git_commit=COMMIT,
+        tokenizer_contract_sha256="b" * 64,
+        decoding=results.HELDOUT_DECODING,
+        exact_environment=False,
+    )
+    args.student_summary = summary
+    args.student_samples = samples
+    args.prepared_manifest = prepared_path
+    with pytest.raises(ValueError, match="exact-environment v2 contract"):
         results.student_heldout_result(args)
 
 
@@ -795,6 +861,18 @@ def synthetic_matrix_gate(key, rewards, *, support, teacher, root):
             "evaluator_file_sha256": "2" * 64,
             "evaluation_packages": quality_gates.EXPECTED_EVALUATION_PACKAGES,
             "tokenizer_contract_sha256": "3" * 64,
+            "evaluation_contract": quality_gates.EVALUATION_CONTRACT,
+            "evaluation_contract_sha256": hashlib.sha256(key.encode()).hexdigest(),
+            "evaluation_environment": {
+                "verifier": environment["verifier"],
+                "train_freeze": environment["train_freeze"],
+                "train_verification": environment["train_verification"],
+            },
+            "evaluation_post_promotion_custody": {
+                "path": str((root / key / "heldout.custody.json").resolve()),
+                "sha256": hashlib.sha256(f"custody:{key}".encode()).hexdigest(),
+                "tree_sha256": "c" * 64,
+            },
         },
         "student_run_binding": {
             "student_training_plan_sha256": "4" * 64,

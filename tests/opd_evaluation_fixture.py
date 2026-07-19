@@ -11,6 +11,122 @@ from scripts.opd_math.data_contract import iter_jsonl
 from scripts.opd_math.quality_gates import sha256_tree
 
 
+def _synthetic_evaluation_environment(
+    directory: Path,
+    *,
+    git_commit: str,
+    packages: dict[str, str],
+) -> dict:
+    """Create the exact-environment identity expected by scientific eval gates."""
+
+    if packages != evaluation.EXPECTED_EVALUATION_PACKAGES:
+        raise ValueError(
+            "exact synthetic evaluations require the pinned evaluation packages"
+        )
+    environment_root = (Path(directory) / "synthetic-evaluation-env").resolve()
+    freeze = (
+        Path(directory)
+        / "environment_freezes"
+        / git_commit
+        / "train.freeze.txt"
+    )
+    freeze.parent.mkdir(parents=True, exist_ok=True)
+    freeze_text = "synthetic exact evaluation environment\n"
+    if not freeze.exists():
+        freeze.write_text(freeze_text)
+    freeze = freeze.resolve()
+    freeze_hash = evaluation.sha256_file(freeze)
+    verification = {
+        "schema_version": 1,
+        "schema": "opd_math_environment_verification_v1",
+        "status": "passed",
+        "environment_root": str(environment_root),
+        "live_python": str(environment_root / "bin" / "python"),
+        "expected_commit": git_commit,
+        "freeze_kind": "train",
+        "installed_distribution_count": len(packages),
+        "installed_distribution_map_sha256": evaluation.canonical_sha256(packages),
+        "requirements_freeze": {"path": str(freeze), "sha256": freeze_hash},
+        "commit_freeze": {
+            "path": str(freeze),
+            "sha256": freeze_hash,
+            "byte_identical_to_requirements_freeze": True,
+        },
+        "expected_executable": None,
+    }
+    return {
+        "schema_version": 2,
+        "git_commit": git_commit,
+        "verifier": {
+            "path": str(evaluation.ENVIRONMENT_VERIFIER.resolve()),
+            "sha256": evaluation.sha256_file(evaluation.ENVIRONMENT_VERIFIER),
+        },
+        "train_runtime_packages": dict(packages),
+        "train_environment_root": str(environment_root),
+        "train_freeze": {
+            "path": str(freeze),
+            "sha256": freeze_hash,
+            "required_packages": dict(packages),
+        },
+        "train_verification": verification,
+        "serve_freeze": None,
+        "serve_verification": None,
+    }
+
+
+def _write_post_promotion_companion(
+    output_dir: Path,
+    *,
+    summary: dict,
+    contract: dict,
+    producer: str,
+    producer_state: dict,
+) -> dict:
+    """Write the authorization companion emitted after atomic v2 promotion."""
+
+    output_dir = Path(output_dir).resolve()
+    summary_path = output_dir / "summary.json"
+    samples_path = output_dir / "samples.jsonl"
+    tree_hash = sha256_tree(output_dir)
+    payload = {
+        "schema_version": evaluation.POST_PROMOTION_CUSTODY_SCHEMA_VERSION,
+        "custody_kind": f"opd_math_{producer}_post_promotion_v2",
+        "artifact_kind": summary.get("artifact_kind"),
+        "evaluation_contract": contract.get("contract"),
+        "evaluation_contract_sha256": evaluation.canonical_sha256(contract),
+        "output_dir": str(output_dir),
+        "tree_hash_algorithm": evaluation.POST_PROMOTION_TREE_ALGORITHM,
+        "output_tree_sha256": tree_hash,
+        "summary": str(summary_path),
+        "summary_sha256": evaluation.sha256_file(summary_path),
+        "samples": str(samples_path),
+        "samples_sha256": evaluation.sha256_file(samples_path),
+        "model": summary.get("model"),
+        "model_revision": summary.get("model_revision"),
+        "adapter_tree_sha256": summary.get("adapter_tree_sha256"),
+        "task_file_sha256": summary.get("task_file_sha256"),
+        "selected_record_ids_sha256": contract.get(
+            "eligible_record_ids_sha256"
+        ),
+        "shard": summary.get("shard"),
+        "merge": summary.get("merge"),
+        "producer_custody_start": dict(producer_state),
+        "post_promotion_custody_a": dict(producer_state),
+        "post_promotion_custody_b": dict(producer_state),
+        "post_promotion_custody_c": dict(producer_state),
+        "stable_environment_after_promotion": True,
+        "stable_final_artifact_hash": True,
+        "publication_commit_point": True,
+    }
+    companion_path = evaluation.post_promotion_custody_path(output_dir)
+    companion_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    return {
+        "path": companion_path.resolve(),
+        "sha256": evaluation.sha256_file(companion_path),
+        "tree_sha256": tree_hash,
+    }
+
+
 def write_merged_evaluation(
     directory: Path,
     name: str,
@@ -24,6 +140,8 @@ def write_merged_evaluation(
     git_commit: str = "e" * 40,
     tokenizer_contract_sha256: str = "d" * 64,
     decoding: dict,
+    exact_environment: bool = False,
+    environment_contract: dict | None = None,
 ) -> tuple[Path, Path]:
     """Write a one-shard artifact plus its independently bound merged view."""
 
@@ -44,14 +162,31 @@ def write_merged_evaluation(
     adapter_path = None if adapter is None else str(Path(adapter).resolve())
     adapter_hash = None if adapter is None else sha256_tree(Path(adapter))
     evaluator_hash = evaluation.sha256_file(Path(evaluation.__file__))
+    if environment_contract is not None and not exact_environment:
+        raise ValueError("an explicit evaluation environment requires exact_environment=True")
+    environment = None
+    if exact_environment:
+        environment = (
+            json.loads(json.dumps(environment_contract))
+            if environment_contract is not None
+            else _synthetic_evaluation_environment(
+                Path(directory), git_commit=git_commit, packages=packages
+            )
+        )
     code = {
         "git_commit": git_commit,
         "evaluator_file_sha256": evaluator_hash,
         "packages": dict(packages),
     }
+    if environment is not None:
+        code["environment_contract"] = environment
     contract = {
         "schema_version": 1,
-        "contract": evaluation.EVALUATION_CONTRACT,
+        "contract": (
+            evaluation.EVALUATION_CONTRACT
+            if environment is not None
+            else evaluation.LEGACY_EVALUATION_CONTRACT
+        ),
         "model": model,
         "model_revision": revision,
         "adapter": adapter_path,
@@ -147,6 +282,11 @@ def write_merged_evaluation(
             "git": git,
             "evaluator_file_sha256": evaluator_hash,
             "packages": dict(packages),
+            **(
+                {"environment_contract": environment}
+                if environment is not None
+                else {}
+            ),
         },
         "custody": {
             "git_start": git,
@@ -159,6 +299,16 @@ def write_merged_evaluation(
             "task_file_sha256_end": task_hash,
             "adapter_tree_sha256_start": adapter_hash,
             "adapter_tree_sha256_end": adapter_hash,
+            **(
+                {
+                    "environment_contract_start": environment,
+                    "environment_contract_end": environment,
+                    "stable_environment_start": True,
+                    "stable_environment_end": True,
+                }
+                if environment is not None
+                else {}
+            ),
             "stable": True,
         },
         "tokenizer_contract_sha256": tokenizer_contract_sha256,
@@ -192,6 +342,26 @@ def write_merged_evaluation(
     shard_summary_path.write_text(
         json.dumps(shard_summary, indent=2, sort_keys=True) + "\n"
     )
+    shard_companion = None
+    if environment is not None:
+        evaluator_state = {
+            "git": git,
+            "evaluator_file_sha256": evaluator_hash,
+            "packages": dict(packages),
+            "task_file": str(task_path),
+            "task_file_sha256": task_hash,
+            "adapter": adapter_path,
+            "adapter_tree_sha256": adapter_hash,
+            "environment_contract": environment,
+            "stable_environment": True,
+        }
+        shard_companion = _write_post_promotion_companion(
+            shard_dir,
+            summary=shard_summary,
+            contract=contract,
+            producer="evaluation_shard",
+            producer_state=evaluator_state,
+        )
     merged_samples = merged_dir / "samples.jsonl"
     merged_samples.write_text(sample_text)
     merger_hash = evaluation.sha256_file(Path(merger.__file__))
@@ -207,6 +377,16 @@ def write_merged_evaluation(
         "task_file_sha256_end": task_hash,
         "adapter_tree_sha256_start": adapter_hash,
         "adapter_tree_sha256_end": adapter_hash,
+        **(
+            {
+                "environment_contract_start": environment,
+                "environment_contract_end": environment,
+                "stable_environment_start": True,
+                "stable_environment_end": True,
+            }
+            if environment is not None
+            else {}
+        ),
         "stable": True,
     }
     merged_summary = {
@@ -220,6 +400,11 @@ def write_merged_evaluation(
             "git": git,
             "evaluator_file_sha256": evaluator_hash,
             "packages": dict(packages),
+            **(
+                {"environment_contract": environment}
+                if environment is not None
+                else {}
+            ),
         },
         "merge_custody": merge_custody,
         "tokenizer_contract_sha256": tokenizer_contract_sha256,
@@ -254,6 +439,19 @@ def write_merged_evaluation(
                     "selected_record_ids_sha256": evaluation.canonical_sha256(
                         selected_ids
                     ),
+                    **(
+                        {
+                            "post_promotion_custody": str(
+                                shard_companion["path"]
+                            ),
+                            "post_promotion_custody_sha256": shard_companion[
+                                "sha256"
+                            ],
+                            "output_tree_sha256": shard_companion["tree_sha256"],
+                        }
+                        if shard_companion is not None
+                        else {}
+                    ),
                 }
             ],
         },
@@ -264,4 +462,22 @@ def write_merged_evaluation(
     merged_summary_path.write_text(
         json.dumps(merged_summary, indent=2, sort_keys=True) + "\n"
     )
+    if environment is not None:
+        merge_state = {
+            "git": git,
+            "merger_file_sha256": merger_hash,
+            "evaluator_file_sha256": evaluator_hash,
+            "packages": dict(packages),
+            "task_file_sha256": task_hash,
+            "adapter_tree_sha256": adapter_hash,
+            "environment_contract": environment,
+            "stable_environment": True,
+        }
+        _write_post_promotion_companion(
+            merged_dir,
+            summary=merged_summary,
+            contract=contract,
+            producer="evaluation_merge",
+            producer_state=merge_state,
+        )
     return merged_summary_path, merged_samples

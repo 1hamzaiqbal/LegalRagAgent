@@ -26,8 +26,10 @@ try:
     from .data_contract import iter_jsonl
     from .math_reward import verify_completion
     from .quality_gates import (
+        EVALUATION_CONTRACT,
         EVALUATION_MERGED_KIND,
         EXPECTED_TEACHER_TRAIN_PACKAGES,
+        STUDENT_GATE_TYPE,
         _prepared_role_binding,
         canonical_json_sha256,
         checked_evaluation,
@@ -35,6 +37,7 @@ try:
         recompute_teacher_gate,
         sha256_file,
         sha256_tree,
+        write_text_exclusive_fsync,
     )
     from .verify_environment import (
         SCHEMA as ENVIRONMENT_VERIFICATION_SCHEMA,
@@ -45,8 +48,10 @@ except ImportError:
     from data_contract import iter_jsonl  # type: ignore
     from math_reward import verify_completion  # type: ignore
     from quality_gates import (  # type: ignore
+        EVALUATION_CONTRACT,
         EVALUATION_MERGED_KIND,
         EXPECTED_TEACHER_TRAIN_PACKAGES,
+        STUDENT_GATE_TYPE,
         _prepared_role_binding,
         canonical_json_sha256,
         checked_evaluation,
@@ -54,6 +59,7 @@ except ImportError:
         recompute_teacher_gate,
         sha256_file,
         sha256_tree,
+        write_text_exclusive_fsync,
     )
     from verify_environment import (  # type: ignore
         SCHEMA as ENVIRONMENT_VERIFICATION_SCHEMA,
@@ -70,8 +76,8 @@ CANONICAL_STUDENT_TRAINING_PLAN = (
 )
 ENVIRONMENT_VERIFIER = ROOT / "scripts" / "opd_math" / "verify_environment.py"
 SCHEMA_VERSION = 1
-STUDENT_HELDOUT_GATE = "student_heldout_result_v1"
-MATRIX_READOUT = "opd_math_six_run_matrix_v1"
+STUDENT_HELDOUT_GATE = "student_heldout_result_v2_exact_environment"
+MATRIX_READOUT = "opd_math_six_run_matrix_v2_exact_environment"
 SOURCE_HOLDOUT_ROLE = "source_holdout"
 TRAIN_ROLE = "student_opd"
 SAMPLES_PER_PROBLEM = 4
@@ -457,7 +463,7 @@ def _validate_support_gate(
     if not isinstance(gate, dict):
         raise ValueError("student run lacks a student-support gate")
     _expect(gate, "schema_version", 3, "student-support gate")
-    _expect(gate, "gate", "student_support_v1", "student-support gate")
+    _expect(gate, "gate", STUDENT_GATE_TYPE, "student-support gate")
     _expect(gate, "gate_strength", "scientific", "student-support gate")
     _expect(gate, "passed", True, "student-support gate")
     _expect(
@@ -1323,6 +1329,20 @@ def student_heldout_result(args: Namespace) -> dict[str, Any]:
         raise ValueError(
             "scientific held-out evaluation requires a schema-v2 merged artifact"
         )
+    if evaluation_binding.get("evaluation_contract") != EVALUATION_CONTRACT:
+        raise ValueError(
+            "scientific held-out evaluation requires the exact-environment v2 contract"
+        )
+    if not isinstance(evaluation_binding.get("evaluation_environment"), dict):
+        raise ValueError(
+            "scientific held-out evaluation requires exact train-environment custody"
+        )
+    if not isinstance(
+        evaluation_binding.get("evaluation_post_promotion_custody"), dict
+    ):
+        raise ValueError(
+            "scientific held-out evaluation requires post-promotion custody"
+        )
     if evaluation_binding["samples_per_problem"] != SAMPLES_PER_PROBLEM:
         raise ValueError("scientific held-out evaluation requires exactly four samples per record")
     if summary.get("decoding") != HELDOUT_DECODING:
@@ -1363,6 +1383,27 @@ def student_heldout_result(args: Namespace) -> dict[str, Any]:
         student_model=args.student_model,
         student_revision=args.student_revision,
         evaluation_git_commit=evaluation_binding["evaluation_git_commit"],
+    )
+    evaluation_environment = evaluation_binding["evaluation_environment"]
+    run_environment = run_binding["environment"]
+    _expect(
+        evaluation_environment,
+        "verifier",
+        run_environment["verifier"],
+        "held-out evaluation/student-run train environment",
+    )
+    for field in ("path", "sha256"):
+        _expect(
+            evaluation_environment["train_freeze"],
+            field,
+            run_environment["train_freeze"][field],
+            "held-out evaluation/student-run train freeze",
+        )
+    _expect(
+        evaluation_environment,
+        "train_verification",
+        run_environment["train_verification"],
+        "held-out evaluation/student-run train environment",
     )
     result_builder = _result_builder_custody(run_binding["git_commit"])
     record_rewards = {key: list(grouped[key]) for key in sorted(grouped)}
@@ -1421,6 +1462,7 @@ def student_heldout_result(args: Namespace) -> dict[str, Any]:
             "exact_matched_source_holdout": True,
             "pinned_student_identity": True,
             "four_sample_nonthinking_decoding": True,
+            "exact_evaluation_environment_and_post_promotion_custody": True,
             "recomputed_binary_math_rewards": True,
             "exact_training_plan_config_trace_environment_git_and_gate_custody": True,
         },
@@ -1589,12 +1631,21 @@ def matrix_readout(
             "evaluator_file_sha256",
             "evaluation_packages",
             "tokenizer_contract_sha256",
+            "evaluation_contract",
+            "evaluation_environment",
         ):
             _expect(
                 gate["evaluation_binding"],
                 field,
                 reference["evaluation_binding"][field],
                 f"held-out gate {key} evaluation",
+            )
+        if not isinstance(
+            gate["evaluation_binding"].get("evaluation_post_promotion_custody"),
+            dict,
+        ):
+            raise ValueError(
+                f"held-out gate {key} lacks post-promotion evaluation custody"
             )
 
     reference_environment = reference["student_run_binding"].get("environment")
@@ -1831,6 +1882,18 @@ def matrix_readout(
             "train": reference_train_freeze,
             "serve": reference_serve_freeze,
         },
+        "evaluation_contract": EVALUATION_CONTRACT,
+        "evaluation_environment": reference["evaluation_binding"][
+            "evaluation_environment"
+        ],
+        "evaluation_contract_sha256_by_arm": {
+            key: gate["evaluation_binding"]["evaluation_contract_sha256"]
+            for key, gate in gates.items()
+        },
+        "evaluation_post_promotion_custody_by_arm": {
+            key: gate["evaluation_binding"]["evaluation_post_promotion_custody"]
+            for key, gate in gates.items()
+        },
         "result_builder": result_builder,
         "bootstrap": {
             "unit": "paired record within held-out source stratum",
@@ -1930,11 +1993,7 @@ def matrix_markdown(payload: Mapping[str, Any]) -> str:
 
 
 def _write_new(path: Path, content: str) -> None:
-    path = Path(path)
-    if path.is_symlink() or path.exists():
-        raise FileExistsError(f"refusing to overwrite result artifact: {path}")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content)
+    write_text_exclusive_fsync(path, content, label="result artifact")
 
 
 def _preflight_result_outputs(

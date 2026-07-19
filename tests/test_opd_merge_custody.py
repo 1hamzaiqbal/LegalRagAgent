@@ -26,6 +26,7 @@ from scripts.opd_math.quality_gates import (
 MODEL = "Qwen/Qwen3-8B"
 REVISION = "a" * 40
 EVALUATOR = Path(__file__).resolve().parents[1] / "scripts" / "opd_math" / "evaluate_math.py"
+TEACHER_TRAINING_COMMIT = "c" * 40
 DECODING = {
     "thinking": False,
     "temperature": 0.7,
@@ -130,6 +131,8 @@ def write_evaluation(tmp_path, name, task, rows, reward, *, adapter=None):
             "math-verify": "0.9.0",
         },
         decoding=DECODING,
+        exact_environment=True,
+        git_commit=TEACHER_TRAINING_COMMIT,
     )
 
 
@@ -178,7 +181,7 @@ def write_gate_fixture(tmp_path):
     adapter = tmp_path / "adapter"
     adapter.mkdir()
     (adapter / "adapter_config.json").write_text('{"r": 8}\n')
-    state = {"commit": "c" * 40, "dirty": False}
+    state = {"commit": TEACHER_TRAINING_COMMIT, "dirty": False}
     environment = teacher_environment_contract(tmp_path, state["commit"])
     training_plan = json.loads(CANONICAL_TEACHER_TRAINING_PLAN.read_text())
     fixed_config = training_plan["fixed_config"]
@@ -404,6 +407,7 @@ def test_merge_custody_accepts_only_recomputed_scientific_gate(tmp_path):
     assert custody["adapter_tree_sha256"] == sha256_tree(adapter)
     assert custody["manifest_sha256"] == sha256_file(manifest)
     assert custody["gate"]["teacher_training_environment"]["schema_version"] == 2
+    assert custody["gate"]["evaluation_environment"]["schema_version"] == 2
 
     with pytest.raises(ValueError, match="base identity"):
         validate_teacher_gate_for_merge(

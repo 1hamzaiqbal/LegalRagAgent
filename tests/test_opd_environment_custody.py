@@ -1,11 +1,13 @@
 import json
 import subprocess
 import sys
+from argparse import Namespace
 from pathlib import Path
 
 import pytest
 
 from scripts.opd import opd_train
+from scripts.opd_math import evaluate_math as evaluation
 from scripts.opd_math import student_results
 from scripts.opd_math import verify_environment as verifier
 
@@ -308,3 +310,76 @@ def test_verifier_cli_emits_machine_readable_pass(monkeypatch, capsys, tmp_path)
     payload = json.loads(capsys.readouterr().out)
     assert payload["schema"] == verifier.SCHEMA
     assert payload["status"] == "passed"
+
+
+def test_evaluator_binds_and_reverifies_exact_commit_environment(tmp_path, monkeypatch):
+    expected = dict(evaluation.EXPECTED_EVALUATION_PACKAGES)
+    environment, commit_freeze, _ = make_contract(
+        tmp_path, monkeypatch, packages=expected
+    )
+    monkeypatch.setattr(evaluation, "package_versions", lambda: dict(expected))
+    git = {"commit": COMMIT, "worktree_clean": True}
+    contract = evaluation.validate_evaluation_environment_contract(
+        Namespace(
+            train_environment_root=environment,
+            train_environment_freeze=commit_freeze,
+        ),
+        git,
+    )
+    assert contract["git_commit"] == COMMIT
+    assert contract["train_environment_root"] == str(environment.resolve())
+    assert contract["train_freeze"]["sha256"] == evaluation.sha256_file(
+        commit_freeze
+    )
+    monkeypatch.setattr(
+        evaluation,
+        "reverify_recorded_environment",
+        lambda recorded, *, in_process: dict(recorded),
+    )
+    assert evaluation.evaluation_environment_contract_unchanged(contract)
+
+
+def test_evaluator_environment_rejects_missing_packages_and_symlink_freeze(
+    tmp_path, monkeypatch
+):
+    expected = dict(evaluation.EXPECTED_EVALUATION_PACKAGES)
+    environment, commit_freeze, _ = make_contract(
+        tmp_path, monkeypatch, packages=expected
+    )
+    args = Namespace(
+        train_environment_root=environment,
+        train_environment_freeze=commit_freeze,
+    )
+    git = {"commit": COMMIT, "worktree_clean": True}
+    missing = dict(expected)
+    missing.pop(next(iter(missing)))
+    monkeypatch.setattr(evaluation, "package_versions", lambda: missing)
+    with pytest.raises(ValueError, match="live evaluation packages differ"):
+        evaluation.validate_evaluation_environment_contract(args, git)
+
+    monkeypatch.setattr(evaluation, "package_versions", lambda: dict(expected))
+    real_freeze = commit_freeze.with_name("real-train.freeze.txt")
+    commit_freeze.rename(real_freeze)
+    commit_freeze.symlink_to(real_freeze)
+    with pytest.raises(ValueError, match="regular non-symlink"):
+        evaluation.validate_evaluation_environment_contract(args, git)
+
+
+def test_evaluator_environment_rejects_symlinked_environment_root(
+    tmp_path, monkeypatch
+):
+    expected = dict(evaluation.EXPECTED_EVALUATION_PACKAGES)
+    environment, commit_freeze, _ = make_contract(
+        tmp_path, monkeypatch, packages=expected
+    )
+    linked_environment = tmp_path / "linked-train-environment"
+    linked_environment.symlink_to(environment, target_is_directory=True)
+    monkeypatch.setattr(evaluation, "package_versions", lambda: dict(expected))
+    with pytest.raises(ValueError, match="environment root.*non-symlink"):
+        evaluation.validate_evaluation_environment_contract(
+            Namespace(
+                train_environment_root=linked_environment,
+                train_environment_freeze=commit_freeze,
+            ),
+            {"commit": COMMIT, "worktree_clean": True},
+        )

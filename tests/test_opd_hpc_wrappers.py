@@ -47,6 +47,45 @@ def test_merge_wrapper_uses_cpu_and_exact_shard_count():
     assert '--shard-count "$OPD_MATH_EVAL_SHARDS"' in script
     assert '--task-file "$TASK"' in script
     assert '--output-dir "$OUT"' in script
+    assert 'OPD_MATH_EVAL_MAX_RECORDS:?Set the exact shard-job record budget' in script
+
+
+def test_full_o_base_and_trained_evaluations_consume_the_fixed_plan():
+    evaluate = EVALUATE.read_text()
+    merge = MERGE.read_text()
+    for script, phase in ((evaluate, "shard"), (merge, "merge")):
+        assert "plan_evaluation_shards.py" in script
+        assert "OPD_MATH_EVAL_SHARD_PLAN" in script
+        assert "OPD_MATH_EVAL_PLAN_ARM" in script
+        assert 'OPD_MATH_EVAL_ROLE" == teacher_skill_dev' in script
+        assert 'OPD_MATH_EVAL_MAX_RECORDS" == 0' in script
+        assert 'validate-launch' in script
+        assert f'--phase {phase}' in script
+        assert '--source O' in script
+        assert '--role teacher_gap_dev' in script
+        assert '--shard-count' in script
+        assert '--git-commit "$COMMIT"' in script
+        assert '--train-freeze "$TRAIN_FREEZE"' in script
+    assert '--array-task-count "$SLURM_ARRAY_TASK_COUNT"' in evaluate
+    assert '--array-task-min "$SLURM_ARRAY_TASK_MIN"' in evaluate
+    assert '--array-task-max "$SLURM_ARRAY_TASK_MAX"' in evaluate
+
+
+def test_evaluation_wrappers_bind_exact_environment_and_require_commit_companion():
+    evaluate = EVALUATE.read_text()
+    merge = MERGE.read_text()
+    for script in (evaluate, merge):
+        assert 'FREEZE_ROOT="$RUN_ROOT/environment_freezes/$COMMIT"' in script
+        assert 'TRAIN_FREEZE="$FREEZE_ROOT/train.freeze.txt"' in script
+        assert 'test -z "$(git -C "$REPO" status --porcelain=v1)"' in script
+        assert 'test ! -L "$VERIFY_ENVIRONMENT"' in script
+        assert 'sha256sum "$VERIFY_ENVIRONMENT"' in script
+        assert script.count('"$ENV_DIR/bin/python" "$VERIFY_ENVIRONMENT"') == 1
+        assert '--train-environment-root "$ENV_DIR"' in script
+        assert '--train-environment-freeze "$TRAIN_FREEZE"' in script
+        assert 'test -f "$OUT.custody.json"' in script
+    assert '"$ENV_DIR/bin/python" "$REPO/scripts/opd_math/evaluate_math.py"' in evaluate
+    assert '\npython "$REPO/scripts/opd_math/evaluate_math.py"' not in evaluate
 
 
 def test_scientific_wrappers_require_an_explicit_canonical_data_root():

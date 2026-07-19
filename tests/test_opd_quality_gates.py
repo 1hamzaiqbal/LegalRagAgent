@@ -37,6 +37,7 @@ STUDENT_MODEL = "Qwen/Qwen3-1.7B"
 STUDENT_REVISION = "b" * 40
 DECODING = TEACHER_GAP_DECODING
 EVALUATOR = Path(__file__).resolve().parents[1] / "scripts" / "opd_math" / "evaluate_math.py"
+TEACHER_TRAINING_COMMIT = "c" * 40
 
 
 @pytest.fixture(autouse=True)
@@ -92,6 +93,21 @@ def teacher_environment_contract(tmp_path, commit):
 
 def write_jsonl(path, rows):
     path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows))
+
+
+def test_manifest_publication_is_atomic_and_never_overwrites(tmp_path):
+    output = tmp_path / "gates" / "gate.json"
+    written = quality_gates.write_text_exclusive_fsync(
+        output, '{"passed":true}\n', label="test gate"
+    )
+    assert written == output.resolve()
+    assert output.read_text() == '{"passed":true}\n'
+    assert not list(output.parent.glob(".gate.json.partial.*"))
+    with pytest.raises(FileExistsError, match="refusing to overwrite"):
+        quality_gates.write_text_exclusive_fsync(
+            output, '{"passed":false}\n', label="test gate"
+        )
+    assert output.read_text() == '{"passed":true}\n'
 
 
 def teacher_trace_completion(solution, sample_idx):
@@ -182,7 +198,7 @@ def write_teacher_run(tmp_path, prepared_manifest, adapter, *, source="M", scien
     prepared = json.loads(prepared_manifest.read_text())
     source_manifest = prepared["source_manifest_path"]
     training_path = prepared_manifest.parent / "roles" / source / "teacher_train.jsonl"
-    state = {"commit": "c" * 40, "dirty": False}
+    state = {"commit": TEACHER_TRAINING_COMMIT, "dirty": False}
     environment = teacher_environment_contract(tmp_path, state["commit"])
     training_plan = json.loads(CANONICAL_TEACHER_TRAINING_PLAN.read_text())
     fixed_config = training_plan["fixed_config"]
@@ -383,6 +399,8 @@ def write_evaluation(
     source="M",
     role="teacher_gap_dev",
     decoding=DECODING,
+    exact_environment=True,
+    git_commit=TEACHER_TRAINING_COMMIT,
 ):
     directory.mkdir(parents=True, exist_ok=True)
     return write_merged_evaluation(
@@ -400,6 +418,8 @@ def write_evaluation(
             "math-verify": "0.9.0",
         },
         decoding=decoding,
+        exact_environment=exact_environment,
+        git_commit=git_commit,
     )
 
 
@@ -451,7 +471,12 @@ def teacher_args(
     )
 
 
-def passing_scientific_teacher_fixture(tmp_path):
+def passing_scientific_teacher_fixture(
+    tmp_path,
+    *,
+    exact_environment=True,
+    evaluation_git_commit=TEACHER_TRAINING_COMMIT,
+):
     prepared_manifest, _, role_paths, role_rows = write_prepared(tmp_path)
     task = role_paths["teacher_gap_dev"]
     task_rows = role_rows["teacher_gap_dev"]
@@ -464,6 +489,8 @@ def passing_scientific_teacher_fixture(tmp_path):
         "base",
         task,
         {row["record_id"]: [0, 0, 0, 0] for row in task_rows},
+        exact_environment=exact_environment,
+        git_commit=evaluation_git_commit,
     )
     trained_summary, trained_samples = write_evaluation(
         tmp_path,
@@ -471,6 +498,8 @@ def passing_scientific_teacher_fixture(tmp_path):
         task,
         {row["record_id"]: [1, 1, 1, 1] for row in task_rows},
         adapter=adapter,
+        exact_environment=exact_environment,
+        git_commit=evaluation_git_commit,
     )
     return teacher_args(
         base_summary=base_summary,
@@ -491,6 +520,7 @@ def teacher_target_args(
     selected_records=TEACHER_TARGET_REPORT_RECORDS,
     base_reward=0,
     trained_reward=1,
+    evaluation_git_commit=TEACHER_TRAINING_COMMIT,
 ):
     prepared_manifest, prepared, role_paths, _ = write_prepared(
         tmp_path,
@@ -547,6 +577,7 @@ def teacher_target_args(
             row["record_id"]: [base_reward] * 4
             for row in selected
         },
+        git_commit=evaluation_git_commit,
     )
     trained_summary, trained_samples = write_evaluation(
         tmp_path,
@@ -557,6 +588,7 @@ def teacher_target_args(
             for row in selected
         },
         adapter=adapter,
+        git_commit=evaluation_git_commit,
     )
     return Namespace(
         base_summary=base_summary,
@@ -638,6 +670,15 @@ def test_teacher_target_report_rejects_nonexact_target_prefix(tmp_path):
         teacher_target_report(args)
 
 
+def test_teacher_target_report_rejects_evaluation_commit_mismatch(tmp_path):
+    args = teacher_target_args(tmp_path, evaluation_git_commit="e" * 40)
+    with pytest.raises(
+        ValueError,
+        match="target evaluation Git commit differs from teacher training custody",
+    ):
+        teacher_target_report(args)
+
+
 def test_teacher_target_report_cli_writes_fresh_sorted_json_and_exits_zero(
     tmp_path, monkeypatch
 ):
@@ -701,6 +742,59 @@ def test_scientific_teacher_gate_rejects_legacy_monolithic_summary(tmp_path):
         teacher_gap(args)
 
 
+def test_scientific_teacher_gate_rejects_environment_less_v1_contract(tmp_path):
+    args = passing_scientific_teacher_fixture(
+        tmp_path, exact_environment=False
+    )
+    base = json.loads(Path(args.base_summary).read_text())
+    assert (
+        base["evaluation_contract"]["contract"]
+        == quality_gates.LEGACY_EVALUATION_CONTRACT
+    )
+    with pytest.raises(ValueError, match="requires exact train-environment custody"):
+        teacher_gap(args)
+
+
+def test_scientific_teacher_gate_rejects_evaluation_commit_mismatch(tmp_path):
+    args = passing_scientific_teacher_fixture(
+        tmp_path, evaluation_git_commit="e" * 40
+    )
+    with pytest.raises(
+        ValueError,
+        match="teacher evaluation Git commit differs from teacher training custody",
+    ):
+        teacher_gap(args)
+
+
+def test_scientific_teacher_gate_requires_untampered_promotion_companions(tmp_path):
+    missing_root = tmp_path / "missing"
+    missing_root.mkdir()
+    missing_args = passing_scientific_teacher_fixture(missing_root)
+    merged_dir = Path(missing_args.base_summary).parent
+    merged_companion = merged_dir.parent / f"{merged_dir.name}.custody.json"
+    assert merged_companion.is_file()
+    merged_companion.unlink()
+    with pytest.raises(ValueError, match="post-promotion custody companion"):
+        teacher_gap(missing_args)
+
+    tampered_root = tmp_path / "tampered"
+    tampered_root.mkdir()
+    tampered_args = passing_scientific_teacher_fixture(tampered_root)
+    merged = json.loads(Path(tampered_args.base_summary).read_text())
+    shard_companion = Path(
+        merged["merge"]["shards"][0]["post_promotion_custody"]
+    )
+    companion_payload = json.loads(shard_companion.read_text())
+    companion_payload["stable_final_artifact_hash"] = False
+    shard_companion.write_text(
+        json.dumps(companion_payload, indent=2, sort_keys=True) + "\n"
+    )
+    with pytest.raises(
+        ValueError, match="post-promotion custody companion does not match"
+    ):
+        teacher_gap(tampered_args)
+
+
 def test_scientific_student_support_rejects_legacy_monolithic_summary(tmp_path):
     prepared_manifest, _, role_paths, role_rows = write_prepared(
         tmp_path, student_count=100
@@ -716,6 +810,7 @@ def test_scientific_student_support_rejects_legacy_monolithic_summary(tmp_path):
         revision=STUDENT_REVISION,
         role="student_opd",
         decoding=STUDENT_SUPPORT_DECODING,
+        exact_environment=True,
     )
     legacy = legacy_summary_copy(summary, "legacy-summary.json")
     with pytest.raises(ValueError, match="requires a schema-v2 merged artifact"):
@@ -1044,6 +1139,7 @@ def test_scientific_student_support_binds_model_task_and_support(tmp_path):
         revision=STUDENT_REVISION,
         role="student_opd",
         decoding=STUDENT_SUPPORT_DECODING,
+        exact_environment=True,
     )
     result = student_support(
         Namespace(
@@ -1067,7 +1163,43 @@ def test_scientific_student_support_binds_model_task_and_support(tmp_path):
     assert result["pass_at_k"] == 0.5
     assert result["mixed_reward_group_fraction"] == 0.5
     assert result["task_roles"] == ["student_opd"]
+    assert result["evaluation_contract"] == quality_gates.EVALUATION_CONTRACT
+    assert isinstance(result["evaluation_environment"], dict)
+    assert isinstance(result["evaluation_post_promotion_custody"], dict)
     assert recompute_student_gate(result) == result
+
+
+def test_scientific_student_support_rejects_environment_less_v1_contract(tmp_path):
+    prepared_manifest, _, role_paths, role_rows = write_prepared(tmp_path)
+    task = role_paths["student_opd"]
+    task_rows = role_rows["student_opd"]
+    summary, samples = write_evaluation(
+        tmp_path,
+        "student-environment-less",
+        task,
+        {row["record_id"]: [0, 1, 0, 1] for row in task_rows},
+        model=STUDENT_MODEL,
+        revision=STUDENT_REVISION,
+        role="student_opd",
+        decoding=STUDENT_SUPPORT_DECODING,
+        exact_environment=False,
+    )
+    with pytest.raises(ValueError, match="requires exact train-environment custody"):
+        student_support(
+            Namespace(
+                student_summary=summary,
+                student_samples=samples,
+                student_model=STUDENT_MODEL,
+                student_revision=STUDENT_REVISION,
+                prepared_manifest=prepared_manifest,
+                task_source="M",
+                task_role="student_opd",
+                min_pass_at_k=0.1,
+                min_mixed_group_fraction=0.1,
+                min_records=None,
+                smoke_gate=False,
+            )
+        )
 
 
 def test_small_student_support_is_smoke_only(tmp_path):
@@ -1089,6 +1221,7 @@ def test_small_student_support_is_smoke_only(tmp_path):
         revision=STUDENT_REVISION,
         role="student_opd",
         decoding=STUDENT_SUPPORT_DECODING,
+        exact_environment=True,
     )
     args = Namespace(
         student_summary=summary,
@@ -1125,7 +1258,11 @@ def test_teacher_gate_rejects_adapter_changed_after_evaluation(tmp_path):
     adapter.mkdir()
     (adapter / "adapter_config.json").write_text('{"r": 8}\n')
     base_summary, base_samples = write_evaluation(
-        tmp_path, "mutation-base", task, {row["record_id"]: [0] for row in task_rows}
+        tmp_path,
+        "mutation-base",
+        task,
+        {row["record_id"]: [0] for row in task_rows},
+        exact_environment=False,
     )
     trained_summary, trained_samples = write_evaluation(
         tmp_path,
@@ -1133,6 +1270,7 @@ def test_teacher_gate_rejects_adapter_changed_after_evaluation(tmp_path):
         task,
         {row["record_id"]: [1] for row in task_rows},
         adapter=adapter,
+        exact_environment=False,
     )
     teacher_run_manifest = write_teacher_run(
         tmp_path, prepared_manifest, adapter, scientific=False
@@ -1235,6 +1373,7 @@ def test_scientific_student_support_rejects_cherry_picked_prefix(tmp_path):
         revision=STUDENT_REVISION,
         role="student_opd",
         decoding=STUDENT_SUPPORT_DECODING,
+        exact_environment=True,
     )
     with pytest.raises(ValueError, match="must use exactly 100"):
         student_support(

@@ -353,11 +353,21 @@ OPD_MATH_EVAL_LABEL=<new filesystem-safe label>
 OPD_MATH_EVAL_ADAPTER=<adapter directory; omit for a base/raw-model evaluation>
 OPD_MATH_EVAL_SHARDS=<positive contiguous shard count; default 1>
 OPD_MATH_EVAL_RUN_ID=<stable filesystem-safe ID; required for every evaluation>
+OPD_MATH_EVAL_SHARD_PLAN=<primary plan; required only for full O teacher_skill_dev>
+OPD_MATH_EVAL_PLAN_ARM=base|trained
 ```
 
-Every evaluation writes an immutable schema-v2 shard, including a one-shard
-run; anything intended for a gate must pass through the CPU merger. `MAX_RECORDS` is the
-global selected prefix, not a per-shard budget. Each record's RNG seed binds
+Every new evaluation writes an exact-environment v2 contract and a schema-v2
+shard, including a one-shard run; anything intended for a gate must pass
+through the CPU merger. The producer binds and live-reverifies the complete
+commit-specific train freeze. It publishes `<output>.custody.json` atomically
+after output promotion, code/environment rechecks, and a stable final-tree
+rehash. A canonical directory without that companion is an orphan diagnostic,
+not a completed artifact. The older v1 contract remains readable only for
+preserved diagnostics. It cannot authorize a new scientific teacher gate,
+student-support gate, or held-out matrix result; successor raw-student support
+must be reevaluated under the exact-environment v2 contract. `MAX_RECORDS` is the global
+selected prefix, not a per-shard budget. Each record's RNG seed binds
 the base seed, complete task-file hash, global row index, and record ID, so a
 retry or a different shard count cannot change that record's random stream.
 Each array task writes transactionally to
@@ -379,19 +389,52 @@ MERGE_JOB=$(sbatch --parsable --dependency="afterok:$ARRAY_JOB" \
 printf 'array=%s merge=%s\n' "$ARRAY_JOB" "$MERGE_JOB"
 ```
 
-The merger requires the exact numbered shard set, reopens the task and any
-adapter, verifies clean start/end code custody, recomputes record seeds and
-math rewards, proves gap-free coverage and canonical sample order, and emits a
-fresh merged summary plus samples. A raw shard is never accepted by a quality
-gate. The gate independently reopens every bound shard and reconstructs the
-merged byte stream, so deleting or mutating a shard invalidates the result.
+The merger requires the exact numbered shard set and every derived shard
+companion, reopens the task and any adapter, live-reverifies the same exact
+environment, recomputes record seeds and math rewards, proves gap-free
+coverage and canonical sample order, and emits a fresh merged summary, samples,
+and post-promotion companion. A raw shard is never accepted by a quality gate.
+The gate independently reopens every bound shard and companion, reconstructs
+the merged byte stream, and rehashes the merged companion. Deleting, adding, or
+mutating any file invalidates the result.
 
-For the O teacher, first run a timing-only base-model prefix, for example 32
-records. Use its `total_generation_latency_seconds` to choose a shard count
-whose projected **per-shard** runtime is at most 18 hours, and separately record
-the complete campaign's projected GPU-hours. The prefix is not gate evidence.
-The full base and trained contracts still use `MAX_RECORDS=0`; resumability is
-provided by immutable shards, not by truncating the registered O role.
+For the O teacher, first run a timing-only base-model prefix of 32 records.
+Do not extrapolate only `total_generation_latency_seconds`: rendering,
+tokenization, decoding, verification, serialization, and per-record `fsync`
+also scale with the row count. Use the tracked timing planner and Slurm
+`ElapsedRaw` instead. Its conservative bound is
+`ceil(ceil(total_records / S) / 32) * ElapsedRaw_32 * safety_factor`; choose the
+smallest `S` at or below 18 hours, and bind the identical `S` and array throttle
+to base and trained runs. The primary planner does not accept overrides: the
+prefix is exactly 32 records, the registered total is 4,585, the safety factor
+is 1.25, the cap is 64,800 seconds, and concurrency is four. Capture the raw
+Slurm row rather than transcribing accounting fields:
+
+```bash
+sacct -X -n -P -j "$TIMING_JOB" \
+  --format=JobIDRaw,JobName,State,ExitCode,ElapsedRaw,AllocTRES,StdOut \
+  > "$TIMING_SACCT_RAW"
+"$OPD_MATH_TRAIN_ENV/bin/python" scripts/opd_math/plan_evaluation_shards.py create \
+  --timing-summary "$TIMING_SUMMARY" \
+  --timing-companion "$TIMING_COMPANION" \
+  --task-file "$OPD_MATH_DATA_ROOT/roles/O/teacher_gap_dev.jsonl" \
+  --sacct-raw "$TIMING_SACCT_RAW" \
+  --stdout "$TIMING_STDOUT" \
+  --output "$O_SHARD_PLAN"
+```
+
+The parser requires one completed `opd_math_eval` row, `0:0`, exactly one GPU,
+the exact `StdOut` path, and the job ID in the stdout filename. For both full O
+runs, export the plan, its `base|trained` arm, the selected shard count, and
+submit the exact `array_plan.<arm>.array_spec` from the plan. The shard and merge
+wrappers rehash the plan and enforce its commit, task, freeze, model, complete-
+role budget, shard count, and array index span. The submission ledger must also
+record the literal `sbatch --array=...` argument; Slurm does not expose the
+original throttle as a stable per-task environment variable.
+
+The prefix and plan are not gate evidence. The full base and trained contracts
+still use `MAX_RECORDS=0`; resumability is provided by immutable shards, not by
+truncating the registered O role.
 
 A teacher gate additionally requires all of the following, with a fresh output:
 
