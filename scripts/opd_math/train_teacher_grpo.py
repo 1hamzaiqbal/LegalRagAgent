@@ -14,9 +14,14 @@ from collections import defaultdict
 from pathlib import Path
 
 try:
-    from .quality_gates import sha256_tree
+    from .quality_gates import EXPECTED_TEACHER_TRAIN_PACKAGES, sha256_tree
+    from .verify_environment import reverify_recorded_environment, verify_environment
 except ImportError:
-    from quality_gates import sha256_tree  # type: ignore
+    from quality_gates import EXPECTED_TEACHER_TRAIN_PACKAGES, sha256_tree  # type: ignore
+    from verify_environment import (  # type: ignore
+        reverify_recorded_environment,
+        verify_environment,
+    )
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -24,6 +29,7 @@ PER_DEVICE_TRAIN_BATCH_SIZE = 1
 TEACHER_ROLE = "teacher_train"
 VALID_SOURCES = ("M", "O")
 CANONICAL_TRAINING_PLAN = ROOT / "configs" / "opd_math" / "teacher_training_plan.json"
+ENVIRONMENT_VERIFIER = ROOT / "scripts" / "opd_math" / "verify_environment.py"
 ALGORITHM_LABEL = "GRPO with DAPO loss normalization; not the complete DAPO recipe"
 
 
@@ -160,6 +166,135 @@ def git_state() -> dict[str, object]:
         return {"commit": commit, "dirty": bool(status.strip())}
     except (OSError, subprocess.CalledProcessError):
         return {"commit": None, "dirty": None}
+
+
+def validate_teacher_environment_contract(
+    args, code_state: dict[str, object], *, required: bool
+) -> dict[str, object] | None:
+    """Bind a teacher run to the exact commit-specific live train environment."""
+
+    environment_root = getattr(args, "train_environment_root", None)
+    environment_freeze = getattr(args, "train_environment_freeze", None)
+    if environment_root is None and environment_freeze is None:
+        if required:
+            raise ValueError(
+                "scientific teacher training requires --train-environment-root and "
+                "--train-environment-freeze"
+            )
+        return None
+    if environment_root is None or environment_freeze is None:
+        raise ValueError(
+            "teacher environment custody requires both --train-environment-root and "
+            "--train-environment-freeze"
+        )
+
+    commit = code_state.get("commit")
+    if (
+        code_state.get("dirty") is not False
+        or not isinstance(commit, str)
+        or re.fullmatch(r"[0-9a-f]{40}", commit) is None
+    ):
+        raise ValueError("teacher environment custody requires one clean 40-hex Git commit")
+    root = Path(environment_root).resolve(strict=True)
+    freeze = Path(environment_freeze)
+    if freeze.is_symlink() or not freeze.is_file():
+        raise ValueError(
+            f"teacher environment freeze must be a regular non-symlink file: {freeze}"
+        )
+    freeze = freeze.resolve(strict=True)
+    if (
+        freeze.name != "train.freeze.txt"
+        or freeze.parent.name != commit
+        or freeze.parent.parent.name != "environment_freezes"
+    ):
+        raise ValueError(
+            "teacher environment freeze must be the commit-specific "
+            f"environment_freezes/{commit}/train.freeze.txt"
+        )
+    runtime_packages = package_versions()
+    if runtime_packages != EXPECTED_TEACHER_TRAIN_PACKAGES:
+        raise ValueError(
+            "live teacher training packages differ from the pinned environment: "
+            f"expected={EXPECTED_TEACHER_TRAIN_PACKAGES}, actual={runtime_packages}"
+        )
+    verification = verify_environment(
+        environment_root=root,
+        commit_freeze=freeze,
+        expected_commit=commit,
+        freeze_kind="train",
+    )
+    commit_freeze = verification.get("commit_freeze")
+    if not isinstance(commit_freeze, dict) or commit_freeze != {
+        "path": str(freeze),
+        "sha256": sha256_file(freeze),
+        "byte_identical_to_requirements_freeze": True,
+    }:
+        raise ValueError("teacher environment verification did not bind the selected freeze")
+    return {
+        "schema_version": 2,
+        "git_commit": commit,
+        "verifier": {
+            "path": str(ENVIRONMENT_VERIFIER.resolve()),
+            "sha256": sha256_file(ENVIRONMENT_VERIFIER),
+        },
+        "train_runtime_packages": runtime_packages,
+        "train_freeze": {
+            "path": str(freeze),
+            "sha256": commit_freeze["sha256"],
+            "required_packages": EXPECTED_TEACHER_TRAIN_PACKAGES,
+        },
+        "train_verification": verification,
+        "serve_freeze": None,
+        "serve_verification": None,
+    }
+
+
+def teacher_environment_contract_unchanged(contract: dict[str, object] | None) -> bool:
+    """Reverify the exact teacher train environment and all recorded file identities."""
+
+    if contract is None:
+        return True
+    if not isinstance(contract, dict):
+        return False
+    try:
+        if contract.get("schema_version") != 2:
+            return False
+        verifier = contract.get("verifier")
+        if verifier != {
+            "path": str(ENVIRONMENT_VERIFIER.resolve()),
+            "sha256": sha256_file(ENVIRONMENT_VERIFIER),
+        }:
+            return False
+        if contract.get("train_runtime_packages") != EXPECTED_TEACHER_TRAIN_PACKAGES:
+            return False
+        if package_versions() != EXPECTED_TEACHER_TRAIN_PACKAGES:
+            return False
+        if contract.get("serve_freeze") is not None or contract.get("serve_verification") is not None:
+            return False
+        freeze = contract.get("train_freeze")
+        recorded = contract.get("train_verification")
+        if not isinstance(freeze, dict) or not isinstance(recorded, dict):
+            return False
+        path = Path(str(freeze.get("path")))
+        if path.is_symlink() or not path.is_file() or sha256_file(path) != freeze.get("sha256"):
+            return False
+        if freeze.get("required_packages") != EXPECTED_TEACHER_TRAIN_PACKAGES:
+            return False
+        if recorded.get("expected_commit") != contract.get("git_commit"):
+            return False
+        if recorded.get("freeze_kind") != "train":
+            return False
+        if recorded.get("commit_freeze") != {
+            "path": str(path.resolve()),
+            "sha256": freeze.get("sha256"),
+            "byte_identical_to_requirements_freeze": True,
+        }:
+            return False
+        if reverify_recorded_environment(recorded, in_process=True) != recorded:
+            return False
+    except (ImportError, OSError, TypeError, ValueError):
+        return False
+    return True
 
 
 def _read_json_object(path: Path, label: str) -> dict:
@@ -471,18 +606,15 @@ def reward_signal_diagnostics(log_history: list[dict]) -> dict:
 
 
 def package_versions() -> dict[str, str]:
-    names = (
-        "torch",
-        "transformers",
-        "trl",
-        "datasets",
-        "peft",
-        "accelerate",
-        "huggingface-hub",
-        "requests",
-        "math-verify",
-    )
-    return {name: importlib.metadata.version(name) for name in names}
+    try:
+        return {
+            name: importlib.metadata.version(name)
+            for name in EXPECTED_TEACHER_TRAIN_PACKAGES
+        }
+    except importlib.metadata.PackageNotFoundError as exc:
+        raise ValueError(
+            f"required teacher training distribution is unavailable: {exc}"
+        ) from exc
 
 
 def main() -> int:
@@ -498,6 +630,8 @@ def main() -> int:
     parser.add_argument("--source-manifest", type=Path, required=True)
     parser.add_argument("--training-plan", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--train-environment-root", type=Path)
+    parser.add_argument("--train-environment-freeze", type=Path)
     parser.add_argument("--max-steps", type=int, default=100)
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--num-generations", type=int, default=4)
@@ -535,6 +669,9 @@ def main() -> int:
         raise RuntimeError(
             "primary-matched non-smoke teacher training requires an available, clean Git state"
         )
+    environment_contract = validate_teacher_environment_contract(
+        args, code_state_start, required=intended_scientific_run
+    )
     parseable, total = gold_parseability(rows)
     if parseable != total:
         raise RuntimeError(
@@ -715,6 +852,7 @@ def main() -> int:
             "teacher quality requires the separate held-out teacher-gap gate."
         ),
         "git_state_start": code_state_start,
+        "environment_contract": environment_contract,
         "model": args.model,
         "model_revision": args.model_revision,
         "source": args.source,
@@ -846,10 +984,93 @@ def main() -> int:
             f"actual={teacher_trace['unique_training_records']}"
         )
 
+    code_state_before_candidate = git_state()
+    clean_stable_before_candidate = (
+        code_state_start.get("dirty") is False
+        and code_state_before_candidate.get("dirty") is False
+        and code_state_start.get("commit") is not None
+        and code_state_start.get("commit") == code_state_before_candidate.get("commit")
+    )
+    stable_environment_before_candidate = teacher_environment_contract_unchanged(
+        environment_contract
+    )
+    run_manifest.update(
+        {
+            "git_state_before_candidate_save": code_state_before_candidate,
+            "stable_environment_before_candidate_save": stable_environment_before_candidate,
+        }
+    )
+    if intended_scientific_run and not clean_stable_before_candidate:
+        run_manifest["status"] = "failed_code_custody_before_candidate_save"
+        (args.output_dir / "run_manifest.json").write_text(
+            json.dumps(run_manifest, indent=2, sort_keys=True) + "\n"
+        )
+        raise RuntimeError("Git custody changed before candidate save; no adapter was promoted")
+    if intended_scientific_run and not stable_environment_before_candidate:
+        run_manifest["status"] = "failed_environment_custody_before_candidate_save"
+        (args.output_dir / "run_manifest.json").write_text(
+            json.dumps(run_manifest, indent=2, sort_keys=True) + "\n"
+        )
+        raise RuntimeError(
+            "teacher train environment changed before candidate save; no adapter was promoted"
+        )
+
+    candidate_dir = args.output_dir / "final_candidate"
+    trainer.save_model(str(candidate_dir))
+    tokenizer.save_pretrained(candidate_dir)
+    candidate_hash = sha256_tree(candidate_dir)
+    code_state_after_candidate = git_state()
+    clean_stable_after_candidate = (
+        code_state_start.get("dirty") is False
+        and code_state_after_candidate.get("dirty") is False
+        and code_state_start.get("commit") is not None
+        and code_state_start.get("commit") == code_state_after_candidate.get("commit")
+    )
+    stable_environment_after_candidate = teacher_environment_contract_unchanged(
+        environment_contract
+    )
+    run_manifest.update(
+        {
+            "candidate_adapter": str(candidate_dir.resolve()),
+            "candidate_adapter_tree_sha256": candidate_hash,
+            "git_state_after_candidate_save": code_state_after_candidate,
+            "stable_environment_after_candidate_save": stable_environment_after_candidate,
+        }
+    )
+    if intended_scientific_run and not clean_stable_after_candidate:
+        run_manifest["status"] = "failed_code_custody_after_candidate_save"
+        (args.output_dir / "run_manifest.json").write_text(
+            json.dumps(run_manifest, indent=2, sort_keys=True) + "\n"
+        )
+        raise RuntimeError("Git custody changed during candidate save; no adapter was promoted")
+    if intended_scientific_run and not stable_environment_after_candidate:
+        run_manifest["status"] = "failed_environment_custody_after_candidate_save"
+        (args.output_dir / "run_manifest.json").write_text(
+            json.dumps(run_manifest, indent=2, sort_keys=True) + "\n"
+        )
+        raise RuntimeError(
+            "teacher train environment changed during candidate save; no adapter was promoted"
+        )
+
     final_dir = args.output_dir / "final_adapter"
-    trainer.save_model(str(final_dir))
-    tokenizer.save_pretrained(final_dir)
-    final_adapter_hash = sha256_tree(final_dir)
+    candidate_dir.rename(final_dir)
+    try:
+        final_adapter_hash = sha256_tree(final_dir)
+    except (OSError, ValueError) as exc:
+        rejected_dir = args.output_dir / "rejected_final_artifact_custody"
+        final_dir.rename(rejected_dir)
+        run_manifest.update(
+            {
+                "status": "failed_final_artifact_rehash",
+                "rejected_adapter": str(rejected_dir.resolve()),
+            }
+        )
+        (args.output_dir / "run_manifest.json").write_text(
+            json.dumps(run_manifest, indent=2, sort_keys=True) + "\n"
+        )
+        raise RuntimeError(
+            "final teacher adapter could not be rehashed and was moved to a rejected path"
+        ) from exc
     code_state_end = git_state()
     clean_stable_code = (
         code_state_start.get("dirty") is False
@@ -857,6 +1078,39 @@ def main() -> int:
         and code_state_start.get("commit") is not None
         and code_state_start.get("commit") == code_state_end.get("commit")
     )
+    stable_environment_end = teacher_environment_contract_unchanged(environment_contract)
+    stable_final_artifact_hash = final_adapter_hash == candidate_hash
+    if intended_scientific_run and (
+        not clean_stable_code
+        or not stable_environment_end
+        or not stable_final_artifact_hash
+    ):
+        rejected_dir = args.output_dir / "rejected_final_custody"
+        final_dir.rename(rejected_dir)
+        if not stable_final_artifact_hash:
+            status = "failed_final_artifact_hash_custody"
+        elif not clean_stable_code:
+            status = "failed_code_custody_after_promotion"
+        else:
+            status = "failed_environment_custody_after_promotion"
+        run_manifest.update(
+            {
+                "status": status,
+                "scientific_use_allowed": False,
+                "git_state_end": code_state_end,
+                "clean_stable_code": clean_stable_code,
+                "stable_environment_end": stable_environment_end,
+                "stable_final_artifact_hash": stable_final_artifact_hash,
+                "rejected_adapter": str(rejected_dir.resolve()),
+            }
+        )
+        (args.output_dir / "run_manifest.json").write_text(
+            json.dumps(run_manifest, indent=2, sort_keys=True) + "\n"
+        )
+        raise RuntimeError(
+            "teacher final promotion failed code, environment, or artifact custody; "
+            "the adapter was moved to a rejected diagnostic path"
+        )
     scientific_use_allowed = (
         intended_scientific_run
         and args.budget_mode == "primary_matched"
@@ -868,6 +1122,9 @@ def main() -> int:
         and prepared.get("scientific_use_allowed") is True
         and plan_contract["training_plan_compliant"] is True
         and clean_stable_code
+        and environment_contract is not None
+        and stable_environment_end
+        and stable_final_artifact_hash
     )
     run_manifest.update(
         {
@@ -877,8 +1134,12 @@ def main() -> int:
             "final_adapter_tree_sha256": final_adapter_hash,
             "git_state_end": code_state_end,
             "clean_stable_code": clean_stable_code,
+            "stable_environment_end": stable_environment_end,
+            "stable_final_artifact_hash": stable_final_artifact_hash,
         }
     )
+    run_manifest.pop("candidate_adapter", None)
+    run_manifest.pop("candidate_adapter_tree_sha256", None)
     (args.output_dir / "run_manifest.json").write_text(
         json.dumps(run_manifest, indent=2, sort_keys=True) + "\n"
     )

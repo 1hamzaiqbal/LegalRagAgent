@@ -418,14 +418,77 @@ teacher prompt bound from 1,536 to 2,304 tokens. Together with the unchanged
 implicit truncation. No source is
 filtered or granted a different bound, and the student's separate 1,536-token
 prompt contract is unchanged. Full task-RL baselines `107182` and `107183`
-were launched from `6be96e6` and are audited independently; no terminal result
-from them is asserted at this documentation checkpoint. Even if both become
-eligible, the current six-arm readout requires every student-training and
+were launched from `6be96e6`; at that earlier checkpoint no terminal result
+was asserted. Regardless of their subsequent eligibility, the current
+six-arm readout requires every student-training and
 held-out-evaluation artifact to share one exact Git commit. They therefore
 remain predecessor-commit diagnostics and must be repeated on the successor
 commit for the final matrix. The teachers must likewise be relaunched from
 that clean successor commit and still pass the unchanged informative-reward
 and own-source held-out skill-gap gates before any OPD arm.
+
+## Predecessor task-RL diagnostics and successor custody gate
+
+Both predecessor task-RL jobs subsequently completed cleanly from
+`6be96e65bfde2563d526205e4e8b870925b39b50`. They establish that both
+registered student sources can produce task-reward learning signal under the
+100-step recipe. They are not members of the final six-arm matrix, have not
+been evaluated on `source_holdout`, and both completion manifests retain
+`scientific_use_allowed=false`.
+
+| Source/job | Informative groups | Reward outcomes | Max pre-clip gradient | Final adapter tree SHA-256 |
+|---|---:|---|---:|---|
+| M `107182` | 22/100 | 218 correct, 41 incorrect, 141 parse failures | 0.871966 | `d4567b1497b415752037072b2cc737c199b15b3c542ebfc89558c0055ed93bc4` |
+| O `107183` | 12/100 | 35 correct, 60 incorrect, 305 parse failures | 1.148583 | `5ce3f38fcf36d97b7396a70c40a427b11d74aa92d8b505df0ecfe72a6c4dc51f` |
+
+Each run has exactly 100 optimizer steps, 400 traced samples, 100 prompt
+groups, 100 unique records and prompt hashes, four samples per group, finite
+numerics, a nonzero-gradient step for every informative group, a measured
+parameter update, clean start/save/end Git custody, an unchanged exact train
+environment, and a stable final artifact hash. The M run/completion/step/sample
+manifest hashes are respectively
+`1c83f8d7571a3b7e780df3ff2b975f6072da0423b3fe4bebfdf5ab2581f0a389`,
+`dd90aa48448a0b8e26f67b6579b0cbb92b388b5b969a5fac473a981722e0ea3c`,
+`82b48499e44300b3df40c583174597ceb1bbc92170a41e32165ca5e5840b62b2`,
+and `b66eee5cf88801502301789093647664f05baccdc371fc46b7666931911c8b43`;
+its stdout hash is
+`78cc9570c221399799cf80fe843f2b0c67ad72f62af745a0889148ea4230ac0f`.
+The corresponding O hashes are
+`807f36c9340910ce501df876c8a8e3dea3d430cb8db5cc41f6e483bf1594d3f7`,
+`40f13504fdf1879ea039f78083f7611d543f9db21dfcdc7abf2440618f1feb51`,
+`78596f9ba85cea531008f68b1a162f85e7b7ad4eabd51efbb2b3b5dcfb542be1`,
+and `b4f721804f8d3bb88327627c1b20371a84f0c850cb38bdd4e76357e3a963dde4`;
+its stdout hash is
+`ba7f90266c2d9a4e01b045b1bb847e8d27c01d88c18237513bc110daf2e3195d`.
+Allocated-CPU read-only audit job `107198` then reran the full student-run
+contract validator over both exact traces, manifests, and adapters and
+completed `0:0`.
+The immutable terminal record is
+`campaigns/predecessor_task_rl_6be96e6_terminal/terminal_audit.json`, SHA-256
+`1fbe3b648eca9b6f63d584488c079de14275de20c8198387d44748de83ecbf52`.
+The 305/400 O parse failures are a substantive diagnostic to retain in
+held-out interpretation rather than hide behind pass/fail training status.
+
+Commit `cef34f6b42b6db87f3d3703497d7a75425dc71af` recorded the shared
+2,304-token teacher prompt plan, but a prelaunch audit stopped it before EIT
+execution: scientific teacher training did not yet bind and reverify the exact
+commit-specific full train environment. The successor patch now requires that
+environment at trainer and wrapper entry, rechecks it before candidate save,
+after candidate save, after final promotion, and at the teacher quality gate,
+and carries the normalized identity through teacher-gap output, merged-teacher
+provenance, OPD training, and held-out result validation. The merged-teacher
+provenance schema is consequently `opd_math_merged_teacher_v3`; no v2 consumer
+remains.
+
+The independent audit also caught and fixed one subtle no-promotion defect
+before launch: a disappearing installed distribution raised
+`PackageNotFoundError` after candidate promotion instead of being converted to
+a failed custody check and quarantine. The corrected path fails closed, and
+the precommit suite passes 223 tests plus shell syntax, workspace, compile, and
+diff checks. No successor teacher or student job has been launched from this
+patch. At this checkpoint there are no active OPD-math jobs, and the EIT clone
+remains clean at `6be96e6`; it must be fast-forwarded only after the successor
+commit and fresh immutable freezes exist.
 
 ## Known nonblocking hardening work
 
@@ -435,6 +498,11 @@ and own-source held-out skill-gap gates before any OPD arm.
 - The candidate-to-final rehash/rejection path is statically covered and was
   exercised by successful promotions, but its rejection branch still lacks a
   direct end-to-end integration test.
+- The campaign deliberately uses one successor commit for teacher training,
+  merge, student training, and final evaluation. Teacher commit identity is
+  preserved through every artifact, but merge code does not independently
+  reject a different later clean commit; the immutable launch ledger must keep
+  this operational constraint explicit.
 
 ## Operational cleanup performed
 

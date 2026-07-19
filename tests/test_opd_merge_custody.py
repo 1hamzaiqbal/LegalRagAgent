@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from tests.opd_evaluation_fixture import write_merged_evaluation
+from scripts.opd_math import quality_gates
 
 from scripts.opd_math.merge_adapter import (
     clean_stable_git_custody,
@@ -33,6 +34,57 @@ DECODING = {
     "max_new_tokens": 1024,
     "seed": 0,
 }
+
+
+@pytest.fixture(autouse=True)
+def stub_live_teacher_environment_reverification(monkeypatch):
+    monkeypatch.setattr(
+        quality_gates,
+        "reverify_recorded_environment",
+        lambda recorded, *, in_process: dict(recorded),
+    )
+
+
+def teacher_environment_contract(tmp_path, commit):
+    freeze = tmp_path / "environment_freezes" / commit / "train.freeze.txt"
+    freeze.parent.mkdir(parents=True, exist_ok=True)
+    freeze.write_text("exact-test-freeze\n")
+    freeze_hash = sha256_file(freeze)
+    verification = {
+        "schema_version": 1,
+        "schema": "opd_math_environment_verification_v1",
+        "status": "passed",
+        "environment_root": str((tmp_path / "train-env").resolve()),
+        "live_python": str((tmp_path / "train-env" / "bin" / "python").resolve()),
+        "expected_commit": commit,
+        "freeze_kind": "train",
+        "installed_distribution_count": 1,
+        "installed_distribution_map_sha256": "d" * 64,
+        "requirements_freeze": {"path": str(freeze), "sha256": freeze_hash},
+        "commit_freeze": {
+            "path": str(freeze.resolve()),
+            "sha256": freeze_hash,
+            "byte_identical_to_requirements_freeze": True,
+        },
+        "expected_executable": None,
+    }
+    return {
+        "schema_version": 2,
+        "git_commit": commit,
+        "verifier": {
+            "path": str(quality_gates.ENVIRONMENT_VERIFIER.resolve()),
+            "sha256": sha256_file(quality_gates.ENVIRONMENT_VERIFIER),
+        },
+        "train_runtime_packages": EXPECTED_TEACHER_TRAIN_PACKAGES,
+        "train_freeze": {
+            "path": str(freeze.resolve()),
+            "sha256": freeze_hash,
+            "required_packages": EXPECTED_TEACHER_TRAIN_PACKAGES,
+        },
+        "train_verification": verification,
+        "serve_freeze": None,
+        "serve_verification": None,
+    }
 
 
 def write_jsonl(path, rows):
@@ -127,6 +179,7 @@ def write_gate_fixture(tmp_path):
     adapter.mkdir()
     (adapter / "adapter_config.json").write_text('{"r": 8}\n')
     state = {"commit": "c" * 40, "dirty": False}
+    environment = teacher_environment_contract(tmp_path, state["commit"])
     training_plan = json.loads(CANONICAL_TEACHER_TRAINING_PLAN.read_text())
     fixed_config = training_plan["fixed_config"]
     trainer_state = tmp_path / "trainer_state.json"
@@ -294,8 +347,15 @@ def write_gate_fixture(tmp_path):
                 "final_adapter": str(adapter.resolve()),
                 "final_adapter_tree_sha256": sha256_tree(adapter),
                 "git_state_start": state,
+                "git_state_before_candidate_save": state,
+                "git_state_after_candidate_save": state,
                 "git_state_end": state,
                 "clean_stable_code": True,
+                "environment_contract": environment,
+                "stable_environment_before_candidate_save": True,
+                "stable_environment_after_candidate_save": True,
+                "stable_environment_end": True,
+                "stable_final_artifact_hash": True,
             },
             indent=2,
             sort_keys=True,
@@ -343,6 +403,7 @@ def test_merge_custody_accepts_only_recomputed_scientific_gate(tmp_path):
     )
     assert custody["adapter_tree_sha256"] == sha256_tree(adapter)
     assert custody["manifest_sha256"] == sha256_file(manifest)
+    assert custody["gate"]["teacher_training_environment"]["schema_version"] == 2
 
     with pytest.raises(ValueError, match="base identity"):
         validate_teacher_gate_for_merge(
@@ -369,6 +430,18 @@ def test_merge_custody_rejects_generic_smoke_or_mutated_artifacts(tmp_path):
     with pytest.raises(ValueError, match="merge requires gate"):
         validate_teacher_gate_for_merge(
             smoke, base_model=MODEL, base_revision=REVISION, adapter=adapter
+        )
+
+    payload = json.loads(manifest.read_text())
+    payload.pop("teacher_training_environment")
+    missing_environment = tmp_path / "missing-environment.json"
+    missing_environment.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    with pytest.raises(ValueError, match="train-environment custody"):
+        validate_teacher_gate_for_merge(
+            missing_environment,
+            base_model=MODEL,
+            base_revision=REVISION,
+            adapter=adapter,
         )
 
     (adapter / "adapter_config.json").write_text('{"r": 16}\n')

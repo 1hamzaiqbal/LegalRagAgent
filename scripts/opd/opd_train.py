@@ -79,7 +79,7 @@ K1_MODES = {"opd", "opd_gated", "k1_bare", "k1_gap_only", "task_rl_k1_gap"}
 GATED_K1_MODES = {"opd_gated", "k1_gap_only", "task_rl_k1_gap"}
 TASK_REWARD_MODES = {"task_rl", "task_rl_k1_gap"}
 TEACHER_MODES = K1_MODES | {"kd"}
-MERGED_TEACHER_SCHEMA = "opd_math_merged_teacher_v2"
+MERGED_TEACHER_SCHEMA = "opd_math_merged_teacher_v3"
 MERGER_FILE = ROOT / "scripts" / "opd_math" / "merge_adapter.py"
 CANONICAL_STUDENT_TRAINING_PLAN = (
     ROOT / "configs" / "opd_math" / "student_training_plan.json"
@@ -1266,6 +1266,15 @@ def _validate_teacher_provenance(path: str | None, teacher_gate: dict, args) -> 
         provenance,
         "adapter_tree_sha256",
         teacher_gate["trained_adapter_tree_sha256"],
+        "teacher provenance",
+    )
+    teacher_training_environment = teacher_gate.get("teacher_training_environment")
+    if not isinstance(teacher_training_environment, dict):
+        raise ValueError("teacher gap lacks exact teacher train-environment custody")
+    _expect_equal(
+        provenance,
+        "teacher_training_environment",
+        teacher_training_environment,
         "teacher provenance",
     )
     _expect_equal(

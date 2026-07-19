@@ -212,12 +212,18 @@ Slurm jobs, independent recomputation, and preserved login-lane anomaly. The
 first 100-step teacher launch pair failed closed during whole-pool prompt
 validation, before optimization or artifact creation. That failure motivated
 the source-independent v2 teacher plan above. The successor teacher runs and
-their own-source skill-gap gates remain pending. Full task-RL jobs `107182`
-and `107183` were trained from predecessor commit `6be96e6`; regardless of
-their terminal quality, they are not eligible for the successor commit's final
-six-arm matrix. The predeclared readout requires one exact student-training
-and evaluation Git identity across all six arms, so both baselines must be
-rerun on the successor commit.
+their own-source skill-gap gates remain pending. Full predecessor task-RL jobs
+`107182` and `107183` completed 100 steps with respectively 22% and 12%
+mixed-reward groups, measured parameter updates, clean environment/code
+custody, and stable adapters. They establish task-signal support for both
+sources but are not held-out performance results. Because they trained from
+predecessor commit `6be96e6`, they are not eligible for the successor commit's
+final six-arm matrix. The predeclared readout requires one exact
+student-training and evaluation Git identity across all six arms, so both
+baselines must be rerun on the successor commit. A prelaunch audit also added
+exact full train-environment custody to scientific teachers and propagated it
+through teacher-gap, merge-provenance v3, OPD, and final-result contracts before
+any successor teacher was launched.
 
 ## Links
 

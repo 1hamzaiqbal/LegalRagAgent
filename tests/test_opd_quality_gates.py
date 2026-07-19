@@ -39,6 +39,57 @@ DECODING = TEACHER_GAP_DECODING
 EVALUATOR = Path(__file__).resolve().parents[1] / "scripts" / "opd_math" / "evaluate_math.py"
 
 
+@pytest.fixture(autouse=True)
+def stub_live_teacher_environment_reverification(monkeypatch):
+    monkeypatch.setattr(
+        quality_gates,
+        "reverify_recorded_environment",
+        lambda recorded, *, in_process: dict(recorded),
+    )
+
+
+def teacher_environment_contract(tmp_path, commit):
+    freeze = tmp_path / "environment_freezes" / commit / "train.freeze.txt"
+    freeze.parent.mkdir(parents=True, exist_ok=True)
+    freeze.write_text("exact-test-freeze\n")
+    freeze_hash = sha256_file(freeze)
+    verification = {
+        "schema_version": 1,
+        "schema": "opd_math_environment_verification_v1",
+        "status": "passed",
+        "environment_root": str((tmp_path / "train-env").resolve()),
+        "live_python": str((tmp_path / "train-env" / "bin" / "python").resolve()),
+        "expected_commit": commit,
+        "freeze_kind": "train",
+        "installed_distribution_count": 1,
+        "installed_distribution_map_sha256": "d" * 64,
+        "requirements_freeze": {"path": str(freeze), "sha256": freeze_hash},
+        "commit_freeze": {
+            "path": str(freeze.resolve()),
+            "sha256": freeze_hash,
+            "byte_identical_to_requirements_freeze": True,
+        },
+        "expected_executable": None,
+    }
+    return {
+        "schema_version": 2,
+        "git_commit": commit,
+        "verifier": {
+            "path": str(quality_gates.ENVIRONMENT_VERIFIER.resolve()),
+            "sha256": sha256_file(quality_gates.ENVIRONMENT_VERIFIER),
+        },
+        "train_runtime_packages": EXPECTED_TEACHER_TRAIN_PACKAGES,
+        "train_freeze": {
+            "path": str(freeze.resolve()),
+            "sha256": freeze_hash,
+            "required_packages": EXPECTED_TEACHER_TRAIN_PACKAGES,
+        },
+        "train_verification": verification,
+        "serve_freeze": None,
+        "serve_verification": None,
+    }
+
+
 def write_jsonl(path, rows):
     path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows))
 
@@ -132,6 +183,7 @@ def write_teacher_run(tmp_path, prepared_manifest, adapter, *, source="M", scien
     source_manifest = prepared["source_manifest_path"]
     training_path = prepared_manifest.parent / "roles" / source / "teacher_train.jsonl"
     state = {"commit": "c" * 40, "dirty": False}
+    environment = teacher_environment_contract(tmp_path, state["commit"])
     training_plan = json.loads(CANONICAL_TEACHER_TRAINING_PLAN.read_text())
     fixed_config = training_plan["fixed_config"]
     trainer_state = tmp_path / "trainer_state.json"
@@ -304,8 +356,15 @@ def write_teacher_run(tmp_path, prepared_manifest, adapter, *, source="M", scien
         "final_adapter": str(adapter.resolve()),
         "final_adapter_tree_sha256": sha256_tree(adapter),
         "git_state_start": state,
+        "git_state_before_candidate_save": state,
+        "git_state_after_candidate_save": state,
         "git_state_end": state,
         "clean_stable_code": True,
+        "environment_contract": environment,
+        "stable_environment_before_candidate_save": True,
+        "stable_environment_after_candidate_save": True,
+        "stable_environment_end": True,
+        "stable_final_artifact_hash": True,
     }
     path = tmp_path / "teacher-run.json"
     path.write_text(json.dumps(run, indent=2, sort_keys=True) + "\n")
@@ -750,6 +809,7 @@ def test_scientific_teacher_gate_requires_records_strict_gain_and_positive_ci(tm
         better["teacher_training_plan_config_sha256"]
         == better["teacher_training_config_sha256"]
     )
+    assert better["teacher_training_environment"]["schema_version"] == 2
 
     intact_run = json.loads(teacher_run_manifest.read_text())
     trace_path = Path(intact_run["teacher_samples"])
@@ -809,6 +869,57 @@ def test_scientific_teacher_gate_requires_records_strict_gain_and_positive_ci(tm
                 teacher_run_manifest=teacher_run_manifest,
             )
         )
+
+
+def test_scientific_teacher_gate_rejects_missing_or_mutated_environment_custody(tmp_path):
+    args = passing_scientific_teacher_fixture(tmp_path)
+    assert teacher_gap(args)["passed"]
+    intact = json.loads(args.teacher_run_manifest.read_text())
+
+    missing = dict(intact)
+    missing.pop("environment_contract")
+    args.teacher_run_manifest.write_text(json.dumps(missing, indent=2, sort_keys=True) + "\n")
+    with pytest.raises(ValueError, match="train-environment custody"):
+        teacher_gap(args)
+
+    args.teacher_run_manifest.write_text(json.dumps(intact, indent=2, sort_keys=True) + "\n")
+    freeze = Path(intact["environment_contract"]["train_freeze"]["path"])
+    freeze.write_text("mutated-freeze\n")
+    with pytest.raises(ValueError, match="freeze hash has drifted"):
+        teacher_gap(args)
+
+
+@pytest.mark.parametrize(
+    "field",
+    (
+        "stable_environment_before_candidate_save",
+        "stable_environment_after_candidate_save",
+        "stable_environment_end",
+        "stable_final_artifact_hash",
+    ),
+)
+def test_scientific_teacher_gate_requires_each_promotion_custody_attestation(
+    tmp_path, field
+):
+    args = passing_scientific_teacher_fixture(tmp_path)
+    run = json.loads(args.teacher_run_manifest.read_text())
+    run[field] = False
+    args.teacher_run_manifest.write_text(json.dumps(run, indent=2, sort_keys=True) + "\n")
+    with pytest.raises(ValueError, match=field):
+        teacher_gap(args)
+
+
+@pytest.mark.parametrize(
+    "field",
+    ("git_state_before_candidate_save", "git_state_after_candidate_save"),
+)
+def test_scientific_teacher_gate_requires_both_candidate_git_states(tmp_path, field):
+    args = passing_scientific_teacher_fixture(tmp_path)
+    run = json.loads(args.teacher_run_manifest.read_text())
+    run.pop(field)
+    args.teacher_run_manifest.write_text(json.dumps(run, indent=2, sort_keys=True) + "\n")
+    with pytest.raises(ValueError, match="candidate-promotion Git custody"):
+        teacher_gap(args)
 
 
 def test_scientific_teacher_gate_rejects_all_zero_training_trace(tmp_path):

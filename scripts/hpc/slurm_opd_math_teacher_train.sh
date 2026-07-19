@@ -23,6 +23,10 @@ BUDGET_MODE="${OPD_MATH_BUDGET_MODE:-primary_matched}"
 MODEL="${OPD_MATH_TEACHER_MODEL:-Qwen/Qwen3-8B}"
 REVISION="${OPD_MATH_TEACHER_REVISION:-b968826d9c46dd6066d109eabc6255188de91218}"
 TRAINING_PLAN="$REPO/configs/opd_math/teacher_training_plan.json"
+COMMIT="$(git -C "$REPO" rev-parse HEAD)"
+FREEZE_ROOT="$RUN_ROOT/environment_freezes/$COMMIT"
+TRAIN_FREEZE="$FREEZE_ROOT/train.freeze.txt"
+VERIFY_ENVIRONMENT="$REPO/scripts/opd_math/verify_environment.py"
 OUT="$RUN_ROOT/teachers/$SOURCE/run_${SLURM_JOB_ID}"
 
 test "$SOURCE" = M || test "$SOURCE" = O
@@ -30,6 +34,7 @@ case "$BUDGET_MODE" in primary_matched|dose_response) ;; *) echo "invalid OPD_MA
 test -x "$ENV_DIR/bin/python"
 test -f "$REPO/configs/opd_math/source_manifest.json"
 test -f "$TRAINING_PLAN"
+test -f "$TRAIN_FREEZE"
 test -f "$DATA_ROOT/prepared_manifest.json"
 test -f "$DATA_ROOT/roles/$SOURCE/teacher_train.jsonl"
 mkdir -p "$(dirname "$OUT")"
@@ -38,6 +43,12 @@ export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export TOKENIZERS_PARALLELISM=false
 source "$ENV_DIR/bin/activate"
+echo "Verifying live train environment before teacher execution"
+"$ENV_DIR/bin/python" "$VERIFY_ENVIRONMENT" \
+  --environment-root "$ENV_DIR" \
+  --commit-freeze "$TRAIN_FREEZE" \
+  --expected-commit "$COMMIT" \
+  --freeze-kind train
 python "$REPO/scripts/opd_math/train_teacher_grpo.py" \
   --model "$MODEL" \
   --model-revision "$REVISION" \
@@ -48,6 +59,8 @@ python "$REPO/scripts/opd_math/train_teacher_grpo.py" \
   --source-manifest "$REPO/configs/opd_math/source_manifest.json" \
   --training-plan "$TRAINING_PLAN" \
   --output-dir "$OUT" \
+  --train-environment-root "$ENV_DIR" \
+  --train-environment-freeze "$TRAIN_FREEZE" \
   --limit "$OPD_MATH_TEACHER_LIMIT" \
   --max-steps "${OPD_MATH_MAX_STEPS:-100}" \
   --num-generations "${OPD_MATH_NUM_GENERATIONS:-4}" \
@@ -59,6 +72,12 @@ python "$REPO/scripts/opd_math/train_teacher_grpo.py" \
   --seed "${OPD_MATH_SEED:-0}" \
   --require-informative-reward \
   --local-files-only
+echo "Re-verifying live train environment after teacher execution"
+"$ENV_DIR/bin/python" "$VERIFY_ENVIRONMENT" \
+  --environment-root "$ENV_DIR" \
+  --commit-freeze "$TRAIN_FREEZE" \
+  --expected-commit "$COMMIT" \
+  --freeze-kind train
 test -f "$OUT/final_adapter/adapter_config.json"
 test -f "$OUT/train_metrics.json"
 test -f "$OUT/trainer_log_history.json"

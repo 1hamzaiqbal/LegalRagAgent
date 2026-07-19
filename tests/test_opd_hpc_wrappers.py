@@ -10,9 +10,18 @@ TEACHER_TRAIN = ROOT / "scripts" / "hpc" / "slurm_opd_math_teacher_train.sh"
 TEACHER_SMOKE = ROOT / "scripts" / "hpc" / "slurm_opd_math_teacher_smoke.sh"
 
 
-def test_evaluation_wrappers_have_valid_bash_syntax():
+def test_touched_evaluation_and_teacher_wrappers_have_valid_bash_syntax():
     subprocess.run(
-        ["bash", "-n", str(EVALUATE), str(MERGE), str(QUALITY_GATE)], check=True
+        [
+            "bash",
+            "-n",
+            str(EVALUATE),
+            str(MERGE),
+            str(QUALITY_GATE),
+            str(TEACHER_TRAIN),
+            str(TEACHER_SMOKE),
+        ],
+        check=True,
     )
 
 
@@ -62,6 +71,21 @@ def test_teacher_wrapper_uses_the_registered_full_pool_prompt_bound():
     smoke = TEACHER_SMOKE.read_text()
     assert "--max-prompt-tokens 2304" in smoke
     assert "--max-prompt-tokens 1536" not in smoke
+    assert 'OPD_MATH_TEACHER_SMOKE_LIMIT:-16' in smoke
+
+
+def test_teacher_wrappers_bind_and_reverify_the_commit_specific_train_environment():
+    for path in (TEACHER_TRAIN, TEACHER_SMOKE):
+        script = path.read_text()
+        assert 'FREEZE_ROOT="$RUN_ROOT/environment_freezes/$COMMIT"' in script
+        assert 'TRAIN_FREEZE="$FREEZE_ROOT/train.freeze.txt"' in script
+        assert script.count('"$ENV_DIR/bin/python" "$VERIFY_ENVIRONMENT"') == 2
+        assert '--train-environment-root "$ENV_DIR"' in script
+        assert '--train-environment-freeze "$TRAIN_FREEZE"' in script
+        before = script.index("Verifying live train environment before")
+        trainer = script.index('python "$REPO/scripts/opd_math/train_teacher_grpo.py"')
+        after = script.index("Re-verifying live train environment after")
+        assert before < trainer < after
 
 
 def test_quality_gate_has_headroom_for_full_o_reward_recomputation():

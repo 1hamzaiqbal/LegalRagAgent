@@ -84,7 +84,7 @@ def write_checkpoint(tmp_path):
         json.dumps(
             {
                 "schema_version": 1,
-                "schema": "opd_math_merged_teacher_v2",
+                "schema": "opd_math_merged_teacher_v3",
                 "output_checkpoint": str(checkpoint.resolve()),
                 "output_checkpoint_tree_sha256": tree_hash,
             },
@@ -455,6 +455,11 @@ def test_student_requires_trusted_merge_code_custody(tmp_path, monkeypatch):
         "manifest_sha256": "b" * 64,
         "trained_adapter": str((tmp_path / "adapter").resolve()),
         "trained_adapter_tree_sha256": "c" * 64,
+        "teacher_training_environment": {
+            "schema_version": 2,
+            "training_git_commit": "a" * 40,
+            "train_freeze_sha256": "e" * 64,
+        },
     }
     args = Namespace(
         teacher_base_model="Qwen/Qwen3-8B",
@@ -470,6 +475,7 @@ def test_student_requires_trusted_merge_code_custody(tmp_path, monkeypatch):
         "base_revision": args.teacher_base_revision,
         "adapter": gate["trained_adapter"],
         "adapter_tree_sha256": gate["trained_adapter_tree_sha256"],
+        "teacher_training_environment": gate["teacher_training_environment"],
         "output_checkpoint": str(checkpoint.resolve()),
         "output_checkpoint_tree_sha256": sha256_tree(checkpoint),
         "merge_code": {
@@ -488,6 +494,15 @@ def test_student_requires_trusted_merge_code_custody(tmp_path, monkeypatch):
     validated = _validate_teacher_provenance(str(provenance), gate, args)
     assert validated["merge_code"]["clean_stable_code"] is True
 
+    payload["teacher_training_environment"] = {
+        **gate["teacher_training_environment"],
+        "train_freeze_sha256": "f" * 64,
+    }
+    provenance.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    with pytest.raises(ValueError, match="teacher_training_environment"):
+        _validate_teacher_provenance(str(provenance), gate, args)
+
+    payload["teacher_training_environment"] = gate["teacher_training_environment"]
     payload.pop("merge_code")
     provenance.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
     with pytest.raises(ValueError, match="merge-code custody"):

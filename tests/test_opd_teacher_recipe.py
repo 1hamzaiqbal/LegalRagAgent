@@ -1,3 +1,4 @@
+import importlib.metadata
 import json
 from argparse import Namespace
 
@@ -5,11 +6,15 @@ import pytest
 
 from scripts.opd_math.train_teacher_grpo import (
     CANONICAL_TRAINING_PLAN,
+    ENVIRONMENT_VERIFIER,
+    EXPECTED_TEACHER_TRAIN_PACKAGES,
     prompt_token_diagnostics,
     reward_signal_diagnostics,
     sha256_file,
     summarize_teacher_trace,
+    teacher_environment_contract_unchanged,
     validate_prepared_contract,
+    validate_teacher_environment_contract,
     validate_static_args,
     validate_training_plan_contract,
 )
@@ -127,6 +132,90 @@ def test_prompt_contract_rejects_implicit_truncation():
     assert diagnostics["implicit_truncation_allowed"] is False
     with pytest.raises(RuntimeError, match="never silently truncated"):
         prompt_token_diagnostics(Tokenizer(), rows, max_prompt_tokens=4)
+
+
+def test_scientific_teacher_environment_is_commit_specific_and_reverified(
+    tmp_path, monkeypatch
+):
+    commit = "c" * 40
+    environment_root = tmp_path / "train-env"
+    environment_root.mkdir()
+    freeze = tmp_path / "environment_freezes" / commit / "train.freeze.txt"
+    freeze.parent.mkdir(parents=True)
+    freeze.write_text("exact-freeze\n")
+    freeze_hash = sha256_file(freeze)
+    verification = {
+        "schema_version": 1,
+        "schema": "opd_math_environment_verification_v1",
+        "status": "passed",
+        "environment_root": str(environment_root.resolve()),
+        "expected_commit": commit,
+        "freeze_kind": "train",
+        "commit_freeze": {
+            "path": str(freeze.resolve()),
+            "sha256": freeze_hash,
+            "byte_identical_to_requirements_freeze": True,
+        },
+        "expected_executable": None,
+    }
+    monkeypatch.setattr(
+        "scripts.opd_math.train_teacher_grpo.package_versions",
+        lambda: dict(EXPECTED_TEACHER_TRAIN_PACKAGES),
+    )
+    monkeypatch.setattr(
+        "scripts.opd_math.train_teacher_grpo.verify_environment",
+        lambda **kwargs: dict(verification),
+    )
+    monkeypatch.setattr(
+        "scripts.opd_math.train_teacher_grpo.reverify_recorded_environment",
+        lambda recorded, *, in_process: dict(recorded),
+    )
+    run_args = args(
+        train_environment_root=environment_root,
+        train_environment_freeze=freeze,
+    )
+    contract = validate_teacher_environment_contract(
+        run_args, {"commit": commit, "dirty": False}, required=True
+    )
+    assert contract["git_commit"] == commit
+    assert contract["verifier"] == {
+        "path": str(ENVIRONMENT_VERIFIER.resolve()),
+        "sha256": sha256_file(ENVIRONMENT_VERIFIER),
+    }
+    assert teacher_environment_contract_unchanged(contract)
+
+    with monkeypatch.context() as missing_distribution:
+        def fail_package_lookup():
+            raise importlib.metadata.PackageNotFoundError("torch")
+
+        missing_distribution.setattr(
+            "scripts.opd_math.train_teacher_grpo.package_versions",
+            fail_package_lookup,
+        )
+        assert not teacher_environment_contract_unchanged(contract)
+
+    freeze.write_text("mutated\n")
+    assert not teacher_environment_contract_unchanged(contract)
+
+
+def test_scientific_teacher_environment_rejects_missing_or_wrong_commit_freeze(tmp_path):
+    commit = "c" * 40
+    with pytest.raises(ValueError, match="requires --train-environment-root"):
+        validate_teacher_environment_contract(
+            args(), {"commit": commit, "dirty": False}, required=True
+        )
+
+    environment_root = tmp_path / "train-env"
+    environment_root.mkdir()
+    wrong = tmp_path / "environment_freezes" / ("d" * 40) / "train.freeze.txt"
+    wrong.parent.mkdir(parents=True)
+    wrong.write_text("exact-freeze\n")
+    with pytest.raises(ValueError, match="commit-specific"):
+        validate_teacher_environment_contract(
+            args(train_environment_root=environment_root, train_environment_freeze=wrong),
+            {"commit": commit, "dirty": False},
+            required=True,
+        )
 
 
 def test_primary_contract_binds_exact_role_file_and_budget(tmp_path):

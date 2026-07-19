@@ -20,9 +20,11 @@ from typing import Any, Iterable
 try:
     from .data_contract import iter_jsonl
     from .math_reward import verify_completion, verify_trl_accuracy_completion
+    from .verify_environment import reverify_recorded_environment
 except ImportError:
     from data_contract import iter_jsonl  # type: ignore
     from math_reward import verify_completion, verify_trl_accuracy_completion  # type: ignore
+    from verify_environment import reverify_recorded_environment  # type: ignore
 
 
 SCHEMA_VERSION = 3
@@ -86,6 +88,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CANONICAL_TEACHER_TRAINING_PLAN = (
     ROOT / "configs" / "opd_math" / "teacher_training_plan.json"
 )
+ENVIRONMENT_VERIFIER = ROOT / "scripts" / "opd_math" / "verify_environment.py"
 
 
 def sha256_file(path: Path) -> str:
@@ -580,6 +583,81 @@ def recompute_teacher_trace(
     }
 
 
+def _teacher_environment_binding(
+    run: dict[str, Any], *, training_commit: str
+) -> dict[str, Any]:
+    """Validate and live-reverify the scientific teacher train environment."""
+
+    environment = run.get("environment_contract")
+    if not isinstance(environment, dict) or environment.get("schema_version") != 2:
+        raise ValueError("scientific teacher run lacks exact train-environment custody")
+    if environment.get("git_commit") != training_commit:
+        raise ValueError("teacher train-environment commit differs from training Git custody")
+    expected_verifier = {
+        "path": str(ENVIRONMENT_VERIFIER.resolve()),
+        "sha256": sha256_file(ENVIRONMENT_VERIFIER),
+    }
+    if environment.get("verifier") != expected_verifier:
+        raise ValueError("teacher train-environment verifier identity has drifted")
+    if environment.get("train_runtime_packages") != EXPECTED_TEACHER_TRAIN_PACKAGES:
+        raise ValueError("teacher train-environment runtime package subset has drifted")
+    if environment.get("serve_freeze") is not None or environment.get("serve_verification") is not None:
+        raise ValueError("teacher training must not bind a serve environment")
+
+    freeze = environment.get("train_freeze")
+    recorded = environment.get("train_verification")
+    if not isinstance(freeze, dict) or not isinstance(recorded, dict):
+        raise ValueError("teacher train-environment binding is incomplete")
+    freeze_path = _path_from_manifest(
+        freeze.get("path"), CANONICAL_TEACHER_TRAINING_PLAN, "teacher train freeze"
+    )
+    if (
+        freeze_path.name != "train.freeze.txt"
+        or freeze_path.parent.name != training_commit
+        or freeze_path.parent.parent.name != "environment_freezes"
+    ):
+        raise ValueError("teacher train freeze is not commit-specific")
+    if freeze_path.is_symlink() or not freeze_path.is_file():
+        raise ValueError("teacher train freeze is not a regular non-symlink file")
+    freeze_hash = sha256_file(freeze_path)
+    if freeze.get("sha256") != freeze_hash:
+        raise ValueError("teacher train freeze hash has drifted")
+    if freeze.get("required_packages") != EXPECTED_TEACHER_TRAIN_PACKAGES:
+        raise ValueError("teacher train freeze lacks the pinned package subset")
+    if recorded.get("expected_commit") != training_commit or recorded.get("freeze_kind") != "train":
+        raise ValueError("teacher live-environment verification has the wrong commit or kind")
+    if recorded.get("commit_freeze") != {
+        "path": str(freeze_path),
+        "sha256": freeze_hash,
+        "byte_identical_to_requirements_freeze": True,
+    }:
+        raise ValueError("teacher live-environment verification does not bind the freeze")
+    if reverify_recorded_environment(recorded, in_process=True) != recorded:
+        raise ValueError("teacher live train environment differs from its recorded identity")
+    for field in (
+        "stable_environment_before_candidate_save",
+        "stable_environment_after_candidate_save",
+        "stable_environment_end",
+        "stable_final_artifact_hash",
+    ):
+        if run.get(field) is not True:
+            raise ValueError(f"scientific teacher run lacks {field}")
+    return {
+        "schema_version": 2,
+        "git_commit": training_commit,
+        "verifier": expected_verifier,
+        "train_runtime_packages": EXPECTED_TEACHER_TRAIN_PACKAGES,
+        "train_freeze": {
+            "path": str(freeze_path),
+            "sha256": freeze_hash,
+            "required_packages": EXPECTED_TEACHER_TRAIN_PACKAGES,
+        },
+        "train_verification": recorded,
+        "serve_freeze": None,
+        "serve_verification": None,
+    }
+
+
 def _teacher_run_binding(
     run_manifest_path: Path,
     *,
@@ -672,6 +750,7 @@ def _teacher_run_binding(
         raise ValueError("prepared manifest lacks a positive teacher_train budget")
 
     training_artifact_binding: dict[str, Any] = {}
+    training_environment_binding: dict[str, Any] | None = None
     if strength == "scientific":
         if run.get("scientific_use_allowed") is not True:
             raise ValueError("scientific teacher gate requires an eligible teacher run")
@@ -807,17 +886,31 @@ def _teacher_run_binding(
                 "teacher_expected_unique_training_records": expected_unique_records,
             }
         )
-        start = run.get("git_state_start")
-        end = run.get("git_state_end")
-        if not isinstance(start, dict) or not isinstance(end, dict):
-            raise ValueError("teacher run lacks start/end Git custody")
+        git_states = [
+            run.get("git_state_start"),
+            run.get("git_state_before_candidate_save"),
+            run.get("git_state_after_candidate_save"),
+            run.get("git_state_end"),
+        ]
+        if any(not isinstance(state, dict) for state in git_states):
+            raise ValueError("teacher run lacks complete candidate-promotion Git custody")
+        start = git_states[0]
+        assert isinstance(start, dict)
+        training_commit = start.get("commit")
         if (
             start.get("dirty") is not False
-            or end.get("dirty") is not False
-            or not isinstance(start.get("commit"), str)
-            or start.get("commit") != end.get("commit")
+            or not isinstance(training_commit, str)
+            or re.fullmatch(r"[0-9a-f]{40}", training_commit) is None
+            or any(
+                state.get("dirty") is not False or state.get("commit") != training_commit
+                for state in git_states[1:]
+                if isinstance(state, dict)
+            )
         ):
             raise ValueError("teacher run Git custody is not clean and stable")
+        training_environment_binding = _teacher_environment_binding(
+            run, training_commit=training_commit
+        )
 
     return {
         "teacher_run_manifest": str(run_manifest_path),
@@ -833,6 +926,7 @@ def _teacher_run_binding(
         "teacher_training_plan_config_sha256": plan_config_hash,
         "teacher_training_config_sha256": actual_config_hash,
         "teacher_training_packages": run.get("packages"),
+        "teacher_training_environment": training_environment_binding,
         "teacher_training_actual_optimizer_steps": run.get("actual_optimizer_steps"),
         "teacher_training_prompt_token_diagnostics": run.get("prompt_token_diagnostics"),
         "teacher_training_git_commit": (

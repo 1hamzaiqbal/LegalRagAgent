@@ -536,7 +536,7 @@ def _validate_teacher_identity(
     if not isinstance(provenance, dict):
         raise ValueError("main arm lacks merged-teacher provenance")
     _expect(provenance, "schema_version", 1, "teacher provenance")
-    _expect(provenance, "schema", "opd_math_merged_teacher_v2", "teacher provenance")
+    _expect(provenance, "schema", "opd_math_merged_teacher_v3", "teacher provenance")
     _expect(provenance, "status", "completed", "teacher provenance")
     checkpoint = _absolute(
         provenance.get("output_checkpoint"), CANONICAL_STUDENT_TRAINING_PLAN, "teacher checkpoint"
@@ -583,6 +583,15 @@ def _validate_teacher_identity(
         provenance,
         "adapter_tree_sha256",
         teacher_gate.get("trained_adapter_tree_sha256"),
+        "teacher provenance",
+    )
+    teacher_training_environment = teacher_gate.get("teacher_training_environment")
+    if not isinstance(teacher_training_environment, dict):
+        raise ValueError("teacher-gap gate lacks exact teacher train-environment custody")
+    _expect(
+        provenance,
+        "teacher_training_environment",
+        teacher_training_environment,
         "teacher provenance",
     )
     merge_code = provenance.get("merge_code")

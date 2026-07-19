@@ -587,6 +587,7 @@ def test_teacher_identity_binds_gate_provenance_checkpoint_and_merge_commit(tmp_
     teacher_adapter = tmp_path / "teacher_adapter"
     teacher_adapter.mkdir()
     (teacher_adapter / "adapter_config.json").write_text("{}\n")
+    teacher_environment = {"schema_version": 2, "git_commit": COMMIT}
     teacher_gate_disk = {
         "schema_version": 3,
         "gate": "teacher_gap_v1",
@@ -598,6 +599,7 @@ def test_teacher_identity_binds_gate_provenance_checkpoint_and_merge_commit(tmp_
         "prepared_manifest": str(prepared_path.resolve()),
         "prepared_manifest_sha256": prepared_hash,
         "trained_adapter_tree_sha256": results.sha256_tree(teacher_adapter),
+        "teacher_training_environment": teacher_environment,
     }
     teacher_gate_path = tmp_path / "teacher_gap.json"
     teacher_gate_path.write_text(json.dumps(teacher_gate_disk, indent=2, sort_keys=True) + "\n")
@@ -613,7 +615,7 @@ def test_teacher_identity_binds_gate_provenance_checkpoint_and_merge_commit(tmp_
     state = {"commit": COMMIT, "dirty": False}
     provenance_disk = {
         "schema_version": 1,
-        "schema": "opd_math_merged_teacher_v2",
+        "schema": "opd_math_merged_teacher_v3",
         "status": "completed",
         "output_checkpoint": str(checkpoint.resolve()),
         "output_checkpoint_tree_sha256": checkpoint_hash,
@@ -624,6 +626,7 @@ def test_teacher_identity_binds_gate_provenance_checkpoint_and_merge_commit(tmp_
         "base_model": "Qwen/Qwen3-8B",
         "base_revision": "8" * 40,
         "adapter_tree_sha256": teacher_gate["trained_adapter_tree_sha256"],
+        "teacher_training_environment": teacher_environment,
         "merge_code": {
             "git_state_start": state,
             "git_state_after_merge": state,
@@ -690,6 +693,37 @@ def test_teacher_identity_binds_gate_provenance_checkpoint_and_merge_commit(tmp_
         commit=COMMIT,
     )
     assert identity["merged_checkpoint_tree_sha256"] == checkpoint_hash
+
+    mismatched_disk = dict(provenance_disk)
+    mismatched_disk["teacher_training_environment"] = {
+        "schema_version": 2,
+        "git_commit": "f" * 40,
+    }
+    provenance_path.write_text(json.dumps(mismatched_disk, indent=2, sort_keys=True) + "\n")
+    mismatched_provenance = dict(mismatched_disk)
+    mismatched_provenance["manifest_sha256"] = results.sha256_file(provenance_path)
+    server["local_process_binding"]["teacher_provenance_manifest_sha256"] = (
+        mismatched_provenance["manifest_sha256"]
+    )
+    with pytest.raises(ValueError, match="teacher_training_environment"):
+        results._validate_teacher_identity(
+            run=run,
+            teacher_gate=teacher_gate,
+            provenance=mismatched_provenance,
+            tokenizer_contract=tokenizer,
+            server_contract=server,
+            teacher_source="M",
+            student_model=STUDENT,
+            student_revision=STUDENT_REVISION,
+            prepared_path=prepared_path.resolve(),
+            prepared_hash=prepared_hash,
+            commit=COMMIT,
+        )
+
+    provenance_path.write_text(json.dumps(provenance_disk, indent=2, sort_keys=True) + "\n")
+    server["local_process_binding"]["teacher_provenance_manifest_sha256"] = provenance[
+        "manifest_sha256"
+    ]
 
     (checkpoint / "model.safetensors").write_bytes(b"mutated weights")
     with pytest.raises(ValueError, match="output_checkpoint_tree_sha256|tree"):

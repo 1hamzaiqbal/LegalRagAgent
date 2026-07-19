@@ -217,7 +217,7 @@ def build_local_process_binding(
             "teacher provenance must be the merge_provenance.json inside the served checkpoint"
         )
     provenance = _json_object(provenance_path, "teacher provenance")
-    if provenance.get("schema") != "opd_math_merged_teacher_v2":
+    if provenance.get("schema") != "opd_math_merged_teacher_v3":
         raise ValueError("teacher provenance has the wrong schema")
     if provenance.get("output_checkpoint") != str(checkpoint):
         raise ValueError("teacher provenance output_checkpoint differs from the served checkpoint")

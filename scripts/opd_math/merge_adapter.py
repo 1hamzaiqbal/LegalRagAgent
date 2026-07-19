@@ -31,7 +31,7 @@ except ImportError:
     )
 
 
-PROVENANCE_SCHEMA = "opd_math_merged_teacher_v2"
+PROVENANCE_SCHEMA = "opd_math_merged_teacher_v3"
 PROVENANCE_FILENAME = "merge_provenance.json"
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -162,6 +162,11 @@ def validate_teacher_gate_for_merge(
         raise ValueError("teacher gap is not bound to the teacher_gap_dev role")
     if gate.get("task_sources") not in (["M"], ["O"]):
         raise ValueError("teacher gap is not bound to exactly one registered math source")
+    teacher_environment = gate.get("teacher_training_environment")
+    if not isinstance(teacher_environment, dict):
+        raise ValueError("teacher gap lacks exact teacher train-environment custody")
+    if teacher_environment.get("git_commit") != gate.get("teacher_training_git_commit"):
+        raise ValueError("teacher gap train-environment and Git identities differ")
 
     adapter = Path(adapter).resolve()
     bound_adapter = gate.get("trained_adapter")
@@ -304,6 +309,7 @@ def main() -> int:
         ],
         "teacher_training_config_sha256": gate["teacher_training_config_sha256"],
         "teacher_training_packages": gate["teacher_training_packages"],
+        "teacher_training_environment": gate["teacher_training_environment"],
         "teacher_trainer_state": gate["teacher_trainer_state"],
         "teacher_trainer_state_sha256": gate["teacher_trainer_state_sha256"],
         "teacher_trainer_log_history": gate["teacher_trainer_log_history"],
