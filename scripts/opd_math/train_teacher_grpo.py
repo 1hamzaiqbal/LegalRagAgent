@@ -339,7 +339,7 @@ def validate_training_plan_contract(
             f"expected={CANONICAL_TRAINING_PLAN.resolve()}, supplied={plan_path}"
         )
     plan = _read_json_object(plan_path, "teacher training plan")
-    if plan.get("schema_version") != 1 or plan.get("plan_id") != "opd_math_teacher_primary_v1":
+    if plan.get("schema_version") != 1 or plan.get("plan_id") != "opd_math_teacher_primary_v2":
         raise ValueError("teacher training plan has an unsupported schema or plan_id")
     if plan.get("sources") != list(VALID_SOURCES):
         raise ValueError("teacher training plan must bind exactly the M and O source comparison")
@@ -502,7 +502,7 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--num-generations", type=int, default=4)
     parser.add_argument("--gradient-accumulation-steps", type=int, default=4)
-    parser.add_argument("--max-prompt-tokens", type=int, default=1536)
+    parser.add_argument("--max-prompt-tokens", type=int, default=2304)
     parser.add_argument("--max-completion-length", type=int, default=1024)
     parser.add_argument("--learning-rate", type=float, default=2e-5)
     parser.add_argument("--lora-r", type=int, default=16)

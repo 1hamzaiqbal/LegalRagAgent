@@ -36,7 +36,8 @@ exercises the corrected semantics below.
 This is **plumbing evidence only**. The audit data are non-scientific, the
 student smokes used the raw teacher rather than a trained-and-gated teacher,
 both two-sample task-reward groups were all wrong, and no held-out task
-evaluation was run. No full teacher or student training job was launched.
+evaluation was run. Later continuation below records full-run launch attempts;
+neither initial teacher attempt entered training or created an artifact.
 
 ## Reproducibility anchors
 
@@ -368,6 +369,63 @@ Its predeclared 20-step stochastic fallback was not activated: this was a code
 failure, and the observed group was already informative. A new frozen commit
 must repeat the same one-step contract as a code-fix regression before full
 training proceeds.
+
+## Recovered smoke, first full launch, and teacher prompt-bound correction
+
+Commit `6be96e65bfde2563d526205e4e8b870925b39b50` contains the local-name
+fix. Allocated-CPU jobs `107176` and `107177` reproduced the canonical M and O
+raw-student support gates byte for byte under that commit. Teacher smoke
+`107178` then completed `0:0`; it again had flat reward, but completed the
+callback/save contract and produced final-adapter tree SHA-256
+`9fdc79383d0752cffefe0bc897621b23b49f3b68e3191688491515c667590aa0`.
+Task-RL regression smoke `107179` completed `0:0` with rewards `[0,1,1,0]`,
+informative-group fraction 1.0, task loss 0.0408608, pre-clip gradient norm
+0.783315, a parameter update, and final-adapter tree SHA-256
+`a462b8c874ec113ded98ad3355977bf5de48dd13af65bf4e1806c7b25da7581b`.
+These are plumbing regressions, not task-performance results.
+
+The first exact 100-step teacher jobs, M `107180` and O `107181`, failed `1:0`
+before trainer construction or optimization. The fail-closed whole-pool prompt
+check found M selected row 3,301 at 1,546 rendered tokens and O selected row
+2,305 at 1,731 tokens, both above the predeclared 1,536-token teacher bound.
+Each run directory contains zero files: there is no trace, checkpoint, adapter,
+or scientific result. Their stdout SHA-256 values are respectively
+`face236201c5a5c4953dc6a5e04808f520c6e43cea3bf66fb521904b5fc05a19`
+and
+`91e3dd4b32f9eeb7af428635dff242b026940a52c7f33c5f4905a0f0ac8c2f6c`.
+
+Allocated-CPU diagnostic `107185` subsequently rendered every registered
+teacher prompt under the pinned tokenizer. M had 4,322 rows, mean 109.48,
+p99 457, maximum 1,546, and exactly one row above 1,536. O had 4,322 rows,
+mean 133.68, p99 379, maximum 2,076, exactly two rows above 1,536, and one
+above 2,048. Its stdout SHA-256 is
+`067b20ff6e95732c1590e19e3015130441aa7aad2ebcc43b27b94f2ed158c4a8`;
+the diagnostic-script SHA-256 is
+`08c705520a1846f549905e188355db555b106f9450ff5d8d4d0929ce82f12de7`.
+Setup attempt `107184` is preserved separately: it failed immediately because
+its node could not see a login-node `/tmp` script and contributes no prompt
+evidence.
+
+The immutable decision record is
+`campaigns/teacher_prompt_contract_6be96e6/decision.json`, SHA-256
+`b7f0db058729821432602e5841372860d4657376dd3cab86f9dcbd3cd99362eb`.
+It binds the source logs, full distributions, zero-file run directories, old
+and new bounds, unchanged student contract, and non-authorizing claim boundary.
+
+Successor teacher plan `opd_math_teacher_primary_v2` raises only the shared
+teacher prompt bound from 1,536 to 2,304 tokens. Together with the unchanged
+1,024-token completion cap, this preserves every matched teacher row without
+implicit truncation. No source is
+filtered or granted a different bound, and the student's separate 1,536-token
+prompt contract is unchanged. Full task-RL baselines `107182` and `107183`
+were launched from `6be96e6` and are audited independently; no terminal result
+from them is asserted at this documentation checkpoint. Even if both become
+eligible, the current six-arm readout requires every student-training and
+held-out-evaluation artifact to share one exact Git commit. They therefore
+remain predecessor-commit diagnostics and must be repeated on the successor
+commit for the final matrix. The teachers must likewise be relaunched from
+that clean successor commit and still pass the unchanged informative-reward
+and own-source held-out skill-gap gates before any OPD arm.
 
 ## Known nonblocking hardening work
 

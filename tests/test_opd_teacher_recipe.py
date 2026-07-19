@@ -25,7 +25,7 @@ def args(**overrides):
         "limit": 2,
         "num_generations": 4,
         "gradient_accumulation_steps": 4,
-        "max_prompt_tokens": 1536,
+        "max_prompt_tokens": 2304,
         "max_completion_length": 256,
         "learning_rate": 2e-5,
         "lora_r": 16,
@@ -92,7 +92,7 @@ def test_scientific_teacher_recipe_is_bound_to_one_source_independent_plan(monke
         max_steps=100,
         num_generations=4,
         gradient_accumulation_steps=4,
-        max_prompt_tokens=1536,
+        max_prompt_tokens=2304,
         max_completion_length=1024,
         learning_rate=2e-5,
         lora_r=16,
@@ -104,6 +104,7 @@ def test_scientific_teacher_recipe_is_bound_to_one_source_independent_plan(monke
         run_args, static, intended_scientific_run=True
     )
     assert contract["training_plan_compliant"]
+    assert contract["training_plan_id"] == "opd_math_teacher_primary_v2"
     assert contract["training_plan_config_sha256"] == contract["teacher_training_config_sha256"]
 
     run_args.max_steps = 99

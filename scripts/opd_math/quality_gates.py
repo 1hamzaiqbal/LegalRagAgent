@@ -628,7 +628,7 @@ def _teacher_run_binding(
     training_plan = _json_object(training_plan_path, "teacher training plan")
     if (
         training_plan.get("schema_version") != 1
-        or training_plan.get("plan_id") != "opd_math_teacher_primary_v1"
+        or training_plan.get("plan_id") != "opd_math_teacher_primary_v2"
         or training_plan.get("sources") != ["M", "O"]
     ):
         raise ValueError("teacher run training plan has an unsupported identity")

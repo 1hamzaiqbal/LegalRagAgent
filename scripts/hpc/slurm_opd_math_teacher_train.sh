@@ -52,7 +52,7 @@ python "$REPO/scripts/opd_math/train_teacher_grpo.py" \
   --max-steps "${OPD_MATH_MAX_STEPS:-100}" \
   --num-generations "${OPD_MATH_NUM_GENERATIONS:-4}" \
   --gradient-accumulation-steps "${OPD_MATH_GRAD_ACCUM:-4}" \
-  --max-prompt-tokens "${OPD_MATH_MAX_PROMPT_TOKENS:-1536}" \
+  --max-prompt-tokens "${OPD_MATH_MAX_PROMPT_TOKENS:-2304}" \
   --max-completion-length "${OPD_MATH_MAX_COMPLETION:-1024}" \
   --learning-rate "${OPD_MATH_TEACHER_LEARNING_RATE:-2e-5}" \
   --lora-r "${OPD_MATH_TEACHER_LORA_R:-16}" \

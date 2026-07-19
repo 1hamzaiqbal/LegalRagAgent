@@ -98,7 +98,7 @@ It fixes optimizer steps, generation/update batch geometry, prompt and
 completion bounds, decoding, LoRA, and seed. A non-smoke run that differs in
 any fixed field fails before loading a model; both source gates carry the same
 plan and config hashes. The selected prompts are explicitly measured and any
-rendered prompt over 1,536 tokens is rejected rather than silently truncated.
+rendered prompt over 2,304 tokens is rejected rather than silently truncated.
 
 The two student baselines and four main arms are bound to the committed
 [`student_training_plan.json`](../../configs/opd_math/student_training_plan.json):
@@ -530,10 +530,18 @@ independent recomputation are recorded in
 These facts authorize attempting the matched task-reward training recipe; they
 are not evidence that training improves performance. No scientific teacher,
 teacher-gap, student-training, held-out, OPD-effectiveness, or source-transfer
-result exists yet. Frozen-commit preflight job `107171` passed the one-step M
-teacher callback/save path but had flat all-zero reward. The first task-RL
-wrapper smoke, `107172`, reached an informative nonzero-gradient step and then
-exposed a local-name shadowing defect before trace completion or adapter
-promotion. That defect is fixed and regression-tested on the branch; the same
-one-step contract must pass from a new frozen commit before the exact 100-step
-M/O teachers and task-RL baselines launch.
+result exists yet. After the `107172` local-name shadowing defect was fixed,
+repeat teacher and task-RL smokes `107178` and `107179` completed from clean
+commit `6be96e6`; the task-RL smoke observed mixed reward, a finite nonzero
+gradient, a parameter update, and stable adapter promotion. The initial full
+teacher jobs `107180` and `107181` then failed closed before training because
+the original 1,536-token teacher bound rejected one M row and two O rows.
+Whole-pool tokenizer job `107185` measured maxima of 1,546 M tokens and 2,076 O
+tokens. Committed teacher plan `opd_math_teacher_primary_v2` therefore uses a
+source-independent 2,304-token bound, which preserves all 4,322 rows per
+source without truncation; the separate
+student bound remains 1,536. Successor teachers still require fresh
+commit/environment/support custody and the unchanged informative-reward and
+held-out skill-gap gates. Because the six-arm readout requires one exact
+student-training Git identity, predecessor-commit baselines cannot be mixed
+with successor-commit OPD arms and must be repeated for the final matrix.

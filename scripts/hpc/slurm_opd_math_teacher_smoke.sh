@@ -47,7 +47,7 @@ python "$REPO/scripts/opd_math/train_teacher_grpo.py" \
   --max-steps 1 \
   --num-generations 4 \
   --gradient-accumulation-steps 4 \
-  --max-prompt-tokens 1536 \
+  --max-prompt-tokens 2304 \
   --max-completion-length 256 \
   --seed "${OPD_MATH_SEED:-0}" \
   --smoke \

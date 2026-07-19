@@ -91,6 +91,15 @@ plan hash, normalized config hash, actual step count, and measured prompt
 lengths. This controls our post-training recipe; it does not identify unknown
 Qwen pretraining exposure or make realized source token counts equal.
 
+Teacher plan `opd_math_teacher_primary_v2` fixes a 2,304-token prompt bound
+and a 1,024-token completion bound.
+This was revised source-independently after a full scan of both matched
+4,322-row teacher pools under the pinned Qwen3-8B tokenizer found maxima of
+1,546 tokens for M and 2,076 for O. The original 1,536-token bound rejected one
+M row and two O rows before either teacher entered training. The new bound
+retains every registered row without truncation; it is not a source-specific
+filter or an expansion of the student recipe's separate 1,536-token bound.
+
 Student stage:
 
 \[
@@ -200,7 +209,15 @@ O pass@4 is 0.1772 with 0.1273 mixed-reward groups. The gates authorize an
 attempt at scientific task-reward training, not a claim that training or OPD
 works. [[opd-math-eit-handoff-2026-07-18]] records the exact gate hashes,
 Slurm jobs, independent recomputation, and preserved login-lane anomaly. The
-100-step teachers and their own-source skill-gap gates remain pending.
+first 100-step teacher launch pair failed closed during whole-pool prompt
+validation, before optimization or artifact creation. That failure motivated
+the source-independent v2 teacher plan above. The successor teacher runs and
+their own-source skill-gap gates remain pending. Full task-RL jobs `107182`
+and `107183` were trained from predecessor commit `6be96e6`; regardless of
+their terminal quality, they are not eligible for the successor commit's final
+six-arm matrix. The predeclared readout requires one exact student-training
+and evaluation Git identity across all six arms, so both baselines must be
+rerun on the successor commit.
 
 ## Links
 

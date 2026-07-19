@@ -6,6 +6,8 @@ ROOT = Path(__file__).resolve().parents[1]
 EVALUATE = ROOT / "scripts" / "hpc" / "slurm_opd_math_evaluate.sh"
 MERGE = ROOT / "scripts" / "hpc" / "slurm_opd_math_merge_evaluation.sh"
 QUALITY_GATE = ROOT / "scripts" / "hpc" / "slurm_opd_math_quality_gate.sh"
+TEACHER_TRAIN = ROOT / "scripts" / "hpc" / "slurm_opd_math_teacher_train.sh"
+TEACHER_SMOKE = ROOT / "scripts" / "hpc" / "slurm_opd_math_teacher_smoke.sh"
 
 
 def test_evaluation_wrappers_have_valid_bash_syntax():
@@ -51,6 +53,15 @@ def test_scientific_wrappers_require_an_explicit_canonical_data_root():
         script = (ROOT / "scripts" / "hpc" / name).read_text()
         assert "${OPD_MATH_DATA_ROOT:?" in script
         assert "data/legalrag/opd_math/v1}" not in script
+
+
+def test_teacher_wrapper_uses_the_registered_full_pool_prompt_bound():
+    script = TEACHER_TRAIN.read_text()
+    assert 'OPD_MATH_MAX_PROMPT_TOKENS:-2304' in script
+    assert 'OPD_MATH_MAX_PROMPT_TOKENS:-1536' not in script
+    smoke = TEACHER_SMOKE.read_text()
+    assert "--max-prompt-tokens 2304" in smoke
+    assert "--max-prompt-tokens 1536" not in smoke
 
 
 def test_quality_gate_has_headroom_for_full_o_reward_recomputation():
