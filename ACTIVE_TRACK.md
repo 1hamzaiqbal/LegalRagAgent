@@ -13,9 +13,9 @@ Start with:
 5. `configs/opd_math/source_manifest.json`
 6. `configs/opd_math/teacher_training_plan.json`
 
-Current gate: validate the isolated environment and full collision-aware data
-preparation, then run one-step teacher and task-reward-plus-score-function-OPD
-plumbing smokes.
-No finite loss or checkpoint is a performance result. A real main arm requires
-a strictly positive held-out teacher gap, student rollout support, and the exact
-tokenizer/server contract.
+Current gate: freeze one final code-and-documentation commit, rerun full M/O
+raw-student support under the v2 exact-environment contract, retrain both
+teachers, and establish the held-out teacher gaps before launching the two
+task-RL baselines and four OPD arms. The campaign closes only with all six
+held-out result gates and the paired matrix readout on that same commit. No
+finite loss or checkpoint is a performance result.

@@ -26,6 +26,8 @@ The SCOPE method is historical ([[scope-old]]). Start with
   source matrix with task reward and an exact-token sampled reverse-KL path
 - [[opd-math-eit-handoff-2026-07-18]] — exact EIT commits, environments,
   bounded smoke evidence, custody correction, scientific blockers, and gates
+- [[opd-math-scientific-cutover-2026-07-18]] — current exact-environment v2
+  campaign boundary, demoted predecessor evidence, and final launch order
 - [[self-distillation-cluster-update-2026-07-17]] — OPSD/SDFT/SDPO baseline,
   capability, and method-custody update
 - [[scope-old]] — historical SCOPE branch/archive map

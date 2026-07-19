@@ -4,7 +4,7 @@ type: track
 tags: [opd, distillation, math, teacher-data, source-transfer]
 created: 2026-07-17
 updated: 2026-07-18
-status: raw-student support passed; teacher science pending
+status: exact-environment v2 support rerun and final-commit teachers pending
 ---
 
 # OPD math source transfer
@@ -203,12 +203,15 @@ exact-token teacher scoring and real parameter movement only. They used
 partial non-scientific data, a raw teacher, and flat all-zero task-reward
 groups, so no task-performance or source-transfer result is claimed.
 
-The complete raw Qwen3-1.7B support campaign now passes on both canonical
-2,161-row student sources: M pass@4 is 0.6201 with 0.1981 mixed-reward groups;
-O pass@4 is 0.1772 with 0.1273 mixed-reward groups. The gates authorize an
-attempt at scientific task-reward training, not a claim that training or OPD
-works. [[opd-math-eit-handoff-2026-07-18]] records the exact gate hashes,
-Slurm jobs, independent recomputation, and preserved login-lane anomaly. The
+The predecessor raw Qwen3-1.7B support campaign covered both canonical
+2,161-row student sources: M pass@4 was 0.6201 with 0.1981 mixed-reward groups;
+O pass@4 was 0.1772 with 0.1273 mixed-reward groups. Those numeric findings
+remain useful diagnostics, but their environment-less v1 evaluations and old
+gates cannot authorize the exact-environment successor. Full M/O support
+evaluation and `student_support_v2_exact_environment` gates must be regenerated
+on the final campaign commit. [[opd-math-eit-handoff-2026-07-18]] preserves the
+old gate hashes, Slurm jobs, independent recomputation, and login-lane anomaly;
+[[opd-math-scientific-cutover-2026-07-18]] defines the successor boundary. The
 first 100-step teacher launch pair failed closed during whole-pool prompt
 validation, before optimization or artifact creation. That failure motivated
 the source-independent v2 teacher plan above. The successor teacher runs and
@@ -218,17 +221,22 @@ mixed-reward groups, measured parameter updates, clean environment/code
 custody, and stable adapters. They establish task-signal support for both
 sources but are not held-out performance results. Because they trained from
 predecessor commit `6be96e6`, they are not eligible for the successor commit's
-final six-arm matrix. The predeclared readout requires one exact
+final six-arm matrix. The `a3be35f` teachers and evaluations are likewise
+predecessor recipe diagnostics, even when their own manifests permit use under
+that predecessor contract. The predeclared readout requires one exact
 student-training and evaluation Git identity across all six arms, so both
 baselines must be rerun on the successor commit. A prelaunch audit also added
 exact full train-environment custody to scientific teachers and propagated it
 through teacher-gap, merge-provenance v3, OPD, and final-result contracts before
-any successor teacher was launched.
+any successor teacher was launched. Both support surfaces, both teachers,
+teacher-gap evaluations and gates, all six student arms, and held-out results
+must now be produced on one final commit.
 
 ## Links
 
 [[opd-distillation]] · [[self-distillation-cluster-update-2026-07-17]] ·
 [[opd-math-eit-handoff-2026-07-18]] ·
+[[opd-math-scientific-cutover-2026-07-18]] ·
 [[sdar]] · [[ema-policy-gradient]] · [[verl-opd-trainer]] ·
 [[opsd-self-distilled-reasoner]] · [[sdft-continual-learning]] ·
 [[sdpo-rich-feedback]]

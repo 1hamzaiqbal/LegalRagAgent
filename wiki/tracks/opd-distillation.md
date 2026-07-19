@@ -34,6 +34,13 @@ zero, the data were deliberately partial, and no scientific gate passed. A
 smoke-only custody-label inconsistency was corrected and regression-tested;
 the scientific process-binding gate itself was never bypassed.
 
+The successor contract and launch order are recorded in
+[[opd-math-scientific-cutover-2026-07-18]]. The old environment-less support
+gates retain diagnostic numbers but no longer authorize training. Scientific
+work now requires fresh v2 exact-environment M/O support, both retrained
+teachers, teacher-gap gates, and the complete six-arm held-out matrix on one
+final Git commit.
+
 ## Gates
 
 1. **E2 teacher skill gap:** skill-augmented teacher must outperform the same

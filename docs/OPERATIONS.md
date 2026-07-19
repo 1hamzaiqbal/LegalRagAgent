@@ -86,12 +86,19 @@ uv run pytest -q \
   tests/test_opd_teacher_recipe.py \
   tests/test_opd_run_contract.py \
   tests/test_opd_environment_custody.py \
+  tests/test_opd_evaluation_timing_plan.py \
   tests/test_opd_student_results.py \
   tests/test_opd_server_process_binding.py
 ```
 
 GPU or API smoke completion proves plumbing only. Scientific promotion still
 requires the task-specific gate recorded in `docs/signoff_log.md`.
+
+For the OPD-math campaign, legacy v1 evaluations cannot authorize new science.
+The full M/O raw-student support evaluations, both teachers, teacher-gap gates,
+all six student arms, and held-out readout must use fresh exact-environment
+freezes and one final Git commit. Any later tracked commit reopens that campaign
+boundary.
 
 ## Recovery
 

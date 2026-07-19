@@ -4,10 +4,19 @@ type: snapshot
 tags: [opd, math, eit, source-transfer, plumbing, custody]
 created: 2026-07-18
 updated: 2026-07-18
-status: canonical data and raw-student support passed; teacher science pending
+status: historical predecessor handoff; superseded
+superseded_by: opd-math-scientific-cutover-2026-07-18
 ---
 
 # OPD math EIT plumbing handoff - 2026-07-18
+
+> [!IMPORTANT]
+> **Successor status:** [[opd-math-scientific-cutover-2026-07-18]] supersedes
+> this handoff as the live campaign contract. Statements below that the old
+> support gates set `authorizes_scientific_training=true` were valid only under
+> the predecessor contract. Their numerical findings remain diagnostic, but
+> exact-environment v2 raw support is open again. Later checkpoint notes in this
+> file are preserved as history, including items resolved by commit `feacecb`.
 
 ## Bottom line
 

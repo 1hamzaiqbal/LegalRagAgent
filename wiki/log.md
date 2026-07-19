@@ -487,3 +487,23 @@ independent gate-time reconstruction of every bound shard. The full raw support
 plan is 34 balanced shards per source at four-way concurrency, followed by two
 scientific support gates. No teacher or student training result is inferred by
 this bookkeeping and throughput work.
+
+## [2026-07-18] OPD exact-environment cutover | predecessor evidence demoted
+
+Commit `feacecb` introduced the v2 exact-environment evaluation contract,
+atomic post-promotion custody companions, atomic no-overwrite gate/result
+publication, and end-to-end environment and Git coupling for support,
+teacher-gap, held-out, and six-arm matrix authorization. It also added the
+primary O timing planner: a 32-record prefix scales to the complete 4,585-row
+surface under a 1.25 safety factor, 64,800-second shard cap, and concurrency
+four, with the raw `sacct` record and literal array command retained.
+
+This stronger contract intentionally demotes the environment-less `f283c9c`
+support gates to numeric diagnostics. Their M/O pass@4 and mixed-group findings
+remain citable with that caveat, but fresh full v2 support and gates are now
+required. The `6be96e6` task-RL runs and all `a3be35f` teachers/evaluations are
+also predecessor-only diagnostics. The final same-commit order is: quiesce and
+audit predecessors; freeze code and environments; exercise persistent-storage
+custody; rerun M/O support; retrain both teachers; establish teacher gaps; run
+two task-RL plus four OPD arms; then close all six held-out gates and the paired
+matrix readout. See [[opd-math-scientific-cutover-2026-07-18]].

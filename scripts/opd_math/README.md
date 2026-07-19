@@ -564,16 +564,19 @@ Its manifest SHA-256 is
 `dc4cf7dc36ae5b5178b782bb9c9841e096fbf42dabcbebaa74fb0ed6afcdf430`.
 The frozen MATH test has all 5,000 records, its scientific blocker list is
 empty, and its matched teacher/student/gap/holdout budgets are
-4,322/2,161/353/370. The complete raw-student gates also pass on both 2,161-row
-student sources: M pass@4 is 0.6201 with 0.1981 mixed-reward groups, while O
-pass@4 is 0.1772 with 0.1273 mixed-reward groups. Their exact gates and
+4,322/2,161/353/370. A predecessor raw-student campaign covered both 2,161-row
+student sources: M pass@4 was 0.6201 with 0.1981 mixed-reward groups, while O
+pass@4 was 0.1772 with 0.1273 mixed-reward groups. Their legacy gates and
 independent recomputation are recorded in
 [`opd-math-eit-handoff-2026-07-18.md`](../../wiki/snapshots/opd-math-eit-handoff-2026-07-18.md).
 
-These facts authorize attempting the matched task-reward training recipe; they
-are not evidence that training improves performance. No scientific teacher,
-teacher-gap, student-training, held-out, OPD-effectiveness, or source-transfer
-result exists yet. After the `107172` local-name shadowing defect was fixed,
+Those numeric findings are diagnostics only: the environment-less v1
+evaluations cannot authorize the successor contract. Full M/O raw-student
+evaluation and `student_support_v2_exact_environment` gates must be regenerated
+on the final campaign commit before matched task-reward training. No scientific
+teacher, teacher-gap, student-training, held-out, OPD-effectiveness, or
+source-transfer result exists yet. After the `107172` local-name shadowing
+defect was fixed,
 repeat teacher and task-RL smokes `107178` and `107179` completed from clean
 commit `6be96e6`; the task-RL smoke observed mixed reward, a finite nonzero
 gradient, a parameter update, and stable adapter promotion. The initial full
