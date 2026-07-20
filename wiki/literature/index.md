@@ -3,7 +3,7 @@ title: Literature Vault Index
 type: hub
 tags: [literature, primary-sources, reproducibility]
 created: 2026-07-17
-updated: 2026-07-17
+updated: 2026-07-20
 status: maintained
 ---
 
@@ -15,7 +15,7 @@ in the persistent EIT vault:
 
 `/engrfs/project/jacobsn/hiqbal/literature/legalrag/`
 
-The shared vault currently contains **108 checksummed PDFs**, **4 checksummed
+The shared vault currently contains **110 checksummed PDFs**, **4 checksummed
 primary web/code snapshots**, and **63 repository checkouts pinned to exact
 commits**. See
 [`eit_papers.sha256`](manifests/eit_papers.sha256) and
@@ -59,6 +59,11 @@ contain working duplicates, but it is not the source of truth.
 - [[verl-opd-trainer]] — pinned upstream OPD implementation and its much
   heavier actor/teacher resource contract; reference implementation, not our
   task-reward gate.
+- [[mopd-multi-teacher]] — multi-teacher routed OPD for integrating separately
+  trained domain capabilities; one teacher per sample, not teacher averaging
+  or conflict arbitration.
+- [[mopd-multi-rollout]] — a distinct peer-conditioned method that also uses
+  the acronym MOPD; archived separately to prevent a literature/naming mix-up.
 - [[skill1]] — unified selection, use, and distillation of skills; broad
   “skill internalization” novelty is already occupied.
 

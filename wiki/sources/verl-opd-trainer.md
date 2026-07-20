@@ -3,7 +3,7 @@ title: veRL On-Policy Distillation Trainer
 type: source
 tags: [opd, verl, implementation, k1, top-k, teacher-server]
 created: 2026-07-17
-updated: 2026-07-17
+updated: 2026-07-20
 status: maintained
 url: https://github.com/verl-project/verl/tree/main/examples/on_policy_distillation_trainer
 local: /engrfs/project/jacobsn/hiqbal/literature/legalrag/repos/verl
@@ -27,6 +27,56 @@ The right use is implementation custody and, later, a commit-pinned
 cross-implementation comparison. The source-transfer question still requires
 our held-out teacher gap, student task-support gate, task-RL baseline, source
 provenance, non-thinking prompt contract, and model/tokenizer revision hashes.
+
+## 2026-07-20 fidelity re-audit
+
+The EIT checkout was re-audited at clean upstream commit
+`6a6242f3d8ec7d9f8b4936f4905144707d91fe3b`, including the canonical example,
+the actual teacher manager, response masking, K1/K3/Top-k loss registry, and the
+policy-gradient integration. The conclusion is narrower than “we reproduced
+veRL,” but positive:
+
+- **P0 — none found in the underlying sampled-token K1 mechanics.** Our student
+  generates a fresh trajectory, the frozen teacher scores those exact token
+  IDs, the student recomputes the same response-token log probabilities before
+  any update, and the detached teacher-minus-student gap multiplies the current
+  student log probability. With the local helper's gate disabled and clip
+  removed, one optimizer update per fresh rollout has the same gradient as
+  veRL's `k1 + use_policy_gradient` path at importance ratio one. Our EOS and
+  padding masks include exactly the generated completion positions.
+- **P1 — the scientific main arm is not canonical bare OPD.** It deliberately
+  adds grouped task reward, clips the teacher-student gap, applies a detached
+  positive-gap gate, and scales the dense auxiliary by `0.01`. It must remain
+  named `task_rl_k1_gap`; an unqualified “veRL OPD reproduction” claim would be
+  false. Even the diagnostic named `k1_bare` fixes a gap clip of `5`, while
+  veRL's canonical launcher clips the K1 value at `10`; neither is the exact
+  unclipped limit used for the clean K4-equivalent gradient statement. If a
+  parameter-matched cross-implementation replication becomes necessary, add it
+  as a separate diagnostic after the current preregistered campaign rather than
+  changing the live arm.
+- **P2 — expected implementation differences.** Our task term gives each
+  completion equal weight after taking its mean token log probability; veRL's
+  default policy loss is a global response-token mean. We do not retain
+  rollout-time behavior log probabilities because every rollout receives one
+  immediate update; veRL retains `old_log_probs` and can reuse a batch with
+  clipped importance ratios. We also lack veRL's K3 and sparse teacher-Top-k
+  objectives and query the external teacher sequentially rather than through
+  Ray-managed replicas. These differences affect scaling or later ablations,
+  not the validity of the current one-update sampled-K1 calculation.
+
+Local anchors are `scripts/opd/opd_train.py:366-457,487-638`,
+`scripts/opd/opd_loss.py:60-140`, and `scripts/opd/teacher_client.py:144-209`.
+Upstream anchors at the pinned commit are
+`verl/experimental/agent_loop/agent_loop.py:727-859,1006-1029`,
+`verl/experimental/teacher_loop/teacher_manager.py:35-56,99-141`,
+`verl/trainer/distillation/losses.py:230-296,364-399`, and
+`verl/trainer/ppo/core_algos.py:1279-1362,2147-2204`.
+
+The local analytic gradient, exact-token, mask, and trace-reconstruction tests
+passed on 2026-07-20 (`scripts/opd/test_opd_loss.py` plus
+`tests/test_opd_reward_loss.py` and `tests/test_teacher_client_token_ids.py`:
+11 pytest cases plus the standalone loss checks). This is code-level evidence,
+not a held-out task-improvement result.
 
 ## Sampled K1 and policy-gradient path
 
@@ -97,6 +147,41 @@ The package's vLLM version declaration and current Docker image also differ;
 any reproduction needs its own commit-pinned container rather than modifying
 our lean TRL or serving environments.
 
+## What veRL's multi-teacher “MOPD” does
+
+The merged veRL MOPD path is **hard routing, not aggregation**. Each sample
+carries one routing value (by default `data_source`); the trainer resolves that
+value to exactly one teacher, sends the full student prompt+response token
+sequence to that teacher, and uses that one teacher's token distribution. The
+manager allocates a separate replica pool per teacher and rejects missing,
+unknown, or duplicate routing keys. The canonical example routes GSM8K rows to
+a text teacher and Geometry3K rows to a vision-language teacher. It does not
+average teachers, choose the best teacher per token, or measure disagreement on
+the same trajectory.
+
+For a later LegalRagAgent extension, the smallest faithful wiring is therefore
+a sealed routing manifest from sample source to teacher URL/model/checkpoint,
+with one quality gate and tokenizer contract per teacher, plus the selected
+teacher key and immutable identity in every sample trace. The preregistration,
+prelaunch receipt, and held-out readout would need to bind and stratify all of
+those identities. The failed M teacher must not be reused; every future teacher
+would need its own positive gate. If the scientific question instead needs
+teacher conflict or “which teacher should the student disobey?”, all teachers
+must score the same student trajectory and the aggregation/arbitration rule
+must be explicit—that is beyond veRL's existing routed MOPD scaffold and should
+remain a later campaign.
+
+Naming warning: arXiv `2605.12652` also uses **MOPD** for *Multi-Rollout*
+On-Policy Distillation, which conditions the teacher on peer successes and
+failures. Use “multi-teacher routed OPD” for the veRL feature to avoid
+conflating the two methods.
+
+Multi-teacher anchors are
+`examples/on_policy_distillation_trainer/run_qwen3_8b_mopd_fsdp.sh:109-139`,
+`verl/workers/config/distillation.py:289-320`,
+`verl/experimental/teacher_loop/teacher_model.py:154-203`, and
+`verl/experimental/teacher_loop/teacher_manager.py:99-141`.
+
 ## What to borrow and what not to borrow
 
 Borrow:
@@ -121,14 +206,14 @@ bare OPD diagnostic, not evidence for teacher usefulness.
 ## Version and custody
 
 - Audited current main commit:
-  `e003163181731412595257a72ec173071efb125f`, 2026-07-17.
+  `6a6242f3d8ec7d9f8b4936f4905144707d91fe3b`, 2026-07-20.
 - Official repository: https://github.com/verl-project/verl.
 - Example directory:
-  https://github.com/verl-project/verl/tree/e003163181731412595257a72ec173071efb125f/examples/on_policy_distillation_trainer.
+  https://github.com/verl-project/verl/tree/6a6242f3d8ec7d9f8b4936f4905144707d91fe3b/examples/on_policy_distillation_trainer.
 - Persistent EIT checkout:
   `/engrfs/project/jacobsn/hiqbal/literature/legalrag/repos/verl`.
 
 ## Links
 
-[[ema-policy-gradient]] · [[opd-math-source-transfer]] · [[sdar]] ·
+[[ema-policy-gradient]] · [[mopd-multi-teacher]] · [[opd-math-source-transfer]] · [[sdar]] ·
 [[opd-distillation]] · [[opsd-self-distilled-reasoner]]
