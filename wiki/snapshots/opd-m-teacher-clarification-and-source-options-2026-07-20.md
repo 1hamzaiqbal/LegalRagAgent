@@ -83,7 +83,8 @@ that no MATH-trained teacher could ever improve under a different study.
 
 ### A. Objective-family campaign - ready to retain M and O
 
-Use the passing strict O teacher on both student sources:
+Once the successor's fresh strict O teacher passes, use it on both student
+sources:
 
 | Student distribution | No-teacher baseline | O-teacher objectives |
 |---|---|---|
