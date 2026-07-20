@@ -20,8 +20,10 @@ upstream-veRL reference at pinned veRL commit
 This page is a design record, not a sealed preregistration and not a result.
 Nothing in the terminal `ae90bc7` namespace is modified or reinterpreted:
 
-- M remains a genuine failed teacher. It is never retrained, merged, or used;
-  `M_M` and `M_O` remain prohibited.
+- The **M-trained teacher** remains a genuine failed teacher. Its adapter is
+  never retrained, merged, or used; `M_M` and `M_O` remain prohibited. This is
+  not a ban on the MATH dataset: M remains an allowed student-rollout and
+  held-out evaluation source for `task_rl` and the passing O teacher (`O_M`).
 - The failed-HOME diagnostic `107961`, successful plumbing-only diagnostic
   `108244`, old O gate, and old baseline artifacts remain immutable history.
 - The verifier-recovery campaign described in
@@ -111,6 +113,12 @@ Thus one seed contains 12 arms: six objectives on M and six on O. The
 matched baseline. All arms use one prompt group per optimizer step, four
 student samples per group, 100 optimizer steps, and the committed student
 recipe unless the veRL systems audit proves that one field cannot be matched.
+
+This campaign therefore already has two usable benchmark distributions. It
+does not require a second qualified teacher and must not be delayed or silently
+expanded while searching for one. A new teacher source is needed only for a
+separate teacher-source x student-source interaction or multi-teacher study;
+see [[opd-m-teacher-clarification-and-source-options-2026-07-20]].
 
 The final comparison preregisters seeds `0`, `1`, and `2` before any 100-step
 held-out outcome is inspected. Seed 0 may be operationally launched first, but

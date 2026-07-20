@@ -31,6 +31,9 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[opd-objective-family-expansion-2026-07-20]] — design-stage successor
   matrix for task RL, ungated/clipped/gated/bare K1, and pinned-veRL fidelity;
   no expanded arm has launched
+- [[opd-m-teacher-clarification-and-source-options-2026-07-20]] — exact meaning
+  of the failed M teacher gate, allowed MATH roles, and an outcome-blind audit
+  of candidate second teacher sources
 - [[opd-math-scientific-cutover-2026-07-18]] — superseded exact-environment
   predecessor boundary and demoted evidence
 - [[self-distillation-cluster-update-2026-07-17]] — OPSD/SDFT/SDPO baseline,

@@ -9,6 +9,21 @@ status: maintained
 
 # Wiki Op Log (append-only)
 
+## [2026-07-20] decision | M teacher semantics and second-source audit
+Recorded [[opd-m-teacher-clarification-and-source-options-2026-07-20]] to
+separate the failed M-trained teacher from valid MATH student/evaluation use.
+The objective-family campaign already has two usable distributions, M and O,
+and should retain the O-only teacher design. Big-Math is the strongest
+metadata-rich later source but an authenticated EIT dry run returned gated
+access `403`; DeepMath-103K is the provisional accessible qualification source.
+Its paper was read, and a deterministic 500-row API screen found nonempty
+questions/answers and 500/500 boxed-answer self-verification with the current
+strict Math-Verify path. This is data screening only: no candidate teacher,
+OPD arm, or held-out outcome was launched or inspected.
+Archived [[big-math]] and [[deepmath-103k]] as checksummed PDFs plus clean,
+commit-pinned official repositories in the persistent EIT literature vault;
+the tracked manifest now covers 112 PDFs and 65 repositories.
+
 ## [2026-07-20] design | OPD objective-family expansion
 Recorded [[opd-objective-family-expansion-2026-07-20]] as a new, unsealed
 successor rather than altering the terminal `ae90bc7` campaign. The planned

@@ -15,8 +15,8 @@ in the persistent EIT vault:
 
 `/engrfs/project/jacobsn/hiqbal/literature/legalrag/`
 
-The shared vault currently contains **110 checksummed PDFs**, **4 checksummed
-primary web/code snapshots**, and **63 repository checkouts pinned to exact
+The shared vault currently contains **112 checksummed PDFs**, **4 checksummed
+primary web/code snapshots**, and **65 repository checkouts pinned to exact
 commits**. See
 [`eit_papers.sha256`](manifests/eit_papers.sha256) and
 [`eit_web.sha256`](manifests/eit_web.sha256), plus
@@ -66,6 +66,15 @@ contain working duplicates, but it is not the source of truth.
   the acronym MOPD; archived separately to prevent a literature/naming mix-up.
 - [[skill1]] — unified selection, use, and distillation of skills; broad
   “skill internalization” novelty is already occupied.
+
+### OPD math data and evaluation sources
+
+- [[big-math]] — strongest metadata-rich candidate for a future second teacher
+  source, but the data remain access-gated on EIT and need fresh O/M/evaluation
+  decontamination.
+- [[deepmath-103k]] — strongest immediately accessible candidate; paper read
+  and static verifier compatibility screened, but no teacher has been trained
+  or qualified.
 
 ### Prior reviewer misses and legal retrieval family
 
