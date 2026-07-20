@@ -20,6 +20,10 @@ set -euo pipefail
 : "${OPD_MATH_DATA_ROOT:?Set the exact reviewed canonical data root}"
 
 case "$OPD_MATH_EVAL_SOURCE" in M|O) ;; *) echo "invalid OPD_MATH_EVAL_SOURCE" >&2; exit 2 ;; esac
+[[ "$OPD_MATH_EVAL_MAX_RECORDS" =~ ^(0|[1-9][0-9]*)$ ]] || {
+  echo "OPD_MATH_EVAL_MAX_RECORDS must be a canonical nonnegative integer" >&2
+  exit 2
+}
 case "$OPD_MATH_EVAL_ROLE" in
   teacher_skill_dev|target_gap_dev) TASK_REL="roles/$OPD_MATH_EVAL_SOURCE/teacher_gap_dev.jsonl" ;;
   student_support) TASK_REL="roles/$OPD_MATH_EVAL_SOURCE/student_opd.jsonl" ;;
@@ -41,6 +45,10 @@ else
   EVAL_TOP_K="${OPD_MATH_EVAL_TOP_K:-20}"
   EVAL_MAX_NEW_TOKENS="${OPD_MATH_EVAL_MAX_NEW_TOKENS:-1024}"
 fi
+EVAL_SAMPLES_PER_PROBLEM="${OPD_MATH_EVAL_SAMPLES_PER_PROBLEM:-4}"
+EVAL_SEED="${OPD_MATH_SEED:-0}"
+[[ "$EVAL_SAMPLES_PER_PROBLEM" =~ ^[1-9][0-9]*$ ]] || { echo "evaluation samples per problem must be a canonical positive integer" >&2; exit 2; }
+[[ "$EVAL_SEED" =~ ^(0|[1-9][0-9]*)$ ]] || { echo "evaluation seed must be a canonical nonnegative integer" >&2; exit 2; }
 [[ "$OPD_MATH_EVAL_LABEL" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "unsafe OPD_MATH_EVAL_LABEL" >&2; exit 2; }
 SHARD_COUNT="${OPD_MATH_EVAL_SHARDS:-1}"
 [[ "$SHARD_COUNT" =~ ^[1-9][0-9]*$ ]] || { echo "OPD_MATH_EVAL_SHARDS must be a positive integer" >&2; exit 2; }
@@ -87,9 +95,16 @@ echo "Environment verifier SHA-256: $VERIFY_SHA"
 test -f "$TRAIN_FREEZE"
 test -f "$TASK"
 test -f "$DATA_ROOT/prepared_manifest.json"
-if [[ "$OPD_MATH_EVAL_SOURCE" == O && "$OPD_MATH_EVAL_ROLE" == teacher_skill_dev && "$OPD_MATH_EVAL_MAX_RECORDS" == 0 ]]; then
+TASK_RECORDS="$(wc -l < "$TASK" | tr -d '[:space:]')"
+[[ "$TASK_RECORDS" =~ ^[1-9][0-9]*$ ]] || { echo "evaluation task must be nonempty newline-terminated JSONL" >&2; exit 2; }
+FULL_O_GAP=0
+if [[ "$OPD_MATH_EVAL_SOURCE" == O && "$TASK_REL" == roles/O/teacher_gap_dev.jsonl ]] && (( OPD_MATH_EVAL_MAX_RECORDS == 0 || OPD_MATH_EVAL_MAX_RECORDS >= TASK_RECORDS )); then
+  FULL_O_GAP=1
+fi
+if (( FULL_O_GAP == 1 )); then
   : "${OPD_MATH_EVAL_SHARD_PLAN:?Full O teacher evaluation requires the immutable shard plan}"
   : "${OPD_MATH_EVAL_PLAN_ARM:?Set base or trained for the full O plan}"
+  : "${OPD_MATH_EVAL_ARRAY_SPEC:?Set the literal planned Slurm array specification}"
   : "${SLURM_ARRAY_TASK_COUNT:?Full O teacher evaluation must launch as the planned array}"
   : "${SLURM_ARRAY_TASK_MIN:?Full O teacher evaluation lacks array minimum custody}"
   : "${SLURM_ARRAY_TASK_MAX:?Full O teacher evaluation lacks array maximum custody}"
@@ -110,12 +125,19 @@ if [[ "$OPD_MATH_EVAL_SOURCE" == O && "$OPD_MATH_EVAL_ROLE" == teacher_skill_dev
     --shard-count "$SHARD_COUNT" \
     --git-commit "$COMMIT" \
     --train-freeze "$TRAIN_FREEZE" \
+    --array-spec "$OPD_MATH_EVAL_ARRAY_SPEC" \
+    --samples-per-problem "$EVAL_SAMPLES_PER_PROBLEM" \
+    --temperature "$EVAL_TEMPERATURE" \
+    --top-p "$EVAL_TOP_P" \
+    --top-k "$EVAL_TOP_K" \
+    --max-new-tokens "$EVAL_MAX_NEW_TOKENS" \
+    --seed "$EVAL_SEED" \
     --array-task-count "$SLURM_ARRAY_TASK_COUNT" \
     --array-task-min "$SLURM_ARRAY_TASK_MIN" \
     --array-task-max "$SLURM_ARRAY_TASK_MAX" \
     "${PLAN_ADAPTER_ARGS[@]}"
-elif [[ -n "${OPD_MATH_EVAL_SHARD_PLAN:-}" || -n "${OPD_MATH_EVAL_PLAN_ARM:-}" ]]; then
-  echo "O shard plans may only be supplied to the full O teacher_skill_dev evaluation" >&2
+elif [[ -n "${OPD_MATH_EVAL_SHARD_PLAN:-}" || -n "${OPD_MATH_EVAL_PLAN_ARM:-}" || -n "${OPD_MATH_EVAL_ARRAY_SPEC:-}" ]]; then
+  echo "O shard plans may only be supplied to the full O teacher-gap evaluation" >&2
   exit 2
 fi
 mkdir -p "$(dirname "$OUT")"
@@ -139,17 +161,27 @@ ARGS=(
   --train-environment-root "$ENV_DIR"
   --train-environment-freeze "$TRAIN_FREEZE"
   --max-records "$OPD_MATH_EVAL_MAX_RECORDS"
-  --samples-per-problem "${OPD_MATH_EVAL_SAMPLES_PER_PROBLEM:-4}"
+  --samples-per-problem "$EVAL_SAMPLES_PER_PROBLEM"
   --max-new-tokens "$EVAL_MAX_NEW_TOKENS"
   --temperature "$EVAL_TEMPERATURE"
   --top-p "$EVAL_TOP_P"
   --top-k "$EVAL_TOP_K"
-  --seed "${OPD_MATH_SEED:-0}"
+  --seed "$EVAL_SEED"
   --shard-count "$SHARD_COUNT"
   --shard-index "$SHARD_INDEX"
   --write-completions
   --local-files-only
 )
+if (( FULL_O_GAP == 1 )); then
+  ARGS+=(
+    --shard-plan "$OPD_MATH_EVAL_SHARD_PLAN"
+    --plan-arm "$OPD_MATH_EVAL_PLAN_ARM"
+    --array-spec "$OPD_MATH_EVAL_ARRAY_SPEC"
+    --array-task-count "$SLURM_ARRAY_TASK_COUNT"
+    --array-task-min "$SLURM_ARRAY_TASK_MIN"
+    --array-task-max "$SLURM_ARRAY_TASK_MAX"
+  )
+fi
 if [[ -n "${OPD_MATH_EVAL_ADAPTER:-}" ]]; then
   test -f "$OPD_MATH_EVAL_ADAPTER/adapter_config.json"
   ARGS+=(--adapter "$OPD_MATH_EVAL_ADAPTER")

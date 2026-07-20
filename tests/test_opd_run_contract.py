@@ -15,11 +15,14 @@ from scripts.opd.opd_train import (
     resolve_trace_directory,
     run,
     sample_trace_rows,
+    sha256_tree,
+    validate_prelaunch_receipt,
     validate_student_training_plan_contract,
     validate_environment_contract,
     validate_run_contract,
     write_completion_manifests,
 )
+from scripts.opd.trace_metrics import reconstruct_step_metrics
 from scripts.opd_math.quality_gates import EVALUATION_CONTRACT, STUDENT_GATE_TYPE
 
 
@@ -43,6 +46,7 @@ def args_for(task_file, prepared, **overrides):
         "lr": 1e-5,
         "grad_clip": 1.0,
         "gradient_checkpointing": True,
+        "attn_implementation": "sdpa",
         "lora": 8,
         "group_size": 2,
         "micro_prompts": 1,
@@ -69,6 +73,8 @@ def args_for(task_file, prepared, **overrides):
         "pair_id": "M_M",
         "student_source": None,
         "budget_mode": "dose_response",
+        "campaign_run_id": None,
+        "scheduler_job_id": None,
         "student": "Qwen/Qwen3-1.7B",
         "student_revision": "student-revision",
         "student_support_manifest": None,
@@ -78,6 +84,7 @@ def args_for(task_file, prepared, **overrides):
         "tokenizer_contract": None,
         "allow_ungated_smoke": True,
         "enable_thinking": False,
+        "seed": 0,
     }
     values.update(overrides)
     return Namespace(**values)
@@ -148,6 +155,120 @@ def test_primary_budget_must_match_manifest(tmp_path):
         )
 
 
+def test_scientific_primary_requires_stable_run_and_scheduler_ids(tmp_path):
+    task, row, prepared = prepared_fixture(tmp_path)
+    with pytest.raises(ValueError, match="campaign-run-id"):
+        validate_run_contract(
+            args_for(
+                task,
+                prepared,
+                allow_ungated_smoke=False,
+                budget_mode="primary_matched",
+                steps=100,
+                max_new_tokens=512,
+                max_prompt_tokens=1536,
+                lora=32,
+                group_size=4,
+                student_revision="7" * 40,
+                pair_id="O_M",
+            ),
+            [row],
+        )
+
+
+def test_prelaunch_receipt_revalidates_teacher_provenance_before_training(
+    tmp_path, monkeypatch
+):
+    commit = "c" * 40
+    checkpoint = tmp_path / "teacher"
+    checkpoint.mkdir()
+    (checkpoint / "adapter.bin").write_bytes(b"teacher")
+    provenance_path = checkpoint / "merge_provenance.json"
+    provenance = {"schema_version": 1, "status": "completed"}
+    provenance_path.write_text(json.dumps(provenance) + "\n")
+
+    teacher_gate = tmp_path / "teacher_gap.json"
+    teacher_gate.write_text('{"gate":"teacher_gap_v1","passed":true}\n')
+    support = tmp_path / "student_support.json"
+    support.write_text('{"gate":"student_support_v1","passed":true}\n')
+    preregistration = tmp_path / "preregistration.json"
+    preregistration.write_text('{"preregistration":"sealed"}\n')
+    ledger = tmp_path / "launch_ledger.json"
+    ledger.write_text('{"ledger":"sealed"}\n')
+
+    out_dir = tmp_path / "run"
+    receipt_path = tmp_path / "run.prelaunch.json"
+    receipt = {
+        "schema_version": 1,
+        "receipt": train_module.STUDENT_PRELAUNCH_RECEIPT,
+        "sealed_before_optimizer_start": True,
+        "campaign_id": "campaign-1",
+        "run_key": "O_M",
+        "run_id": "run-1",
+        "scheduler_job_id": "123",
+        "mode": "task_rl_k1_gap",
+        "student_source": "M",
+        "git_commit": commit,
+        "out_dir": str(out_dir.resolve()),
+        "expected_artifacts": {
+            "run_manifest": str((out_dir / "traces" / "run_manifest.json").resolve()),
+            "student_completion_manifest": str(
+                (out_dir / "traces" / "completion_manifest.json").resolve()
+            ),
+            "student_adapter": str((out_dir / "final").resolve()),
+            "prelaunch_receipt": str(receipt_path.resolve()),
+        },
+        "student_support": {"manifest_sha256": digest(support)},
+        "o_teacher": {
+            "teacher_gap_manifest": str(teacher_gate.resolve()),
+            "teacher_gap_manifest_sha256": digest(teacher_gate),
+            "merged_checkpoint": str(checkpoint.resolve()),
+            "merged_checkpoint_tree_sha256": sha256_tree(
+                checkpoint, exclude_relative_paths=("merge_provenance.json",)
+            ),
+            "merge_provenance_manifest_sha256": digest(provenance_path),
+            "merge_provenance_payload_sha256": train_module.canonical_json_sha256(
+                provenance
+            ),
+        },
+        "preregistration": {
+            "path": str(preregistration.resolve()),
+            "sha256": digest(preregistration),
+        },
+        "launch_ledger": {
+            "path": str(ledger.resolve()),
+            "sha256": digest(ledger),
+        },
+    }
+    receipt_path.write_text(json.dumps(receipt) + "\n")
+    receipt_path.chmod(0o444)
+    args = Namespace(
+        mode="task_rl_k1_gap",
+        pair_id="O_M",
+        student_source=None,
+        campaign_run_id="run-1",
+        scheduler_job_id="123",
+        out_dir=str(out_dir),
+        prelaunch_receipt=str(receipt_path),
+        student_support_manifest=str(support),
+        teacher_gap_manifest=str(teacher_gate),
+        teacher_checkpoint=str(checkpoint),
+        teacher_provenance_manifest=str(provenance_path),
+    )
+    monkeypatch.setattr(
+        train_module, "git_state", lambda: {"commit": commit, "dirty": False}
+    )
+
+    binding = validate_prelaunch_receipt(args)
+    assert binding["sealed_before_optimizer_start"] is True
+
+    provenance_path.write_text(
+        json.dumps({**provenance, "tampered_after_receipt": True}) + "\n"
+    )
+    with pytest.raises(ValueError, match="merge_provenance_manifest_sha256 mismatch"):
+        validate_prelaunch_receipt(args)
+
+
 def test_task_rl_forbids_fake_teacher_pair(tmp_path):
     task, row, prepared = prepared_fixture(tmp_path)
     with pytest.raises(ValueError, match="no teacher coordinate"):
@@ -177,7 +298,23 @@ def test_scientific_path_rejects_thinking_before_gate_loading(tmp_path):
     task, row, prepared = prepared_fixture(tmp_path)
     with pytest.raises(ValueError, match="non-thinking"):
         validate_run_contract(
-            args_for(task, prepared, allow_ungated_smoke=False, enable_thinking=True), [row]
+            args_for(
+                task,
+                prepared,
+                allow_ungated_smoke=False,
+                enable_thinking=True,
+                pair_id="O_M",
+            ),
+            [row],
+        )
+
+
+def test_scientific_path_rejects_immutable_failed_m_teacher_arms(tmp_path):
+    task, row, prepared = prepared_fixture(tmp_path)
+    with pytest.raises(ValueError, match="M_M/M_O are prohibited"):
+        validate_run_contract(
+            args_for(task, prepared, allow_ungated_smoke=False, pair_id="M_M"),
+            [row],
         )
 
 
@@ -356,8 +493,16 @@ def test_student_trace_geometry_recomputes_exact_group_and_sample_identity(tmp_p
                 "mode": "task_rl",
                 "prompts": 1,
                 "samples": 2,
-                "total_loss": 0.5,
+                "total_loss": 0.0,
                 "gradient_norm_before_clip": 1.0,
+                "task_loss": 0.0,
+                "reverse_kl_score_function_surrogate": 0.0,
+                "sampled_k1_estimate": None,
+                "gap_gate_mean": None,
+                "positive_gap_fraction": None,
+                "reward_mean": 0.5,
+                "informative_group_fraction": 1.0,
+                "tokens": 2,
             }
         )
         + "\n"
@@ -368,7 +513,7 @@ def test_student_trace_geometry_recomputes_exact_group_and_sample_identity(tmp_p
     for sample_idx in range(2):
         rows.append(
             {
-                "schema_version": 1,
+                "schema_version": 2,
                 "step": 1,
                 "group_id": 0,
                 "sample_idx": sample_idx,
@@ -381,9 +526,14 @@ def test_student_trace_geometry_recomputes_exact_group_and_sample_identity(tmp_p
                 "completion_tokens": 1,
                 "completion_text": completion,
                 "completion_sha256": hashlib.sha256(completion.encode()).hexdigest(),
+                "student_token_logprobs": [-1.0],
+                "teacher_token_logprobs_on_student_trajectory": None,
+                "student_nll": 1.0,
                 "terminated_by_eos": True,
                 "rollout_batch_latency_seconds": 0.1,
                 "teacher_scoring_latency_seconds": None,
+                "reward": float(sample_idx == 0),
+                "reward_status": "correct" if sample_idx == 0 else "incorrect",
             }
         )
     samples.write_text("".join(json.dumps(row) + "\n" for row in rows))
@@ -421,6 +571,125 @@ def test_student_trace_geometry_recomputes_exact_group_and_sample_identity(tmp_p
     rows[1]["sample_idx"] = 0
     samples.write_text("".join(json.dumps(row) + "\n" for row in rows))
     with pytest.raises(ValueError, match="missing/duplicate"):
+        recompute_student_trace_geometry(**kwargs)
+
+
+def test_main_arm_schema2_reconstructs_teacher_arrays_and_all_step_metrics(tmp_path):
+    steps = tmp_path / "steps.jsonl"
+    samples = tmp_path / "samples.jsonl"
+    prompt_sha = "b" * 64
+    student_values = [-2.0, -1.0, -0.5, -3.0]
+    teacher_values = [-1.0, -2.0, -0.4, -3.5]
+    rewards = [1.0, 0.0, 1.0, 0.0]
+    rows = []
+    for sample_idx, (student, teacher, reward) in enumerate(
+        zip(student_values, teacher_values, rewards, strict=True)
+    ):
+        completion = f"answer-{sample_idx}"
+        gap = teacher - student
+        rows.append(
+            {
+                "schema_version": 2,
+                "step": 1,
+                "group_id": 0,
+                "sample_idx": sample_idx,
+                "record_id": "M:main:1",
+                "source": "M",
+                "prompt_sha256": prompt_sha,
+                "prompt_token_ids": [1, 2],
+                "prompt_tokens": 2,
+                "completion_token_ids": [10 + sample_idx],
+                "completion_tokens": 1,
+                "completion_text": completion,
+                "completion_sha256": hashlib.sha256(completion.encode()).hexdigest(),
+                "student_token_logprobs": [student],
+                "teacher_token_logprobs_on_student_trajectory": [teacher],
+                "student_nll": -student,
+                "teacher_nll_on_student_trajectory": -teacher,
+                "mean_teacher_student_gap": gap,
+                "mean_abs_k1_log_ratio": abs(gap),
+                "min_teacher_student_gap": gap,
+                "max_teacher_student_gap": gap,
+                "positive_teacher_gap_fraction": float(gap > 0),
+                "reward": reward,
+                "reward_status": "correct" if reward else "incorrect",
+                "terminated_by_eos": True,
+                "rollout_batch_latency_seconds": 0.1,
+                "teacher_scoring_latency_seconds": 0.01,
+            }
+        )
+    loss_config = {
+        "task_reward_coef": 1.0,
+        "k1_coef": 0.01,
+        "gap_gate_beta": 5.0,
+        "advantage_clip": 5.0,
+    }
+    reconstructed = reconstruct_step_metrics(
+        rows,
+        mode="task_rl_k1_gap",
+        **loss_config,
+    )
+    assert reconstructed["tokens"] == 4
+    assert reconstructed["sampled_k1_estimate"] == pytest.approx(0.1)
+    assert reconstructed["positive_gap_fraction"] == 0.5
+    assert reconstructed["reward_mean"] == 0.5
+    assert reconstructed["informative_group_fraction"] == 1.0
+    step_row = {
+        "schema_version": 1,
+        "step": 1,
+        "mode": "task_rl_k1_gap",
+        "prompts": 1,
+        "samples": 4,
+        "gradient_norm_before_clip": 1.0,
+        **reconstructed,
+    }
+    steps.write_text(json.dumps(step_row) + "\n")
+    samples.write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+    class FakeTokenizer:
+        def decode(self, token_ids, *, skip_special_tokens):
+            assert skip_special_tokens is True
+            return f"answer-{token_ids[0] - 10}"
+
+    kwargs = {
+        "steps_path": steps,
+        "samples_path": samples,
+        "mode": "task_rl_k1_gap",
+        "expected_steps": 1,
+        "micro_prompts": 1,
+        "group_size": 4,
+        "max_prompt_tokens": 8,
+        "max_completion_tokens": 4,
+        "expected_groups": {
+            (1, 0): {
+                "record_id": "M:main:1",
+                "source": "M",
+                "prompt_sha256": prompt_sha,
+                "prompt_token_ids": [1, 2],
+            }
+        },
+        "tokenizer": FakeTokenizer(),
+        "loss_config": loss_config,
+    }
+    recomputed = recompute_student_trace_geometry(**kwargs)
+    assert recomputed["expected_geometry_observed"] is True
+
+    # A coherent per-sample rewrite must still fail if the step-level OPD
+    # surrogate/K1/gate/total account is stale.
+    rows[0]["teacher_token_logprobs_on_student_trajectory"] = [-4.0]
+    gap = -4.0 - student_values[0]
+    rows[0].update(
+        {
+            "teacher_nll_on_student_trajectory": 4.0,
+            "mean_teacher_student_gap": gap,
+            "mean_abs_k1_log_ratio": abs(gap),
+            "min_teacher_student_gap": gap,
+            "max_teacher_student_gap": gap,
+            "positive_teacher_gap_fraction": float(gap > 0),
+        }
+    )
+    samples.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    with pytest.raises(ValueError, match="differs from trace reconstruction"):
         recompute_student_trace_geometry(**kwargs)
 
 

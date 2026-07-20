@@ -9,6 +9,23 @@ status: maintained
 
 # Wiki Op Log (append-only)
 
+## [2026-07-20] design | OPD objective-family expansion
+Recorded [[opd-objective-family-expansion-2026-07-20]] as a new, unsealed
+successor rather than altering the terminal `ae90bc7` campaign. The planned
+comparison has six objectives on each of `O_M` and `O_O`, three
+preregistered seeds, strict tensor/stored-rollout/full-custody fidelity tests,
+and a conditional actual-veRL reference pinned to
+`6a6242f3d8ec7d9f8b4936f4905144707d91fe3b`. Historical EIT accounting implies
+roughly 114 A100-hours for common strict prerequisites and 236--255 GPU-hours
+for the initial three-seed study; the veRL component remains provisional until
+a one-step topology audit. No expanded training or held-out evaluation was
+launched.
+
+The recovery suite passes 329 tests. An independent read-only replay bound the
+full historical M artifact graph and rescored all 2,824 completions with zero
+verifier errors; M remained failed at delta `+0.010623`, 95% CI
+`[-0.002125, +0.024079]`, including teacher-favorable sensitivity.
+
 ## [2026-07-17] archive fold | One named LegalRagAgent archive root
 Renamed the persistent EIT archive root from the generic `archives/legalrag/`
 path to `archives/LegalRagAgent_archive/`. The move folded the retired
@@ -507,3 +524,38 @@ audit predecessors; freeze code and environments; exercise persistent-storage
 custody; rerun M/O support; retrain both teachers; establish teacher gaps; run
 two task-RL plus four OPD arms; then close all six held-out gates and the paired
 matrix readout. See [[opd-math-scientific-cutover-2026-07-18]].
+
+## [2026-07-20] OPD verifier recovery | O survives; M closes; O-only campaign next
+
+Strictly replayed the `ae90bc7` teacher, support, baseline, and held-out reward
+surfaces after discovering that Math-Verify and TRL silently converted
+exceptions/timeouts into wrong-answer rewards. M remains a genuine failed
+teacher gate: its `+1.06pp` point gain has a confidence interval crossing zero.
+The O teacher training trace is clean, and O's old `+1.12pp` gap remains
+positive even when every uncertain base answer is set correct and every
+uncertain trained answer wrong. The old gate bytes are nevertheless
+superseded, not silently blessed.
+
+The successor patch makes training fail closed, retries evaluation errors
+three times, caps the merged uncertain surface at `0.1%`, and uses worst-case
+uncertainty for teacher-gap, support mixedness, and held-out effect
+classification. Student traces now retain exact student/teacher token
+log-probabilities and reconstruct both per-token gap diagnostics and every
+arithmetic step scalar (task loss, score-function surrogate, sampled K1, gate,
+reward/mixedness, tokens, and total loss). The focused suite passes 242 tests.
+
+One-step O-to-M diagnostic `108244` independently confirms exact-token
+scoring, a finite OPD gradient, real LoRA movement, and stable adapter
+promotion; its four task rewards were all zero, so it is plumbing only. The
+next boundary is a fresh single-commit O-only campaign with `baseline_M`,
+`O_M`, `baseline_O`, and `O_O`. M-teacher arms remain forbidden. Full details
+are in [[opd-math-verifier-recovery-2026-07-20]]. The tracked result builder
+now directly supports this four-arm conditional readout with paired record
+bootstrap, two-contrast Bonferroni intervals, and verifier worst-case
+envelopes; it no longer needs forbidden M-teacher artifacts to close the study.
+The final prelaunch audit also replaced base-only O-gap sizing with paired
+base/trained timing, the slower `ElapsedRaw`, and a registered five-shard floor;
+four shards violate the 18-hour safety cap under predecessor job `107462`.
+Primary student outputs now use stable preregistered run IDs. The post-selection
+but pre-student-arm preregistration pins the stable O teacher, both support
+gates, all four paths, and a fail-closed read-only/checksummed result bundle.

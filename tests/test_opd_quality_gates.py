@@ -8,6 +8,7 @@ import pytest
 
 from tests.opd_evaluation_fixture import write_merged_evaluation
 from scripts.opd_math import quality_gates
+from scripts.opd_math import plan_evaluation_shards as evaluation_planner
 
 from scripts.opd_math.quality_gates import (
     CANONICAL_TEACHER_TRAINING_PLAN,
@@ -108,6 +109,196 @@ def test_manifest_publication_is_atomic_and_never_overwrites(tmp_path):
             output, '{"passed":false}\n', label="test gate"
         )
     assert output.read_text() == '{"passed":true}\n'
+
+
+def test_verifier_error_assignment_supports_monotone_gate_sensitivity():
+    grouped = {"a": [0.0, 1.0], "b": [0.0, 0.0]}
+    binding = {
+        "verifier_error_sample_keys": [
+            {"record_id": "a", "sample_idx": 0},
+            {"record_id": "b", "sample_idx": 1},
+        ]
+    }
+
+    pessimistic_base = quality_gates.assign_verifier_error_rewards(
+        grouped, binding, 1.0
+    )
+    pessimistic_trained = quality_gates.assign_verifier_error_rewards(
+        grouped, binding, 0.0
+    )
+
+    assert pessimistic_base == {"a": [1.0, 1.0], "b": [0.0, 1.0]}
+    assert pessimistic_trained == grouped
+
+
+def test_full_o_teacher_gate_requires_same_revalidated_base_trained_plan(
+    tmp_path, monkeypatch
+):
+    task = tmp_path / "O_teacher_gap_dev.jsonl"
+    write_jsonl(
+        task,
+        [
+            {
+                "record_id": f"O:{index}",
+                "source": "O",
+                "role": "teacher_gap_dev",
+                "solution": rf"\boxed{{{index}}}",
+            }
+            for index in range(3)
+        ],
+    )
+    monkeypatch.setattr(
+        evaluation_planner, "revalidate_plan_binding", lambda binding: dict(binding)
+    )
+    shared = {
+        "schema_version": 1,
+        "binding_kind": "opd_math_o_primary_evaluation_plan_binding_v1",
+        "plan": "/plans/O.json",
+        "plan_file_sha256": "1" * 64,
+        "plan_payload_sha256": "2" * 64,
+        "plan_schema_version": 2,
+        "plan_kind": evaluation_planner.PLAN_KIND,
+        "source": "O",
+        "role": "teacher_gap_dev",
+        "model": MODEL,
+        "model_revision": REVISION,
+        "task_file": str(task.resolve()),
+        "task_file_sha256": sha256_file(task),
+        "max_records": 0,
+        "git_commit": TEACHER_TRAINING_COMMIT,
+        "train_freeze": "/freezes/train.freeze.txt",
+        "train_freeze_sha256": "3" * 64,
+        "array_spec": "0-4%4",
+        "slurm_array_argument": "--array=0-4%4",
+        "array_geometry_sha256": "4" * 64,
+        "shard_count": 5,
+        "samples_per_problem": 4,
+        "decoding": dict(TEACHER_GAP_DECODING),
+    }
+    base = {**shared, "arm": "base", "adapter": None, "adapter_tree_sha256": None}
+    trained = {
+        **shared,
+        "arm": "trained",
+        "adapter": "/adapters/O",
+        "adapter_tree_sha256": "5" * 64,
+    }
+    base_binding = {
+        "task_file": str(task.resolve()),
+        "records": 3,
+        "evaluation_plan": base,
+    }
+    trained_binding = {
+        "task_file": str(task.resolve()),
+        "records": 3,
+        "evaluation_plan": trained,
+    }
+    result = quality_gates._require_o_teacher_gap_plan_pair(
+        task_source="O",
+        base_binding=base_binding,
+        trained_binding=trained_binding,
+    )
+    assert result["plan_payload_sha256"] == "2" * 64
+    assert result["base_binding"]["arm"] == "base"
+    assert result["trained_binding"]["arm"] == "trained"
+
+    with pytest.raises(ValueError, match="one exact plan"):
+        quality_gates._require_o_teacher_gap_plan_pair(
+            task_source="O",
+            base_binding=base_binding,
+            trained_binding={
+                **trained_binding,
+                "evaluation_plan": {
+                    **trained,
+                    "plan_payload_sha256": "9" * 64,
+                },
+            },
+        )
+    with pytest.raises(ValueError, match="arms must be base then trained"):
+        quality_gates._require_o_teacher_gap_plan_pair(
+            task_source="O",
+            base_binding={
+                **base_binding,
+                "evaluation_plan": {**base, "arm": "trained"},
+            },
+            trained_binding=trained_binding,
+        )
+
+
+def test_scientific_student_support_removes_error_induced_mixedness(monkeypatch):
+    grouped = {
+        f"M:{index}": ([1.0, 1.0, 1.0, 0.0] if index == 0 else [1.0] * 4)
+        for index in range(100)
+    }
+    summary = {
+        "adapter": None,
+        "adapter_tree_sha256": None,
+        "decoding": STUDENT_SUPPORT_DECODING,
+    }
+    binding = {
+        "task_file": "/tmp/student-opd.jsonl",
+        "task_file_sha256": "1" * 64,
+        "samples_per_problem": 4,
+        "verifier_error_samples": 1,
+        "verifier_error_sample_keys": [{"record_id": "M:0", "sample_idx": 3}],
+        "verifier_error_sample_keys_sha256": "2" * 64,
+        "summary": "/tmp/summary.json",
+        "summary_sha256": "3" * 64,
+        "samples": "/tmp/samples.jsonl",
+        "samples_sha256": "4" * 64,
+        "evaluation_git_commit": "5" * 40,
+        "evaluator_file_sha256": "6" * 64,
+        "evaluation_packages": EXPECTED_TEACHER_TRAIN_PACKAGES,
+        "tokenizer_contract_sha256": "7" * 64,
+        "evaluation_artifact_kind": quality_gates.EVALUATION_MERGED_KIND,
+        "evaluation_contract": quality_gates.EVALUATION_CONTRACT,
+        "evaluation_contract_sha256": "8" * 64,
+        "evaluation_environment": {},
+        "evaluation_post_promotion_custody": {},
+        "record_seed_contract": {},
+        "selected_record_ids_sha256": "9" * 64,
+        "evaluation_shard_count": 1,
+        "evaluation_shard_strategy": quality_gates.SHARD_STRATEGY,
+        "evaluation_merge_strategy": quality_gates.MERGE_STRATEGY,
+        "evaluation_merge_provenance_sha256": "a" * 64,
+        "evaluation_merge_custody_sha256": "b" * 64,
+        "evaluation_merger_file_sha256": "c" * 64,
+    }
+    monkeypatch.setattr(
+        quality_gates,
+        "checked_evaluation",
+        lambda *_args, **_kwargs: (summary, grouped, binding),
+    )
+    monkeypatch.setattr(
+        quality_gates,
+        "_require_scientific_evaluation_contract",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        quality_gates,
+        "_prepared_role_binding",
+        lambda *_args, **_kwargs: ({}, {}),
+    )
+
+    result = student_support(
+        Namespace(
+            smoke_gate=False,
+            min_records=100,
+            min_pass_at_k=0.01,
+            min_mixed_group_fraction=0.01,
+            student_summary=Path("/tmp/summary.json"),
+            student_samples=Path("/tmp/samples.jsonl"),
+            student_model=STUDENT_MODEL,
+            student_revision=STUDENT_REVISION,
+            task_source="M",
+            task_role="student_opd",
+            prepared_manifest=Path("/tmp/prepared.json"),
+        )
+    )
+
+    assert result["mixed_reward_group_fraction"] == 0.01
+    assert result["worst_case_mixed_reward_group_fraction"] == 0.0
+    assert result["passed"] is False
+    assert result["authorizes_scientific_training"] is False
 
 
 def teacher_trace_completion(solution, sample_idx):

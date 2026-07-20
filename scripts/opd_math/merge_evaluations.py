@@ -38,8 +38,14 @@ try:
         validate_evaluation_environment_contract,
         evaluation_environment_contract_unchanged,
         write_text_fsync,
+        _is_complete_o_teacher_gap,
     )
-    from .math_reward import verify_completion
+    from .math_reward import (
+        EVALUATION_VERIFIER_ERROR_POLICY,
+        EVALUATION_VERIFIER_MAX_ATTEMPTS,
+        MAX_EVALUATION_VERIFIER_ERROR_FRACTION,
+        verify_evaluation_completion,
+    )
     from .tokenizer_contract import canonical_sha256
 except ImportError:
     from data_contract import iter_jsonl  # type: ignore
@@ -69,8 +75,14 @@ except ImportError:
         validate_evaluation_environment_contract,
         evaluation_environment_contract_unchanged,
         write_text_fsync,
+        _is_complete_o_teacher_gap,
     )
-    from math_reward import verify_completion  # type: ignore
+    from math_reward import (  # type: ignore
+        EVALUATION_VERIFIER_ERROR_POLICY,
+        EVALUATION_VERIFIER_MAX_ATTEMPTS,
+        MAX_EVALUATION_VERIFIER_ERROR_FRACTION,
+        verify_evaluation_completion,
+    )
     from tokenizer_contract import canonical_sha256  # type: ignore
 
 
@@ -196,6 +208,14 @@ def _validate_contract(
     samples_per_problem = contract.get("samples_per_problem")
     if type(samples_per_problem) is not int or samples_per_problem <= 0:
         raise ValueError("evaluation contract has invalid samples_per_problem")
+    expected_reward_verifier = {
+        "candidate_error_policy": EVALUATION_VERIFIER_ERROR_POLICY,
+        "maximum_attempts": EVALUATION_VERIFIER_MAX_ATTEMPTS,
+        "maximum_error_fraction": MAX_EVALUATION_VERIFIER_ERROR_FRACTION,
+        "training_policy": "abort",
+    }
+    if contract.get("reward_verifier") != expected_reward_verifier:
+        raise ValueError("evaluation contract has an unsupported reward-verifier policy")
     decoding = contract.get("decoding")
     if not isinstance(decoding, dict) or decoding.get("thinking") is not False:
         raise ValueError("evaluation contract lacks non-thinking decoding")
@@ -235,6 +255,26 @@ def _validate_contract(
     expected_roles = sorted({str(row.get("role")) for row in selected_rows})
     _expect(contract, "task_sources", expected_sources, "evaluation contract")
     _expect(contract, "task_roles", expected_roles, "evaluation contract")
+    complete_o_gap = _is_complete_o_teacher_gap(
+        selected_rows, physical_record_count=len(task_rows)
+    )
+    evaluation_plan = contract.get("evaluation_plan")
+    if complete_o_gap:
+        if not isinstance(evaluation_plan, dict):
+            raise ValueError(
+                "complete O teacher_gap_dev evaluation contract lacks the canonical v2 plan"
+            )
+        try:
+            from .plan_evaluation_shards import revalidate_plan_binding_for_contract
+        except ImportError:
+            from plan_evaluation_shards import (  # type: ignore
+                revalidate_plan_binding_for_contract,
+            )
+        revalidate_plan_binding_for_contract(evaluation_plan, contract)
+    elif evaluation_plan is not None:
+        raise ValueError(
+            "evaluation plan binding is forbidden outside complete O teacher_gap_dev"
+        )
     return contract
 
 
@@ -254,6 +294,13 @@ def _validate_shard_custody(summary: Mapping[str, Any], contract: Mapping[str, A
             contract["code"]["evaluator_file_sha256"],
             "shard custody",
         )
+        if contract.get("evaluation_plan") is not None:
+            _expect(
+                custody,
+                f"evaluation_plan_{position}",
+                contract["evaluation_plan"],
+                "shard custody",
+            )
         _expect(
             custody,
             f"packages_{position}",
@@ -368,7 +415,7 @@ def validate_sample_rows(
         raise ValueError(
             f"sample row count mismatch: expected={expected_count}, actual={len(sample_rows)}"
         )
-    correct = parse_failed = completion_tokens = prompt_tokens = 0
+    correct = parse_failed = verifier_errors = completion_tokens = prompt_tokens = 0
     generation_latency = 0.0
     cursor = 0
     for local_index, task_row in enumerate(task_rows):
@@ -396,19 +443,64 @@ def validate_sample_rows(
                 hashlib.sha256(completion.encode("utf-8")).hexdigest(),
                 "evaluation sample",
             )
-            verdict = verify_completion(completion, str(task_row["solution"]))
-            if verdict.get("status") in {"gold_parse_failed", "verifier_error"}:
+            verdict = verify_evaluation_completion(
+                completion, str(task_row["solution"])
+            )
+            if verdict.get("reward") is None:
                 raise RuntimeError(
                     f"verifier failure while merging record {record_id}: {verdict}"
                 )
             reward = _finite_number(row.get("reward"), "evaluation sample reward")
             if reward not in {0.0, 1.0}:
                 raise ValueError("evaluation sample reward must be binary")
-            recomputed_reward = float(verdict.get("reward"))
-            if reward != recomputed_reward or row.get("reward_status") != verdict.get("status"):
-                raise ValueError(
-                    f"evaluation sample reward disagrees with recomputation for {record_id}"
-                )
+            stored_status = row.get("reward_status")
+            stored_error = stored_status == "verifier_error_zeroed"
+            if stored_error:
+                if reward != 0.0:
+                    raise ValueError("evaluation verifier-error sample must map to zero")
+                if (
+                    row.get("verifier_error_policy")
+                    != EVALUATION_VERIFIER_ERROR_POLICY
+                    or not isinstance(row.get("verifier_error_type"), str)
+                    or not isinstance(row.get("verifier_error"), str)
+                    or row.get("verifier_stage")
+                    not in {"prediction_parse", "symbolic_verify"}
+                    or row.get("verifier_attempts")
+                    != EVALUATION_VERIFIER_MAX_ATTEMPTS
+                ):
+                    raise ValueError(
+                        "evaluation verifier-error sample lacks exact bounded policy custody"
+                    )
+                history = row.get("verifier_error_history")
+                if (
+                    not isinstance(history, list)
+                    or len(history) != EVALUATION_VERIFIER_MAX_ATTEMPTS
+                    or any(
+                        not isinstance(item, dict)
+                        or item.get("status")
+                        not in {"verifier_error", "prediction_parser_error"}
+                        or not isinstance(item.get("error_type"), str)
+                        or not isinstance(item.get("error"), str)
+                        for item in history
+                    )
+                ):
+                    raise ValueError(
+                        "evaluation verifier-error sample lacks its exact retry history"
+                    )
+                # A later bounded replay may resolve a load-sensitive timeout.
+                # The stored sample remains an unknown in [0, 1], and all
+                # authorizing gates use worst-case sensitivity over that set.
+            else:
+                if verdict.get("status") == "verifier_error_zeroed":
+                    raise RuntimeError(
+                        "bounded verifier replay remained inconclusive for a determinate "
+                        f"evaluation sample in record {record_id}"
+                    )
+                recomputed_reward = float(verdict.get("reward"))
+                if reward != recomputed_reward or stored_status != verdict.get("status"):
+                    raise ValueError(
+                        f"evaluation sample reward disagrees with recomputation for {record_id}"
+                    )
             completion_count = row.get("completion_tokens")
             prompt_count = row.get("prompt_tokens")
             if type(completion_count) is not int or completion_count <= 0:
@@ -428,16 +520,26 @@ def validate_sample_rows(
             ):
                 raise ValueError("samples from one record disagree on prompt tokens or latency")
             correct += int(reward)
-            parse_failed += int(verdict.get("status") == "prediction_parse_failed")
+            parse_failed += int(stored_status == "prediction_parse_failed")
+            verifier_errors += int(stored_error)
             completion_tokens += completion_count
         prompt_tokens += int(group_prompt_tokens)
         generation_latency += float(group_latency)
     samples = len(sample_rows)
+    verifier_error_fraction = verifier_errors / samples
     return {
         "records": len(task_rows),
         "samples": samples,
         "accuracy": correct / samples,
+        "accuracy_excluding_verifier_errors": (
+            correct / (samples - verifier_errors) if verifier_errors < samples else None
+        ),
+        "accuracy_if_all_verifier_errors_correct": (correct + verifier_errors) / samples,
         "prediction_parse_failure_fraction": parse_failed / samples,
+        "verifier_error_policy": EVALUATION_VERIFIER_ERROR_POLICY,
+        "verifier_error_samples": verifier_errors,
+        "verifier_error_fraction": verifier_error_fraction,
+        "maximum_verifier_error_fraction": MAX_EVALUATION_VERIFIER_ERROR_FRACTION,
         "unique_prompt_tokens": prompt_tokens,
         "expanded_prompt_tokens": prompt_tokens * samples_per_problem,
         "total_completion_tokens": completion_tokens,
@@ -446,14 +548,29 @@ def validate_sample_rows(
 
 
 def _validate_summary_metrics(summary: Mapping[str, Any], metrics: Mapping[str, Any]) -> None:
-    for field in ("records", "samples", "unique_prompt_tokens", "expanded_prompt_tokens", "total_completion_tokens"):
+    for field in (
+        "records",
+        "samples",
+        "verifier_error_policy",
+        "verifier_error_samples",
+        "maximum_verifier_error_fraction",
+        "unique_prompt_tokens",
+        "expanded_prompt_tokens",
+        "total_completion_tokens",
+    ):
         _expect(summary, field, metrics[field], "evaluation summary")
     for field in (
         "accuracy",
+        "accuracy_excluding_verifier_errors",
+        "accuracy_if_all_verifier_errors_correct",
         "prediction_parse_failure_fraction",
+        "verifier_error_fraction",
         "total_generation_latency_seconds",
     ):
-        _same_float(summary.get(field), float(metrics[field]), f"evaluation summary {field}")
+        if metrics[field] is None:
+            _expect(summary, field, None, "evaluation summary")
+        else:
+            _same_float(summary.get(field), float(metrics[field]), f"evaluation summary {field}")
     peak = summary.get("peak_cuda_memory_bytes")
     if peak is not None and (type(peak) is not int or peak < 0):
         raise ValueError("evaluation summary has invalid peak_cuda_memory_bytes")
@@ -506,9 +623,29 @@ def validate_shard_artifact(
         "decoding",
         "record_seed_contract",
         "samples_per_problem",
+        "evaluation_plan",
     ):
         contract_field = "record_seed_contract" if field == "record_seed_contract" else field
-        _expect(summary, field, contract[contract_field], "evaluation shard")
+        _expect(summary, field, contract.get(contract_field), "evaluation shard")
+    plan_launch_validation = summary.get("plan_launch_validation")
+    if contract.get("evaluation_plan") is None:
+        if plan_launch_validation is not None:
+            raise ValueError("unplanned evaluation shard has launch-plan metadata")
+    elif plan_launch_validation != {
+        "schema_version": 1,
+        "validation_kind": "opd_math_o_primary_plan_launch_validation_v1",
+        "phase": "shard",
+        "array_spec_source": "predeclared_OPD_MATH_EVAL_ARRAY_SPEC_v1",
+        "declared_array_spec": contract["evaluation_plan"]["array_spec"],
+        "declared_slurm_array_argument": contract["evaluation_plan"][
+            "slurm_array_argument"
+        ],
+        "array_task_count": contract["evaluation_plan"]["shard_count"],
+        "array_task_min": 0,
+        "array_task_max": contract["evaluation_plan"]["shard_count"] - 1,
+        "validated": True,
+    }:
+        raise ValueError("planned evaluation shard lacks exact launch validation")
     _expect(summary, "eligible_records", contract["eligible_records"], "evaluation shard")
     expected_code = {
         "git": {"commit": contract["code"]["git_commit"], "worktree_clean": True},
@@ -535,6 +672,8 @@ def validate_shard_artifact(
                 "stable_environment": True,
             }
         )
+    if contract.get("evaluation_plan") is not None:
+        expected_producer_state["evaluation_plan"] = contract["evaluation_plan"]
     companion = validate_post_promotion_companion(
         summary_path,
         summary,
@@ -620,6 +759,7 @@ def capture_merge_custody(
     task_file: Path,
     adapter: str | None,
     environment_contract: Mapping[str, Any] | None = None,
+    evaluation_plan: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     adapter_hash = None
     if adapter is not None:
@@ -645,6 +785,16 @@ def capture_merge_custody(
                 "stable_environment": stable_environment,
             }
         )
+    if evaluation_plan is not None:
+        plan_path = Path(str(evaluation_plan.get("plan", ""))).expanduser()
+        if (
+            plan_path.is_symlink()
+            or not plan_path.is_file()
+            or str(plan_path.resolve()) != evaluation_plan.get("plan")
+            or sha256_file(plan_path) != evaluation_plan.get("plan_file_sha256")
+        ):
+            raise RuntimeError("evaluation shard plan changed during merge")
+        custody["evaluation_plan"] = dict(evaluation_plan)
     return custody
 
 
@@ -663,6 +813,13 @@ def require_clean_stable_merge_custody(
             contract["code"]["evaluator_file_sha256"],
             f"merge {label}",
         )
+        if contract.get("evaluation_plan") is not None:
+            _expect(
+                state,
+                "evaluation_plan",
+                contract["evaluation_plan"],
+                f"merge {label}",
+            )
         _expect(state, "packages", contract["code"]["packages"], f"merge {label}")
         if contract["code"].get("environment_contract") is not None:
             _expect(
@@ -717,6 +874,13 @@ def merge_custody_manifest(
                 "stable_environment_end": end.get("stable_environment"),
             }
         )
+    if start.get("evaluation_plan") is not None or end.get("evaluation_plan") is not None:
+        manifest.update(
+            {
+                "evaluation_plan_start": start.get("evaluation_plan"),
+                "evaluation_plan_end": end.get("evaluation_plan"),
+            }
+        )
     return manifest
 
 
@@ -753,6 +917,15 @@ def merge_shards(
     output_dir: Path,
     train_environment_root: Path | None = None,
     train_environment_freeze: Path | None = None,
+    shard_plan: Path | None = None,
+    plan_arm: str | None = None,
+    array_spec: str | None = None,
+    samples_per_problem: int | None = None,
+    temperature: float | None = None,
+    top_p: float | None = None,
+    top_k: int | None = None,
+    max_new_tokens: int | None = None,
+    seed: int | None = None,
 ) -> dict[str, Any]:
     task_file = Path(task_file).expanduser().resolve()
     task_rows, task_hash = _checked_task_rows(task_file)
@@ -765,6 +938,62 @@ def merge_shards(
         task_hash=task_hash,
     )
     _expect(contract["shard"], "shard_count", shard_count, "merge contract")
+    complete_o_gap = _is_complete_o_teacher_gap(
+        task_rows[: contract["eligible_records"]],
+        physical_record_count=len(task_rows),
+    )
+    supplied_plan_inputs = (
+        shard_plan,
+        plan_arm,
+        array_spec,
+        samples_per_problem,
+        temperature,
+        top_p,
+        top_k,
+        max_new_tokens,
+        seed,
+    )
+    merge_plan_validation = None
+    if complete_o_gap:
+        if any(value is None for value in supplied_plan_inputs):
+            raise ValueError(
+                "complete O teacher_gap_dev merge requires explicit canonical plan custody"
+            )
+        try:
+            from .plan_evaluation_shards import validate_launch_against_plan
+        except ImportError:
+            from plan_evaluation_shards import validate_launch_against_plan  # type: ignore
+        adapter = contract.get("adapter")
+        merge_plan_validation = validate_launch_against_plan(
+            plan_path=Path(shard_plan),  # type: ignore[arg-type]
+            arm=str(plan_arm),
+            phase="merge",
+            source="O",
+            role="teacher_gap_dev",
+            model=contract["model"],
+            model_revision=contract["model_revision"],
+            task_file=task_file,
+            max_records=0,
+            shard_count=shard_count,
+            git_commit=contract["code"]["git_commit"],
+            train_freeze=Path(train_environment_freeze),  # type: ignore[arg-type]
+            adapter=None if adapter is None else Path(adapter),
+            array_spec=str(array_spec),
+            samples_per_problem=samples_per_problem,  # type: ignore[arg-type]
+            temperature=temperature,  # type: ignore[arg-type]
+            top_p=top_p,  # type: ignore[arg-type]
+            top_k=top_k,  # type: ignore[arg-type]
+            max_new_tokens=max_new_tokens,  # type: ignore[arg-type]
+            seed=seed,  # type: ignore[arg-type]
+        )
+        if merge_plan_validation["plan_binding"] != contract.get("evaluation_plan"):
+            raise ValueError(
+                "merge plan/arm/geometry differs from the exact shard contract"
+            )
+    elif any(value is not None for value in supplied_plan_inputs):
+        raise ValueError(
+            "evaluation plan inputs are forbidden outside complete O teacher_gap_dev"
+        )
     environment_contract = contract["code"].get("environment_contract")
     if environment_contract is None:
         if train_environment_root is not None or train_environment_freeze is not None:
@@ -786,7 +1015,10 @@ def merge_shards(
                 "merge live train environment differs from the exact shard contract"
             )
     custody_start = capture_merge_custody(
-        task_file, contract.get("adapter"), environment_contract
+        task_file,
+        contract.get("adapter"),
+        environment_contract,
+        contract.get("evaluation_plan"),
     )
     require_clean_stable_merge_custody(custody_start, custody_start, contract)
 
@@ -829,8 +1061,17 @@ def merge_shards(
         task_hash=task_hash,
         base_seed=contract["record_seed_contract"]["base_seed"],
     )
+    if metrics["verifier_error_fraction"] > MAX_EVALUATION_VERIFIER_ERROR_FRACTION:
+        raise RuntimeError(
+            "merged evaluation exceeds the predeclared candidate verifier-error cap: "
+            f"observed={metrics['verifier_error_fraction']}, "
+            f"maximum={MAX_EVALUATION_VERIFIER_ERROR_FRACTION}"
+        )
     custody_end = capture_merge_custody(
-        task_file, contract.get("adapter"), environment_contract
+        task_file,
+        contract.get("adapter"),
+        environment_contract,
+        contract.get("evaluation_plan"),
     )
     require_clean_stable_merge_custody(custody_start, custody_end, contract)
 
@@ -884,6 +1125,16 @@ def merge_shards(
         "artifact_kind": EVALUATION_MERGED_KIND,
         "evaluation_contract": contract,
         "evaluation_contract_sha256": canonical_sha256(contract),
+        **(
+            {}
+            if merge_plan_validation is None
+            else {
+                "evaluation_plan": contract["evaluation_plan"],
+                "plan_merge_validation": merge_plan_validation[
+                    "launch_validation"
+                ],
+            }
+        ),
         "model": contract["model"],
         "model_revision": contract["model_revision"],
         "code": summary_code,
@@ -900,8 +1151,20 @@ def merge_shards(
         "samples_per_problem": contract["samples_per_problem"],
         "samples": metrics["samples"],
         "accuracy": metrics["accuracy"],
+        "accuracy_excluding_verifier_errors": metrics[
+            "accuracy_excluding_verifier_errors"
+        ],
+        "accuracy_if_all_verifier_errors_correct": metrics[
+            "accuracy_if_all_verifier_errors_correct"
+        ],
         "prediction_parse_failure_fraction": metrics[
             "prediction_parse_failure_fraction"
+        ],
+        "verifier_error_policy": metrics["verifier_error_policy"],
+        "verifier_error_samples": metrics["verifier_error_samples"],
+        "verifier_error_fraction": metrics["verifier_error_fraction"],
+        "maximum_verifier_error_fraction": metrics[
+            "maximum_verifier_error_fraction"
         ],
         "unique_prompt_tokens": metrics["unique_prompt_tokens"],
         "expanded_prompt_tokens": metrics["expanded_prompt_tokens"],
@@ -931,7 +1194,10 @@ def merge_shards(
         json.dumps(summary, indent=2, sort_keys=True) + "\n",
     )
     custody_before_promotion = capture_merge_custody(
-        task_file, contract.get("adapter"), environment_contract
+        task_file,
+        contract.get("adapter"),
+        environment_contract,
+        contract.get("evaluation_plan"),
     )
     require_clean_stable_merge_custody(
         custody_start, custody_before_promotion, contract
@@ -944,7 +1210,10 @@ def merge_shards(
             producer="evaluation_merge",
             custody_start=custody_start,
             capture_custody=lambda: capture_merge_custody(
-                task_file, contract.get("adapter"), environment_contract
+                task_file,
+                contract.get("adapter"),
+                environment_contract,
+                contract.get("evaluation_plan"),
             ),
             require_stable_custody=lambda start, end: require_clean_stable_merge_custody(
                 start, end, contract
@@ -963,6 +1232,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--train-environment-root", type=Path, required=True)
     parser.add_argument("--train-environment-freeze", type=Path, required=True)
+    parser.add_argument("--shard-plan", type=Path)
+    parser.add_argument("--plan-arm", choices=("base", "trained"))
+    parser.add_argument("--array-spec")
+    parser.add_argument("--samples-per-problem", type=int)
+    parser.add_argument("--temperature", type=float)
+    parser.add_argument("--top-p", type=float)
+    parser.add_argument("--top-k", type=int)
+    parser.add_argument("--max-new-tokens", type=int)
+    parser.add_argument("--seed", type=int)
     return parser.parse_args()
 
 
@@ -975,6 +1253,15 @@ def main() -> int:
         output_dir=args.output_dir,
         train_environment_root=args.train_environment_root,
         train_environment_freeze=args.train_environment_freeze,
+        shard_plan=args.shard_plan,
+        plan_arm=args.plan_arm,
+        array_spec=args.array_spec,
+        samples_per_problem=args.samples_per_problem,
+        temperature=args.temperature,
+        top_p=args.top_p,
+        top_k=args.top_k,
+        max_new_tokens=args.max_new_tokens,
+        seed=args.seed,
     )
     print(json.dumps(summary, sort_keys=True))
     return 0

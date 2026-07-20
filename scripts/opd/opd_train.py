@@ -28,6 +28,7 @@ import json
 import math
 import random
 import re
+import stat
 import subprocess
 import sys
 import time
@@ -43,6 +44,10 @@ try:
         sampled_k1_estimate,
         task_reward_policy_loss,
     )
+    from .trace_metrics import (
+        reconstruct_step_metrics,
+        validate_recorded_step_metrics,
+    )
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import teacher_client
@@ -51,6 +56,10 @@ except ImportError:
         reverse_kl_score_function_loss,
         sampled_k1_estimate,
         task_reward_policy_loss,
+    )
+    from trace_metrics import (  # type: ignore
+        reconstruct_step_metrics,
+        validate_recorded_step_metrics,
     )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -109,6 +118,7 @@ EXPECTED_SERVE_PACKAGES = {
     "requests": "2.32.5",
     "vllm": "0.24.0",
 }
+STUDENT_PRELAUNCH_RECEIPT = "opd_math_o_teacher_student_prelaunch_receipt_v1"
 
 
 def log(msg: str) -> None:
@@ -680,6 +690,170 @@ def sha256_file(path: str | Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def validate_prelaunch_receipt(args) -> dict:
+    """Reopen the wrapper-sealed preregistration receipt before training."""
+
+    raw = Path(args.prelaunch_receipt).expanduser()
+    if raw.is_symlink() or not raw.is_file():
+        raise ValueError("primary student run requires a regular prelaunch receipt")
+    if raw.stat().st_mode & (stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH):
+        raise ValueError("primary student prelaunch receipt must be sealed read-only")
+    path = raw.resolve()
+    receipt = json.loads(path.read_text())
+    if not isinstance(receipt, dict):
+        raise ValueError("primary student prelaunch receipt must be a JSON object")
+    _expect_equal(receipt, "schema_version", 1, "student prelaunch receipt")
+    _expect_equal(
+        receipt,
+        "receipt",
+        STUDENT_PRELAUNCH_RECEIPT,
+        "student prelaunch receipt",
+    )
+    _expect_equal(
+        receipt,
+        "sealed_before_optimizer_start",
+        True,
+        "student prelaunch receipt",
+    )
+    run_key = (
+        f"baseline_{args.student_source}"
+        if args.mode == "task_rl"
+        else args.pair_id
+    )
+    student_source = (
+        args.student_source if args.mode == "task_rl" else str(args.pair_id).split("_")[1]
+    )
+    for field, expected in (
+        ("run_key", run_key),
+        ("run_id", args.campaign_run_id),
+        ("scheduler_job_id", args.scheduler_job_id),
+        ("mode", args.mode),
+        ("student_source", student_source),
+        ("out_dir", str(Path(args.out_dir).resolve())),
+    ):
+        _expect_equal(receipt, field, expected, "student prelaunch receipt")
+    state = git_state()
+    if state.get("dirty") or state.get("commit") != receipt.get("git_commit"):
+        raise ValueError("student prelaunch receipt Git identity is not current and clean")
+    expected_artifacts = {
+        "run_manifest": str(
+            (Path(args.out_dir).resolve() / "traces" / "run_manifest.json").resolve()
+        ),
+        "student_completion_manifest": str(
+            (
+                Path(args.out_dir).resolve()
+                / "traces"
+                / "completion_manifest.json"
+            ).resolve()
+        ),
+        "student_adapter": str((Path(args.out_dir).resolve() / "final").resolve()),
+        "prelaunch_receipt": str(path),
+    }
+    _expect_equal(
+        receipt,
+        "expected_artifacts",
+        expected_artifacts,
+        "student prelaunch receipt",
+    )
+    support = receipt.get("student_support")
+    if not isinstance(support, dict):
+        raise ValueError("student prelaunch receipt lacks support identity")
+    _expect_equal(
+        support,
+        "manifest_sha256",
+        sha256_file(args.student_support_manifest),
+        "student prelaunch support",
+    )
+    teacher = receipt.get("o_teacher")
+    if args.mode == "task_rl":
+        if teacher is not None:
+            raise ValueError("baseline prelaunch receipt unexpectedly binds a teacher")
+    else:
+        if not isinstance(teacher, dict):
+            raise ValueError("main-arm prelaunch receipt lacks O-teacher identity")
+        _expect_equal(
+            teacher,
+            "teacher_gap_manifest",
+            str(Path(args.teacher_gap_manifest).resolve()),
+            "student prelaunch teacher",
+        )
+        _expect_equal(
+            teacher,
+            "teacher_gap_manifest_sha256",
+            sha256_file(args.teacher_gap_manifest),
+            "student prelaunch teacher",
+        )
+        _expect_equal(
+            teacher,
+            "merged_checkpoint",
+            str(Path(args.teacher_checkpoint).resolve()),
+            "student prelaunch teacher",
+        )
+        _expect_equal(
+            teacher,
+            "merged_checkpoint_tree_sha256",
+            sha256_tree(
+                Path(args.teacher_checkpoint),
+                exclude_relative_paths=("merge_provenance.json",),
+            ),
+            "student prelaunch teacher",
+        )
+        provenance_raw = getattr(args, "teacher_provenance_manifest", None)
+        if not provenance_raw:
+            raise ValueError(
+                "main-arm prelaunch receipt requires teacher provenance custody"
+            )
+        provenance_path = Path(provenance_raw).expanduser()
+        if provenance_path.is_symlink() or not provenance_path.is_file():
+            raise ValueError(
+                "main-arm prelaunch teacher provenance must be a regular file"
+            )
+        provenance_path = provenance_path.resolve()
+        canonical_provenance_path = (
+            Path(args.teacher_checkpoint).resolve() / "merge_provenance.json"
+        ).resolve()
+        if provenance_path != canonical_provenance_path:
+            raise ValueError(
+                "main-arm prelaunch teacher provenance is not canonical in checkpoint"
+            )
+        _expect_equal(
+            teacher,
+            "merge_provenance_manifest_sha256",
+            sha256_file(provenance_path),
+            "student prelaunch teacher",
+        )
+        provenance = json.loads(provenance_path.read_text())
+        if not isinstance(provenance, dict):
+            raise ValueError("main-arm prelaunch teacher provenance must be a JSON object")
+        _expect_equal(
+            teacher,
+            "merge_provenance_payload_sha256",
+            canonical_json_sha256(provenance),
+            "student prelaunch teacher",
+        )
+    for label in ("preregistration", "launch_ledger"):
+        binding = receipt.get(label)
+        if not isinstance(binding, dict):
+            raise ValueError(f"student prelaunch receipt lacks {label} custody")
+        bound_path = Path(str(binding.get("path")))
+        _expect_equal(
+            binding,
+            "sha256",
+            sha256_file(bound_path),
+            f"student prelaunch {label}",
+        )
+    return {
+        "path": str(path),
+        "sha256": sha256_file(path),
+        "payload_sha256": canonical_json_sha256(receipt),
+        "campaign_id": receipt.get("campaign_id"),
+        "run_key": run_key,
+        "sealed_before_optimizer_start": True,
+        "preregistration": receipt["preregistration"],
+        "launch_ledger": receipt["launch_ledger"],
+    }
 
 
 def installed_package_versions(expected: dict[str, str]) -> dict[str, str]:
@@ -1416,6 +1590,12 @@ def validate_run_contract(
         raise ValueError("teacher timeout and retry settings must be positive")
     if args.mode in TEACHER_MODES and (not args.teacher_url or not args.teacher_model):
         raise ValueError(f"mode {args.mode} requires --teacher-url and --teacher-model")
+    if (
+        args.mode == "task_rl_k1_gap"
+        and not args.allow_ungated_smoke
+        and args.pair_id in {"M_M", "M_O"}
+    ):
+        raise ValueError("M teacher failed its immutable gate; M_M/M_O are prohibited")
     if args.mode in K1_MODES and not args.teacher_checkpoint:
         raise ValueError(f"mode {args.mode} requires --teacher-checkpoint for identity custody")
     if args.mode in K1_MODES:
@@ -1439,6 +1619,42 @@ def validate_run_contract(
         and args.budget_mode == "primary_matched"
     ):
         student_training_plan = validate_student_training_plan_contract(args)
+    campaign_run_id = getattr(args, "campaign_run_id", None)
+    scheduler_job_id = getattr(args, "scheduler_job_id", None)
+    if campaign_run_id is not None and not re.fullmatch(
+        r"[A-Za-z0-9._-]+", campaign_run_id
+    ):
+        raise ValueError("--campaign-run-id must be filesystem-safe")
+    if scheduler_job_id is not None and not re.fullmatch(r"[1-9][0-9]*", scheduler_job_id):
+        raise ValueError("--scheduler-job-id must be a positive decimal Slurm job ID")
+    if (
+        args.mode in TASK_REWARD_MODES
+        and not args.allow_ungated_smoke
+        and args.budget_mode == "primary_matched"
+        and (campaign_run_id is None or scheduler_job_id is None)
+    ):
+        raise ValueError(
+            "scientific primary runs require preregistered --campaign-run-id "
+            "and --scheduler-job-id custody"
+        )
+    prelaunch_receipt = None
+    primary_student_run = (
+        args.mode in TASK_REWARD_MODES
+        and not args.allow_ungated_smoke
+        and args.budget_mode == "primary_matched"
+    )
+    prelaunch_receipt_arg = getattr(args, "prelaunch_receipt", None)
+    if primary_student_run:
+        if not prelaunch_receipt_arg:
+            raise ValueError(
+                "scientific primary runs require a sealed --prelaunch-receipt"
+            )
+        args.prelaunch_receipt = prelaunch_receipt_arg
+        prelaunch_receipt = validate_prelaunch_receipt(args)
+    elif prelaunch_receipt_arg:
+        raise ValueError(
+            "prelaunch receipts are reserved for preregistered primary matched runs"
+        )
     if args.mode in TASK_REWARD_MODES:
         if not args.allow_ungated_smoke and args.enable_thinking:
             raise ValueError("scientific OPD-math runs require Qwen3 non-thinking mode")
@@ -1462,6 +1678,8 @@ def validate_run_contract(
         "student_source": args.student_source,
         "teacher_source": None,
         "budget_mode": args.budget_mode,
+        "campaign_run_id": campaign_run_id,
+        "scheduler_job_id": scheduler_job_id,
         "local_checkpoint_custody_validated": False,
         "server_alias_and_token_contract_validated": False,
         "live_local_server_process_binding_validated": False,
@@ -1471,6 +1689,7 @@ def validate_run_contract(
         ),
         "environment_contract": None,
         "student_training_plan": student_training_plan,
+        "prelaunch_receipt": prelaunch_receipt,
     }
     if args.mode in TASK_REWARD_MODES:
         if not args.allow_ungated_smoke:
@@ -1672,8 +1891,36 @@ def sample_trace_rows(samples, student_lps, teacher_lps, mask, rewards, statuses
         selected = mask[i]
         student_values = student_lps[i][selected].detach().float()
         teacher_values = None if teacher_lps is None else teacher_lps[i][selected].detach().float()
+        if not torch.isfinite(student_values).all() or (
+            teacher_values is not None and not torch.isfinite(teacher_values).all()
+        ):
+            raise RuntimeError("student trace contains non-finite token log-probabilities")
+        student_token_logprobs = [float(value) for value in student_values.tolist()]
+        teacher_token_logprobs = (
+            None
+            if teacher_values is None
+            else [float(value) for value in teacher_values.tolist()]
+        )
+        student_nll = -sum(student_token_logprobs) / len(student_token_logprobs)
+        teacher_nll = (
+            None
+            if teacher_token_logprobs is None
+            else -sum(teacher_token_logprobs) / len(teacher_token_logprobs)
+        )
+        token_gaps = (
+            None
+            if teacher_token_logprobs is None
+            else [
+                teacher_logprob - student_logprob
+                for teacher_logprob, student_logprob in zip(
+                    teacher_token_logprobs,
+                    student_token_logprobs,
+                    strict=True,
+                )
+            ]
+        )
         row = {
-            "schema_version": 1,
+            "schema_version": 2,
             "step": step,
             "record_id": sample.get("record_id"),
             "source": sample.get("source"),
@@ -1689,32 +1936,28 @@ def sample_trace_rows(samples, student_lps, teacher_lps, mask, rewards, statuses
             "prompt_token_ids": list(sample["prompt_token_ids"]),
             "completion_token_ids": list(sample["completion_token_ids"]),
             "completion_text": sample["completion_text"],
-            "student_nll": float(-student_values.mean().item()),
-            "teacher_nll_on_student_trajectory": (
-                None if teacher_values is None else float(-teacher_values.mean().item())
-            ),
+            "student_token_logprobs": student_token_logprobs,
+            "teacher_token_logprobs_on_student_trajectory": teacher_token_logprobs,
+            "student_nll": student_nll,
+            "teacher_nll_on_student_trajectory": teacher_nll,
             "mean_teacher_student_gap": (
-                None if teacher_values is None else float((teacher_values - student_values).mean().item())
+                None if token_gaps is None else sum(token_gaps) / len(token_gaps)
             ),
             "mean_abs_k1_log_ratio": (
                 None
-                if teacher_values is None
-                else float((student_values - teacher_values).abs().mean().item())
+                if token_gaps is None
+                else sum(abs(value) for value in token_gaps) / len(token_gaps)
             ),
             "min_teacher_student_gap": (
-                None
-                if teacher_values is None
-                else float((teacher_values - student_values).min().item())
+                None if token_gaps is None else min(token_gaps)
             ),
             "max_teacher_student_gap": (
-                None
-                if teacher_values is None
-                else float((teacher_values - student_values).max().item())
+                None if token_gaps is None else max(token_gaps)
             ),
             "positive_teacher_gap_fraction": (
                 None
-                if teacher_values is None
-                else float((teacher_values - student_values).gt(0).float().mean().item())
+                if token_gaps is None
+                else sum(value > 0 for value in token_gaps) / len(token_gaps)
             ),
             "reward": None if rewards is None else float(rewards[i]),
             "reward_status": None if statuses is None else statuses[i],
@@ -1735,6 +1978,7 @@ def recompute_student_trace_geometry(
     max_completion_tokens: int,
     expected_groups: dict[tuple[int, int], dict],
     tokenizer,
+    loss_config: dict | None = None,
 ) -> dict:
     """Fail closed on the exact student step, group, sample, and prompt trace."""
 
@@ -1773,7 +2017,7 @@ def recompute_student_trace_geometry(
     completion_tokens = 0
     sample_expanded_prompt_tokens = 0
     for row_number, row in enumerate(sample_rows, 1):
-        if row.get("schema_version") != 1:
+        if row.get("schema_version") != 2:
             raise ValueError(f"student sample trace row {row_number} has an invalid schema")
         step = row.get("step")
         group_id = row.get("group_id")
@@ -1816,6 +2060,83 @@ def recompute_student_trace_geometry(
             raise ValueError(f"student sample trace row {row_number} has prompt-token drift")
         if row.get("completion_tokens") != len(completion_ids):
             raise ValueError(f"student sample trace row {row_number} has completion-token drift")
+        student_logprobs = row.get("student_token_logprobs")
+        if (
+            not isinstance(student_logprobs, list)
+            or len(student_logprobs) != len(completion_ids)
+            or any(
+                type(value) not in (int, float) or not math.isfinite(float(value))
+                for value in student_logprobs
+            )
+        ):
+            raise ValueError(
+                f"student sample trace row {row_number} lacks exact student token log-probabilities"
+            )
+        teacher_logprobs = row.get("teacher_token_logprobs_on_student_trajectory")
+        if mode in K1_MODES:
+            if (
+                not isinstance(teacher_logprobs, list)
+                or len(teacher_logprobs) != len(completion_ids)
+                or any(
+                    type(value) not in (int, float) or not math.isfinite(float(value))
+                    for value in teacher_logprobs
+                )
+            ):
+                raise ValueError(
+                    f"student sample trace row {row_number} lacks exact teacher token log-probabilities"
+                )
+        elif teacher_logprobs is not None:
+            raise ValueError(
+                f"student sample trace row {row_number} unexpectedly contains teacher log-probabilities"
+            )
+        recomputed_student_nll = -sum(float(value) for value in student_logprobs) / len(
+            student_logprobs
+        )
+        if not math.isclose(
+            float(row.get("student_nll", math.nan)),
+            recomputed_student_nll,
+            rel_tol=0.0,
+            abs_tol=1e-6,
+        ):
+            raise ValueError(f"student sample trace row {row_number} has student-NLL drift")
+        if mode in K1_MODES:
+            recomputed_teacher_nll = -sum(float(value) for value in teacher_logprobs) / len(
+                teacher_logprobs
+            )
+            if not math.isclose(
+                float(row.get("teacher_nll_on_student_trajectory", math.nan)),
+                recomputed_teacher_nll,
+                rel_tol=0.0,
+                abs_tol=1e-6,
+            ):
+                raise ValueError(f"student sample trace row {row_number} has teacher-NLL drift")
+            token_gaps = [
+                float(teacher_logprob) - float(student_logprob)
+                for teacher_logprob, student_logprob in zip(
+                    teacher_logprobs,
+                    student_logprobs,
+                    strict=True,
+                )
+            ]
+            expected_gap_metrics = {
+                "mean_teacher_student_gap": sum(token_gaps) / len(token_gaps),
+                "mean_abs_k1_log_ratio": sum(abs(value) for value in token_gaps)
+                / len(token_gaps),
+                "min_teacher_student_gap": min(token_gaps),
+                "max_teacher_student_gap": max(token_gaps),
+                "positive_teacher_gap_fraction": sum(value > 0 for value in token_gaps)
+                / len(token_gaps),
+            }
+            for field, expected_metric in expected_gap_metrics.items():
+                if not math.isclose(
+                    float(row.get(field, math.nan)),
+                    expected_metric,
+                    rel_tol=0.0,
+                    abs_tol=1e-9,
+                ):
+                    raise ValueError(
+                        f"student sample trace row {row_number} has {field} drift"
+                    )
         completion_text = row.get("completion_text")
         if not isinstance(completion_text, str):
             raise ValueError(f"student sample trace row {row_number} lacks completion text")
@@ -1864,6 +2185,40 @@ def recompute_student_trace_geometry(
             }
         )
         prompt_group_tokens += len(expected["prompt_token_ids"])
+
+    effective_loss_config = loss_config or {
+        "task_reward_coef": 1.0,
+        "k1_coef": 0.01,
+        "gap_gate_beta": 5.0,
+        "advantage_clip": 5.0,
+    }
+    required_loss_fields = {
+        "task_reward_coef",
+        "k1_coef",
+        "gap_gate_beta",
+        "advantage_clip",
+    }
+    if set(effective_loss_config) != required_loss_fields:
+        raise ValueError("student trace loss config lacks the exact audit coefficients")
+    samples_by_step: dict[int, list[dict]] = {
+        step: [] for step in range(1, expected_steps + 1)
+    }
+    for row in sample_rows:
+        samples_by_step[int(row["step"])].append(row)
+    for step, recorded in enumerate(step_rows, 1):
+        reconstructed = reconstruct_step_metrics(
+            samples_by_step[step],
+            mode=mode,
+            task_reward_coef=float(effective_loss_config["task_reward_coef"]),
+            k1_coef=float(effective_loss_config["k1_coef"]),
+            gap_gate_beta=float(effective_loss_config["gap_gate_beta"]),
+            advantage_clip=float(effective_loss_config["advantage_clip"]),
+        )
+        validate_recorded_step_metrics(
+            recorded,
+            reconstructed,
+            label=f"student step trace {step}",
+        )
 
     return {
         "step_trace_rows": len(step_rows),
@@ -1965,6 +2320,7 @@ def run(args) -> None:
         "teacher_base_model": args.teacher_base_model,
         "teacher_base_revision": args.teacher_base_revision,
         "optimizer_steps_planned": args.steps,
+        "normalized_training_config": normalized_student_training_config(args),
         "micro_prompts_per_step": micro,
         "planned_rollout_samples": args.steps * micro * args.group_size,
         "seed": args.seed,
@@ -2155,6 +2511,12 @@ def run(args) -> None:
             max_completion_tokens=args.max_new_tokens,
             expected_groups=expected_trace_groups,
             tokenizer=tok,
+            loss_config={
+                "task_reward_coef": args.task_reward_coef,
+                "k1_coef": args.k1_coef,
+                "gap_gate_beta": args.gap_gate_beta,
+                "advantage_clip": args.advantage_clip,
+            },
         )
     realized_record_ids_sha256 = canonical_json_sha256(realized_record_ids)
     realized_prompt_sequence_sha256 = canonical_json_sha256(
@@ -2431,6 +2793,9 @@ def parse_args():
     ap.add_argument("--pair-id", choices=["M_M", "M_O", "O_M", "O_O"])
     ap.add_argument("--student-source", choices=["M", "O"])
     ap.add_argument("--budget-mode", choices=["primary_matched", "dose_response"])
+    ap.add_argument("--campaign-run-id")
+    ap.add_argument("--scheduler-job-id")
+    ap.add_argument("--prelaunch-receipt")
     ap.add_argument("--student", required=True)
     ap.add_argument("--student-revision")
     ap.add_argument("--teacher-url")

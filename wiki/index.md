@@ -3,7 +3,7 @@ title: LegalRagAgent Wiki Index
 type: hub
 tags: [index]
 created: 2026-07-02
-updated: 2026-07-18
+updated: 2026-07-20
 status: maintained
 ---
 
@@ -26,8 +26,13 @@ The SCOPE method is historical ([[scope-old]]). Start with
   source matrix with task reward and an exact-token sampled reverse-KL path
 - [[opd-math-eit-handoff-2026-07-18]] — exact EIT commits, environments,
   bounded smoke evidence, custody correction, scientific blockers, and gates
-- [[opd-math-scientific-cutover-2026-07-18]] — current exact-environment v2
-  campaign boundary, demoted predecessor evidence, and final launch order
+- [[opd-math-verifier-recovery-2026-07-20]] — current O-only recovery
+  boundary, strict reward audit, OPD diagnostic, and successor launch order
+- [[opd-objective-family-expansion-2026-07-20]] — design-stage successor
+  matrix for task RL, ungated/clipped/gated/bare K1, and pinned-veRL fidelity;
+  no expanded arm has launched
+- [[opd-math-scientific-cutover-2026-07-18]] — superseded exact-environment
+  predecessor boundary and demoted evidence
 - [[self-distillation-cluster-update-2026-07-17]] — OPSD/SDFT/SDPO baseline,
   capability, and method-custody update
 - [[scope-old]] — historical SCOPE branch/archive map

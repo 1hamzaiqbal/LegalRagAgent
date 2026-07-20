@@ -20,20 +20,39 @@ PACKAGES = {
 
 
 def fake_verify(completion, _solution):
+    if completion == "error":
+        history = [
+            {
+                "status": "verifier_error",
+                "error_type": "TimeoutException",
+                "error": "timeout",
+            }
+            for _ in range(evaluation.EVALUATION_VERIFIER_MAX_ATTEMPTS)
+        ]
+        return {
+            "reward": 0.0,
+            "status": "verifier_error_zeroed",
+            "verifier_error_type": "TimeoutException",
+            "verifier_error": "timeout",
+            "verifier_stage": "symbolic_verify",
+            "policy": evaluation.EVALUATION_VERIFIER_ERROR_POLICY,
+            "verifier_attempts": evaluation.EVALUATION_VERIFIER_MAX_ATTEMPTS,
+            "verifier_error_history": history,
+        }
     reward = float(completion == "good")
     return {"reward": reward, "status": "correct" if reward else "incorrect"}
 
 
 @pytest.fixture(autouse=True)
 def stable_merge_runtime(monkeypatch):
-    monkeypatch.setattr(merger, "verify_completion", fake_verify)
+    monkeypatch.setattr(merger, "verify_evaluation_completion", fake_verify)
     monkeypatch.setattr(
         merger,
         "git_identity",
         lambda: {"commit": COMMIT, "worktree_clean": True},
     )
     monkeypatch.setattr(merger, "package_versions", lambda: dict(PACKAGES))
-    monkeypatch.setattr(gates, "verify_completion", fake_verify)
+    monkeypatch.setattr(gates, "verify_evaluation_completion", fake_verify)
     monkeypatch.setattr(gates, "EXPECTED_EVALUATION_PACKAGES", dict(PACKAGES))
 
 
@@ -187,8 +206,20 @@ def write_valid_shards(root: Path, task_path: Path, task_rows, shard_count: int 
             "samples_per_problem": contract["samples_per_problem"],
             "samples": metrics["samples"],
             "accuracy": metrics["accuracy"],
+            "accuracy_excluding_verifier_errors": metrics[
+                "accuracy_excluding_verifier_errors"
+            ],
+            "accuracy_if_all_verifier_errors_correct": metrics[
+                "accuracy_if_all_verifier_errors_correct"
+            ],
             "prediction_parse_failure_fraction": metrics[
                 "prediction_parse_failure_fraction"
+            ],
+            "verifier_error_policy": metrics["verifier_error_policy"],
+            "verifier_error_samples": metrics["verifier_error_samples"],
+            "verifier_error_fraction": metrics["verifier_error_fraction"],
+            "maximum_verifier_error_fraction": metrics[
+                "maximum_verifier_error_fraction"
             ],
             "unique_prompt_tokens": metrics["unique_prompt_tokens"],
             "expanded_prompt_tokens": metrics["expanded_prompt_tokens"],
@@ -348,6 +379,61 @@ def test_merger_rejects_forged_reward_even_when_file_hash_is_updated(tmp_path):
             shard_count=3,
             task_file=task_path,
             output_dir=tmp_path / "merged",
+        )
+
+
+def test_merger_enforces_global_verifier_error_cap_with_retry_custody(tmp_path):
+    task_path = tmp_path / "task.jsonl"
+    task_rows = write_task(task_path)
+    shard_root = tmp_path / "shards"
+    write_valid_shards(shard_root, task_path, task_rows)
+    shard = shard_root / "shard_00000"
+    summary_path = shard / "summary.json"
+    summary = json.loads(summary_path.read_text())
+    samples = list(merger.iter_jsonl(shard / "samples.jsonl"))
+    verdict = fake_verify("error", "gold")
+    samples[0].update(
+        {
+            "completion_text": "error",
+            "completion_sha256": hashlib.sha256(b"error").hexdigest(),
+            "reward": 0.0,
+            "reward_status": verdict["status"],
+            "verifier_error_type": verdict["verifier_error_type"],
+            "verifier_error": verdict["verifier_error"],
+            "verifier_stage": verdict["verifier_stage"],
+            "verifier_error_policy": verdict["policy"],
+            "verifier_attempts": verdict["verifier_attempts"],
+            "verifier_error_history": verdict["verifier_error_history"],
+        }
+    )
+    samples_path = shard / "samples.jsonl"
+    samples_path.write_text(
+        "".join(
+            json.dumps(row, sort_keys=True, separators=(",", ":")) + "\n"
+            for row in samples
+        )
+    )
+    start = summary["shard"]["record_start"]
+    stop = summary["shard"]["record_stop"]
+    metrics = merger.validate_sample_rows(
+        samples,
+        task_rows=task_rows[start:stop],
+        record_start=start,
+        samples_per_problem=summary["samples_per_problem"],
+        task_hash=evaluation.sha256_file(task_path),
+        base_seed=summary["record_seed_contract"]["base_seed"],
+    )
+    for field, value in metrics.items():
+        summary[field] = value
+    summary["samples_file_sha256"] = evaluation.sha256_file(samples_path)
+    summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+
+    with pytest.raises(RuntimeError, match="verifier-error cap"):
+        merger.merge_shards(
+            shard_root=shard_root,
+            shard_count=3,
+            task_file=task_path,
+            output_dir=tmp_path / "merged-error-cap",
         )
 
 

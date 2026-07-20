@@ -95,10 +95,26 @@ GPU or API smoke completion proves plumbing only. Scientific promotion still
 requires the task-specific gate recorded in `docs/signoff_log.md`.
 
 For the OPD-math campaign, legacy v1 evaluations cannot authorize new science.
-The full M/O raw-student support evaluations, both teachers, teacher-gap gates,
-all six student arms, and held-out readout must use fresh exact-environment
-freezes and one final Git commit. Any later tracked commit reopens that campaign
-boundary.
+The M teacher failed its gap gate and is closed: never launch `M_M` or `M_O`.
+The active recovery requires fresh M/O raw-student support, one strict O
+teacher/gap, `baseline_M`, `O_M`, `baseline_O`, `O_O`, and the tracked
+four-arm conditional readout, all under exact-environment freezes and one final
+Git commit. The O full-gap plan requires paired base/trained timing evidence
+and at least five shared shards; every primary student arm requires a
+preregistered stable run ID. The final preregistration pins the selected O
+teacher, both support gates, all four paths, and the checksummed readout bundle
+before any student arm is launched. Any later tracked commit reopens that
+campaign boundary. See
+`wiki/snapshots/opd-math-verifier-recovery-2026-07-20.md`.
+
+Launch hold: the four-arm successor above was never sealed or launched. The
+later objective-family request is recorded in
+`wiki/snapshots/opd-objective-family-expansion-2026-07-20.md` and requires a
+new immutable campaign namespace. The strict verifier, support, O-teacher, and
+custody machinery are reusable prerequisites; the four-arm preregistration is
+not. Do not launch a 100-step expanded student arm until the declarative
+objective registry, cross-veRL fidelity tests, three-seed preregistration, and
+generalized outcome-blind readout pass on one final commit.
 
 ## Recovery
 

@@ -3,11 +3,18 @@ title: OPD Math Source-Transfer Track
 type: track
 tags: [opd, distillation, math, teacher-data, source-transfer]
 created: 2026-07-17
-updated: 2026-07-18
-status: exact-environment v2 support rerun and final-commit teachers pending
+updated: 2026-07-20
+status: verifier-recovery substrate; expanded objective-family campaign in design
 ---
 
 # OPD math source transfer
+
+> [!NOTE]
+> The strict O-only recovery remains the prerequisite, but its four-arm student
+> comparison did not launch. The active successor design is
+> [[opd-objective-family-expansion-2026-07-20]], which separates task RL,
+> ungated, unclipped, gated, bare, and pinned-veRL K1 objectives in a new
+> artifact namespace.
 
 ## Research question
 
@@ -116,7 +123,7 @@ and the dense teacher auxiliary is a token-local score-function surrogate
 
 \[
 L_{SF-gap}=-\operatorname{mean}_{it}
-\left[\sigma(\beta\Delta_{it})\,
+\left[\sigma(\beta\operatorname{clip}(\Delta_{it}))\,
 \operatorname{clip}(\Delta_{it})\,\log p_S(y_{it})\right].
 \]
 
@@ -184,6 +191,14 @@ In particular, low teacher NLL can describe familiar but wrong trajectories.
 
 ## Implementation and status
 
+> [!IMPORTANT]
+> **Current campaign:** [[opd-math-verifier-recovery-2026-07-20]] supersedes
+> the old six-arm launch plan. M failed its teacher-gap gate. O passed
+> numerically, including worst-case verifier sensitivity, but the old
+> authorization artifacts used a silently lossy verifier policy. The successor
+> is a fresh single-commit O-only campaign with `baseline_M`, `O_M`,
+> `baseline_O`, and `O_O`.
+
 Machine-readable inputs live in
 [`configs/opd_math/source_manifest.json`](../../configs/opd_math/source_manifest.json),
 the matched teacher recipe lives in
@@ -214,29 +229,45 @@ old gate hashes, Slurm jobs, independent recomputation, and login-lane anomaly;
 [[opd-math-scientific-cutover-2026-07-18]] defines the successor boundary. The
 first 100-step teacher launch pair failed closed during whole-pool prompt
 validation, before optimization or artifact creation. That failure motivated
-the source-independent v2 teacher plan above. The successor teacher runs and
-their own-source skill-gap gates remain pending. Full predecessor task-RL jobs
+the source-independent v2 teacher plan above. Full predecessor task-RL jobs
 `107182` and `107183` completed 100 steps with respectively 22% and 12%
 mixed-reward groups, measured parameter updates, clean environment/code
 custody, and stable adapters. They establish task-signal support for both
 sources but are not held-out performance results. Because they trained from
 predecessor commit `6be96e6`, they are not eligible for the successor commit's
-final six-arm matrix. The `a3be35f` teachers and evaluations are likewise
+conditional four-arm readout. The `a3be35f` teachers and evaluations are likewise
 predecessor recipe diagnostics, even when their own manifests permit use under
-that predecessor contract. The predeclared readout requires one exact
-student-training and evaluation Git identity across all six arms, so both
-baselines must be rerun on the successor commit. A prelaunch audit also added
-exact full train-environment custody to scientific teachers and propagated it
-through teacher-gap, merge-provenance v3, OPD, and final-result contracts before
-any successor teacher was launched. Both support surfaces, both teachers,
-teacher-gap evaluations and gates, all six student arms, and held-out results
-must now be produced on one final commit.
+that predecessor contract.
+
+The later strict audit established a genuine negative M gate and a robustly
+positive—but verifier-policy-tainted—old O gate. The successor therefore
+re-trains only O and requires one exact student-training/evaluation Git identity
+across `baseline_M`, `O_M`, `baseline_O`, and `O_O`; both baselines must be
+rerun. The tracked result builder now implements this four-arm conditional
+readout with paired record bootstrap, Bonferroni control over `delta_M` and
+`delta_O`, and worst-case verifier-uncertainty envelopes. It does not require or
+permit `M_M`/`M_O`. Exact train-environment custody propagates through the O
+teacher gap, merge-provenance v3, OPD, held-out gates, and result. Both support
+surfaces, one strict O teacher/gap, four student arms, and four held-out results
+must be produced on the final commit. Every report is selection-conditioned:
+O is studied because O passed while M did not.
+
+The successor scheduler/readout boundary is also fixed before the four student
+arms: full O base/trained gap evaluation uses separate 32-record timing
+artifacts, the slower `ElapsedRaw`, one shared geometry, and a registered floor
+of five shards (four violates the 18-hour safety cap under predecessor job
+`107462`). Stable primary run IDs make all four run and adapter paths
+preregisterable. That preregistration pins the selected O teacher's stable
+gate/checkpoint/provenance identity and both M/O support identities; readout
+publishes read-only JSON, Markdown, and a checksum manifest. Chronology remains
+recorded operator custody rather than cryptographic attestation.
 
 ## Links
 
 [[opd-distillation]] · [[self-distillation-cluster-update-2026-07-17]] ·
 [[opd-math-eit-handoff-2026-07-18]] ·
 [[opd-math-scientific-cutover-2026-07-18]] ·
+[[opd-math-verifier-recovery-2026-07-20]] ·
 [[sdar]] · [[ema-policy-gradient]] · [[verl-opd-trainer]] ·
 [[opsd-self-distilled-reasoner]] · [[sdft-continual-learning]] ·
 [[sdpo-rich-feedback]]

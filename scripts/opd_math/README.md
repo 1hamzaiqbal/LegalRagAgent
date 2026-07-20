@@ -14,6 +14,11 @@ The current bounded EIT state, exact execution commits, artifact roots, job
 ledger, custody correction, and remaining scientific gates are recorded in
 [`opd-math-eit-handoff-2026-07-18.md`](../../wiki/snapshots/opd-math-eit-handoff-2026-07-18.md).
 That snapshot validates plumbing only; it is not a task-performance result.
+The active executable boundary is instead
+[`opd-math-verifier-recovery-2026-07-20.md`](../../wiki/snapshots/opd-math-verifier-recovery-2026-07-20.md):
+M failed its teacher-gap gate and is closed. The successor retrains only O and
+permits exactly `baseline_M`, `O_M`, `baseline_O`, and `O_O`. Never launch
+`M_M` or `M_O` from this campaign.
 
 ## Non-negotiable design choices
 
@@ -100,12 +105,13 @@ any fixed field fails before loading a model; both source gates carry the same
 plan and config hashes. The selected prompts are explicitly measured and any
 rendered prompt over 2,304 tokens is rejected rather than silently truncated.
 
-The two student baselines and four main arms are bound to the committed
+The student baselines and every representable main arm are bound to the committed
 [`student_training_plan.json`](../../configs/opd_math/student_training_plan.json):
 100 optimizer steps, one prompt group per step, four rollouts per group, seed
 zero, 1,536 prompt tokens, 512 completion tokens, and the exact task-reward and
-K1-gap settings. This is a matched 100-prompt pilot, not full exposure to every
-eligible role-file row or a training-seed study.
+K1-gap settings. The active recovery uses only the two O-teacher arms; the
+failed M gate prohibits its two arms. This is a matched 100-prompt pilot, not
+full exposure to every eligible role-file row or a training-seed study.
 
 ## Stage order
 
@@ -128,34 +134,39 @@ eligible role-file row or a training-seed study.
    substitute. Sampling must exactly match training (`temperature=1`,
    `top_p=1`, `top_k=0`, `max_new_tokens=512`, seed zero, group size four).
 4. Run the one-step teacher smoke to validate the current callback and trace
-   schema. Then train both M and O teachers with the matched 100-step recipe.
+   schema. Then train only the O teacher with the matched 100-step recipe. M's
+   completed negative gap is immutable; do not retry it or use it for OPD.
    Scientific eligibility requires an informative trainer-log signal, at least
    one mixed-reward trace group whose stored reward independently recomputes
    under TRL's exact accuracy contract, and exactly
    `min(matched_teacher_pool_rows, 100)` unique realized records.
-5. Evaluate each base/trained teacher pair on identical frozen
-   `teacher_skill_dev` records and separately report the `target_gap_dev`
-   distribution. Use repeated non-thinking samples and build `teacher-gap`
+5. Evaluate the O base/trained teacher pair on identical frozen
+   `teacher_gap_dev` records. Use repeated non-thinking samples and build the O `teacher-gap`
    manifests with `slurm_opd_math_evaluate.sh` followed by
    `slurm_opd_math_quality_gate.sh`. A scientific teacher gate requires
    `OPD_MATH_EVAL_MAX_RECORDS=0`, meaning the complete registered
    `teacher_gap_dev` role file; a favorable prefix is not accepted. Before the
-   full O evaluation, run a labeled timing-only prefix, choose enough immutable
-   shards that every projected shard fits 24 hours with at least 25% headroom,
-   and record the aggregate GPU-hour budget. Do not feed the prefix to a gate.
+   full O evaluation, run separate labeled 32-record timing prefixes for the
+   exact base and trained arms. The successor planner uses the slower
+   `ElapsedRaw`, enforces the registered five-shard floor, and binds one shared
+   immutable geometry whose projected shard runtime is at most 18 hours. Record
+   the aggregate GPU-hour budget. Do not feed either prefix to a gate.
 6. Merge only a teacher that passed its gate with
    `slurm_opd_math_merge_teacher.sh`, serve it with the separate vLLM
    environment, and run both the tokenizer and exact-token scoring probes.
 7. Run one `task_rl` baseline per student source (`M`, `O`), then compare each
-   to `task_rl_k1_gap` for M_M, M_O, O_M, and O_O. Do not manufacture four
-   baseline labels when the teacher coordinate is unused.
+   only to the permitted O-teacher `task_rl_k1_gap` arm (`O_M`, `O_O`).
+   `M_M` and `M_O` remain prohibited. Do not manufacture four baseline labels
+   when the teacher coordinate is unused.
 8. Evaluate every promoted student adapter on the exact matched 370-row prefix
    of its registered `source_holdout` file with four samples and the exact
-   student decoding contract. Build six independent held-out custody gates,
-   then combine exactly
-   `baseline_M`, `baseline_O`, `M_M`, `M_O`, `O_M`, and `O_O` into the matrix
-   readout. Authorization is independent of whether an effect helps, harms, or
-   is inconclusive.
+   student decoding contract. Build four independent held-out custody gates,
+   then combine exactly `baseline_M`, `O_M`, `baseline_O`, and `O_O` with the
+   `o-teacher-readout` command. Its two co-primary paired-record contrasts use
+   Bonferroni 97.5% intervals and worst-case verifier-uncertainty envelopes.
+   Authorization is independent of whether an effect helps, harms, or is
+   inconclusive, but every report is conditional on selecting the passing O
+   teacher.
 9. Mine the over-collected traces for accuracy, mixed-group frequency,
    completion length, student NLL, and **teacher NLL on the student
    trajectory**. Low teacher NLL is not assumed to imply correctness.
@@ -228,7 +239,7 @@ The stages, launch surfaces, and required per-job settings are:
 | Student-support gate | same quality-gate launcher | raw-student summary/samples, pinned identity, source | scientific gate passes; otherwise stop |
 | Teacher merge | `slurm_opd_math_merge_teacher.sh` | passing gate, exact adapter/base identity, fresh output | provenance and checkpoint hash exist |
 | Student baseline/main | `slurm_opd_math_student_train.sh` | explicit mode, steps, task limit, budget and support gate; commit-specific train freeze; main also needs pair, teacher gate/checkpoint/provenance, and serve freeze | training artifact only; held-out evaluation remains required |
-| Held-out student result / matrix | `slurm_opd_math_student_results.sh` | `heldout`: one eligible run, completion, exact adapter, and exact matched 370-row `source_holdout` prefix; `matrix`: exactly six passing held-out gates | deterministic custody readout; effect sign does not determine authorization |
+| Held-out student result / readout | `slurm_opd_math_student_results.sh` | `heldout`: one eligible run, completion, exact adapter, and exact matched 370-row `source_holdout` prefix; current `o_teacher`: exactly `baseline_M`, `O_M`, `baseline_O`, `O_O`; legacy/general `matrix`: six gates | deterministic custody readout; effect sign does not determine authorization |
 
 Create the environments on a networked login node, fill the shared model cache
 online, and only then run the offline GPU preflights:
@@ -329,15 +340,14 @@ STUDENT_LIMIT=$("$OPD_MATH_TRAIN_ENV/bin/python" -c \
 export TEACHER_LIMIT STUDENT_LIMIT
 ```
 
-For each teacher source, use the committed recipe. The tracked launcher defaults
-to its 100-step primary recipe; environment overrides are accepted only when
-they remain exactly plan-compliant. A completed teacher run is not a passed
-teacher:
+For the O teacher only, use the committed recipe. M's failed gate is immutable
+and M must not be retrained. The tracked launcher defaults to its 100-step
+primary recipe; environment overrides are accepted only when they remain
+exactly plan-compliant. A completed teacher run is not a passed teacher:
 
 ```bash
 export OPD_MATH_TEACHER_LIMIT="$TEACHER_LIMIT"
 export OPD_MATH_BUDGET_MODE=primary_matched
-OPD_MATH_TEACHER_SOURCE=M sbatch scripts/hpc/slurm_opd_math_teacher_train.sh
 OPD_MATH_TEACHER_SOURCE=O sbatch scripts/hpc/slurm_opd_math_teacher_train.sh
 ```
 
@@ -372,10 +382,14 @@ the base seed, complete task-file hash, global row index, and record ID, so a
 retry or a different shard count cannot change that record's random stream.
 Each array task writes transactionally to
 `.../$RUN_ID/shards/shard_NNNNN`; a failed task leaves only a separately named
-partial directory. Resume by submitting only the missing shard indices. Never
-append to or replace a completed shard. If the original array failed, its
-`afterok` merge dependency will not run; after the missing-index retry succeeds,
-submit a fresh CPU merge job against the same stable run ID.
+partial directory. Never append to or replace a completed shard. For an
+unplanned diagnostic evaluation, missing indices may be resubmitted against the
+same stable run ID. The planned full O teacher-gap evaluation is deliberately
+stricter: every shard records and validates the complete planned array span, so
+a subset retry is not authorized. If any planned O array task fails, preserve
+that incomplete run, choose a fresh run ID, and resubmit the entire exact array
+from the unchanged plan. Its original `afterok` merge dependency will not run;
+submit a fresh CPU merge dependency for the new complete array.
 
 After every shard succeeds, merge on CPU with the matching source, role,
 label, run ID, shard count, data root, and run root:
@@ -398,28 +412,40 @@ The gate independently reopens every bound shard and companion, reconstructs
 the merged byte stream, and rehashes the merged companion. Deleting, adding, or
 mutating any file invalidates the result.
 
-For the O teacher, first run a timing-only base-model prefix of 32 records.
+For the O teacher, first run separate timing-only base and trained prefixes of
+the same 32 records after the O adapter exists.
 Do not extrapolate only `total_generation_latency_seconds`: rendering,
 tokenization, decoding, verification, serialization, and per-record `fsync`
 also scale with the row count. Use the tracked timing planner and Slurm
 `ElapsedRaw` instead. Its conservative bound is
-`ceil(ceil(total_records / S) / 32) * ElapsedRaw_32 * safety_factor`; choose the
-smallest `S` at or below 18 hours, and bind the identical `S` and array throttle
-to base and trained runs. The primary planner does not accept overrides: the
-prefix is exactly 32 records, the registered total is 4,585, the safety factor
-is 1.25, the cap is 64,800 seconds, and concurrency is four. Capture the raw
-Slurm row rather than transcribing accounting fields:
+`ceil(ceil(total_records / S) / 32) * max(base_ElapsedRaw_32,
+trained_ElapsedRaw_32) * safety_factor`; choose the smallest authorized `S` at
+or below 18 hours, and bind the identical `S` and array throttle to both full
+runs. The primary planner does not accept overrides: both prefixes are exactly
+32 records, the registered total is 4,585, the safety factor is 1.25, the cap
+is 64,800 seconds, concurrency is four, and the registered minimum is five
+shards. The floor comes from predecessor job `107462`: its slowest trained
+1,528/1,529-row shard took 80,000 seconds, making four shards project to 75,000
+seconds with safety while five project to about 60,417. Capture each raw Slurm
+row rather than transcribing accounting fields:
 
 ```bash
-sacct -X -n -P -j "$TIMING_JOB" \
+sacct -X -n -P -j "$BASE_TIMING_JOB" \
   --format=JobIDRaw,JobName,State,ExitCode,ElapsedRaw,AllocTRES,StdOut \
-  > "$TIMING_SACCT_RAW"
+  > "$BASE_TIMING_SACCT_RAW"
+sacct -X -n -P -j "$TRAINED_TIMING_JOB" \
+  --format=JobIDRaw,JobName,State,ExitCode,ElapsedRaw,AllocTRES,StdOut \
+  > "$TRAINED_TIMING_SACCT_RAW"
 "$OPD_MATH_TRAIN_ENV/bin/python" scripts/opd_math/plan_evaluation_shards.py create \
-  --timing-summary "$TIMING_SUMMARY" \
-  --timing-companion "$TIMING_COMPANION" \
+  --base-timing-summary "$BASE_TIMING_SUMMARY" \
+  --base-timing-companion "$BASE_TIMING_COMPANION" \
+  --base-sacct-raw "$BASE_TIMING_SACCT_RAW" \
+  --base-stdout "$BASE_TIMING_STDOUT" \
+  --trained-timing-summary "$TRAINED_TIMING_SUMMARY" \
+  --trained-timing-companion "$TRAINED_TIMING_COMPANION" \
+  --trained-sacct-raw "$TRAINED_TIMING_SACCT_RAW" \
+  --trained-stdout "$TRAINED_TIMING_STDOUT" \
   --task-file "$OPD_MATH_DATA_ROOT/roles/O/teacher_gap_dev.jsonl" \
-  --sacct-raw "$TIMING_SACCT_RAW" \
-  --stdout "$TIMING_STDOUT" \
   --output "$O_SHARD_PLAN"
 ```
 
@@ -518,17 +544,21 @@ OPD_MATH_MERGE_GATE=<passing teacher-gap JSON>
 OPD_MATH_MERGE_OUTPUT=<new merged-checkpoint directory>
 ```
 
-Run one `task_rl` baseline for each student source before the four main pairs.
+Run one `task_rl` baseline for each student source before the two permitted O pairs.
 Every baseline/main comparison must reuse the same explicit steps, task limit,
 group size, seed, rollout length, and enabled gradient checkpointing. The
 checkpointing choice is registered in `student_training_plan.json`, passed by
 the full launcher, and recorded in each run manifest; no ambient environment
 toggle participates in the scientific contract. Baselines require
-`OPD_MATH_STUDENT_SOURCE=M|O`; main runs require `OPD_MATH_PAIR=M_M|M_O|O_M|O_O`
+`OPD_MATH_STUDENT_SOURCE=M|O`; current main runs require `OPD_MATH_PAIR=O_M|O_O`
 plus the merged checkpoint, teacher gate, merge provenance, and teacher base
 identity required by `slurm_opd_math_student_train.sh`. Its internal tokenizer
 and exact-token probes must pass. Final adapters still require repeated held-out
 evaluation; the training completion manifest is not a task-performance result.
+Every `primary_matched` launch additionally requires a predeclared,
+filesystem-safe `OPD_MATH_STUDENT_RUN_ID`. The wrapper derives the output path
+from that ID and records both it and the actual Slurm job ID; only
+`dose_response` diagnostics may fall back to a job-derived run ID.
 
 For each promoted adapter, run the evaluation launcher with role
 `source_holdout`, `OPD_MATH_EVAL_MAX_RECORDS=370`, four samples, temperature 1,
@@ -538,7 +568,7 @@ result gate. Then create a fresh held-out gate with:
 
 ```text
 OPD_MATH_RESULT_KIND=heldout
-OPD_MATH_MATRIX_KEY=baseline_M|baseline_O|M_M|M_O|O_M|O_O
+OPD_MATH_MATRIX_KEY=baseline_M|baseline_O|O_M|O_O
 OPD_MATH_RESULT_SOURCE=M|O
 OPD_MATH_STUDENT_RUN_MANIFEST=<eligible run_manifest.json>
 OPD_MATH_STUDENT_COMPLETION_MANIFEST=<sibling completion_manifest.json>
@@ -547,14 +577,26 @@ OPD_MATH_STUDENT_ADAPTER=<exact evaluated final adapter>
 OPD_MATH_RESULT_OUTPUT=<new held-out gate JSON>
 ```
 
-The gate recomputes held-out rewards and exact 100-step/400-sample training
-geometry. The matrix requires the same realized record/prompt sequence within
-each M or O student-source stratum. Once all six held-out gates pass, run
-`OPD_MATH_RESULT_KIND=matrix` with
-`OPD_MATH_RESULT_{BASELINE_M,BASELINE_O,M_M,M_O,O_M,O_O}` and fresh JSON and
-Markdown outputs. The readout uses 10,000 paired record-bootstrap draws for the
-four baseline deltas, same-versus-cross contrasts, and stratified interaction;
-`helps`, `harms`, and `inconclusive` are all valid signed results.
+The gate recomputes held-out rewards, exact 100-step/400-sample training
+geometry, the exact student/teacher token arrays, and every arithmetic step
+metric. The conditional readout requires the same realized record/prompt
+sequence within each M or O student-source pair. Once the four permitted gates
+pass, run `OPD_MATH_RESULT_KIND=o_teacher` with
+`OPD_MATH_RESULT_{BASELINE_M,O_M,BASELINE_O,O_O}` and fresh JSON, Markdown, and
+bundle-manifest outputs. Also provide the prelaunch-sealed
+`OPD_MATH_RESULT_PREREGISTRATION` and
+`OPD_MATH_RESULT_LAUNCH_LEDGER`; they bind the exact four gate, run, adapter,
+prepared-data, stable O-teacher, M/O support, and output paths. Set
+`OPD_MATH_RESULT_OUTPUT_MANIFEST` to the preregistered bundle-manifest path.
+All three outputs are published as one fail-closed bundle, checksummed, and
+made read-only. The ledger is recorded operator custody, not cryptographic
+proof of chronology. The readout uses 10,000 paired
+record-bootstrap draws, seed zero, lexicographic record-ID order within each
+source, M-then-O draws from one RNG stream, Bonferroni 97.5% intervals over
+`delta_M` and `delta_O`, and binary worst-case verifier envelopes; `helps`,
+`harms`, and `inconclusive` are all valid signed results.
+The six-arm `matrix` command remains implemented for provenance/general reuse,
+but it is not authorized for this campaign because M failed.
 
 ## Current boundary
 
@@ -586,8 +628,8 @@ Whole-pool tokenizer job `107185` measured maxima of 1,546 M tokens and 2,076 O
 tokens. Committed teacher plan `opd_math_teacher_primary_v2` therefore uses a
 source-independent 2,304-token bound, which preserves all 4,322 rows per
 source without truncation; the separate
-student bound remains 1,536. Successor teachers still require fresh
+student bound remains 1,536. The successor O teacher still requires fresh
 commit/environment/support custody and the unchanged informative-reward and
-held-out skill-gap gates. Because the six-arm readout requires one exact
-student-training Git identity, predecessor-commit baselines cannot be mixed
-with successor-commit OPD arms and must be repeated for the final matrix.
+held-out skill-gap gates. M is not retrained. Because the four-arm conditional
+readout requires one exact student-training Git identity, predecessor-commit
+baselines cannot be mixed with successor-commit OPD arms and must be repeated.

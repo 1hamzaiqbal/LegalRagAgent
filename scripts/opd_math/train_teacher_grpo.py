@@ -14,9 +14,11 @@ from collections import defaultdict
 from pathlib import Path
 
 try:
+    from .math_reward import strict_trl_accuracy_rewards
     from .quality_gates import EXPECTED_TEACHER_TRAIN_PACKAGES, sha256_tree
     from .verify_environment import reverify_recorded_environment, verify_environment
 except ImportError:
+    from math_reward import strict_trl_accuracy_rewards  # type: ignore
     from quality_gates import EXPECTED_TEACHER_TRAIN_PACKAGES, sha256_tree  # type: ignore
     from verify_environment import (  # type: ignore
         reverify_recorded_environment,
@@ -683,7 +685,6 @@ def main() -> int:
     from peft import LoraConfig
     from transformers import AutoModelForCausalLM, AutoTokenizer, set_seed
     from trl import GRPOConfig, GRPOTrainer
-    from trl.rewards import accuracy_reward
     import torch
 
     set_seed(args.seed)
@@ -716,7 +717,6 @@ def main() -> int:
         **kwargs,
     ):
         nonlocal reward_batch_index
-        rewards = accuracy_reward(completions, solution, log_extra=log_extra)
         lengths = {
             len(completions),
             len(solution),
@@ -724,10 +724,18 @@ def main() -> int:
             len(completion_ids),
             len(record_id),
             len(source),
-            len(rewards),
         }
         if len(lengths) != 1:
             raise RuntimeError("teacher reward trace inputs have inconsistent batch lengths")
+        # TRL 1.8's accuracy_reward invokes math_verify with its default
+        # raise_on_error=False, which silently changes verifier failures into
+        # wrong-answer rewards. Preserve its parsing/verification semantics via
+        # the strict wrapper and fail the run before an optimizer step instead.
+        rewards = strict_trl_accuracy_rewards(
+            completions,
+            solution,
+            record_ids=record_id,
+        )
         for sample_idx, (prompt, completion, token_ids, gold, rid, src, reward) in enumerate(
             zip(
                 prompts,

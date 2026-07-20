@@ -26,13 +26,23 @@ import torch
 
 try:
     from .data_contract import iter_jsonl
-    from .math_reward import verify_completion
+    from .math_reward import (
+        EVALUATION_VERIFIER_ERROR_POLICY,
+        EVALUATION_VERIFIER_MAX_ATTEMPTS,
+        MAX_EVALUATION_VERIFIER_ERROR_FRACTION,
+        verify_evaluation_completion,
+    )
     from .quality_gates import EXPECTED_EVALUATION_PACKAGES, sha256_tree
     from .tokenizer_contract import canonical_sha256, tokenizer_fingerprint
     from .verify_environment import reverify_recorded_environment, verify_environment
 except ImportError:
     from data_contract import iter_jsonl  # type: ignore
-    from math_reward import verify_completion  # type: ignore
+    from math_reward import (  # type: ignore
+        EVALUATION_VERIFIER_ERROR_POLICY,
+        EVALUATION_VERIFIER_MAX_ATTEMPTS,
+        MAX_EVALUATION_VERIFIER_ERROR_FRACTION,
+        verify_evaluation_completion,
+    )
     from quality_gates import EXPECTED_EVALUATION_PACKAGES, sha256_tree  # type: ignore
     from tokenizer_contract import canonical_sha256, tokenizer_fingerprint  # type: ignore
     from verify_environment import (  # type: ignore
@@ -304,6 +314,7 @@ def capture_evaluator_custody(
     task_file: Path,
     adapter: Path | None,
     environment_contract: Mapping[str, Any] | None = None,
+    evaluation_plan: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     adapter_path, adapter_hash = _checked_adapter(adapter)
     stable_environment = evaluation_environment_contract_unchanged(environment_contract)
@@ -325,6 +336,16 @@ def capture_evaluator_custody(
                 "stable_environment": stable_environment,
             }
         )
+    if evaluation_plan is not None:
+        plan_path = Path(str(evaluation_plan.get("plan", ""))).expanduser()
+        if (
+            plan_path.is_symlink()
+            or not plan_path.is_file()
+            or str(plan_path.resolve()) != evaluation_plan.get("plan")
+            or sha256_file(plan_path) != evaluation_plan.get("plan_file_sha256")
+        ):
+            raise RuntimeError("evaluation shard plan changed during execution")
+        custody["evaluation_plan"] = dict(evaluation_plan)
     return custody
 
 
@@ -364,6 +385,7 @@ def evaluation_contract(
     tokenizer_contract_sha256: str,
     custody: Mapping[str, Any],
     environment_contract: Mapping[str, Any] | None = None,
+    evaluation_plan: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     git = custody.get("git")
     if not isinstance(git, dict):
@@ -393,12 +415,23 @@ def evaluation_contract(
         "task_sources": task_sources,
         "task_roles": task_roles,
         "samples_per_problem": samples_per_problem,
+        "reward_verifier": {
+            "candidate_error_policy": EVALUATION_VERIFIER_ERROR_POLICY,
+            "maximum_attempts": EVALUATION_VERIFIER_MAX_ATTEMPTS,
+            "maximum_error_fraction": MAX_EVALUATION_VERIFIER_ERROR_FRACTION,
+            "training_policy": "abort",
+        },
         "decoding": dict(decoding),
         "record_seed_contract": {
             "strategy": RECORD_SEED_STRATEGY,
             "base_seed": decoding["seed"],
         },
         "shard": {"strategy": SHARD_STRATEGY, "shard_count": shard_count},
+        **(
+            {}
+            if evaluation_plan is None
+            else {"evaluation_plan": dict(evaluation_plan)}
+        ),
         "tokenizer_contract_sha256": tokenizer_contract_sha256,
         "code": code,
     }
@@ -427,7 +460,98 @@ def custody_manifest(start: Mapping[str, Any], end: Mapping[str, Any]) -> dict[s
                 "stable_environment_end": end.get("stable_environment"),
             }
         )
+    if start.get("evaluation_plan") is not None or end.get("evaluation_plan") is not None:
+        manifest.update(
+            {
+                "evaluation_plan_start": start.get("evaluation_plan"),
+                "evaluation_plan_end": end.get("evaluation_plan"),
+            }
+        )
     return manifest
+
+
+def _is_complete_o_teacher_gap(
+    rows: list[dict[str, Any]], *, physical_record_count: int
+) -> bool:
+    """Identify the untruncated O teacher-gap surface independent of wrapper aliases."""
+
+    return (
+        bool(rows)
+        and len(rows) == physical_record_count
+        and {str(row.get("source")) for row in rows} == {"O"}
+        and {str(row.get("role")) for row in rows} == {"teacher_gap_dev"}
+    )
+
+
+def validate_evaluation_plan(
+    args: argparse.Namespace,
+    *,
+    task_file: Path,
+    task_rows: list[dict[str, Any]],
+    physical_record_count: int,
+    adapter: Path | None,
+    git: Mapping[str, Any],
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """Fail closed on the full O surface and reject plans everywhere else."""
+
+    plan_path = getattr(args, "shard_plan", None)
+    plan_arm = getattr(args, "plan_arm", None)
+    array_spec = getattr(args, "array_spec", None)
+    array_fields = (
+        getattr(args, "array_task_count", None),
+        getattr(args, "array_task_min", None),
+        getattr(args, "array_task_max", None),
+    )
+    supplied = plan_path is not None or plan_arm is not None or array_spec is not None or any(
+        value is not None for value in array_fields
+    )
+    required = _is_complete_o_teacher_gap(
+        task_rows, physical_record_count=physical_record_count
+    )
+    if required and not supplied:
+        raise ValueError("complete O teacher_gap_dev evaluation requires the canonical v2 plan")
+    if not required and supplied:
+        raise ValueError("an O primary shard plan may only be supplied to complete O teacher_gap_dev")
+    if not required:
+        return None, None
+    if plan_path is None or plan_arm is None or array_spec is None or any(
+        value is None for value in array_fields
+    ):
+        raise ValueError("complete O teacher_gap_dev evaluation lacks full plan/array custody")
+    commit = git.get("commit")
+    if not isinstance(commit, str):
+        raise ValueError("complete O teacher_gap_dev evaluation lacks Git custody")
+    try:
+        from .plan_evaluation_shards import validate_launch_against_plan
+    except ImportError:
+        from plan_evaluation_shards import validate_launch_against_plan  # type: ignore
+
+    validated = validate_launch_against_plan(
+        plan_path=Path(plan_path),
+        arm=str(plan_arm),
+        phase="shard",
+        source="O",
+        role="teacher_gap_dev",
+        model=args.model,
+        model_revision=args.model_revision,
+        task_file=task_file,
+        max_records=args.max_records,
+        shard_count=args.shard_count,
+        git_commit=commit,
+        train_freeze=Path(args.train_environment_freeze),
+        adapter=adapter,
+        array_spec=str(array_spec),
+        samples_per_problem=args.samples_per_problem,
+        temperature=args.temperature,
+        top_p=args.top_p,
+        top_k=args.top_k,
+        max_new_tokens=args.max_new_tokens,
+        seed=args.seed,
+        array_task_count=array_fields[0],
+        array_task_min=array_fields[1],
+        array_task_max=array_fields[2],
+    )
+    return dict(validated["plan_binding"]), dict(validated["launch_validation"])
 
 
 def begin_transactional_directory(final_path: Path) -> tuple[Path, Path]:
@@ -679,10 +803,29 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
     require_clean_stable_custody(custody_start, custody_start, label="evaluation start")
 
     all_rows = list(iter_jsonl(task_file))
+    physical_record_count = len(all_rows)
     if args.max_records > 0:
         all_rows = all_rows[: args.max_records]
     if not all_rows:
         raise ValueError("evaluation task file is empty")
+    evaluation_plan, plan_launch_validation = validate_evaluation_plan(
+        args,
+        task_file=task_file,
+        task_rows=all_rows,
+        physical_record_count=physical_record_count,
+        adapter=adapter,
+        git=custody_start["git"],
+    )
+    if evaluation_plan is not None:
+        custody_start = capture_evaluator_custody(
+            task_file,
+            adapter,
+            environment_contract,
+            evaluation_plan,
+        )
+        require_clean_stable_custody(
+            custody_start, custody_start, label="planned evaluation start"
+        )
     eligible_record_ids = _checked_record_ids(all_rows, "selected evaluation task")
     global_records = len(all_rows)
     record_start, record_stop = balanced_shard_bounds(
@@ -744,11 +887,12 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         tokenizer_contract_sha256=tokenizer_hash,
         custody=custody_start,
         environment_contract=environment_contract,
+        evaluation_plan=evaluation_plan,
     )
     contract_hash = canonical_sha256(contract)
 
     sample_path = partial_output / "samples.jsonl"
-    correct = attempted = parse_failed = 0
+    correct = attempted = parse_failed = verifier_errors = 0
     unique_prompt_tokens = total_completion_tokens = 0
     total_generation_latency = 0.0
     with sample_path.open("x", encoding="utf-8") as handle, torch.inference_mode():
@@ -798,13 +942,14 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
                 if not completion_ids:
                     raise RuntimeError(f"empty completion for record {record_id}")
                 completion = tokenizer.decode(completion_ids, skip_special_tokens=True)
-                verdict = verify_completion(completion, row["solution"])
-                if verdict["status"] in ("gold_parse_failed", "verifier_error"):
+                verdict = verify_evaluation_completion(completion, row["solution"])
+                if verdict.get("reward") is None:
                     raise RuntimeError(f"evaluation verifier failure for {record_id}: {verdict}")
                 reward = float(verdict["reward"])
                 attempted += 1
                 correct += int(reward)
                 parse_failed += int(verdict["status"] == "prediction_parse_failed")
+                verifier_errors += int(verdict["status"] == "verifier_error_zeroed")
                 total_completion_tokens += len(completion_ids)
                 result = {
                     "schema_version": SAMPLE_SCHEMA_VERSION,
@@ -823,13 +968,28 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
                         completion.encode("utf-8")
                     ).hexdigest(),
                 }
+                if verdict["status"] == "verifier_error_zeroed":
+                    result.update(
+                        {
+                            "verifier_error_type": verdict.get("verifier_error_type"),
+                            "verifier_error": verdict.get("verifier_error"),
+                            "verifier_stage": verdict.get("verifier_stage"),
+                            "verifier_error_policy": verdict.get("policy"),
+                            "verifier_attempts": verdict.get("verifier_attempts"),
+                            "verifier_error_history": verdict.get(
+                                "verifier_error_history"
+                            ),
+                        }
+                    )
                 if args.write_completions:
                     result["completion_text"] = completion
                 handle.write(json.dumps(result, sort_keys=True, separators=(",", ":")) + "\n")
             handle.flush()
             os.fsync(handle.fileno())
 
-    custody_end = capture_evaluator_custody(task_file, adapter, environment_contract)
+    custody_end = capture_evaluator_custody(
+        task_file, adapter, environment_contract, evaluation_plan
+    )
     require_clean_stable_custody(
         custody_start, custody_end, label="evaluation start/end"
     )
@@ -838,6 +998,14 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         "artifact_kind": EVALUATION_SHARD_KIND,
         "evaluation_contract": contract,
         "evaluation_contract_sha256": contract_hash,
+        **(
+            {}
+            if evaluation_plan is None
+            else {
+                "evaluation_plan": evaluation_plan,
+                "plan_launch_validation": plan_launch_validation,
+            }
+        ),
         "model": args.model,
         "model_revision": args.model_revision,
         "code": {
@@ -859,7 +1027,17 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         "samples_per_problem": args.samples_per_problem,
         "samples": attempted,
         "accuracy": correct / attempted,
+        "accuracy_excluding_verifier_errors": (
+            correct / (attempted - verifier_errors)
+            if verifier_errors < attempted
+            else None
+        ),
+        "accuracy_if_all_verifier_errors_correct": (correct + verifier_errors) / attempted,
         "prediction_parse_failure_fraction": parse_failed / attempted,
+        "verifier_error_policy": EVALUATION_VERIFIER_ERROR_POLICY,
+        "verifier_error_samples": verifier_errors,
+        "verifier_error_fraction": verifier_errors / attempted,
+        "maximum_verifier_error_fraction": MAX_EVALUATION_VERIFIER_ERROR_FRACTION,
         "unique_prompt_tokens": unique_prompt_tokens,
         "expanded_prompt_tokens": unique_prompt_tokens * args.samples_per_problem,
         "total_completion_tokens": total_completion_tokens,
@@ -887,7 +1065,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         json.dumps(summary, indent=2, sort_keys=True) + "\n",
     )
     custody_before_promotion = capture_evaluator_custody(
-        task_file, adapter, environment_contract
+        task_file, adapter, environment_contract, evaluation_plan
     )
     require_clean_stable_custody(
         custody_start,
@@ -901,7 +1079,7 @@ def evaluate(args: argparse.Namespace) -> dict[str, Any]:
         producer="evaluation_shard",
         custody_start=custody_start,
         capture_custody=lambda: capture_evaluator_custody(
-            task_file, adapter, environment_contract
+            task_file, adapter, environment_contract, evaluation_plan
         ),
         require_stable_custody=lambda start, end: require_clean_stable_custody(
             start, end, label="evaluation post-promotion"
@@ -928,6 +1106,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--shard-count", type=int, default=1)
     parser.add_argument("--shard-index", type=int, default=0)
+    parser.add_argument("--shard-plan", type=Path)
+    parser.add_argument("--plan-arm", choices=("base", "trained"))
+    parser.add_argument("--array-spec")
+    parser.add_argument("--array-task-count", type=int)
+    parser.add_argument("--array-task-min", type=int)
+    parser.add_argument("--array-task-max", type=int)
     parser.add_argument("--write-completions", action="store_true")
     parser.add_argument("--local-files-only", action="store_true")
     return parser.parse_args()

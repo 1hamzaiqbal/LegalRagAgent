@@ -20,6 +20,15 @@ set -euo pipefail
 MODE="$OPD_MATH_STUDENT_MODE"
 case "$MODE" in task_rl|task_rl_k1_gap) ;; *) echo "invalid OPD_MATH_STUDENT_MODE" >&2; exit 2 ;; esac
 case "$OPD_MATH_BUDGET_MODE" in primary_matched|dose_response) ;; *) echo "invalid OPD_MATH_BUDGET_MODE" >&2; exit 2 ;; esac
+if [[ "$OPD_MATH_BUDGET_MODE" == primary_matched ]]; then
+  : "${OPD_MATH_STUDENT_RUN_ID:?Primary matched runs require a preregistered stable run ID}"
+  : "${OPD_MATH_STUDENT_PREREGISTRATION:?Primary matched runs require the sealed preregistration}"
+  : "${OPD_MATH_STUDENT_LAUNCH_LEDGER:?Primary matched runs require the sealed launch ledger}"
+  RUN_ID="$OPD_MATH_STUDENT_RUN_ID"
+else
+  RUN_ID="${OPD_MATH_STUDENT_RUN_ID:-slurm_${SLURM_JOB_ID}}"
+fi
+[[ "$RUN_ID" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "unsafe OPD_MATH_STUDENT_RUN_ID" >&2; exit 2; }
 
 if [[ "$MODE" == task_rl ]]; then
   : "${OPD_MATH_STUDENT_SOURCE:?task_rl requires M or O; it has no teacher coordinate}"
@@ -27,8 +36,8 @@ if [[ "$MODE" == task_rl ]]; then
   STUDENT_SOURCE="$OPD_MATH_STUDENT_SOURCE"
   RUN_KEY="baseline_$STUDENT_SOURCE"
 else
-  : "${OPD_MATH_PAIR:?task_rl_k1_gap requires one of M_M, M_O, O_M, O_O}"
-  case "$OPD_MATH_PAIR" in M_M|M_O|O_M|O_O) ;; *) echo "invalid OPD_MATH_PAIR" >&2; exit 2 ;; esac
+  : "${OPD_MATH_PAIR:?task_rl_k1_gap requires O_M or O_O; M-teacher arms are closed}"
+  case "$OPD_MATH_PAIR" in O_M|O_O) ;; *) echo "M_M/M_O are prohibited; invalid OPD_MATH_PAIR" >&2; exit 2 ;; esac
   TEACHER_SOURCE="${OPD_MATH_PAIR%%_*}"
   STUDENT_SOURCE="${OPD_MATH_PAIR##*_}"
   RUN_KEY="$OPD_MATH_PAIR"
@@ -47,7 +56,8 @@ FREEZE_ROOT="$RUN_ROOT/environment_freezes/$COMMIT"
 TRAIN_FREEZE="$FREEZE_ROOT/train.freeze.txt"
 SERVE_FREEZE="$FREEZE_ROOT/serve.freeze.txt"
 VERIFY_ENVIRONMENT="$REPO/scripts/opd_math/verify_environment.py"
-OUT="$RUN_ROOT/students/$RUN_KEY/$MODE/run_${SLURM_JOB_ID}"
+OUT="$RUN_ROOT/students/$RUN_KEY/$MODE/run_$RUN_ID"
+PRELAUNCH_RECEIPT="$OUT.prelaunch.json"
 TASK="$DATA_ROOT/roles/$STUDENT_SOURCE/student_opd.jsonl"
 PORT=""
 URL=""
@@ -74,6 +84,7 @@ echo "Verifying live train environment before student execution"
   --freeze-kind train
 for artifact in \
   "$OUT" \
+  "$PRELAUNCH_RECEIPT" \
   "$OUT.vllm.log" \
   "$OUT.server_models.json" \
   "$OUT.tokenizer_contract.json" \
@@ -89,11 +100,40 @@ export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export TOKENIZERS_PARALLELISM=false
 
+if [[ "$OPD_MATH_BUDGET_MODE" == primary_matched ]]; then
+  PRELAUNCH_ARGS=(
+    prelaunch
+    --run-key "$RUN_KEY"
+    --run-id "$RUN_ID"
+    --scheduler-job-id "$SLURM_JOB_ID"
+    --mode "$MODE"
+    --student-source "$STUDENT_SOURCE"
+    --out-dir "$OUT"
+    --student-support-manifest "$OPD_MATH_STUDENT_SUPPORT_MANIFEST"
+    --preregistration "$OPD_MATH_STUDENT_PREREGISTRATION"
+    --launch-ledger "$OPD_MATH_STUDENT_LAUNCH_LEDGER"
+    --output "$PRELAUNCH_RECEIPT"
+  )
+  if [[ "$MODE" == task_rl_k1_gap ]]; then
+    : "${OPD_MATH_TEACHER_CHECKPOINT:?Set the merged, teacher-gap-passing checkpoint}"
+    : "${OPD_MATH_TEACHER_GAP_MANIFEST:?Set the passing teacher-gap manifest}"
+    : "${OPD_MATH_TEACHER_PROVENANCE_MANIFEST:?Set merge_provenance.json for the checkpoint}"
+    PRELAUNCH_ARGS+=(
+      --teacher-checkpoint "$OPD_MATH_TEACHER_CHECKPOINT"
+      --teacher-gap-manifest "$OPD_MATH_TEACHER_GAP_MANIFEST"
+      --teacher-provenance-manifest "$OPD_MATH_TEACHER_PROVENANCE_MANIFEST"
+    )
+  fi
+  "$TRAIN_ENV/bin/python" "$REPO/scripts/opd_math/student_results.py" "${PRELAUNCH_ARGS[@]}"
+fi
+
 TRAIN_ARGS=(
   --mode "$MODE"
   --task-file "$TASK"
   --task-limit "$OPD_MATH_TASK_LIMIT"
   --budget-mode "$OPD_MATH_BUDGET_MODE"
+  --campaign-run-id "$RUN_ID"
+  --scheduler-job-id "$SLURM_JOB_ID"
   --prepared-manifest "$DATA_ROOT/prepared_manifest.json"
   --student "$STUDENT"
   --student-revision "$STUDENT_REVISION"
@@ -112,6 +152,10 @@ TRAIN_ARGS=(
   --require-parameter-update
   --local-files-only
 )
+
+if [[ "$OPD_MATH_BUDGET_MODE" == primary_matched ]]; then
+  TRAIN_ARGS+=(--prelaunch-receipt "$PRELAUNCH_RECEIPT")
+fi
 
 if [[ "$MODE" == task_rl ]]; then
   TRAIN_ARGS+=(--student-source "$STUDENT_SOURCE")

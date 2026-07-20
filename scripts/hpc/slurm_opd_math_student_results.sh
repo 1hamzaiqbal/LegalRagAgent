@@ -9,7 +9,7 @@
 
 set -euo pipefail
 : "${OPD_MATH_DATA_ROOT:?Set the exact reviewed canonical data root}"
-: "${OPD_MATH_RESULT_KIND:?Set heldout or matrix}"
+: "${OPD_MATH_RESULT_KIND:?Set heldout, o_teacher, or matrix}"
 
 REPO="${OPD_MATH_REPO:-/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math}"
 ENV_DIR="${OPD_MATH_TRAIN_ENV:-/engrfs/project/jacobsn/hiqbal/envs/opd_math_train}"
@@ -47,6 +47,26 @@ if [[ "$OPD_MATH_RESULT_KIND" == heldout ]]; then
     --student-revision "$STUDENT_REVISION" \
     --task-source "$OPD_MATH_RESULT_SOURCE" \
     --output "$OPD_MATH_RESULT_OUTPUT"
+elif [[ "$OPD_MATH_RESULT_KIND" == o_teacher ]]; then
+  : "${OPD_MATH_RESULT_BASELINE_M:?Set baseline_M held-out gate}"
+  : "${OPD_MATH_RESULT_O_M:?Set O_M held-out gate}"
+  : "${OPD_MATH_RESULT_BASELINE_O:?Set baseline_O held-out gate}"
+  : "${OPD_MATH_RESULT_O_O:?Set O_O held-out gate}"
+  : "${OPD_MATH_RESULT_PREREGISTRATION:?Set the sealed prelaunch O-teacher preregistration}"
+  : "${OPD_MATH_RESULT_LAUNCH_LEDGER:?Set the immutable prelaunch O-teacher ledger}"
+  : "${OPD_MATH_RESULT_OUTPUT_JSON:?Set a new O-teacher readout JSON path}"
+  : "${OPD_MATH_RESULT_OUTPUT_MARKDOWN:?Set a new O-teacher readout Markdown path}"
+  : "${OPD_MATH_RESULT_OUTPUT_MANIFEST:?Set a new O-teacher readout bundle manifest path}"
+  "$ENV_DIR/bin/python" "$REPO/scripts/opd_math/student_results.py" o-teacher-readout \
+    --baseline-m "$OPD_MATH_RESULT_BASELINE_M" \
+    --o-m "$OPD_MATH_RESULT_O_M" \
+    --baseline-o "$OPD_MATH_RESULT_BASELINE_O" \
+    --o-o "$OPD_MATH_RESULT_O_O" \
+    --preregistration "$OPD_MATH_RESULT_PREREGISTRATION" \
+    --launch-ledger "$OPD_MATH_RESULT_LAUNCH_LEDGER" \
+    --output-json "$OPD_MATH_RESULT_OUTPUT_JSON" \
+    --output-markdown "$OPD_MATH_RESULT_OUTPUT_MARKDOWN" \
+    --output-manifest "$OPD_MATH_RESULT_OUTPUT_MANIFEST"
 elif [[ "$OPD_MATH_RESULT_KIND" == matrix ]]; then
   : "${OPD_MATH_RESULT_BASELINE_M:?Set baseline_M held-out gate}"
   : "${OPD_MATH_RESULT_BASELINE_O:?Set baseline_O held-out gate}"

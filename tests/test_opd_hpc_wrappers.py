@@ -8,6 +8,8 @@ MERGE = ROOT / "scripts" / "hpc" / "slurm_opd_math_merge_evaluation.sh"
 QUALITY_GATE = ROOT / "scripts" / "hpc" / "slurm_opd_math_quality_gate.sh"
 TEACHER_TRAIN = ROOT / "scripts" / "hpc" / "slurm_opd_math_teacher_train.sh"
 TEACHER_SMOKE = ROOT / "scripts" / "hpc" / "slurm_opd_math_teacher_smoke.sh"
+STUDENT_RESULTS = ROOT / "scripts" / "hpc" / "slurm_opd_math_student_results.sh"
+STUDENT_TRAIN = ROOT / "scripts" / "hpc" / "slurm_opd_math_student_train.sh"
 
 
 def test_touched_evaluation_and_teacher_wrappers_have_valid_bash_syntax():
@@ -20,6 +22,8 @@ def test_touched_evaluation_and_teacher_wrappers_have_valid_bash_syntax():
             str(QUALITY_GATE),
             str(TEACHER_TRAIN),
             str(TEACHER_SMOKE),
+            str(STUDENT_RESULTS),
+            str(STUDENT_TRAIN),
         ],
         check=True,
     )
@@ -57,8 +61,10 @@ def test_full_o_base_and_trained_evaluations_consume_the_fixed_plan():
         assert "plan_evaluation_shards.py" in script
         assert "OPD_MATH_EVAL_SHARD_PLAN" in script
         assert "OPD_MATH_EVAL_PLAN_ARM" in script
-        assert 'OPD_MATH_EVAL_ROLE" == teacher_skill_dev' in script
-        assert 'OPD_MATH_EVAL_MAX_RECORDS" == 0' in script
+        assert "OPD_MATH_EVAL_ARRAY_SPEC" in script
+        assert 'TASK_REL" == roles/O/teacher_gap_dev.jsonl' in script
+        assert "OPD_MATH_EVAL_MAX_RECORDS >= TASK_RECORDS" in script
+        assert "must be a canonical nonnegative integer" in script
         assert 'validate-launch' in script
         assert f'--phase {phase}' in script
         assert '--source O' in script
@@ -66,6 +72,13 @@ def test_full_o_base_and_trained_evaluations_consume_the_fixed_plan():
         assert '--shard-count' in script
         assert '--git-commit "$COMMIT"' in script
         assert '--train-freeze "$TRAIN_FREEZE"' in script
+        assert '--array-spec "$OPD_MATH_EVAL_ARRAY_SPEC"' in script
+        assert '--samples-per-problem "$EVAL_SAMPLES_PER_PROBLEM"' in script
+        assert '--temperature "$EVAL_TEMPERATURE"' in script
+        assert '--top-p "$EVAL_TOP_P"' in script
+        assert '--top-k "$EVAL_TOP_K"' in script
+        assert '--max-new-tokens "$EVAL_MAX_NEW_TOKENS"' in script
+        assert '--seed "$EVAL_SEED"' in script
     assert '--array-task-count "$SLURM_ARRAY_TASK_COUNT"' in evaluate
     assert '--array-task-min "$SLURM_ARRAY_TASK_MIN"' in evaluate
     assert '--array-task-max "$SLURM_ARRAY_TASK_MAX"' in evaluate
@@ -101,6 +114,47 @@ def test_scientific_wrappers_require_an_explicit_canonical_data_root():
         script = (ROOT / "scripts" / "hpc" / name).read_text()
         assert "${OPD_MATH_DATA_ROOT:?" in script
         assert "data/legalrag/opd_math/v1}" not in script
+
+
+def test_student_result_wrapper_exposes_o_teacher_four_arm_readout():
+    script = STUDENT_RESULTS.read_text()
+    assert 'OPD_MATH_RESULT_KIND" == o_teacher' in script
+    assert 'student_results.py" o-teacher-readout' in script
+    assert '--baseline-m "$OPD_MATH_RESULT_BASELINE_M"' in script
+    assert '--o-m "$OPD_MATH_RESULT_O_M"' in script
+    assert '--baseline-o "$OPD_MATH_RESULT_BASELINE_O"' in script
+    assert '--o-o "$OPD_MATH_RESULT_O_O"' in script
+    assert '--preregistration "$OPD_MATH_RESULT_PREREGISTRATION"' in script
+    assert '--launch-ledger "$OPD_MATH_RESULT_LAUNCH_LEDGER"' in script
+    assert "OPD_MATH_RESULT_OUTPUT_MANIFEST" in script
+    assert '--output-manifest "$OPD_MATH_RESULT_OUTPUT_MANIFEST"' in script
+    o_teacher_branch = script.split(
+        'elif [[ "$OPD_MATH_RESULT_KIND" == o_teacher ]]', 1
+    )[1].split('elif [[ "$OPD_MATH_RESULT_KIND" == matrix ]]', 1)[0]
+    assert "OPD_MATH_RESULT_M_M" not in o_teacher_branch
+    assert "OPD_MATH_RESULT_M_O" not in o_teacher_branch
+
+
+def test_primary_student_runs_use_preregisterable_stable_paths():
+    script = STUDENT_TRAIN.read_text()
+    assert "Primary matched runs require a preregistered stable run ID" in script
+    assert 'RUN_ID="$OPD_MATH_STUDENT_RUN_ID"' in script
+    assert 'OUT="$RUN_ROOT/students/$RUN_KEY/$MODE/run_$RUN_ID"' in script
+    assert '--campaign-run-id "$RUN_ID"' in script
+    assert '--scheduler-job-id "$SLURM_JOB_ID"' in script
+    assert "Primary matched runs require the sealed preregistration" in script
+    assert "Primary matched runs require the sealed launch ledger" in script
+    assert 'PRELAUNCH_RECEIPT="$OUT.prelaunch.json"' in script
+    assert 'student_results.py" "${PRELAUNCH_ARGS[@]}"' in script
+    assert '--prelaunch-receipt "$PRELAUNCH_RECEIPT"' in script
+    assert '--preregistration "$OPD_MATH_STUDENT_PREREGISTRATION"' in script
+    assert '--launch-ledger "$OPD_MATH_STUDENT_LAUNCH_LEDGER"' in script
+    assert '[[ "$RUN_ID" =~ ^[A-Za-z0-9._-]+$ ]]' in script
+    primary_branch = script.split(
+        'if [[ "$OPD_MATH_BUDGET_MODE" == primary_matched ]]', 1
+    )[1].split("else", 1)[0]
+    assert "SLURM_JOB_ID" not in primary_branch
+    assert 'slurm_${SLURM_JOB_ID}' in script
 
 
 def test_teacher_wrapper_uses_the_registered_full_pool_prompt_bound():

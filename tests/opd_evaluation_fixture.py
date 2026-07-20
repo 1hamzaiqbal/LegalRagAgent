@@ -205,6 +205,12 @@ def write_merged_evaluation(
         },
         "shard": {"strategy": evaluation.SHARD_STRATEGY, "shard_count": 1},
         "tokenizer_contract_sha256": tokenizer_contract_sha256,
+        "reward_verifier": {
+            "candidate_error_policy": evaluation.EVALUATION_VERIFIER_ERROR_POLICY,
+            "maximum_attempts": evaluation.EVALUATION_VERIFIER_MAX_ATTEMPTS,
+            "maximum_error_fraction": evaluation.MAX_EVALUATION_VERIFIER_ERROR_FRACTION,
+            "training_policy": "abort",
+        },
         "code": code,
     }
     contract_hash = evaluation.canonical_sha256(contract)
@@ -262,7 +268,13 @@ def write_merged_evaluation(
         "records": record_count,
         "samples": total_samples,
         "accuracy": correct / total_samples,
+        "accuracy_excluding_verifier_errors": correct / total_samples,
+        "accuracy_if_all_verifier_errors_correct": correct / total_samples,
         "prediction_parse_failure_fraction": 0.0,
+        "verifier_error_policy": evaluation.EVALUATION_VERIFIER_ERROR_POLICY,
+        "verifier_error_samples": 0,
+        "verifier_error_fraction": 0.0,
+        "maximum_verifier_error_fraction": evaluation.MAX_EVALUATION_VERIFIER_ERROR_FRACTION,
         "unique_prompt_tokens": 12 * record_count,
         "expanded_prompt_tokens": 12 * total_samples,
         "total_completion_tokens": 8 * total_samples,

@@ -13,9 +13,13 @@ Start with:
 5. `configs/opd_math/source_manifest.json`
 6. `configs/opd_math/teacher_training_plan.json`
 
-Current gate: freeze one final code-and-documentation commit, rerun full M/O
-raw-student support under the v2 exact-environment contract, retrain both
-teachers, and establish the held-out teacher gaps before launching the two
-task-RL baselines and four OPD arms. The campaign closes only with all six
-held-out result gates and the paired matrix readout on that same commit. No
-finite loss or checkpoint is a performance result.
+Current gate: do not launch the unsealed four-arm successor. Before it launched,
+the study was expanded into the objective-family design in
+`wiki/snapshots/opd-objective-family-expansion-2026-07-20.md`. First finish and
+commit the strict verifier-recovery substrate, then implement and validate the
+new objective registry, cross-veRL fidelity ladder, generalized preregistration,
+and analysis. Full M/O raw-student support and a newly strict O teacher/gap are
+shared prerequisites, but no 100-step expanded student arm launches until the
+complete three-seed matrix is sealed. M's failed gate is immutable; never
+retrain it or launch `M_M`/`M_O`. No finite loss or checkpoint is a performance
+result.

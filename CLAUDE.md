@@ -44,6 +44,21 @@ moved under `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-
 - EIT jobs 93802 and 106078 validate bare and negative-gap-gated OPD plumbing.
   They do not establish task learning.
 - E2 teacher-with-skill versus teacher-without-skill is the gate for E3.
+- OPD-math M failed that gate and is immutable. The active successor retrains
+  only O and permits `baseline_M`, `O_M`, `baseline_O`, and `O_O`; never launch
+  `M_M` or `M_O`. Full O gap evaluation requires paired base/trained timing and
+  at least five shared shards. Primary student arms require stable
+  preregistered run IDs; seal the teacher/support/four-path preregistration only
+  after O passes and the one-step diagnostic is clean, but before any of those
+  four arms launch. The exact boundary is
+  `wiki/snapshots/opd-math-verifier-recovery-2026-07-20.md`.
+- Before that four-arm successor was sealed or launched, the requested study
+  expanded to the objective family in
+  `wiki/snapshots/opd-objective-family-expansion-2026-07-20.md`. Treat the old
+  four-arm readout as validated recovery substrate, not the active launch
+  contract. Do not launch expanded 100-step arms until the objective registry,
+  veRL fidelity ladder, full three-seed preregistration, and generalized
+  readout are implemented and sealed in a new artifact namespace.
 
 ## Next build order
 

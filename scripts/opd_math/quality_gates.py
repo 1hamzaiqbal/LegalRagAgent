@@ -21,11 +21,25 @@ from typing import Any, Iterable
 
 try:
     from .data_contract import iter_jsonl
-    from .math_reward import verify_completion, verify_trl_accuracy_completion
+    from .math_reward import (
+        EVALUATION_VERIFIER_ERROR_POLICY,
+        EVALUATION_VERIFIER_MAX_ATTEMPTS,
+        MAX_EVALUATION_VERIFIER_ERROR_FRACTION,
+        verify_completion,
+        verify_evaluation_completion,
+        verify_trl_accuracy_completion,
+    )
     from .verify_environment import reverify_recorded_environment
 except ImportError:
     from data_contract import iter_jsonl  # type: ignore
-    from math_reward import verify_completion, verify_trl_accuracy_completion  # type: ignore
+    from math_reward import (  # type: ignore
+        EVALUATION_VERIFIER_ERROR_POLICY,
+        EVALUATION_VERIFIER_MAX_ATTEMPTS,
+        MAX_EVALUATION_VERIFIER_ERROR_FRACTION,
+        verify_completion,
+        verify_evaluation_completion,
+        verify_trl_accuracy_completion,
+    )
     from verify_environment import reverify_recorded_environment  # type: ignore
 
 
@@ -1106,8 +1120,36 @@ def reward_by_record(
         status = row.get("reward_status")
         if status in {"gold_parse_failed", "verifier_error"}:
             raise RuntimeError(f"verifier failure in {path} at row {row_number}: {status}")
-        if status not in {"correct", "incorrect", "prediction_parse_failed"}:
+        if status not in {
+            "correct",
+            "incorrect",
+            "prediction_parse_failed",
+            "verifier_error_zeroed",
+        }:
             raise ValueError(f"unknown reward_status in {path} at row {row_number}: {status!r}")
+        if status == "verifier_error_zeroed":
+            history = row.get("verifier_error_history")
+            if (
+                row.get("verifier_error_policy") != EVALUATION_VERIFIER_ERROR_POLICY
+                or not isinstance(row.get("verifier_error_type"), str)
+                or not isinstance(row.get("verifier_error"), str)
+                or row.get("verifier_stage") not in {"prediction_parse", "symbolic_verify"}
+                or row.get("verifier_attempts") != EVALUATION_VERIFIER_MAX_ATTEMPTS
+                or not isinstance(history, list)
+                or len(history) != EVALUATION_VERIFIER_MAX_ATTEMPTS
+                or any(
+                    not isinstance(item, dict)
+                    or item.get("status")
+                    not in {"verifier_error", "prediction_parser_error"}
+                    or not isinstance(item.get("error_type"), str)
+                    or not isinstance(item.get("error"), str)
+                    for item in history
+                )
+            ):
+                raise ValueError(
+                    f"verifier-error sample lacks explicit policy/error custody in {path} "
+                    f"at row {row_number}"
+                )
         record_id = row.get("record_id")
         sample_idx = row.get("sample_idx")
         if not isinstance(record_id, str) or not record_id:
@@ -1141,13 +1183,18 @@ def reward_by_record(
             raise ValueError(
                 f"evaluation sample requires completion_text in {path} at row {row_number}"
             )
-        verdict = verify_completion(completion, gold_by_record[record_id])
+        verdict = verify_evaluation_completion(completion, gold_by_record[record_id])
         recomputed_status = verdict.get("status")
-        if recomputed_status in {"gold_parse_failed", "verifier_error"}:
+        if verdict.get("reward") is None:
             raise RuntimeError(
                 f"verifier failure while recomputing {path} at row {row_number}: {verdict}"
             )
-        if recomputed_status not in {"correct", "incorrect", "prediction_parse_failed"}:
+        if recomputed_status not in {
+            "correct",
+            "incorrect",
+            "prediction_parse_failed",
+            "verifier_error_zeroed",
+        }:
             raise RuntimeError(
                 f"unknown recomputed verifier status in {path} at row {row_number}: "
                 f"{recomputed_status!r}"
@@ -1165,6 +1212,17 @@ def reward_by_record(
             raise RuntimeError(
                 f"recomputed verifier reward is not finite binary in {path} "
                 f"at row {row_number}: {verdict}"
+            )
+        if status == "verifier_error_zeroed":
+            # Load-sensitive timeout replays need not reproduce the original
+            # error. The stored reward remains a bounded unknown and is kept at
+            # its conservative point value of zero for descriptive metrics.
+            grouped_rows[record_id].append((sample_idx, reward))
+            continue
+        if recomputed_status == "verifier_error_zeroed":
+            raise RuntimeError(
+                f"bounded verifier replay remained inconclusive for a determinate sample in "
+                f"{path} at row {row_number}"
             )
         if reward != recomputed_reward or status != recomputed_status:
             raise ValueError(
@@ -1323,6 +1381,46 @@ def _checked_merged_evaluation_provenance(
     selected_ids_hash = _evaluation_canonical_sha256(selected_ids)
     if contract.get("eligible_record_ids_sha256") != selected_ids_hash:
         raise ValueError(f"merged evaluation selected-record hash mismatch: {summary_path}")
+    complete_o_gap = (
+        eligible == len(task_rows)
+        and {str(row.get("source")) for row in selected_rows} == {"O"}
+        and {str(row.get("role")) for row in selected_rows}
+        == {"teacher_gap_dev"}
+    )
+    evaluation_plan = contract.get("evaluation_plan")
+    if evaluation_plan is not None:
+        if not complete_o_gap or not isinstance(evaluation_plan, dict):
+            raise ValueError(
+                "evaluation plan binding is only valid for complete O teacher_gap_dev"
+            )
+        try:
+            from .plan_evaluation_shards import revalidate_plan_binding_for_contract
+        except ImportError:
+            from plan_evaluation_shards import (  # type: ignore
+                revalidate_plan_binding_for_contract,
+            )
+        revalidate_plan_binding_for_contract(evaluation_plan, contract)
+    if summary.get("evaluation_plan") != evaluation_plan:
+        raise ValueError("merged evaluation plan differs from its contract")
+    plan_merge_validation = summary.get("plan_merge_validation")
+    if evaluation_plan is None:
+        if plan_merge_validation is not None:
+            raise ValueError("unplanned merged evaluation has plan-validation metadata")
+    elif plan_merge_validation != {
+        "schema_version": 1,
+        "validation_kind": "opd_math_o_primary_plan_launch_validation_v1",
+        "phase": "merge",
+        "array_spec_source": "predeclared_OPD_MATH_EVAL_ARRAY_SPEC_v1",
+        "declared_array_spec": evaluation_plan["array_spec"],
+        "declared_slurm_array_argument": evaluation_plan[
+            "slurm_array_argument"
+        ],
+        "array_task_count": None,
+        "array_task_min": None,
+        "array_task_max": None,
+        "validated": True,
+    }:
+        raise ValueError("planned merged evaluation lacks exact merge validation")
 
     seed_contract = contract.get("record_seed_contract")
     decoding = contract.get("decoding")
@@ -1338,6 +1436,16 @@ def _checked_merged_evaluation_provenance(
         or seed_contract != expected_seed_contract
     ):
         raise ValueError(f"merged evaluation has an invalid record-seed contract: {summary_path}")
+    expected_reward_verifier = {
+        "candidate_error_policy": EVALUATION_VERIFIER_ERROR_POLICY,
+        "maximum_attempts": EVALUATION_VERIFIER_MAX_ATTEMPTS,
+        "maximum_error_fraction": MAX_EVALUATION_VERIFIER_ERROR_FRACTION,
+        "training_policy": "abort",
+    }
+    if contract.get("reward_verifier") != expected_reward_verifier:
+        raise ValueError(
+            f"merged evaluation has an invalid reward-verifier contract: {summary_path}"
+        )
     shard_contract = contract.get("shard")
     if not isinstance(shard_contract, dict) or shard_contract.get("strategy") != SHARD_STRATEGY:
         raise ValueError(f"merged evaluation has an invalid shard contract: {summary_path}")
@@ -1356,6 +1464,7 @@ def _checked_merged_evaluation_provenance(
         "samples_per_problem",
         "decoding",
         "record_seed_contract",
+        "evaluation_plan",
     )
     for field in mirrored_fields:
         if summary.get(field) != contract.get(field):
@@ -1405,6 +1514,8 @@ def _checked_merged_evaluation_provenance(
                 "stable_environment": True,
             }
         )
+    if evaluation_plan is not None:
+        expected_evaluator_state["evaluation_plan"] = evaluation_plan
 
     merge_custody = summary.get("merge_custody")
     if not isinstance(merge_custody, dict) or merge_custody.get("stable") is not True:
@@ -1438,6 +1549,10 @@ def _checked_merged_evaluation_provenance(
             != contract.get("adapter_tree_sha256")
         ):
             raise ValueError(f"merged evaluation adapter {position} custody mismatch")
+        if evaluation_plan is not None and (
+            merge_custody.get(f"evaluation_plan_{position}") != evaluation_plan
+        ):
+            raise ValueError(f"merged evaluation plan {position} custody mismatch")
     if merge_custody.get("evaluator_file_sha256") != code.get("evaluator_file_sha256"):
         raise ValueError(f"merged evaluation evaluator-code custody mismatch")
     expected_merge_state = {
@@ -1455,6 +1570,8 @@ def _checked_merged_evaluation_provenance(
                 "stable_environment": True,
             }
         )
+    if evaluation_plan is not None:
+        expected_merge_state["evaluation_plan"] = evaluation_plan
     adapter = contract.get("adapter")
     if adapter is None:
         if contract.get("adapter_tree_sha256") is not None:
@@ -1530,6 +1647,33 @@ def _checked_merged_evaluation_provenance(
             raise ValueError(
                 f"evaluation shard {expected_index} code identity differs from its contract"
             )
+        if shard_summary.get("evaluation_plan") != evaluation_plan:
+            raise ValueError(
+                f"evaluation shard {expected_index} plan differs from its contract"
+            )
+        shard_plan_validation = shard_summary.get("plan_launch_validation")
+        if evaluation_plan is None:
+            if shard_plan_validation is not None:
+                raise ValueError(
+                    f"unplanned evaluation shard {expected_index} has plan metadata"
+                )
+        elif shard_plan_validation != {
+            "schema_version": 1,
+            "validation_kind": "opd_math_o_primary_plan_launch_validation_v1",
+            "phase": "shard",
+            "array_spec_source": "predeclared_OPD_MATH_EVAL_ARRAY_SPEC_v1",
+            "declared_array_spec": evaluation_plan["array_spec"],
+            "declared_slurm_array_argument": evaluation_plan[
+                "slurm_array_argument"
+            ],
+            "array_task_count": shard_count,
+            "array_task_min": 0,
+            "array_task_max": shard_count - 1,
+            "validated": True,
+        }:
+            raise ValueError(
+                f"planned evaluation shard {expected_index} lacks exact launch validation"
+            )
         shard_custody = shard_summary.get("custody")
         if not isinstance(shard_custody, dict) or shard_custody.get("stable") is not True:
             raise ValueError(
@@ -1561,6 +1705,13 @@ def _checked_merged_evaluation_provenance(
             ):
                 raise ValueError(
                     f"evaluation shard {expected_index} adapter {position} custody mismatch"
+                )
+            if evaluation_plan is not None and (
+                shard_custody.get(f"evaluation_plan_{position}")
+                != evaluation_plan
+            ):
+                raise ValueError(
+                    f"evaluation shard {expected_index} plan {position} custody mismatch"
                 )
             if environment_binding is not None:
                 if (
@@ -1675,6 +1826,11 @@ def _checked_merged_evaluation_provenance(
         "evaluation_merger_file_sha256": merger_hash,
         "evaluation_environment": environment_binding,
         "evaluation_post_promotion_custody": merged_companion,
+        **(
+            {}
+            if evaluation_plan is None
+            else {"evaluation_plan": evaluation_plan}
+        ),
     }
 
 
@@ -1708,6 +1864,7 @@ def checked_evaluation(
             "evaluation_merger_file_sha256": None,
             "evaluation_environment": None,
             "evaluation_post_promotion_custody": None,
+            "evaluation_plan": None,
         }
     elif schema_version == EVALUATION_SCHEMA_VERSION:
         evaluation_provenance = _checked_merged_evaluation_provenance(
@@ -1820,7 +1977,42 @@ def checked_evaluation(
     total_samples = sum(len(values) for values in grouped.values())
     if summary.get("samples") != total_samples:
         raise ValueError(f"summary sample count mismatch in {summary_path}")
-    accuracy = sum(sum(values) for values in grouped.values()) / total_samples
+    verifier_error_sample_keys = sorted(
+        (
+            {
+                "record_id": str(row.get("record_id")),
+                "sample_idx": int(row.get("sample_idx")),
+            }
+            for row in iter_jsonl(samples_path)
+            if row.get("reward_status") == "verifier_error_zeroed"
+        ),
+        key=lambda item: (item["record_id"], item["sample_idx"]),
+    )
+    verifier_error_samples = len(verifier_error_sample_keys)
+    verifier_error_fraction = verifier_error_samples / total_samples
+    if verifier_error_fraction > MAX_EVALUATION_VERIFIER_ERROR_FRACTION:
+        raise RuntimeError(
+            f"evaluation verifier-error fraction exceeds the registered cap in {summary_path}: "
+            f"observed={verifier_error_fraction}, "
+            f"maximum={MAX_EVALUATION_VERIFIER_ERROR_FRACTION}"
+        )
+    expected_verifier_fields = {
+        "verifier_error_policy": EVALUATION_VERIFIER_ERROR_POLICY,
+        "verifier_error_samples": verifier_error_samples,
+        "verifier_error_fraction": verifier_error_fraction,
+        "maximum_verifier_error_fraction": MAX_EVALUATION_VERIFIER_ERROR_FRACTION,
+    }
+    for field, expected in expected_verifier_fields.items():
+        actual = summary.get(field)
+        if isinstance(expected, float):
+            if not isinstance(actual, (int, float)) or not math.isclose(
+                float(actual), expected, rel_tol=0.0, abs_tol=1e-12
+            ):
+                raise ValueError(f"evaluation summary has invalid {field}: {summary_path}")
+        elif actual != expected:
+            raise ValueError(f"evaluation summary has invalid {field}: {summary_path}")
+    correct_samples = sum(sum(values) for values in grouped.values())
+    accuracy = correct_samples / total_samples
     try:
         reported_accuracy = float(summary["accuracy"])
     except (KeyError, TypeError, ValueError) as exc:
@@ -1830,6 +2022,24 @@ def checked_evaluation(
             f"summary accuracy mismatch in {summary_path}: "
             f"reported={reported_accuracy}, actual={accuracy}"
         )
+    expected_excluding_errors = (
+        correct_samples / (total_samples - verifier_error_samples)
+        if verifier_error_samples < total_samples
+        else None
+    )
+    expected_all_errors_correct = (correct_samples + verifier_error_samples) / total_samples
+    for field, expected in (
+        ("accuracy_excluding_verifier_errors", expected_excluding_errors),
+        ("accuracy_if_all_verifier_errors_correct", expected_all_errors_correct),
+    ):
+        actual = summary.get(field)
+        if expected is None:
+            if actual is not None:
+                raise ValueError(f"evaluation summary has invalid {field}: {summary_path}")
+        elif not isinstance(actual, (int, float)) or not math.isclose(
+            float(actual), expected, rel_tol=0.0, abs_tol=1e-12
+        ):
+            raise ValueError(f"evaluation summary has invalid {field}: {summary_path}")
     if not isinstance(summary.get("decoding"), dict) or not summary["decoding"]:
         raise ValueError(f"evaluation summary lacks a decoding contract: {summary_path}")
     required_decoding_fields = {
@@ -1859,6 +2069,11 @@ def checked_evaluation(
         "evaluator_file_sha256": evaluator_hash,
         "evaluation_packages": packages,
         "tokenizer_contract_sha256": tokenizer_hash,
+        "verifier_error_sample_keys": verifier_error_sample_keys,
+        "verifier_error_sample_keys_sha256": canonical_json_sha256(
+            verifier_error_sample_keys
+        ),
+        **expected_verifier_fields,
         **evaluation_provenance,
     }
     return summary, grouped, binding
@@ -1890,6 +2105,35 @@ def bootstrap_delta(
     low = samples[int(0.025 * (draws - 1))]
     high = samples[int(0.975 * (draws - 1))]
     return keys, delta, low, high
+
+
+def assign_verifier_error_rewards(
+    grouped: dict[str, list[float]],
+    binding: dict[str, Any],
+    value: float,
+) -> dict[str, list[float]]:
+    """Assign every bounded-unknown verifier reward to zero or one."""
+
+    if value not in {0.0, 1.0}:
+        raise ValueError("verifier-error sensitivity assignments must be binary")
+    assigned = {record_id: list(rewards) for record_id, rewards in grouped.items()}
+    keys = binding.get("verifier_error_sample_keys")
+    if not isinstance(keys, list):
+        raise ValueError("evaluation binding lacks verifier-error sample identities")
+    for item in keys:
+        if not isinstance(item, dict):
+            raise ValueError("evaluation verifier-error identity is malformed")
+        record_id = item.get("record_id")
+        sample_idx = item.get("sample_idx")
+        if (
+            not isinstance(record_id, str)
+            or record_id not in assigned
+            or not isinstance(sample_idx, int)
+            or not 0 <= sample_idx < len(assigned[record_id])
+        ):
+            raise ValueError("evaluation verifier-error identity is outside the reward surface")
+        assigned[record_id][sample_idx] = value
+    return assigned
 
 
 def _gate_strength(args: argparse.Namespace) -> str:
@@ -1948,6 +2192,87 @@ def _minimum_records(args: argparse.Namespace, scientific_default: int) -> int:
             f"scientific min_records cannot be lowered below {scientific_default}; use --smoke-gate"
         )
     return minimum
+
+
+def _require_o_teacher_gap_plan_pair(
+    *,
+    task_source: str,
+    base_binding: dict[str, Any],
+    trained_binding: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Require and independently reopen one base/trained plan on the full O task."""
+
+    if task_source != "O":
+        if base_binding.get("evaluation_plan") is not None or trained_binding.get(
+            "evaluation_plan"
+        ) is not None:
+            raise ValueError("O primary evaluation plans cannot authorize a non-O gate")
+        return None
+    task_path = Path(base_binding["task_file"])
+    task_rows = list(iter_jsonl(task_path))
+    complete = (
+        base_binding.get("records") == len(task_rows)
+        and trained_binding.get("records") == len(task_rows)
+    )
+    if not complete:
+        return None
+    base_plan = base_binding.get("evaluation_plan")
+    trained_plan = trained_binding.get("evaluation_plan")
+    if not isinstance(base_plan, dict) or not isinstance(trained_plan, dict):
+        raise ValueError(
+            "full O teacher-gap gate requires canonical base and trained plan bindings"
+        )
+    try:
+        from .plan_evaluation_shards import revalidate_plan_binding
+    except ImportError:
+        from plan_evaluation_shards import revalidate_plan_binding  # type: ignore
+    revalidate_plan_binding(base_plan)
+    revalidate_plan_binding(trained_plan)
+    if base_plan.get("arm") != "base" or trained_plan.get("arm") != "trained":
+        raise ValueError("O teacher-gap plan arms must be base then trained")
+    if base_plan.get("adapter") is not None or base_plan.get("adapter_tree_sha256") is not None:
+        raise ValueError("base O plan binding must not contain an adapter")
+    shared_fields = (
+        "plan",
+        "plan_file_sha256",
+        "plan_payload_sha256",
+        "plan_schema_version",
+        "plan_kind",
+        "source",
+        "role",
+        "model",
+        "model_revision",
+        "task_file",
+        "task_file_sha256",
+        "max_records",
+        "git_commit",
+        "train_freeze",
+        "train_freeze_sha256",
+        "array_spec",
+        "slurm_array_argument",
+        "array_geometry_sha256",
+        "shard_count",
+        "samples_per_problem",
+        "decoding",
+    )
+    mismatched = [
+        field for field in shared_fields if base_plan.get(field) != trained_plan.get(field)
+    ]
+    if mismatched:
+        raise ValueError(
+            "base and trained O evaluations do not share one exact plan: "
+            f"{mismatched}"
+        )
+    return {
+        "plan": base_plan["plan"],
+        "plan_file_sha256": base_plan["plan_file_sha256"],
+        "plan_payload_sha256": base_plan["plan_payload_sha256"],
+        "array_spec": base_plan["array_spec"],
+        "array_geometry_sha256": base_plan["array_geometry_sha256"],
+        "shard_count": base_plan["shard_count"],
+        "base_binding": base_plan,
+        "trained_binding": trained_plan,
+    }
 
 
 def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
@@ -2023,8 +2348,33 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
     ):
         if base_binding[field] != trained_binding[field]:
             raise ValueError(f"base and trained teacher evaluations differ in {field}")
+    evaluation_plan = _require_o_teacher_gap_plan_pair(
+        task_source=args.task_source,
+        base_binding=base_binding,
+        trained_binding=trained_binding,
+    )
 
     keys, delta, low, high = bootstrap_delta(base, trained, args.seed, args.bootstrap_draws)
+    pessimistic_base = assign_verifier_error_rewards(base, base_binding, 1.0)
+    pessimistic_trained = assign_verifier_error_rewards(
+        trained, trained_binding, 0.0
+    )
+    _, worst_case_delta, worst_case_low, worst_case_high = bootstrap_delta(
+        pessimistic_base,
+        pessimistic_trained,
+        args.seed,
+        args.bootstrap_draws,
+    )
+    optimistic_base = assign_verifier_error_rewards(base, base_binding, 0.0)
+    optimistic_trained = assign_verifier_error_rewards(
+        trained, trained_binding, 1.0
+    )
+    _, best_case_delta, best_case_low, best_case_high = bootstrap_delta(
+        optimistic_base,
+        optimistic_trained,
+        args.seed,
+        args.bootstrap_draws,
+    )
     prepared, prepared_binding = _prepared_role_binding(
         args.prepared_manifest,
         source=args.task_source,
@@ -2059,9 +2409,19 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
     record_requirement_met = len(keys) >= minimum_records
     strict_delta_met = delta > args.min_delta
     positive_ci_met = low > 0
-    passed = record_requirement_met and strict_delta_met and (
-        positive_ci_met if strength == "scientific" else True
+    worst_case_strict_delta_met = worst_case_delta > args.min_delta
+    worst_case_positive_ci_met = worst_case_low > 0
+    authorization_delta_met = (
+        worst_case_strict_delta_met if strength == "scientific" else strict_delta_met
     )
+    authorization_ci_met = (
+        worst_case_positive_ci_met if strength == "scientific" else positive_ci_met
+    )
+    passed = record_requirement_met and strict_delta_met and (
+        authorization_ci_met if strength == "scientific" else True
+    )
+    if strength == "scientific":
+        passed = passed and authorization_delta_met
     scientific_authorization = passed and strength == "scientific"
     gate_type = TEACHER_GATE_TYPE if strength == "scientific" else TEACHER_SMOKE_GATE_TYPE
     return {
@@ -2075,6 +2435,21 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
         "trained_accuracy": trained_accuracy,
         "paired_delta": delta,
         "bootstrap_95_ci": [low, high],
+        "verifier_uncertainty_sensitivity": {
+            "policy": "binary_worst_case_assignment_v1",
+            "base_error_samples": base_binding["verifier_error_samples"],
+            "trained_error_samples": trained_binding["verifier_error_samples"],
+            "worst_case_for_improvement": {
+                "assignment": "base_errors_correct_trained_errors_incorrect",
+                "paired_delta": worst_case_delta,
+                "bootstrap_95_ci": [worst_case_low, worst_case_high],
+            },
+            "best_case_for_improvement": {
+                "assignment": "base_errors_incorrect_trained_errors_correct",
+                "paired_delta": best_case_delta,
+                "bootstrap_95_ci": [best_case_low, best_case_high],
+            },
+        },
         "min_delta": args.min_delta,
         "min_records": minimum_records,
         "require_positive_ci": strength == "scientific",
@@ -2084,6 +2459,8 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
             "minimum_records_met": record_requirement_met,
             "strict_delta_met": strict_delta_met,
             "positive_bootstrap_lower_bound_met": positive_ci_met,
+            "worst_case_strict_delta_met": worst_case_strict_delta_met,
+            "worst_case_positive_bootstrap_lower_bound_met": worst_case_positive_ci_met,
         },
         "base_model": args.base_model,
         "base_model_revision": args.base_revision,
@@ -2141,6 +2518,11 @@ def teacher_gap(args: argparse.Namespace) -> dict[str, Any]:
         "evaluation_merger_file_sha256": base_binding[
             "evaluation_merger_file_sha256"
         ],
+        **(
+            {}
+            if evaluation_plan is None
+            else {"evaluation_plan": evaluation_plan}
+        ),
         **prepared_binding,
         **run_binding,
     }
@@ -2396,14 +2778,41 @@ def student_support(args: argparse.Namespace) -> dict[str, Any]:
     )
     rewards = [value for values in grouped.values() for value in values]
     mixed = sum(len(set(values)) > 1 for values in grouped.values())
+    error_indices_by_record: dict[str, set[int]] = defaultdict(set)
+    for item in binding["verifier_error_sample_keys"]:
+        error_indices_by_record[item["record_id"]].add(item["sample_idx"])
+    worst_case_mixed = sum(
+        len(
+            {
+                value
+                for sample_idx, value in enumerate(values)
+                if sample_idx not in error_indices_by_record.get(record_id, set())
+            }
+        )
+        > 1
+        for record_id, values in grouped.items()
+    )
     pass_at_k = sum(
         any(value > 0 for value in values) for values in grouped.values()
     ) / len(grouped)
     mixed_fraction = mixed / len(grouped)
+    worst_case_mixed_fraction = worst_case_mixed / len(grouped)
     record_requirement_met = len(grouped) >= minimum_records
     pass_at_k_met = pass_at_k >= args.min_pass_at_k
     mixed_fraction_met = mixed_fraction >= args.min_mixed_group_fraction
-    passed = record_requirement_met and pass_at_k_met and mixed_fraction_met
+    worst_case_mixed_fraction_met = (
+        worst_case_mixed_fraction >= args.min_mixed_group_fraction
+    )
+    authorization_mixed_fraction_met = (
+        worst_case_mixed_fraction_met
+        if strength == "scientific"
+        else mixed_fraction_met
+    )
+    passed = (
+        record_requirement_met
+        and pass_at_k_met
+        and authorization_mixed_fraction_met
+    )
     gate_type = STUDENT_GATE_TYPE if strength == "scientific" else STUDENT_SMOKE_GATE_TYPE
     return {
         "schema_version": SCHEMA_VERSION,
@@ -2416,6 +2825,15 @@ def student_support(args: argparse.Namespace) -> dict[str, Any]:
         "sample_accuracy": sum(rewards) / len(rewards),
         "pass_at_k": pass_at_k,
         "mixed_reward_group_fraction": mixed_fraction,
+        "worst_case_mixed_reward_group_fraction": worst_case_mixed_fraction,
+        "verifier_uncertainty_sensitivity": {
+            "policy": "remove_error_induced_mixedness_v1",
+            "error_samples": binding["verifier_error_samples"],
+            "error_sample_keys_sha256": binding[
+                "verifier_error_sample_keys_sha256"
+            ],
+            "pass_at_k_is_already_lower_bound": True,
+        },
         "min_pass_at_k": args.min_pass_at_k,
         "min_mixed_group_fraction": args.min_mixed_group_fraction,
         "min_records": minimum_records,
@@ -2423,6 +2841,7 @@ def student_support(args: argparse.Namespace) -> dict[str, Any]:
             "minimum_records_met": record_requirement_met,
             "minimum_pass_at_k_met": pass_at_k_met,
             "minimum_mixed_group_fraction_met": mixed_fraction_met,
+            "worst_case_minimum_mixed_group_fraction_met": worst_case_mixed_fraction_met,
         },
         "student_model": args.student_model,
         "student_model_revision": args.student_revision,

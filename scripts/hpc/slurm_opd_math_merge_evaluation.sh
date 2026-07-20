@@ -17,6 +17,10 @@ set -euo pipefail
 : "${OPD_MATH_DATA_ROOT:?Set the exact reviewed canonical data root}"
 
 case "$OPD_MATH_EVAL_SOURCE" in M|O) ;; *) echo "invalid OPD_MATH_EVAL_SOURCE" >&2; exit 2 ;; esac
+[[ "$OPD_MATH_EVAL_MAX_RECORDS" =~ ^(0|[1-9][0-9]*)$ ]] || {
+  echo "OPD_MATH_EVAL_MAX_RECORDS must be a canonical nonnegative integer" >&2
+  exit 2
+}
 case "$OPD_MATH_EVAL_ROLE" in
   teacher_skill_dev|target_gap_dev) TASK_REL="roles/$OPD_MATH_EVAL_SOURCE/teacher_gap_dev.jsonl" ;;
   student_support) TASK_REL="roles/$OPD_MATH_EVAL_SOURCE/student_opd.jsonl" ;;
@@ -27,6 +31,21 @@ case "$OPD_MATH_EVAL_ROLE" in
     ;;
   *) echo "invalid OPD_MATH_EVAL_ROLE" >&2; exit 2 ;;
 esac
+if [[ "$OPD_MATH_EVAL_ROLE" == student_support || "$OPD_MATH_EVAL_ROLE" == source_holdout ]]; then
+  EVAL_TEMPERATURE="${OPD_MATH_EVAL_TEMPERATURE:-1.0}"
+  EVAL_TOP_P="${OPD_MATH_EVAL_TOP_P:-1.0}"
+  EVAL_TOP_K="${OPD_MATH_EVAL_TOP_K:-0}"
+  EVAL_MAX_NEW_TOKENS="${OPD_MATH_EVAL_MAX_NEW_TOKENS:-512}"
+else
+  EVAL_TEMPERATURE="${OPD_MATH_EVAL_TEMPERATURE:-0.7}"
+  EVAL_TOP_P="${OPD_MATH_EVAL_TOP_P:-0.8}"
+  EVAL_TOP_K="${OPD_MATH_EVAL_TOP_K:-20}"
+  EVAL_MAX_NEW_TOKENS="${OPD_MATH_EVAL_MAX_NEW_TOKENS:-1024}"
+fi
+EVAL_SAMPLES_PER_PROBLEM="${OPD_MATH_EVAL_SAMPLES_PER_PROBLEM:-4}"
+EVAL_SEED="${OPD_MATH_SEED:-0}"
+[[ "$EVAL_SAMPLES_PER_PROBLEM" =~ ^[1-9][0-9]*$ ]] || { echo "evaluation samples per problem must be a canonical positive integer" >&2; exit 2; }
+[[ "$EVAL_SEED" =~ ^(0|[1-9][0-9]*)$ ]] || { echo "evaluation seed must be a canonical nonnegative integer" >&2; exit 2; }
 [[ "$OPD_MATH_EVAL_LABEL" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "unsafe OPD_MATH_EVAL_LABEL" >&2; exit 2; }
 [[ "$OPD_MATH_EVAL_RUN_ID" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "unsafe OPD_MATH_EVAL_RUN_ID" >&2; exit 2; }
 [[ "$OPD_MATH_EVAL_SHARDS" =~ ^[1-9][0-9]*$ ]] || { echo "OPD_MATH_EVAL_SHARDS must be positive" >&2; exit 2; }
@@ -58,9 +77,16 @@ echo "Environment verifier SHA-256: $VERIFY_SHA"
 test -f "$TRAIN_FREEZE"
 test -d "$SHARD_ROOT"
 test -f "$TASK"
-if [[ "$OPD_MATH_EVAL_SOURCE" == O && "$OPD_MATH_EVAL_ROLE" == teacher_skill_dev && "$OPD_MATH_EVAL_MAX_RECORDS" == 0 ]]; then
+TASK_RECORDS="$(wc -l < "$TASK" | tr -d '[:space:]')"
+[[ "$TASK_RECORDS" =~ ^[1-9][0-9]*$ ]] || { echo "evaluation task must be nonempty newline-terminated JSONL" >&2; exit 2; }
+FULL_O_GAP=0
+if [[ "$OPD_MATH_EVAL_SOURCE" == O && "$TASK_REL" == roles/O/teacher_gap_dev.jsonl ]] && (( OPD_MATH_EVAL_MAX_RECORDS == 0 || OPD_MATH_EVAL_MAX_RECORDS >= TASK_RECORDS )); then
+  FULL_O_GAP=1
+fi
+if (( FULL_O_GAP == 1 )); then
   : "${OPD_MATH_EVAL_SHARD_PLAN:?Full O teacher merge requires the immutable shard plan}"
   : "${OPD_MATH_EVAL_PLAN_ARM:?Set base or trained for the full O plan}"
+  : "${OPD_MATH_EVAL_ARRAY_SPEC:?Set the literal planned Slurm array specification}"
   : "${OPD_MATH_EVAL_MODEL:?Full O teacher merge requires the planned model}"
   : "${OPD_MATH_EVAL_MODEL_REVISION:?Full O teacher merge requires the planned revision}"
   PLAN_ADAPTER_ARGS=()
@@ -80,9 +106,16 @@ if [[ "$OPD_MATH_EVAL_SOURCE" == O && "$OPD_MATH_EVAL_ROLE" == teacher_skill_dev
     --shard-count "$OPD_MATH_EVAL_SHARDS" \
     --git-commit "$COMMIT" \
     --train-freeze "$TRAIN_FREEZE" \
+    --array-spec "$OPD_MATH_EVAL_ARRAY_SPEC" \
+    --samples-per-problem "$EVAL_SAMPLES_PER_PROBLEM" \
+    --temperature "$EVAL_TEMPERATURE" \
+    --top-p "$EVAL_TOP_P" \
+    --top-k "$EVAL_TOP_K" \
+    --max-new-tokens "$EVAL_MAX_NEW_TOKENS" \
+    --seed "$EVAL_SEED" \
     "${PLAN_ADAPTER_ARGS[@]}"
-elif [[ -n "${OPD_MATH_EVAL_SHARD_PLAN:-}" || -n "${OPD_MATH_EVAL_PLAN_ARM:-}" ]]; then
-  echo "O shard plans may only be supplied to the full O teacher_skill_dev merge" >&2
+elif [[ -n "${OPD_MATH_EVAL_SHARD_PLAN:-}" || -n "${OPD_MATH_EVAL_PLAN_ARM:-}" || -n "${OPD_MATH_EVAL_ARRAY_SPEC:-}" ]]; then
+  echo "O shard plans may only be supplied to the full O teacher-gap merge" >&2
   exit 2
 fi
 source "$ENV_DIR/bin/activate"
@@ -92,13 +125,28 @@ echo "Verifying live train environment before evaluation merge"
   --commit-freeze "$TRAIN_FREEZE" \
   --expected-commit "$COMMIT" \
   --freeze-kind train
-"$ENV_DIR/bin/python" "$REPO/scripts/opd_math/merge_evaluations.py" \
+MERGE_ARGS=(
   --shard-root "$SHARD_ROOT" \
   --shard-count "$OPD_MATH_EVAL_SHARDS" \
   --task-file "$TASK" \
   --output-dir "$OUT" \
   --train-environment-root "$ENV_DIR" \
   --train-environment-freeze "$TRAIN_FREEZE"
+)
+if (( FULL_O_GAP == 1 )); then
+  MERGE_ARGS+=(
+    --shard-plan "$OPD_MATH_EVAL_SHARD_PLAN"
+    --plan-arm "$OPD_MATH_EVAL_PLAN_ARM"
+    --array-spec "$OPD_MATH_EVAL_ARRAY_SPEC"
+    --samples-per-problem "$EVAL_SAMPLES_PER_PROBLEM"
+    --temperature "$EVAL_TEMPERATURE"
+    --top-p "$EVAL_TOP_P"
+    --top-k "$EVAL_TOP_K"
+    --max-new-tokens "$EVAL_MAX_NEW_TOKENS"
+    --seed "$EVAL_SEED"
+  )
+fi
+"$ENV_DIR/bin/python" "$REPO/scripts/opd_math/merge_evaluations.py" "${MERGE_ARGS[@]}"
 test -f "$OUT/summary.json"
 test -f "$OUT/samples.jsonl"
 test -f "$OUT.custody.json"
