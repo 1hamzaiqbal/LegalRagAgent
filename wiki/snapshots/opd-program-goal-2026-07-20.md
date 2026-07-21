@@ -99,9 +99,14 @@ coverage, and Level-3 objective-by-source diagnostics remain. The DeepMath plan,
 raw-byte/schema verifier, and restartable EIT intake are implemented. Job
 `108481` verified all ten pinned Parquet shards (`2,136,106,260` bytes,
 `103,022` rows); an independent reopen reproduced the exact manifest hash.
-The full collision/label audit, tokenizer surface, and raw-model feasibility
-runs remain incomplete. No new scientific student arm, C teacher, or C OPD arm
-has launched.
+Inventory job `108510` then exposed an empty `problem` in the pinned NuminaMath
+lineage source after sealing C and O. It is preserved as a failed data-contract
+attempt in [[deepmath-inventory-failure-2026-07-20]]. The successor inventory
+retains all upstream rows with an explicit `problem_missing` flag and gives
+candidate C a zero-missing-prompt gate; it must use a new root and new plan
+hash. The full collision/label audit, tokenizer surface, and raw-model
+feasibility runs remain incomplete. No new scientific student arm, C teacher,
+or C OPD arm has launched.
 
 ## Links
 

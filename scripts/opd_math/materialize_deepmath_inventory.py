@@ -43,6 +43,7 @@ EXPECTED_OUTPUT_COLUMNS = (
     "source_split",
     "source_index",
     "problem",
+    "problem_missing",
     "answer",
     "stratum",
     "is_evaluation",
@@ -180,6 +181,7 @@ def _output_schema():
             ("source_split", pa.string()),
             ("source_index", pa.int64()),
             ("problem", pa.large_string()),
+            ("problem_missing", pa.bool_()),
             ("answer", pa.large_string()),
             ("stratum", pa.string()),
             ("is_evaluation", pa.bool_()),
@@ -207,8 +209,14 @@ def _stable_string(value: Any, *, allow_empty: bool = True) -> str:
     return result
 
 
-def _normalized_row(spec: Mapping[str, Any], row: Mapping[str, Any], index: int) -> tuple[dict, bool]:
-    problem = _stable_string(row.get(spec["problem_field"]), allow_empty=False)
+def _normalized_row(
+    spec: Mapping[str, Any], row: Mapping[str, Any], index: int
+) -> tuple[dict, bool, bool]:
+    # Preserve every upstream row.  Missing prompts are explicit data-quality
+    # facts for the qualification audit; ingestion must never silently drop
+    # them or synthesize a prompt.
+    problem = _stable_string(row.get(spec["problem_field"]))
+    problem_missing = not bool(problem)
     answer_missing = False
     if spec["loader"] == "huggingface_datasets_math_solution_answer":
         solution = _stable_string(row.get(spec["answer_field"]), allow_empty=False)
@@ -234,6 +242,7 @@ def _normalized_row(spec: Mapping[str, Any], row: Mapping[str, Any], index: int)
             "source_split": source_split,
             "source_index": index,
             "problem": problem,
+            "problem_missing": problem_missing,
             "answer": answer,
             "stratum": stratum,
             "is_evaluation": bool(spec["is_evaluation"]),
@@ -242,6 +251,7 @@ def _normalized_row(spec: Mapping[str, Any], row: Mapping[str, Any], index: int)
             "format_problem_sha256": format_hash,
         },
         answer_missing,
+        problem_missing,
     )
 
 
@@ -370,13 +380,15 @@ def _write_source(
     writer = pq.ParquetWriter(temporary, _output_schema(), compression="zstd")
     rows = 0
     missing_answers = 0
+    missing_problems = 0
     try:
         for raw_batch in batches:
             normalized = []
             for raw in raw_batch:
-                item, missing = _normalized_row(spec, raw, rows)
+                item, missing_answer, missing_problem = _normalized_row(spec, raw, rows)
                 normalized.append(item)
-                missing_answers += int(missing)
+                missing_answers += int(missing_answer)
+                missing_problems += int(missing_problem)
                 rows += 1
             if normalized:
                 writer.write_table(pa.Table.from_pylist(normalized, schema=_output_schema()))
@@ -388,6 +400,7 @@ def _write_source(
     return _verify_output(output, spec), {
         "input_rows": rows,
         "empty_or_unparsed_answers": missing_answers,
+        "empty_problems": missing_problems,
     }
 
 

@@ -19,6 +19,7 @@ def record(source, index, problem, answer, *, evaluation=False):
         source_split="train",
         source_index=index,
         problem=problem,
+        problem_missing=not bool(problem.strip()),
         answer=answer,
         stratum="",
         is_evaluation=evaluation,
@@ -46,6 +47,7 @@ def test_collision_audit_plan_is_fail_closed_and_hash_bound():
         lambda payload: payload["semantic"].update(max_bucket_size=1),
         lambda payload: payload["semantic"].update(allow_skipped_bucket_events=True),
         lambda payload: payload["candidate_gates"].update(max_prompt_tokens=4096),
+        lambda payload: payload["candidate_gates"].update(maximum_missing_candidate_problems=1),
     ],
 )
 def test_collision_audit_plan_mutations_fail_closed(tmp_path, mutation):
@@ -94,3 +96,12 @@ def test_candidate_clusters_quarantine_cross_source_eval_and_label_conflicts():
     assert len(conflicts) == 1
     assert conflicts[0]["resolution"] == "candidate_C_cluster_quarantined"
     assert stats["unresolved_label_conflicts"] == 0
+
+
+def test_missing_candidate_problem_is_quarantined():
+    records = [record("C", 0, "", "2")]
+    union, _, _ = exact_format_edges(records)
+    eligible, quarantine, _, stats = _cluster_candidate_rows(records, union)
+    assert eligible == []
+    assert quarantine[0]["reason"] == "missing_problem"
+    assert stats["quarantine_rows_by_reason"] == {"missing_problem": 1}

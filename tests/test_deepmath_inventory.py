@@ -61,8 +61,9 @@ def test_candidate_normalization_omits_forbidden_traces_and_hashes_problem():
         "r1_solution_2": "forbidden",
         "r1_solution_3": "forbidden",
     }
-    row, missing = _normalized_row(spec, raw, 7)
-    assert missing is False
+    row, missing_answer, missing_problem = _normalized_row(spec, raw, 7)
+    assert missing_answer is False
+    assert missing_problem is False
     assert tuple(row) == EXPECTED_OUTPUT_COLUMNS
     assert row["problem"] == "Find  $x$."
     assert row["answer"] == "2"
@@ -72,7 +73,7 @@ def test_candidate_normalization_omits_forbidden_traces_and_hashes_problem():
 
 def test_math_solution_answer_extraction_is_explicit():
     spec = load_inventory_plan(DEFAULT_PLAN)["sources"][3]
-    row, missing = _normalized_row(
+    row, missing_answer, missing_problem = _normalized_row(
         spec,
         {
             "problem": "What is 1+1?",
@@ -82,10 +83,11 @@ def test_math_solution_answer_extraction_is_explicit():
         },
         0,
     )
-    assert missing is False
+    assert missing_answer is False
+    assert missing_problem is False
     assert row["answer"] == "2"
 
-    _, missing = _normalized_row(
+    _, missing_answer, missing_problem = _normalized_row(
         spec,
         {
             "problem": "Prove the claim.",
@@ -95,4 +97,23 @@ def test_math_solution_answer_extraction_is_explicit():
         },
         1,
     )
-    assert missing is True
+    assert missing_answer is True
+    assert missing_problem is False
+
+
+def test_empty_problem_is_preserved_and_flagged_for_audit():
+    spec = load_inventory_plan(DEFAULT_PLAN)["sources"][2]
+    row, missing_answer, missing_problem = _normalized_row(
+        spec,
+        {
+            "problem": "  ",
+            "answer": "2",
+            "problem_type": "unknown",
+            "source": "lineage",
+        },
+        11,
+    )
+    assert row["problem"] == ""
+    assert row["problem_missing"] is True
+    assert missing_problem is True
+    assert missing_answer is False

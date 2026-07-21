@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "stage": "deepmath_global_inventory_terminal_attempt",
+  "status": "failed_before_manifest",
+  "slurm_job_id": "108510",
+  "git_commit": "7cb4ed7d8fcd9ed3fb998327e678a68e8ad9eb43",
+  "inventory_plan_sha256": "23b1246099c45361015bae9dc438faccd2e24aca6a7899a0c280110ea2061bdd",
+  "qualification_plan_sha256": "b4e5aeb26024f9fc34bd647c1eba7c9b52b97da7957f25519f9c79ff4476e6df",
+  "state": "FAILED",
+  "exit_code": "1:0",
+  "elapsed": "00:03:27",
+  "max_rss_kb": 11077932,
+  "failure_class": "outcome_blind_source_data_contract",
+  "failure": "AI-MO/NuminaMath-1.5 contains an empty problem value; ingestion rejected the row instead of dropping or synthesizing it",
+  "sealed_outputs": {
+    "C": {
+      "rows": 103022,
+      "parquet_sha256": "54e3f369f7e3f8d367358816d5c587dde7e4aa38096bfccab50f3e3561d888cf",
+      "receipt_sha256": "e87e684de1fdb1ccc0fe36e8f369ed3423bd0d07f0d00890cb53e67d2585e5e8"
+    },
+    "O": {
+      "rows": 225129,
+      "parquet_sha256": "cc872cde0dd4e9ce1193376581b441bbe8689fee0b899d3a503dc2a4434377e7",
+      "receipt_sha256": "1912556575f1f5e27b83aead3be45cd67c5a0eef8c9b4bff82bbaa65ada8be87"
+    }
+  },
+  "partial_output": {
+    "source_key": "O_lineage",
+    "bytes": 64142612,
+    "sha256": "42056a7eed468f89232962360a6857fe61ceaa998b171528f249e0926a1a5a56"
+  },
+  "stdout_sha256": "78dc5d046fff1ff8266ab9ff933ecc2d82888c1a7187d17c1aa4af72614f7ac8",
+  "persistent_root": "/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/deepmath_inventory_v1",
+  "training_ran": false,
+  "teacher_training_authorized": false,
+  "scientific_use_allowed": false,
+  "successor_rule": "preserve this root; successor schema retains missing problems explicitly and uses a new immutable output root"
+}

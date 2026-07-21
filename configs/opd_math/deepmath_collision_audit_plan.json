@@ -7,7 +7,7 @@
   "teacher_training_authorized": false,
   "scientific_use_allowed": false,
   "qualification_plan_sha256": "b4e5aeb26024f9fc34bd647c1eba7c9b52b97da7957f25519f9c79ff4476e6df",
-  "inventory_plan_sha256": "23b1246099c45361015bae9dc438faccd2e24aca6a7899a0c280110ea2061bdd",
+  "inventory_plan_sha256": "d5afea04eefc45d69ae5d08ea50191e3088d86578673da31fcbcb1ec9cdfcd8c",
   "record_scope": "all_1237750_materialized_rows",
   "pair_scope": "all_source_pairs_global_document_frequency",
   "exact_and_format": {
@@ -32,6 +32,7 @@
   "candidate_gates": {
     "minimum_unique_eligible_clusters": 5000,
     "minimum_gold_parseability": 0.99,
+    "maximum_missing_candidate_problems": 0,
     "maximum_unresolved_label_conflicts": 0,
     "maximum_prompt_truncations": 0,
     "max_prompt_tokens": 1536,

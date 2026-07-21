@@ -74,6 +74,7 @@ class AuditRecord:
     source_split: str
     source_index: int
     problem: str
+    problem_missing: bool
     answer: str
     stratum: str
     is_evaluation: bool
@@ -147,6 +148,7 @@ def load_audit_plan(path: Path = DEFAULT_AUDIT_PLAN) -> dict[str, Any]:
     _require(gates == {
         "minimum_unique_eligible_clusters": 5000,
         "minimum_gold_parseability": 0.99,
+        "maximum_missing_candidate_problems": 0,
         "maximum_unresolved_label_conflicts": 0,
         "maximum_prompt_truncations": 0,
         "max_prompt_tokens": 1536,
@@ -247,6 +249,7 @@ def load_records(
                 source_split=str(row["source_split"]),
                 source_index=int(row["source_index"]),
                 problem=str(row["problem"]),
+                problem_missing=bool(row["problem_missing"]),
                 answer=str(row["answer"]),
                 stratum=str(row["stratum"]),
                 is_evaluation=bool(row["is_evaluation"]),
@@ -256,6 +259,8 @@ def load_records(
             )
             if record.source != spec["source"] or record.source_split != spec["split"]:
                 raise ValueError(f"materialized inventory source identity drifted: {record.record_id}")
+            if record.problem_missing != (not bool(record.problem.strip())):
+                raise ValueError(f"materialized missing-problem flag drifted: {record.record_id}")
             if record.exact_key != sha256_text(normalize_problem(record.problem)):
                 raise ValueError(f"materialized canonical hash drifted: {record.record_id}")
             records.append(record)
@@ -432,6 +437,9 @@ def _cluster_candidate_rows(
             normalize_problem(record.answer) for record in members if record.answer.strip()
         }
         label_conflict = len(normalized_answers) > 1
+        candidate_missing_problem = any(
+            record.source == "C" and record.problem_missing for record in members
+        )
         if label_conflict:
             label_conflicts.append(
                 {
@@ -442,7 +450,9 @@ def _cluster_candidate_rows(
                     "resolution": "candidate_C_cluster_quarantined",
                 }
             )
-        if evaluation_touch:
+        if candidate_missing_problem:
+            reason = "missing_problem"
+        elif evaluation_touch:
             reason = "touches_evaluation"
         elif any(source != "C" for source in sources):
             reason = "cross_source_collision"
@@ -501,6 +511,7 @@ def _candidate_output_row(record: AuditRecord) -> dict[str, Any]:
         "source_split": record.source_split,
         "source_index": record.source_index,
         "problem": record.problem,
+        "problem_missing": record.problem_missing,
         "answer": record.answer,
         "stratum": record.stratum,
         "is_evaluation": record.is_evaluation,
@@ -584,6 +595,10 @@ def scan(
     git = _git_state()
 
     records, source_counts = load_records(inventory_plan, inventory_manifest)
+    missing_problems_by_source: dict[str, int] = defaultdict(int)
+    for record in records:
+        missing_problems_by_source[record.source] += int(record.problem_missing)
+    candidate_missing_problems = missing_problems_by_source.get("C", 0)
     parseability, parse_failures = candidate_parseability(records)
     prompt_surface, prompt_truncations = candidate_prompt_surface(
         records, audit_plan["candidate_gates"], local_files_only=local_files_only
@@ -649,6 +664,8 @@ def scan(
         blockers.append("eligible unique C clusters below minimum")
     if parseability["parseable_fraction"] < gates["minimum_gold_parseability"]:
         blockers.append("C gold parseability below minimum")
+    if candidate_missing_problems > gates["maximum_missing_candidate_problems"]:
+        blockers.append("C missing problems exceed maximum")
     if cluster_stats["unresolved_label_conflicts"] > gates["maximum_unresolved_label_conflicts"]:
         blockers.append("unresolved C label conflicts exceed maximum")
     if prompt_surface["prompt_truncations"] > gates["maximum_prompt_truncations"]:
@@ -672,6 +689,10 @@ def scan(
         "inventory_manifest_path": inventory_manifest["path"],
         "inventory_manifest_sha256": inventory_manifest["sha256"],
         "source_counts": source_counts,
+        "problem_quality": {
+            "missing_problems_by_source": dict(sorted(missing_problems_by_source.items())),
+            "missing_candidate_problems": candidate_missing_problems,
+        },
         "total_rows": len(records),
         "deterministic_collision_counts": deterministic_counts,
         "semantic": semantic_stats,

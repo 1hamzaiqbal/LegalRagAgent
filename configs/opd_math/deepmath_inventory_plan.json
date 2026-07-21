@@ -14,6 +14,7 @@
     "source_split",
     "source_index",
     "problem",
+    "problem_missing",
     "answer",
     "stratum",
     "is_evaluation",

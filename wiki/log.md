@@ -607,3 +607,13 @@ four shards violate the 18-hour safety cap under predecessor job `107462`.
 Primary student outputs now use stable preregistered run IDs. The post-selection
 but pre-student-arm preregistration pins the stable O teacher, both support
 gates, all four paths, and a fail-closed read-only/checksummed result bundle.
+
+## [2026-07-20] DeepMath inventory 108510 fails closed on empty lineage prompt
+
+Global inventory job `108510` sealed C and O, then stopped before its manifest
+because the pinned NuminaMath lineage contains an empty `problem`. No row was
+dropped or repaired and no training ran. The failed root, partial Parquet,
+stdout, hashes, and receipts are preserved. The successor materialization
+schema records `problem_missing` explicitly, applies a zero-missing gate to C,
+and requires a new immutable root and plan hash. See
+[[deepmath-inventory-failure-2026-07-20]].
