@@ -10,6 +10,7 @@ TEACHER_TRAIN = ROOT / "scripts" / "hpc" / "slurm_opd_math_teacher_train.sh"
 TEACHER_SMOKE = ROOT / "scripts" / "hpc" / "slurm_opd_math_teacher_smoke.sh"
 STUDENT_RESULTS = ROOT / "scripts" / "hpc" / "slurm_opd_math_student_results.sh"
 STUDENT_TRAIN = ROOT / "scripts" / "hpc" / "slurm_opd_math_student_train.sh"
+DEEPMATH_DOWNLOAD = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_download.sh"
 
 
 def test_touched_evaluation_and_teacher_wrappers_have_valid_bash_syntax():
@@ -24,9 +25,24 @@ def test_touched_evaluation_and_teacher_wrappers_have_valid_bash_syntax():
             str(TEACHER_SMOKE),
             str(STUDENT_RESULTS),
             str(STUDENT_TRAIN),
+            str(DEEPMATH_DOWNLOAD),
         ],
         check=True,
     )
+
+
+def test_deepmath_download_is_revision_pinned_restartable_and_non_authorizing():
+    script = DEEPMATH_DOWNLOAD.read_text()
+    assert "#SBATCH --partition=general-cpu" in script
+    assert "deepmath_qualification_plan.json" in script
+    assert "5cf055d1fe3d7a2eb19719ac020211469736ae44" in script
+    assert 'test -z "$(git -C "$REPO" status --porcelain=v1)"' in script
+    assert "--continue-at -" in script
+    assert 'sha256sum "$partial"' in script
+    assert 'mv "$partial" "$target"' in script
+    assert "verify-raw" in script
+    assert '"teacher_training_authorized": False' in script
+    assert '"scientific_use_allowed": False' in script
 
 
 def test_array_wrapper_keeps_global_budget_and_stable_shard_identity():

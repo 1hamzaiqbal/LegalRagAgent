@@ -67,6 +67,7 @@ OPD_MATH_REQUIRED = (
     "scripts/hpc/setup_opd_math_env.sh",
     "scripts/hpc/setup_opd_math_serve_env.sh",
     "scripts/hpc/slurm_opd_math_cache_models.sh",
+    "scripts/hpc/slurm_opd_math_deepmath_download.sh",
     "scripts/hpc/slurm_opd_math_env_preflight.sh",
     "scripts/hpc/slurm_opd_math_serve_preflight.sh",
 )
