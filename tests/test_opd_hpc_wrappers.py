@@ -10,6 +10,14 @@ TEACHER_TRAIN = ROOT / "scripts" / "hpc" / "slurm_opd_math_teacher_train.sh"
 TEACHER_SMOKE = ROOT / "scripts" / "hpc" / "slurm_opd_math_teacher_smoke.sh"
 STUDENT_RESULTS = ROOT / "scripts" / "hpc" / "slurm_opd_math_student_results.sh"
 STUDENT_TRAIN = ROOT / "scripts" / "hpc" / "slurm_opd_math_student_train.sh"
+OBJECTIVE_FAMILY_TRAIN = (
+    ROOT / "scripts" / "hpc" / "slurm_opd_math_objective_family_train.sh"
+)
+OBJECTIVE_FAMILY_VERL = (
+    ROOT / "scripts" / "hpc" / "slurm_opd_math_objective_family_verl.sh"
+)
+VERL_SETUP = ROOT / "scripts" / "hpc" / "setup_opd_math_verl_env.sh"
+VERL_PREFLIGHT = ROOT / "scripts" / "hpc" / "slurm_opd_math_verl_preflight.sh"
 DEEPMATH_DOWNLOAD = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_download.sh"
 DEEPMATH_INVENTORY = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_inventory.sh"
 DEEPMATH_AUDIT = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_audit.sh"
@@ -28,6 +36,10 @@ def test_touched_evaluation_and_teacher_wrappers_have_valid_bash_syntax():
             str(TEACHER_SMOKE),
             str(STUDENT_RESULTS),
             str(STUDENT_TRAIN),
+            str(OBJECTIVE_FAMILY_TRAIN),
+            str(OBJECTIVE_FAMILY_VERL),
+            str(VERL_SETUP),
+            str(VERL_PREFLIGHT),
             str(DEEPMATH_DOWNLOAD),
             str(DEEPMATH_INVENTORY),
             str(DEEPMATH_AUDIT),
@@ -170,11 +182,59 @@ def test_scientific_wrappers_require_an_explicit_canonical_data_root():
         "slurm_opd_math_teacher_train.sh",
         "slurm_opd_math_student_train.sh",
         "slurm_opd_math_student_results.sh",
+        "slurm_opd_math_objective_family_train.sh",
     )
     for name in names:
         script = (ROOT / "scripts" / "hpc" / name).read_text()
         assert "${OPD_MATH_DATA_ROOT:?" in script
         assert "data/legalrag/opd_math/v1}" not in script
+
+
+def test_objective_family_wrapper_is_fixed_to_o_teacher_and_exact_inputs():
+    script = OBJECTIVE_FAMILY_TRAIN.read_text()
+    assert "OPD_MATH_CAMPAIGN_KIND:?Set diagnostic or scientific" in script
+    assert "one-step fidelity diagnostics use seed 0 only" in script
+    assert "k1_verl_upstream_clip10" in script
+    assert "upstream veRL has a separate pinned launcher" in script
+    assert "--objective-family-prompt-plan" in script
+    assert "--objective-family-initialization-manifest" in script
+    assert "--objective-family-launcher" in script
+    assert 'STEPS=1' in script and 'STEPS=100' in script
+    assert "Teacher-scored objective requires passing O checkpoint" in script
+    assert "OPD_MATH_TEACHER_SOURCE" not in script
+    assert "M_M" not in script and "M_O" not in script
+    assert 'objective_family_preregistration.py" prelaunch' not in script
+    assert '"$PREREG_TOOL" prelaunch' in script
+
+
+def test_upstream_verl_wrapper_binds_and_reverifies_exact_environment():
+    script = OBJECTIVE_FAMILY_VERL.read_text()
+    marker = '"${COMMAND[@]}" >"$RUN_LOG" 2>&1'
+    assert 'FREEZE="$RUN_ROOT/environment_freezes/$COMMIT/upstream_verl.freeze.txt"' in script
+    assert script.count('"$VERL_ENV/bin/python" "$VERIFY_ENVIRONMENT"') == 2
+    assert script.count("--freeze-kind upstream_verl") == 2
+    assert script.index("--freeze-kind upstream_verl") < script.index(marker)
+    assert script.rindex("--freeze-kind upstream_verl") > script.index(marker)
+
+
+def test_upstream_verl_environment_setup_is_fresh_pinned_and_exactly_frozen():
+    script = VERL_SETUP.read_text()
+    assert 'PINNED_VERL_COMMIT="6a6242f3d8ec7d9f8b4936f4905144707d91fe3b"' in script
+    assert '"vllm==0.12.0"' in script
+    assert '"$VERL"' in script
+    assert "Refusing to alter existing pinned-veRL environment" in script
+    assert 'upstream_verl.freeze.txt' in script
+    assert "importlib.metadata" in script
+    assert "--freeze-kind upstream_verl" in script
+
+
+def test_upstream_verl_gpu_preflight_requires_two_gpus_and_cached_student():
+    script = VERL_PREFLIGHT.read_text()
+    assert "#SBATCH --gpus=a100-sxm4:2" in script
+    assert "torch.cuda.device_count() != 2" in script
+    assert 'revision="70d244cc86ccca08cf5af4e1e306ecf908b1ad5e"' in script
+    assert "local_files_only=True" in script
+    assert "--freeze-kind upstream_verl" in script
 
 
 def test_student_result_wrapper_exposes_o_teacher_four_arm_readout():

@@ -10,11 +10,13 @@ status: verifier-recovery substrate; expanded objective-family campaign in desig
 # OPD math source transfer
 
 > [!NOTE]
-> The strict O-only recovery remains the prerequisite, but its four-arm student
-> comparison did not launch. The active successor design is
-> [[opd-objective-family-expansion-2026-07-20]], which separates task RL,
-> ungated, unclipped, gated, bare, and pinned-veRL K1 objectives in a new
-> artifact namespace.
+> The active campaign is now the O-teacher 6-objective x 2-student-source x
+> 3-seed comparison in
+> [[opd-objective-family-implementation-freeze-2026-07-20]]. `M` remains a
+> student/evaluation distribution only; the failed M teacher, `M_M`, and `M_O`
+> are permanently excluded. DeepMath is terminally unqualified, so no C or
+> O/C campaign launches under this boundary. The older symmetric source-transfer
+> design below is retained as provenance, not as current launch authority.
 
 ## Research question
 

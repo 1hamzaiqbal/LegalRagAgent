@@ -397,6 +397,7 @@ def test_objective_family_training_plan_binds_common_recipe_and_registry_fields(
         temperature=1.0,
         top_k=0,
         top_p=1.0,
+        objective_family_diagnostic=False,
     )
     bind_registered_objective(args)
     contract = validate_student_training_plan_contract(args)
@@ -406,5 +407,15 @@ def test_objective_family_training_plan_binds_common_recipe_and_registry_fields(
     assert contract["scientific_launch_authorized"] is False
 
     args.seed = 3
+    with pytest.raises(ValueError, match="seed"):
+        validate_student_training_plan_contract(args)
+
+    args.seed = 0
+    args.steps = 1
+    args.objective_family_diagnostic = True
+    contract = validate_student_training_plan_contract(args)
+    assert contract["diagnostic"] is True
+
+    args.seed = 1
     with pytest.raises(ValueError, match="seed"):
         validate_student_training_plan_contract(args)

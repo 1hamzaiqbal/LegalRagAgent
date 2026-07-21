@@ -125,6 +125,15 @@ If C eventually passes, the O/C matrix is a new campaign with fresh O and C
 teachers; MATH is external transfer only and the failed M teacher remains
 unavailable.
 
+DeepMath has now failed that frozen qualification and is closed. The active
+execution order is recorded in
+`wiki/snapshots/opd-objective-family-implementation-freeze-2026-07-20.md`.
+Build the isolated upstream environment only with
+`scripts/hpc/setup_opd_math_verl_env.sh`, verify it with
+`scripts/hpc/slurm_opd_math_verl_preflight.sh`, and do not seal the 36-arm
+preregistration until the real-model stored-rollout check and all 12 post-job
+full-custody diagnostic receipts pass.
+
 ## Recovery
 
 - Git history: `codex/scope_old`, `codex/archive/pre_cleanup_20260717`, and

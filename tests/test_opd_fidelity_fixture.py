@@ -43,3 +43,40 @@ def test_stored_rollout_fixture_mutations_fail_closed(tmp_path, mutation, match)
     changed.write_text(json.dumps(payload))
     with pytest.raises(ValueError, match=match):
         load_fixture(changed)
+
+
+def test_real_model_fixture_requires_live_hash_bound_provenance(tmp_path):
+    source = tmp_path / "samples.jsonl"
+    run = tmp_path / "run.json"
+    completion = tmp_path / "completion.json"
+    for path in (source, run, completion):
+        path.write_text("{}\n")
+    payload = json.loads(FIXTURE.read_text())
+    payload["fixture_id"] = "real_model_rollout_k1_v1"
+    payload["status"] = "real_model_stored_tensor_fidelity_only"
+    digest = lambda path: __import__("hashlib").sha256(path.read_bytes()).hexdigest()
+    payload["provenance"] = {
+        "source_samples": str(source),
+        "source_samples_sha256": digest(source),
+        "run_manifest": str(run),
+        "run_manifest_sha256": digest(run),
+        "completion_manifest": str(completion),
+        "completion_manifest_sha256": digest(completion),
+        "local_git_commit": "a" * 40,
+        "objective_registry_sha256": "b" * 64,
+        "student": "Qwen/Qwen3-1.7B",
+        "student_revision": "c" * 40,
+        "teacher_checkpoint": "/checkpoint",
+        "teacher_checkpoint_tree_sha256": "d" * 64,
+        "extractor_sha256": "e" * 64,
+        "behavior_logprobs_origin": "generation_transition_scores_before_update",
+        "current_student_logprobs_origin": "pre_update_student_forward_on_generated_tokens",
+        "teacher_logprobs_origin": "frozen_o_teacher_exact_generated_token_scores",
+        "heldout_outcomes_inspected": False,
+    }
+    fixture = tmp_path / "real.json"
+    fixture.write_text(json.dumps(payload))
+    assert load_fixture(fixture)["fixture_id"] == "real_model_rollout_k1_v1"
+    source.write_text('{"changed":true}\n')
+    with pytest.raises(ValueError, match="source_samples binding drifted"):
+        load_fixture(fixture)

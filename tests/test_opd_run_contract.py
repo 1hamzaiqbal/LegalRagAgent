@@ -24,6 +24,7 @@ from scripts.opd.opd_train import (
     validate_environment_contract,
     validate_run_contract,
     write_completion_manifests,
+    bind_registered_objective,
 )
 from scripts.opd.trace_metrics import reconstruct_step_metrics
 from scripts.opd_math.quality_gates import EVALUATION_CONTRACT, STUDENT_GATE_TYPE
@@ -235,6 +236,220 @@ def test_smoke_pair_is_bound_to_exact_student_role(tmp_path):
     result = validate_run_contract(args_for(task, prepared), [row])
     assert result[-1]["task_role_file"] == "roles/M/student_opd.jsonl"
     assert result[-1]["pair_id"] == "M_M"
+
+
+def test_registered_one_step_task_rl_diagnostic_binds_exact_inputs_without_prelaunch(
+    tmp_path, monkeypatch
+):
+    task, row, prepared = prepared_fixture(tmp_path)
+    args = args_for(
+        task,
+        prepared,
+        objective_id="task_rl",
+        mode=None,
+        objective_family_diagnostic=True,
+        objective_family_prompt_plan="/custody/M_seed0.json",
+        objective_family_initialization_manifest="/custody/seed0/manifest.json",
+        objective_family_launcher=str(train_module.OBJECTIVE_FAMILY_LAUNCHER),
+        allow_ungated_smoke=False,
+        steps=1,
+        max_new_tokens=512,
+        max_prompt_tokens=1536,
+        lora=32,
+        group_size=4,
+        student_revision="7" * 40,
+        pair_id=None,
+        student_source="M",
+        budget_mode="primary_matched",
+        campaign_run_id=None,
+        scheduler_job_id=None,
+        prelaunch_receipt=None,
+        student_support_manifest="/custody/M_support.json",
+        teacher_url=None,
+        teacher_model=None,
+        teacher_checkpoint=None,
+        teacher_gap_manifest=None,
+        teacher_provenance_manifest=None,
+        tokenizer_contract=None,
+        server_scoring_contract=None,
+        serve_environment_root=None,
+        serve_environment_freeze=None,
+    )
+    bind_registered_objective(args)
+    monkeypatch.setattr(
+        train_module,
+        "validate_environment_contract",
+        lambda selected, require_serve: {"git_commit": "c" * 40},
+    )
+    monkeypatch.setattr(
+        train_module,
+        "checked_gate",
+        lambda *a, **k: {"gate": STUDENT_GATE_TYPE, "passed": True},
+    )
+    monkeypatch.setattr(train_module, "_validate_student_gate", lambda *a, **k: None)
+    monkeypatch.setattr(train_module, "git_worktree_is_clean", lambda: True)
+    monkeypatch.setattr(
+        train_module, "git_state", lambda: {"commit": "c" * 40, "dirty": False}
+    )
+    monkeypatch.setattr(
+        train_module,
+        "validate_prompt_plan",
+        lambda *a, **k: ({"path": "/custody/M_seed0.json"}, [row]),
+    )
+    monkeypatch.setattr(
+        train_module,
+        "validate_initialization_manifest",
+        lambda *a, **k: {
+            "path": "/custody/seed0/manifest.json",
+            "adapter_path": "/custody/seed0/adapter",
+            "trainable_parameter_signature": {
+                "elements": 1,
+                "sum": 0.0,
+                "squared_l2": 0.0,
+            },
+        },
+    )
+    result = validate_run_contract(args, [row])
+    binding = result[-1]
+    assert binding["objective_family_diagnostic"] is True
+    assert binding["student_source"] == "M"
+    assert binding["teacher_source"] is None
+    assert args.objective_family_ordered_rows == [row]
+
+
+def test_registered_one_step_bare_k1_diagnostic_routes_only_through_o_teacher(
+    tmp_path, monkeypatch
+):
+    task, row, prepared_path = prepared_fixture(tmp_path)
+    prepared = json.loads(prepared_path.read_text())
+    o_skill = tmp_path / "roles" / "O" / "teacher_gap_dev.jsonl"
+    o_skill.parent.mkdir(parents=True)
+    o_skill.write_text("{}\n")
+    prepared["files"]["roles/O/teacher_gap_dev.jsonl"] = {
+        "rows": 1,
+        "sha256": digest(o_skill),
+    }
+    prepared["pairs"].append(
+        {
+            "id": "O_M",
+            "teacher_source": "O",
+            "opd_source": "M",
+            "student_opd_file": "roles/M/student_opd.jsonl",
+            "teacher_skill_dev_file": "roles/O/teacher_gap_dev.jsonl",
+        }
+    )
+    prepared_path.write_text(json.dumps(prepared))
+    args = args_for(
+        task,
+        prepared_path,
+        objective_id="k1_bare_verl_compatible_clip10",
+        mode=None,
+        objective_family_diagnostic=True,
+        objective_family_prompt_plan="/custody/M_seed0.json",
+        objective_family_initialization_manifest="/custody/seed0/manifest.json",
+        objective_family_launcher=str(train_module.OBJECTIVE_FAMILY_LAUNCHER),
+        allow_ungated_smoke=False,
+        steps=1,
+        max_new_tokens=512,
+        max_prompt_tokens=1536,
+        lora=32,
+        group_size=4,
+        student_revision="7" * 40,
+        pair_id=None,
+        student_source="M",
+        budget_mode="primary_matched",
+        campaign_run_id=None,
+        scheduler_job_id=None,
+        prelaunch_receipt=None,
+        student_support_manifest="/custody/M_support.json",
+        teacher_url="http://127.0.0.1:8000",
+        teacher_model="opd-math-teacher",
+        teacher_checkpoint="/custody/O_teacher",
+        teacher_base_model="Qwen/Qwen3-8B",
+        teacher_base_revision="8" * 40,
+        teacher_gap_manifest="/custody/O_gap.json",
+        teacher_provenance_manifest="/custody/O_teacher/merge_provenance.json",
+        tokenizer_contract="/custody/tokenizer.json",
+        server_scoring_contract="/custody/server.json",
+        serve_environment_root="/custody/serve_env",
+        serve_environment_freeze="/custody/serve.freeze.txt",
+    )
+    bind_registered_objective(args)
+    monkeypatch.setattr(
+        train_module,
+        "validate_environment_contract",
+        lambda selected, require_serve: {
+            "git_commit": "c" * 40,
+            "serve_verification": {},
+        },
+    )
+    monkeypatch.setattr(
+        train_module,
+        "checked_gate",
+        lambda *a, expected_gate, **k: {
+            "gate": expected_gate,
+            "passed": True,
+            **(
+                {
+                    "base_model": "Qwen/Qwen3-8B",
+                    "base_model_revision": "8" * 40,
+                }
+                if expected_gate == "teacher_gap_v1"
+                else {}
+            ),
+        },
+    )
+    monkeypatch.setattr(train_module, "_validate_student_gate", lambda *a, **k: None)
+    monkeypatch.setattr(train_module, "_validate_teacher_gate", lambda *a, **k: None)
+    monkeypatch.setattr(train_module, "_validate_tokenizer_contract", lambda *a, **k: None)
+    monkeypatch.setattr(
+        train_module,
+        "_validate_server_scoring_contract",
+        lambda *a, **k: {
+            "local_process_binding": {
+                "teacher_checkpoint_tree_sha256": "t" * 64,
+                "teacher_provenance_manifest_sha256": "p" * 64,
+            }
+        },
+    )
+    monkeypatch.setattr(
+        train_module,
+        "_validate_teacher_provenance",
+        lambda *a, **k: {
+            "output_checkpoint_tree_sha256": "t" * 64,
+            "manifest_sha256": "p" * 64,
+        },
+    )
+    monkeypatch.setattr(
+        train_module, "validate_server_environment_process_binding", lambda *a, **k: None
+    )
+    monkeypatch.setattr(train_module, "git_worktree_is_clean", lambda: True)
+    monkeypatch.setattr(
+        train_module, "git_state", lambda: {"commit": "c" * 40, "dirty": False}
+    )
+    monkeypatch.setattr(
+        train_module,
+        "validate_prompt_plan",
+        lambda *a, **k: ({"path": "/custody/M_seed0.json"}, [row]),
+    )
+    monkeypatch.setattr(
+        train_module,
+        "validate_initialization_manifest",
+        lambda *a, **k: {
+            "path": "/custody/seed0/manifest.json",
+            "adapter_path": "/custody/seed0/adapter",
+            "trainable_parameter_signature": {
+                "elements": 1,
+                "sum": 0.0,
+                "squared_l2": 0.0,
+            },
+        },
+    )
+    result = validate_run_contract(args, [row])
+    binding = result[-1]
+    assert binding["pair_id"] == "O_M"
+    assert binding["teacher_source"] == "O"
+    assert binding["local_checkpoint_custody_validated"] is True
 
 
 def test_registered_hash_does_not_authorize_wrong_role(tmp_path):

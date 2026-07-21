@@ -32,6 +32,8 @@ The SCOPE method is historical ([[scope-old]]). Start with
   matrix for task RL, ungated/clipped/gated/bare K1, and pinned-veRL fidelity;
   no expanded arm has launched
 - [[opd-program-goal-2026-07-20]] — active three-step execution goal: O_M/O_O
+- [[opd-objective-family-implementation-freeze-2026-07-20]] — current fixed
+  36-arm objective-family implementation, fidelity gates, and EIT launch order
   objective family, outcome-blind DeepMath qualification, then conditional
   fresh O/C source transfer; the failed M teacher remains permanently excluded
 - [[opd-m-teacher-clarification-and-source-options-2026-07-20]] — exact meaning

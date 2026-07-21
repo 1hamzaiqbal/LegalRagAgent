@@ -62,6 +62,19 @@ def test_exact_environment_and_commit_freeze_pass(tmp_path, monkeypatch):
     assert result["requirements_freeze"]["sha256"] == result["commit_freeze"]["sha256"]
 
 
+def test_upstream_verl_environment_and_commit_freeze_pass(tmp_path, monkeypatch):
+    environment, commit_freeze, packages = make_contract(
+        tmp_path, monkeypatch, kind="upstream_verl"
+    )
+    result = run_verification(
+        environment, commit_freeze, kind="upstream_verl"
+    )
+    assert result["status"] == "passed"
+    assert result["freeze_kind"] == "upstream_verl"
+    assert result["installed_distribution_count"] == len(packages)
+    assert result["expected_executable"] is None
+
+
 @pytest.mark.parametrize(
     ("actual", "expected_detail"),
     [

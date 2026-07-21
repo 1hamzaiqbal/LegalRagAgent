@@ -201,8 +201,12 @@ def verify_environment(
 
     if not isinstance(expected_commit, str) or COMMIT_RE.fullmatch(expected_commit) is None:
         raise ValueError("expected commit must be exactly 40 lowercase hexadecimal characters")
-    if not isinstance(freeze_kind, str) or freeze_kind not in {"train", "serve"}:
-        raise ValueError("freeze kind must be train or serve")
+    if not isinstance(freeze_kind, str) or freeze_kind not in {
+        "train",
+        "serve",
+        "upstream_verl",
+    }:
+        raise ValueError("freeze kind must be train, serve, or upstream_verl")
 
     try:
         declared_root = Path(environment_root).resolve(strict=True)
@@ -225,7 +229,9 @@ def verify_environment(
                 f"environment bin/vllm: {required_serve_executable}"
             )
     elif expected_executable is not None:
-        raise ValueError("train verification does not accept a serve executable")
+        raise ValueError(
+            f"{freeze_kind} verification does not accept a serve executable"
+        )
 
     environment_python = declared_root / "bin" / "python"
     live_executable = Path(sys.executable).absolute()
@@ -313,8 +319,8 @@ def run_external_environment_verification(
 
     if not isinstance(expected_commit, str) or COMMIT_RE.fullmatch(expected_commit) is None:
         raise ValueError("expected commit must be exactly 40 lowercase hexadecimal characters")
-    if freeze_kind not in {"train", "serve"}:
-        raise ValueError("freeze kind must be train or serve")
+    if freeze_kind not in {"train", "serve", "upstream_verl"}:
+        raise ValueError("freeze kind must be train, serve, or upstream_verl")
     try:
         root = Path(environment_root).resolve(strict=True)
     except (OSError, TypeError) as exc:
@@ -399,7 +405,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--environment-root", required=True)
     parser.add_argument("--commit-freeze", required=True)
     parser.add_argument("--expected-commit", required=True)
-    parser.add_argument("--freeze-kind", required=True, choices=("train", "serve"))
+    parser.add_argument(
+        "--freeze-kind",
+        required=True,
+        choices=("train", "serve", "upstream_verl"),
+    )
     parser.add_argument("--expected-executable")
     return parser.parse_args()
 

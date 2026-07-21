@@ -55,6 +55,13 @@ try:
         load_objective_registry,
         resolve_objective,
     )
+    from .objective_family_inputs import (
+        validate_initialization_manifest,
+        validate_prompt_plan,
+    )
+    from .objective_family_preregistration import (
+        validate_prelaunch_receipt as validate_objective_family_prelaunch_receipt,
+    )
     from .trace_metrics import (
         reconstruct_step_metrics,
         validate_recorded_step_metrics,
@@ -78,6 +85,13 @@ except ImportError:
         TASK_REWARD_OBJECTIVE_IDS,
         load_objective_registry,
         resolve_objective,
+    )
+    from objective_family_inputs import (  # type: ignore
+        validate_initialization_manifest,
+        validate_prompt_plan,
+    )
+    from objective_family_preregistration import (  # type: ignore
+        validate_prelaunch_receipt as validate_objective_family_prelaunch_receipt,
     )
     from trace_metrics import (  # type: ignore
         reconstruct_step_metrics,
@@ -124,6 +138,9 @@ CANONICAL_STUDENT_TRAINING_PLAN = (
 OBJECTIVE_FAMILY_STUDENT_TRAINING_PLAN = (
     ROOT / "configs" / "opd_math" / "objective_family_student_plan.json"
 )
+OBJECTIVE_FAMILY_LAUNCHER = (
+    ROOT / "scripts/hpc/slurm_opd_math_objective_family_train.sh"
+)
 OBJECTIVE_FAMILY_ALLOWED_SEEDS = [0, 1, 2]
 OBJECTIVE_FAMILY_COMMON_CONFIG = {
     "attn_implementation": "sdpa",
@@ -149,6 +166,8 @@ OBJECTIVE_FAMILY_REGISTRY_FIELDS = [
     "advantage_clip",
     "gap_gate_beta",
 ]
+OBJECTIVE_FAMILY_DIAGNOSTIC_OVERRIDES = {"optimizer_steps": 1}
+OBJECTIVE_FAMILY_DIAGNOSTIC_SEED = 0
 OBJECTIVE_FAMILY_STAGE_RULES = {
     "plan_alone_authorizes_launch": False,
     "shared_initialized_adapter_required_per_seed": True,
@@ -284,6 +303,8 @@ def validate_student_training_plan_contract(args) -> dict:
             "allowed_seeds",
             "common_fixed_config",
             "objective_fields_from_registry",
+            "diagnostic_fixed_overrides",
+            "diagnostic_seed",
             "stage_rules",
         }
         if set(plan) != expected_top or (
@@ -303,6 +324,10 @@ def validate_student_training_plan_contract(args) -> dict:
             raise ValueError("objective-family student plan common recipe drifted")
         if plan.get("objective_fields_from_registry") != OBJECTIVE_FAMILY_REGISTRY_FIELDS:
             raise ValueError("objective-family student plan registry field set drifted")
+        if plan.get("diagnostic_fixed_overrides") != OBJECTIVE_FAMILY_DIAGNOSTIC_OVERRIDES:
+            raise ValueError("objective-family student diagnostic overrides drifted")
+        if plan.get("diagnostic_seed") != OBJECTIVE_FAMILY_DIAGNOSTIC_SEED:
+            raise ValueError("objective-family student diagnostic seed drifted")
         if plan.get("stage_rules") != OBJECTIVE_FAMILY_STAGE_RULES:
             raise ValueError("objective-family student plan stage rules drifted")
         objective = registry_contract.get("objective")
@@ -318,15 +343,26 @@ def validate_student_training_plan_contract(args) -> dict:
             for key, value in actual.items()
             if key not in set(objective_fields) | {"seed"}
         }
-        if common_actual != common:
+        diagnostic = getattr(args, "objective_family_diagnostic", False) is True
+        expected_common = dict(common)
+        if diagnostic:
+            expected_common.update(OBJECTIVE_FAMILY_DIAGNOSTIC_OVERRIDES)
+        if common_actual != expected_common:
             differing = sorted(
-                key for key in set(common_actual) | set(common) if common_actual.get(key) != common.get(key)
+                key
+                for key in set(common_actual) | set(expected_common)
+                if common_actual.get(key) != expected_common.get(key)
             )
             raise ValueError(
                 "objective-family training differs from the common matched recipe: "
                 f"fields={differing}"
             )
-        if actual["seed"] not in OBJECTIVE_FAMILY_ALLOWED_SEEDS:
+        allowed_seeds = (
+            [OBJECTIVE_FAMILY_DIAGNOSTIC_SEED]
+            if diagnostic
+            else OBJECTIVE_FAMILY_ALLOWED_SEEDS
+        )
+        if actual["seed"] not in allowed_seeds:
             raise ValueError("objective-family training seed is not preregisterable")
         for field in objective_fields:
             if actual[field] != objective[field]:
@@ -336,13 +372,19 @@ def validate_student_training_plan_contract(args) -> dict:
             "sha256": sha256_file(OBJECTIVE_FAMILY_STUDENT_TRAINING_PLAN),
             "plan_id": plan["plan_id"],
             "plan_config_sha256": canonical_json_sha256(
-                {"common": common, "objective": objective, "seed": actual["seed"]}
+                {
+                    "common": expected_common,
+                    "objective": objective,
+                    "seed": actual["seed"],
+                    "diagnostic": diagnostic,
+                }
             ),
             "actual_config_sha256": canonical_json_sha256(actual),
             "config": actual,
             "objective_registry_sha256": registry_contract["registry_sha256"],
             "compliant": True,
             "scientific_launch_authorized": False,
+            "diagnostic": diagnostic,
         }
 
     plan = json.loads(CANONICAL_STUDENT_TRAINING_PLAN.read_text())
@@ -468,7 +510,7 @@ def render_prompt(tokenizer, row: dict, max_prompt_tokens: int, enable_thinking:
 
 
 def load_student(args, device: str):
-    from peft import LoraConfig, get_peft_model
+    from peft import LoraConfig, PeftModel, get_peft_model
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     tok = AutoTokenizer.from_pretrained(
@@ -491,7 +533,14 @@ def load_student(args, device: str):
     model.to(device)
     model.config.use_cache = False
 
-    if args.lora > 0:
+    initialization = getattr(args, "objective_family_initialization_contract", None)
+    if initialization is not None:
+        model = PeftModel.from_pretrained(
+            model,
+            initialization["adapter_path"],
+            is_trainable=True,
+        )
+    elif args.lora > 0:
         cfg = LoraConfig(
             r=args.lora,
             lora_alpha=2 * args.lora,
@@ -1673,6 +1722,7 @@ def _validate_student_gate(
     student_source: str,
     prepared: dict,
     current_environment: dict | None,
+    expected_decoding_seed: int | None = None,
 ) -> None:
     _expect_equal(gate, "schema_version", 3, "student support gate")
     _expect_equal(gate, "gate", STUDENT_GATE_TYPE, "student support gate")
@@ -1751,7 +1801,10 @@ def _validate_student_gate(
         ("top_p", args.top_p),
         ("top_k", args.top_k),
         ("max_new_tokens", args.max_new_tokens),
-        ("seed", args.seed),
+        (
+            "seed",
+            args.seed if expected_decoding_seed is None else expected_decoding_seed,
+        ),
     ):
         _expect_equal(decoding, key, expected, "student support gate decoding")
     if not args.allow_ungated_smoke and gate.get("gate_strength") != "scientific":
@@ -1992,11 +2045,38 @@ def validate_run_contract(
     ):
         raise ValueError("gap-gated reverse-KL modes require --gap-gate-beta > 0")
     objective_registry_contract = getattr(args, "objective_registry_contract", None)
-    if objective_registry_contract is not None and not args.allow_ungated_smoke:
+    objective_family_diagnostic = (
+        getattr(args, "objective_family_diagnostic", False) is True
+    )
+    if objective_family_diagnostic and objective_registry_contract is None:
+        raise ValueError("--objective-family-diagnostic requires --objective-id")
+    if objective_family_diagnostic and args.allow_ungated_smoke:
+        raise ValueError("objective-family diagnostics cannot bypass custody as a smoke")
+    registered_full_custody = (
+        objective_registry_contract is not None and not args.allow_ungated_smoke
+    )
+    registered_scientific = registered_full_custody and not objective_family_diagnostic
+    if registered_scientific and not getattr(args, "prelaunch_receipt", None):
         raise ValueError(
-            "registered objective-family scientific launch is blocked until the sealed "
-            "successor preregistration and custody validator are implemented"
+            "registered objective-family scientific launch requires the sealed "
+            "successor preregistration prelaunch receipt"
         )
+    registered_objective = (
+        objective_registry_contract.get("objective")
+        if isinstance(objective_registry_contract, dict)
+        else None
+    )
+    registered_needs_teacher = bool(
+        isinstance(registered_objective, dict)
+        and registered_objective.get("sampled_k1") is True
+    )
+    uses_prepared_surface = args.mode in TASK_REWARD_MODES or registered_full_custody
+    legacy_primary = (
+        objective_registry_contract is None
+        and args.mode in TASK_REWARD_MODES
+        and not args.allow_ungated_smoke
+        and args.budget_mode == "primary_matched"
+    )
     if args.teacher_connect_timeout <= 0 or args.teacher_read_timeout <= 0 or args.teacher_retries <= 0:
         raise ValueError("teacher timeout and retry settings must be positive")
     if args.mode in TEACHER_MODES and (not args.teacher_url or not args.teacher_model):
@@ -2025,7 +2105,7 @@ def validate_run_contract(
             )
     student_training_plan = None
     if (
-        args.mode in TASK_REWARD_MODES
+        (args.mode in TASK_REWARD_MODES or registered_full_custody)
         and not args.allow_ungated_smoke
         and args.budget_mode == "primary_matched"
     ):
@@ -2039,9 +2119,7 @@ def validate_run_contract(
     if scheduler_job_id is not None and not re.fullmatch(r"[1-9][0-9]*", scheduler_job_id):
         raise ValueError("--scheduler-job-id must be a positive decimal Slurm job ID")
     if (
-        args.mode in TASK_REWARD_MODES
-        and not args.allow_ungated_smoke
-        and args.budget_mode == "primary_matched"
+        (legacy_primary or registered_scientific)
         and (campaign_run_id is None or scheduler_job_id is None)
     ):
         raise ValueError(
@@ -2049,11 +2127,7 @@ def validate_run_contract(
             "and --scheduler-job-id custody"
         )
     prelaunch_receipt = None
-    primary_student_run = (
-        args.mode in TASK_REWARD_MODES
-        and not args.allow_ungated_smoke
-        and args.budget_mode == "primary_matched"
-    )
+    primary_student_run = legacy_primary or registered_scientific
     prelaunch_receipt_arg = getattr(args, "prelaunch_receipt", None)
     if primary_student_run:
         if not prelaunch_receipt_arg:
@@ -2061,12 +2135,16 @@ def validate_run_contract(
                 "scientific primary runs require a sealed --prelaunch-receipt"
             )
         args.prelaunch_receipt = prelaunch_receipt_arg
-        prelaunch_receipt = validate_prelaunch_receipt(args)
+        prelaunch_receipt = (
+            validate_objective_family_prelaunch_receipt(args)
+            if objective_registry_contract is not None
+            else validate_prelaunch_receipt(args)
+        )
     elif prelaunch_receipt_arg:
         raise ValueError(
             "prelaunch receipts are reserved for preregistered primary matched runs"
         )
-    if args.mode in TASK_REWARD_MODES:
+    if uses_prepared_surface:
         if not args.allow_ungated_smoke and args.enable_thinking:
             raise ValueError("scientific OPD-math runs require Qwen3 non-thinking mode")
         if not args.allow_ungated_smoke and not immutable_hub_revision(args.student_revision):
@@ -2075,11 +2153,12 @@ def validate_run_contract(
             )
         if not args.allow_ungated_smoke and not git_worktree_is_clean():
             raise ValueError("scientific OPD-math runs require a clean Git worktree")
-        if args.group_size < 2:
+        if args.mode in TASK_REWARD_MODES and args.group_size < 2:
             raise ValueError("task reward requires --group-size >= 2")
-        missing = [i for i, row in enumerate(rows) if not row.get("solution")]
-        if missing:
-            raise ValueError(f"task rows missing solution at indices {missing[:10]}")
+        if args.mode in TASK_REWARD_MODES:
+            missing = [i for i, row in enumerate(rows) if not row.get("solution")]
+            if missing:
+                raise ValueError(f"task rows missing solution at indices {missing[:10]}")
 
     teacher_gate = student_gate = tokenizer_contract = teacher_provenance = None
     server_scoring_contract = None
@@ -2103,10 +2182,15 @@ def validate_run_contract(
         "prelaunch_receipt": prelaunch_receipt,
         "objective_registry": objective_registry_contract,
     }
-    if args.mode in TASK_REWARD_MODES:
+    if uses_prepared_surface:
         if not args.allow_ungated_smoke:
             binding["environment_contract"] = validate_environment_contract(
-                args, require_serve=args.mode == "task_rl_k1_gap"
+                args,
+                require_serve=(
+                    registered_needs_teacher
+                    if objective_registry_contract is not None
+                    else args.mode == "task_rl_k1_gap"
+                ),
             )
         if not args.prepared_manifest:
             raise ValueError("task-reward runs require --prepared-manifest")
@@ -2115,7 +2199,31 @@ def validate_run_contract(
         prepared = json.loads(Path(args.prepared_manifest).read_text())
         if not args.allow_ungated_smoke and not prepared.get("scientific_use_allowed"):
             raise ValueError("prepared data manifest is marked non-scientific")
-        if args.mode == "task_rl":
+        if objective_registry_contract is not None:
+            if args.pair_id:
+                raise ValueError(
+                    "registered objective-family runs use --student-source; "
+                    "teacher source is fixed to O"
+                )
+            if args.student_source not in {"M", "O"}:
+                raise ValueError(
+                    "registered objective-family runs require --student-source M or O"
+                )
+            student_source = args.student_source
+            relative_task = f"roles/{student_source}/student_opd.jsonl"
+            pair = (
+                _pair_by_id(prepared, f"O_{student_source}")
+                if registered_needs_teacher
+                else None
+            )
+            binding.update(
+                {
+                    "pair_id": f"O_{student_source}" if registered_needs_teacher else None,
+                    "student_source": student_source,
+                    "teacher_source": "O" if registered_needs_teacher else None,
+                }
+            )
+        elif args.mode == "task_rl":
             if args.pair_id:
                 raise ValueError("task_rl has no teacher coordinate; use --student-source, not --pair-id")
             if args.student_source not in {"M", "O"}:
@@ -2184,8 +2292,66 @@ def validate_run_contract(
                 student_source=student_source,
                 prepared=prepared,
                 current_environment=binding["environment_contract"],
+                expected_decoding_seed=(
+                    0 if objective_registry_contract is not None else None
+                ),
             )
-        if args.mode == "task_rl_k1_gap":
+        if registered_full_custody:
+            launcher_value = getattr(args, "objective_family_launcher", None)
+            if not launcher_value:
+                raise ValueError("registered objective-family custody requires its launcher")
+            launcher = Path(launcher_value).resolve()
+            if (
+                launcher != OBJECTIVE_FAMILY_LAUNCHER.resolve()
+                or launcher.is_symlink()
+                or not launcher.is_file()
+            ):
+                raise ValueError("registered objective-family launcher identity drifted")
+            binding["objective_family_launcher"] = {
+                "path": str(launcher),
+                "sha256": sha256_file(launcher),
+            }
+            prompt_plan_path = getattr(args, "objective_family_prompt_plan", None)
+            initialization_path = getattr(
+                args, "objective_family_initialization_manifest", None
+            )
+            if not prompt_plan_path or not initialization_path:
+                raise ValueError(
+                    "registered objective-family custody requires exact prompt-plan "
+                    "and initialization manifests"
+                )
+            state = git_state()
+            commit = state.get("commit")
+            if state.get("dirty") or not isinstance(commit, str):
+                raise ValueError("registered objective-family custody requires clean Git")
+            prompt_contract, ordered_rows = validate_prompt_plan(
+                prompt_plan_path,
+                rows=rows,
+                source=student_source,
+                seed=args.seed,
+                task_file=args.task_file,
+                prepared_manifest=args.prepared_manifest,
+                git_commit=commit,
+                steps=args.steps,
+                diagnostic=objective_family_diagnostic,
+            )
+            initialization_contract = validate_initialization_manifest(
+                initialization_path,
+                student=args.student,
+                student_revision=args.student_revision,
+                seed=args.seed,
+                lora_r=args.lora,
+                git_commit=commit,
+            )
+            args.objective_family_ordered_rows = ordered_rows
+            args.objective_family_initialization_contract = initialization_contract
+            binding["objective_family_prompt_plan"] = prompt_contract
+            binding["objective_family_initialization"] = initialization_contract
+            binding["objective_family_diagnostic"] = objective_family_diagnostic
+        if (
+            args.mode == "task_rl_k1_gap"
+            or (registered_full_custody and registered_needs_teacher)
+        ):
             teacher_gate = checked_gate(
                 args.teacher_gap_manifest,
                 "teacher gap manifest",
@@ -2193,6 +2359,8 @@ def validate_run_contract(
                 expected_gate="teacher_gap_v1",
             )
             if teacher_gate is not None:
+                if pair is None:
+                    raise ValueError("teacher-scored objective lacks its fixed O pair")
                 _validate_teacher_gate(
                     teacher_gate,
                     pair=pair,
@@ -2251,6 +2419,26 @@ def validate_run_contract(
                 binding["server_alias_and_token_contract_validated"] = True
                 binding["live_local_server_process_binding_validated"] = True
                 binding["serve_environment_process_binding_validated"] = True
+        elif objective_registry_contract is not None:
+            unexpected_teacher = [
+                value
+                for value in (
+                    args.teacher_gap_manifest,
+                    args.teacher_provenance_manifest,
+                    args.teacher_checkpoint,
+                    args.teacher_url,
+                    args.teacher_model,
+                    args.tokenizer_contract,
+                    args.server_scoring_contract,
+                    getattr(args, "serve_environment_root", None),
+                    getattr(args, "serve_environment_freeze", None),
+                )
+                if value
+            ]
+            if unexpected_teacher:
+                raise ValueError(
+                    "registered task-RL objective must not bind teacher or serve artifacts"
+                )
         prepared_manifest = {
             "path": str(Path(args.prepared_manifest).resolve()),
             "sha256": sha256_file(args.prepared_manifest),
@@ -2279,14 +2467,14 @@ def validate_run_contract(
 
 
 def _local_server_process_binding_state(
-    mode: str, intended_scientific_run: bool, binding: dict
+    mode: str, custody_required: bool, binding: dict
 ) -> tuple[bool, bool]:
     """Return whether live binding is required and whether it actually passed.
 
     An ungated smoke is allowed to omit local process custody, but omission is
     not validation.  Keep these two facts separate in the completion manifest.
     """
-    required = intended_scientific_run and mode == "task_rl_k1_gap"
+    required = custody_required and mode in K1_MODES
     validated = binding.get("live_local_server_process_binding_validated") is True
     return required, validated
 
@@ -2721,6 +2909,7 @@ def run(args) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     log(f"device={device} student={args.student} mode={args.mode}")
     rows = read_jsonl(args.task_file, args.task_limit)
+    eligible_task_pool_rows = len(rows)
     (
         teacher_gate,
         student_gate,
@@ -2730,12 +2919,27 @@ def run(args) -> None:
         prepared_manifest,
         binding,
     ) = validate_run_contract(args, rows)
-    intended_scientific_run = (
-        args.mode in TASK_REWARD_MODES
-        and not args.allow_ungated_smoke
-        and args.budget_mode == "primary_matched"
+    ordered_rows = getattr(args, "objective_family_ordered_rows", None)
+    if ordered_rows is not None:
+        rows = list(ordered_rows)
+    objective_family_diagnostic = (
+        getattr(args, "objective_family_diagnostic", False) is True
     )
-    if intended_scientific_run and not clean_stable_git_custody(
+    registered_full_custody = (
+        getattr(args, "objective_registry_contract", None) is not None
+        and not args.allow_ungated_smoke
+    )
+    intended_scientific_run = (
+        (
+            args.mode in TASK_REWARD_MODES
+            and getattr(args, "objective_registry_contract", None) is None
+            and not args.allow_ungated_smoke
+            and args.budget_mode == "primary_matched"
+        )
+        or (registered_full_custody and not objective_family_diagnostic)
+    )
+    custody_required = intended_scientific_run or registered_full_custody
+    if custody_required and not clean_stable_git_custody(
         code_state_start, code_state_start
     ):
         raise ValueError("scientific OPD-math runs require a clean, identifiable Git start state")
@@ -2766,10 +2970,21 @@ def run(args) -> None:
         torch.cuda.manual_seed_all(args.seed)
     tok, model = load_student(args, device)
     rng = random.Random(args.seed)
-    stream = prompt_stream(rows, rng)
+    stream = iter(rows) if ordered_rows is not None else prompt_stream(rows, rng)
     micro = args.micro_prompts
     opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=args.lr)
     initial_parameter_signature = trainable_parameter_signature(model)
+    initialization_contract = getattr(
+        args, "objective_family_initialization_contract", None
+    )
+    if (
+        initialization_contract is not None
+        and initial_parameter_signature
+        != initialization_contract["trainable_parameter_signature"]
+    ):
+        raise RuntimeError(
+            "loaded trainable parameters differ from the registered initialized adapter"
+        )
     out_path.mkdir(parents=True, exist_ok=True)
     trace_dir.mkdir(parents=True, exist_ok=True)
     registry_contract = getattr(args, "objective_registry_contract", None)
@@ -2795,6 +3010,7 @@ def run(args) -> None:
         "git_state_start": code_state_start,
         "task_file": str(Path(args.task_file).resolve()),
         "task_file_sha256": sha256_file(args.task_file),
+        "eligible_task_pool_rows": eligible_task_pool_rows,
         "selected_task_rows": len(rows),
         "task_limit": args.task_limit,
         "binding": binding,
@@ -2868,7 +3084,7 @@ def run(args) -> None:
             prompt_groups_seen += 1
             prompt_group_tokens += len(item["prompt_token_ids"])
             record_id = item.get("record_id")
-            if intended_scientific_run and (not isinstance(record_id, str) or not record_id):
+            if custody_required and (not isinstance(record_id, str) or not record_id):
                 raise ValueError("scientific training rows require a stable record_id")
             if isinstance(record_id, str) and record_id:
                 realized_record_ids.append(record_id)
@@ -3035,7 +3251,6 @@ def run(args) -> None:
         trace_geometry is not None
         and trace_geometry["expected_geometry_observed"] is True
         and prompt_groups_seen == expected_prompt_groups
-        and total_task_groups == expected_prompt_groups
         and total_rollout_samples == expected_rollout_samples
         and trace_geometry["step_trace_rows"] == args.steps
         and trace_geometry["sample_trace_rows"] == expected_rollout_samples
@@ -3059,7 +3274,7 @@ def run(args) -> None:
         server_process_binding_required,
         server_process_binding_validated,
     ) = _local_server_process_binding_state(
-        args.mode, intended_scientific_run, binding
+        args.mode, custody_required, binding
     )
     server_process_binding_end = None
     server_process_binding_error = None
@@ -3080,13 +3295,21 @@ def run(args) -> None:
         except (OSError, ValueError, RuntimeError) as exc:
             server_process_binding_validated = False
             server_process_binding_error = f"{type(exc).__name__}: {exc}"
-    require_parameter_update = args.require_parameter_update or intended_scientific_run
+    require_parameter_update = args.require_parameter_update or custody_required
     completion = {
         "schema_version": 1,
         "status": (
             "completed"
             if task_signal_observed
-            else ("failed_task_signal_gate" if intended_scientific_run else "completed_zero_task_signal_smoke")
+            else (
+                "failed_task_signal_gate"
+                if intended_scientific_run
+                else (
+                    "completed_zero_task_signal_diagnostic"
+                    if objective_family_diagnostic
+                    else "completed_zero_task_signal_smoke"
+                )
+            )
         ),
         "objective": args.mode,
         "optimizer_steps_completed": args.steps,
@@ -3112,6 +3335,8 @@ def run(args) -> None:
             int(torch.cuda.max_memory_allocated()) if torch.cuda.is_available() else None
         ),
         "intended_scientific_run": intended_scientific_run,
+        "objective_family_diagnostic": objective_family_diagnostic,
+        "custody_required": custody_required,
         "informative_task_steps": informative_task_steps,
         "informative_task_groups": informative_task_groups,
         "total_task_groups": total_task_groups,
@@ -3148,7 +3373,7 @@ def run(args) -> None:
             )
         ),
     }
-    if intended_scientific_run and not realized_training_geometry_observed:
+    if custody_required and not realized_training_geometry_observed:
         completion["status"] = "failed_realized_training_geometry_gate"
         write_completion_manifests(trace_dir, run_manifest, completion)
         raise RuntimeError(
@@ -3161,14 +3386,14 @@ def run(args) -> None:
             "the predeclared mixed-reward group fraction was not met; traces were preserved "
             "and no final adapter was promoted"
         )
-    if intended_scientific_run and not clean_stable_training_code:
+    if custody_required and not clean_stable_training_code:
         completion["status"] = "failed_code_custody_gate"
         completion["training_artifact_eligible_for_held_out_evaluation"] = False
         write_completion_manifests(trace_dir, run_manifest, completion)
         raise RuntimeError(
             "Git commit or cleanliness changed during training; no final adapter was promoted"
         )
-    if intended_scientific_run and not stable_training_environment:
+    if custody_required and not stable_training_environment:
         completion["status"] = "failed_environment_custody_gate"
         completion["training_artifact_eligible_for_held_out_evaluation"] = False
         write_completion_manifests(trace_dir, run_manifest, completion)
@@ -3207,7 +3432,7 @@ def run(args) -> None:
     completion["candidate_adapter"] = str(candidate_adapter)
     completion["candidate_adapter_tree_sha256"] = candidate_hash
     completion["stable_environment_after_candidate_save"] = stable_environment_after_save
-    if intended_scientific_run and not clean_stable_after_save:
+    if custody_required and not clean_stable_after_save:
         completion["status"] = "failed_code_custody_after_candidate_save"
         completion["git_state_end"] = code_state_after_save
         completion["clean_stable_code"] = False
@@ -3216,7 +3441,7 @@ def run(args) -> None:
             "Git commit or cleanliness changed while saving the candidate adapter; "
             "no final adapter was promoted"
         )
-    if intended_scientific_run and not stable_environment_after_save:
+    if custody_required and not stable_environment_after_save:
         completion["status"] = "failed_environment_custody_after_candidate_save"
         completion["git_state_end"] = code_state_after_save
         completion["clean_stable_code"] = clean_stable_after_save
@@ -3251,7 +3476,7 @@ def run(args) -> None:
     completion["stable_final_artifact_hash"] = stable_final_artifact
     final_custody_failure = final_promotion_custody_failure_status(
         stable_final_artifact=stable_final_artifact,
-        intended_scientific_run=intended_scientific_run,
+        intended_scientific_run=custody_required,
         clean_stable_code=clean_stable_code,
         stable_environment_end=stable_environment_end,
     )
@@ -3311,6 +3536,17 @@ def parse_args():
     ap.add_argument("--campaign-run-id")
     ap.add_argument("--scheduler-job-id")
     ap.add_argument("--prelaunch-receipt")
+    ap.add_argument(
+        "--objective-family-diagnostic",
+        action="store_true",
+        help=(
+            "one-step full-custody plumbing run for a registered objective; "
+            "never authorizes scientific use or held-out inspection"
+        ),
+    )
+    ap.add_argument("--objective-family-prompt-plan")
+    ap.add_argument("--objective-family-initialization-manifest")
+    ap.add_argument("--objective-family-launcher")
     ap.add_argument("--student", required=True)
     ap.add_argument("--student-revision")
     ap.add_argument("--teacher-url")

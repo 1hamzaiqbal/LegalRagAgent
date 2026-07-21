@@ -16,7 +16,8 @@ import torch
 
 ROOT = Path(__file__).resolve().parents[2]
 PINNED_VERL_COMMIT = "6a6242f3d8ec7d9f8b4936f4905144707d91fe3b"
-EXPECTED_FIXTURE_ID = "shared_rollout_k1_v1"
+SYNTHETIC_FIXTURE_ID = "shared_rollout_k1_v1"
+REAL_MODEL_FIXTURE_ID = "real_model_rollout_k1_v1"
 LOCAL_LOSS = ROOT / "scripts/opd/opd_loss.py"
 LOCAL_TRACE_METRICS = ROOT / "scripts/opd/trace_metrics.py"
 
@@ -52,7 +53,10 @@ def _validate_number_list(value: Any, label: str, length: int) -> list[float]:
 
 def load_fixture(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict) or set(payload) != {
+    if not isinstance(payload, dict):
+        raise ValueError("stored-rollout fixture must be a JSON object")
+    fixture_id = payload.get("fixture_id")
+    expected_keys = {
         "schema_version",
         "fixture_id",
         "status",
@@ -62,16 +66,68 @@ def load_fixture(path: Path) -> dict[str, Any]:
         "settings",
         "optimizer",
         "tolerances",
-    }:
+    }
+    if fixture_id == REAL_MODEL_FIXTURE_ID:
+        expected_keys.add("provenance")
+    if set(payload) != expected_keys:
         raise ValueError("stored-rollout fixture has an invalid top-level schema")
-    if payload["schema_version"] != 1 or payload["fixture_id"] != EXPECTED_FIXTURE_ID:
+    if payload["schema_version"] != 1 or fixture_id not in {
+        SYNTHETIC_FIXTURE_ID,
+        REAL_MODEL_FIXTURE_ID,
+    }:
         raise ValueError("stored-rollout fixture identity is unsupported")
-    if payload["status"] != "synthetic_stored_tensor_fidelity_only":
+    expected_status = (
+        "synthetic_stored_tensor_fidelity_only"
+        if fixture_id == SYNTHETIC_FIXTURE_ID
+        else "real_model_stored_tensor_fidelity_only"
+    )
+    if payload["status"] != expected_status:
         raise ValueError("stored-rollout fixture status drifted")
     if payload["scientific_launch_authorized"] is not False:
         raise ValueError("stored-rollout fixture must not authorize scientific launch")
     if payload["dtype"] != "float64":
         raise ValueError("stored-rollout fixture must use float64")
+    if fixture_id == REAL_MODEL_FIXTURE_ID:
+        provenance = payload["provenance"]
+        expected_provenance_keys = {
+            "source_samples",
+            "source_samples_sha256",
+            "run_manifest",
+            "run_manifest_sha256",
+            "completion_manifest",
+            "completion_manifest_sha256",
+            "local_git_commit",
+            "objective_registry_sha256",
+            "student",
+            "student_revision",
+            "teacher_checkpoint",
+            "teacher_checkpoint_tree_sha256",
+            "extractor_sha256",
+            "behavior_logprobs_origin",
+            "current_student_logprobs_origin",
+            "teacher_logprobs_origin",
+            "heldout_outcomes_inspected",
+        }
+        if not isinstance(provenance, dict) or set(provenance) != expected_provenance_keys:
+            raise ValueError("real-model fixture provenance schema drifted")
+        expected_origins = {
+            "behavior_logprobs_origin": "generation_transition_scores_before_update",
+            "current_student_logprobs_origin": "pre_update_student_forward_on_generated_tokens",
+            "teacher_logprobs_origin": "frozen_o_teacher_exact_generated_token_scores",
+        }
+        for field, expected in expected_origins.items():
+            if provenance.get(field) != expected:
+                raise ValueError(f"real-model fixture {field} drifted")
+        if provenance.get("heldout_outcomes_inspected") is not False:
+            raise ValueError("real-model fixture inspected held-out outcomes")
+        for path_field, hash_field in (
+            ("source_samples", "source_samples_sha256"),
+            ("run_manifest", "run_manifest_sha256"),
+            ("completion_manifest", "completion_manifest_sha256"),
+        ):
+            bound = Path(str(provenance.get(path_field))).resolve()
+            if not bound.is_file() or _sha256(bound) != provenance.get(hash_field):
+                raise ValueError(f"real-model fixture {path_field} binding drifted")
 
     expected_settings = {
         "loss_mode": "k1",
@@ -423,7 +479,11 @@ def run_fidelity(fixture_path: Path, checkout: Path) -> dict[str, Any]:
     ratios = torch.exp(current - behavior)
     return {
         "schema_version": 1,
-        "check_id": "stored_rollout_local_vs_pinned_verl_k1_v1",
+        "check_id": (
+            "stored_rollout_local_vs_pinned_verl_k1_v1"
+            if fixture["fixture_id"] == SYNTHETIC_FIXTURE_ID
+            else "real_model_rollout_local_vs_pinned_verl_k1_v1"
+        ),
         "status": "pass",
         "scientific_launch_authorized": False,
         "custody": custody,
@@ -433,6 +493,9 @@ def run_fidelity(fixture_path: Path, checkout: Path) -> dict[str, Any]:
             "dtype": "float64",
         },
         "coverage": {
+            "real_model_generated_rollout": fixture["fixture_id"] == REAL_MODEL_FIXTURE_ID,
+            "behavior_scores_from_generation": fixture["fixture_id"]
+            == REAL_MODEL_FIXTURE_ID,
             "samples": len(fixture["samples"]),
             "valid_tokens": int(mask.sum().item()),
             "masked_tokens": int((~mask).sum().item()),

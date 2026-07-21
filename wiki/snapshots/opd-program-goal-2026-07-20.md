@@ -91,11 +91,14 @@ the objective-family campaign, and later an external transfer target.
 
 ## Current checkpoint
 
-The objective registry, direct-import analytic gate, and synthetic stored-
-rollout gate are implemented. Jobs `108498` and `108501` matched the pinned
-veRL scalar and gradient exactly; `108501` additionally matched trace
-reconstruction and one AdamW update. A real-model stored rollout, finite-state
-coverage, and Level-3 objective-by-source diagnostics remain. The DeepMath plan,
+The objective registry, direct-import analytic gate, synthetic stored-rollout
+gate, and finite-state gate are implemented. Jobs `108498`, `108501`, and
+`108548` passed their frozen implementation checks. The real-model stored
+rollout and all 12 full-custody one-step objective-by-source diagnostics remain.
+Exact prompt/initialization builders, local and pinned-veRL launchers, isolated
+veRL environment custody, native checkpoint/optimizer/rollout auditing, and a
+strong post-job 12-cell closure are implemented locally but have not yet run on
+EIT. See [[opd-objective-family-implementation-freeze-2026-07-20]]. The DeepMath plan,
 raw-byte/schema verifier, and restartable EIT intake are implemented. Job
 `108481` verified all ten pinned Parquet shards (`2,136,106,260` bytes,
 `103,022` rows); an independent reopen reproduced the exact manifest hash.
@@ -133,5 +136,6 @@ O-to-O objective-family campaign remains active.
 ## Links
 
 [[opd-objective-family-expansion-2026-07-20]] -
+[[opd-objective-family-implementation-freeze-2026-07-20]] -
 [[opd-m-teacher-clarification-and-source-options-2026-07-20]] -
 [[deepmath-103k]] - [[opd-math-source-transfer]] - [[mopd-multi-teacher]]

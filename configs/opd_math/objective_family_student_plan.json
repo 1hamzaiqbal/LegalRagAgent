@@ -36,6 +36,10 @@
     "advantage_clip",
     "gap_gate_beta"
   ],
+  "diagnostic_fixed_overrides": {
+    "optimizer_steps": 1
+  },
+  "diagnostic_seed": 0,
   "stage_rules": {
     "plan_alone_authorizes_launch": false,
     "shared_initialized_adapter_required_per_seed": true,
