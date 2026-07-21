@@ -132,6 +132,7 @@ def run_fidelity(checkout: Path) -> dict[str, object]:
             "clip_ratio_low": 0.2,
             "clip_ratio_high": 0.2,
             "clip_ratio_c": 3.0,
+            "global_batch_info": {},
         }
     )
     upstream_loss, _ = compute_policy_loss_vanilla(
