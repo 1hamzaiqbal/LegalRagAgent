@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "stage": "deepmath_global_audit_terminal_attempt",
+  "status": "failed_before_scan",
+  "slurm_job_id": "108528",
+  "git_commit": "1a6dd77dfa260b05beee814f7e932091c7f71bc9",
+  "audit_plan_sha256": "98d9efb3edd1e04c998ba42ea76caafd0183abb3e3eb7934c517dc740a605d81",
+  "inventory_manifest_sha256": "abd30c1079e663f38a2c8af21c43009800eec904cc0cf1c60267c5024fe06c59",
+  "state": "FAILED",
+  "exit_code": "1:0",
+  "elapsed": "00:05:36",
+  "max_rss_kb": 2649048,
+  "failure_class": "offline_tokenizer_cache_misbinding",
+  "failure": "OPD_MATH_HF_HOME was pointed at the persistent dataset cache, which did not contain the pinned Qwen3-1.7B tokenizer snapshot",
+  "stdout_sha256": "f9f361991e8f36ba6ed6bbdf00fd463c815daefb29cdb0f70f3ee5ee16fc458d",
+  "partial_root": "/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/deepmath_audit_1a6dd77_scan_v1",
+  "partial_files": 0,
+  "scan_completed": false,
+  "data_gate_produced": false,
+  "teacher_training_authorized": false,
+  "scientific_use_allowed": false,
+  "retry_rule": "preserve this attempt; use the already pinned tokenizer in the default EIT model cache and a new output root without changing any audit threshold"
+}

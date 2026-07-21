@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "fidelity_id": "opd_math_objective_family_fidelity_v1",
+  "status": "implementation_fidelity_in_progress_not_launch_authorized",
+  "scientific_launch_authorized": false,
+  "objective_registry_sha256": "f3fc4e4a2e32759426bfefee601c0c4387f522bc0d51fd0f4c3c104dbeb62e2f",
+  "upstream_verl_commit": "6a6242f3d8ec7d9f8b4936f4905144707d91fe3b",
+  "sources": ["M", "O"],
+  "objective_ids": [
+    "task_rl",
+    "task_rl_k1_ungated_clip5",
+    "task_rl_k1_ungated_unclipped",
+    "task_rl_k1_gated_clip5_beta5",
+    "k1_bare_verl_compatible_clip10",
+    "k1_verl_upstream_clip10"
+  ],
+  "levels": {
+    "analytic_imported_verl": {
+      "status": "passed",
+      "slurm_job_id": "108498",
+      "receipt_path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/fidelity/local_vs_verl_b5e36ec/fidelity.json",
+      "receipt_sha256": "9f4a93fbb75d7ddcc4ca5abe9e9f3b5ed7ebd336197f6dc0e0e5e0b4a5a39d47",
+      "required_checks": [
+        "direct import from pinned veRL checkout",
+        "both teacher-student gap signs",
+        "response masking",
+        "ratios below and above PPO clipping",
+        "scalar equality",
+        "gradient equality"
+      ]
+    },
+    "finite_state": {
+      "status": "pending_eit_receipt",
+      "receipt_path": null,
+      "receipt_sha256": null,
+      "required_checks": [
+        "reject NaN and both infinity signs in student log-probabilities",
+        "reject nonfinite teacher and behavior log-probabilities",
+        "reject nonfinite task reward",
+        "reject nonfinite gradient",
+        "reject nonfinite parameter and optimizer state",
+        "record finite nonzero gradient and parameter-update norm",
+        "record finite optimizer-state signature"
+      ]
+    },
+    "stored_synthetic": {
+      "status": "passed",
+      "slurm_job_id": "108501",
+      "fixture_path": "configs/opd_math/fidelity/shared_rollout_k1_v1.json",
+      "fixture_sha256": "e8a3469cfb90b6d5b8fc1ce0519efdbaac3e650fa306cf947f7910ae124e4ef5",
+      "receipt_path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/fidelity/stored_rollout_644ba10/fidelity.json",
+      "receipt_sha256": "810ef012721d9555dd5dae5abf1c35989e6a5ca5327e63c4b0a41dc5e07cd601",
+      "required_checks": [
+        "local-upstream scalar equality",
+        "local-upstream gradient equality",
+        "trace reconstruction equality",
+        "one AdamW update equality",
+        "on-policy score-function gradient cosine"
+      ]
+    },
+    "stored_real_model": {
+      "status": "pending",
+      "accepted_fixture": null,
+      "required_fields": [
+        "prompt_token_ids",
+        "completion_token_ids",
+        "response_mask",
+        "behavior_token_logprobs_from_generation_scores",
+        "current_student_token_logprobs",
+        "teacher_token_logprobs_on_student_trajectory"
+      ],
+      "requirements": [
+        "Qwen3-1.7B generated non-thinking rollout",
+        "Qwen3-8B O-teacher exact-token score",
+        "hash-bound raw trace and extracted fixture",
+        "local and pinned-veRL tensor-gradient-update comparison",
+        "no task-performance inference"
+      ]
+    },
+    "full_custody_one_step": {
+      "status": "pending",
+      "expected_runs": 12,
+      "local_runs": 10,
+      "upstream_verl_runs": 2,
+      "requirements": [
+        "same registered initialized student adapter per seed and source",
+        "one four-trajectory group per objective-source pair",
+        "exact registry and prerequisite hashes",
+        "exact prompt-token-RNG identities",
+        "finite loss gradient parameter update and optimizer state",
+        "adapter tree and Slurm stdout custody",
+        "plumbing result only"
+      ]
+    }
+  },
+  "stage_rules": {
+    "all_levels_must_pass_before_preregistration": true,
+    "diagnostic_outcomes_may_select_objectives": false,
+    "diagnostics_may_inspect_source_holdout": false,
+    "diagnostics_authorize_scientific_launch": false,
+    "real_model_fixture_may_substitute_current_scoring_for_behavior_scores": false,
+    "failed_fidelity_case_may_be_dropped": false
+  }
+}

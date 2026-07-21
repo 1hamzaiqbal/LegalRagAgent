@@ -668,6 +668,9 @@ def test_student_trace_geometry_recomputes_exact_group_and_sample_identity(tmp_p
     assert recomputed["sample_trace_rows"] == 2
     assert recomputed["expected_geometry_observed"] is True
 
+    with pytest.raises(ValueError, match="parameter_update_l2"):
+        recompute_student_trace_geometry(**kwargs, require_behavior_logprobs=True)
+
     rows[1]["sample_idx"] = 0
     samples.write_text("".join(json.dumps(row) + "\n" for row in rows))
     with pytest.raises(ValueError, match="missing/duplicate"):

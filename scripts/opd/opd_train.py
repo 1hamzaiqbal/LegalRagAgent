@@ -417,6 +417,73 @@ def trainable_parameter_signature(model) -> dict[str, float | int]:
     return {"elements": count, "sum": total, "squared_l2": squared}
 
 
+@torch.no_grad()
+def trainable_parameter_snapshot(model) -> dict[str, torch.Tensor]:
+    snapshot = {
+        name: parameter.detach().clone()
+        for name, parameter in model.named_parameters()
+        if parameter.requires_grad
+    }
+    if not snapshot:
+        raise RuntimeError("student model has no trainable parameters")
+    for name, value in snapshot.items():
+        if not torch.isfinite(value).all():
+            raise RuntimeError(f"student trainable parameter is non-finite before step: {name}")
+    return snapshot
+
+
+@torch.no_grad()
+def parameter_update_l2(model, before: Mapping[str, torch.Tensor]) -> float:
+    current = {
+        name: parameter.detach()
+        for name, parameter in model.named_parameters()
+        if parameter.requires_grad
+    }
+    if set(current) != set(before):
+        raise RuntimeError("trainable parameter identity changed during optimizer step")
+    squared = 0.0
+    for name, value in current.items():
+        if value.shape != before[name].shape:
+            raise RuntimeError(f"trainable parameter shape changed during optimizer step: {name}")
+        if not torch.isfinite(value).all():
+            raise RuntimeError(f"student trainable parameter is non-finite after step: {name}")
+        delta = value.float() - before[name].to(device=value.device, dtype=torch.float32)
+        if not torch.isfinite(delta).all():
+            raise RuntimeError(f"student parameter update is non-finite: {name}")
+        squared += float(delta.double().square().sum().item())
+    if not math.isfinite(squared):
+        raise RuntimeError("student parameter update norm is non-finite")
+    return math.sqrt(squared)
+
+
+@torch.no_grad()
+def optimizer_state_signature(optimizer) -> dict[str, float | int]:
+    tensors = 0
+    elements = 0
+    squared = 0.0
+    scalars = 0
+    for state in optimizer.state.values():
+        for name, value in state.items():
+            if isinstance(value, torch.Tensor):
+                if not torch.isfinite(value).all():
+                    raise RuntimeError(f"optimizer state tensor is non-finite: {name}")
+                tensors += 1
+                elements += value.numel()
+                squared += float(value.detach().double().square().sum().item())
+            elif isinstance(value, (int, float)) and not isinstance(value, bool):
+                if not math.isfinite(float(value)):
+                    raise RuntimeError(f"optimizer state scalar is non-finite: {name}")
+                scalars += 1
+    if not math.isfinite(squared):
+        raise RuntimeError("optimizer state norm is non-finite")
+    return {
+        "tensors": tensors,
+        "elements": elements,
+        "scalars": scalars,
+        "squared_l2": squared,
+    }
+
+
 def signatures_differ(before: dict, after: dict) -> bool:
     if before["elements"] != after["elements"]:
         raise RuntimeError("trainable parameter count changed during the run")
@@ -697,21 +764,33 @@ def objective_loss_from_logprobs(
 
     if mode not in TASK_REWARD_MODES | K1_MODES:
         raise ValueError(f"unsupported local objective mode: {mode}")
+    if mask.dtype != torch.bool or mask.shape != student_lps.shape or not bool(mask.any()):
+        raise ValueError(f"mode {mode} requires a nonempty aligned boolean response mask")
+    if not torch.isfinite(student_lps).all():
+        raise RuntimeError(f"mode {mode} received non-finite student log-probabilities")
     needs_teacher = mode in K1_MODES
     needs_task_reward = mode in TASK_REWARD_MODES
     if needs_teacher and teacher_lps is None:
         raise ValueError(f"mode {mode} requires teacher log-probabilities")
     if not needs_teacher and teacher_lps is not None:
         raise ValueError(f"mode {mode} unexpectedly received teacher log-probabilities")
+    if teacher_lps is not None and (
+        teacher_lps.shape != student_lps.shape or not torch.isfinite(teacher_lps).all()
+    ):
+        raise RuntimeError(f"mode {mode} received invalid teacher log-probabilities")
     if needs_task_reward and (rewards is None or group_ids is None):
         raise ValueError(f"mode {mode} requires task rewards and group IDs")
     if not needs_task_reward and (rewards is not None or group_ids is not None):
         raise ValueError(f"mode {mode} unexpectedly received task rewards")
+    if rewards is not None and not torch.isfinite(rewards).all():
+        raise RuntimeError(f"mode {mode} received non-finite task rewards")
     verl_compatible_bare = mode == "k1_bare_verl_compatible_clip10"
     if verl_compatible_bare and behavior_lps is None:
         raise ValueError(f"mode {mode} requires rollout behavior log-probabilities")
     if behavior_lps is not None and behavior_lps.shape != student_lps.shape:
         raise ValueError(f"mode {mode} has misaligned rollout behavior log-probabilities")
+    if behavior_lps is not None and not torch.isfinite(behavior_lps).all():
+        raise RuntimeError(f"mode {mode} received non-finite behavior log-probabilities")
 
     zero = student_lps.sum() * 0.0
     reverse_kl_sf_loss = zero
@@ -789,6 +868,9 @@ def objective_loss_from_logprobs(
         # historically reported the unscaled surrogate; registered objectives
         # carry their explicit coefficient in the branch above.
         total = reverse_kl_sf_loss
+
+    if not torch.isfinite(total):
+        raise RuntimeError(f"mode {mode} produced a non-finite objective")
 
     metrics = {
         "task_loss": float(task_loss.detach().item()),
@@ -2233,6 +2315,25 @@ def recompute_student_trace_geometry(
                 raise ValueError(
                     f"student step trace has invalid {field} at step {expected_step}"
                 )
+        if require_behavior_logprobs:
+            for field in ("parameter_update_l2", "optimizer_state_squared_l2"):
+                value = row.get(field)
+                if (
+                    type(value) not in (int, float)
+                    or not math.isfinite(float(value))
+                    or float(value) < 0
+                ):
+                    raise ValueError(
+                        f"registered objective step trace has invalid {field} "
+                        f"at step {expected_step}"
+                    )
+            for field in ("optimizer_state_tensors", "optimizer_state_elements"):
+                value = row.get(field)
+                if type(value) is not int or value <= 0:
+                    raise ValueError(
+                        f"registered objective step trace has invalid {field} "
+                        f"at step {expected_step}"
+                    )
 
     expected_keys = {
         (step, group_id)
@@ -2640,6 +2741,8 @@ def run(args) -> None:
     realized_record_ids: list[str] = []
     expected_trace_groups: dict[tuple[int, int], dict] = {}
     gradient_norms: list[float] = []
+    parameter_update_norms: list[float] = []
+    optimizer_state_signatures: list[dict[str, float | int]] = []
     for step in range(1, args.steps + 1):
         raw_batch = [next(stream) for _ in range(micro)]
         prompt_rows = []
@@ -2703,14 +2806,25 @@ def run(args) -> None:
 
         if not torch.isfinite(loss):
             raise RuntimeError(f"non-finite loss at step {step}: {loss.item()}")
+        before_step = trainable_parameter_snapshot(model)
         loss.backward()
-        gradient_norm = float(torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip).item())
+        gradient_norm = float(
+            torch.nn.utils.clip_grad_norm_(
+                model.parameters(), args.grad_clip, error_if_nonfinite=True
+            ).item()
+        )
         if not math.isfinite(gradient_norm):
             raise RuntimeError(
                 f"non-finite gradient norm at step {step}; optimizer step was not applied"
             )
         gradient_norms.append(gradient_norm)
         opt.step()
+        update_norm = parameter_update_l2(model, before_step)
+        optimizer_signature = optimizer_state_signature(opt)
+        if optimizer_signature["tensors"] <= 0 or optimizer_signature["elements"] <= 0:
+            raise RuntimeError(f"optimizer state was empty after step {step}")
+        parameter_update_norms.append(update_norm)
+        optimizer_state_signatures.append(optimizer_signature)
 
         elapsed = max(time.time() - t0, 1e-9)
         step_row = {
@@ -2721,6 +2835,10 @@ def run(args) -> None:
             "samples": len(samples),
             "total_loss": float(loss.item()),
             "gradient_norm_before_clip": gradient_norm,
+            "parameter_update_l2": update_norm,
+            "optimizer_state_tensors": optimizer_signature["tensors"],
+            "optimizer_state_elements": optimizer_signature["elements"],
+            "optimizer_state_squared_l2": optimizer_signature["squared_l2"],
             "tokens_per_second": ntok / elapsed,
             **metrics,
         }
@@ -2889,6 +3007,10 @@ def run(args) -> None:
         "task_signal_observed": task_signal_observed,
         "finite_nonzero_gradient_observed": finite_nonzero_gradient_observed,
         "parameter_update_observed": parameter_update_observed,
+        "parameter_update_l2_by_step": parameter_update_norms,
+        "optimizer_state_signature_final": (
+            optimizer_state_signatures[-1] if optimizer_state_signatures else None
+        ),
         "git_state_start": code_state_start,
         "git_state_training_end": code_state_training_end,
         "git_state_end": None,

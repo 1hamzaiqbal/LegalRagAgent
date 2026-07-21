@@ -20,6 +20,9 @@ from scripts.opd.opd_loss import (
 from scripts.opd.opd_train import (
     bind_registered_objective,
     objective_loss_from_logprobs,
+    optimizer_state_signature,
+    parameter_update_l2,
+    trainable_parameter_snapshot,
     validate_run_contract,
 )
 from scripts.opd.trace_metrics import reconstruct_step_metrics
@@ -310,3 +313,59 @@ def test_registry_alone_cannot_authorize_scientific_training():
     bind_registered_objective(args)
     with pytest.raises(ValueError, match="successor preregistration"):
         validate_run_contract(args, [])
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+def test_registered_objective_rejects_nonfinite_inputs(bad):
+    student, teacher, mask, rewards, groups = _fixed_inputs()
+    student = student.detach().clone()
+    student[0, 0] = bad
+    with pytest.raises(RuntimeError, match="student log-probabilities"):
+        objective_loss_from_logprobs(
+            student,
+            None,
+            mask,
+            mode="task_rl",
+            task_reward_coef=1.0,
+            k1_coef=0.0,
+            advantage_clip=None,
+            gap_gate_beta=None,
+            rewards=rewards,
+            group_ids=groups,
+        )
+
+    student, teacher, mask, rewards, groups = _fixed_inputs()
+    teacher[0, 0] = bad
+    with pytest.raises(RuntimeError, match="teacher log-probabilities"):
+        objective_loss_from_logprobs(
+            student,
+            teacher,
+            mask,
+            mode="task_rl_k1_ungated_clip5",
+            task_reward_coef=1.0,
+            k1_coef=0.01,
+            advantage_clip=5.0,
+            gap_gate_beta=None,
+            rewards=rewards,
+            group_ids=groups,
+        )
+
+
+def test_optimizer_step_custody_detects_update_and_nonfinite_state():
+    model = torch.nn.Linear(2, 1, bias=False)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
+    before = trainable_parameter_snapshot(model)
+    loss = model(torch.ones((1, 2))).square().mean()
+    loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0, error_if_nonfinite=True)
+    optimizer.step()
+    assert parameter_update_l2(model, before) > 0
+    signature = optimizer_state_signature(optimizer)
+    assert signature["tensors"] > 0
+    assert signature["elements"] > 0
+
+    first_state = next(iter(optimizer.state.values()))
+    first_tensor = next(value for value in first_state.values() if isinstance(value, torch.Tensor))
+    first_tensor.fill_(float("nan"))
+    with pytest.raises(RuntimeError, match="optimizer state tensor"):
+        optimizer_state_signature(optimizer)

@@ -17,11 +17,14 @@ bias the estimator, and the K1 value estimate is not a full-vocabulary KL.
 - EIT job 93802 validated bare OPD plumbing: Qwen3-8B teacher,
   Qwen3-1.7B student, three finite steps, checkpoints written.
 - That smoke is not evidence of task learning.
-- SDAR reports that standalone/naively mixed on-policy self-distillation can
-  collapse. Use `opd_gated` for the next plumbing test, and do not launch a
-  scientific E3 until the teacher skill-gap A/B is positive.
-- The math child lane now CPU-tests `task_rl` and `task_rl_k1_gap`. No EIT math
-  task result exists until the new Slurm smokes and quality gates complete.
+- M's teacher gap failed and is permanently closed. No `M_M`, `M_O`, M-teacher
+  retraining, or M-teacher merge is permitted.
+- The active objective-family registry and fidelity ladder are in
+  `configs/opd_math/objective_registry.json` and
+  `configs/opd_math/fidelity_plan.json`. Analytic direct-import and synthetic
+  stored-rollout fidelity passed; finite-state EIT receipt, a true real-model
+  behavior-score fixture, all 12 one-step objective/source diagnostics, and a
+  fresh strict O teacher remain required.
 
 ## Tokenizer constraint
 
@@ -60,7 +63,7 @@ it is only contacted as an HTTP server.
 ```bash
 python scripts/opd/opd_train.py \
   --mode task_rl_k1_gap \
-  --pair-id M_M \
+  --pair-id O_M \
   --task-file "$DATA_ROOT/roles/M/student_opd.jsonl" \
   --task-limit "$MATCHED_STUDENT_LIMIT" \
   --budget-mode primary_matched \
@@ -69,7 +72,7 @@ python scripts/opd/opd_train.py \
   --student-revision 70d244cc86ccca08cf5af4e1e306ecf908b1ad5e \
   --teacher-url http://127.0.0.1:8000 \
   --teacher-model opd-math-teacher \
-  --teacher-checkpoint /path/to/merged-teacher \
+  --teacher-checkpoint /path/to/fresh-gap-passing-O-teacher \
   --teacher-server-max-model-len 4096 \
   --teacher-base-model Qwen/Qwen3-8B \
   --teacher-base-revision b968826d9c46dd6066d109eabc6255188de91218 \

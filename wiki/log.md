@@ -629,3 +629,18 @@ manifest are recorded in
 evidence only. A separate finalizer now requires a complete pair-ID semantic
 decision file and can close the review without rerunning candidate search;
 neither scan nor finalization can authorize teacher training.
+
+## [2026-07-20] DeepMath scan retry and objective finite-state custody
+
+DeepMath scan job `108528` failed before candidate search because its offline
+tokenizer lookup was pointed at the dataset cache instead of the already pinned
+Qwen model cache. The empty partial root and stdout are preserved; no data gate
+or training authorization was produced. Retry `108534` uses a new root, the
+same audit plan, and the existing exact tokenizer revision.
+
+Separately, the objective-family trainer now records and checks finite
+gradients, parameters, per-step update norms, and optimizer state, while
+rejecting nonfinite student/teacher/behavior log-probabilities and rewards.
+`configs/opd_math/fidelity_plan.json` makes the remaining real-model and
+12-cell one-step fidelity work explicit. These are plumbing gates, not task
+results.

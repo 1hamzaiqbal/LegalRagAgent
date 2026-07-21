@@ -50,9 +50,13 @@ local score-function surrogate. Direct-import job `108498` matched the pinned
 veRL scalar and gradient exactly; stored-rollout job `108501` also matched its
 trace reconstruction and one AdamW update exactly. These complete the positive
 analytic and synthetic stored-rollout calculations, not the full ladder.
-Finite-state coverage, a real-model stored rollout, objective-by-source
-one-step custody, and scientific preregistration remain incomplete; the
-trainer explicitly rejects a registry-selected scientific launch.
+The trainer now rejects nonfinite student, teacher, behavior, and reward
+inputs; nonfinite gradients, parameters, updates, and optimizer state; and
+records a per-step parameter-update norm and optimizer-state signature. The
+hash-bound ladder is `configs/opd_math/fidelity_plan.json`. Its standalone EIT
+finite-state receipt, a real-model stored rollout, objective-by-source one-step
+custody, and scientific preregistration remain incomplete; the trainer
+explicitly rejects a registry-selected scientific launch.
 
 ## Scientific questions
 
