@@ -111,6 +111,7 @@ or replacement C dataset is allowed inside this preregistration boundary.
 - `scripts/hpc/slurm_opd_math_objective_family_train.sh`
 - `scripts/hpc/slurm_opd_math_objective_family_verl.sh`
 - `scripts/hpc/setup_opd_math_verl_env.sh`
+- `scripts/hpc/bind_opd_math_verl_env.sh`
 - `scripts/hpc/slurm_opd_math_verl_preflight.sh`
 
 ## Links

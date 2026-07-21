@@ -14,6 +14,7 @@ REPO="${OPD_MATH_REPO:-/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math
 VERL="${OPD_MATH_VERL_CHECKOUT:-/engrfs/project/jacobsn/hiqbal/literature/legalrag/repos/verl}"
 ENV_DIR="${OPD_MATH_VERL_ENV:-/engrfs/project/jacobsn/hiqbal/envs/opd_math_verl}"
 RUN_ROOT="${OPD_MATH_RUN_ROOT:-/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math}"
+HF_CACHE="${OPD_MATH_HF_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache}"
 COMMIT="$(git -C "$REPO" rev-parse HEAD)"
 FREEZE="$RUN_ROOT/environment_freezes/$COMMIT/upstream_verl.freeze.txt"
 
@@ -29,7 +30,8 @@ test -f "$FREEZE"
   --expected-commit "$COMMIT" \
   --freeze-kind upstream_verl
 
-HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 "$ENV_DIR/bin/python" - <<'PY'
+HF_HOME="$HF_CACHE" HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+  "$ENV_DIR/bin/python" - <<'PY'
 import json
 import torch
 import ray

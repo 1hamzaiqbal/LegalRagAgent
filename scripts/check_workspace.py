@@ -84,6 +84,7 @@ OPD_MATH_REQUIRED = (
     "scripts/hpc/slurm_opd_math_objective_family_train.sh",
     "scripts/hpc/slurm_opd_math_objective_family_verl.sh",
     "scripts/hpc/setup_opd_math_verl_env.sh",
+    "scripts/hpc/bind_opd_math_verl_env.sh",
     "scripts/hpc/slurm_opd_math_verl_preflight.sh",
     "scripts/hpc/setup_opd_math_env.sh",
     "scripts/hpc/setup_opd_math_serve_env.sh",

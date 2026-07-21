@@ -17,6 +17,7 @@ OBJECTIVE_FAMILY_VERL = (
     ROOT / "scripts" / "hpc" / "slurm_opd_math_objective_family_verl.sh"
 )
 VERL_SETUP = ROOT / "scripts" / "hpc" / "setup_opd_math_verl_env.sh"
+VERL_BIND = ROOT / "scripts" / "hpc" / "bind_opd_math_verl_env.sh"
 VERL_PREFLIGHT = ROOT / "scripts" / "hpc" / "slurm_opd_math_verl_preflight.sh"
 DEEPMATH_DOWNLOAD = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_download.sh"
 DEEPMATH_INVENTORY = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_inventory.sh"
@@ -39,6 +40,7 @@ def test_touched_evaluation_and_teacher_wrappers_have_valid_bash_syntax():
             str(OBJECTIVE_FAMILY_TRAIN),
             str(OBJECTIVE_FAMILY_VERL),
             str(VERL_SETUP),
+            str(VERL_BIND),
             str(VERL_PREFLIGHT),
             str(DEEPMATH_DOWNLOAD),
             str(DEEPMATH_INVENTORY),
@@ -234,6 +236,17 @@ def test_upstream_verl_gpu_preflight_requires_two_gpus_and_cached_student():
     assert "torch.cuda.device_count() != 2" in script
     assert 'revision="70d244cc86ccca08cf5af4e1e306ecf908b1ad5e"' in script
     assert "local_files_only=True" in script
+    assert 'HF_CACHE="${OPD_MATH_HF_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache}"' in script
+    assert 'HF_HOME="$HF_CACHE" HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1' in script
+    assert "--freeze-kind upstream_verl" in script
+
+
+def test_existing_upstream_verl_environment_rebind_is_verify_only():
+    script = VERL_BIND.read_text()
+    assert "uv pip install" not in script
+    assert "requirements.freeze.txt" in script
+    assert "Refusing to replace commit-specific pinned-veRL freeze" in script
+    assert 'stat -c %a "$ENV_DIR/requirements.freeze.txt"' in script
     assert "--freeze-kind upstream_verl" in script
 
 
