@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "stage": "deepmath_candidate_C_data_qualification",
+  "status": "failed_preregistered_data_gate",
+  "decision": "candidate_C_not_qualified",
+  "slurm_job_id": "108534",
+  "git_commit": "1a6dd77dfa260b05beee814f7e932091c7f71bc9",
+  "slurm_state": "COMPLETED",
+  "exit_code": "0:0",
+  "elapsed": "00:11:00",
+  "max_rss_kb": 16707460,
+  "audit_plan_sha256": "98d9efb3edd1e04c998ba42ea76caafd0183abb3e3eb7934c517dc740a605d81",
+  "audit_plan_canonical_sha256": "b485a4fb9d0173e3ed5e57983c010efb27d56ff39c02c5b6cb6a15aad66dc8ee",
+  "qualification_plan_sha256": "b4e5aeb26024f9fc34bd647c1eba7c9b52b97da7957f25519f9c79ff4476e6df",
+  "inventory_plan_sha256": "d5afea04eefc45d69ae5d08ea50191e3088d86578673da31fcbcb1ec9cdfcd8c",
+  "inventory_manifest_sha256": "abd30c1079e663f38a2c8af21c43009800eec904cc0cf1c60267c5024fe06c59",
+  "audit_manifest_sha256": "6a81cb47c61a6f6e2d3f6678d4a75cc8d9c11a853593be8c4be3ec768be77383",
+  "inventory_rows": 1237750,
+  "candidate_C_rows": 103022,
+  "candidate_C_quality": {
+    "missing_problems": 0,
+    "gold_parseable_rows": 103020,
+    "gold_unparseable_rows": 2,
+    "gold_parseable_fraction": 0.9999805866708081,
+    "preliminary_eligible_unique_clusters": 92835,
+    "unresolved_label_conflicts": 0
+  },
+  "prompt_gate": {
+    "maximum_allowed_tokens": 1536,
+    "maximum_observed_tokens": 1692,
+    "allowed_truncations": 0,
+    "observed_truncations": 2,
+    "passed": false,
+    "over_limit_records": [
+      {
+        "record_id": "C:train:9947a34e297853138a238fedf3795d58b6171b0d02260bef0aa9b242f2883614:100402",
+        "prompt_tokens": 1546
+      },
+      {
+        "record_id": "C:train:874e170eeb53f6ea8b0a0d97ac8cfbfbb6f03fdb644dae96b9246475897aed9a:102635",
+        "prompt_tokens": 1692
+      }
+    ]
+  },
+  "semantic_scan": {
+    "scan_complete": true,
+    "candidate_pairs": 10043843,
+    "review_edges": 53035,
+    "auto_cluster_edges": 7537,
+    "review_required_edges": 15224,
+    "unresolved_review_edges": 15224,
+    "skipped_large_bucket_events": 0,
+    "complete": false
+  },
+  "data_gate_blockers": [
+    "15224 semantic review edges unresolved",
+    "C prompt truncations exceed maximum"
+  ],
+  "independent_recomputation": {
+    "inventory_manifest_and_all_source_receipts_verified": true,
+    "scan_manifest_and_all_eight_registered_outputs_rehashed": true,
+    "recomputed_data_gate_passed": false,
+    "verification": "PASS"
+  },
+  "terminal_reason": "The prompt-bound gate is fixed at zero truncations and already fails on two candidate-C records. Semantic review cannot change this result, so finalization and raw-model feasibility cannot qualify C under this preregistration.",
+  "scan_root": "/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/deepmath_audit_1a6dd77_scan_v2",
+  "persistent_receipt_root": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/campaigns/deepmath_negative_qualification_1a6dd77_108534",
+  "teacher_training_authorized": false,
+  "scientific_use_allowed": false,
+  "downstream_actions_prohibited": [
+    "DeepMath raw-model feasibility gate",
+    "DeepMath role freeze",
+    "C teacher training or merge",
+    "C_C, C_O, O_C, or routed O/C OPD"
+  ],
+  "unaffected_campaign": "The independently preregistered O-to-M/O-to-O objective-family campaign continues; M remains a student/evaluation source only and never a teacher."
+}

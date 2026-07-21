@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "plan_id": "opd_math_objective_family_student_v1",
+  "status": "implementation_contract_not_launch_authorized",
+  "scientific_launch_authorized": false,
+  "objective_registry_sha256": "f3fc4e4a2e32759426bfefee601c0c4387f522bc0d51fd0f4c3c104dbeb62e2f",
+  "local_objective_ids": [
+    "task_rl",
+    "task_rl_k1_ungated_clip5",
+    "task_rl_k1_ungated_unclipped",
+    "task_rl_k1_gated_clip5_beta5",
+    "k1_bare_verl_compatible_clip10"
+  ],
+  "allowed_seeds": [0, 1, 2],
+  "common_fixed_config": {
+    "attn_implementation": "sdpa",
+    "budget_mode": "primary_matched",
+    "enable_thinking": false,
+    "grad_clip": 1.0,
+    "gradient_checkpointing": true,
+    "group_size": 4,
+    "learning_rate": 1e-05,
+    "lora_r": 32,
+    "max_new_tokens": 512,
+    "max_prompt_tokens": 1536,
+    "micro_prompts": 1,
+    "min_informative_group_fraction": 0.05,
+    "optimizer_steps": 100,
+    "temperature": 1.0,
+    "top_k": 0,
+    "top_p": 1.0
+  },
+  "objective_fields_from_registry": [
+    "task_reward_coef",
+    "k1_coef",
+    "advantage_clip",
+    "gap_gate_beta"
+  ],
+  "stage_rules": {
+    "plan_alone_authorizes_launch": false,
+    "shared_initialized_adapter_required_per_seed": true,
+    "exact_prompt_order_required_per_seed_source": true,
+    "all_fidelity_levels_required": true,
+    "fresh_O_teacher_gate_required": true,
+    "source_support_gate_required": true,
+    "sealed_preregistration_required": true
+  }
+}

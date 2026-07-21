@@ -58,6 +58,15 @@ finite-state receipt, a real-model stored rollout, objective-by-source one-step
 custody, and scientific preregistration remain incomplete; the trainer
 explicitly rejects a registry-selected scientific launch.
 
+The common five-local-objective recipe is now separately bound by
+`configs/opd_math/objective_family_student_plan.json`: seeds `0/1/2`, 100
+optimizer steps, group size four, non-thinking untruncated sampling, LoRA rank
+32, and the shared optimizer/token limits are exact. Objective coefficients,
+clipping, and gating remain authoritative in the objective registry. This plan
+is deliberately marked `scientific_launch_authorized=false`; it closes a
+configuration surface but does not replace the remaining fidelity receipts,
+support/O-teacher gates, or final experiment preregistration.
+
 ## Scientific questions
 
 1. Does adding an ungated sampled-K1 teacher auxiliary improve matched task RL?

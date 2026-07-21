@@ -118,6 +118,18 @@ manifest hash is
 This accepts materialization only; collision review, C parseability/prompt
 gates, role freezing, and raw-model feasibility remain closed.
 
+Global scan job `108534` then completed from commit `1a6dd77`, and independent
+verification rehashed the accepted inventory, all source receipts, the scan
+manifest, and all eight registered outputs. Candidate C fails the frozen
+prompt-bound gate: two prompts require `1,546` and `1,692` tokens while the
+maximum is `1,536` and the allowed truncation count is zero. The scan also has
+`15,224` unresolved semantic review edges, but reviewing them cannot reverse
+the prompt failure. DeepMath qualification is therefore closed as a genuine
+negative result; raw-model feasibility, C role freezing, C-teacher training,
+and the conditional O/C matrix do not launch. See
+[[deepmath-negative-qualification-2026-07-20]]. The independent O-to-M /
+O-to-O objective-family campaign remains active.
+
 ## Links
 
 [[opd-objective-family-expansion-2026-07-20]] -

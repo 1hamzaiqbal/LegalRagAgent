@@ -51,6 +51,7 @@ OPD_MATH_REQUIRED = (
     "wiki/snapshots/opd-program-goal-2026-07-20.md",
     "configs/opd_math/source_manifest.json",
     "configs/opd_math/objective_registry.json",
+    "configs/opd_math/objective_family_student_plan.json",
     "configs/opd_math/fidelity_plan.json",
     "configs/opd_math/deepmath_qualification_plan.json",
     "configs/opd_math/deepmath_inventory_plan.json",

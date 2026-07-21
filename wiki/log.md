@@ -644,3 +644,16 @@ rejecting nonfinite student/teacher/behavior log-probabilities and rewards.
 `configs/opd_math/fidelity_plan.json` makes the remaining real-model and
 12-cell one-step fidelity work explicit. These are plumbing gates, not task
 results.
+
+## [2026-07-20] DeepMath candidate C fails the frozen data gate
+
+Job `108534` completed the full global scan over `1,237,750` materialized rows.
+Independent replay verified every inventory receipt and all eight scan outputs.
+Candidate C has zero missing prompts, `99.9981%` gold parseability, and `92,835`
+preliminary eligible clusters, but two prompts exceed the preregistered
+`1,536`-token maximum (`1,546` and `1,692` tokens) while zero truncations were
+allowed. There are also `15,224` unresolved semantic review edges. Because
+semantic decisions cannot repair the prompt-bound failure, qualification closes
+without finalization, raw-model feasibility, C role freezing, or C training.
+The O-to-M / O-to-O objective-family campaign is unaffected. See
+[[deepmath-negative-qualification-2026-07-20]].

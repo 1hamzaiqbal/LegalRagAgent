@@ -46,6 +46,7 @@ try:
         verl_k1_policy_gradient_loss,
     )
     from .objective_registry import (
+        EXPECTED_OBJECTIVE_IDS,
         GATED_K1_OBJECTIVE_IDS,
         K1_OBJECTIVE_IDS,
         LOCAL_OBJECTIVE_IDS,
@@ -69,6 +70,7 @@ except ImportError:
         verl_k1_policy_gradient_loss,
     )
     from objective_registry import (  # type: ignore
+        EXPECTED_OBJECTIVE_IDS,
         GATED_K1_OBJECTIVE_IDS,
         K1_OBJECTIVE_IDS,
         LOCAL_OBJECTIVE_IDS,
@@ -119,6 +121,43 @@ MERGER_FILE = ROOT / "scripts" / "opd_math" / "merge_adapter.py"
 CANONICAL_STUDENT_TRAINING_PLAN = (
     ROOT / "configs" / "opd_math" / "student_training_plan.json"
 )
+OBJECTIVE_FAMILY_STUDENT_TRAINING_PLAN = (
+    ROOT / "configs" / "opd_math" / "objective_family_student_plan.json"
+)
+OBJECTIVE_FAMILY_ALLOWED_SEEDS = [0, 1, 2]
+OBJECTIVE_FAMILY_COMMON_CONFIG = {
+    "attn_implementation": "sdpa",
+    "budget_mode": "primary_matched",
+    "enable_thinking": False,
+    "grad_clip": 1.0,
+    "gradient_checkpointing": True,
+    "group_size": 4,
+    "learning_rate": 1e-5,
+    "lora_r": 32,
+    "max_new_tokens": 512,
+    "max_prompt_tokens": 1536,
+    "micro_prompts": 1,
+    "min_informative_group_fraction": 0.05,
+    "optimizer_steps": 100,
+    "temperature": 1.0,
+    "top_k": 0,
+    "top_p": 1.0,
+}
+OBJECTIVE_FAMILY_REGISTRY_FIELDS = [
+    "task_reward_coef",
+    "k1_coef",
+    "advantage_clip",
+    "gap_gate_beta",
+]
+OBJECTIVE_FAMILY_STAGE_RULES = {
+    "plan_alone_authorizes_launch": False,
+    "shared_initialized_adapter_required_per_seed": True,
+    "exact_prompt_order_required_per_seed_source": True,
+    "all_fidelity_levels_required": True,
+    "fresh_O_teacher_gate_required": True,
+    "source_support_gate_required": True,
+    "sealed_preregistration_required": True,
+}
 ENVIRONMENT_VERIFIER = ROOT / "scripts" / "opd_math" / "verify_environment.py"
 EXPECTED_TRAIN_PACKAGES = {
     "torch": "2.11.0",
@@ -232,6 +271,80 @@ def bind_registered_objective(args) -> dict | None:
 
 
 def validate_student_training_plan_contract(args) -> dict:
+    registry_contract = getattr(args, "objective_registry_contract", None)
+    if registry_contract is not None:
+        plan = json.loads(OBJECTIVE_FAMILY_STUDENT_TRAINING_PLAN.read_text())
+        expected_top = {
+            "schema_version",
+            "plan_id",
+            "status",
+            "scientific_launch_authorized",
+            "objective_registry_sha256",
+            "local_objective_ids",
+            "allowed_seeds",
+            "common_fixed_config",
+            "objective_fields_from_registry",
+            "stage_rules",
+        }
+        if set(plan) != expected_top or (
+            plan.get("schema_version") != 1
+            or plan.get("plan_id") != "opd_math_objective_family_student_v1"
+            or plan.get("status") != "implementation_contract_not_launch_authorized"
+            or plan.get("scientific_launch_authorized") is not False
+        ):
+            raise ValueError("objective-family student plan has an unsupported identity")
+        if plan.get("objective_registry_sha256") != registry_contract.get("registry_sha256"):
+            raise ValueError("objective-family student plan registry hash drifted")
+        if plan.get("local_objective_ids") != list(EXPECTED_OBJECTIVE_IDS[:-1]):
+            raise ValueError("objective-family student plan objective order drifted")
+        if plan.get("allowed_seeds") != OBJECTIVE_FAMILY_ALLOWED_SEEDS:
+            raise ValueError("objective-family student plan seed set drifted")
+        if plan.get("common_fixed_config") != OBJECTIVE_FAMILY_COMMON_CONFIG:
+            raise ValueError("objective-family student plan common recipe drifted")
+        if plan.get("objective_fields_from_registry") != OBJECTIVE_FAMILY_REGISTRY_FIELDS:
+            raise ValueError("objective-family student plan registry field set drifted")
+        if plan.get("stage_rules") != OBJECTIVE_FAMILY_STAGE_RULES:
+            raise ValueError("objective-family student plan stage rules drifted")
+        objective = registry_contract.get("objective")
+        if not isinstance(objective, dict) or objective.get("id") not in plan["local_objective_ids"]:
+            raise ValueError("objective-family student plan received an unregistered local objective")
+        actual = normalized_student_training_config(args)
+        common = plan.get("common_fixed_config")
+        objective_fields = plan.get("objective_fields_from_registry")
+        if not isinstance(common, dict):
+            raise ValueError("objective-family student plan common recipe is invalid")
+        common_actual = {
+            key: value
+            for key, value in actual.items()
+            if key not in set(objective_fields) | {"seed"}
+        }
+        if common_actual != common:
+            differing = sorted(
+                key for key in set(common_actual) | set(common) if common_actual.get(key) != common.get(key)
+            )
+            raise ValueError(
+                "objective-family training differs from the common matched recipe: "
+                f"fields={differing}"
+            )
+        if actual["seed"] not in OBJECTIVE_FAMILY_ALLOWED_SEEDS:
+            raise ValueError("objective-family training seed is not preregisterable")
+        for field in objective_fields:
+            if actual[field] != objective[field]:
+                raise ValueError(f"objective-family registry field drifted: {field}")
+        return {
+            "path": str(OBJECTIVE_FAMILY_STUDENT_TRAINING_PLAN.resolve()),
+            "sha256": sha256_file(OBJECTIVE_FAMILY_STUDENT_TRAINING_PLAN),
+            "plan_id": plan["plan_id"],
+            "plan_config_sha256": canonical_json_sha256(
+                {"common": common, "objective": objective, "seed": actual["seed"]}
+            ),
+            "actual_config_sha256": canonical_json_sha256(actual),
+            "config": actual,
+            "objective_registry_sha256": registry_contract["registry_sha256"],
+            "compliant": True,
+            "scientific_launch_authorized": False,
+        }
+
     plan = json.loads(CANONICAL_STUDENT_TRAINING_PLAN.read_text())
     if (
         plan.get("schema_version") != 1

@@ -23,6 +23,7 @@ from scripts.opd.opd_train import (
     optimizer_state_signature,
     parameter_update_l2,
     trainable_parameter_snapshot,
+    validate_student_training_plan_contract,
     validate_run_contract,
 )
 from scripts.opd.trace_metrics import reconstruct_step_metrics
@@ -369,3 +370,41 @@ def test_optimizer_step_custody_detects_update_and_nonfinite_state():
     first_tensor.fill_(float("nan"))
     with pytest.raises(RuntimeError, match="optimizer state tensor"):
         optimizer_state_signature(optimizer)
+
+
+def test_objective_family_training_plan_binds_common_recipe_and_registry_fields():
+    args = Namespace(
+        objective_id="task_rl_k1_ungated_unclipped",
+        mode=None,
+        task_reward_coef=99.0,
+        k1_coef=99.0,
+        advantage_clip=99.0,
+        gap_gate_beta=99.0,
+        attn_implementation="sdpa",
+        budget_mode="primary_matched",
+        enable_thinking=False,
+        grad_clip=1.0,
+        gradient_checkpointing=True,
+        group_size=4,
+        lr=1e-5,
+        lora=32,
+        max_new_tokens=512,
+        max_prompt_tokens=1536,
+        micro_prompts=1,
+        min_informative_group_fraction=0.05,
+        steps=100,
+        seed=2,
+        temperature=1.0,
+        top_k=0,
+        top_p=1.0,
+    )
+    bind_registered_objective(args)
+    contract = validate_student_training_plan_contract(args)
+    assert contract["plan_id"] == "opd_math_objective_family_student_v1"
+    assert contract["config"]["advantage_clip"] is None
+    assert contract["config"]["seed"] == 2
+    assert contract["scientific_launch_authorized"] is False
+
+    args.seed = 3
+    with pytest.raises(ValueError, match="seed"):
+        validate_student_training_plan_contract(args)
