@@ -85,21 +85,38 @@ implementation control, not the primary scientific claim.
 Student support is a rollout-feasibility gate. It does not rehabilitate the
 failed M teacher and is not held-out task-performance evidence.
 
-## Fresh O-teacher chain now running
+## Fresh O-teacher qualification in progress
 
-- Teacher training job `108609` is the fresh d89 O teacher.
-- Timing base/trained evaluations `108619` and `108621` depend on successful
-  teacher completion.
-- CPU timing merges `108620` and `108622` depend on their corresponding
-  evaluations.
-- Planner job `108623` depends on both merges and will seal the exact full-O
-  shard count and array specification.
+- Fresh O teacher job `108609` completed `0:0`; its adapter remains at
+  `teachers/O/run_108609/final_adapter` and is not yet a promoted checkpoint.
+- Base/trained timing evaluations `108619` and `108621` and their CPU merges
+  `108620` and `108622` completed `0:0`.
+- Planner `108623` failed before geometry because it was given a merged timing
+  summary instead of the required shard summary. It produced no full
+  evaluation, gate, merge, or student result. Its immutable terminal record is
+  under `evaluation_plans/O_gap_d89ba3d_v1/`.
+- Corrected outcome-blind planner `108916` completed `0:0`. Its immutable v2
+  plan is SHA-256
+  `30ea4a013927dad397ae6071592225be91919b160c3494d9d92b0c76d96efb4e`
+  and fixes identical five-shard `0-4%4` geometry for both arms.
+- Full base array `108924` and trained array `108929` were submitted on
+  2026-07-21 with that exact geometry over all 4,585 O teacher-gap records.
+  Their canonical CPU merges are `108931` and `108932`, dependency-held on the
+  corresponding complete array.
 
-The timing prefix and planner are not gap evidence. After the plan exists, the
-complete 4,585-record base and trained O evaluations must run with identical
-planned geometry, be CPU-merged, and feed a fresh deterministic teacher-gap
-gate. The primary and independent recomputations must agree exactly. Only a
-passing gate can authorize one fresh O merge and its independent custody audit.
+The outcome-blind launch intent and scheduler submission custody are sealed at
+`ledgers/O_gap_full_d89ba3d_v1/` and
+`ledgers/O_gap_full_d89ba3d_v1_submission/`. The intent SHA-256 is
+`6270f660f1ee73595c583e81ec3e9091620cd0652be7382a8673507105e72993`;
+the submission receipt SHA-256 is
+`e8cdb22a1e5beee32898971dd5c5feb567e9231c91de96f55728998cb7cfac5e`.
+No evaluation score or completion was inspected when these were created.
+
+The timing plan and live arrays are not gap evidence. Both complete evaluations
+must be CPU-merged and feed two distinct canonical deterministic teacher-gap
+jobs. The primary and independent computations must agree byte-for-byte and
+pass exact recomputation. Only that passing gate can authorize one fresh O
+merge and its independent custody audit.
 
 ## Release-controller custody
 
@@ -125,8 +142,8 @@ Frozen SHA-256 values:
 - upstream-veRL training wrapper:
   `48429fae630daa21a67d31eb4318fa6cfe8599c35cbe1fc6311676103363fc70`.
 
-These bytes are committed on `codex/opd_objective_family_release_v1` at
-`1ce07d7` and sealed on EIT at
+These release bytes come from `codex/opd_objective_family_release_v1` at
+`b25f4e4` and are sealed on EIT at
 `/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/releases/objective_family_v1_b9a02835/`.
 The predecessor `objective_family_v1_58deff52` release remains immutable
 provenance but is not the launch program for this campaign.
