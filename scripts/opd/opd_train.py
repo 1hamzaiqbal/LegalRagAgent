@@ -44,6 +44,15 @@ try:
         sampled_k1_estimate,
         task_reward_policy_loss,
     )
+    from .objective_registry import (
+        GATED_K1_OBJECTIVE_IDS,
+        K1_OBJECTIVE_IDS,
+        LOCAL_OBJECTIVE_IDS,
+        TASK_AND_K1_OBJECTIVE_IDS,
+        TASK_REWARD_OBJECTIVE_IDS,
+        load_objective_registry,
+        resolve_objective,
+    )
     from .trace_metrics import (
         reconstruct_step_metrics,
         validate_recorded_step_metrics,
@@ -56,6 +65,15 @@ except ImportError:
         reverse_kl_score_function_loss,
         sampled_k1_estimate,
         task_reward_policy_loss,
+    )
+    from objective_registry import (  # type: ignore
+        GATED_K1_OBJECTIVE_IDS,
+        K1_OBJECTIVE_IDS,
+        LOCAL_OBJECTIVE_IDS,
+        TASK_AND_K1_OBJECTIVE_IDS,
+        TASK_REWARD_OBJECTIVE_IDS,
+        load_objective_registry,
+        resolve_objective,
     )
     from trace_metrics import (  # type: ignore
         reconstruct_step_metrics,
@@ -86,9 +104,13 @@ from scripts.opd_math.verify_environment import (
 
 
 LORA_TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
-K1_MODES = {"opd", "opd_gated", "k1_bare", "k1_gap_only", "task_rl_k1_gap"}
-GATED_K1_MODES = {"opd_gated", "k1_gap_only", "task_rl_k1_gap"}
-TASK_REWARD_MODES = {"task_rl", "task_rl_k1_gap"}
+LEGACY_K1_MODES = {"opd", "opd_gated", "k1_bare", "k1_gap_only", "task_rl_k1_gap"}
+LEGACY_GATED_K1_MODES = {"opd_gated", "k1_gap_only", "task_rl_k1_gap"}
+LEGACY_TASK_REWARD_MODES = {"task_rl", "task_rl_k1_gap"}
+K1_MODES = LEGACY_K1_MODES | set(K1_OBJECTIVE_IDS)
+GATED_K1_MODES = LEGACY_GATED_K1_MODES | set(GATED_K1_OBJECTIVE_IDS)
+TASK_REWARD_MODES = LEGACY_TASK_REWARD_MODES | set(TASK_REWARD_OBJECTIVE_IDS)
+TASK_AND_K1_MODES = {"task_rl_k1_gap"} | set(TASK_AND_K1_OBJECTIVE_IDS)
 TEACHER_MODES = K1_MODES | {"kd"}
 MERGED_TEACHER_SCHEMA = "opd_math_merged_teacher_v3"
 MERGER_FILE = ROOT / "scripts" / "opd_math" / "merge_adapter.py"
@@ -166,6 +188,45 @@ def normalized_student_training_config(args) -> dict:
         "top_k": args.top_k,
         "top_p": args.top_p,
     }
+
+
+def bind_registered_objective(args) -> dict | None:
+    """Bind a registry ID to exact coefficients and local execution semantics.
+
+    Free-form loss flags are not an authorization surface for successor runs.
+    Selecting ``--objective-id`` makes the committed registry authoritative and
+    overwrites the corresponding argparse defaults before validation or model
+    loading.  The registry still cannot authorize a scientific launch by
+    itself; that fail-closed boundary is enforced in ``validate_run_contract``.
+    """
+
+    objective_id = getattr(args, "objective_id", None)
+    if objective_id is None:
+        return None
+    registry = load_objective_registry()
+    objective = resolve_objective(objective_id, registry=registry)
+    if objective_id not in LOCAL_OBJECTIVE_IDS or objective.get("local_executable") is not True:
+        raise ValueError(
+            f"objective {objective_id} must run through the pinned upstream veRL launcher"
+        )
+    args.mode = objective_id
+    args.task_reward_coef = objective["task_reward_coef"]
+    args.k1_coef = objective["k1_coef"]
+    args.advantage_clip = objective["advantage_clip"]
+    args.gap_gate_beta = objective["gap_gate_beta"]
+    contract = {
+        "registry_id": registry["registry_id"],
+        "registry_path": registry["path"],
+        "registry_sha256": registry["sha256"],
+        "registry_canonical_sha256": registry["canonical_sha256"],
+        "registry_status": registry["status"],
+        "registry_alone_authorizes_scientific_launch": registry[
+            "registry_alone_authorizes_scientific_launch"
+        ],
+        "objective": objective,
+    }
+    args.objective_registry_contract = contract
+    return contract
 
 
 def validate_student_training_plan_contract(args) -> dict:
@@ -570,11 +631,34 @@ def completion_logprobs_for_samples(model, tok, samples: list[dict], device: str
     return student_lps, teacher, mask
 
 
-def training_loss_for_samples(model, tok, samples: list[dict], args, device: str):
-    needs_teacher = args.mode in K1_MODES
-    student_lps, teacher, mask = completion_logprobs_for_samples(
-        model, tok, samples, device, require_teacher=needs_teacher
-    )
+def objective_loss_from_logprobs(
+    student_lps: torch.Tensor,
+    teacher_lps: torch.Tensor | None,
+    mask: torch.Tensor,
+    *,
+    mode: str,
+    task_reward_coef: float,
+    k1_coef: float,
+    advantage_clip: float | None,
+    gap_gate_beta: float | None,
+    rewards: torch.Tensor | None = None,
+    group_ids: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, dict]:
+    """Execute one registered or legacy local objective on aligned logprobs."""
+
+    if mode not in TASK_REWARD_MODES | K1_MODES:
+        raise ValueError(f"unsupported local objective mode: {mode}")
+    needs_teacher = mode in K1_MODES
+    needs_task_reward = mode in TASK_REWARD_MODES
+    if needs_teacher and teacher_lps is None:
+        raise ValueError(f"mode {mode} requires teacher log-probabilities")
+    if not needs_teacher and teacher_lps is not None:
+        raise ValueError(f"mode {mode} unexpectedly received teacher log-probabilities")
+    if needs_task_reward and (rewards is None or group_ids is None):
+        raise ValueError(f"mode {mode} requires task rewards and group IDs")
+    if not needs_task_reward and (rewards is not None or group_ids is not None):
+        raise ValueError(f"mode {mode} unexpectedly received task rewards")
+
     zero = student_lps.sum() * 0.0
     reverse_kl_sf_loss = zero
     task_loss = zero
@@ -583,23 +667,23 @@ def training_loss_for_samples(model, tok, samples: list[dict], args, device: str
     positive_gap_fraction = None
     reward_mean = None
     informative_group_fraction = None
-    rewards: list[float] | None = None
-    reward_statuses: list[str] | None = None
 
     if needs_teacher:
-        gate_beta = args.gap_gate_beta if args.mode in GATED_K1_MODES else None
+        gate_beta = gap_gate_beta if mode in GATED_K1_MODES else None
         reverse_kl_sf_loss = reverse_kl_score_function_loss(
             student_lps,
-            teacher,
+            teacher_lps,
             mask,
-            advantage_clip=args.advantage_clip,
+            advantage_clip=advantage_clip,
             ratio_clip_eps=None,
             gap_gate_beta=gate_beta,
         )
-        k1_value = sampled_k1_estimate(student_lps, teacher, mask)
-        gap = teacher.detach() - student_lps.detach()
-        executed_advantage = torch.clamp(
-            gap, min=-args.advantage_clip, max=args.advantage_clip
+        k1_value = sampled_k1_estimate(student_lps, teacher_lps, mask)
+        gap = teacher_lps.detach() - student_lps.detach()
+        executed_advantage = (
+            gap
+            if advantage_clip is None
+            else torch.clamp(gap, min=-advantage_clip, max=advantage_clip)
         )
         positive_gap_fraction = float(gap[mask].gt(0).float().mean().item())
         gate_mean = (
@@ -608,21 +692,23 @@ def training_loss_for_samples(model, tok, samples: list[dict], args, device: str
             else float(torch.sigmoid(gate_beta * executed_advantage)[mask].mean().item())
         )
 
-    if args.mode in TASK_REWARD_MODES:
-        rewards, reward_statuses = rewards_for_samples(samples)
-        reward_tensor = torch.tensor(rewards, dtype=torch.float32, device=device)
-        group_ids = torch.tensor([int(s["group_id"]) for s in samples], dtype=torch.long, device=device)
+    if needs_task_reward:
         task_loss, _, informative = task_reward_policy_loss(
-            student_lps, reward_tensor, group_ids, mask
+            student_lps, rewards, group_ids, mask
         )
-        reward_mean = float(reward_tensor.mean().item())
+        reward_mean = float(rewards.mean().item())
         informative_group_fraction = float(informative.float().mean().item())
 
-    if args.mode == "task_rl":
-        total = args.task_reward_coef * task_loss
-    elif args.mode == "task_rl_k1_gap":
-        total = args.task_reward_coef * task_loss + args.k1_coef * reverse_kl_sf_loss
+    if mode == "task_rl":
+        total = task_reward_coef * task_loss
+    elif mode in TASK_AND_K1_MODES:
+        total = task_reward_coef * task_loss + k1_coef * reverse_kl_sf_loss
+    elif mode in K1_OBJECTIVE_IDS:
+        total = k1_coef * reverse_kl_sf_loss
     else:
+        # Preserve the pre-registry diagnostic behavior. The legacy K1 modes
+        # historically reported the unscaled surrogate; registered objectives
+        # carry their explicit coefficient in the branch above.
         total = reverse_kl_sf_loss
 
     metrics = {
@@ -635,6 +721,37 @@ def training_loss_for_samples(model, tok, samples: list[dict], args, device: str
         "informative_group_fraction": informative_group_fraction,
         "tokens": int(mask.sum().item()),
     }
+    return total, metrics
+
+
+def training_loss_for_samples(model, tok, samples: list[dict], args, device: str):
+    needs_teacher = args.mode in K1_MODES
+    student_lps, teacher, mask = completion_logprobs_for_samples(
+        model, tok, samples, device, require_teacher=needs_teacher
+    )
+    rewards: list[float] | None = None
+    reward_statuses: list[str] | None = None
+    reward_tensor = group_ids = None
+    if args.mode in TASK_REWARD_MODES:
+        rewards, reward_statuses = rewards_for_samples(samples)
+        reward_tensor = torch.tensor(rewards, dtype=torch.float32, device=device)
+        group_ids = torch.tensor(
+            [int(sample["group_id"]) for sample in samples],
+            dtype=torch.long,
+            device=device,
+        )
+    total, metrics = objective_loss_from_logprobs(
+        student_lps,
+        teacher if needs_teacher else None,
+        mask,
+        mode=args.mode,
+        task_reward_coef=args.task_reward_coef,
+        k1_coef=args.k1_coef,
+        advantage_clip=args.advantage_clip,
+        gap_gate_beta=args.gap_gate_beta,
+        rewards=reward_tensor,
+        group_ids=group_ids,
+    )
     return total, metrics, student_lps, teacher if needs_teacher else None, mask, rewards, reward_statuses
 
 
@@ -1576,16 +1693,30 @@ def validate_run_contract(
         raise ValueError("--group-size must be positive")
     if args.micro_prompts <= 0:
         raise ValueError("--micro-prompts must be positive")
-    if not math.isfinite(args.advantage_clip) or args.advantage_clip <= 0:
-        raise ValueError("--advantage-clip must be finite and positive")
+    if args.advantage_clip is not None and (
+        not math.isfinite(args.advantage_clip) or args.advantage_clip <= 0
+    ):
+        raise ValueError("--advantage-clip must be finite and positive when present")
+    if args.mode in K1_MODES and args.advantage_clip is None and args.mode not in {
+        "task_rl_k1_ungated_unclipped"
+    }:
+        raise ValueError("only the registered unclipped objective may omit advantage clipping")
     if not 0.0 <= args.min_informative_group_fraction <= 1.0:
         raise ValueError("--min-informative-group-fraction must be in [0, 1]")
     if args.task_reward_coef <= 0 and args.mode in TASK_REWARD_MODES:
         raise ValueError("task-reward modes require --task-reward-coef > 0")
     if args.k1_coef <= 0 and args.mode in K1_MODES:
         raise ValueError("sampled reverse-KL modes require --k1-coef > 0")
-    if args.gap_gate_beta <= 0 and args.mode in GATED_K1_MODES:
+    if args.mode in GATED_K1_MODES and (
+        args.gap_gate_beta is None or args.gap_gate_beta <= 0
+    ):
         raise ValueError("gap-gated reverse-KL modes require --gap-gate-beta > 0")
+    objective_registry_contract = getattr(args, "objective_registry_contract", None)
+    if objective_registry_contract is not None and not args.allow_ungated_smoke:
+        raise ValueError(
+            "registered objective-family scientific launch is blocked until the sealed "
+            "successor preregistration and custody validator are implemented"
+        )
     if args.teacher_connect_timeout <= 0 or args.teacher_read_timeout <= 0 or args.teacher_retries <= 0:
         raise ValueError("teacher timeout and retry settings must be positive")
     if args.mode in TEACHER_MODES and (not args.teacher_url or not args.teacher_model):
@@ -1690,6 +1821,7 @@ def validate_run_contract(
         "environment_contract": None,
         "student_training_plan": student_training_plan,
         "prelaunch_receipt": prelaunch_receipt,
+        "objective_registry": objective_registry_contract,
     }
     if args.mode in TASK_REWARD_MODES:
         if not args.allow_ungated_smoke:
@@ -2206,13 +2338,19 @@ def recompute_student_trace_geometry(
     for row in sample_rows:
         samples_by_step[int(row["step"])].append(row)
     for step, recorded in enumerate(step_rows, 1):
+        gap_gate_beta = effective_loss_config["gap_gate_beta"]
+        advantage_clip = effective_loss_config["advantage_clip"]
         reconstructed = reconstruct_step_metrics(
             samples_by_step[step],
             mode=mode,
             task_reward_coef=float(effective_loss_config["task_reward_coef"]),
             k1_coef=float(effective_loss_config["k1_coef"]),
-            gap_gate_beta=float(effective_loss_config["gap_gate_beta"]),
-            advantage_clip=float(effective_loss_config["advantage_clip"]),
+            gap_gate_beta=(
+                None if gap_gate_beta is None else float(gap_gate_beta)
+            ),
+            advantage_clip=(
+                None if advantage_clip is None else float(advantage_clip)
+            ),
         )
         validate_recorded_step_metrics(
             recorded,
@@ -2238,6 +2376,7 @@ def recompute_student_trace_geometry(
 
 
 def run(args) -> None:
+    bind_registered_objective(args)
     code_state_start = git_state()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     log(f"device={device} student={args.student} mode={args.mode}")
@@ -2293,15 +2432,21 @@ def run(args) -> None:
     initial_parameter_signature = trainable_parameter_signature(model)
     out_path.mkdir(parents=True, exist_ok=True)
     trace_dir.mkdir(parents=True, exist_ok=True)
-    objective_contract = {
-        "task_rl": "grouped_verifiable_math_task_reward_v1",
-        "task_rl_k1_gap": "grouped_task_reward_plus_clipped_positive_gap_k1_value_reverse_kl_sf_surrogate_v1",
-        "kd": "teacher_completion_supervised_nll_v1",
-    }.get(args.mode, "sampled_k1_value_reverse_kl_sf_diagnostic_v1")
+    registry_contract = getattr(args, "objective_registry_contract", None)
+    objective_contract = (
+        registry_contract["objective"]["objective_contract"]
+        if registry_contract is not None
+        else {
+            "task_rl": "grouped_verifiable_math_task_reward_v1",
+            "task_rl_k1_gap": "grouped_task_reward_plus_clipped_positive_gap_k1_value_reverse_kl_sf_surrogate_v1",
+            "kd": "teacher_completion_supervised_nll_v1",
+        }.get(args.mode, "sampled_k1_value_reverse_kl_sf_diagnostic_v1")
+    )
     run_manifest = {
         "schema_version": 1,
         "objective": args.mode,
         "objective_contract": objective_contract,
+        "objective_registry": registry_contract,
         "status": "started",
         "intended_scientific_run": intended_scientific_run,
         "scientific_use_allowed": False,
@@ -2783,10 +2928,18 @@ def run(args) -> None:
 
 def parse_args():
     ap = argparse.ArgumentParser()
-    ap.add_argument(
+    objective_selector = ap.add_mutually_exclusive_group(required=True)
+    objective_selector.add_argument(
         "--mode",
         choices=["task_rl", "task_rl_k1_gap", "k1_bare", "k1_gap_only", "opd", "opd_gated", "kd"],
-        required=True,
+    )
+    objective_selector.add_argument(
+        "--objective-id",
+        choices=sorted(LOCAL_OBJECTIVE_IDS | (K1_OBJECTIVE_IDS - LOCAL_OBJECTIVE_IDS)),
+        help=(
+            "bind exact semantics from configs/opd_math/objective_registry.json; "
+            "the upstream veRL objective is rejected by this local trainer"
+        ),
     )
     ap.add_argument("--task-file", required=True)
     ap.add_argument("--task-limit", type=int, default=0)

@@ -9,6 +9,18 @@ status: maintained
 
 # Wiki Op Log (append-only)
 
+## [2026-07-20] implementation | OPD program goal and qualification contracts
+
+Recorded [[opd-program-goal-2026-07-20]] as the active execution boundary. The
+O-teacher objective-family campaign remains the first scientific target on M
+and O student distributions. DeepMath is now an explicitly pinned, data-only
+candidate `C` for a later fresh O/C matrix, with MATH reserved as external
+transfer in that successor. Added a six-objective registry, local analytic and
+trace-reconstruction coverage, and an outcome-blind DeepMath plan/raw-file
+verifier. Neither registry authorizes scientific training; no expanded student
+arm or C teacher has launched. The historical M teacher, `M_M`, and `M_O`
+remain excluded.
+
 ## [2026-07-20] decision | M teacher semantics and second-source audit
 Recorded [[opd-m-teacher-clarification-and-source-options-2026-07-20]] to
 separate the failed M-trained teacher from valid MATH student/evaluation use.

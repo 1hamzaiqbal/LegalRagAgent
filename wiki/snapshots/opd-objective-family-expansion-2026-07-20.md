@@ -4,7 +4,7 @@ type: snapshot
 tags: [opd, math, objective-ablation, verl, preregistration, eit]
 created: 2026-07-20
 updated: 2026-07-20
-status: design only; no expanded arm launched or preregistered
+status: implementation in progress; registry and initial analytic tests landed; no expanded arm launched or preregistered
 ---
 
 # OPD objective-family expansion - 2026-07-20
@@ -38,6 +38,16 @@ Nothing in the terminal `ae90bc7` namespace is modified or reinterpreted:
 The working campaign name is `opd_math_objective_family_v1`. The exact
 campaign root and Git commit will be written only when the implementation and
 fidelity tests are complete.
+
+Implementation checkpoint: the declarative registry now lives at
+`configs/opd_math/objective_registry.json`, binds nullable clipping and exact
+coefficients into the local trainer, and records both byte and canonical
+hashes. Initial CPU tests execute and independently reconstruct all five local
+objectives and distinguish clipped, unclipped, and gated gradients. This is a
+partial Level-1 result only. Stored-rollout agreement, direct import from the
+pinned veRL checkout, finite-state tests, one-step custody, and scientific
+preregistration remain incomplete; the trainer explicitly rejects a
+registry-selected scientific launch.
 
 ## Scientific questions
 

@@ -48,7 +48,10 @@ STALE_POINTERS = (
 )
 OPD_MATH_REQUIRED = (
     "wiki/tracks/opd-math-source-transfer.md",
+    "wiki/snapshots/opd-program-goal-2026-07-20.md",
     "configs/opd_math/source_manifest.json",
+    "configs/opd_math/objective_registry.json",
+    "configs/opd_math/deepmath_qualification_plan.json",
     "configs/opd_math/teacher_training_plan.json",
     "requirements/opd-math.txt",
     "requirements/opd-math-serve.txt",
@@ -59,6 +62,8 @@ OPD_MATH_REQUIRED = (
     "scripts/opd_math/quality_gates.py",
     "scripts/opd_math/tokenizer_contract.py",
     "scripts/opd_math/server_scoring_probe.py",
+    "scripts/opd_math/deepmath_qualification.py",
+    "scripts/opd/objective_registry.py",
     "scripts/hpc/setup_opd_math_env.sh",
     "scripts/hpc/setup_opd_math_serve_env.sh",
     "scripts/hpc/slurm_opd_math_cache_models.sh",

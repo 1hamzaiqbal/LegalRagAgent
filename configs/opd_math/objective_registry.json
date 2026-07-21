@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "registry_id": "opd_math_objective_family_v1",
+  "status": "implementation_only_not_launch_authorized",
+  "registry_alone_authorizes_scientific_launch": false,
+  "upstream_verl_commit": "6a6242f3d8ec7d9f8b4936f4905144707d91fe3b",
+  "objectives": [
+    {
+      "id": "task_rl",
+      "implementation": "local",
+      "local_executable": true,
+      "task_reward": true,
+      "sampled_k1": false,
+      "task_reward_coef": 1.0,
+      "k1_coef": 0.0,
+      "advantage_clip": null,
+      "gap_gate_beta": null,
+      "loss_aggregation": "sequence_mean_task",
+      "objective_contract": "grouped_verifiable_math_task_reward_v2"
+    },
+    {
+      "id": "task_rl_k1_ungated_clip5",
+      "implementation": "local",
+      "local_executable": true,
+      "task_reward": true,
+      "sampled_k1": true,
+      "task_reward_coef": 1.0,
+      "k1_coef": 0.01,
+      "advantage_clip": 5.0,
+      "gap_gate_beta": null,
+      "loss_aggregation": "sequence_mean_task_plus_response_token_mean_k1",
+      "objective_contract": "grouped_task_reward_plus_clipped_ungated_sampled_k1_score_function_v1"
+    },
+    {
+      "id": "task_rl_k1_ungated_unclipped",
+      "implementation": "local",
+      "local_executable": true,
+      "task_reward": true,
+      "sampled_k1": true,
+      "task_reward_coef": 1.0,
+      "k1_coef": 0.01,
+      "advantage_clip": null,
+      "gap_gate_beta": null,
+      "loss_aggregation": "sequence_mean_task_plus_response_token_mean_k1",
+      "objective_contract": "grouped_task_reward_plus_unclipped_ungated_sampled_k1_score_function_v1"
+    },
+    {
+      "id": "task_rl_k1_gated_clip5_beta5",
+      "implementation": "local",
+      "local_executable": true,
+      "task_reward": true,
+      "sampled_k1": true,
+      "task_reward_coef": 1.0,
+      "k1_coef": 0.01,
+      "advantage_clip": 5.0,
+      "gap_gate_beta": 5.0,
+      "loss_aggregation": "sequence_mean_task_plus_response_token_mean_k1",
+      "objective_contract": "grouped_task_reward_plus_clipped_positive_gap_gated_sampled_k1_score_function_v1"
+    },
+    {
+      "id": "k1_bare_verl_compatible_clip10",
+      "implementation": "local",
+      "local_executable": true,
+      "task_reward": false,
+      "sampled_k1": true,
+      "task_reward_coef": 0.0,
+      "k1_coef": 1.0,
+      "advantage_clip": 10.0,
+      "gap_gate_beta": null,
+      "loss_aggregation": "response_token_mean",
+      "objective_contract": "bare_sampled_k1_policy_gradient_clip10_local_verl_compatible_v1"
+    },
+    {
+      "id": "k1_verl_upstream_clip10",
+      "implementation": "upstream_verl",
+      "local_executable": false,
+      "task_reward": false,
+      "sampled_k1": true,
+      "task_reward_coef": 0.0,
+      "k1_coef": 1.0,
+      "advantage_clip": 10.0,
+      "gap_gate_beta": null,
+      "loss_aggregation": "response_token_mean",
+      "objective_contract": "bare_sampled_k1_policy_gradient_clip10_upstream_verl_6a6242f_v1"
+    }
+  ]
+}

@@ -31,6 +31,9 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[opd-objective-family-expansion-2026-07-20]] — design-stage successor
   matrix for task RL, ungated/clipped/gated/bare K1, and pinned-veRL fidelity;
   no expanded arm has launched
+- [[opd-program-goal-2026-07-20]] — active three-step execution goal: O_M/O_O
+  objective family, outcome-blind DeepMath qualification, then conditional
+  fresh O/C source transfer; the failed M teacher remains permanently excluded
 - [[opd-m-teacher-clarification-and-source-options-2026-07-20]] — exact meaning
   of the failed M teacher gate, allowed MATH roles, and an outcome-blind audit
   of candidate second teacher sources

@@ -116,6 +116,15 @@ not. Do not launch a 100-step expanded student arm until the declarative
 objective registry, cross-veRL fidelity tests, three-seed preregistration, and
 generalized outcome-blind readout pass on one final commit.
 
+The active three-step boundary is recorded in
+`wiki/snapshots/opd-program-goal-2026-07-20.md`. DeepMath qualification uses
+`configs/opd_math/deepmath_qualification_plan.json` and remains data-only until
+every collision, label/verifier, prompt-bound, and raw-model feasibility gate
+passes. The plan and a successful raw-byte check never authorize a C teacher.
+If C eventually passes, the O/C matrix is a new campaign with fresh O and C
+teachers; MATH is external transfer only and the failed M teacher remains
+unavailable.
+
 ## Recovery
 
 - Git history: `codex/scope_old`, `codex/archive/pre_cleanup_20260717`, and

@@ -13,10 +13,33 @@ import math
 from collections import defaultdict
 from typing import Any, Iterable, Mapping
 
+try:
+    from .objective_registry import (
+        GATED_K1_OBJECTIVE_IDS,
+        K1_OBJECTIVE_IDS,
+        TASK_AND_K1_OBJECTIVE_IDS,
+        TASK_REWARD_OBJECTIVE_IDS,
+    )
+except ImportError:
+    from objective_registry import (  # type: ignore
+        GATED_K1_OBJECTIVE_IDS,
+        K1_OBJECTIVE_IDS,
+        TASK_AND_K1_OBJECTIVE_IDS,
+        TASK_REWARD_OBJECTIVE_IDS,
+    )
 
-TASK_REWARD_MODES = {"task_rl", "task_rl_k1_gap"}
-K1_MODES = {"opd", "opd_gated", "k1_bare", "k1_gap_only", "task_rl_k1_gap"}
-GATED_K1_MODES = {"opd_gated", "k1_gap_only", "task_rl_k1_gap"}
+TASK_REWARD_MODES = {"task_rl", "task_rl_k1_gap"} | set(TASK_REWARD_OBJECTIVE_IDS)
+K1_MODES = {
+    "opd",
+    "opd_gated",
+    "k1_bare",
+    "k1_gap_only",
+    "task_rl_k1_gap",
+} | set(K1_OBJECTIVE_IDS)
+GATED_K1_MODES = {"opd_gated", "k1_gap_only", "task_rl_k1_gap"} | set(
+    GATED_K1_OBJECTIVE_IDS
+)
+TASK_AND_K1_MODES = {"task_rl_k1_gap"} | set(TASK_AND_K1_OBJECTIVE_IDS)
 REWARD_ADVANTAGE_EPS = 1e-6
 STEP_METRIC_ABS_TOLERANCE = 1e-5
 STEP_METRIC_REL_TOLERANCE = 1e-6
@@ -52,8 +75,8 @@ def reconstruct_step_metrics(
     mode: str,
     task_reward_coef: float,
     k1_coef: float,
-    gap_gate_beta: float,
-    advantage_clip: float,
+    gap_gate_beta: float | None,
+    advantage_clip: float | None,
 ) -> dict[str, float | int | None]:
     """Reconstruct one step's recorded scalar metrics from its sample rows."""
 
@@ -64,10 +87,16 @@ def reconstruct_step_metrics(
         raise ValueError(f"unsupported trace-metric mode: {mode}")
     task_reward_coef = _finite_number(task_reward_coef, "task_reward_coef")
     k1_coef = _finite_number(k1_coef, "k1_coef")
-    gap_gate_beta = _finite_number(gap_gate_beta, "gap_gate_beta")
-    advantage_clip = _finite_number(advantage_clip, "advantage_clip")
-    if advantage_clip <= 0 or (mode in GATED_K1_MODES and gap_gate_beta <= 0):
-        raise ValueError("gap-gate and advantage-clip coefficients must be positive")
+    if gap_gate_beta is not None:
+        gap_gate_beta = _finite_number(gap_gate_beta, "gap_gate_beta")
+    if advantage_clip is not None:
+        advantage_clip = _finite_number(advantage_clip, "advantage_clip")
+    if advantage_clip is not None and advantage_clip <= 0:
+        raise ValueError("advantage_clip must be positive when present")
+    if mode in GATED_K1_MODES and (
+        gap_gate_beta is None or gap_gate_beta <= 0
+    ):
+        raise ValueError("gated objectives require a positive gap_gate_beta")
 
     student_by_sample: list[list[float]] = []
     teacher_by_sample: list[list[float] | None] = []
@@ -147,9 +176,13 @@ def reconstruct_step_metrics(
                 student, teacher, strict=True
             ):
                 gap = teacher_logprob - student_logprob
-                clipped_gap = min(max(gap, -advantage_clip), advantage_clip)
+                clipped_gap = (
+                    gap
+                    if advantage_clip is None
+                    else min(max(gap, -advantage_clip), advantage_clip)
+                )
                 gate = (
-                    _sigmoid(gap_gate_beta * clipped_gap)
+                    _sigmoid(float(gap_gate_beta) * clipped_gap)
                     if mode in GATED_K1_MODES
                     else 1.0
                 )
@@ -164,9 +197,12 @@ def reconstruct_step_metrics(
 
     if mode == "task_rl":
         total_loss = task_reward_coef * task_loss
-    elif mode == "task_rl_k1_gap":
+    elif mode in TASK_AND_K1_MODES:
         total_loss = task_reward_coef * task_loss + k1_coef * reverse_surrogate
+    elif mode in K1_OBJECTIVE_IDS:
+        total_loss = k1_coef * reverse_surrogate
     else:
+        # Preserve archived pre-registry diagnostic semantics.
         total_loss = reverse_surrogate
 
     return {
