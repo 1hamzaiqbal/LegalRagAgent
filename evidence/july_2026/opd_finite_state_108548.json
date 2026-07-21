@@ -1,0 +1,79 @@
+{
+  "cases": [
+    {
+      "case": "nan_student_logprob",
+      "exception": "RuntimeError",
+      "status": "rejected"
+    },
+    {
+      "case": "posinf_student_logprob",
+      "exception": "RuntimeError",
+      "status": "rejected"
+    },
+    {
+      "case": "neginf_student_logprob",
+      "exception": "RuntimeError",
+      "status": "rejected"
+    },
+    {
+      "case": "nan_teacher_logprob",
+      "exception": "RuntimeError",
+      "status": "rejected"
+    },
+    {
+      "case": "inf_behavior_logprob",
+      "exception": "RuntimeError",
+      "status": "rejected"
+    },
+    {
+      "case": "nan_task_reward",
+      "exception": "RuntimeError",
+      "status": "rejected"
+    },
+    {
+      "case": "finite_adamw_update",
+      "status": "passed"
+    },
+    {
+      "case": "nan_optimizer_state",
+      "exception": "RuntimeError",
+      "status": "rejected"
+    },
+    {
+      "case": "inf_parameter",
+      "exception": "RuntimeError",
+      "status": "rejected"
+    },
+    {
+      "case": "nan_gradient",
+      "exception": "RuntimeError",
+      "status": "rejected"
+    }
+  ],
+  "check_id": "opd_objective_finite_state_v1",
+  "claim_boundary": "Finite-state rejection and one update only; no task-performance claim.",
+  "dtype": "float64",
+  "finite_case": {
+    "gradient_norm_before_clip": 1.2904091795168027,
+    "optimizer_state_signature": {
+      "elements": 5,
+      "scalars": 0,
+      "squared_l2": 1.0100004844995085,
+      "tensors": 3
+    },
+    "parameter_signature": {
+      "elements": 2,
+      "squared_l2": 0.33340609073638916,
+      "sum": -0.4361829161643982
+    },
+    "parameter_update_l2": 0.01417448014784415
+  },
+  "git_commit": "f3a3222231e4801d7762d07e1286a3accbb2dd54",
+  "git_worktree_clean": true,
+  "objective_registry_sha256": "f3fc4e4a2e32759426bfefee601c0c4387f522bc0d51fd0f4c3c104dbeb62e2f",
+  "schema_version": 1,
+  "scientific_launch_authorized": false,
+  "script_sha256": "aad693936a74486d1545cc0a4c53dc3f406de77e06d4b5d0bb43551f986b04ee",
+  "status": "passed",
+  "torch_version": "2.11.0+cu130"
+}

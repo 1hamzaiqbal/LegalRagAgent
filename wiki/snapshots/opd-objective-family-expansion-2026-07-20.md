@@ -54,8 +54,13 @@ The trainer now rejects nonfinite student, teacher, behavior, and reward
 inputs; nonfinite gradients, parameters, updates, and optimizer state; and
 records a per-step parameter-update norm and optimizer-state signature. The
 hash-bound ladder is `configs/opd_math/fidelity_plan.json`. Its standalone EIT
-finite-state receipt, a real-model stored rollout, objective-by-source one-step
-custody, and scientific preregistration remain incomplete; the trainer
+finite-state receipt now passed in job `108548`: every declared NaN/infinity
+boundary was rejected and the positive AdamW case recorded finite nonzero
+gradient and update norms plus finite parameter and optimizer signatures. Its
+sealed EIT receipt SHA-256 is
+`eb2e0dcae3d1feec85aa0d90316913371e07e9571d5fe200342f01a1f3644798`.
+A real-model stored rollout, objective-by-source one-step custody, and
+scientific preregistration remain incomplete; the trainer
 explicitly rejects a registry-selected scientific launch.
 
 The common five-local-objective recipe is now separately bound by

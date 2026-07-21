@@ -30,9 +30,11 @@
       ]
     },
     "finite_state": {
-      "status": "pending_eit_receipt",
-      "receipt_path": null,
-      "receipt_sha256": null,
+      "status": "passed",
+      "slurm_job_id": "108548",
+      "receipt_path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/fidelity/finite_state_f3a3222/receipt.json",
+      "tracked_receipt_path": "evidence/july_2026/opd_finite_state_108548.json",
+      "receipt_sha256": "eb2e0dcae3d1feec85aa0d90316913371e07e9571d5fe200342f01a1f3644798",
       "required_checks": [
         "reject NaN and both infinity signs in student log-probabilities",
         "reject nonfinite teacher and behavior log-probabilities",

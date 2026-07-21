@@ -53,6 +53,7 @@ OPD_MATH_REQUIRED = (
     "configs/opd_math/objective_registry.json",
     "configs/opd_math/objective_family_student_plan.json",
     "configs/opd_math/fidelity_plan.json",
+    "evidence/july_2026/opd_finite_state_108548.json",
     "configs/opd_math/deepmath_qualification_plan.json",
     "configs/opd_math/deepmath_inventory_plan.json",
     "configs/opd_math/deepmath_collision_audit_plan.json",

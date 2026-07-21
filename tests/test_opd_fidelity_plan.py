@@ -8,6 +8,8 @@ from scripts.opd.fidelity_plan import DEFAULT_PLAN, load_fidelity_plan, validate
 def test_fidelity_plan_binds_all_objectives_levels_and_non_authority():
     plan = load_fidelity_plan(DEFAULT_PLAN)
     assert plan["sources"] == ["M", "O"]
+    assert plan["levels"]["finite_state"]["status"] == "passed"
+    assert plan["levels"]["finite_state"]["slurm_job_id"] == "108548"
     assert plan["levels"]["full_custody_one_step"]["expected_runs"] == 12
     assert plan["levels"]["stored_real_model"]["status"] == "pending"
     assert plan["scientific_launch_authorized"] is False
@@ -19,6 +21,7 @@ def test_fidelity_plan_binds_all_objectives_levels_and_non_authority():
         lambda plan: plan.update(scientific_launch_authorized=True),
         lambda plan: plan.update(upstream_verl_commit="main"),
         lambda plan: plan.update(sources=["O"]),
+        lambda plan: plan["levels"]["finite_state"].update(receipt_sha256="0" * 64),
         lambda plan: plan["levels"]["full_custody_one_step"].update(expected_runs=10),
         lambda plan: plan["stage_rules"].update(diagnostic_outcomes_may_select_objectives=True),
         lambda plan: plan["levels"]["stored_real_model"]["required_fields"].remove(

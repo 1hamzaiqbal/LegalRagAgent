@@ -657,3 +657,14 @@ semantic decisions cannot repair the prompt-bound failure, qualification closes
 without finalization, raw-model feasibility, C role freezing, or C training.
 The O-to-M / O-to-O objective-family campaign is unaffected. See
 [[deepmath-negative-qualification-2026-07-20]].
+
+## [2026-07-20] Objective finite-state receipt passes on EIT
+
+CPU Slurm job `108548` ran the committed finite-state verifier under the
+pinned training environment. It rejected NaN or infinity in student, teacher,
+behavior, reward, gradient, parameter, and optimizer-state surfaces, while a
+valid AdamW case produced a finite nonzero gradient and parameter update. The
+receipt, stdout, Slurm record, and checksums are sealed under EIT
+`artifacts/legalrag/opd_math/fidelity/finite_state_f3a3222/`; the receipt hash
+is `eb2e0dcae3d1feec85aa0d90316913371e07e9571d5fe200342f01a1f3644798`.
+This closes one fidelity prerequisite only and authorizes no scientific arm.

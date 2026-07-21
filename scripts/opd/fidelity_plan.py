@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -17,6 +18,10 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PLAN = ROOT / "configs/opd_math/fidelity_plan.json"
 REGISTRY = ROOT / "configs/opd_math/objective_registry.json"
 SYNTHETIC_FIXTURE = ROOT / "configs/opd_math/fidelity/shared_rollout_k1_v1.json"
+FINITE_STATE_SCRIPT = ROOT / "scripts/opd/verify_finite_state.py"
+FINITE_STATE_TRACKED_RECEIPT = (
+    ROOT / "evidence/july_2026/opd_finite_state_108548.json"
+)
 FIDELITY_ID = "opd_math_objective_family_fidelity_v1"
 
 
@@ -80,11 +85,67 @@ def validate_fidelity_plan(payload: Mapping[str, Any]) -> dict[str, Any]:
     )
     finite = levels["finite_state"]
     _require(
-        finite["status"] in {"pending_eit_receipt", "passed"},
-        "finite-state status drifted",
+        set(finite)
+        == {
+            "status",
+            "slurm_job_id",
+            "receipt_path",
+            "tracked_receipt_path",
+            "receipt_sha256",
+            "required_checks",
+        },
+        "finite-state receipt schema drifted",
     )
-    if finite["status"] == "pending_eit_receipt":
-        _require(finite["receipt_path"] is None and finite["receipt_sha256"] is None, "pending finite receipt is populated")
+    _require(
+        finite["status"] == "passed"
+        and finite["slurm_job_id"] == "108548"
+        and finite["receipt_path"]
+        == "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/fidelity/finite_state_f3a3222/receipt.json"
+        and finite["tracked_receipt_path"]
+        == "evidence/july_2026/opd_finite_state_108548.json",
+        "finite-state receipt identity drifted",
+    )
+    _require(
+        finite["receipt_sha256"] == sha256_file(FINITE_STATE_TRACKED_RECEIPT),
+        "finite-state receipt bytes drifted",
+    )
+    finite_receipt = json.loads(FINITE_STATE_TRACKED_RECEIPT.read_text(encoding="utf-8"))
+    _require(
+        finite_receipt.get("schema_version") == 1
+        and finite_receipt.get("check_id") == "opd_objective_finite_state_v1"
+        and finite_receipt.get("status") == "passed"
+        and finite_receipt.get("git_worktree_clean") is True
+        and finite_receipt.get("objective_registry_sha256") == sha256_file(REGISTRY)
+        and finite_receipt.get("script_sha256") == sha256_file(FINITE_STATE_SCRIPT)
+        and finite_receipt.get("scientific_launch_authorized") is False,
+        "finite-state receipt contract drifted",
+    )
+    expected_finite_cases = {
+        "nan_student_logprob": "rejected",
+        "posinf_student_logprob": "rejected",
+        "neginf_student_logprob": "rejected",
+        "nan_teacher_logprob": "rejected",
+        "inf_behavior_logprob": "rejected",
+        "nan_task_reward": "rejected",
+        "finite_adamw_update": "passed",
+        "nan_optimizer_state": "rejected",
+        "inf_parameter": "rejected",
+        "nan_gradient": "rejected",
+    }
+    observed_finite_cases = {
+        item.get("case"): item.get("status")
+        for item in finite_receipt.get("cases", [])
+        if isinstance(item, dict)
+    }
+    _require(observed_finite_cases == expected_finite_cases, "finite-state cases drifted")
+    finite_case = finite_receipt.get("finite_case")
+    _require(isinstance(finite_case, dict), "finite-state positive case is missing")
+    for field in ("gradient_norm_before_clip", "parameter_update_l2"):
+        value = finite_case.get(field)
+        _require(
+            type(value) in (int, float) and math.isfinite(float(value)) and float(value) > 0,
+            f"finite-state {field} is not finite and positive",
+        )
     synthetic = levels["stored_synthetic"]
     _require(synthetic["status"] == "passed" and synthetic["slurm_job_id"] == "108501", "synthetic receipt drifted")
     _require(synthetic["fixture_sha256"] == sha256_file(SYNTHETIC_FIXTURE), "stored fixture drifted")
