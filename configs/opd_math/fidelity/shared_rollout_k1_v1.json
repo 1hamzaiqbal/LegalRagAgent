@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "fixture_id": "shared_rollout_k1_v1",
+  "status": "synthetic_stored_tensor_fidelity_only",
+  "scientific_launch_authorized": false,
+  "dtype": "float64",
+  "samples": [
+    {
+      "sample_id": "fixture:0",
+      "prompt_token_ids": [101, 102, 103],
+      "completion_token_ids": [201, 202, 203, 0],
+      "response_mask": [true, true, true, false],
+      "behavior_logprobs": [-3.0, -2.0, -1.0, 0.0],
+      "current_logprobs": [-3.5, -1.9, -0.5, 0.0],
+      "teacher_logprobs": [-2.5, -2.8, -1.8, 0.0]
+    },
+    {
+      "sample_id": "fixture:1",
+      "prompt_token_ids": [111, 112],
+      "completion_token_ids": [211, 212, 0, 0],
+      "response_mask": [true, true, false, false],
+      "behavior_logprobs": [-2.0, -4.0, 0.0, 0.0],
+      "current_logprobs": [-1.9, -4.5, 0.0, 0.0],
+      "teacher_logprobs": [-2.2, -3.0, 0.0, 0.0]
+    }
+  ],
+  "settings": {
+    "loss_mode": "k1",
+    "loss_max_clamp": 10.0,
+    "policy_loss_mode": "vanilla",
+    "clip_ratio_low": 0.2,
+    "clip_ratio_high": 0.2,
+    "dual_clip_ratio": 3.0,
+    "loss_agg_mode": "token-mean"
+  },
+  "optimizer": {
+    "name": "AdamW",
+    "learning_rate": 0.001,
+    "betas": [0.9, 0.999],
+    "epsilon": 1e-08,
+    "weight_decay": 0.0
+  },
+  "tolerances": {
+    "absolute": 1e-12,
+    "relative": 1e-12,
+    "gradient_cosine_minimum": 0.999999999999
+  }
+}
