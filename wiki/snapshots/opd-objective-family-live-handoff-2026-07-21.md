@@ -125,6 +125,12 @@ Frozen SHA-256 values:
 - upstream-veRL training wrapper:
   `48429fae630daa21a67d31eb4318fa6cfe8599c35cbe1fc6311676103363fc70`.
 
+These bytes are committed on `codex/opd_objective_family_release_v1` at
+`1ce07d7` and sealed on EIT at
+`/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/releases/objective_family_v1_b9a02835/`.
+The predecessor `objective_family_v1_58deff52` release remains immutable
+provenance but is not the launch program for this campaign.
+
 The controller passes Python compilation, all wrapper `bash -n` checks, its
 built-in self-test with payload SHA-256
 `bcef8d90245a179f5a2314e8d89668eaf310c49299dadcb9d17a2e26dbfbf853`,
