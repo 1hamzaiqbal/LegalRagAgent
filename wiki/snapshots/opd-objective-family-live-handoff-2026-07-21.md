@@ -103,15 +103,21 @@ passing gate can authorize one fresh O merge and its independent custody audit.
 
 ## Release-controller custody
 
-Three independent read-only audits found the release controller launch-ready
+Three independent read-only audits found the original release controller launch-ready
 after fixing atomic publication, interrupted first-intent recovery, malformed
 arm isolation, exact resumed external-evidence schemas, environment/cost
-replay, and Slurm whole-second chronology handling.
+replay, and Slurm whole-second chronology handling. Before first use, the
+controller was extended outcome-blind to make the exact fresh-O independent
+audit receipt mandatory in the program manifest, release plan, and every
+training authorization. The final controller and auditor were re-audited
+against the prospective 108609 gate/merge chain.
 
 Frozen SHA-256 values:
 
 - controller:
-  `58deff52bc459963cc993abb0423de0002cda52e052d4499f58e786889fa8161`;
+  `b9a028350733813b64137224ab07de74088d01e35b5a227a51789c33fef134ab`;
+- independent fresh-O auditor:
+  `d13b8cdb29bcad21389c4b92d5a26c9fa0ce2cc088ca2ac801c44151e5dea3e2`;
 - evaluation wrapper:
   `c94ccd50228d7597a2024d289265be2a12482faa05b2a886135d357a450e612a`;
 - local training wrapper:
@@ -142,10 +148,73 @@ on the current Mac.
    wave, produce exact per-arm gates, and release the campaign-wide corrected
    analysis.
 
+## Frozen diagnostic operator choices
+
+Before any one-step diagnostic launch, use this fresh root:
+
+`/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/fidelity/full_custody_d89ba3d7be728d9ee3197f37d8a8836a4a9640c5`
+
+The twelve run directories are
+`runs/<objective_id>__<source>__seed0`; their post-job receipts are
+`receipts/<objective_id>__<source>.json`. The real-model fixture, comparison
+receipt, launch ledger, scheduler accounting, and closure live under the same
+root. Every path is fresh and no predecessor artifact may be copied into it.
+
+The real-model stored-rollout fixture is frozen to the local
+`k1_bare_verl_compatible_clip10__O__seed0` diagnostic. This choice was made
+before that run existed and before any diagnostic outcome was observed. O is
+used because it is the qualified teacher's own source distribution; the choice
+cannot be changed after launch.
+
+The diagnostic M/O veRL JSONL files and manifests already exist under
+`objective_family_verl_data/d89ba3d7be728d9ee3197f37d8a8836a4a9640c5/`.
+Both seed-zero diagnostic pairs were deterministically reopened and validated
+against the canonical task bytes and prompt plans on 2026-07-21.
+
+## Frozen fresh-O promotion paths and scheduler shape
+
+The fresh d89 O teacher may be promoted only through these new paths:
+
+- primary gate:
+  `/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/gates/teacher_gap/O_gap_d89ba3d_v1.json`
+- independent gate:
+  `/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/gates/teacher_gap/O_gap_d89ba3d_v1_independent.json`
+- merged checkpoint:
+  `/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/teachers/O/merged_d89ba3d_v1`
+- independent audit receipt:
+  `/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/audits/objective_family/O_teacher_d89ba3d_v1.json`
+
+After both full-O merged evaluations exist, run two distinct canonical
+`scripts/hpc/slurm_opd_math_quality_gate.sh` jobs with identical scientific
+inputs and seed but the two output paths above. Do not override the tracked
+job name, resources, time limit, stdout template, workdir, or launcher. Submit
+each with exactly `sbatch --parsable --chdir=<d89 repo> --export=<frozen map>
+<tracked relative launcher>`. Both jobs must complete `0:0`, produce
+byte-identical gates, and pass exact recomputation. The producer-created gate
+files may remain mode `0644` during the teacher merge: the tracked merge
+reopens and exactly recomputes the primary gate and binds its physical hash in
+checkpoint provenance. After merge completion, the external auditor must set
+both gate files and all three completed stdout files to exact mode `0444`,
+revalidate their bytes and provenance, and persistently archive the logs before
+publishing its receipt. No preregistration or student launch object exists
+before that receipt.
+
+Only after both gate jobs have completed may one canonical tracked teacher
+merge be submitted with the same exact three-option `sbatch` shape. It must
+consume the primary gate, the gate-bound fresh-O adapter, and the frozen merged
+checkpoint path. The sealed external auditor must then re-query all three
+Slurm jobs, reproduce both gate computations, run the strongest d89 teacher
+provenance validator, independently reproduce the checkpoint tree hash, seal
+the checkpoint/stdout, archive hash-identical copies of all three Slurm logs
+under the persistent audit namespace, and publish the fresh audit receipt
+without clobbering.
+The release program manifest, release plan, and every training authorization
+must carry that exact receipt binding and teacher identity. An audit receipt is
+therefore a mandatory launch dependency, not an optional bookkeeping record.
+
 ## Interpretation boundary
 
 Passing support, environment, analytic, one-step, or finite-update checks means
 the experiment is executable and the OPD implementation is faithful enough to
 test. It does not mean OPD improves task performance. That claim can be made
 only from the sealed held-out release after all 36 arms are terminal.
-

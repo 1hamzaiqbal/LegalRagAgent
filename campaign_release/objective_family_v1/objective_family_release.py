@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import math
 import os
@@ -47,6 +48,12 @@ ARM_GATE_ID = "opd_math_objective_family_heldout_gate_v1"
 RESULT_ID = "opd_math_objective_family_terminal_readout_v1"
 BUNDLE_ID = "opd_math_objective_family_terminal_bundle_v1"
 EXPECTED_COMMIT = "d89ba3d7be728d9ee3197f37d8a8836a4a9640c5"
+EXPECTED_O_PRIMARY_GATE = Path("/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/gates/teacher_gap/O_gap_d89ba3d_v1.json")
+EXPECTED_O_INDEPENDENT_GATE = Path("/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/gates/teacher_gap/O_gap_d89ba3d_v1_independent.json")
+EXPECTED_O_CHECKPOINT = Path("/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/teachers/O/merged_d89ba3d_v1")
+EXPECTED_O_AUDIT_RECEIPT = Path("/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/audits/objective_family/O_teacher_d89ba3d_v1.json")
+EXPECTED_O_ADAPTER = Path("/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/teachers/O/run_108609/final_adapter")
+EXPECTED_O_RUN_MANIFEST = Path("/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/teachers/O/run_108609/run_manifest.json")
 EXPECTED_STUDENT = "Qwen/Qwen3-1.7B"
 EXPECTED_STUDENT_REVISION = "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e"
 SOURCES = ("M", "O")
@@ -120,16 +127,20 @@ def sha256_file(path: str | Path) -> str:
 
 
 def sha256_tree(path: str | Path, *, exclude: Iterable[str] = ()) -> str:
-    root = Path(path).resolve()
-    expect(root.is_dir() and not root.is_symlink(), f"tree is missing: {root}")
+    raw_root = Path(path)
+    expect(not raw_root.is_symlink(), f"tree root is a symlink: {raw_root}")
+    root = raw_root.resolve()
+    expect(root.is_dir(), f"tree is missing: {root}")
     excluded = {Path(item).as_posix() for item in exclude}
     digest = hashlib.sha256()
     digest.update(b"opd-math-tree-v1\0")
     files: list[tuple[str, Path]] = []
     for item in root.rglob("*"):
+        mode = item.lstat().st_mode
         relative = item.relative_to(root).as_posix()
-        expect(not item.is_symlink(), f"tree contains symlink: {item}")
-        if item.is_file() and relative not in excluded:
+        expect(not stat.S_ISLNK(mode), f"tree contains symlink: {item}")
+        expect(stat.S_ISREG(mode) or stat.S_ISDIR(mode), f"tree contains unbound special node: {item}")
+        if stat.S_ISREG(mode) and relative not in excluded:
             files.append((relative, item))
     files.sort(key=lambda value: value[0])
     expect(files, f"tree is empty: {root}")
@@ -579,9 +590,359 @@ def tracked_contract(repo: Path) -> dict[str, Any]:
     }
 
 
-def create_program_manifest(repo: Path, output: Path) -> dict[str, Any]:
+O_TEACHER_AUDIT_CLAIM_BOUNDARY = (
+    "Teacher gate and merged-checkpoint custody only; no OPD student-performance result."
+)
+
+
+def _validate_scheduler_attestation(value: Any, label: str, repo: Path) -> dict[str, Any]:
+    expected = {
+        "job_id", "job_name", "state", "state_raw", "exit_code", "elapsed_seconds",
+        "submit", "start", "end", "alloc_tres", "req_tres", "stdout_template", "stdout",
+        "workdir", "submit_line", "partition", "account", "time_limit_minutes", "ncpus",
+        "nnodes", "sacct_raw_sha256",
+    }
+    expect(isinstance(value, dict) and set(value) == expected, f"{label} scheduler schema drifted")
+    expect(
+        isinstance(value.get("job_id"), str)
+        and value["job_id"].isdigit()
+        and value.get("state") == "COMPLETED"
+        and value.get("exit_code") == "0:0"
+        and isinstance(value.get("elapsed_seconds"), int)
+        and value["elapsed_seconds"] >= 0,
+        f"{label} scheduler terminal identity drifted",
+    )
+    for field in ("submit", "start", "end"):
+        parse_slurm_time(value.get(field), f"{label} scheduler {field}")
+    expect(
+        value.get("workdir") == str(repo.resolve())
+        and value.get("partition") == "general-cpu"
+        and value.get("account") == "engr-lab-jacobsn"
+        and isinstance(value.get("sacct_raw_sha256"), str)
+        and HEX64.fullmatch(value["sacct_raw_sha256"]),
+        f"{label} scheduler lane drifted",
+    )
+    return dict(value)
+
+
+def _assert_tree_readonly(root: Path, label: str) -> None:
+    expect(root.is_dir() and not root.is_symlink(), f"{label} tree is missing")
+    for path in (root, *root.rglob("*")):
+        mode = path.lstat().st_mode
+        expect(not stat.S_ISLNK(mode), f"{label} tree contains symlink: {path}")
+        expect(
+            stat.S_ISREG(mode) or stat.S_ISDIR(mode),
+            f"{label} tree contains unbound special node: {path}",
+        )
+        expect(
+            mode & (stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH) == 0,
+            f"{label} tree contains writable path: {path}",
+        )
+
+
+def validate_o_teacher_audit_receipt_sealed(
+    path: str | Path, repo: Path
+) -> tuple[Path, dict[str, Any]]:
+    configure_repo(repo)
+    resolved = regular_readonly(path, "O teacher audit receipt")
+    expect(resolved == EXPECTED_O_AUDIT_RECEIPT, "O teacher audit receipt path differs from frozen boundary")
+    payload = load_json(resolved, "O teacher audit receipt")
+    expected = {
+        "schema_version", "receipt", "status", "created_utc", "git", "auditor",
+        "primary_gate", "independent_gate", "gates_byte_identical",
+        "gates_distinct_paths_inodes_jobs", "gates_recomputed_exactly", "teacher_identity",
+        "checkpoint_tree_hash_independently_reproduced", "strong_teacher_provenance_validator_passed",
+        "tracked_teacher_validator_passed", "merge_scheduler_terminal",
+        "merge_submitted_after_both_gates_completed", "merge_stdout",
+        "checkpoint_sealed_read_only", "all_bound_gate_and_stdout_artifacts_sealed_read_only",
+        "stable_custody_revalidated_before_publication", "heldout_student_outcomes_inspected",
+        "claim_boundary",
+    }
+    expect(set(payload) == expected, "O teacher audit receipt schema drifted")
+    for field, value in (
+        ("schema_version", 1),
+        ("receipt", "opd_math_objective_family_o_teacher_independent_audit_v1"),
+        ("status", "passed_and_sealed"),
+        ("gates_byte_identical", True),
+        ("gates_distinct_paths_inodes_jobs", True),
+        ("gates_recomputed_exactly", True),
+        ("checkpoint_tree_hash_independently_reproduced", True),
+        ("strong_teacher_provenance_validator_passed", True),
+        ("tracked_teacher_validator_passed", True),
+        ("merge_submitted_after_both_gates_completed", True),
+        ("checkpoint_sealed_read_only", True),
+        ("all_bound_gate_and_stdout_artifacts_sealed_read_only", True),
+        ("stable_custody_revalidated_before_publication", True),
+        ("heldout_student_outcomes_inspected", False),
+        ("claim_boundary", O_TEACHER_AUDIT_CLAIM_BOUNDARY),
+    ):
+        expect(payload.get(field) == value, f"O teacher audit {field} drifted")
+    audit_created = parse_utc(payload.get("created_utc"), "O teacher audit created_utc")
+    expect(payload.get("git") == {"commit": EXPECTED_COMMIT, "tracked_clean": True}, "O teacher audit Git custody drifted")
+    auditor = payload.get("auditor")
+    expect(isinstance(auditor, dict) and set(auditor) == {"path", "sha256"}, "O teacher auditor binding drifted")
+    auditor_path = validate_binding(auditor, "O teacher auditor")
+    expect(auditor_path == Path(__file__).with_name("audit_o_teacher.py").resolve(), "O teacher audit used an untrusted auditor")
+    gates: list[tuple[Path, dict[str, Any], dict[str, Any], Path]] = []
+    for field, expected_gate_path in (
+        ("primary_gate", EXPECTED_O_PRIMARY_GATE),
+        ("independent_gate", EXPECTED_O_INDEPENDENT_GATE),
+    ):
+        binding = payload.get(field)
+        expect(
+            isinstance(binding, dict)
+            and set(binding) == {"path", "sha256", "stdout", "scheduler"},
+            f"{field} audit binding drifted",
+        )
+        gate_path = regular_readonly(binding["path"], field)
+        expect(gate_path == expected_gate_path, f"{field} path differs from frozen boundary")
+        expect(stat.S_IMODE(gate_path.lstat().st_mode) == 0o444, f"{field} mode is not exactly 0444")
+        expect(sha256_file(gate_path) == binding["sha256"], f"{field} audit hash drifted")
+        scheduler = _validate_scheduler_attestation(binding["scheduler"], field, repo)
+        stdout_binding = binding["stdout"]
+        expect(
+            isinstance(stdout_binding, dict)
+            and set(stdout_binding) == {"scheduler_path", "archive_path", "sha256"},
+            f"{field} stdout binding drifted",
+        )
+        stdout = regular_readonly(stdout_binding["archive_path"], f"{field} archived stdout")
+        expect(
+            stdout_binding["scheduler_path"] == scheduler["stdout"]
+            and sha256_file(stdout) == stdout_binding["sha256"],
+            f"{field} stdout path/hash drifted",
+        )
+        expect(stat.S_IMODE(stdout.lstat().st_mode) == 0o444, f"{field} archived stdout mode drifted")
+        expect(
+            scheduler["job_name"] == "opd_math_gate"
+            and scheduler["time_limit_minutes"] == 240
+            and scheduler["ncpus"] == 2
+            and scheduler["nnodes"] == 1,
+            f"{field} scheduler resources drifted",
+        )
+        marker = f"PASS gate computation completed; inspect passed/strength before use: {gate_path}"
+        expect(
+            sum(line == marker for line in stdout.read_text(encoding="utf-8", errors="replace").splitlines()) == 1,
+            f"{field} stdout marker drifted",
+        )
+        gate = load_json(gate_path, field)
+        expect(
+            Path(str(gate.get("trained_adapter"))).resolve() == EXPECTED_O_ADAPTER
+            and Path(str(gate.get("teacher_run_manifest"))).resolve()
+            == EXPECTED_O_RUN_MANIFEST,
+            f"{field} is not bound to fresh teacher job 108609",
+        )
+        gates.append((gate_path, gate, scheduler, stdout))
+    expect(gates[0][0] != gates[1][0], "O teacher audit gate paths collapsed")
+    expect(
+        (gates[0][0].stat().st_dev, gates[0][0].stat().st_ino)
+        != (gates[1][0].stat().st_dev, gates[1][0].stat().st_ino),
+        "O teacher audit gate inodes collapsed",
+    )
+    expect(gates[0][0].read_bytes() == gates[1][0].read_bytes(), "O teacher audit gate bytes diverged")
+    expect(gates[0][2]["job_id"] != gates[1][2]["job_id"], "O teacher audit gate jobs collapsed")
+    from scripts.opd_math.quality_gates import recompute_teacher_gate  # type: ignore
+    for label, (_, gate, _, _) in zip(("primary", "independent"), gates):
+        original = dict(gate)
+        original.pop("manifest_sha256", None)
+        expect(recompute_teacher_gate(original) == original, f"{label} O teacher gate no longer recomputes")
+    merge_scheduler = _validate_scheduler_attestation(payload.get("merge_scheduler_terminal"), "O teacher merge", repo)
+    expect(
+        merge_scheduler.get("job_name") == "opd_math_merge"
+        and merge_scheduler["time_limit_minutes"] == 120
+        and merge_scheduler["ncpus"] == 8
+        and merge_scheduler["nnodes"] == 1,
+        "O teacher merge scheduler resources drifted",
+    )
+    latest_gate_end = max(
+        parse_slurm_time(gates[0][2]["end"], "primary O gate end"),
+        parse_slurm_time(gates[1][2]["end"], "independent O gate end"),
+    )
+    expect(
+        latest_gate_end <= parse_slurm_time(merge_scheduler["submit"], "O teacher merge submit"),
+        "O teacher merge predates an audited gate",
+    )
+    expect(
+        parse_slurm_time(merge_scheduler["end"], "O teacher merge end") <= audit_created,
+        "O teacher audit predates merge completion",
+    )
+    merge_stdout = payload.get("merge_stdout")
+    expect(
+        isinstance(merge_stdout, dict)
+        and set(merge_stdout) == {"scheduler_path", "archive_path", "sha256"},
+        "O teacher merge stdout binding drifted",
+    )
+    merge_stdout_path = regular_readonly(merge_stdout["archive_path"], "O teacher archived merge stdout")
+    expect(
+        sha256_file(merge_stdout_path) == merge_stdout["sha256"]
+        and merge_stdout["scheduler_path"] == merge_scheduler["stdout"],
+        "O teacher merge stdout drifted",
+    )
+    expect(stat.S_IMODE(merge_stdout_path.lstat().st_mode) == 0o444, "O teacher archived merge stdout mode drifted")
+    stdout_inodes = {
+        (path.stat().st_dev, path.stat().st_ino)
+        for path in (gates[0][3], gates[1][3], merge_stdout_path)
+    }
+    expect(len(stdout_inodes) == 3, "O teacher audit stdout inodes collapsed")
+    archive_parents = {path.parent for path in (gates[0][3], gates[1][3], merge_stdout_path)}
+    expect(len(archive_parents) == 1, "O teacher audit stdout archives are not colocated")
+    archive_root = next(iter(archive_parents))
+    expected_archive_root = resolved.with_name(resolved.name + ".logs")
+    expect(archive_root == expected_archive_root, "O teacher audit stdout archive root drifted")
+    expect(
+        gates[0][3] == expected_archive_root / "primary_gate_stdout.log"
+        and gates[1][3] == expected_archive_root / "independent_gate_stdout.log"
+        and merge_stdout_path == expected_archive_root / "merge_stdout.log",
+        "O teacher audit stdout archive filenames drifted",
+    )
+    expect(
+        archive_root.is_dir()
+        and not archive_root.is_symlink()
+        and stat.S_IMODE(archive_root.lstat().st_mode) == 0o555,
+        "O teacher audit stdout archive root is not sealed",
+    )
+    identity = payload.get("teacher_identity")
+    expect(isinstance(identity, dict), "O teacher audit lacks teacher identity")
+    primary_gate_path, primary_gate, _, _ = gates[0]
+    expect(
+        identity.get("teacher_gap_manifest") == str(primary_gate_path)
+        and identity.get("teacher_gap_manifest_sha256") == sha256_file(primary_gate_path)
+        and identity.get("teacher_gap_payload_sha256") == canonical_json_sha256(primary_gate),
+        "O teacher identity is not bound to the audited primary gate",
+    )
+    checkpoint = Path(str(identity.get("merged_checkpoint")))
+    expect(not checkpoint.is_symlink(), "audited O checkpoint may not be a symlink")
+    checkpoint = checkpoint.resolve()
+    expect(checkpoint == EXPECTED_O_CHECKPOINT, "audited O checkpoint path differs from frozen boundary")
+    _assert_tree_readonly(checkpoint, "audited O checkpoint")
+    marker = f"PASS scientifically gated teacher merge: {checkpoint}"
+    expect(sum(line == marker for line in merge_stdout_path.read_text(encoding="utf-8", errors="replace").splitlines()) == 1, "O teacher merge stdout marker drifted")
+    return resolved, payload
+
+
+def validate_o_teacher_audit_receipt_full(
+    path: str | Path, repo: Path
+) -> tuple[Path, dict[str, Any]]:
+    resolved, payload = validate_o_teacher_audit_receipt_sealed(path, repo)
+    configure_repo(repo)
+    from scripts.opd.objective_family_preregistration import _validate_teacher  # type: ignore
+    from scripts.opd.opd_train import _validate_teacher_provenance  # type: ignore
+
+    auditor_path = validate_binding(payload["auditor"], "O teacher auditor")
+    spec = importlib.util.spec_from_file_location("sealed_o_teacher_auditor", auditor_path)
+    expect(spec is not None and spec.loader is not None, "cannot load sealed O teacher auditor")
+    auditor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(auditor)
+    for field in ("primary_gate", "independent_gate"):
+        binding = payload[field]
+        gate_path = regular_readonly(binding["path"], field)
+        gate = load_json(gate_path, field)
+        stdout_path = regular_readonly(binding["stdout"]["scheduler_path"], f"{field} scheduler stdout")
+        expect(
+            sha256_file(stdout_path) == binding["stdout"]["sha256"]
+            and stat.S_IMODE(stdout_path.lstat().st_mode) == 0o444,
+            f"{field} live scheduler stdout differs from archived audit bytes",
+        )
+        observed = auditor.query_terminal_job(
+            job_id=binding["scheduler"]["job_id"],
+            stdout_path=stdout_path,
+            expected_name="opd_math_gate",
+            stdout_template=auditor.EXPECTED_GATE_STDOUT,
+            repo=repo,
+            launcher=auditor.GATE_LAUNCHER,
+            expected_exports=auditor.expected_gate_exports(gate, gate_path, repo),
+            expected_cpu=2,
+            expected_mem="8G",
+            expected_minutes=240,
+        )
+        expect(observed == binding["scheduler"], f"{field} live scheduler evidence differs from audit receipt")
+    identity = payload["teacher_identity"]
+    expect(_validate_teacher(identity, commit=EXPECTED_COMMIT) == identity, "audited O teacher identity failed tracked validation")
+    checkpoint = Path(identity["merged_checkpoint"]).resolve()
+    expect(
+        sha256_tree(checkpoint, exclude=("merge_provenance.json",))
+        == identity["merged_checkpoint_tree_sha256"],
+        "audited O teacher checkpoint differs from independent tree hash",
+    )
+    primary_binding = payload["primary_gate"]
+    primary_path = regular_readonly(primary_binding["path"], "primary O gate")
+    primary = load_json(primary_path, "primary O gate")
+    adapter = Path(primary["trained_adapter"]).resolve()
+    merge_stdout = regular_readonly(payload["merge_stdout"]["scheduler_path"], "O teacher scheduler merge stdout")
+    expect(
+        sha256_file(merge_stdout) == payload["merge_stdout"]["sha256"]
+        and stat.S_IMODE(merge_stdout.lstat().st_mode) == 0o444,
+        "live O teacher merge stdout differs from archived audit bytes",
+    )
+    observed_merge = auditor.query_terminal_job(
+        job_id=payload["merge_scheduler_terminal"]["job_id"],
+        stdout_path=merge_stdout,
+        expected_name="opd_math_merge",
+        stdout_template=auditor.EXPECTED_MERGE_STDOUT,
+        repo=repo,
+        launcher=auditor.MERGE_LAUNCHER,
+        expected_exports=auditor.expected_merge_exports(
+            repo=repo,
+            gate_path=primary_path,
+            adapter=adapter,
+            checkpoint=checkpoint,
+        ),
+        expected_cpu=8,
+        expected_mem="64G",
+        expected_minutes=120,
+    )
+    expect(observed_merge == payload["merge_scheduler_terminal"], "live merge scheduler evidence differs from audit receipt")
+    gate_for_provenance = dict(primary)
+    gate_for_provenance["manifest_sha256"] = sha256_file(primary_path)
+    strong = _validate_teacher_provenance(
+        str(checkpoint / "merge_provenance.json"),
+        gate_for_provenance,
+        SimpleNamespace(
+            teacher_base_model=identity["base_model"],
+            teacher_base_revision=identity["base_revision"],
+            teacher_checkpoint=str(checkpoint),
+        ),
+    )
+    expect(
+        strong.get("manifest_sha256") == identity["merge_provenance_manifest_sha256"],
+        "full O teacher validation disagrees with merge provenance hash",
+    )
+    return resolved, payload
+
+
+def validate_o_teacher_release_lineage_values(
+    *,
+    audit_binding: Mapping[str, Any],
+    program_audit_binding: Mapping[str, Any],
+    plan_audit_binding: Mapping[str, Any],
+    audit_teacher_identity: Mapping[str, Any],
+    prereg_teacher_identity: Mapping[str, Any],
+    audit_created: datetime,
+    program_created: datetime,
+    prereg_created: datetime,
+    launch_created: datetime,
+    release_created: datetime,
+    student_outcomes_inspected: bool,
+    heldout_outcomes_inspected: bool,
+) -> None:
+    expect(
+        dict(audit_binding) == dict(program_audit_binding) == dict(plan_audit_binding),
+        "O teacher audit binding is not identical across audit/program/release lineage",
+    )
+    expect(
+        dict(audit_teacher_identity) == dict(prereg_teacher_identity),
+        "O teacher audit identity differs from preregistration",
+    )
+    expect(
+        audit_created <= program_created <= prereg_created <= launch_created <= release_created,
+        "O teacher audit/program/preregistration/launch/release chronology drifted",
+    )
+    expect(not student_outcomes_inspected and not heldout_outcomes_inspected, "O teacher lineage was sealed after outcome inspection")
+
+
+def create_program_manifest(repo: Path, output: Path, o_teacher_audit_receipt: Path) -> dict[str, Any]:
     repo = configure_repo(repo)
     contract = tracked_contract(repo)
+    audit_path, audit = validate_o_teacher_audit_receipt_full(o_teacher_audit_receipt, repo)
     script = Path(__file__).resolve()
     expect(script.is_file() and not script.is_symlink(), "release program must be a regular file")
     evaluation_wrapper = script.with_name("objective_family_evaluation_job.sh")
@@ -608,12 +969,17 @@ def create_program_manifest(repo: Path, output: Path) -> dict[str, Any]:
         "evaluation_wrapper": file_binding(evaluation_wrapper, readonly=False),
         "local_training_wrapper": file_binding(local_training_wrapper, readonly=False),
         "upstream_training_wrapper": file_binding(upstream_training_wrapper, readonly=False),
+        "o_teacher_audit_receipt": file_binding(audit_path),
         "analysis": expected_analysis_contract(),
         "heldout": expected_heldout_contract(),
         "terminal_policy": expected_terminal_policy(),
         "m_teacher_boundary": expected_m_teacher_boundary(),
         "claim_boundary": PROGRAM_CLAIM_BOUNDARY,
     }
+    expect(
+        parse_utc(audit["created_utc"], "O teacher audit created_utc") <= parse_utc(created_utc, "program created_utc"),
+        "program manifest predates the O teacher audit",
+    )
     write_new(output, payload)
     return payload
 
@@ -639,6 +1005,7 @@ def validate_program_manifest(path: str | Path, repo: Path) -> tuple[Path, dict[
         "evaluation_wrapper",
         "local_training_wrapper",
         "upstream_training_wrapper",
+        "o_teacher_audit_receipt",
         "analysis",
         "heldout",
         "terminal_policy",
@@ -674,6 +1041,13 @@ def validate_program_manifest(path: str | Path, repo: Path) -> tuple[Path, dict[
     expect(local_wrapper_path == Path(__file__).with_name("objective_family_local_training_job.sh").resolve(), "running local training wrapper differs from sealed program")
     upstream_wrapper_path = validate_binding(payload["upstream_training_wrapper"], "upstream training custody wrapper", readonly=True)
     expect(upstream_wrapper_path == Path(__file__).with_name("objective_family_upstream_training_job.sh").resolve(), "running upstream training wrapper differs from sealed program")
+    audit_path = validate_binding(payload["o_teacher_audit_receipt"], "O teacher audit receipt")
+    _, audit = validate_o_teacher_audit_receipt_sealed(audit_path, repo)
+    expect(
+        parse_utc(audit["created_utc"], "O teacher audit created_utc")
+        <= parse_utc(payload["created_utc"], "release program created_utc"),
+        "release program predates O teacher audit",
+    )
     return resolved, payload
 
 
@@ -684,18 +1058,35 @@ def create_release_plan(args: argparse.Namespace) -> dict[str, Any]:
         validate_preregistration,
     )
 
-    program_path, _ = validate_program_manifest(args.program_manifest, repo)
+    program_path, program_payload = validate_program_manifest(args.program_manifest, repo)
     prereg = validate_preregistration(args.preregistration)
     launch = validate_launch_plan(args.launch_plan, preregistration=prereg)
     created_utc = utc_now()
     release_created = parse_utc(created_utc, "release plan created_utc")
-    program_payload = load_json(program_path, "program manifest")
+    audit_path = validate_binding(program_payload["o_teacher_audit_receipt"], "O teacher audit receipt")
+    _, audit = validate_o_teacher_audit_receipt_sealed(audit_path, repo)
+    expect(audit["teacher_identity"] == prereg["o_teacher"], "preregistration O teacher differs from the independently audited teacher")
+    audit_created = parse_utc(audit["created_utc"], "O teacher audit created_utc")
     program_created = parse_utc(program_payload["created_utc"], "program created_utc")
     prereg_created = parse_utc(prereg["payload"]["created_utc"], "preregistration created_utc")
     launch_created = parse_utc(launch["payload"]["created_utc"], "launch plan created_utc")
+    validate_o_teacher_release_lineage_values(
+        audit_binding=program_payload["o_teacher_audit_receipt"],
+        program_audit_binding=program_payload["o_teacher_audit_receipt"],
+        plan_audit_binding=program_payload["o_teacher_audit_receipt"],
+        audit_teacher_identity=audit["teacher_identity"],
+        prereg_teacher_identity=prereg["o_teacher"],
+        audit_created=audit_created,
+        program_created=program_created,
+        prereg_created=prereg_created,
+        launch_created=launch_created,
+        release_created=release_created,
+        student_outcomes_inspected=False,
+        heldout_outcomes_inspected=False,
+    )
     expect(
-        program_created <= prereg_created <= launch_created <= release_created,
-        "release chronology must be program <= preregistration <= launch plan <= release plan",
+        audit_created <= program_created <= prereg_created <= launch_created <= release_created,
+        "release chronology must be audit <= program <= preregistration <= launch plan <= release plan",
     )
     expect(prereg["commit"] == EXPECTED_COMMIT, "release plan preregistration commit drifted")
     evaluation_root = Path(args.evaluation_root).resolve()
@@ -806,6 +1197,7 @@ def create_release_plan(args: argparse.Namespace) -> dict[str, Any]:
         "student_arm_outcomes_inspected_before_sealing": False,
         "heldout_outcomes_inspected_before_sealing": False,
         "program_manifest": file_binding(program_path),
+        "o_teacher_audit_receipt": program_payload["o_teacher_audit_receipt"],
         "preregistration": {"path": prereg["path"], "sha256": prereg["sha256"]},
         "launch_plan": {"path": launch["path"], "sha256": launch["sha256"]},
         "campaign_id": campaign_id,
@@ -902,6 +1294,7 @@ def validate_release_plan(path: str | Path, repo: Path) -> tuple[Path, dict[str,
         "schema_version", "release_plan", "status", "created_utc",
         "student_arm_outcomes_inspected_before_sealing",
         "heldout_outcomes_inspected_before_sealing", "program_manifest",
+        "o_teacher_audit_receipt",
         "preregistration", "launch_plan", "campaign_id", "git_commit",
         "evaluation_root", "result_root", "control_root",
         "train_environment_root", "hf_home", "runtime_train_freeze",
@@ -921,15 +1314,34 @@ def validate_release_plan(path: str | Path, repo: Path) -> tuple[Path, dict[str,
     release_created = parse_utc(payload.get("created_utc"), "release plan created_utc")
     program_path = validate_binding(payload.get("program_manifest"), "program manifest")
     _, program_payload = validate_program_manifest(program_path, repo)
+    expect(payload.get("o_teacher_audit_receipt") == program_payload["o_teacher_audit_receipt"], "release plan O teacher audit binding differs from program manifest")
+    audit_path = validate_binding(payload.get("o_teacher_audit_receipt"), "O teacher audit receipt")
+    _, audit = validate_o_teacher_audit_receipt_sealed(audit_path, repo)
+    audit_created = parse_utc(audit["created_utc"], "O teacher audit created_utc")
     program_created = parse_utc(program_payload["created_utc"], "program created_utc")
     prereg_path = validate_binding(payload.get("preregistration"), "preregistration")
     prereg = validate_preregistration(prereg_path)
+    expect(audit["teacher_identity"] == prereg["o_teacher"], "release plan preregistration teacher differs from O teacher audit")
     launch_path = validate_binding(payload.get("launch_plan"), "launch plan")
     launch = validate_launch_plan(launch_path, preregistration=prereg)
     prereg_created = parse_utc(prereg["payload"]["created_utc"], "preregistration created_utc")
     launch_created = parse_utc(launch["payload"]["created_utc"], "launch plan created_utc")
+    validate_o_teacher_release_lineage_values(
+        audit_binding=payload["o_teacher_audit_receipt"],
+        program_audit_binding=program_payload["o_teacher_audit_receipt"],
+        plan_audit_binding=payload["o_teacher_audit_receipt"],
+        audit_teacher_identity=audit["teacher_identity"],
+        prereg_teacher_identity=prereg["o_teacher"],
+        audit_created=audit_created,
+        program_created=program_created,
+        prereg_created=prereg_created,
+        launch_created=launch_created,
+        release_created=release_created,
+        student_outcomes_inspected=payload["student_arm_outcomes_inspected_before_sealing"],
+        heldout_outcomes_inspected=payload["heldout_outcomes_inspected_before_sealing"],
+    )
     expect(
-        program_created <= prereg_created <= launch_created <= release_created,
+        audit_created <= program_created <= prereg_created <= launch_created <= release_created,
         "release chronology drifted",
     )
     expect(payload.get("campaign_id") == prereg["payload"]["campaign_id"], "release plan campaign drifted")
@@ -1150,6 +1562,7 @@ def training_authorization_payload(
         "seed": arm["seed"],
         "release_plan": {"path": str(plan_path), "sha256": sha256_file(plan_path)},
         "program_manifest": plan["program_manifest"],
+        "o_teacher_audit_receipt": plan["o_teacher_audit_receipt"],
         "preregistration": plan["preregistration"],
         "launch_plan": plan["launch_plan"],
         "expected_training_out": paths["training_out"],
@@ -1433,7 +1846,7 @@ def validate_training_control_shallow(
     expect(set(auth) == {
         "schema_version", "authorization", "status", "created_utc", "arm_key", "run_id",
         "objective_id", "implementation", "source", "seed", "release_plan",
-        "program_manifest", "preregistration", "launch_plan", "expected_training_out",
+        "program_manifest", "o_teacher_audit_receipt", "preregistration", "launch_plan", "expected_training_out",
         "expected_prelaunch_receipt", "expected_submission_receipt", "expected_consumption_receipt",
         "student_and_heldout_outcomes_inspected", "submission_protocol",
     }, f"training authorization shallow schema drifted: {key}")
@@ -1442,7 +1855,9 @@ def validate_training_control_shallow(
         ("arm_key", key), ("run_id", arm["run_id"]), ("objective_id", arm["objective_id"]),
         ("implementation", arm["implementation"]), ("source", arm["source"]), ("seed", arm["seed"]),
         ("release_plan", {"path": str(plan_path), "sha256": sha256_file(plan_path)}),
-        ("program_manifest", plan["program_manifest"]), ("preregistration", plan["preregistration"]),
+        ("program_manifest", plan["program_manifest"]),
+        ("o_teacher_audit_receipt", plan["o_teacher_audit_receipt"]),
+        ("preregistration", plan["preregistration"]),
         ("launch_plan", plan["launch_plan"]), ("expected_training_out", paths["training_out"]),
         ("expected_prelaunch_receipt", paths["prelaunch_receipt"]),
         ("expected_submission_receipt", paths["submission_receipt"]),
@@ -2602,11 +3017,15 @@ def expected_evaluation_contract(
 
 
 def seal_tree_readonly(path: str | Path) -> None:
-    root = Path(path).resolve()
-    expect(root.is_dir() and not root.is_symlink(), f"cannot seal missing tree: {root}")
+    raw_root = Path(path)
+    expect(not raw_root.is_symlink(), f"cannot seal symlinked tree: {raw_root}")
+    root = raw_root.resolve()
+    expect(root.is_dir(), f"cannot seal missing tree: {root}")
     for item in root.rglob("*"):
-        expect(not item.is_symlink(), f"cannot seal tree containing symlink: {item}")
-        current = stat.S_IMODE(item.stat().st_mode)
+        mode = item.lstat().st_mode
+        expect(not stat.S_ISLNK(mode), f"cannot seal tree containing symlink: {item}")
+        expect(stat.S_ISREG(mode) or stat.S_ISDIR(mode), f"cannot seal tree containing special node: {item}")
+        current = stat.S_IMODE(mode)
         os.chmod(item, current & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
     root_mode = stat.S_IMODE(root.stat().st_mode)
     os.chmod(root, root_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
@@ -6398,6 +6817,45 @@ def self_test() -> dict[str, Any]:
             records=SELECTED_HOLDOUT_RECORDS,
         )
         expect(selected["records"] == 370 and selected["record_ids_sha256"] == canonical_json_sha256(selected_ids), "larger O holdout prefix contract drifted")
+    lineage_binding = {"path": "/sealed/o_teacher_audit.json", "sha256": "a" * 64}
+    lineage_identity = {"teacher_source": "O", "merged_checkpoint_tree_sha256": "b" * 64}
+    lineage_times = [
+        parse_utc(f"2026-07-21T00:00:0{index}Z", f"lineage test time {index}")
+        for index in range(5)
+    ]
+    lineage = {
+        "audit_binding": lineage_binding,
+        "program_audit_binding": lineage_binding,
+        "plan_audit_binding": lineage_binding,
+        "audit_teacher_identity": lineage_identity,
+        "prereg_teacher_identity": lineage_identity,
+        "audit_created": lineage_times[0],
+        "program_created": lineage_times[1],
+        "prereg_created": lineage_times[2],
+        "launch_created": lineage_times[3],
+        "release_created": lineage_times[4],
+        "student_outcomes_inspected": False,
+        "heldout_outcomes_inspected": False,
+    }
+    validate_o_teacher_release_lineage_values(**lineage)
+    invalid_lineages = []
+    for field, value in (
+        ("plan_audit_binding", {"path": "/swapped.json", "sha256": "a" * 64}),
+        ("prereg_teacher_identity", {"teacher_source": "O", "merged_checkpoint_tree_sha256": "c" * 64}),
+        ("audit_created", lineage_times[4]),
+        ("student_outcomes_inspected", True),
+        ("heldout_outcomes_inspected", True),
+    ):
+        candidate = dict(lineage)
+        candidate[field] = value
+        invalid_lineages.append(candidate)
+    for candidate in invalid_lineages:
+        try:
+            validate_o_teacher_release_lineage_values(**candidate)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("O teacher lineage self-test accepted a tampered contract")
     return {
         "status": "passed",
         "bonferroni_indices": [62, 9936],
@@ -6419,6 +6877,7 @@ def parse_args() -> argparse.Namespace:
     commands = parser.add_subparsers(dest="command", required=True)
     manifest = commands.add_parser("program-manifest")
     manifest.add_argument("--repo", type=Path, required=True)
+    manifest.add_argument("--o-teacher-audit-receipt", type=Path, required=True)
     manifest.add_argument("--output", type=Path, required=True)
     plan = commands.add_parser("release-plan")
     plan.add_argument("--repo", type=Path, required=True)
@@ -6530,7 +6989,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     if args.command == "program-manifest":
-        result = create_program_manifest(args.repo, args.output)
+        result = create_program_manifest(args.repo, args.output, args.o_teacher_audit_receipt)
     elif args.command == "release-plan":
         result = create_release_plan(args)
     elif args.command == "authorize-training":
