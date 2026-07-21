@@ -67,6 +67,7 @@ OPD_MATH_REQUIRED = (
     "scripts/opd_math/deepmath_qualification.py",
     "scripts/opd_math/materialize_deepmath_inventory.py",
     "scripts/opd_math/audit_deepmath_inventory.py",
+    "scripts/opd_math/finalize_deepmath_audit.py",
     "scripts/opd/objective_registry.py",
     "scripts/hpc/setup_opd_math_env.sh",
     "scripts/hpc/setup_opd_math_serve_env.sh",
@@ -74,6 +75,7 @@ OPD_MATH_REQUIRED = (
     "scripts/hpc/slurm_opd_math_deepmath_download.sh",
     "scripts/hpc/slurm_opd_math_deepmath_inventory.sh",
     "scripts/hpc/slurm_opd_math_deepmath_audit.sh",
+    "scripts/hpc/slurm_opd_math_deepmath_finalize.sh",
     "scripts/hpc/slurm_opd_math_env_preflight.sh",
     "scripts/hpc/slurm_opd_math_serve_preflight.sh",
 )

@@ -108,6 +108,16 @@ hash. The full collision/label audit, tokenizer surface, and raw-model
 feasibility runs remain incomplete. No new scientific student arm, C teacher,
 or C OPD arm has launched.
 
+Successor inventory job `108523` passed from commit `0e92393`. Independent
+recomputation matched every Parquet hash and all `1,237,750` rows. C has zero
+missing problems and two empty/unparsed answer fields; the Numina lineage has
+one missing problem and `54,760` empty answer fields. Those values are now
+visible data-quality measurements, not silently discarded rows. The accepted
+manifest hash is
+`abd30c1079e663f38a2c8af21c43009800eec904cc0cf1c60267c5024fe06c59`.
+This accepts materialization only; collision review, C parseability/prompt
+gates, role freezing, and raw-model feasibility remain closed.
+
 ## Links
 
 [[opd-objective-family-expansion-2026-07-20]] -

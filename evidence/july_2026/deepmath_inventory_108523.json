@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "stage": "deepmath_global_inventory_independent_acceptance",
+  "status": "passed_data_materialization_only",
+  "slurm_job_id": "108523",
+  "git_commit": "0e923930d9034162266f73e6224ba7f00bc6697e",
+  "inventory_plan_sha256": "d5afea04eefc45d69ae5d08ea50191e3088d86578673da31fcbcb1ec9cdfcd8c",
+  "qualification_plan_sha256": "b4e5aeb26024f9fc34bd647c1eba7c9b52b97da7957f25519f9c79ff4476e6df",
+  "inventory_manifest_sha256": "abd30c1079e663f38a2c8af21c43009800eec904cc0cf1c60267c5024fe06c59",
+  "total_rows": 1237750,
+  "source_rows": {
+    "C": 103022,
+    "M_test": 5000,
+    "M_train": 7500,
+    "O": 225129,
+    "O_lineage": 896215,
+    "eval_aime2024": 30,
+    "eval_aime_validation": 90,
+    "eval_amc_validation": 83,
+    "eval_math500": 500,
+    "eval_math_beyond": 181
+  },
+  "empty_problems": {
+    "C": 0,
+    "M_test": 0,
+    "M_train": 0,
+    "O": 0,
+    "O_lineage": 1,
+    "eval_aime2024": 0,
+    "eval_aime_validation": 0,
+    "eval_amc_validation": 0,
+    "eval_math500": 0,
+    "eval_math_beyond": 0
+  },
+  "empty_or_unparsed_answers": {
+    "C": 2,
+    "M_test": 0,
+    "M_train": 2,
+    "O": 0,
+    "O_lineage": 54760,
+    "eval_aime2024": 0,
+    "eval_aime_validation": 0,
+    "eval_amc_validation": 0,
+    "eval_math500": 0,
+    "eval_math_beyond": 0
+  },
+  "source_receipt_sha256": {
+    "C": "acb2767d02b0d9ad9fc3b3966f65e9e75a5e475a2871c43dc4b5627f63e51b30",
+    "M_test": "0395db12b17b676e9dcc38d87eb8b71acaa160d416951a82404deebd7bfa0ab4",
+    "M_train": "996a5c63ccafc4b8d55dd9a329002e56d729ee7d5e474a648172dab8f93292f2",
+    "O": "b6e0a9f80bb92869ff206df458a28bde35b000b2b4428fc941e99ab5e617ced9",
+    "O_lineage": "211c5abf41bffafb2d048765c7438595969a401604135f8381cfbdae8bf0ccc5",
+    "eval_aime2024": "9e827c5a27990aa1b28ce3946bb1cd2cde7905e240223b3a7cf798d79c37bfd3",
+    "eval_aime_validation": "8c116f9ce7908beed6ed00f87dafbc53454a748b06a589946d7ba01ffbc678e3",
+    "eval_amc_validation": "fd4a5ff17a3978e2d9034ea429d26d7daea244afca5e9ee53ef96d83427ffffc",
+    "eval_math500": "6505ed64a23b53f0939499a8dbf1d6fbfa2e234e30edb5c5ddc102221fb10aeb",
+    "eval_math_beyond": "d49acc365613d0cb49002922c4260e5722d57d780a7fa964144f8e4ea01fa65b"
+  },
+  "independent_checks": {
+    "all_parquet_hashes_recomputed": true,
+    "all_parquet_hashes_match_manifest": true,
+    "all_parquet_row_counts_recomputed": true,
+    "recomputed_total_rows": 1237750,
+    "all_source_receipts_rehashed": true,
+    "forbidden_C_solution_fields_absent": true
+  },
+  "persistent_root": "/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/deepmath_inventory_0e92393_v2",
+  "teacher_training_authorized": false,
+  "scientific_use_allowed": false,
+  "remaining_gates": [
+    "global exact-format-semantic collision scan and review",
+    "C label parseability and prompt-bound gate",
+    "deterministic C role freeze",
+    "raw Qwen feasibility"
+  ]
+}

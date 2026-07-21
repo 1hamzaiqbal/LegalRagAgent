@@ -34,6 +34,7 @@ try:
     from .materialize_deepmath_inventory import (
         EXPECTED_OUTPUT_COLUMNS,
         EXPECTED_TOTAL_ROWS,
+        _load_source_receipt,
         load_inventory_plan,
         sha256_file,
     )
@@ -55,6 +56,7 @@ except ImportError:
     from materialize_deepmath_inventory import (  # type: ignore
         EXPECTED_OUTPUT_COLUMNS,
         EXPECTED_TOTAL_ROWS,
+        _load_source_receipt,
         load_inventory_plan,
         sha256_file,
     )
@@ -208,6 +210,13 @@ def _verify_inventory_manifest(
     _require(payload.get("scientific_use_allowed") is False, "inventory manifest cannot authorize science")
     outputs = payload.get("outputs")
     _require(isinstance(outputs, dict), "inventory manifest lacks outputs")
+    manifest_git = payload.get("git")
+    _require(
+        isinstance(manifest_git, dict)
+        and isinstance(manifest_git.get("commit"), str)
+        and manifest_git.get("clean") is True,
+        "inventory manifest lacks clean Git custody",
+    )
     for spec in inventory_plan["sources"]:
         item = outputs.get(spec["key"])
         _require(isinstance(item, dict), f"inventory output missing: {spec['key']}")
@@ -217,6 +226,13 @@ def _verify_inventory_manifest(
         _require(sha256_file(path) == item["sha256"], f"inventory output hash drifted: {path}")
         _require(item["rows"] == spec["expected_rows"], f"inventory output rows drifted: {path}")
         _require(tuple(item["columns"]) == EXPECTED_OUTPUT_COLUMNS, f"inventory output schema drifted: {path}")
+        _load_source_receipt(
+            path.with_name(f"{spec['key']}.receipt.json"),
+            plan_sha256=inventory_plan["sha256"],
+            git_commit=manifest_git["commit"],
+            spec=spec,
+            observed_output=item,
+        )
     payload["path"] = str(manifest_path)
     payload["sha256"] = sha256_file(manifest_path)
     return payload
@@ -414,8 +430,12 @@ def candidate_prompt_surface(
 
 
 def _cluster_candidate_rows(
-    records: list[AuditRecord], union: UnionFind
+    records: list[AuditRecord],
+    union: UnionFind,
+    *,
+    candidate_exclusions: Mapping[str, str] | None = None,
 ) -> tuple[list[int], list[dict], list[dict], dict[str, Any]]:
+    candidate_exclusions = candidate_exclusions or {}
     candidate_roots = {union.find(index) for index, record in enumerate(records) if record.source == "C"}
     groups: dict[int, list[int]] = defaultdict(list)
     for index in range(len(records)):
@@ -474,9 +494,32 @@ def _cluster_candidate_rows(
                 )
                 reasons[reason] += 1
             continue
-        canonical = min(candidate_indices, key=lambda index: stable_rank(records[index].record_id, AUDIT_ID))
-        eligible_indices.append(canonical)
+        retained_candidate_indices = []
         for index in candidate_indices:
+            record = records[index]
+            exclusion_reason = candidate_exclusions.get(record.record_id)
+            if exclusion_reason is None:
+                retained_candidate_indices.append(index)
+                continue
+            quarantine.append(
+                {
+                    "record_id": record.record_id,
+                    "cluster_id": cluster_id,
+                    "reason": exclusion_reason,
+                    "cluster_sources": sources,
+                    "evaluation_touch": False,
+                    "label_conflict": False,
+                }
+            )
+            reasons[exclusion_reason] += 1
+        if not retained_candidate_indices:
+            continue
+        canonical = min(
+            retained_candidate_indices,
+            key=lambda index: stable_rank(records[index].record_id, AUDIT_ID),
+        )
+        eligible_indices.append(canonical)
+        for index in retained_candidate_indices:
             if index == canonical:
                 continue
             quarantine.append(
@@ -621,8 +664,15 @@ def scan(
                 "right_record_id": records[right].record_id,
             }
         )
+    candidate_exclusions = {
+        row["record_id"]: "unparseable_gold" for row in parse_failures
+    }
+    for row in prompt_truncations:
+        candidate_exclusions[row["record_id"]] = "prompt_overflow"
     eligible_indices, quarantine, label_conflicts, cluster_stats = _cluster_candidate_rows(
-        records, union
+        records,
+        union,
+        candidate_exclusions=candidate_exclusions,
     )
     record_by_id = {record.record_id: record for record in records}
     review_packet = _review_packet(semantic_ledger, record_by_id)

@@ -617,3 +617,15 @@ stdout, hashes, and receipts are preserved. The successor materialization
 schema records `problem_missing` explicitly, applies a zero-missing gate to C,
 and requires a new immutable root and plan hash. See
 [[deepmath-inventory-failure-2026-07-20]].
+
+## [2026-07-20] DeepMath successor inventory accepted; audit still closed
+
+Job `108523` completed the new explicit-missingness schema from commit
+`0e92393`. Independent rehashing matched all ten Parquets and all `1,237,750`
+rows. C has zero missing prompts and two empty/unparsed answers; lineage has
+one missing prompt and `54,760` empty answers. Source receipts and the accepted
+manifest are recorded in
+`evidence/july_2026/deepmath_inventory_108523.json`. This is materialization
+evidence only. A separate finalizer now requires a complete pair-ID semantic
+decision file and can close the review without rerunning candidate search;
+neither scan nor finalization can authorize teacher training.

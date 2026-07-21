@@ -20,6 +20,24 @@ M failed its teacher-gap gate and is closed. The successor retrains only O and
 permits exactly `baseline_M`, `O_M`, `baseline_O`, and `O_O`. Never launch
 `M_M` or `M_O` from this campaign.
 
+## Parallel DeepMath qualification lane
+
+DeepMath-103K is provisional source `C`, not a training source yet. Its pinned
+raw shards feed `slurm_opd_math_deepmath_inventory.sh`, which materializes C
+and every collision-reference source with explicit `problem_missing` custody.
+The inventory then feeds `slurm_opd_math_deepmath_audit.sh` in a new output
+root. The scan performs global exact, formatting, and semantic candidate
+search; C verifier parsing; and the exact Qwen3-1.7B prompt-length surface.
+
+If the scan emits review-required semantic pairs, record exactly one
+`{"pair_id": ..., "decision": "duplicate"|"distinct"}` row for every pair.
+`slurm_opd_math_deepmath_finalize.sh` verifies the inventory, scan, and
+decision bytes, applies those decisions, and writes a separate final data
+namespace without rerunning semantic candidate search. Unparseable C golds are
+quarantined even when the aggregate parseability gate passes. The scan and
+finalizer always leave `teacher_training_authorized=false`; deterministic role
+freezing and the preregistered raw-Qwen feasibility surface are later gates.
+
 ## Non-negotiable design choices
 
 - Main same-source arms use disjoint problem clusters. Exact-row reuse is a

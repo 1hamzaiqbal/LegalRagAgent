@@ -13,6 +13,7 @@ STUDENT_TRAIN = ROOT / "scripts" / "hpc" / "slurm_opd_math_student_train.sh"
 DEEPMATH_DOWNLOAD = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_download.sh"
 DEEPMATH_INVENTORY = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_inventory.sh"
 DEEPMATH_AUDIT = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_audit.sh"
+DEEPMATH_FINALIZE = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_finalize.sh"
 
 
 def test_touched_evaluation_and_teacher_wrappers_have_valid_bash_syntax():
@@ -30,6 +31,7 @@ def test_touched_evaluation_and_teacher_wrappers_have_valid_bash_syntax():
             str(DEEPMATH_DOWNLOAD),
             str(DEEPMATH_INVENTORY),
             str(DEEPMATH_AUDIT),
+            str(DEEPMATH_FINALIZE),
         ],
         check=True,
     )
@@ -72,6 +74,19 @@ def test_deepmath_audit_is_offline_high_memory_and_requires_new_output_root():
     assert "HF_HUB_OFFLINE=1" in script
     assert "TRANSFORMERS_OFFLINE=1" in script
     assert "OPD_DEEPMATH_AUDIT_LAUNCHER_PATH" in script
+    assert "teacher training remains unauthorized" in script
+
+
+def test_deepmath_finalize_requires_bound_scan_decisions_and_new_root():
+    script = DEEPMATH_FINALIZE.read_text()
+    assert "#SBATCH --mem=192G" in script
+    assert "finalize_deepmath_audit.py" in script
+    assert "OPD_DEEPMATH_INVENTORY_ROOT:?Bind the immutable" in script
+    assert "OPD_DEEPMATH_AUDIT_ROOT:?Bind the immutable" in script
+    assert "OPD_DEEPMATH_REVIEW_DECISIONS:?Bind the complete" in script
+    assert "OPD_DEEPMATH_FINAL_ROOT:?Set a new immutable" in script
+    assert 'test ! -e "$OUTPUT_DIR"' in script
+    assert 'test -z "$(git -C "$REPO" status --porcelain=v1)"' in script
     assert "teacher training remains unauthorized" in script
 
 

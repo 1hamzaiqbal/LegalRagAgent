@@ -105,3 +105,20 @@ def test_missing_candidate_problem_is_quarantined():
     assert eligible == []
     assert quarantine[0]["reason"] == "missing_problem"
     assert stats["quarantine_rows_by_reason"] == {"missing_problem": 1}
+
+
+def test_explicit_candidate_exclusion_removes_only_eligible_row():
+    records = [
+        record("C", 0, "Unparseable candidate", "bad"),
+        record("C", 1, "Usable candidate", "2"),
+    ]
+    union, _, _ = exact_format_edges(records)
+    eligible, quarantine, _, stats = _cluster_candidate_rows(
+        records,
+        union,
+        candidate_exclusions={"C:train:0": "unparseable_gold"},
+    )
+    assert [records[index].record_id for index in eligible] == ["C:train:1"]
+    assert quarantine[0]["record_id"] == "C:train:0"
+    assert quarantine[0]["reason"] == "unparseable_gold"
+    assert stats["eligible_unique_clusters"] == 1
