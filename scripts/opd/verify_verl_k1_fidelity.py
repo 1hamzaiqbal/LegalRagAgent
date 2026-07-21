@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PINNED_VERL_COMMIT = "6a6242f3d8ec7d9f8b4936f4905144707d91fe3b"
 CORE_ALGOS_RELATIVE = Path("verl/trainer/ppo/core_algos.py")
 DISTILLATION_LOSSES_RELATIVE = Path("verl/trainer/distillation/losses.py")
+LOCAL_LOSS_RELATIVE = Path("scripts/opd/opd_loss.py")
 
 
 def _sha256(path: Path) -> str:
@@ -67,6 +68,22 @@ def verify_checkout(checkout: Path) -> dict[str, str]:
     }
 
 
+def verify_local_checkout() -> dict[str, str]:
+    commit = _git(ROOT, "rev-parse", "HEAD")
+    status = _git(ROOT, "status", "--porcelain", "--untracked-files=no")
+    if status:
+        raise ValueError("local OPD checkout has tracked modifications")
+    local_loss = ROOT / LOCAL_LOSS_RELATIVE
+    if not local_loss.is_file():
+        raise ValueError("local OPD checkout lacks opd_loss.py")
+    return {
+        "checkout": str(ROOT),
+        "commit": commit,
+        "tracked_status": "clean",
+        "opd_loss_sha256": _sha256(local_loss),
+    }
+
+
 def _install_import_roots(checkout: Path) -> None:
     for path in (str(checkout.resolve()), str(ROOT)):
         if path not in sys.path:
@@ -74,16 +91,18 @@ def _install_import_roots(checkout: Path) -> None:
 
 
 def run_fidelity(checkout: Path) -> dict[str, object]:
-    custody = verify_checkout(checkout)
+    upstream_custody = verify_checkout(checkout)
+    local_custody = verify_local_checkout()
     _install_import_roots(checkout)
 
+    # Import the local helper through the script directory so a third-party
+    # top-level ``scripts`` package cannot shadow this checkout.
+    from opd_loss import verl_k1_policy_gradient_loss
     from omegaconf import OmegaConf
     from verl.trainer.ppo.core_algos import (  # type: ignore[import-not-found]
         compute_policy_loss_vanilla,
         kl_penalty,
     )
-
-    from scripts.opd.opd_loss import verl_k1_policy_gradient_loss
 
     teacher = torch.tensor(
         [[-2.0, -2.5, -6.0, -0.1], [-4.0, -1.0, -0.5, -3.0]],
@@ -167,7 +186,10 @@ def run_fidelity(checkout: Path) -> dict[str, object]:
         "check_id": "local_vs_pinned_verl_k1_policy_gradient_v1",
         "status": "pass",
         "scientific_launch_authorized": False,
-        "custody": custody,
+        "custody": {
+            "local": local_custody,
+            "upstream_verl": upstream_custody,
+        },
         "runtime": {
             "python": sys.version.split()[0],
             "torch": torch.__version__,
