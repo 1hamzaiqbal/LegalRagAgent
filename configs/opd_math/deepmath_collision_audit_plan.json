@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "audit_id": "deepmath_C_global_collision_label_prompt_v1",
+  "qualification_id": "deepmath_C_data_feasibility_v1",
+  "inventory_id": "deepmath_C_global_inventory_v1",
+  "status": "outcome_blind_data_audit_not_teacher_authorization",
+  "teacher_training_authorized": false,
+  "scientific_use_allowed": false,
+  "qualification_plan_sha256": "b4e5aeb26024f9fc34bd647c1eba7c9b52b97da7957f25519f9c79ff4476e6df",
+  "inventory_plan_sha256": "23b1246099c45361015bae9dc438faccd2e24aca6a7899a0c280110ea2061bdd",
+  "record_scope": "all_1237750_materialized_rows",
+  "pair_scope": "all_source_pairs_global_document_frequency",
+  "exact_and_format": {
+    "normalization_version": "nfkc-casefold-ws-v1",
+    "format_normalization_version": "opd-math-format-v1",
+    "label_conflict_policy": "quarantine_entire_candidate_C_cluster",
+    "quarantine_any_cross_source_C_cluster": true,
+    "quarantine_any_evaluation_touching_C_cluster": true,
+    "retain_one_canonical_row_per_eligible_C_cluster": true
+  },
+  "semantic": {
+    "version": "global-prefix-token5-jaccard-v2",
+    "candidate_threshold": 0.85,
+    "quarantine_threshold": 0.95,
+    "numeric_signature_must_match": true,
+    "fingerprint_size": 8,
+    "max_bucket_size": 4096,
+    "allow_skipped_bucket_events": false,
+    "allow_unresolved_review_edges": false,
+    "review_decisions": ["duplicate", "distinct"]
+  },
+  "candidate_gates": {
+    "minimum_unique_eligible_clusters": 5000,
+    "minimum_gold_parseability": 0.99,
+    "maximum_unresolved_label_conflicts": 0,
+    "maximum_prompt_truncations": 0,
+    "max_prompt_tokens": 1536,
+    "tokenizer_model": "Qwen/Qwen3-1.7B",
+    "tokenizer_revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+    "thinking_mode": false,
+    "prompt_template": "opd_math_prompt_messages_v1"
+  },
+  "stage_rules": {
+    "scan_can_authorize_teacher_training": false,
+    "finalize_can_authorize_teacher_training": false,
+    "role_freeze_required_after_data_pass": true,
+    "raw_model_feasibility_required_after_data_pass": true,
+    "C_teacher_gap_required_after_feasibility": true
+  }
+}

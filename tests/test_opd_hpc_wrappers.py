@@ -12,6 +12,7 @@ STUDENT_RESULTS = ROOT / "scripts" / "hpc" / "slurm_opd_math_student_results.sh"
 STUDENT_TRAIN = ROOT / "scripts" / "hpc" / "slurm_opd_math_student_train.sh"
 DEEPMATH_DOWNLOAD = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_download.sh"
 DEEPMATH_INVENTORY = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_inventory.sh"
+DEEPMATH_AUDIT = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_audit.sh"
 
 
 def test_touched_evaluation_and_teacher_wrappers_have_valid_bash_syntax():
@@ -28,6 +29,7 @@ def test_touched_evaluation_and_teacher_wrappers_have_valid_bash_syntax():
             str(STUDENT_TRAIN),
             str(DEEPMATH_DOWNLOAD),
             str(DEEPMATH_INVENTORY),
+            str(DEEPMATH_AUDIT),
         ],
         check=True,
     )
@@ -58,6 +60,19 @@ def test_deepmath_inventory_uses_persistent_cache_and_never_authorizes_training(
     assert "HF_DATASETS_CACHE" in script
     assert "OPD_INVENTORY_LAUNCHER_PATH" in script
     assert "collision and training authorization remain closed" in script
+
+
+def test_deepmath_audit_is_offline_high_memory_and_requires_new_output_root():
+    script = DEEPMATH_AUDIT.read_text()
+    assert "#SBATCH --mem=192G" in script
+    assert "#SBATCH --time=24:00:00" in script
+    assert "audit_deepmath_inventory.py" in script
+    assert "OPD_DEEPMATH_AUDIT_ROOT:?Set a new immutable" in script
+    assert 'test ! -e "$OUTPUT_DIR"' in script
+    assert "HF_HUB_OFFLINE=1" in script
+    assert "TRANSFORMERS_OFFLINE=1" in script
+    assert "OPD_DEEPMATH_AUDIT_LAUNCHER_PATH" in script
+    assert "teacher training remains unauthorized" in script
 
 
 def test_array_wrapper_keeps_global_budget_and_stable_shard_identity():
