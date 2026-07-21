@@ -4,7 +4,7 @@ type: snapshot
 tags: [opd, math, objective-ablation, verl, preregistration, eit]
 created: 2026-07-20
 updated: 2026-07-20
-status: implementation in progress; registry and initial analytic tests landed; no expanded arm launched or preregistered
+status: implementation in progress; analytic and stored-rollout fidelity passed; no expanded arm launched or preregistered
 ---
 
 # OPD objective-family expansion - 2026-07-20
@@ -43,11 +43,16 @@ Implementation checkpoint: the declarative registry now lives at
 `configs/opd_math/objective_registry.json`, binds nullable clipping and exact
 coefficients into the local trainer, and records both byte and canonical
 hashes. Initial CPU tests execute and independently reconstruct all five local
-objectives and distinguish clipped, unclipped, and gated gradients. This is a
-partial Level-1 result only. Stored-rollout agreement, direct import from the
-pinned veRL checkout, finite-state tests, one-step custody, and scientific
-preregistration remain incomplete; the trainer explicitly rejects a
-registry-selected scientific launch.
+objectives and distinguish clipped, unclipped, and gated gradients. The
+dedicated local veRL-compatible arm now stores behavior log probabilities and
+executes the pinned ratio-form PPO scalar rather than merely relabeling the
+local score-function surrogate. Direct-import job `108498` matched the pinned
+veRL scalar and gradient exactly; stored-rollout job `108501` also matched its
+trace reconstruction and one AdamW update exactly. These complete the positive
+analytic and synthetic stored-rollout calculations, not the full ladder.
+Finite-state coverage, a real-model stored rollout, objective-by-source
+one-step custody, and scientific preregistration remain incomplete; the
+trainer explicitly rejects a registry-selected scientific launch.
 
 ## Scientific questions
 
@@ -205,12 +210,20 @@ compare:
 
 Scalar/tensor comparisons use predeclared absolute/relative tolerances.
 Gradient and update agreement use a predeclared cosine threshold. The current
-local score-function scalar is not required to equal veRL's PPO-ratio scalar;
+generic local score-function scalar is not required to equal veRL's PPO-ratio scalar;
 their gradients must agree at an exactly on-policy ratio of one. The dedicated
 local veRL-compatible calculation must match veRL's scalar, ratio, gradient,
 and update. The existing schema-v2 `108244` trace may seed a provenance-linked
 real-rollout fixture, but
 it remains plumbing evidence and never becomes a performance result.
+
+Synthetic Level-2 fixture SHA-256:
+`e8a3469cfb90b6d5b8fc1ce0519efdbaac3e650fa306cf947f7910ae124e4ef5`.
+Job `108501` passed all declared comparisons with zero scalar, gradient, and
+AdamW-update error and on-policy gradient cosine `1.0`; its receipt SHA-256 is
+`810ef012721d9555dd5dae5abf1c35989e6a5ca5327e63c4b0a41dc5e07cd601`.
+This is synthetic stored-tensor evidence. A hash-bound real-model rollout and
+Level-3 full-custody diagnostics remain required.
 
 ### Level 3: one-step full custody
 

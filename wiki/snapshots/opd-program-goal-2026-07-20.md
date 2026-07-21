@@ -91,12 +91,17 @@ the objective-family campaign, and later an external transfer target.
 
 ## Current checkpoint
 
-The objective registry and initial local analytic/trace reconstruction tests
-are implemented but not yet the complete fidelity ladder. The DeepMath plan
-and raw-byte/schema verifier are implemented; the 2.14 GB pinned Parquet copy,
-full collision/label audit, tokenizer surface, and raw-model feasibility runs
-remain to be executed on EIT. No new scientific student arm, C teacher, or C
-OPD arm has launched.
+The objective registry, direct-import analytic gate, and synthetic stored-
+rollout gate are implemented. Jobs `108498` and `108501` matched the pinned
+veRL scalar and gradient exactly; `108501` additionally matched trace
+reconstruction and one AdamW update. A real-model stored rollout, finite-state
+coverage, and Level-3 objective-by-source diagnostics remain. The DeepMath plan,
+raw-byte/schema verifier, and restartable EIT intake are implemented. Job
+`108481` verified all ten pinned Parquet shards (`2,136,106,260` bytes,
+`103,022` rows); an independent reopen reproduced the exact manifest hash.
+The full collision/label audit, tokenizer surface, and raw-model feasibility
+runs remain incomplete. No new scientific student arm, C teacher, or C OPD arm
+has launched.
 
 ## Links
 

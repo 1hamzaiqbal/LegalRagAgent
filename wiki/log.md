@@ -21,6 +21,27 @@ verifier. Neither registry authorizes scientific training; no expanded student
 arm or C teacher has launched. The historical M teacher, `M_M`, and `M_O`
 remain excluded.
 
+DeepMath raw intake subsequently completed on EIT as Slurm job `108481`:
+ten pinned source Parquet shards, `2,136,106,260` bytes, and `103,022` rows all
+matched the committed size, SHA-256, and exact schema contract. An independent
+reopen reproduced raw identity manifest SHA-256
+`d015623e4e86073de4ba76a517746ac4561e1a384035e99ffb9b466d1b88f0da`.
+Both custody records remain data-only and explicitly prohibit teacher training
+and scientific use; collision, label, prompt-bound, feasibility, and role gates
+are still pending.
+
+The objective-fidelity substrate also advanced without launching training.
+Commit `b5e36ec` and EIT job `108498` directly imported the pinned veRL K1 and
+vanilla PPO loss functions; the local ratio-form scalar and gradient matched
+with zero error. Commit `644ba10` and job `108501` added a hash-bound synthetic
+stored rollout and matched the upstream scalar, gradient, trace reconstruction,
+and one AdamW update exactly, while the on-policy local score-function gradient
+had cosine `1.0`. Receipt SHA-256 values are
+`9f4a93fbb75d7ddcc4ca5abe9e9f3b5ed7ebd336197f6dc0e0e5e0b4a5a39d47`
+and `810ef012721d9555dd5dae5abf1c35989e6a5ca5327e63c4b0a41dc5e07cd601`.
+Both remain implementation-only; the failed import/configuration attempts are
+preserved, and no model or optimizer training state was produced by them.
+
 ## [2026-07-20] decision | M teacher semantics and second-source audit
 Recorded [[opd-m-teacher-clarification-and-source-options-2026-07-20]] to
 separate the failed M-trained teacher from valid MATH student/evaluation use.

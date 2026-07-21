@@ -4,7 +4,7 @@ type: source
 tags: [opd, math, dataset, rlvr, difficulty, decontamination]
 created: 2026-07-20
 updated: 2026-07-20
-status: paper read and static compatibility screened; teacher untrained
+status: pinned raw bytes/schema verified on EIT; collision and feasibility gates pending; teacher untrained
 url: https://arxiv.org/abs/2504.11456
 dataset: https://huggingface.co/datasets/zwhe99/DeepMath-103K
 local: /engrfs/project/jacobsn/hiqbal/literature/legalrag/papers/arxiv_2504.11456.pdf
@@ -28,6 +28,30 @@ This is a qualification candidate, not a qualified teacher. A deterministic
 self-verifying under our current strict Math-Verify path. That only checks
 static schema/verifier compatibility. It does not establish full-corpus label
 quality, Qwen reward support, a teacher skill gap, or student improvement.
+
+## Raw intake checkpoint - job 108481
+
+The outcome-blind plan at
+`configs/opd_math/deepmath_qualification_plan.json` was committed before raw
+intake. EIT Slurm job `108481` downloaded the ten source Parquet shards at the
+pinned dataset revision and completed with exit `0:0` in 66 seconds. The
+wrapper and an independent reopen both verified:
+
+| Field | Verified value |
+|---|---:|
+| Source bytes | `2,136,106,260` |
+| Rows | `103,022` |
+| Shards | `10` |
+| Columns | exact seven-field source schema |
+| Raw identity manifest SHA-256 | `d015623e4e86073de4ba76a517746ac4561e1a384035e99ffb9b466d1b88f0da` |
+| Download custody SHA-256 | `ce0599487f09d1b6c17a2a86319afaeb48e5a6492eb1e89da9cbce17ce7d8f02` |
+
+Large files remain only on EIT under
+`/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/deepmath_C/5cf055d1fe3d7a2eb19719ac020211469736ae44`.
+Both receipts explicitly set `teacher_training_authorized=false` and
+`scientific_use_allowed=false`. This establishes raw-byte and schema custody
+only. It does not satisfy the global collision graph, label/parseability,
+prompt-bound, raw-model feasibility, role-freeze, or teacher-gap gates.
 
 ## Construction and caveats
 

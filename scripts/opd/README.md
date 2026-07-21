@@ -120,6 +120,11 @@ sampling it from the teacher.
 The sampled reverse-KL modes require untruncated sampling (`temperature=1`,
 `top_p=1`, `top_k=0`). Prompt and completion token IDs are preserved through
 teacher scoring; decoded text is used only for task verification and hashes.
+Successor traces also preserve the normalized rollout-time token
+log-probabilities returned by generation. The registered
+`k1_bare_verl_compatible_clip10` arm uses these as veRL-style old-policy values
+and applies the pinned vanilla PPO clip and dual clip; the generic task-plus-K1
+arms retain their separately registered score-function semantics.
 
 Top-k KL is a later estimator ablation, not part of this minimal server
 protocol. It requires the student's top-k token IDs plus teacher scores on

@@ -56,13 +56,15 @@ veRL,” but positive:
   changing the live arm.
 - **P2 — expected implementation differences.** Our task term gives each
   completion equal weight after taking its mean token log probability; veRL's
-  default policy loss is a global response-token mean. We do not retain
-  rollout-time behavior log probabilities because every rollout receives one
-  immediate update; veRL retains `old_log_probs` and can reuse a batch with
-  clipped importance ratios. We also lack veRL's K3 and sparse teacher-Top-k
-  objectives and query the external teacher sequentially rather than through
-  Ray-managed replicas. These differences affect scaling or later ablations,
-  not the validity of the current one-update sampled-K1 calculation.
+  default policy loss is a global response-token mean. The successor trace now
+  retains rollout-time behavior log probabilities and the dedicated local
+  `k1_bare_verl_compatible_clip10` objective applies veRL's exact vanilla PPO
+  ratio, symmetric K1 clamp, dual clip, and response-token mean. The other
+  local score-function arms deliberately retain their registered objective
+  semantics. We still lack veRL's K3 and sparse teacher-Top-k objectives and
+  query the external teacher sequentially rather than through Ray-managed
+  replicas. These differences affect scaling or later ablations, not the
+  validity of the current one-update sampled-K1 calculation.
 
 Local anchors are `scripts/opd/opd_train.py:366-457,487-638`,
 `scripts/opd/opd_loss.py:60-140`, and `scripts/opd/teacher_client.py:144-209`.
@@ -77,6 +79,26 @@ passed on 2026-07-20 (`scripts/opd/test_opd_loss.py` plus
 `tests/test_opd_reward_loss.py` and `tests/test_teacher_client_token_ids.py`:
 11 pytest cases plus the standalone loss checks). This is code-level evidence,
 not a held-out task-improvement result.
+
+The later direct-import fidelity gate strengthens this narrow claim. EIT job
+`108498` imported `kl_penalty` and `compute_policy_loss_vanilla` from the clean
+pinned veRL checkout and compared them with the committed local ratio-form
+helper on float64 tensors spanning both gap signs, response masking, ratios
+below and above the PPO clip, and the dual-clip branch. Scalar and gradient
+maximum absolute errors were both exactly `0.0`. Receipt:
+`/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/fidelity/local_vs_verl_b5e36ec/fidelity.json`
+(SHA-256 `9f4a93fbb75d7ddcc4ca5abe9e9f3b5ed7ebd336197f6dc0e0e5e0b4a5a39d47`).
+
+Level-2 job `108501` then consumed the committed stored fixture
+`configs/opd_math/fidelity/shared_rollout_k1_v1.json`. The local and upstream
+scalars, gradients, trace reconstruction, and one AdamW update matched exactly;
+the on-policy projection also reproduced the score-function gradient with
+cosine `1.0` even though the two surrogate scalar values differ. Receipt:
+`/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/fidelity/stored_rollout_644ba10/fidelity.json`
+(SHA-256 `810ef012721d9555dd5dae5abf1c35989e6a5ca5327e63c4b0a41dc5e07cd601`).
+Both receipts explicitly deny scientific launch authorization. Failed harness
+jobs `108491`, `108492`, `108495`, `108496`, and `108497` remain preserved as
+environment/configuration-debugging evidence and produced no training state.
 
 ## Sampled K1 and policy-gradient path
 
