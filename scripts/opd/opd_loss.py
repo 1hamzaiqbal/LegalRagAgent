@@ -112,6 +112,55 @@ def reverse_kl_score_function_loss(
     return masked_mean(token_loss, weights)
 
 
+def verl_k1_policy_gradient_loss(
+    student_logprobs: torch.Tensor,
+    teacher_logprobs: torch.Tensor,
+    behavior_logprobs: torch.Tensor,
+    mask: torch.Tensor | None = None,
+    *,
+    loss_max_clamp: float = 10.0,
+    clip_ratio_low: float = 0.2,
+    clip_ratio_high: float = 0.2,
+    dual_clip_ratio: float = 3.0,
+) -> torch.Tensor:
+    """veRL-compatible K1 policy-gradient scalar on aligned sampled tokens.
+
+    This mirrors the pinned veRL ``k1 + use_policy_gradient + vanilla`` path:
+    clamp the sampled K1 value, negate it into a detached advantage, and apply
+    the vanilla clipped/dual-clipped PPO ratio against rollout-time behavior
+    log-probabilities.  With ``student == behavior``, its scalar differs from
+    :func:`reverse_kl_score_function_loss`, while the token gradients agree.
+    """
+
+    _check_same_shape("student/teacher", student_logprobs, teacher_logprobs)
+    _check_same_shape("student/behavior", student_logprobs, behavior_logprobs)
+    if loss_max_clamp <= 0:
+        raise ValueError("loss_max_clamp must be positive")
+    if clip_ratio_low < 0 or clip_ratio_high < 0:
+        raise ValueError("PPO clip ratios must be nonnegative")
+    if dual_clip_ratio <= 1:
+        raise ValueError("dual_clip_ratio must exceed one")
+
+    distillation_loss = torch.clamp(
+        student_logprobs.detach() - teacher_logprobs.detach(),
+        min=-loss_max_clamp,
+        max=loss_max_clamp,
+    )
+    advantage = -distillation_loss
+    negative_approx_kl = torch.clamp(
+        student_logprobs - behavior_logprobs.detach(), min=-20.0, max=20.0
+    )
+    ratio = torch.exp(negative_approx_kl)
+    pg_losses1 = -advantage * ratio
+    pg_losses2 = -advantage * torch.clamp(
+        ratio, min=1.0 - clip_ratio_low, max=1.0 + clip_ratio_high
+    )
+    clipped = torch.maximum(pg_losses1, pg_losses2)
+    dual_clipped = torch.minimum(-advantage * dual_clip_ratio, clipped)
+    token_loss = torch.where(advantage < 0, dual_clipped, clipped)
+    return masked_mean(token_loss, mask)
+
+
 def opd_policy_loss(*args, **kwargs) -> torch.Tensor:
     """Compatibility alias for :func:`reverse_kl_score_function_loss`."""
     return reverse_kl_score_function_loss(*args, **kwargs)

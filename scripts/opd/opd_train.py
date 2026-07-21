@@ -43,6 +43,7 @@ try:
         reverse_kl_score_function_loss,
         sampled_k1_estimate,
         task_reward_policy_loss,
+        verl_k1_policy_gradient_loss,
     )
     from .objective_registry import (
         GATED_K1_OBJECTIVE_IDS,
@@ -65,6 +66,7 @@ except ImportError:
         reverse_kl_score_function_loss,
         sampled_k1_estimate,
         task_reward_policy_loss,
+        verl_k1_policy_gradient_loss,
     )
     from objective_registry import (  # type: ignore
         GATED_K1_OBJECTIVE_IDS,
@@ -436,7 +438,7 @@ def generate_student_samples(model, tok, prompt_rows: list[dict], args, device: 
     enc = {k: v.to(device) for k, v in enc.items()}
     prompt_width = enc["input_ids"].shape[1]
     rollout_started = time.perf_counter()
-    gen = model.generate(
+    generation = model.generate(
         **enc,
         do_sample=True,
         temperature=args.temperature,
@@ -451,8 +453,18 @@ def generate_student_samples(model, tok, prompt_rows: list[dict], args, device: 
         num_return_sequences=args.group_size,
         pad_token_id=tok.pad_token_id,
         eos_token_id=tok.eos_token_id,
+        return_dict_in_generate=True,
+        output_scores=True,
     )
     rollout_latency = time.perf_counter() - rollout_started
+    gen = generation.sequences
+    behavior_scores = model.compute_transition_scores(
+        gen,
+        generation.scores,
+        normalize_logits=True,
+    )
+    if behavior_scores.shape[0] != gen.shape[0]:
+        raise RuntimeError("rollout behavior-logprob batch shape drifted")
     samples = []
     for i, row in enumerate(gen):
         prompt_idx = i // args.group_size
@@ -468,6 +480,16 @@ def generate_student_samples(model, tok, prompt_rows: list[dict], args, device: 
                 comp_ids.pop()
         if not comp_ids:
             raise RuntimeError(f"empty completion token sequence for prompt group {prompt_idx}")
+        behavior_logprobs = [
+            float(value)
+            for value in behavior_scores[i, : len(comp_ids)].detach().cpu().tolist()
+        ]
+        if len(behavior_logprobs) != len(comp_ids) or not all(
+            math.isfinite(value) for value in behavior_logprobs
+        ):
+            raise RuntimeError(
+                f"invalid rollout behavior log-probabilities for prompt group {prompt_idx}"
+            )
         completion = tok.decode(comp_ids, skip_special_tokens=True)
         source = prompt_rows[prompt_idx]
         sample = {
@@ -483,6 +505,7 @@ def generate_student_samples(model, tok, prompt_rows: list[dict], args, device: 
                 "prompt_token_ids": list(source["prompt_token_ids"]),
                 "completion_text": completion,
                 "completion_token_ids": comp_ids,
+                "behavior_logprobs": behavior_logprobs,
                 "terminated_by_eos": terminated_by_eos,
                 "rollout_batch_latency_seconds": rollout_latency,
             }
@@ -631,6 +654,31 @@ def completion_logprobs_for_samples(model, tok, samples: list[dict], device: str
     return student_lps, teacher, mask
 
 
+def aligned_behavior_logprobs(
+    samples: list[dict], mask: torch.Tensor, device: str
+) -> torch.Tensor:
+    """Align rollout-time log-probabilities to the recomputed response mask."""
+
+    behavior = torch.zeros(mask.shape, dtype=torch.float32, device=device)
+    for index, sample in enumerate(samples):
+        values = sample.get("behavior_logprobs")
+        completion_ids = sample.get("completion_token_ids")
+        if (
+            not isinstance(values, list)
+            or not isinstance(completion_ids, list)
+            or len(values) != len(completion_ids)
+            or len(values) != int(mask[index].sum().item())
+            or any(type(value) not in (int, float) or not math.isfinite(float(value)) for value in values)
+        ):
+            raise ValueError(
+                f"sample {index} lacks exact rollout behavior log-probabilities"
+            )
+        behavior[index, : len(values)] = torch.tensor(
+            values, dtype=torch.float32, device=device
+        )
+    return behavior
+
+
 def objective_loss_from_logprobs(
     student_lps: torch.Tensor,
     teacher_lps: torch.Tensor | None,
@@ -643,6 +691,7 @@ def objective_loss_from_logprobs(
     gap_gate_beta: float | None,
     rewards: torch.Tensor | None = None,
     group_ids: torch.Tensor | None = None,
+    behavior_lps: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, dict]:
     """Execute one registered or legacy local objective on aligned logprobs."""
 
@@ -658,6 +707,11 @@ def objective_loss_from_logprobs(
         raise ValueError(f"mode {mode} requires task rewards and group IDs")
     if not needs_task_reward and (rewards is not None or group_ids is not None):
         raise ValueError(f"mode {mode} unexpectedly received task rewards")
+    verl_compatible_bare = mode == "k1_bare_verl_compatible_clip10"
+    if verl_compatible_bare and behavior_lps is None:
+        raise ValueError(f"mode {mode} requires rollout behavior log-probabilities")
+    if behavior_lps is not None and behavior_lps.shape != student_lps.shape:
+        raise ValueError(f"mode {mode} has misaligned rollout behavior log-probabilities")
 
     zero = student_lps.sum() * 0.0
     reverse_kl_sf_loss = zero
@@ -667,6 +721,8 @@ def objective_loss_from_logprobs(
     positive_gap_fraction = None
     reward_mean = None
     informative_group_fraction = None
+    verl_k1_pg_loss = None
+    behavior_current_ratio_mean = None
 
     if needs_teacher:
         gate_beta = gap_gate_beta if mode in GATED_K1_MODES else None
@@ -699,7 +755,30 @@ def objective_loss_from_logprobs(
         reward_mean = float(rewards.mean().item())
         informative_group_fraction = float(informative.float().mean().item())
 
-    if mode == "task_rl":
+    if verl_compatible_bare:
+        verl_k1_pg_loss = verl_k1_policy_gradient_loss(
+            student_lps,
+            teacher_lps,
+            behavior_lps,
+            mask,
+            loss_max_clamp=10.0,
+            clip_ratio_low=0.2,
+            clip_ratio_high=0.2,
+            dual_clip_ratio=3.0,
+        )
+        total = k1_coef * verl_k1_pg_loss
+        behavior_current_ratio_mean = float(
+            torch.exp(
+                torch.clamp(
+                    student_lps.detach() - behavior_lps.detach(),
+                    min=-20.0,
+                    max=20.0,
+                )
+            )[mask]
+            .mean()
+            .item()
+        )
+    elif mode == "task_rl":
         total = task_reward_coef * task_loss
     elif mode in TASK_AND_K1_MODES:
         total = task_reward_coef * task_loss + k1_coef * reverse_kl_sf_loss
@@ -719,6 +798,10 @@ def objective_loss_from_logprobs(
         "positive_gap_fraction": positive_gap_fraction,
         "reward_mean": reward_mean,
         "informative_group_fraction": informative_group_fraction,
+        "verl_compatible_k1_policy_loss": (
+            None if verl_k1_pg_loss is None else float(verl_k1_pg_loss.detach().item())
+        ),
+        "behavior_current_ratio_mean": behavior_current_ratio_mean,
         "tokens": int(mask.sum().item()),
     }
     return total, metrics
@@ -729,6 +812,7 @@ def training_loss_for_samples(model, tok, samples: list[dict], args, device: str
     student_lps, teacher, mask = completion_logprobs_for_samples(
         model, tok, samples, device, require_teacher=needs_teacher
     )
+    behavior_lps = aligned_behavior_logprobs(samples, mask, device)
     rewards: list[float] | None = None
     reward_statuses: list[str] | None = None
     reward_tensor = group_ids = None
@@ -751,6 +835,7 @@ def training_loss_for_samples(model, tok, samples: list[dict], args, device: str
         gap_gate_beta=args.gap_gate_beta,
         rewards=reward_tensor,
         group_ids=group_ids,
+        behavior_lps=behavior_lps,
     )
     return total, metrics, student_lps, teacher if needs_teacher else None, mask, rewards, reward_statuses
 
@@ -2033,6 +2118,20 @@ def sample_trace_rows(samples, student_lps, teacher_lps, mask, rewards, statuses
             if teacher_values is None
             else [float(value) for value in teacher_values.tolist()]
         )
+        behavior_token_logprobs = sample.get("behavior_logprobs")
+        if behavior_token_logprobs is not None:
+            if (
+                not isinstance(behavior_token_logprobs, list)
+                or len(behavior_token_logprobs) != len(student_token_logprobs)
+                or any(
+                    type(value) not in (int, float) or not math.isfinite(float(value))
+                    for value in behavior_token_logprobs
+                )
+            ):
+                raise RuntimeError("sample trace has invalid rollout behavior log-probabilities")
+            behavior_token_logprobs = [
+                float(value) for value in behavior_token_logprobs
+            ]
         student_nll = -sum(student_token_logprobs) / len(student_token_logprobs)
         teacher_nll = (
             None
@@ -2052,7 +2151,7 @@ def sample_trace_rows(samples, student_lps, teacher_lps, mask, rewards, statuses
             ]
         )
         row = {
-            "schema_version": 2,
+            "schema_version": 3 if behavior_token_logprobs is not None else 2,
             "step": step,
             "record_id": sample.get("record_id"),
             "source": sample.get("source"),
@@ -2069,6 +2168,7 @@ def sample_trace_rows(samples, student_lps, teacher_lps, mask, rewards, statuses
             "completion_token_ids": list(sample["completion_token_ids"]),
             "completion_text": sample["completion_text"],
             "student_token_logprobs": student_token_logprobs,
+            "behavior_token_logprobs_on_student_trajectory": behavior_token_logprobs,
             "teacher_token_logprobs_on_student_trajectory": teacher_token_logprobs,
             "student_nll": student_nll,
             "teacher_nll_on_student_trajectory": teacher_nll,
@@ -2111,6 +2211,7 @@ def recompute_student_trace_geometry(
     expected_groups: dict[tuple[int, int], dict],
     tokenizer,
     loss_config: dict | None = None,
+    require_behavior_logprobs: bool = False,
 ) -> dict:
     """Fail closed on the exact student step, group, sample, and prompt trace."""
 
@@ -2149,8 +2250,13 @@ def recompute_student_trace_geometry(
     completion_tokens = 0
     sample_expanded_prompt_tokens = 0
     for row_number, row in enumerate(sample_rows, 1):
-        if row.get("schema_version") != 2:
+        schema_version = row.get("schema_version")
+        if schema_version not in {2, 3}:
             raise ValueError(f"student sample trace row {row_number} has an invalid schema")
+        if require_behavior_logprobs and schema_version != 3:
+            raise ValueError(
+                f"registered objective trace row {row_number} lacks behavior-logprob schema"
+            )
         step = row.get("step")
         group_id = row.get("group_id")
         sample_idx = row.get("sample_idx")
@@ -2203,6 +2309,26 @@ def recompute_student_trace_geometry(
         ):
             raise ValueError(
                 f"student sample trace row {row_number} lacks exact student token log-probabilities"
+            )
+        behavior_logprobs = row.get(
+            "behavior_token_logprobs_on_student_trajectory"
+        )
+        if schema_version == 3:
+            if (
+                not isinstance(behavior_logprobs, list)
+                or len(behavior_logprobs) != len(completion_ids)
+                or any(
+                    type(value) not in (int, float)
+                    or not math.isfinite(float(value))
+                    for value in behavior_logprobs
+                )
+            ):
+                raise ValueError(
+                    f"student sample trace row {row_number} lacks exact behavior token log-probabilities"
+                )
+        elif behavior_logprobs is not None:
+            raise ValueError(
+                f"legacy student sample trace row {row_number} has unversioned behavior log-probabilities"
             )
         teacher_logprobs = row.get("teacher_token_logprobs_on_student_trajectory")
         if mode in K1_MODES:
@@ -2656,6 +2782,7 @@ def run(args) -> None:
             max_completion_tokens=args.max_new_tokens,
             expected_groups=expected_trace_groups,
             tokenizer=tok,
+            require_behavior_logprobs=registry_contract is not None,
             loss_config={
                 "task_reward_coef": args.task_reward_coef,
                 "k1_coef": args.k1_coef,

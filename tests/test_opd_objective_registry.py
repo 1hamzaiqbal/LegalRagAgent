@@ -15,6 +15,7 @@ from scripts.opd.objective_registry import (
 from scripts.opd.opd_loss import (
     reverse_kl_score_function_loss,
     task_reward_policy_loss,
+    verl_k1_policy_gradient_loss,
 )
 from scripts.opd.opd_train import (
     bind_registered_objective,
@@ -72,6 +73,7 @@ def _trace_rows(student, teacher, mask, rewards, groups, *, sampled_k1, task_rew
                 "group_id": int(groups[index]),
                 "completion_token_ids": list(range(1, len(student_values) + 1)),
                 "student_token_logprobs": student_values,
+                "behavior_token_logprobs_on_student_trajectory": student_values,
                 "teacher_token_logprobs_on_student_trajectory": (
                     teacher_values if sampled_k1 else None
                 ),
@@ -158,12 +160,25 @@ def test_local_registered_objective_matches_manual_torch_and_trace_reconstructio
         gap_gate_beta=spec["gap_gate_beta"],
         rewards=task_rewards,
         group_ids=task_groups,
+        behavior_lps=(
+            student.detach().clone()
+            if objective_id == "k1_bare_verl_compatible_clip10"
+            else None
+        ),
     )
     expected = student.sum() * 0.0
     if spec["task_reward"]:
         task_loss, _, _ = task_reward_policy_loss(student, rewards, groups, mask)
         expected = expected + spec["task_reward_coef"] * task_loss
-    if spec["sampled_k1"]:
+    if objective_id == "k1_bare_verl_compatible_clip10":
+        expected = expected + spec["k1_coef"] * verl_k1_policy_gradient_loss(
+            student,
+            teacher,
+            student.detach(),
+            mask,
+            loss_max_clamp=10.0,
+        )
+    elif spec["sampled_k1"]:
         reverse = reverse_kl_score_function_loss(
             student,
             teacher,
@@ -201,6 +216,11 @@ def test_local_registered_objective_matches_manual_torch_and_trace_reconstructio
         assert reconstructed["reverse_kl_score_function_surrogate"] == pytest.approx(
             metrics["reverse_kl_score_function_surrogate"], abs=1e-5
         )
+    if objective_id == "k1_bare_verl_compatible_clip10":
+        assert reconstructed["verl_compatible_k1_policy_loss"] == pytest.approx(
+            metrics["verl_compatible_k1_policy_loss"], abs=1e-5
+        )
+        assert reconstructed["behavior_current_ratio_mean"] == pytest.approx(1.0)
 
 
 def test_unclipped_and_gated_objectives_have_distinct_gradients():
@@ -233,6 +253,36 @@ def test_unclipped_and_gated_objectives_have_distinct_gradients():
     assert not torch.allclose(clipped, unclipped)
     assert abs(float(gated[0, 0])) < abs(float(clipped[0, 0])) * 1e-6
     assert abs(float(gated[1, 0])) == pytest.approx(abs(float(clipped[1, 0])), rel=1e-5)
+
+
+def test_verl_ratio_form_has_same_on_policy_gradient_but_different_scalar():
+    teacher = torch.tensor([[-3.0, -1.0], [-0.25, -8.0]], dtype=torch.float64)
+    mask = torch.tensor([[True, True], [True, False]])
+    behavior = torch.tensor([[-2.0, -2.0], [-1.0, -1.0]], dtype=torch.float64)
+
+    local_student = behavior.clone().requires_grad_(True)
+    local = reverse_kl_score_function_loss(
+        local_student,
+        teacher,
+        mask,
+        advantage_clip=10.0,
+        ratio_clip_eps=None,
+    )
+    local.backward()
+
+    verl_student = behavior.clone().requires_grad_(True)
+    ratio_form = verl_k1_policy_gradient_loss(
+        verl_student,
+        teacher,
+        behavior,
+        mask,
+        loss_max_clamp=10.0,
+    )
+    ratio_form.backward()
+
+    assert not torch.allclose(local.detach(), ratio_form.detach())
+    assert torch.allclose(local_student.grad, verl_student.grad)
+    assert torch.equal(local_student.grad[~mask], torch.zeros_like(local_student.grad[~mask]))
 
 
 def test_registry_alone_cannot_authorize_scientific_training():

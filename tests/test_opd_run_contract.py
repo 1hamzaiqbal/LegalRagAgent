@@ -2,8 +2,10 @@ import hashlib
 import json
 from argparse import Namespace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+import torch
 
 from scripts.opd import opd_train as train_module
 from scripts.opd.opd_train import (
@@ -11,6 +13,7 @@ from scripts.opd.opd_train import (
     _validate_gate_prepared_binding,
     count_jsonl_objects,
     environment_contract_unchanged,
+    generate_student_samples,
     recompute_student_trace_geometry,
     resolve_trace_directory,
     run,
@@ -31,6 +34,103 @@ def test_run_does_not_shadow_sample_trace_rows_callable():
     assert "sample_trace_rows" not in run.__code__.co_varnames
     assert "sample_trace_rows" in run.__code__.co_names
     assert "observed_sample_trace_rows" in run.__code__.co_varnames
+
+
+def test_rollout_captures_exact_behavior_logprobs_after_eos_and_pad_trimming():
+    class FakeTokenizer:
+        pad_token_id = 0
+        eos_token_id = 9
+
+        def __call__(self, prompts, **kwargs):
+            assert prompts == ["first", "second"]
+            assert kwargs == {
+                "return_tensors": "pt",
+                "padding": True,
+                "add_special_tokens": False,
+            }
+            return {
+                "input_ids": torch.tensor([[1, 2], [0, 3]]),
+                "attention_mask": torch.tensor([[1, 1], [0, 1]]),
+            }
+
+        def decode(self, token_ids, *, skip_special_tokens):
+            assert skip_special_tokens is True
+            return ":".join(str(value) for value in token_ids)
+
+    class FakeModel:
+        def eval(self):
+            return self
+
+        def generate(self, **kwargs):
+            assert kwargs["return_dict_in_generate"] is True
+            assert kwargs["output_scores"] is True
+            assert kwargs["num_return_sequences"] == 2
+            return SimpleNamespace(
+                sequences=torch.tensor(
+                    [
+                        [1, 2, 5, 9, 0],
+                        [1, 2, 6, 7, 0],
+                        [0, 3, 8, 9, 0],
+                        [0, 3, 4, 0, 0],
+                    ]
+                ),
+                scores=(object(), object(), object()),
+            )
+
+        def compute_transition_scores(self, sequences, scores, *, normalize_logits):
+            assert sequences.shape == (4, 5)
+            assert len(scores) == 3
+            assert normalize_logits is True
+            return torch.tensor(
+                [
+                    [-0.1, -0.2, -9.0],
+                    [-0.3, -0.4, -9.0],
+                    [-0.5, -0.6, -9.0],
+                    [-0.7, -9.0, -9.0],
+                ]
+            )
+
+    prompt_rows = [
+        {
+            "record_id": "O:1",
+            "source": "O",
+            "prompt_text": "first",
+            "prompt_token_ids": [1, 2],
+            "solution": r"\boxed{1}",
+        },
+        {
+            "record_id": "O:2",
+            "source": "O",
+            "prompt_text": "second",
+            "prompt_token_ids": [3],
+            "solution": r"\boxed{2}",
+        },
+    ]
+    args = Namespace(
+        temperature=1.0,
+        top_p=1.0,
+        top_k=0,
+        max_new_tokens=3,
+        group_size=2,
+    )
+    samples = generate_student_samples(
+        FakeModel(), FakeTokenizer(), prompt_rows, args, "cpu"
+    )
+
+    assert [sample["completion_token_ids"] for sample in samples] == [
+        [5, 9],
+        [6, 7],
+        [8, 9],
+        [4],
+    ]
+    assert [sample["behavior_logprobs"] for sample in samples] == [
+        pytest.approx([-0.1, -0.2]),
+        pytest.approx([-0.3, -0.4]),
+        pytest.approx([-0.5, -0.6]),
+        pytest.approx([-0.7]),
+    ]
+    assert [sample["group_id"] for sample in samples] == [0, 0, 1, 1]
+    assert [sample["sample_idx"] for sample in samples] == [0, 1, 0, 1]
 
 
 def digest(path):

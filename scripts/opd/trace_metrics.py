@@ -40,6 +40,7 @@ GATED_K1_MODES = {"opd_gated", "k1_gap_only", "task_rl_k1_gap"} | set(
     GATED_K1_OBJECTIVE_IDS
 )
 TASK_AND_K1_MODES = {"task_rl_k1_gap"} | set(TASK_AND_K1_OBJECTIVE_IDS)
+VERL_COMPATIBLE_BARE_MODE = "k1_bare_verl_compatible_clip10"
 REWARD_ADVANTAGE_EPS = 1e-6
 STEP_METRIC_ABS_TOLERANCE = 1e-5
 STEP_METRIC_REL_TOLERANCE = 1e-6
@@ -100,12 +101,23 @@ def reconstruct_step_metrics(
 
     student_by_sample: list[list[float]] = []
     teacher_by_sample: list[list[float] | None] = []
+    behavior_by_sample: list[list[float] | None] = []
     groups: dict[int, list[int]] = defaultdict(list)
     rewards: list[float] = []
     for index, row in enumerate(rows):
         label = f"sample {index}"
         student = _token_values(row, "student_token_logprobs", label)
         student_by_sample.append(student)
+        behavior_raw = row.get("behavior_token_logprobs_on_student_trajectory")
+        if behavior_raw is not None:
+            behavior = _token_values(
+                row, "behavior_token_logprobs_on_student_trajectory", label
+            )
+            if len(behavior) != len(student):
+                raise ValueError(f"{label} student/behavior token arrays differ in length")
+            behavior_by_sample.append(behavior)
+        else:
+            behavior_by_sample.append(None)
         group_id = row.get("group_id")
         if type(group_id) is not int:
             raise ValueError(f"{label} lacks an integer group_id")
@@ -162,6 +174,8 @@ def reconstruct_step_metrics(
     sampled_k1: float | None = None
     gap_gate_mean: float | None = None
     positive_gap_fraction: float | None = None
+    verl_compatible_k1_policy_loss: float | None = None
+    behavior_current_ratio_mean: float | None = None
     if mode in K1_MODES:
         k1_terms: list[float] = []
         surrogate_terms: list[float] = []
@@ -195,10 +209,43 @@ def reconstruct_step_metrics(
         gap_gate_mean = sum(gate_terms) / tokens
         positive_gap_fraction = positive / tokens
 
+    if mode == VERL_COMPATIBLE_BARE_MODE:
+        policy_terms: list[float] = []
+        ratios: list[float] = []
+        for student, teacher, behavior in zip(
+            student_by_sample,
+            teacher_by_sample,
+            behavior_by_sample,
+            strict=True,
+        ):
+            if teacher is None or behavior is None:
+                raise ValueError("veRL-compatible K1 trace lacks teacher or behavior values")
+            for student_logprob, teacher_logprob, behavior_logprob in zip(
+                student, teacher, behavior, strict=True
+            ):
+                distillation_loss = min(
+                    max(student_logprob - teacher_logprob, -10.0), 10.0
+                )
+                advantage = -distillation_loss
+                ratio = math.exp(
+                    min(max(student_logprob - behavior_logprob, -20.0), 20.0)
+                )
+                pg_loss1 = -advantage * ratio
+                clipped_ratio = min(max(ratio, 0.8), 1.2)
+                pg_loss2 = -advantage * clipped_ratio
+                clipped = max(pg_loss1, pg_loss2)
+                dual_clipped = min(-advantage * 3.0, clipped)
+                policy_terms.append(dual_clipped if advantage < 0 else clipped)
+                ratios.append(ratio)
+        verl_compatible_k1_policy_loss = sum(policy_terms) / tokens
+        behavior_current_ratio_mean = sum(ratios) / tokens
+
     if mode == "task_rl":
         total_loss = task_reward_coef * task_loss
     elif mode in TASK_AND_K1_MODES:
         total_loss = task_reward_coef * task_loss + k1_coef * reverse_surrogate
+    elif mode == VERL_COMPATIBLE_BARE_MODE:
+        total_loss = k1_coef * float(verl_compatible_k1_policy_loss)
     elif mode in K1_OBJECTIVE_IDS:
         total_loss = k1_coef * reverse_surrogate
     else:
@@ -213,6 +260,8 @@ def reconstruct_step_metrics(
         "positive_gap_fraction": positive_gap_fraction,
         "reward_mean": reward_mean,
         "informative_group_fraction": informative_group_fraction,
+        "verl_compatible_k1_policy_loss": verl_compatible_k1_policy_loss,
+        "behavior_current_ratio_mean": behavior_current_ratio_mean,
         "tokens": tokens,
         "total_loss": total_loss,
     }
