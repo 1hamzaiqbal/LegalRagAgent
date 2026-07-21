@@ -11,6 +11,7 @@ TEACHER_SMOKE = ROOT / "scripts" / "hpc" / "slurm_opd_math_teacher_smoke.sh"
 STUDENT_RESULTS = ROOT / "scripts" / "hpc" / "slurm_opd_math_student_results.sh"
 STUDENT_TRAIN = ROOT / "scripts" / "hpc" / "slurm_opd_math_student_train.sh"
 DEEPMATH_DOWNLOAD = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_download.sh"
+DEEPMATH_INVENTORY = ROOT / "scripts" / "hpc" / "slurm_opd_math_deepmath_inventory.sh"
 
 
 def test_touched_evaluation_and_teacher_wrappers_have_valid_bash_syntax():
@@ -26,6 +27,7 @@ def test_touched_evaluation_and_teacher_wrappers_have_valid_bash_syntax():
             str(STUDENT_RESULTS),
             str(STUDENT_TRAIN),
             str(DEEPMATH_DOWNLOAD),
+            str(DEEPMATH_INVENTORY),
         ],
         check=True,
     )
@@ -43,6 +45,19 @@ def test_deepmath_download_is_revision_pinned_restartable_and_non_authorizing():
     assert "verify-raw" in script
     assert '"teacher_training_authorized": False' in script
     assert '"scientific_use_allowed": False' in script
+
+
+def test_deepmath_inventory_uses_persistent_cache_and_never_authorizes_training():
+    script = DEEPMATH_INVENTORY.read_text()
+    assert "#SBATCH --partition=general-cpu" in script
+    assert "deepmath_inventory_plan.json" in script
+    assert "materialize_deepmath_inventory.py" in script
+    assert 'test -z "$(git -C "$REPO" status --porcelain=v1)"' in script
+    assert "/engrfs/project/jacobsn/hiqbal/cache/" in script
+    assert "HF_HUB_CACHE" in script
+    assert "HF_DATASETS_CACHE" in script
+    assert "OPD_INVENTORY_LAUNCHER_PATH" in script
+    assert "collision and training authorization remain closed" in script
 
 
 def test_array_wrapper_keeps_global_budget_and_stable_shard_identity():
