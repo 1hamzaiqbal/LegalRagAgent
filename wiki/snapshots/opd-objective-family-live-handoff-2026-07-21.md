@@ -154,6 +154,18 @@ built-in self-test with payload SHA-256
 and focused atomic-copy/zero-intent recovery tests. `shellcheck` is unavailable
 on the current Mac.
 
+## EIT transport recovery note
+
+The canonical `wustl` SSH alias may land on `ssh-shell-1.engr.wustl.edu`, whose
+noninteractive module initialization hung during the live O full-gap launch.
+The same authenticated EIT lane was verified through
+`ssh-shell-2.engr.wustl.edu` using the existing `wustl` account/key and all
+unchanged `/engrfs/project/jacobsn/hiqbal/...` paths. This is a login-node
+transport fallback only: it does not change the experiment commit, Slurm
+account, artifacts, environment, or any scientific boundary. Use it only when
+the canonical endpoint is unhealthy, and continue to verify the exact
+repository/commit and immutable artifact paths before submitting a job.
+
 ## Remaining launch order
 
 1. Finish the fresh O teacher, timing prefixes, and immutable full-gap plan.
