@@ -20,6 +20,10 @@ try:
         sha256_file,
         sha256_tree,
     )
+    from .score_ledger import (
+        SCORE_LEDGER_GATE_TYPE,
+        validate_score_ledger_gate_for_merge,
+    )
 except ImportError:
     from quality_gates import (  # type: ignore
         DEFAULT_TEACHER_MIN_RECORDS,
@@ -28,6 +32,10 @@ except ImportError:
         recompute_teacher_gate,
         sha256_file,
         sha256_tree,
+    )
+    from score_ledger import (  # type: ignore
+        SCORE_LEDGER_GATE_TYPE,
+        validate_score_ledger_gate_for_merge,
     )
 
 
@@ -109,6 +117,13 @@ def validate_teacher_gate_for_merge(
 
     manifest_path = Path(manifest_path).resolve()
     gate = _read_json_object(manifest_path)
+    if gate.get("gate") == SCORE_LEDGER_GATE_TYPE:
+        return validate_score_ledger_gate_for_merge(
+            manifest_path,
+            base_model=base_model,
+            base_revision=base_revision,
+            adapter=adapter,
+        )
     if gate.get("schema_version") != GATE_SCHEMA_VERSION:
         raise ValueError(
             f"teacher gap has schema_version={gate.get('schema_version')!r}; "
