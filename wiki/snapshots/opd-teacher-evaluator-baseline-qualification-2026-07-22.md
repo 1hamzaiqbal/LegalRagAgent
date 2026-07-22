@@ -58,6 +58,22 @@ Because each step sampled a different problem, the reward trace is not a
 learning curve, and the final-only save policy prevents checkpoint selection or
 a duration/overtraining audit.
 
+There is also an explicit objective/measurement mismatch. Teacher GRPO calls
+the TRL-style accuracy contract (`NormalizationConfig(units=True)`), whereas
+student training and evaluation use the repository's separate stricter
+normalization/status path. The code preserves that distinction honestly, but
+the campaign never measured the disagreement rate. A future teacher recipe
+must either use one registered score-once reward contract end to end or freeze
+both contracts and report a blinded disagreement matrix before training. It
+must not choose between scorers after seeing which one yields the preferred
+teacher gap.
+
+Finally, `loss_type="dapo"` supplies DAPO loss normalization but not DAPO's
+full dynamic-sampling recipe. With 82% all-equal groups, that omission is
+material. A successor may increase generations per prompt or introduce a
+preregistered sampler, but it may not describe this predecessor as complete
+DAPO.
+
 ## Held-out O-teacher movement
 
 The canonical all-record evaluation contained 4,585 records and four samples
