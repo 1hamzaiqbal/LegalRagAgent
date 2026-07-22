@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "qualification_id": "opd_math_teacher_evaluator_hardening_v1",
+  "status": "setup_diagnostics_authorized_scientific_training_not_authorized",
+  "purpose": "Separate teacher-learning sufficiency, rollout truncation, scorer behavior, and student-baseline quality before another OPD launch.",
+  "claim_boundary": "This plan authorizes read-only audits and setup-only length calibration. It does not reopen the failed M teacher, rewrite sealed scores, authorize teacher retraining, or authorize OPD student training.",
+  "immutable_history": {
+    "M_teacher_status": "permanently_failed_and_excluded",
+    "M_teacher_actions_forbidden": [
+      "M_retraining",
+      "M_merge",
+      "M_M",
+      "M_O"
+    ],
+    "O_teacher_result": "retain the post-hoc symbolic-eligible score-ledger result and its caveat",
+    "predecessor_student_runs": "retain as pilots; do not relabel absolute held-out accuracy as improvement",
+    "score_recovery": "never heuristically score an incomplete capped trajectory"
+  },
+  "length_calibration": {
+    "selection_surface": "first 64 records of roles/O/student_opd.jsonl under the existing deterministic task order; this is setup/training data, never teacher_gap_dev or source_holdout",
+    "records": 64,
+    "samples_per_record": 2,
+    "seed": 0,
+    "enable_thinking": false,
+    "prompt_contract": "existing concise reasoning plus final answer inside boxed braces",
+    "decoding_by_model_family": {
+      "student": {
+        "temperature": 1.0,
+        "top_p": 1.0,
+        "top_k": 0
+      },
+      "teacher": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "top_k": 20
+      }
+    },
+    "surfaces": [
+      "raw_Qwen3_1.7B_student",
+      "raw_Qwen3_8B_teacher",
+      "merged_O_Qwen3_8B_teacher"
+    ],
+    "candidate_max_completion_tokens": [
+      2048,
+      4096,
+      8192
+    ],
+    "staging_rule": "Run 2048 and 4096 first. Run 8192 only for a model family that has no qualifying smaller cap.",
+    "selection_rule": {
+      "student": "smallest candidate passing every criterion for the raw student",
+      "teacher": "smallest candidate passing every criterion for both raw and merged O teachers",
+      "maximum_at_cap_fraction": 0.05,
+      "maximum_parse_failure_fraction_below_cap": 0.02,
+      "maximum_verifier_error_fraction": 0.001
+    },
+    "failure_rule": "If 8192 fails, stop. Register and test a new compact prompt on fresh setup-only records; do not extract answers from truncated text and do not touch final evaluation roles.",
+    "scientific_use": "The chosen student cap must be shared by raw, task-RL, offline-distillation, and OPD student arms. The chosen teacher cap must be shared by paired raw/trained teacher evaluation."
+  },
+  "teacher_recipe_successor_requirements": {
+    "status": "design_requirements_not_launch_authorized",
+    "training_reward": "Use one registered reward/status contract for teacher optimization and evaluation, or predeclare and report their disagreement matrix before training.",
+    "training_length": "Use the qualified teacher completion cap; truncated completions remain masked and separately counted.",
+    "group_signal": "Increase generations per prompt or use a preregistered outcome-independent difficulty sampler; full DAPO must not be claimed unless dynamic sampling and the remaining DAPO recipe are implemented.",
+    "minimum_trace_requirements": {
+      "maximum_at_cap_fraction": 0.05,
+      "minimum_nonzero_gradient_updates": 100,
+      "minimum_nonzero_gradient_step_fraction": 0.25,
+      "minimum_mixed_reward_group_fraction": 0.25
+    },
+    "checkpointing": "Save periodic checkpoints and optimizer state. Select duration on a frozen tune-dev subset that is disjoint from teacher_gap_dev and every student/external evaluation role.",
+    "final_gate": "Run the complete teacher_gap_dev paired evaluation once after recipe and checkpoint selection. Preserve symbolic-eligible and excluded-semantic populations separately.",
+    "replication": "After one recipe-qualification seed, freeze the recipe and use seeds 0, 1, and 2 for any paper-level teacher-training claim."
+  },
+  "student_baseline_contract": {
+    "status": "definition_only_not_launch_authorized",
+    "required_arms": [
+      {
+        "id": "raw",
+        "meaning": "frozen Qwen3-1.7B with no post-training"
+      },
+      {
+        "id": "task_rl",
+        "meaning": "student task-reward training with the same rollout and optimizer budget as OPD"
+      },
+      {
+        "id": "offline_distillation",
+        "meaning": "fixed teacher demonstrations or logits; distinguishes on-policy data collection from ordinary distillation"
+      },
+      {
+        "id": "bare_opd",
+        "meaning": "on-policy teacher likelihood only; collapse diagnostic, not the preferred method"
+      },
+      {
+        "id": "reward_gated_opd",
+        "meaning": "task reward plus teacher signal under the registered gate"
+      }
+    ],
+    "pairing": "Every trained arm shares initialization, seed, exact prompt order, optimizer-step budget, rollout cap, evaluation records, and evaluation seeds within a replicate.",
+    "primary_comparisons": [
+      "reward_gated_opd_minus_task_rl",
+      "reward_gated_opd_minus_offline_distillation",
+      "each_trained_arm_minus_raw"
+    ],
+    "primary_measurement": "paired completion reward on held-out records; also report pass@k, parseability, cap rate, calls, tokens, latency, and verifier unknowns",
+    "evaluation_surfaces": [
+      "O_source_holdout",
+      "MATH_external_transfer_only",
+      "post_checkpoint_competition_set_such_as_AIME_2026"
+    ],
+    "minimum_replicates": 3,
+    "forbidden_inference": "An absolute trained-model accuracy, finite loss, checkpoint, or one-step diagnostic is not student improvement."
+  },
+  "exposure_reporting": {
+    "policy": "Report only documented dataset membership as known exposure. Dataset age, model-card benchmarks, and temporal feasibility are risk indicators, not proof of item-level training exposure.",
+    "categories": [
+      "documented_exact_exposure",
+      "temporally_possible_or_benchmark_documented",
+      "unknown_private_training_membership",
+      "post_checkpoint_external_evaluation"
+    ],
+    "black_box_probe_boundary": "Memorization and completion-prefix probes may be reported as diagnostics but cannot verify private pretraining membership."
+  }
+}

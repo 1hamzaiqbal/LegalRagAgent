@@ -34,12 +34,15 @@ zero, the data were deliberately partial, and no scientific gate passed. A
 smoke-only custody-label inconsistency was corrected and regression-tested;
 the scientific process-binding gate itself was never bypassed.
 
-The successor contract and launch order are recorded in
-[[opd-math-scientific-cutover-2026-07-18]]. The old environment-less support
-gates retain diagnostic numbers but no longer authorize training. Scientific
-work now requires fresh v2 exact-environment M/O support, both retrained
-teachers, teacher-gap gates, and the complete six-arm held-out matrix on one
-final Git commit.
+The original successor contract and launch order are recorded in
+[[opd-math-scientific-cutover-2026-07-18]]. Its two-teacher matrix was later
+superseded: the M teacher failed under teacher-favorable sensitivity and is
+permanently excluded from retraining, merge, M_M, and M_O. The O teacher passed
+only a post-hoc symbolic-eligible score-ledger gate. The current setup audit and
+successor baseline contract are in
+[[opd-teacher-evaluator-baseline-qualification-2026-07-22]]. The old
+environment-less support gates retain diagnostic numbers but do not authorize
+training.
 
 ## Gates
 
@@ -96,4 +99,5 @@ distillation method to a task with observable skill headroom.
 [[sdar]] · [[skill1]] · [[alloc-internalization-rung2]] ·
 [[self-distillation-cluster-update-2026-07-17]] · [[opd-math-source-transfer]] ·
 [[opd-math-eit-handoff-2026-07-18]] · [[ema-policy-gradient]] ·
-[[verl-opd-trainer]]
+[[verl-opd-trainer]] ·
+[[opd-teacher-evaluator-baseline-qualification-2026-07-22]]
