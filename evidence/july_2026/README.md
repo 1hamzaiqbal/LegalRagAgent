@@ -18,6 +18,9 @@ duplicating every raw artifact in Git.
 - `manifests/tracked_evidence.sha256`: integrity manifest for the original
   compact evidence copied into this directory. Regenerate it after adding new
   tracked summaries rather than treating it as an automatic live manifest.
+- `opd_teacher_evaluator_qualification_bd1ca8b_v1.json`: read-only
+  reconstruction of teacher learning signal, truncation, paired teacher
+  movement, and predecessor student baselines from sealed EIT traces.
 
 The result-level interpretation and cite gates are in
 [`docs/july_2026_completion_audit_2026-07-17.md`](../../docs/july_2026_completion_audit_2026-07-17.md)
@@ -33,3 +36,20 @@ and checksums were written to the sibling recovery directory
 artifacts were also committed on `codex/scope_old` and zipped under
 `/Users/hamzaiqbal/grad/LegalRagAgent_archive/`. Nothing in this package is a
 substitute for those recovery copies.
+
+## OPD teacher/evaluator qualification — audited 2026-07-22
+
+CPU Slurm job `126821` ran
+`scripts/opd_math/qualification_audit.py` without invoking Math-Verify or
+changing a stored score. The tracked output is
+`opd_teacher_evaluator_qualification_bd1ca8b_v1.json` (SHA-256
+`2255b2f7a49404a9c47c26cf42f53a4a7b6d4448b55aa0d85b423b0aa400b9f1`).
+
+The audit establishes a setup diagnosis, not a performance win: O teacher run
+108609 sampled 100/4,322 selected prompt groups, had 18 mixed-reward groups,
+16 nonzero-gradient steps, and 178/400 completions at its 1,024-token cap.
+Nearly every student parse failure and most teacher parse failures occurred at
+the completion cap. The old task-RL student results remain absolute pilot
+scores because no raw-student evaluation exists on the identical held-out
+records and decoding contract. No predecessor artifact demonstrates OPD
+student improvement.

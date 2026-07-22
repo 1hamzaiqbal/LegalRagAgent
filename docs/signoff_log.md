@@ -1311,3 +1311,23 @@ The original failed merge, all-record predecessor gate, and sealed source
 evaluation bytes remain unchanged. Student training requires a successful
 ledger-bound merge, independent merged-model custody audit, and another
 explicit successor boundary.
+
+## OPD teacher/evaluator/baseline qualification — audited 2026-07-22
+
+Scope: read-only reconstruction of sealed O-teacher training traces, paired
+teacher evaluations, raw-student support evaluations, and predecessor task-RL
+traces/results. The audit never invokes the symbolic verifier and does not
+rewrite a stored score. Full interpretation and the successor setup-only
+length-calibration contract are in
+`wiki/snapshots/opd-teacher-evaluator-baseline-qualification-2026-07-22.md`.
+
+| Result | Verified value | Sign-off |
+|---|---|---|
+| O-teacher optimization signal | 100/4,322 selected prompt groups sampled; 18/100 mixed-reward groups; 16/100 nonzero-gradient steps; 178/400 completions at the 1,024-token cap; 3/178 capped completions correct; no intermediate checkpoints | ⚠️ CITE as recipe/signal diagnosis only; ❌ not sufficient teacher training or attainable teacher quality |
+| Evaluation truncation diagnosis | raw-student M: 3,391/3,392 parse failures at cap; raw-student O: 6,520/6,570 at cap; raw O teacher: 8,053/8,191 at cap; trained O teacher: 8,002/8,138 at cap | ⚠️ CITE as evidence that the dominant failure is capped generation; ❌ do not rescue incomplete trajectories or infer parser correctness on all answer types |
+| Stored all-record paired teacher movement | raw 26.4667%, trained 27.1101%; 974 incorrect-to-correct versus 856 correct-to-incorrect, net +118/18,340 completions | ⚠️ DESCRIPTIVE only. The citeable gate remains the separate symbolic-eligible score-ledger result above. |
+| Predecessor student baselines | task-RL M/O absolute held-out accuracy 52.432%/11.149%; raw student was not evaluated on the identical source-holdout surface; no OPD student held-out result exists | ❌ DO NOT cite as task-RL improvement or OPD effectiveness; rerun raw/task-RL/OPD under one hardened paired contract |
+
+Execution: EIT CPU job `126821`, artifact
+`evidence/july_2026/opd_teacher_evaluator_qualification_bd1ca8b_v1.json`,
+SHA-256 `2255b2f7a49404a9c47c26cf42f53a4a7b6d4448b55aa0d85b423b0aa400b9f1`.

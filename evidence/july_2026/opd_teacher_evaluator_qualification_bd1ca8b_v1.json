@@ -1,0 +1,387 @@
+{
+  "artifact_type": "opd_math_teacher_evaluator_qualification_audit",
+  "claim_boundary": "Read-only diagnostics over sealed traces; no verifier replay, score change, teacher sufficiency claim, or OPD effectiveness claim.",
+  "evaluation_surfaces": {
+    "raw_O_teacher": {
+      "accuracy": 0.2646673936750273,
+      "at_cap_fraction": 0.48086150490730645,
+      "at_cap_samples": 8819,
+      "correct_at_cap": 120,
+      "max_completion_tokens": 1024,
+      "mean_completion_tokens": 811.158505997819,
+      "median_completion_tokens": 989.0,
+      "parse_failure_at_cap_fraction": 0.9131420796008618,
+      "parse_failure_below_cap_fraction": 0.014494275811364353,
+      "parse_failures_at_cap": 8053,
+      "parse_failures_below_cap": 138,
+      "records": 4585,
+      "samples": 18340,
+      "source": {
+        "bytes": 50666557,
+        "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/evaluations/teacher_skill_dev/O_base_gap_full_d89ba3d/O_base_gap_full_d89ba3d_v1/merged/samples.jsonl",
+        "sha256": "4dbcd62c91732437b55a4b34afa9b701dc9e3f4769019c66fc85d3d49056678d"
+      },
+      "status_counts": {
+        "correct": 4854,
+        "incorrect": 5290,
+        "prediction_parse_failed": 8191,
+        "verifier_error_zeroed": 5
+      }
+    },
+    "raw_student_M": {
+      "accuracy": 0.5242943081906525,
+      "at_cap_fraction": 0.4005090236001851,
+      "at_cap_samples": 3462,
+      "correct_at_cap": 31,
+      "max_completion_tokens": 512,
+      "mean_completion_tokens": 375.33341045812125,
+      "median_completion_tokens": 414.0,
+      "parse_failure_at_cap_fraction": 0.9794916233391103,
+      "parse_failure_below_cap_fraction": 0.00019297568506368199,
+      "parse_failures_at_cap": 3391,
+      "parse_failures_below_cap": 1,
+      "records": 2161,
+      "samples": 8644,
+      "source": {
+        "bytes": 13411802,
+        "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/evaluations/student_support/raw_student_M_d89ba3d/support_M_d89ba3d_v1/merged/samples.jsonl",
+        "sha256": "7d98ba9124ea3fa5e2d1a0ab6690218fc2382db9daeda253ed6959b58d13475e"
+      },
+      "status_counts": {
+        "correct": 4532,
+        "incorrect": 716,
+        "prediction_parse_failed": 3392,
+        "verifier_error_zeroed": 4
+      }
+    },
+    "raw_student_O": {
+      "accuracy": 0.10411846367422489,
+      "at_cap_fraction": 0.7849375289217955,
+      "at_cap_samples": 6785,
+      "correct_at_cap": 41,
+      "max_completion_tokens": 512,
+      "mean_completion_tokens": 475.7302174919019,
+      "median_completion_tokens": 512.0,
+      "parse_failure_at_cap_fraction": 0.9609432571849669,
+      "parse_failure_below_cap_fraction": 0.02689618074233459,
+      "parse_failures_at_cap": 6520,
+      "parse_failures_below_cap": 50,
+      "records": 2161,
+      "samples": 8644,
+      "source": {
+        "bytes": 16391248,
+        "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/evaluations/student_support/raw_student_O_d89ba3d/support_O_d89ba3d_v1/merged/samples.jsonl",
+        "sha256": "35de0bf6ecb923e6b4bb6d76f2159a0d53fda3481f2c3e7f6bb7fb7696ba1a1c"
+      },
+      "status_counts": {
+        "correct": 900,
+        "incorrect": 1169,
+        "prediction_parse_failed": 6570,
+        "verifier_error_zeroed": 5
+      }
+    },
+    "task_rl_M_holdout": {
+      "accuracy": 0.5243243243243243,
+      "at_cap_fraction": 0.3898648648648649,
+      "at_cap_samples": 577,
+      "correct_at_cap": 5,
+      "max_completion_tokens": 512,
+      "mean_completion_tokens": 363.6277027027027,
+      "median_completion_tokens": 386.0,
+      "parse_failure_at_cap_fraction": 0.9740034662045061,
+      "parse_failure_below_cap_fraction": 0.0,
+      "parse_failures_at_cap": 562,
+      "parse_failures_below_cap": 0,
+      "records": 370,
+      "samples": 1480,
+      "source": {
+        "bytes": 2242681,
+        "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/evaluations/source_holdout/baseline_M_107420_ae90bc744ed4/holdout370_6sh_seed0_v1/merged/samples.jsonl",
+        "sha256": "0fd91757d770c148ca546c2289057858c5fe232b921106b649d76d5df03c8f10"
+      },
+      "status_counts": {
+        "correct": 776,
+        "incorrect": 142,
+        "prediction_parse_failed": 562
+      }
+    },
+    "task_rl_O_holdout": {
+      "accuracy": 0.11148648648648649,
+      "at_cap_fraction": 0.6722972972972973,
+      "at_cap_samples": 995,
+      "correct_at_cap": 4,
+      "max_completion_tokens": 512,
+      "mean_completion_tokens": 453.18783783783783,
+      "median_completion_tokens": 512.0,
+      "parse_failure_at_cap_fraction": 0.9447236180904522,
+      "parse_failure_below_cap_fraction": 0.010309278350515464,
+      "parse_failures_at_cap": 940,
+      "parse_failures_below_cap": 5,
+      "records": 370,
+      "samples": 1480,
+      "source": {
+        "bytes": 2639377,
+        "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/evaluations/source_holdout/baseline_O_107421_ae90bc744ed4/holdout370_6sh_seed0_v1/merged/samples.jsonl",
+        "sha256": "8f3de8768847a066255c735174edef52e4572c61d3fb0d9f4bfc988412dd49af"
+      },
+      "status_counts": {
+        "correct": 165,
+        "incorrect": 370,
+        "prediction_parse_failed": 945
+      }
+    },
+    "trained_O_teacher": {
+      "accuracy": 0.27110141766630313,
+      "at_cap_fraction": 0.4812431842966194,
+      "at_cap_samples": 8826,
+      "correct_at_cap": 137,
+      "max_completion_tokens": 1024,
+      "mean_completion_tokens": 810.451254089422,
+      "median_completion_tokens": 991.0,
+      "parse_failure_at_cap_fraction": 0.9066394742805348,
+      "parse_failure_below_cap_fraction": 0.01429472356527223,
+      "parse_failures_at_cap": 8002,
+      "parse_failures_below_cap": 136,
+      "records": 4585,
+      "samples": 18340,
+      "source": {
+        "bytes": 50593201,
+        "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/evaluations/teacher_skill_dev/O_trained_gap_full_d89ba3d/O_trained_gap_full_d89ba3d_v1/merged/samples.jsonl",
+        "sha256": "20e4431a80930fc2b4dcaf96d8d52cabbe7d9e0d8d6b7b4375a86eda9294f8af"
+      },
+      "status_counts": {
+        "correct": 4972,
+        "incorrect": 5225,
+        "prediction_parse_failed": 8138,
+        "verifier_error_zeroed": 5
+      }
+    }
+  },
+  "schema_version": 1,
+  "student_training_pilots": {
+    "task_rl_M": {
+      "at_cap_fraction": 0.375,
+      "at_cap_samples": 150,
+      "completion_samples": 400,
+      "mixed_reward_group_fraction": 0.2,
+      "mixed_reward_groups": 20,
+      "objective": "task_rl",
+      "optimizer_steps": 100,
+      "parse_failure_fraction": 0.3675,
+      "parse_failure_samples": 147,
+      "parse_failures_at_cap": 147,
+      "reward_mean": 0.5425,
+      "sources": {
+        "manifest": {
+          "bytes": 16848,
+          "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/students/baseline_M/task_rl/run_107420/traces/run_manifest.json",
+          "sha256": "974597f7f2bd658742aecbacaa84dbb8302e12c2b09a9a1fd155885f4b00e1dc"
+        },
+        "samples": {
+          "bytes": 1534454,
+          "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/students/baseline_M/task_rl/run_107420/traces/samples.jsonl",
+          "sha256": "2191dd8bb284acd4f165d95b05e09b8452943873d5c9e5b9359e6489be90d4d6"
+        },
+        "steps": {
+          "bytes": 36958,
+          "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/students/baseline_M/task_rl/run_107420/traces/steps.jsonl",
+          "sha256": "4b68c6c3de4a37dfbe18cad49050836878c45f7e5000d643dbfb9a1f4dff68e8"
+        }
+      },
+      "terminated_by_eos_fraction": 0.625
+    },
+    "task_rl_O": {
+      "at_cap_fraction": 0.7925,
+      "at_cap_samples": 317,
+      "completion_samples": 400,
+      "mixed_reward_group_fraction": 0.12,
+      "mixed_reward_groups": 12,
+      "objective": "task_rl",
+      "optimizer_steps": 100,
+      "parse_failure_fraction": 0.775,
+      "parse_failure_samples": 310,
+      "parse_failures_at_cap": 310,
+      "reward_mean": 0.095,
+      "sources": {
+        "manifest": {
+          "bytes": 16853,
+          "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/students/baseline_O/task_rl/run_107421/traces/run_manifest.json",
+          "sha256": "6768dd67ce7f2ed6f3be87f3eb33308ac1566c94e73ce414faa73789c0c2138c"
+        },
+        "samples": {
+          "bytes": 1905374,
+          "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/students/baseline_O/task_rl/run_107421/traces/samples.jsonl",
+          "sha256": "0e5baaa957a856592a2b80d2178e0f05f524416d742b7ed485bb0387b9ab2f79"
+        },
+        "steps": {
+          "bytes": 36572,
+          "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/students/baseline_O/task_rl/run_107421/traces/steps.jsonl",
+          "sha256": "bb438fc74f59c5090a32f954eed786ac8ea1e695af51ec325bacdcf4a4e36f8d"
+        }
+      },
+      "terminated_by_eos_fraction": 0.2075
+    }
+  },
+  "teacher_heldout": {
+    "base": {
+      "accuracy": 0.2646673936750273,
+      "at_cap_fraction": 0.48086150490730645,
+      "at_cap_samples": 8819,
+      "correct_at_cap": 120,
+      "max_completion_tokens": 1024,
+      "mean_completion_tokens": 811.158505997819,
+      "median_completion_tokens": 989.0,
+      "parse_failure_at_cap_fraction": 0.9131420796008618,
+      "parse_failure_below_cap_fraction": 0.014494275811364353,
+      "parse_failures_at_cap": 8053,
+      "parse_failures_below_cap": 138,
+      "records": 4585,
+      "samples": 18340,
+      "source": {
+        "bytes": 50666557,
+        "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/evaluations/teacher_skill_dev/O_base_gap_full_d89ba3d/O_base_gap_full_d89ba3d_v1/merged/samples.jsonl",
+        "sha256": "4dbcd62c91732437b55a4b34afa9b701dc9e3f4769019c66fc85d3d49056678d"
+      },
+      "status_counts": {
+        "correct": 4854,
+        "incorrect": 5290,
+        "prediction_parse_failed": 8191,
+        "verifier_error_zeroed": 5
+      }
+    },
+    "paired": {
+      "cap_transitions": {
+        "0_to_0": 8242,
+        "0_to_1": 1279,
+        "1_to_0": 1272,
+        "1_to_1": 7547
+      },
+      "paired_samples": 18340,
+      "reward_net_correct": 118,
+      "reward_transitions": {
+        "0_to_0": 12512,
+        "0_to_1": 974,
+        "1_to_0": 856,
+        "1_to_1": 3998
+      },
+      "status_transitions": {
+        "correct_to_correct": 3998,
+        "correct_to_incorrect": 408,
+        "correct_to_prediction_parse_failed": 448,
+        "incorrect_to_correct": 510,
+        "incorrect_to_incorrect": 3884,
+        "incorrect_to_prediction_parse_failed": 893,
+        "incorrect_to_verifier_error_zeroed": 3,
+        "prediction_parse_failed_to_correct": 464,
+        "prediction_parse_failed_to_incorrect": 930,
+        "prediction_parse_failed_to_prediction_parse_failed": 6796,
+        "prediction_parse_failed_to_verifier_error_zeroed": 1,
+        "verifier_error_zeroed_to_incorrect": 3,
+        "verifier_error_zeroed_to_prediction_parse_failed": 1,
+        "verifier_error_zeroed_to_verifier_error_zeroed": 1
+      }
+    },
+    "trained": {
+      "accuracy": 0.27110141766630313,
+      "at_cap_fraction": 0.4812431842966194,
+      "at_cap_samples": 8826,
+      "correct_at_cap": 137,
+      "max_completion_tokens": 1024,
+      "mean_completion_tokens": 810.451254089422,
+      "median_completion_tokens": 991.0,
+      "parse_failure_at_cap_fraction": 0.9066394742805348,
+      "parse_failure_below_cap_fraction": 0.01429472356527223,
+      "parse_failures_at_cap": 8002,
+      "parse_failures_below_cap": 136,
+      "records": 4585,
+      "samples": 18340,
+      "source": {
+        "bytes": 50593201,
+        "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/evaluations/teacher_skill_dev/O_trained_gap_full_d89ba3d/O_trained_gap_full_d89ba3d_v1/merged/samples.jsonl",
+        "sha256": "20e4431a80930fc2b4dcaf96d8d52cabbe7d9e0d8d6b7b4375a86eda9294f8af"
+      },
+      "status_counts": {
+        "correct": 4972,
+        "incorrect": 5225,
+        "prediction_parse_failed": 8138,
+        "verifier_error_zeroed": 5
+      }
+    }
+  },
+  "teacher_training": {
+    "algorithm_label": "GRPO with DAPO loss normalization; not the complete DAPO recipe",
+    "all_at_cap_groups": 31,
+    "all_at_cap_zero_reward_groups": 29,
+    "all_correct_groups": 21,
+    "all_zero_groups": 61,
+    "at_cap_fraction": 0.445,
+    "at_cap_samples": 178,
+    "checkpoint_selection_possible": false,
+    "completion_samples": 400,
+    "config": {
+      "algorithm_label": "GRPO with DAPO loss normalization; not the complete DAPO recipe",
+      "attn_implementation": "sdpa",
+      "beta": 0.0,
+      "budget_mode": "primary_matched",
+      "data_seed": 0,
+      "dtype": "bfloat16",
+      "generation_batch_size": 4,
+      "gradient_accumulation_steps": 4,
+      "gradient_checkpointing": true,
+      "learning_rate": 2e-05,
+      "lora_alpha_multiplier": 2,
+      "lora_dropout": 0.0,
+      "lora_r": 16,
+      "loss_type": "dapo",
+      "mask_truncated_completions": true,
+      "max_completion_length": 1024,
+      "max_prompt_tokens": 2304,
+      "max_steps": 100,
+      "min_p": 0.0,
+      "num_generations": 4,
+      "per_device_train_batch_size": 1,
+      "require_informative_reward": true,
+      "seed": 0,
+      "shuffle_dataset": true,
+      "temperature": 0.7,
+      "thinking": false,
+      "top_k": 20,
+      "top_p": 0.8,
+      "use_vllm": false,
+      "world_size": 1
+    },
+    "correct_at_cap": 3,
+    "correct_completion_samples": 116,
+    "declared_role_rows": 55033,
+    "gradient_log_steps": 100,
+    "intermediate_checkpoints": 0,
+    "mean_completion_tokens": 788.52,
+    "median_completion_tokens": 913.0,
+    "mixed_reward_group_fraction": 0.18,
+    "mixed_reward_groups": 18,
+    "nonzero_gradient_step_fraction": 0.16,
+    "nonzero_gradient_steps": 16,
+    "prompt_groups": 100,
+    "reward_mean": 0.29,
+    "selected_pool_coverage": 0.02313743637204998,
+    "selected_training_pool_rows": 4322,
+    "sources": {
+      "manifest": {
+        "bytes": 12056,
+        "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/teachers/O/run_108609/run_manifest.json",
+        "sha256": "3af60118a4bf2861cce27684a2c73baf8504367d1f21342ee717ad359253393c"
+      },
+      "trace": {
+        "bytes": 2633004,
+        "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/teachers/O/run_108609/teacher_samples.jsonl",
+        "sha256": "65d9aea407d3afd58b3b92bf4f86d82d93eb890771066a76c9710508f586b774"
+      },
+      "trainer_log": {
+        "bytes": 86721,
+        "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/teachers/O/run_108609/trainer_log_history.json",
+        "sha256": "c1c78ffd19ff1929d8fc18e58263a21a07a70df0c985c459341b9e078dc7499a"
+      }
+    },
+    "unique_prompt_groups_seen": 100
+  }
+}

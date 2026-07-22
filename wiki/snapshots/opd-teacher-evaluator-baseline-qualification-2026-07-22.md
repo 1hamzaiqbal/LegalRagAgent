@@ -174,11 +174,12 @@ below-cap parse failure, calls, tokens, latency, and verifier unknowns.
 Large source artifacts remain on EIT under
 `/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/`. The read-only
 reconstruction script is `scripts/opd_math/qualification_audit.py`. CPU Slurm
-job `126819` ran it against the sealed artifacts without invoking the verifier.
+job `126821` ran it against the sealed artifacts without invoking the verifier.
 The exact output lives at
-`artifacts/legalrag/opd_math/qualification/teacher_evaluator_baseline_f04a643_v1/audit.json`;
+`artifacts/legalrag/opd_math/qualification/teacher_evaluator_baseline_bd1ca8b_v1/audit.json`;
 the tracked copy is
-`evidence/july_2026/opd_teacher_evaluator_qualification_f04a643_v1.json`.
+`evidence/july_2026/opd_teacher_evaluator_qualification_bd1ca8b_v1.json`
+(SHA-256 `2255b2f7...400b9f1`).
 
 ## Links
 
