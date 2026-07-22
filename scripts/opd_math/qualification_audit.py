@@ -183,7 +183,14 @@ def analyze_teacher_run(run_dir: Path) -> dict[str, Any]:
     )
     trace_rows = [row for rows in groups.values() for row in rows]
     at_cap = [row for row in trace_rows if require_tokens(row) >= max_tokens]
-    nonzero_gradient = sum(float(row.get("grad_norm", 0.0)) > 0.0 for row in logs)
+    gradient_logs = [
+        row
+        for row in logs
+        if isinstance(row, dict)
+        and isinstance(row.get("grad_norm"), (int, float))
+        and not isinstance(row.get("grad_norm"), bool)
+    ]
+    nonzero_gradient = sum(float(row["grad_norm"]) > 0.0 for row in gradient_logs)
     selected_rows = manifest.get("selected_rows")
     unique_records = manifest.get("realized_training", {}).get("unique_training_records")
     if not isinstance(selected_rows, int) or not isinstance(unique_records, int):
@@ -209,7 +216,8 @@ def analyze_teacher_run(run_dir: Path) -> dict[str, Any]:
         "mixed_reward_groups": mixed,
         "mixed_reward_group_fraction": fraction(mixed, len(groups)),
         "nonzero_gradient_steps": nonzero_gradient,
-        "nonzero_gradient_step_fraction": fraction(nonzero_gradient, len(logs)),
+        "gradient_log_steps": len(gradient_logs),
+        "nonzero_gradient_step_fraction": fraction(nonzero_gradient, len(gradient_logs)),
         "at_cap_samples": len(at_cap),
         "at_cap_fraction": fraction(len(at_cap), len(trace_rows)),
         "correct_at_cap": sum(require_reward(row) > 0.5 for row in at_cap),

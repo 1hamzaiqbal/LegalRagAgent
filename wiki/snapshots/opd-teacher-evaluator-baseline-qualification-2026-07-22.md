@@ -67,14 +67,14 @@ showed:
 | Surface | Stored accuracy | Parse-failure fraction | Mean completion tokens | Samples at cap |
 |---|---:|---:|---:|---:|
 | Raw Qwen3-8B | 26.4667% | 44.6619% | 811.16 | 8,819 / 18,340 |
-| O-trained Qwen3-8B | 27.5900% | 42.5082% | 799.46 | 8,469 / 18,340 |
+| O-trained Qwen3-8B | 27.1101% | 44.3730% | 810.45 | 8,826 / 18,340 |
 
-The paired stored-sample transitions were 1,050 incorrect-to-correct and 844
-correct-to-incorrect, for a net 206 additional correct completions. There were
-555 parse-failure-to-correct transitions. The trained model also changed 1,563
-base-capped samples into non-capped samples, 565 of which became correct. This
-does not invalidate the gain; it shows that “learned to finish an answer under
-the cap” and “learned more mathematics” are not yet separated.
+The paired stored-sample transitions were 974 incorrect-to-correct and 856
+correct-to-incorrect, for a net 118 additional correct completions. Of the 974
+improvements, 464 moved from prediction-parse failure to correct. The trained
+model also changed 1,272 base-capped samples into non-capped samples. This does
+not invalidate the gain; it shows that “learned to finish an answer under the
+cap” and “learned more mathematics” are not yet separated.
 
 The citeable result remains the stricter post-hoc symbolic-eligible result:
 4,434 of 4,585 records eligible, 27.1876% to 27.8360%, paired +0.6484 percentage
@@ -88,7 +88,7 @@ teacher gap, not evidence of teacher sufficiency or OPD student improvement.
 | Raw student M support | 8,644 | 52.4294% | 39.2411% | 3,462 | 3,391 | 1 |
 | Raw student O support | 8,644 | 10.4118% | 76.0065% | 6,785 | 6,520 | 50 |
 | Raw O teacher gap | 18,340 | 26.4667% | 44.6619% | 8,819 | 8,053 | 138 |
-| Trained O teacher gap | 18,340 | 27.5900% | 42.5082% | 8,469 | 7,658 | 138 |
+| Trained O teacher gap | 18,340 | 27.1101% | 44.3730% | 8,826 | 8,002 | 136 |
 
 The old M and O task-RL pilots used the same inadequate 512-token student cap.
 Their 400 training samples yielded only about 20 and 12 mixed-reward groups,
@@ -173,9 +173,12 @@ below-cap parse failure, calls, tokens, latency, and verifier unknowns.
 
 Large source artifacts remain on EIT under
 `/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/`. The read-only
-reconstruction script is `scripts/opd_math/qualification_audit.py`. Its compact
-tracked receipt will be added under `evidence/july_2026/` after an independent
-run against the sealed artifacts.
+reconstruction script is `scripts/opd_math/qualification_audit.py`. CPU Slurm
+job `126819` ran it against the sealed artifacts without invoking the verifier.
+The exact output lives at
+`artifacts/legalrag/opd_math/qualification/teacher_evaluator_baseline_f04a643_v1/audit.json`;
+the tracked copy is
+`evidence/july_2026/opd_teacher_evaluator_qualification_f04a643_v1.json`.
 
 ## Links
 
