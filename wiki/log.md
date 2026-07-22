@@ -608,6 +608,25 @@ Primary student outputs now use stable preregistered run IDs. The post-selection
 but pre-student-arm preregistration pins the stable O teacher, both support
 gates, all four paths, and a fail-closed read-only/checksummed result bundle.
 
+## [2026-07-22] OPD verifier ledger | replay removed from promotion; O passes
+
+Recorded [[opd-verifier-ledger-boundary-2026-07-22]] after the canonical merge
+replayed a timeout-bounded symbolic scorer and produced load-sensitive and
+construct-mismatched failures. The successor uses a score-once/attest-many
+ledger, a gold-only symbolic-eligibility rule, hash-bound append-only
+adjudications, and worst-case assignment of verifier errors. It never edits the
+sealed predecessor evaluations or retry-scores rows until they pass.
+
+EIT build job `124779` retained 4,434/4,585 registered paired records (96.71%
+coverage). The trained O teacher exceeded base by +0.6484 pp, with paired 95%
+bootstrap CI [+0.1804, +1.1164] pp. Under the preregistered worst case for all
+eligible verifier errors, the difference remained +0.6371 pp with CI [+0.1691,
++1.1107] pp. Independent no-verifier reconstruction job `124781` reproduced
+the gate byte-for-byte (`18e5faf7...b5fd`). This is a post-hoc
+symbolic-eligible verifier-aligned gap, not all-O accuracy or student
+improvement. A separate successor record is still required before one merge;
+student training remains unauthorized at this boundary.
+
 ## [2026-07-20] DeepMath inventory 108510 fails closed on empty lineage prompt
 
 Global inventory job `108510` sealed C and O, then stopped before its manifest

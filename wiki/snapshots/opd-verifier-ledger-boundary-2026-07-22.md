@@ -1,7 +1,7 @@
 ---
 title: OPD verifier score-ledger boundary
 date: 2026-07-22
-status: implementation frozen; application pending
+status: applied; independently reconstructed; merge rearm eligible
 tags: [opd, math, verifier, evaluation, custody, score-ledger]
 ---
 
@@ -159,7 +159,50 @@ record explicitly authorizes one new merge attempt under the ledger gate.
 
 ## Result
 
-Pending the immutable EIT score-ledger build and independent reconstruction.
+The frozen policy was applied once on EIT as CPU Slurm job `124779`. The job
+completed `0:0` and published a read-only bundle. A separate process in job
+`124781` reconstructed every ledger row and statistic from the sealed source
+bytes without invoking Math-Verify. It completed `0:0`; its reconstructed gate
+SHA-256 exactly matched the published gate.
+
+| Quantity | Result |
+|---|---:|
+| Registered paired records | 4,585 |
+| Symbolic-eligible paired records | 4,434 |
+| Excluded records | 151 |
+| Eligible coverage | 96.7067% |
+| Base mean reward | 27.1876% |
+| Trained O-teacher mean reward | 27.8360% |
+| Paired difference | +0.6484 pp |
+| Paired 95% bootstrap CI | [+0.1804, +1.1164] pp |
+| Eligible base / trained verifier errors | 2 / 4 |
+| Worst-case paired difference | +0.6371 pp |
+| Worst-case 95% bootstrap CI | [+0.1691, +1.1107] pp |
+
+All six registered requirements passed, including minimum coverage and the
+worst-case positive bootstrap lower bound. The new gate therefore authorizes a
+single scientific O-teacher merge **after** a separate successor rearm record;
+it does not authorize student training by itself.
+
+The result changes the estimand and must be reported as a post-hoc
+**symbolic-eligible verifier-aligned reward gap**. It is not accuracy over all O
+tasks, and it is not evidence that OPD improves the student. The 151 exclusions
+were determined solely from registered gold answers. One previously sealed,
+hash-bound adjudication affects one base sample; no source evaluation byte was
+edited.
+
+### Immutable evidence
+
+- Intent:
+  `/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/conductor/methodology-intent-score-ledger-20260722T200824Z.json`
+  (`716df9e2...65e50`)
+- Bundle:
+  `/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/score_ledgers/O_gap_ac65062_v1`
+- Gate SHA-256: `18e5faf7c391219dd61b9670e5226d23009d42d2d5084bac93c267994316b5fd`
+- Ledger SHA-256: `2b0ddecb9c19ce20ac10c03461a3e672137502ccb7553e4435d37b535651034f`
+- Build / independent reconstruction jobs: `124779` / `124781`
+- Compact tracked receipt:
+  `evidence/july_2026/opd_verifier_score_ledger_O_gap_ac65062_v1.json`
 
 ## Links
 

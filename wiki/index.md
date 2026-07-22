@@ -3,7 +3,7 @@ title: LegalRagAgent Wiki Index
 type: hub
 tags: [index]
 created: 2026-07-02
-updated: 2026-07-20
+updated: 2026-07-22
 status: maintained
 ---
 
@@ -28,6 +28,9 @@ The SCOPE method is historical ([[scope-old]]). Start with
   bounded smoke evidence, custody correction, scientific blockers, and gates
 - [[opd-math-verifier-recovery-2026-07-20]] — current O-only recovery
   boundary, strict reward audit, OPD diagnostic, and successor launch order
+- [[opd-verifier-ledger-boundary-2026-07-22]] — score-once/attest-many
+  verifier policy, gold-only symbolic estimand, bounded unknowns, and the
+  independently reconstructed passing O-teacher gate
 - [[opd-objective-family-expansion-2026-07-20]] — design-stage successor
   matrix for task RL, ungated/clipped/gated/bare K1, and pinned-veRL fidelity;
   no expanded arm has launched

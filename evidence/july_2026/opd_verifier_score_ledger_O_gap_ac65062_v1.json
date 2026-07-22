@@ -1,0 +1,94 @@
+{
+  "artifact_type": "opd_math_verifier_score_ledger_result",
+  "schema_version": 1,
+  "date": "2026-07-22",
+  "status": "PASS",
+  "claim_boundary": "Post-hoc symbolic-eligible, verifier-aligned O-teacher reward gap; not all-O task accuracy and not student improvement.",
+  "methodology": {
+    "measurement_policy": "score_once_attest_many_with_bounded_unknowns_v1",
+    "eligibility_policy": "gold_only_symbolic_eligibility_v1",
+    "uncertainty_policy": "binary_worst_case_assignment_v1",
+    "minimum_eligible_coverage": 0.75,
+    "minimum_records": 200,
+    "minimum_paired_delta": 0.0,
+    "manual_adjudications": [
+      "O_gap_d89ba3d_row3910_20260722T191353Z"
+    ],
+    "post_hoc_recovery": true
+  },
+  "implementation": {
+    "branch": "codex/opd_verifier_ledger_v2",
+    "commit": "ac65062ea3dde7a2d7d410b636633bcbe7cbea5e",
+    "builder": "scripts/opd_math/score_ledger.py",
+    "merge_dispatch": "scripts/opd_math/merge_adapter.py"
+  },
+  "result": {
+    "total_registered_records": 4585,
+    "eligible_records": 4434,
+    "excluded_records": 151,
+    "eligible_coverage": 0.9670665212649946,
+    "base_accuracy": 0.27187640956247183,
+    "trained_accuracy": 0.2783603969327921,
+    "paired_delta": 0.006483987370320253,
+    "bootstrap_95_ci": [
+      0.0018042399639152007,
+      0.011163734776725304
+    ],
+    "eligible_base_verifier_errors": 2,
+    "eligible_trained_verifier_errors": 4,
+    "worst_case_for_improvement": {
+      "assignment": "base_errors_correct_trained_errors_incorrect",
+      "paired_delta": 0.006371222372575552,
+      "bootstrap_95_ci": [
+        0.0016914749661705007,
+        0.011107352277852955
+      ]
+    },
+    "requirements": {
+      "minimum_eligible_coverage_met": true,
+      "minimum_records_met": true,
+      "positive_bootstrap_lower_bound_met": true,
+      "strict_delta_met": true,
+      "worst_case_positive_bootstrap_lower_bound_met": true,
+      "worst_case_strict_delta_met": true
+    },
+    "passed": true,
+    "authorizes_scientific_merge": true
+  },
+  "exclusion_reason_counts": {
+    "long_uncommanded_alpha_run": 79,
+    "prose_dominant_registered_answer": 102,
+    "textual_latex_without_registered_string_ontology": 44
+  },
+  "execution": {
+    "build_job": {
+      "job_id": 124779,
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "elapsed": "00:00:48",
+      "stdout": "/engrfs/tmp/jacobsn/hiqbal_legalrag/opd_score_ledger_124779.out",
+      "stdout_sha256": "9090f843da8c87742e0b63bd13965e91f7a594216b2e8a3a173e6f99840c6caa"
+    },
+    "independent_reconstruction_job": {
+      "job_id": 124781,
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "elapsed": "00:00:48",
+      "result": "PASS",
+      "used_live_symbolic_verifier": false,
+      "stdout": "/engrfs/tmp/jacobsn/hiqbal_legalrag/opd_ledger_audit_124781.out",
+      "stdout_sha256": "f8a27feba1d1f6c756e72c39b4bf3b443adfeb1ed5049846f554ed210c3b1bf7",
+      "reconstructed_gate_sha256": "18e5faf7c391219dd61b9670e5226d23009d42d2d5084bac93c267994316b5fd"
+    }
+  },
+  "eit_artifacts": {
+    "intent": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/conductor/methodology-intent-score-ledger-20260722T200824Z.json",
+    "intent_sha256": "716df9e21935815b73c1d9fb9c167c3bf419085f3256d08ab4643a5b79665e50",
+    "bundle": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/score_ledgers/O_gap_ac65062_v1",
+    "gate": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/score_ledgers/O_gap_ac65062_v1/gate.json",
+    "gate_sha256": "18e5faf7c391219dd61b9670e5226d23009d42d2d5084bac93c267994316b5fd",
+    "manifest_sha256": "d3093ac8011698c83e677754c970602c17e590bddfb980f22eff657a78561b4e",
+    "score_ledger_sha256": "2b0ddecb9c19ce20ac10c03461a3e672137502ccb7553e4435d37b535651034f"
+  },
+  "disclosure": "The policy and symbolic-eligible estimand were introduced after observing verifier-replay failures at rows 3910 and 17337. Eligibility is gold-only and outcome-blind, but this remains a post-hoc recovery analysis. The frozen all-record predecessor result remains provenance and is not overwritten."
+}

@@ -1293,3 +1293,21 @@ and exact Slurm stdout are under `evidence/july_2026/`.
 
 Failed/cancelled jobs 93598, 93606, 93629, 93656, 93658, and 93773 are
 preserved in the completion audit and must not be promoted into result rows.
+
+## OPD verifier score-ledger recovery — audited 2026-07-22
+
+Scope: post-hoc recovery of the O-teacher gap after promotion-time
+Math-Verify replay proved load-sensitive and unsuitable for heterogeneous
+prose/categorical gold answers. Full reasoning, disclosure, and artifact
+custody are in `wiki/snapshots/opd-verifier-ledger-boundary-2026-07-22.md`;
+the compact result object is
+`evidence/july_2026/opd_verifier_score_ledger_O_gap_ac65062_v1.json`.
+
+| Result | Verified value | Sign-off |
+|---|---|---|
+| O-teacher symbolic-eligible verifier-aligned gap | 4,434/4,585 paired records eligible (96.71%); base 27.1876%, trained 27.8360%; paired difference +0.6484 pp, 95% bootstrap CI [+0.1804, +1.1164] pp; worst-case verifier-error difference +0.6371 pp, CI [+0.1691, +1.1107] pp; independent reconstruction job 124781 reproduced gate SHA-256 `18e5faf7...b5fd` | ⚠️ APPROVED-WITH-POST-HOC/SYMBOLIC-ELIGIBLE-CAVEAT for the O-teacher gap and one merge authorization only; ❌ not all-O accuracy, student improvement, or OPD effectiveness |
+
+The original failed merge, all-record predecessor gate, and sealed source
+evaluation bytes remain unchanged. Student training requires a successful
+ledger-bound merge, independent merged-model custody audit, and another
+explicit successor boundary.
