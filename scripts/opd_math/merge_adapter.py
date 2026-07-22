@@ -54,6 +54,47 @@ def _read_json_object(path: Path) -> dict[str, Any]:
     return payload
 
 
+def merge_provenance_source_gate(measurement_gate: dict[str, Any]) -> dict[str, Any]:
+    """Return immutable teacher-training custody for merge provenance.
+
+    A score-ledger gate deliberately carries only the new measurement result.
+    Its legacy predecessor remains the source of training-plan, environment,
+    and adapter provenance, but only after the exact predecessor bytes and the
+    identities shared by both gates have been checked.  This function never
+    replays the symbolic verifier.
+    """
+
+    if measurement_gate.get("gate") != SCORE_LEDGER_GATE_TYPE:
+        return measurement_gate
+    raw_path = measurement_gate.get("predecessor_gate")
+    expected_hash = measurement_gate.get("predecessor_gate_sha256")
+    if not isinstance(raw_path, str) or not Path(raw_path).is_absolute():
+        raise ValueError("score-ledger gate lacks an absolute predecessor gate")
+    if not isinstance(expected_hash, str) or len(expected_hash) != 64:
+        raise ValueError("score-ledger gate lacks a valid predecessor-gate hash")
+    predecessor_path = Path(raw_path).resolve()
+    if sha256_file(predecessor_path) != expected_hash:
+        raise ValueError("score-ledger predecessor gate changed after ledger publication")
+    predecessor = _read_json_object(predecessor_path)
+    if predecessor.get("gate") != TEACHER_GATE_TYPE:
+        raise ValueError("score-ledger predecessor is not a legacy teacher-gap gate")
+    if predecessor.get("passed") is not True:
+        raise ValueError("score-ledger predecessor did not pass its recorded gate")
+    for field in (
+        "base_model",
+        "base_model_revision",
+        "trained_adapter",
+        "trained_adapter_tree_sha256",
+        "task_sources",
+        "task_roles",
+    ):
+        if predecessor.get(field) != measurement_gate.get(field):
+            raise ValueError(
+                f"score-ledger and predecessor teacher identity differ: {field}"
+            )
+    return predecessor
+
+
 def git_state() -> dict[str, str | bool | None]:
     try:
         commit = subprocess.run(
@@ -304,6 +345,7 @@ def main() -> int:
         candidate_dir, exclude_relative_paths=(PROVENANCE_FILENAME,)
     )
     gate = custody["gate"]
+    provenance_gate = merge_provenance_source_gate(gate)
     provenance = {
         "schema_version": 1,
         "schema": PROVENANCE_SCHEMA,
@@ -313,33 +355,56 @@ def main() -> int:
         "adapter_tree_sha256": custody["adapter_tree_sha256"],
         "teacher_gap_manifest": custody["manifest"],
         "teacher_gap_manifest_sha256": custody["manifest_sha256"],
-        "prepared_manifest": gate["prepared_manifest"],
-        "prepared_manifest_sha256": gate["prepared_manifest_sha256"],
-        "teacher_run_manifest": gate["teacher_run_manifest"],
-        "teacher_run_manifest_sha256": gate["teacher_run_manifest_sha256"],
-        "teacher_training_plan": gate["teacher_training_plan"],
-        "teacher_training_plan_sha256": gate["teacher_training_plan_sha256"],
-        "teacher_training_plan_config_sha256": gate[
+        "prepared_manifest": provenance_gate["prepared_manifest"],
+        "prepared_manifest_sha256": provenance_gate["prepared_manifest_sha256"],
+        "teacher_run_manifest": provenance_gate["teacher_run_manifest"],
+        "teacher_run_manifest_sha256": provenance_gate["teacher_run_manifest_sha256"],
+        "teacher_training_plan": provenance_gate["teacher_training_plan"],
+        "teacher_training_plan_sha256": provenance_gate["teacher_training_plan_sha256"],
+        "teacher_training_plan_config_sha256": provenance_gate[
             "teacher_training_plan_config_sha256"
         ],
-        "teacher_training_config_sha256": gate["teacher_training_config_sha256"],
-        "teacher_training_packages": gate["teacher_training_packages"],
-        "teacher_training_environment": gate["teacher_training_environment"],
-        "teacher_trainer_state": gate["teacher_trainer_state"],
-        "teacher_trainer_state_sha256": gate["teacher_trainer_state_sha256"],
-        "teacher_trainer_log_history": gate["teacher_trainer_log_history"],
-        "teacher_trainer_log_history_sha256": gate[
+        "teacher_training_config_sha256": provenance_gate[
+            "teacher_training_config_sha256"
+        ],
+        "teacher_training_packages": provenance_gate["teacher_training_packages"],
+        "teacher_training_environment": provenance_gate[
+            "teacher_training_environment"
+        ],
+        "teacher_trainer_state": provenance_gate["teacher_trainer_state"],
+        "teacher_trainer_state_sha256": provenance_gate[
+            "teacher_trainer_state_sha256"
+        ],
+        "teacher_trainer_log_history": provenance_gate[
+            "teacher_trainer_log_history"
+        ],
+        "teacher_trainer_log_history_sha256": provenance_gate[
             "teacher_trainer_log_history_sha256"
         ],
-        "teacher_train_metrics": gate["teacher_train_metrics"],
-        "teacher_train_metrics_sha256": gate["teacher_train_metrics_sha256"],
-        "teacher_trainer_log_max_step": gate["teacher_trainer_log_max_step"],
-        "source_manifest": gate["source_manifest"],
-        "source_manifest_sha256": gate["source_manifest_sha256"],
-        "task_file_sha256": gate["task_file_sha256"],
-        "task_sources": gate["task_sources"],
-        "task_roles": gate["task_roles"],
-        "decoding": gate["decoding"],
+        "teacher_train_metrics": provenance_gate["teacher_train_metrics"],
+        "teacher_train_metrics_sha256": provenance_gate[
+            "teacher_train_metrics_sha256"
+        ],
+        "teacher_trainer_log_max_step": provenance_gate[
+            "teacher_trainer_log_max_step"
+        ],
+        "source_manifest": provenance_gate["source_manifest"],
+        "source_manifest_sha256": provenance_gate["source_manifest_sha256"],
+        "task_file_sha256": provenance_gate["task_file_sha256"],
+        "task_sources": provenance_gate["task_sources"],
+        "task_roles": provenance_gate["task_roles"],
+        "decoding": provenance_gate["decoding"],
+        "teacher_gap_measurement": {
+            "gate": gate["gate"],
+            "manifest": custody["manifest"],
+            "manifest_sha256": custody["manifest_sha256"],
+            "measurement_policy": gate.get("measurement_policy"),
+            "eligibility_policy": gate.get("eligibility_policy"),
+            "uncertainty_policy": gate.get("uncertainty_policy"),
+            "claim_boundary": gate.get("claim_boundary"),
+            "predecessor_gate": gate.get("predecessor_gate"),
+            "predecessor_gate_sha256": gate.get("predecessor_gate_sha256"),
+        },
         "merge_code": {
             "git_state_start": code_state_start,
             "git_state_after_merge": code_state_after_merge,

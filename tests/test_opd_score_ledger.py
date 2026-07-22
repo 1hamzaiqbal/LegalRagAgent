@@ -253,3 +253,44 @@ def test_merge_adapter_dispatches_score_ledger_gate_without_legacy_replay(
             tmp_path / "adapter",
         )
     ]
+
+
+def test_merge_provenance_uses_hash_bound_predecessor_training_custody(tmp_path):
+    predecessor = tmp_path / "predecessor.json"
+    predecessor_payload = {
+        "gate": "teacher_gap_v1",
+        "passed": True,
+        "base_model": "Qwen/Qwen3-8B",
+        "base_model_revision": "a" * 40,
+        "trained_adapter": "/custody/O/final_adapter",
+        "trained_adapter_tree_sha256": "b" * 64,
+        "task_sources": ["O"],
+        "task_roles": ["teacher_gap_dev"],
+        "teacher_training_plan": "/custody/O/plan.json",
+    }
+    _write_json(predecessor, predecessor_payload)
+    measurement = {
+        "gate": score_ledger.SCORE_LEDGER_GATE_TYPE,
+        "base_model": predecessor_payload["base_model"],
+        "base_model_revision": predecessor_payload["base_model_revision"],
+        "trained_adapter": predecessor_payload["trained_adapter"],
+        "trained_adapter_tree_sha256": predecessor_payload[
+            "trained_adapter_tree_sha256"
+        ],
+        "task_sources": predecessor_payload["task_sources"],
+        "task_roles": predecessor_payload["task_roles"],
+        "predecessor_gate": str(predecessor.resolve()),
+        "predecessor_gate_sha256": sha256_file(predecessor),
+    }
+
+    source = merge_adapter.merge_provenance_source_gate(measurement)
+
+    assert source == predecessor_payload
+
+    measurement["trained_adapter_tree_sha256"] = "c" * 64
+    try:
+        merge_adapter.merge_provenance_source_gate(measurement)
+    except ValueError as exc:
+        assert "teacher identity differ" in str(exc)
+    else:
+        raise AssertionError("identity drift should fail closed")
