@@ -19,6 +19,7 @@
   "implementation": {
     "branch": "codex/opd_verifier_ledger_v2",
     "commit": "ac65062ea3dde7a2d7d410b636633bcbe7cbea5e",
+    "merge_integration_commit": "1b8effb6a73fd4e10a87909d33c98873301163e7",
     "builder": "scripts/opd_math/score_ledger.py",
     "merge_dispatch": "scripts/opd_math/merge_adapter.py"
   },

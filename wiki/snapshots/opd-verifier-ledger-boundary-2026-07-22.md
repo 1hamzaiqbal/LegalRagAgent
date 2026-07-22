@@ -135,12 +135,24 @@ accuracy claim.
 
 - Branch: `codex/opd_verifier_ledger_v2`
 - Implementation commit: `990e4b829cd4cc13bc9d21b6914113034b83786c`
+- Merge-provenance integration commit:
+  `1b8effb6a73fd4e10a87909d33c98873301163e7`
 - Builder/validator: `scripts/opd_math/score_ledger.py`
 - Merge dispatch: `scripts/opd_math/merge_adapter.py`
 - Focused tests: `tests/test_opd_score_ledger.py`
 
 The legacy `teacher_gap_v1` path remains available for provenance and is not
 rewritten. Only a new `teacher_gap_score_ledger_v1` gate uses the new contract.
+
+Before rearming, a downstream dry audit found that the merge provenance writer
+still expected training-custody fields directly on every gate. The ledger gate
+deliberately does not duplicate those fields. The integration now records the
+new ledger as the promotion measurement and obtains training-plan,
+environment, and adapter provenance from the exact SHA-bound predecessor gate.
+It compares the shared teacher identities and never asks the predecessor to
+replay Math-Verify. Focused merge/ledger custody tests pass. This closes the
+merge path only; student training still requires its own successor prelaunch
+boundary and ledger-gate compatibility audit.
 
 ## Authorization boundary
 
