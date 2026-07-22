@@ -100,4 +100,5 @@ distillation method to a task with observable skill headroom.
 [[self-distillation-cluster-update-2026-07-17]] · [[opd-math-source-transfer]] ·
 [[opd-math-eit-handoff-2026-07-18]] · [[ema-policy-gradient]] ·
 [[verl-opd-trainer]] ·
-[[opd-teacher-evaluator-baseline-qualification-2026-07-22]]
+[[opd-teacher-evaluator-baseline-qualification-2026-07-22]] ·
+[[opd-gated-campaign-v2-2026-07-22]]

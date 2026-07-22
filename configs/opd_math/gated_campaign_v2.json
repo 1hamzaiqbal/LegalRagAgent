@@ -1,0 +1,267 @@
+{
+  "schema_version": 1,
+  "campaign_id": "opd_math_gated_campaign_v2",
+  "status": "stage_1_length_calibration_running",
+  "purpose": "Determine whether and when on-policy teacher distillation improves a smaller math model, while refusing to build scientific claims on unhealthy generation, weak teachers, broken baselines, or plumbing-only success.",
+  "global_claim_boundary": "A downstream stage may launch only from a fresh, immutable semantic result artifact that passes every registered requirement. Slurm completion, finite loss, nonzero KL, checkpoint creation, or a hand-inspected example never satisfies a scientific gate.",
+  "fixed_exclusions": {
+    "M_teacher": "permanently_failed_under_teacher_favorable_sensitivity",
+    "forbidden_actions": [
+      "M_teacher_retraining",
+      "M_teacher_merge",
+      "M_M",
+      "M_O"
+    ],
+    "MATH_role": "external_transfer_target_only"
+  },
+  "automation_policy": {
+    "scheduler_dependencies_allowed_for": [
+      "shard_to_exact_merge",
+      "exact_merge_to_read_only_validator"
+    ],
+    "scheduler_dependencies_forbidden_for": [
+      "measurement_gate_to_training",
+      "training_completion_to_scientific_evaluation",
+      "pilot_result_to_confirmatory_matrix"
+    ],
+    "required_launch_sequence": [
+      "validate immutable inputs",
+      "write intent artifact",
+      "launch",
+      "seal scheduler receipt",
+      "independently reconstruct result",
+      "evaluate semantic gate",
+      "write explicit rearm artifact",
+      "launch next stage"
+    ],
+    "rescue_policy": "No in-place rescue. A failed scientific gate is terminal for that registered recipe. A materially changed prompt, scorer, cap, sampler, optimizer, dataset, or checkpoint rule requires a new campaign version and fresh setup-only evidence."
+  },
+  "stages": [
+    {
+      "id": "S0_artifact_and_teacher_audit",
+      "status": "passed_diagnostic_only",
+      "inputs": [
+        "evidence/july_2026/opd_teacher_evaluator_qualification_bd1ca8b_v1.json",
+        "evidence/july_2026/opd_verifier_score_ledger_O_gap_ac65062_v1.json"
+      ],
+      "result": "The O teacher has a small symbolic-eligible held-out gain, but predecessor teacher/student recipes are low-signal and truncation-dominated.",
+      "authorizes": [
+        "S1_length_calibration"
+      ]
+    },
+    {
+      "id": "S1_length_calibration",
+      "status": "running",
+      "plan": "configs/opd_math/teacher_evaluator_qualification_plan.json",
+      "selection_data": "first 64 registered O student_opd records only",
+      "initial_candidates": [
+        2048,
+        4096
+      ],
+      "conditional_candidate": 8192,
+      "families": [
+        "raw_student",
+        "raw_teacher",
+        "trained_O_teacher"
+      ],
+      "requirements": {
+        "maximum_at_cap_fraction": 0.05,
+        "maximum_parse_failure_fraction_below_cap": 0.02,
+        "maximum_verifier_error_fraction": 0.001,
+        "exact_common_sample_identities": true,
+        "independent_merge_custody": true
+      },
+      "pass_action": "Freeze the smallest passing student cap across all student arms and the smallest passing teacher cap across paired teacher arms.",
+      "conditional_action": "If a family fails 2048 and 4096, run 8192 for that family only.",
+      "terminal_failure": "If 8192 fails, stop model training and register a separate compact-prompt qualification campaign on fresh setup-only records.",
+      "authorizes": [
+        "S2_reward_contract_alignment"
+      ]
+    },
+    {
+      "id": "S2_reward_contract_alignment",
+      "status": "blocked_on_S1",
+      "purpose": "Remove the mismatch between the TRL-style teacher reward and the repository evaluation reward before another teacher run.",
+      "requirements": {
+        "gold_only_population_defined_before_outputs": true,
+        "score_once_status_retained": true,
+        "training_verifier_unknown_policy": "discard the complete prompt group without an optimizer step; abort if unknown fraction exceeds 0.001",
+        "evaluation_unknown_policy": "retain bounded unknowns; never retry until a favorable verdict",
+        "old_vs_successor_scorer_disagreement_report": true,
+        "focused_tests_pass": true,
+        "cpu_blinded_reconstruction_pass": true
+      },
+      "pass_action": "Freeze reward_contract_v2 and its disagreement report.",
+      "terminal_failure": "Do not retrain a teacher while train/eval reward semantics remain unregistered or outcome-adaptive.",
+      "authorizes": [
+        "S3_teacher_recipe_qualification"
+      ]
+    },
+    {
+      "id": "S3_teacher_recipe_qualification",
+      "status": "blocked_on_S2",
+      "scope": "One O-teacher recipe-development seed on setup/tune-dev data; final teacher_gap_dev remains unopened.",
+      "fixed_design_requirements": {
+        "selected_teacher_cap_from_S1": true,
+        "reward_contract_v2_from_S2": true,
+        "periodic_checkpoints_and_optimizer_state": true,
+        "checkpoint_selection_on_disjoint_frozen_tune_dev": true,
+        "full_DAPO_claim_allowed": false,
+        "candidate_group_sizes": [
+          4,
+          8
+        ],
+        "candidate_max_optimizer_steps": [
+          250,
+          500
+        ],
+        "one_factor_at_a_time": "First qualify group signal at fixed 250-step ceiling; only then test the 500-step ceiling."
+      },
+      "training_health_gate": {
+        "minimum_nonzero_gradient_updates": 100,
+        "minimum_nonzero_gradient_step_fraction": 0.25,
+        "minimum_mixed_reward_group_fraction": 0.25,
+        "maximum_at_cap_fraction": 0.05,
+        "maximum_verifier_unknown_fraction": 0.001,
+        "finite_parameter_and_optimizer_state": true
+      },
+      "tune_dev_gate": {
+        "paired_reward_delta_vs_raw_must_be_positive": true,
+        "paired_bootstrap_lower_bound_must_be_positive": true,
+        "no_parse_or_length_regression": true
+      },
+      "terminal_failure": "If neither registered group-size/step recipe passes, preserve the negative result and stop O-teacher-dependent OPD.",
+      "authorizes": [
+        "S4_teacher_confirmation"
+      ]
+    },
+    {
+      "id": "S4_teacher_confirmation",
+      "status": "blocked_on_S3",
+      "scope": "Freeze the selected O-teacher recipe, train seeds 0, 1, and 2, then open complete teacher_gap_dev once per seed.",
+      "requirements": {
+        "all_three_seeds_complete_and_audited": true,
+        "mean_paired_delta_positive": true,
+        "seed_level_effects_reported_without_dropping_negative_seeds": true,
+        "hierarchical_or_seed_clustered_interval_lower_bound_positive": true,
+        "symbolic_eligible_coverage_at_least": 0.95,
+        "semantic_exclusions_reported_separately": true
+      },
+      "terminal_failure": "No OPD launch if the frozen teacher does not reproduce a robust held-out skill gap.",
+      "authorizes": [
+        "S5_student_baseline_qualification",
+        "S6_teacher_student_interface"
+      ]
+    },
+    {
+      "id": "S5_student_baseline_qualification",
+      "status": "blocked_on_S1_and_S2",
+      "scope": "Raw and task-RL Qwen3-1.7B under the selected student cap and reward_contract_v2.",
+      "arms": [
+        "raw",
+        "task_rl"
+      ],
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "requirements": {
+        "shared_initialization_prompt_order_and_compute": true,
+        "minimum_mixed_reward_group_fraction": 0.25,
+        "maximum_at_cap_fraction": 0.05,
+        "task_rl_tune_dev_delta_vs_raw_positive": true,
+        "task_rl_tune_dev_bootstrap_lower_bound_positive": true,
+        "no_final_holdout_opened_for_recipe_selection": true
+      },
+      "terminal_failure": "If matched task-RL cannot improve the raw student on tune-dev, stop and diagnose the student training recipe before OPD.",
+      "authorizes": [
+        "S7_objective_family_pilot"
+      ]
+    },
+    {
+      "id": "S6_teacher_student_interface",
+      "status": "blocked_on_S4",
+      "scope": "One-step and no-update custody diagnostics on exact student trajectories.",
+      "requirements": {
+        "shared_tokenizer_exact_token_alignment": true,
+        "teacher_scoring_full_vocabulary_K1_reference": true,
+        "top_k_KL_is_separate_approximation_arm": true,
+        "teacher_mean_NLL_on_student_trajectories_below_student": true,
+        "positive_teacher_likelihood_advantage_fraction_at_least": 0.55,
+        "teacher_task_reward_on_same_prompts_above_student": true,
+        "one_step_parameter_delta_finite_and_nonzero": true,
+        "one_step_result_is_not_task_improvement": true
+      },
+      "terminal_failure": "Do not launch OPD when the qualified teacher has no likelihood or task advantage on the student's own trajectories.",
+      "authorizes": [
+        "S7_objective_family_pilot"
+      ]
+    },
+    {
+      "id": "S7_objective_family_pilot",
+      "status": "blocked_on_S5_and_S6",
+      "scope": "One frozen development seed; tune-dev only.",
+      "arms": [
+        "task_rl",
+        "offline_distillation",
+        "bare_opd_collapse_diagnostic",
+        "reward_gated_opd"
+      ],
+      "requirements": {
+        "identical_student_initialization_and_prompt_schedule": true,
+        "matched_optimizer_steps_rollouts_and_cap": true,
+        "reward_gated_opd_delta_vs_task_rl_positive": true,
+        "reward_gated_opd_delta_vs_offline_distillation_positive": true,
+        "no_cap_parse_or_cost_regression": true,
+        "bare_opd_not_used_as_primary_method": true
+      },
+      "terminal_failure": "If reward-gated OPD does not add value on tune-dev, preserve the characterization result and do not run the confirmatory matrix.",
+      "authorizes": [
+        "S8_confirmatory_student_matrix"
+      ]
+    },
+    {
+      "id": "S8_confirmatory_student_matrix",
+      "status": "blocked_on_S7",
+      "scope": "Three frozen seeds with one final evaluation opening.",
+      "evaluation_surfaces": [
+        "O_source_holdout",
+        "MATH_external_transfer_only",
+        "AIME_2026_post_checkpoint_external_check"
+      ],
+      "primary_estimands": [
+        "reward_gated_opd_minus_task_rl",
+        "reward_gated_opd_minus_offline_distillation",
+        "each_trained_arm_minus_raw"
+      ],
+      "required_measurements": [
+        "paired_completion_reward",
+        "pass_at_k",
+        "cap_fraction",
+        "parse_failure_below_cap",
+        "verifier_unknowns",
+        "prompt_and_completion_tokens",
+        "latency",
+        "training_and_inference_cost"
+      ],
+      "claim_rule": "Report the complete matrix and seed heterogeneity regardless of sign. No post-hoc rescue arm enters the confirmatory result."
+    },
+    {
+      "id": "S9_multi_teacher_extension",
+      "status": "deferred",
+      "scope": "MOPD/routed multi-teacher characterization, never part of the minimal single-teacher claim.",
+      "entry_requirements": {
+        "S8_single_teacher_OPD_effect_positive": true,
+        "second_non_M_teacher_independently_qualified": true,
+        "each_single_teacher_arm_evaluated_before_routing": true,
+        "DeepMath_C_must_receive_new_data_qualification_after_prior_negative": true
+      },
+      "candidate_questions": [
+        "Does routing by per-trajectory teacher advantage outperform the best single teacher?",
+        "Do multiple teachers add coverage or merely average incompatible distributions?",
+        "Does top-k KL preserve teacher complementarity relative to full-vocabulary K1?"
+      ]
+    }
+  ]
+}
