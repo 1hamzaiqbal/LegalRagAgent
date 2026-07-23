@@ -6,6 +6,8 @@ from pathlib import Path
 
 from scripts.opd import materialize_positive_control as materialize
 from scripts.opd import positive_control_gate as gate
+from scripts.opd import positive_control_one_step as one_step
+from scripts.opd import positive_control_one_step_terminal_audit as terminal_audit
 from scripts.opd import prepare_opsd_execution_tree as execution_tree
 from scripts.opd import verify_positive_control_environment as verify_environment
 
@@ -105,3 +107,119 @@ def test_environment_receipt_is_exclusive_json(tmp_path: Path) -> None:
     verify_environment.write_exclusive(output, {"status": "passed"})
     assert json.loads(output.read_text()) == {"status": "passed"}
     assert output.stat().st_mode & 0o777 == 0o444
+
+
+def test_one_step_preregistration_keeps_full_training_blocked() -> None:
+    root = Path(__file__).resolve().parents[1]
+    payload = json.loads(
+        (root / "configs/opd_math/identifiability_v1_one_step.json").read_text()
+    )
+    assert payload["status"] == (
+        "preregistered_diagnostic_only_100_step_training_blocked"
+    )
+    assert payload["recipe"]["max_steps"] == 1
+    assert payload["recipe"]["seed"] == 42
+    assert payload["hardware"] == {
+        "partition": "general-gpu",
+        "gpu_type": "a6000",
+        "gpu_count": 4,
+        "single_node_required": True,
+        "purpose": "one-step training memory and topology gate",
+    }
+    assert payload["pass_gate"]["terminal_log_hash_required"]
+    assert payload["immutable_boundaries"][
+        "one_hundred_step_training_is_not_automatically_authorized"
+    ]
+
+
+def test_one_step_command_is_exactly_one_step(tmp_path: Path) -> None:
+    command = one_step.training_command(
+        tmp_path / "env",
+        tmp_path / "execution",
+        tmp_path / "model",
+        tmp_path / "output",
+        12345,
+    )
+    assert command[command.index("--max_steps") + 1] == "1"
+    assert command[command.index("--save_steps") + 1] == "1"
+    assert command[command.index("--logging_steps") + 1] == "1"
+    assert command[command.index("--seed") + 1] == "42"
+    assert "--fixed_teacher" in command
+    assert "--use_peft" in command
+    assert "--use_tinker_loss" not in command
+
+
+def test_one_step_audit_proves_nonzero_lora_b_update(tmp_path: Path) -> None:
+    import torch
+    from safetensors.torch import save_file
+
+    checkpoint = (
+        tmp_path
+        / "training"
+        / one_step.RUN_CONFIG
+        / "checkpoint-1"
+    )
+    checkpoint.mkdir(parents=True)
+    (checkpoint / "trainer_state.json").write_text(
+        json.dumps(
+            {
+                "global_step": 1,
+                "max_steps": 1,
+                "log_history": [
+                    {"step": 1, "loss": 0.125, "grad_norm": 0.25}
+                ],
+            }
+        )
+    )
+    save_file(
+        {
+            "layer.lora_A.weight": torch.ones(2, 2),
+            "layer.lora_B.weight": torch.tensor([[0.0, 0.1], [0.0, 0.0]]),
+        },
+        str(checkpoint / "adapter_model.safetensors"),
+    )
+    audit = one_step.audit_training(
+        tmp_path,
+        {"pass_gate": {"global_step": 1}},
+    )
+    assert audit["status"] == "passed"
+    assert audit["nonzero_lora_B_tensor_count"] == 1
+    assert audit["nonzero_lora_B_parameter_count"] == 1
+
+
+def test_one_step_job_is_single_node_four_a6000s() -> None:
+    root = Path(__file__).resolve().parents[1]
+    source = (
+        root / "scripts/hpc/slurm_opd_positive_control_one_step.sh"
+    ).read_text()
+    assert "#SBATCH --nodes=1" in source
+    assert "#SBATCH --ntasks=1" in source
+    assert "#SBATCH --gpus=a6000:4" in source
+    assert "identifiability_v1_one_step.json" in source
+
+
+def test_terminal_accounting_parser_requires_exact_job(monkeypatch) -> None:
+    monkeypatch.setattr(
+        terminal_audit.subprocess,
+        "check_output",
+        lambda *args, **kwargs: (
+            "131000|COMPLETED|0:0\n"
+            "131000.batch|COMPLETED|0:0\n"
+            "131000.extern|COMPLETED|0:0\n"
+        ),
+    )
+    assert terminal_audit.exact_job_accounting("131000") == {
+        "job_id": "131000",
+        "state": "COMPLETED",
+        "exit_code": "0:0",
+    }
+
+
+def test_one_step_submission_has_no_dependency() -> None:
+    root = Path(__file__).resolve().parents[1]
+    source = (
+        root / "scripts/hpc/submit_opd_positive_control_one_step.sh"
+    ).read_text()
+    assert "--dependency" not in source
+    assert '"dependent_jobs": []' in source
+    assert '"full_training_queued": False' in source

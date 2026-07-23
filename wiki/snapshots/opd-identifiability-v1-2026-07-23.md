@@ -1,7 +1,7 @@
 ---
 title: OPD Identifiability Campaign v1
 date: 2026-07-23
-status: setup only; no training authorized
+status: base reproduced; one-step diagnostic preregistered; full training blocked
 tags: [opd, positive-control, identifiability, opsd, math, eit]
 ---
 
@@ -45,6 +45,26 @@ all four checkpoints are evaluated, the best checkpoint improves Average@12
 by at least three percentage points over the locally measured base, training
 is finite with a real parameter update, and an independent reconstruction
 agrees. Scheduler completion alone never passes the stage.
+
+### Base reproduction result
+
+EIT job `130650` completed on four A6000 GPUs at repository commit
+`583fd6d641744eb48047ded32f5f727e141d8af0`. Independent reconstruction found
+193 correct of 360 generations, or **53.6111% Average@12**, with 359/360
+formatted outputs. This lies inside the preregistered 40--63% sanity band. The
+sealed evaluation and gate hashes are recorded in
+`configs/opd_math/identifiability_v1_one_step.json`.
+
+This result releases only the one-step real-model update diagnostic. That
+diagnostic inherits the official fixed-teacher, full-vocabulary OPSD recipe,
+changes `max_steps`, `save_steps`, and `logging_steps` to exactly one, and must
+prove a finite loss, a finite positive gradient norm, a step-1 checkpoint, and
+finite nonzero LoRA-B parameters. The latter matrices have zero initialization
+for the newly constructed PEFT adapter, so a nonzero step-1 value is direct
+parameter-update evidence. The run remains plumbing evidence, never a student
+task-performance claim. A post-Slurm terminal audit and log hash are required
+before the 100-step control can even be preregistered; it is not queued
+automatically.
 
 ## What becomes available after P1
 
