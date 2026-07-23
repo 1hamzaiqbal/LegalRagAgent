@@ -70,6 +70,13 @@
       "max_new_tokens": 38912,
       "tensor_parallel_size": 4
     },
+    "execution_hardware": {
+      "positive_control_evaluation_gpu_types": ["a100-sxm4", "a6000"],
+      "positive_control_evaluation_gpu_count": 4,
+      "single_node_required": true,
+      "base_and_all_checkpoint_evaluations_must_use_the_same_gpu_type": true,
+      "training_hardware_is_separately_memory_gated": true
+    },
     "environment": {
       "python": "3.10",
       "source": "pinned_upstream_environment_yml_plus_flash_attention_install_instruction",

@@ -68,6 +68,12 @@ require one node. The preflight and its untouched dependent base evaluation
 root. The corrected wrappers require one node and record the immutable setup
 producer commit separately from the corrected execution commit.
 
+The healthy single-node A100-SXM4 lane was not immediately available, while a
+single A6000 node had four free identical Ampere GPUs. Positive-control base
+and checkpoint evaluation may therefore use either four A100-SXM4 GPUs or four
+A6000 GPUs, always on one node and always the same type for the base and every
+checkpoint. Training hardware remains a separate memory-gated decision.
+
 ## Links
 
 [[opd-teacher-evaluator-baseline-qualification-2026-07-22]] ·

@@ -27,6 +27,9 @@ def test_identifiability_config_is_setup_only() -> None:
         "base_aime24_reproduction"
     )
     assert payload["positive_control"]["environment"]["vllm"] == "0.11.0"
+    assert payload["positive_control"]["execution_hardware"][
+        "base_and_all_checkpoint_evaluations_must_use_the_same_gpu_type"
+    ]
 
 
 def test_file_records_are_sorted_and_hashed(tmp_path: Path) -> None:
@@ -85,3 +88,12 @@ def test_four_gpu_jobs_require_one_node() -> None:
         assert "#SBATCH --nodes=1" in source
         assert "#SBATCH --ntasks=1" in source
         assert "#SBATCH --gpus=a100-sxm4:4" in source
+
+
+def test_resumed_submission_can_select_only_preregistered_gpu_types() -> None:
+    root = Path(__file__).resolve().parents[1]
+    source = (
+        root / "scripts/hpc/submit_opd_positive_control_preflight.sh"
+    ).read_text()
+    assert "a100-sxm4|a6000" in source
+    assert '--gpus="${GPU_TYPE}:4"' in source
