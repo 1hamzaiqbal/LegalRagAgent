@@ -1,6 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=opsd_pc_baseeval
 #SBATCH --partition=general-gpu
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
 #SBATCH --gpus=a100-sxm4:4
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=160G
@@ -21,6 +23,7 @@ PREFLIGHT_JOB_ID="${OPD_IDENT_PREFLIGHT_JOB_ID:?set OPD_IDENT_PREFLIGHT_JOB_ID a
 
 test -z "$(git -C "$REPO" status --porcelain=v1)"
 test "$(git -C "$REPO" rev-parse HEAD)" = "$EXPECTED_COMMIT"
+test "${SLURM_JOB_NUM_NODES:?missing Slurm node count}" = "1"
 PREFLIGHT="$RUN_ROOT/preflight/job_${PREFLIGHT_JOB_ID}/receipt.json"
 test -f "$PREFLIGHT"
 "$ENV_DIR/bin/python" - "$PREFLIGHT" "$EXPECTED_COMMIT" <<'PY'
@@ -28,6 +31,11 @@ import json, sys
 payload = json.load(open(sys.argv[1]))
 assert payload["status"] == "passed"
 assert payload["repository_commit"] == sys.argv[2]
+PY
+"$ENV_DIR/bin/python" - <<'PY'
+import torch
+if torch.cuda.device_count() != 4:
+    raise RuntimeError(f"expected exactly four visible CUDA devices, got {torch.cuda.device_count()}")
 PY
 
 OUT="$RUN_ROOT/base_eval/job_${SLURM_JOB_ID}"

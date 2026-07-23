@@ -57,6 +57,17 @@ external transfer surface; the failed M teacher remains permanently excluded.
 The previous 36-arm objective-family design becomes a confirmatory campaign
 only after the minimal cross-scale pilot establishes a useful signal.
 
+## First setup incident
+
+Jobs 130641 and 130642 successfully built the exact pinned environment and
+materialized the exact datasets. Slurm split the original four-GPU preflight
+130643 across two nodes because the wrapper requested four GPUs but did not
+require one node. The preflight and its untouched dependent base evaluation
+130644 were cancelled. No evaluation or training ran. The terminal receipt is
+`preflight/job_130643/terminal_failure.json` under the EIT campaign artifact
+root. The corrected wrappers require one node and record the immutable setup
+producer commit separately from the corrected execution commit.
+
 ## Links
 
 [[opd-teacher-evaluator-baseline-qualification-2026-07-22]] ·

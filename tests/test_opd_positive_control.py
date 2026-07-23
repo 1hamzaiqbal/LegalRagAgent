@@ -73,3 +73,15 @@ def test_execution_tree_edits_are_data_locality_only(tmp_path: Path) -> None:
     assert record["before_sha256"] != record["after_sha256"]
     assert "LEGALRAG_OPSD_TRAIN_PARQUET" in train.read_text()
     assert "__import__" in execution_tree.EVAL_NEW
+
+
+def test_four_gpu_jobs_require_one_node() -> None:
+    root = Path(__file__).resolve().parents[1]
+    for name in (
+        "slurm_opd_positive_control_preflight.sh",
+        "slurm_opd_positive_control_base_eval.sh",
+    ):
+        source = (root / "scripts/hpc" / name).read_text()
+        assert "#SBATCH --nodes=1" in source
+        assert "#SBATCH --ntasks=1" in source
+        assert "#SBATCH --gpus=a100-sxm4:4" in source

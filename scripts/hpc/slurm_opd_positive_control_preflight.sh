@@ -1,6 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=opsd_pc_preflight
 #SBATCH --partition=general-gpu
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
 #SBATCH --gpus=a100-sxm4:4
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=128G
@@ -17,13 +19,16 @@ DATA_ROOT="${OPD_IDENT_DATA_ROOT:-/engrfs/project/jacobsn/hiqbal/data/legalrag/o
 RUN_ROOT="${OPD_IDENT_RUN_ROOT:-/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_identifiability_v1}"
 HF_HOME="${OPD_IDENT_HF_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache}"
 EXPECTED_COMMIT="${OPD_IDENT_EXPECTED_COMMIT:?set OPD_IDENT_EXPECTED_COMMIT at submission}"
+ENVIRONMENT_COMMIT="${OPD_IDENT_ENVIRONMENT_COMMIT:-$EXPECTED_COMMIT}"
+DATA_COMMIT="${OPD_IDENT_DATA_COMMIT:-$EXPECTED_COMMIT}"
 
 test -z "$(git -C "$REPO" status --porcelain=v1)"
 test "$(git -C "$REPO" rev-parse HEAD)" = "$EXPECTED_COMMIT"
+test "${SLURM_JOB_NUM_NODES:?missing Slurm node count}" = "1"
 test "$(git -C "$UPSTREAM" rev-parse HEAD)" = "7448751f307a9cdbcc1246dd1565a1a605b443df"
 test -z "$(git -C "$UPSTREAM" status --porcelain=v1 --untracked-files=no)"
 test -f "$DATA_ROOT/manifest.json"
-FREEZE="$RUN_ROOT/environment_freezes/$EXPECTED_COMMIT/upstream_opsd.freeze.txt"
+FREEZE="$RUN_ROOT/environment_freezes/$ENVIRONMENT_COMMIT/upstream_opsd.freeze.txt"
 test -f "$FREEZE"
 
 RECEIPT_ROOT="$RUN_ROOT/preflight/job_${SLURM_JOB_ID}"
@@ -35,22 +40,25 @@ mkdir -p "$RECEIPT_ROOT"
   --freeze "$FREEZE" \
   --expected-cuda-devices 4 \
   >"$RECEIPT_ROOT/environment.json"
+chmod 0444 "$RECEIPT_ROOT/environment.json"
 
 HF_HOME="$HF_HOME" HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
-  "$ENV_DIR/bin/python" - "$DATA_ROOT" "$RECEIPT_ROOT" "$EXPECTED_COMMIT" <<'PY'
+  "$ENV_DIR/bin/python" - "$DATA_ROOT" "$RECEIPT_ROOT" "$EXPECTED_COMMIT" "$ENVIRONMENT_COMMIT" "$DATA_COMMIT" <<'PY'
 import hashlib, json, os, sys
 from pathlib import Path
 from huggingface_hub import snapshot_download
 
-data_root, receipt_root, commit = map(Path, sys.argv[1:])
+data_root = Path(sys.argv[1])
+receipt_root = Path(sys.argv[2])
+commit, environment_commit, data_commit = sys.argv[3:]
 manifest = json.loads((data_root / "manifest.json").read_text())
 for row in manifest["files"]:
     path = data_root / row["path"]
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     if path.stat().st_size != row["bytes"] or digest != row["sha256"]:
         raise RuntimeError(f"data custody mismatch: {path}")
-if manifest["repository_commit"] != str(commit):
-    raise RuntimeError("dataset manifest belongs to another repository commit")
+if manifest["repository_commit"] != data_commit:
+    raise RuntimeError("dataset manifest does not match its declared producer commit")
 model = snapshot_download(
     "Qwen/Qwen3-1.7B",
     revision="70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
@@ -60,7 +68,12 @@ payload = {
     "schema_version": 1,
     "artifact_type": "opd_positive_control_preflight",
     "status": "passed",
-    "repository_commit": str(commit),
+    "repository_commit": commit,
+    "environment_producer_commit": environment_commit,
+    "data_producer_commit": data_commit,
+    "slurm_job_id": os.environ.get("SLURM_JOB_ID"),
+    "slurm_job_num_nodes": os.environ.get("SLURM_JOB_NUM_NODES"),
+    "slurm_node_list": os.environ.get("SLURM_NODELIST"),
     "data_manifest": str(data_root / "manifest.json"),
     "data_manifest_sha256": hashlib.sha256((data_root / "manifest.json").read_bytes()).hexdigest(),
     "model_snapshot": model,
