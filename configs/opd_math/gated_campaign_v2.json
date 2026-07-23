@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "campaign_id": "opd_math_gated_campaign_v2",
-  "status": "stage_1_length_calibration_running",
+  "status": "terminal_failure_at_stage_1_length_calibration",
   "purpose": "Determine whether and when on-policy teacher distillation improves a smaller math model, while refusing to build scientific claims on unhealthy generation, weak teachers, broken baselines, or plumbing-only success.",
   "global_claim_boundary": "A downstream stage may launch only from a fresh, immutable semantic result artifact that passes every registered requirement. Slurm completion, finite loss, nonzero KL, checkpoint creation, or a hand-inspected example never satisfies a scientific gate.",
   "fixed_exclusions": {
@@ -51,8 +51,17 @@
     },
     {
       "id": "S1_length_calibration",
-      "status": "running",
+      "status": "failed_all_candidates",
       "plan": "configs/opd_math/teacher_evaluator_qualification_plan.json",
+      "result_evidence": "evidence/july_2026/opd_length_calibration_terminal_6d3be08_v1.json",
+      "result": {
+        "student_status": "QUALIFIED",
+        "selected_student_cap": 4096,
+        "teacher_status": "FAILED_ALL_CANDIDATES",
+        "selected_teacher_cap": null,
+        "trained_teacher_8192_at_cap_fraction": 0.0546875,
+        "scientific_training_authorized": false
+      },
       "selection_data": "first 64 registered O student_opd records only",
       "initial_candidates": [
         2048,
@@ -80,7 +89,7 @@
     },
     {
       "id": "S2_reward_contract_alignment",
-      "status": "blocked_on_S1",
+      "status": "blocked_terminal_on_S1_failure",
       "purpose": "Remove the mismatch between the TRL-style teacher reward and the repository evaluation reward before another teacher run.",
       "requirements": {
         "gold_only_population_defined_before_outputs": true,

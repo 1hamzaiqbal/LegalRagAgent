@@ -21,6 +21,10 @@ duplicating every raw artifact in Git.
 - `opd_teacher_evaluator_qualification_bd1ca8b_v1.json`: read-only
   reconstruction of teacher learning signal, truncation, paired teacher
   movement, and predecessor student baselines from sealed EIT traces.
+- `opd_length_calibration_terminal_6d3be08_v1.json`: terminal Stage 1
+  calibration receipt. The student qualified at 4,096, but the trained teacher
+  failed at 8,192 by one at-cap sample, closing this campaign before Stage 2 or
+  model training.
 
 The result-level interpretation and cite gates are in
 [`docs/july_2026_completion_audit_2026-07-17.md`](../../docs/july_2026_completion_audit_2026-07-17.md)
@@ -53,3 +57,14 @@ the completion cap. The old task-RL student results remain absolute pilot
 scores because no raw-student evaluation exists on the identical held-out
 records and decoding contract. No predecessor artifact demonstrates OPD
 student improvement.
+
+## OPD gated campaign v2 Stage 1 — terminally audited 2026-07-22
+
+The fixed setup-only calibration ended `FAILED_ALL_CANDIDATES` for the teacher
+family. At 8,192 tokens, the raw teacher passed with 4/128 at cap, while the
+trained teacher failed with 7/128 (5.46875%) against the immutable 5% maximum.
+Both 8,192 surfaces had zero below-cap parse failures and zero verifier errors.
+The official selector and fresh independent rerun are byte-identical at
+SHA-256 `044cbcaea084075df604a8e3823b11165a5de92edbb4d92a43400aadfe4dd852`.
+The receipt preserves the terminal stop: no Stage 2 or model training is
+authorized in this campaign.

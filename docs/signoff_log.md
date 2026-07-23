@@ -1331,3 +1331,21 @@ length-calibration contract are in
 Execution: EIT CPU job `126821`, artifact
 `evidence/july_2026/opd_teacher_evaluator_qualification_bd1ca8b_v1.json`,
 SHA-256 `2255b2f7a49404a9c47c26cf42f53a4a7b6d4448b55aa0d85b423b0aa400b9f1`.
+
+## OPD gated campaign v2 Stage 1 — terminally audited 2026-07-22
+
+Scope: setup-only completion-length calibration on the fixed first 64 O
+`student_opd` records, two samples per record, common seed and identities, and
+immutable family-specific decoding. The scheduler-produced selector was
+reconstructed independently from all eight merged candidate surfaces.
+
+| Result | Verified value | Sign-off |
+|---|---|---|
+| Raw student cap | 2,048: 16/128 at cap (12.5%), fail; 4,096: 0/128 (0%), pass | ✅ smallest passing student cap is 4,096, but this alone authorizes no training |
+| Raw teacher cap | 2,048: 21/128 (16.40625%), fail; 4,096: 7/128 (5.46875%), fail; 8,192: 4/128 (3.125%), pass | ⚠️ raw arm passes only at 8,192; teacher-family gate still requires the trained arm |
+| Trained O-teacher cap | 2,048: 24/128 (18.75%), fail; 4,096: 9/128 (7.03125%), fail; 8,192: 7/128 (5.46875%), fail | ❌ `FAILED_ALL_CANDIDATES`; the one-sample miss above 5% is not rounded or relaxed |
+| Stage 1 decision | 128 common sample identities; zero below-cap parse failures and zero verifier errors on both 8,192 surfaces; official and independent selector SHA-256 `044cbcae...d852` | ❌ no Stage 2, teacher training, student training, or OPD launch in this campaign; a compact prompt requires a new campaign version and fresh setup-only records |
+
+Execution: EIT GPU jobs `126883`/`126884`, exact merges `126885`/`126886`,
+selector `126887`. Compact receipt:
+`evidence/july_2026/opd_length_calibration_terminal_6d3be08_v1.json`.

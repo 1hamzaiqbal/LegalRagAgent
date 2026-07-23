@@ -21,6 +21,21 @@ Read, in order:
 7. `wiki/snapshots/opd-teacher-evaluator-baseline-qualification-2026-07-22.md`
 8. `wiki/snapshots/opd-verifier-ledger-boundary-2026-07-22.md`
 
+## Terminal resolution
+
+This handoff was executed to its registered terminal condition on 2026-07-22.
+Jobs `126824`--`126836` completed the initial calibration; teacher-only 8,192
+jobs `126883`/`126884`, exact merges `126885`/`126886`, and selector `126887`
+also completed. Independent reconstruction is byte-identical to the official
+selector (SHA-256 `044cbcae...d852`). The student is `QUALIFIED` at 4,096, but
+the teacher is `FAILED_ALL_CANDIDATES`: the trained arm has 7/128 samples at
+the 8,192-token cap (5.46875%), one sample above the immutable 5% maximum.
+
+The outgoing directive is `STOP`. No Stage 2 work or model training is
+authorized in this campaign. A compact prompt requires a separate campaign
+version and fresh setup-only records. The tracked receipt is
+`evidence/july_2026/opd_length_calibration_terminal_6d3be08_v1.json`.
+
 ## Machine lanes
 
 - Conductor/edit clone:
@@ -32,15 +47,14 @@ Read, in order:
 - Canonical data:
   `/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_math/v1_canonical_reviewed_19b24c2`
 
-The active job clone is pinned to commit
-`8feb248a095451abab00a40ba0d9f40897732e06` while jobs 126824--126836 are
-live. Do not switch, merge, or edit that clone until all those jobs are
-terminal. The conductor clone may inspect artifacts and prepare commits on
-`codex/opd_qualification_hardening`. Before any later job launch, prove the
-chosen job clone is clean, frozen at the intended commit, and has fresh
-commit-specific train/serve freezes.
+The active job clone was pinned to commit
+`8feb248a095451abab00a40ba0d9f40897732e06` while jobs 126824--126836 were
+live. After every job became terminal, it was cleanly fast-forwarded to
+`6d3be084da3f7854ccde296ab20124c3d3acd5f3` for the registered 8,192 rearm.
+Fresh commit-specific train/serve freezes were created and verified before
+that launch. There is no currently authorized job launch.
 
-## Current Stage 1 jobs
+## Initial Stage 1 jobs (terminal)
 
 | Surface | Cap | GPU job | CPU merge |
 |---|---:|---:|---:|

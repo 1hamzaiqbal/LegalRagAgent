@@ -1,7 +1,7 @@
 ---
 title: OPD gated campaign v2
 date: 2026-07-22
-status: active at setup-only length calibration
+status: terminal at setup-only length calibration
 tags: [opd, math, campaign, gates, baselines, teacher, distillation]
 ---
 
@@ -18,20 +18,29 @@ The machine-readable source of truth is
 `configs/opd_math/gated_campaign_v2.json`. This page explains why the sequence
 is deliberately narrower than a fully prequeued grid.
 
-## What can run now
+## Terminal Stage 1 result
 
-Only setup-only completion-length calibration. Jobs `126824`--`126829`
-evaluate the raw student, raw teacher, and trained O teacher at 2,048 and 4,096
-tokens on 64 O `student_opd` records with two common samples per record. Jobs
-`126830`--`126835` are exact CPU merges. Job `126836` is a read-only semantic
-selector and can run only after every merge succeeds.
+No scientific job is authorized in this campaign. Jobs `126824`--`126836`
+completed the registered 2,048/4,096 calibration. The student qualified at
+4,096, while the teacher required the conditional 8,192 candidate. Jobs
+`126883` and `126884` evaluated only the raw and trained teacher arms at 8,192;
+jobs `126885` and `126886` performed exact merges, and read-only selector job
+`126887` evaluated all preserved candidates.
 
-If a family passes, its smallest cap is frozen. If neither 2,048 nor 4,096
-passes, only that family receives an 8,192-token calibration. If 8,192 also
-fails, no model training launches; compact-prompt qualification becomes a new
-campaign on fresh setup-only records.
+The raw teacher passed at 8,192 with 4/128 samples at cap (3.125%). The trained
+teacher failed with 7/128 at cap (5.46875%), exactly one sample above the
+immutable maximum of 5%. Both had zero parse failures below cap and zero
+verifier errors. The official selector and a fresh independent rerun are
+byte-identical at SHA-256 `044cbcae...d852`; teacher status is
+`FAILED_ALL_CANDIDATES`, and scientific training authorization is false.
 
-## Why later jobs are not already in Slurm
+This is the registered terminal condition. Stage 2 and all model-training
+stages remain closed. A compact-prompt qualification may exist only as a new
+campaign version on fresh setup-only records; it cannot relax, overwrite, or
+rescue this result. The compact tracked receipt is
+`evidence/july_2026/opd_length_calibration_terminal_6d3be08_v1.json`.
+
+## Why later jobs were not prequeued
 
 `afterok` means that a program exited zero. It cannot establish any of the
 facts on which the next scientific stage depends:

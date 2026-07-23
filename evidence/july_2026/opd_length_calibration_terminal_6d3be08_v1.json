@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "artifact_type": "opd_math_gated_campaign_v2_stage1_terminal_receipt",
+  "campaign_id": "opd_math_gated_campaign_v2",
+  "stage": "S1_length_calibration",
+  "status": "FAILED_ALL_CANDIDATES",
+  "audited_utc": "2026-07-23T01:29:37Z",
+  "repository_commit": "6d3be084da3f7854ccde296ab20124c3d3acd5f3",
+  "plan": {
+    "path": "configs/opd_math/teacher_evaluator_qualification_plan.json",
+    "sha256": "7d2bb804ac133ef783fb4d51a33f6798b61a896ba75be16e0abde9a8b95872cc"
+  },
+  "selection_contract": {
+    "records": 64,
+    "samples_per_record": 2,
+    "common_sample_identities": 128,
+    "seed": 0,
+    "thinking": false,
+    "student_decoding": {"temperature": 1.0, "top_p": 1.0, "top_k": 0},
+    "teacher_decoding": {"temperature": 0.7, "top_p": 0.8, "top_k": 20},
+    "maximum_at_cap_fraction": 0.05,
+    "maximum_parse_failure_fraction_below_cap": 0.02,
+    "maximum_verifier_error_fraction": 0.001
+  },
+  "decisions": {
+    "student": {"status": "QUALIFIED", "selected_max_completion_tokens": 4096},
+    "teacher": {"status": "FAILED_ALL_CANDIDATES", "selected_max_completion_tokens": null}
+  },
+  "teacher_surfaces": {
+    "base": {
+      "2048": {"at_cap_samples": 21, "samples": 128, "at_cap_fraction": 0.1640625, "passes": false},
+      "4096": {"at_cap_samples": 7, "samples": 128, "at_cap_fraction": 0.0546875, "passes": false},
+      "8192": {"at_cap_samples": 4, "samples": 128, "at_cap_fraction": 0.03125, "parse_failures_below_cap": 0, "verifier_error_fraction": 0.0, "passes": true}
+    },
+    "trained": {
+      "2048": {"at_cap_samples": 24, "samples": 128, "at_cap_fraction": 0.1875, "passes": false},
+      "4096": {"at_cap_samples": 9, "samples": 128, "at_cap_fraction": 0.0703125, "passes": false},
+      "8192": {"at_cap_samples": 7, "samples": 128, "at_cap_fraction": 0.0546875, "parse_failures_below_cap": 0, "verifier_error_fraction": 0.0, "passes": false}
+    }
+  },
+  "student_surfaces": {
+    "raw_2048": {"at_cap_samples": 16, "samples": 128, "at_cap_fraction": 0.125, "passes": false},
+    "raw_4096": {"at_cap_samples": 0, "samples": 128, "at_cap_fraction": 0.0, "parse_failures_below_cap": 0, "verifier_error_fraction": 0.0, "passes": true}
+  },
+  "jobs": [
+    {"job_id": 126883, "role": "raw_teacher_8192", "state": "COMPLETED", "exit_code": "0:0"},
+    {"job_id": 126884, "role": "trained_teacher_8192", "state": "COMPLETED", "exit_code": "0:0"},
+    {"job_id": 126885, "role": "raw_teacher_8192_merge", "state": "COMPLETED", "exit_code": "0:0"},
+    {"job_id": 126886, "role": "trained_teacher_8192_merge", "state": "COMPLETED", "exit_code": "0:0"},
+    {"job_id": 126887, "role": "all_candidate_selector", "state": "COMPLETED", "exit_code": "0:0"}
+  ],
+  "official_selector": {
+    "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/qualification/length_calibration_6d3be08_teacher8192_v1/calibration.json",
+    "sha256": "044cbcaea084075df604a8e3823b11165a5de92edbb4d92a43400aadfe4dd852"
+  },
+  "independent_selector": {
+    "path": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_math/qualification/length_calibration_6d3be08_teacher8192_v1_independent.g0AzMT/calibration.json",
+    "sha256": "044cbcaea084075df604a8e3823b11165a5de92edbb4d92a43400aadfe4dd852",
+    "byte_identical_to_official": true
+  },
+  "conductor_records": {
+    "terminal_result_sha256": "eaffe17279de3b0e9e558bd7171fd6e0c8a301b53f89e5386cc24103d3213f61",
+    "independent_audit_sha256": "15f7256ae87e2d04cb67f164fe48c6b0bc8313f738b4d4c6f910a467b0e9f3b5",
+    "terminal_stop_sha256": "7a9bef90873d7724ed242a0b1679ff5859025c935707dd5a2a4333414e458164"
+  },
+  "scientific_training_authorized": false,
+  "terminal_action": "Stop all teacher and student training in this campaign. Stage 2 and every later stage remain closed. Any compact-prompt qualification must be a separate campaign version on fresh setup-only records.",
+  "claim_boundary": "The trained teacher failed because 7/128 = 0.0546875 exceeds 0.05. The one-sample miss is not rounded or relaxed; scheduler completion is not a scientific pass."
+}

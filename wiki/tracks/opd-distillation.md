@@ -44,6 +44,14 @@ successor baseline contract are in
 environment-less support gates retain diagnostic numbers but do not authorize
 training.
 
+The successor [[opd-gated-campaign-v2-2026-07-22]] is now terminal at its
+setup-only length gate. The student qualified at 4,096 tokens, but the trained
+O teacher still placed 7/128 samples at the 8,192-token cap (5.46875%), one
+sample above the immutable 5% maximum. The official selector and independent
+reconstruction agree on `FAILED_ALL_CANDIDATES`. No reward-contract stage or
+model training is authorized in that campaign; a compact prompt requires a
+separately versioned campaign on fresh setup-only records.
+
 ## Gates
 
 1. **E2 teacher skill gap:** skill-augmented teacher must outperform the same
