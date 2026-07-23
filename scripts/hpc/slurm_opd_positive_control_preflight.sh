@@ -39,8 +39,9 @@ mkdir -p "$RECEIPT_ROOT"
   --environment-root "$ENV_DIR" \
   --freeze "$FREEZE" \
   --expected-cuda-devices 4 \
-  >"$RECEIPT_ROOT/environment.json"
-chmod 0444 "$RECEIPT_ROOT/environment.json"
+  --output "$RECEIPT_ROOT/environment.json" \
+  >"$RECEIPT_ROOT/environment.stdout.log"
+chmod 0444 "$RECEIPT_ROOT/environment.stdout.log"
 
 HF_HOME="$HF_HOME" HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
   "$ENV_DIR/bin/python" - "$DATA_ROOT" "$RECEIPT_ROOT" "$EXPECTED_COMMIT" "$ENVIRONMENT_COMMIT" "$DATA_COMMIT" <<'PY'
@@ -52,6 +53,10 @@ data_root = Path(sys.argv[1])
 receipt_root = Path(sys.argv[2])
 commit, environment_commit, data_commit = sys.argv[3:]
 manifest = json.loads((data_root / "manifest.json").read_text())
+environment_path = receipt_root / "environment.json"
+environment = json.loads(environment_path.read_text())
+if environment["status"] != "passed" or environment["cuda_devices"] != 4:
+    raise RuntimeError("environment receipt did not pass the four-GPU gate")
 for row in manifest["files"]:
     path = data_root / row["path"]
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -76,6 +81,8 @@ payload = {
     "slurm_node_list": os.environ.get("SLURM_NODELIST"),
     "data_manifest": str(data_root / "manifest.json"),
     "data_manifest_sha256": hashlib.sha256((data_root / "manifest.json").read_bytes()).hexdigest(),
+    "environment_receipt": str(environment_path),
+    "environment_receipt_sha256": hashlib.sha256(environment_path.read_bytes()).hexdigest(),
     "model_snapshot": model,
     "model_revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
 }

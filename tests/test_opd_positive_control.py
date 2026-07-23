@@ -7,6 +7,7 @@ from pathlib import Path
 from scripts.opd import materialize_positive_control as materialize
 from scripts.opd import positive_control_gate as gate
 from scripts.opd import prepare_opsd_execution_tree as execution_tree
+from scripts.opd import verify_positive_control_environment as verify_environment
 
 
 def test_identifiability_config_is_setup_only() -> None:
@@ -97,3 +98,10 @@ def test_resumed_submission_can_select_only_preregistered_gpu_types() -> None:
     ).read_text()
     assert "a100-sxm4|a6000" in source
     assert '--gpus="${GPU_TYPE}:4"' in source
+
+
+def test_environment_receipt_is_exclusive_json(tmp_path: Path) -> None:
+    output = tmp_path / "environment.json"
+    verify_environment.write_exclusive(output, {"status": "passed"})
+    assert json.loads(output.read_text()) == {"status": "passed"}
+    assert output.stat().st_mode & 0o777 == 0o444

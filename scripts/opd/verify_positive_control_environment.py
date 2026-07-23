@@ -8,6 +8,7 @@ import hashlib
 import importlib
 import importlib.metadata
 import json
+import os
 from pathlib import Path
 
 
@@ -59,11 +60,20 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def write_exclusive(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o444)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--environment-root", type=Path, required=True)
     parser.add_argument("--freeze", type=Path, required=True)
     parser.add_argument("--expected-cuda-devices", type=int, default=None)
+    parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
 
     root = args.environment_root.resolve()
@@ -104,6 +114,8 @@ def main() -> int:
         "cuda_names": [torch.cuda.get_device_name(index) for index in range(cuda_devices)],
         "bf16_supported": bool(cuda_devices and torch.cuda.is_bf16_supported()),
     }
+    if args.output is not None:
+        write_exclusive(args.output.resolve(), payload)
     print(json.dumps(payload, sort_keys=True))
     return 0
 
