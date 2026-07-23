@@ -11,7 +11,12 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ACTIVE_BRANCHES = {"codex/three_dial", "codex/opd_distillation", "codex/opd_math_pipeline"}
+ACTIVE_BRANCHES = {
+    "codex/three_dial",
+    "codex/opd_distillation",
+    "codex/opd_math_pipeline",
+    "codex/opd_identifiability_v1",
+}
 REQUIRED = (
     "ACTIVE_TRACK.md",
     "CLAUDE.md",
@@ -186,12 +191,16 @@ def check_branch(branch: str, errors: list[str], warnings: list[str]) -> None:
     active_text = (ROOT / "ACTIVE_TRACK.md").read_text(errors="replace")
     if branch == "codex/three_dial" and "three-dial" not in active_text.lower():
         errors.append("ACTIVE_TRACK.md does not describe the three-dial lane")
-    if branch in ("codex/opd_distillation", "codex/opd_math_pipeline"):
+    if branch in (
+        "codex/opd_distillation",
+        "codex/opd_math_pipeline",
+        "codex/opd_identifiability_v1",
+    ):
         if "opd" not in active_text.lower():
             errors.append("ACTIVE_TRACK.md does not describe the OPD lane")
         if not (ROOT / "scripts/hpc/slurm_opd_gated_smoke.sh").is_file():
             errors.append("OPD branch is missing its gated smoke launcher")
-    if branch == "codex/opd_math_pipeline":
+    if branch in ("codex/opd_math_pipeline", "codex/opd_identifiability_v1"):
         for relative in OPD_MATH_REQUIRED:
             if not (ROOT / relative).is_file():
                 errors.append(f"OPD math branch is missing required surface: {relative}")

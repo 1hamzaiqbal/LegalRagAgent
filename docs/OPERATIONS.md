@@ -11,6 +11,7 @@ in the snapshot, track pages, and signoff log; this file governs mechanics.
 | Three-dial science, evaluation, and marginal-utility control | `/Users/hamzaiqbal/grad/LegalRagAgent` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-three-dial` | `codex/three_dial` |
 | OPD/distillation and teacher-student engineering | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-distillation` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-distillation` | `codex/opd_distillation` |
 | Bounded OPD math source-transfer experiment | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-math` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math` | `codex/opd_math_pipeline` |
+| OPD identifiability successor | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-math` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math` | `codex/opd_identifiability_v1` |
 
 Do not launch new work from `codex/scope_old`, an archive branch, or a path
 under `/engrfs/project/jacobsn/hiqbal/archives/`. Historical checkouts are
@@ -133,6 +134,14 @@ Build the isolated upstream environment only with
 `scripts/hpc/slurm_opd_math_verl_preflight.sh`, and do not seal the 36-arm
 preregistration until the real-model stored-rollout check and all 12 post-job
 full-custody diagnostic receipts pass.
+
+The new identifiability successor is governed by
+`configs/opd_math/identifiability_v1.json` and
+`wiki/snapshots/opd-identifiability-v1-2026-07-23.md`. Its upstream OPSD
+positive control is a setup control, not a project contribution. Run only the
+environment, pinned-data, four-GPU preflight, and base-evaluation stages until
+the base gate passes. The one-step diagnostic and 100-step run are later
+semantic releases; they must not be prequeued merely behind scheduler success.
 
 ## Recovery
 

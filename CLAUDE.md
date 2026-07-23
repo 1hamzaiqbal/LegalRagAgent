@@ -25,6 +25,7 @@ star and is intentionally absent from this file.
 | Three-dial | `/Users/hamzaiqbal/grad/LegalRagAgent` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-three-dial` | `codex/three_dial` |
 | OPD/distillation | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-distillation` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-distillation` | `codex/opd_distillation` |
 | OPD math experiment | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-math` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math` | `codex/opd_math_pipeline` |
+| OPD identifiability successor | `/Users/hamzaiqbal/grad/LegalRagAgent-opd-math` | `/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math` | `codex/opd_identifiability_v1` |
 | SCOPE history | branch only; restore on demand | archived; no EIT source checkout | `codex/scope_old` |
 
 See `docs/worktree_map_2026-07-17.md` before touching EIT. Only the active paths
@@ -59,6 +60,11 @@ moved under `/engrfs/project/jacobsn/hiqbal/archives/LegalRagAgent_archive/2026-
   contract. Do not launch expanded 100-step arms until the objective registry,
   veRL fidelity ladder, full three-seed preregistration, and generalized
   readout are implemented and sealed in a new artifact namespace.
+- The active successor is now `codex/opd_identifiability_v1`. It first
+  reproduces the pinned upstream OPSD positive control. Cross-scale project
+  arms remain blocked until the base evaluation, one-step update diagnostic,
+  100-step run, four checkpoint evaluations, and independent reconstruction
+  pass `configs/opd_math/identifiability_v1.json`.
 
 ## Next build order
 
