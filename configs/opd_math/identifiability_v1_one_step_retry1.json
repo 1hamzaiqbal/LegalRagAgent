@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "campaign_id": "opd_identifiability_v1",
+  "stage_id": "one_step_real_model_update_diagnostic",
+  "status": "preregistered_diagnostic_only_100_step_training_blocked",
+  "scientific_role": "plumbing_and_parameter_update_custody_only_not_task_improvement",
+  "immutable_boundaries": {
+    "terminal_v2_is_not_reopened": true,
+    "failed_M_teacher_is_never_retrained_merged_or_used": true,
+    "M_M_and_M_O_are_forbidden": true,
+    "DeepMath_negative_qualification_is_not_reopened": true,
+    "one_hundred_step_training_is_not_automatically_authorized": true
+  },
+  "retry": {
+    "attempt_id": "normalized_data_retry_1",
+    "predecessor_job_id": "132150",
+    "allowed_change": "training_parquet_serialization_only",
+    "model_recipe_and_ordered_rows_unchanged": true
+  },
+  "upstream": {
+    "repository_commit": "7448751f307a9cdbcc1246dd1565a1a605b443df",
+    "model_id": "Qwen/Qwen3-1.7B",
+    "model_revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e"
+  },
+  "prerequisites": {
+    "base_evaluation_job_id": "130650",
+    "base_evaluation_repository_commit": "583fd6d641744eb48047ded32f5f727e141d8af0",
+    "base_evaluation_json": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_identifiability_v1/base_eval/job_130650/base_aime24_avg12.json",
+    "base_evaluation_json_sha256": "f082eb2b3c2987b6be2a4d7b982a03d4953c48701f0408b36b4e922607ef4b3e",
+    "base_gate": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_identifiability_v1/base_eval/job_130650/base_gate.json",
+    "base_gate_sha256": "ea6ca6f8a0b32c8a497c58779636b3372b04a17508f4b27b1782f4c3b16cba7f",
+    "base_gate_decision": "BASELINE_REPRODUCED",
+    "base_correct": 193,
+    "base_generations": 360,
+    "preflight_receipt": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_identifiability_v1/preflight/job_130649/receipt.json",
+    "preflight_receipt_sha256": "e95d2680d7954bf883f90965fbbd98d78457a083429230576cf4aaf8e84a22d3",
+    "preflight_independent_audit": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_identifiability_v1/preflight/job_130649/independent_audit.json",
+    "preflight_independent_audit_sha256": "396d8a98590c82e23b830c1785168c336d3e4b06f7693645c9b16795c13a6197",
+    "data_manifest": "/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_identifiability_v1/manifest.json",
+    "data_manifest_sha256": "4c8465eb8a920a008644267e5c510433a8e777d8a1a82e35bd422cea92e21f65",
+    "environment_freeze": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_identifiability_v1/environment_freezes/91258f9537382e259213930300607822a7b9061e/upstream_opsd.freeze.txt",
+    "environment_freeze_sha256": "d0f53b444a63eedfe10066a879384362b24eca56f806e3d887eb5428cd8a8e56",
+    "terminal_failure": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_identifiability_v1/one_step/job_132150/terminal_failure.json",
+    "terminal_failure_sha256": "5798e721ff7a805311907d0f1d5ef336a9d85e7fd8f51804f878658d7facaa1b",
+    "normalized_data_manifest": "/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_identifiability_v1_normalized/cadc01ad8e06ec61d68032f83b2fc0a451272521/manifest.json",
+    "normalized_data_manifest_sha256": "a46726161fb7edfe5a1c2cab90fbb8b2f5e4187ae00e4de96205f61aaebf5408",
+    "normalized_data_audit": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_identifiability_v1/normalized_data/producer_job_134970/audit_job_134971.json",
+    "normalized_data_audit_sha256": "b59ad7d806d6aa38f11b1cc51f00bec1f4996a887078d8c71286966c2a93afb6"
+  },
+  "training_data": {
+    "parquet_glob": "/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_identifiability_v1_normalized/cadc01ad8e06ec61d68032f83b2fc0a451272521/*.parquet",
+    "expected_rows": 29434,
+    "rows": 29434,
+    "required_columns": [
+      "problem",
+      "solution"
+    ],
+    "row_sequence_sha256": "70c846e88711954db47176e133aae7b938f28eeed0f5beac07ab5681ddf9df77",
+    "normalized_shard_sha256": [
+      "42354d3c76d8b055bf82b544923a6fd89d2513424e035c5a80afcaa5d00548fb",
+      "328003ee0c14c6b1417056c48daa453482574b6316b2e87231e145be519b03b0"
+    ]
+  },
+  "hardware": {
+    "partition": "general-gpu",
+    "gpu_type": "a6000",
+    "gpu_count": 4,
+    "single_node_required": true,
+    "purpose": "one-step training memory and topology gate"
+  },
+  "recipe": {
+    "launcher": "accelerate_deepspeed_zero2",
+    "world_size": 4,
+    "seed": 42,
+    "data_seed": 42,
+    "max_steps": 1,
+    "num_train_epochs": 30,
+    "per_device_train_batch_size": 4,
+    "gradient_accumulation_steps": 2,
+    "effective_batch_size": 32,
+    "learning_rate": 0.000005,
+    "max_grad_norm": 0.1,
+    "max_completion_tokens": 1024,
+    "max_length": 20000,
+    "temperature": 1.1,
+    "top_p": 0.95,
+    "top_k": 20,
+    "student_thinking": false,
+    "teacher_thinking": true,
+    "fixed_teacher": true,
+    "full_vocabulary_beta": 0.0,
+    "pointwise_divergence_clip": 0.05,
+    "lora_rank": 64,
+    "lora_alpha": 128,
+    "save_strategy": "steps",
+    "save_steps": 1,
+    "logging_steps": 1,
+    "run_config": "one_step_upstream_opsd"
+  },
+  "pass_gate": {
+    "training_exit_code": 0,
+    "global_step": 1,
+    "checkpoint_step": 1,
+    "finite_logged_loss_required": true,
+    "finite_positive_gradient_norm_required": true,
+    "nonzero_lora_B_tensor_required": true,
+    "all_training_artifacts_hash_bound": true,
+    "terminal_slurm_state": "COMPLETED",
+    "terminal_exit_code": "0:0",
+    "terminal_log_hash_required": true
+  },
+  "release_rule": "A passing in-job gate plus an independent terminal audit authorizes preregistration of the 100-step positive control; it never launches that run automatically."
+}

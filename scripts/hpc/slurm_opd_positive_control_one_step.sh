@@ -18,9 +18,11 @@ DATA_ROOT="${OPD_IDENT_DATA_ROOT:-/engrfs/project/jacobsn/hiqbal/data/legalrag/o
 RUN_ROOT="${OPD_IDENT_RUN_ROOT:-/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_identifiability_v1}"
 HF_HOME="${OPD_IDENT_HF_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache}"
 EXPECTED_COMMIT="${OPD_IDENT_EXPECTED_COMMIT:?set OPD_IDENT_EXPECTED_COMMIT at submission}"
+CONFIG="${OPD_IDENT_ONE_STEP_CONFIG:-$REPO/configs/opd_math/identifiability_v1_one_step_retry1.json}"
 
 test -z "$(git -C "$REPO" status --porcelain=v1)"
 test "$(git -C "$REPO" rev-parse HEAD)" = "$EXPECTED_COMMIT"
+test -f "$CONFIG"
 test "${SLURM_JOB_NUM_NODES:?missing Slurm node count}" = "1"
 test "${SLURM_GPUS_ON_NODE:?missing Slurm GPU count}" = "4"
 "$ENV_DIR/bin/python" - <<'PY'
@@ -52,13 +54,19 @@ PY
 
 export HF_HOME HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 WANDB_MODE=disabled
 export TOKENIZERS_PARALLELISM=false
-export LEGALRAG_OPSD_TRAIN_PARQUET="$DATA_ROOT/opsd_train/**/*.parquet"
+LEGALRAG_OPSD_TRAIN_PARQUET="$($ENV_DIR/bin/python - "$CONFIG" "$DATA_ROOT" <<'PY'
+import json, sys
+config = json.load(open(sys.argv[1], encoding="utf-8"))
+print(config.get("training_data", {}).get("parquet_glob", f"{sys.argv[2]}/opsd_train/**/*.parquet"))
+PY
+)"
+export LEGALRAG_OPSD_TRAIN_PARQUET
 export LEGALRAG_OPSD_AIME24_PARQUET="$DATA_ROOT/aime24/**/*.parquet"
 export NCCL_P2P_DISABLE=1
 PORT="$((12000 + SLURM_JOB_ID % 20000))"
 
 "$ENV_DIR/bin/python" "$REPO/scripts/opd/positive_control_one_step.py" \
-  --config "$REPO/configs/opd_math/identifiability_v1_one_step.json" \
+  --config "$CONFIG" \
   --repository-commit "$EXPECTED_COMMIT" \
   --slurm-job-id "$SLURM_JOB_ID" \
   --env-dir "$ENV_DIR" \

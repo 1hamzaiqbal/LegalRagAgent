@@ -73,6 +73,81 @@ def validate_prerequisites(config: dict, repository_commit: str) -> dict:
             "sha256": require_hash(path, prereq[f"{key}_sha256"], key),
         }
 
+    retry = config.get("retry")
+    if retry is not None:
+        if retry.get("attempt_id") != "normalized_data_retry_1":
+            raise RuntimeError("unexpected one-step retry identity")
+        if retry.get("allowed_change") != "training_parquet_serialization_only":
+            raise RuntimeError("retry changes more than Parquet serialization")
+        if retry.get("model_recipe_and_ordered_rows_unchanged") is not True:
+            raise RuntimeError("retry does not preserve the model, recipe, and rows")
+        for key in (
+            "terminal_failure",
+            "normalized_data_manifest",
+            "normalized_data_audit",
+        ):
+            path = Path(prereq[key]).resolve()
+            records[key] = {
+                "path": str(path),
+                "sha256": require_hash(path, prereq[f"{key}_sha256"], key),
+            }
+
+        failure = load_object(Path(prereq["terminal_failure"]), "terminal failure")
+        if failure.get("status") != "failed_before_training":
+            raise RuntimeError("predecessor was not sealed as a pre-training failure")
+        if failure.get("decision") != "PARQUET_FEATURE_METADATA_INCOMPATIBLE":
+            raise RuntimeError("predecessor failure is not the registered metadata defect")
+        if failure.get("slurm", {}).get("job_id") != retry.get("predecessor_job_id"):
+            raise RuntimeError("predecessor job identity drifted")
+        if any(
+            (
+                failure.get("optimizer_steps") != 0,
+                failure.get("checkpoint_created") is not False,
+                failure.get("opd_result_created") is not False,
+            )
+        ):
+            raise RuntimeError("predecessor unexpectedly produced a training result")
+
+        normalized = load_object(
+            Path(prereq["normalized_data_manifest"]), "normalized-data manifest"
+        )
+        normalized_audit = load_object(
+            Path(prereq["normalized_data_audit"]), "normalized-data audit"
+        )
+        training_data = config.get("training_data", {})
+        if normalized.get("artifact_type") != "opd_positive_control_normalized_data":
+            raise RuntimeError("unexpected normalized-data manifest type")
+        if normalized_audit.get("status") != "passed" or normalized_audit.get(
+            "decision"
+        ) != "NORMALIZED_DATA_LOAD_COMPATIBLE":
+            raise RuntimeError("normalized-data audit is not passing")
+        if normalized_audit.get("datasets_version") != "3.6.0":
+            raise RuntimeError("normalized data was not audited with datasets 3.6.0")
+        for key in ("rows", "row_sequence_sha256"):
+            expected = training_data.get(key)
+            if normalized.get(key) != expected or normalized_audit.get(key) != expected:
+                raise RuntimeError(f"normalized-data {key} custody drifted")
+        if normalized_audit.get("columns") != training_data.get("required_columns"):
+            raise RuntimeError("normalized-data column custody drifted")
+        if normalized_audit.get("manifest_sha256") != prereq[
+            "normalized_data_manifest_sha256"
+        ]:
+            raise RuntimeError("normalized-data audit names the wrong manifest")
+        manifest_shards = [row["sha256"] for row in normalized["normalized_shards"]]
+        if normalized_audit.get("normalized_shard_sha256") != manifest_shards:
+            raise RuntimeError("normalized-data shard hashes disagree")
+        if training_data.get("normalized_shard_sha256") != manifest_shards:
+            raise RuntimeError("preregistered normalized-data shard hashes disagree")
+        train_glob = training_data.get("parquet_glob")
+        normalized_root = Path(normalized_audit["normalized_root"]).resolve()
+        if train_glob != str(normalized_root / "*.parquet"):
+            raise RuntimeError("training Parquet path is not the audited namespace")
+        live_shards = sorted(normalized_root.glob("*.parquet"))
+        if [sha256(path) for path in live_shards] != manifest_shards:
+            raise RuntimeError("normalized training shards changed after their audit")
+        if os.environ.get("LEGALRAG_OPSD_TRAIN_PARQUET") != train_glob:
+            raise RuntimeError("training Parquet environment is not preregistered")
+
     base_gate = load_object(Path(prereq["base_gate"]), "base gate")
     reconstruction = base_gate.get("independent_reconstruction", {})
     if base_gate.get("status") != "passed" or base_gate.get("decision") != prereq["base_gate_decision"]:

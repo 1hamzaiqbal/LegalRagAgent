@@ -134,6 +134,39 @@ def test_one_step_preregistration_keeps_full_training_blocked() -> None:
     ]
 
 
+def test_one_step_retry_is_bound_to_the_audited_normalized_data() -> None:
+    root = Path(__file__).resolve().parents[1]
+    original = json.loads(
+        (root / "configs/opd_math/identifiability_v1_one_step.json").read_text()
+    )
+    payload = json.loads(
+        (
+            root
+            / "configs/opd_math/identifiability_v1_one_step_retry1.json"
+        ).read_text()
+    )
+    assert payload["status"] == (
+        "preregistered_diagnostic_only_100_step_training_blocked"
+    )
+    assert payload["retry"] == {
+        "attempt_id": "normalized_data_retry_1",
+        "predecessor_job_id": "132150",
+        "allowed_change": "training_parquet_serialization_only",
+        "model_recipe_and_ordered_rows_unchanged": True,
+    }
+    assert payload["training_data"]["rows"] == 29_434
+    assert payload["training_data"]["required_columns"] == [
+        "problem",
+        "solution",
+    ]
+    assert payload["recipe"]["max_steps"] == 1
+    for key in ("upstream", "hardware", "recipe", "pass_gate"):
+        assert payload[key] == original[key]
+    assert payload["immutable_boundaries"][
+        "one_hundred_step_training_is_not_automatically_authorized"
+    ]
+
+
 def test_one_step_command_is_exactly_one_step(tmp_path: Path) -> None:
     command = one_step.training_command(
         tmp_path / "env",
@@ -149,6 +182,126 @@ def test_one_step_command_is_exactly_one_step(tmp_path: Path) -> None:
     assert "--fixed_teacher" in command
     assert "--use_peft" in command
     assert "--use_tinker_loss" not in command
+
+
+def test_retry_prerequisites_require_sealed_failure_and_normalized_audit(
+    tmp_path: Path, monkeypatch
+) -> None:
+    def record(name: str, payload) -> tuple[str, str]:
+        path = tmp_path / name
+        if isinstance(payload, str):
+            path.write_text(payload)
+        else:
+            path.write_text(json.dumps(payload))
+        return str(path), hashlib.sha256(path.read_bytes()).hexdigest()
+
+    base_eval = record("base.json", {})
+    base_gate = record(
+        "base_gate.json",
+        {
+            "status": "passed",
+            "decision": "BASELINE_REPRODUCED",
+            "repository_commit": "base-commit",
+            "independent_reconstruction": {"correct": 193, "generations": 360},
+        },
+    )
+    preflight = record("preflight.json", {"status": "passed"})
+    preflight_audit = record("preflight_audit.json", {"status": "passed"})
+    data_manifest = record("data_manifest.json", {})
+    environment = record("environment.txt", "datasets==3.6.0\n")
+    failure = record(
+        "failure.json",
+        {
+            "status": "failed_before_training",
+            "decision": "PARQUET_FEATURE_METADATA_INCOMPATIBLE",
+            "slurm": {"job_id": "132150"},
+            "optimizer_steps": 0,
+            "checkpoint_created": False,
+            "opd_result_created": False,
+        },
+    )
+    normalized = record(
+        "normalized.json",
+        {
+            "artifact_type": "opd_positive_control_normalized_data",
+            "rows": 29_434,
+            "row_sequence_sha256": "row-digest",
+            "normalized_shards": [{"sha256": "shard-digest"}],
+        },
+    )
+    normalized_audit = record(
+        "normalized_audit.json",
+        {
+            "status": "passed",
+            "decision": "NORMALIZED_DATA_LOAD_COMPATIBLE",
+            "datasets_version": "3.6.0",
+            "rows": 29_434,
+            "row_sequence_sha256": "row-digest",
+            "columns": ["problem", "solution"],
+            "manifest_sha256": normalized[1],
+            "normalized_shard_sha256": ["shard-digest"],
+            "normalized_root": str(tmp_path / "normalized"),
+        },
+    )
+    normalized_root = tmp_path / "normalized"
+    normalized_root.mkdir()
+    normalized_shard = normalized_root / "train.parquet"
+    normalized_shard.write_bytes(b"normalized shard")
+    shard_digest = hashlib.sha256(normalized_shard.read_bytes()).hexdigest()
+    normalized_payload = json.loads(Path(normalized[0]).read_text())
+    normalized_payload["normalized_shards"][0]["sha256"] = shard_digest
+    Path(normalized[0]).write_text(json.dumps(normalized_payload))
+    normalized = (normalized[0], hashlib.sha256(Path(normalized[0]).read_bytes()).hexdigest())
+    normalized_audit_payload = json.loads(Path(normalized_audit[0]).read_text())
+    normalized_audit_payload["manifest_sha256"] = normalized[1]
+    normalized_audit_payload["normalized_shard_sha256"] = [shard_digest]
+    Path(normalized_audit[0]).write_text(json.dumps(normalized_audit_payload))
+    normalized_audit = (
+        normalized_audit[0],
+        hashlib.sha256(Path(normalized_audit[0]).read_bytes()).hexdigest(),
+    )
+    prereq = {
+        "base_evaluation_repository_commit": "base-commit",
+        "base_gate_decision": "BASELINE_REPRODUCED",
+        "base_correct": 193,
+        "base_generations": 360,
+    }
+    for key, value in {
+        "base_evaluation_json": base_eval,
+        "base_gate": base_gate,
+        "preflight_receipt": preflight,
+        "preflight_independent_audit": preflight_audit,
+        "data_manifest": data_manifest,
+        "environment_freeze": environment,
+        "terminal_failure": failure,
+        "normalized_data_manifest": normalized,
+        "normalized_data_audit": normalized_audit,
+    }.items():
+        prereq[key], prereq[f"{key}_sha256"] = value
+    parquet_glob = str(normalized_root / "*.parquet")
+    monkeypatch.setenv("LEGALRAG_OPSD_TRAIN_PARQUET", parquet_glob)
+    config = {
+        "status": "preregistered_diagnostic_only_100_step_training_blocked",
+        "stage_id": "one_step_real_model_update_diagnostic",
+        "immutable_boundaries": {"closed": True},
+        "retry": {
+            "attempt_id": "normalized_data_retry_1",
+            "predecessor_job_id": "132150",
+            "allowed_change": "training_parquet_serialization_only",
+            "model_recipe_and_ordered_rows_unchanged": True,
+        },
+        "prerequisites": prereq,
+        "training_data": {
+            "parquet_glob": parquet_glob,
+            "rows": 29_434,
+            "required_columns": ["problem", "solution"],
+            "row_sequence_sha256": "row-digest",
+            "normalized_shard_sha256": [shard_digest],
+        },
+    }
+    custody = one_step.validate_prerequisites(config, "launch-commit")
+    assert custody["repository_commit"] == "launch-commit"
+    assert "normalized_data_audit" in custody["prerequisite_files"]
 
 
 def test_one_step_audit_proves_nonzero_lora_b_update(tmp_path: Path) -> None:
@@ -197,7 +350,9 @@ def test_one_step_job_is_single_node_four_a6000s() -> None:
     assert "#SBATCH --nodes=1" in source
     assert "#SBATCH --ntasks=1" in source
     assert "#SBATCH --gpus=a6000:4" in source
-    assert "identifiability_v1_one_step.json" in source
+    assert "identifiability_v1_one_step_retry1.json" in source
+    assert "OPD_IDENT_ONE_STEP_CONFIG" in source
+    assert 'export LEGALRAG_OPSD_TRAIN_PARQUET' in source
 
 
 def test_terminal_accounting_parser_requires_exact_job(monkeypatch) -> None:
@@ -225,6 +380,8 @@ def test_one_step_submission_has_no_dependency() -> None:
     assert "--dependency" not in source
     assert '"dependent_jobs": []' in source
     assert '"full_training_queued": False' in source
+    assert "identifiability_v1_one_step_retry1.json" in source
+    assert "OPD_IDENT_ONE_STEP_CONFIG=$CONFIG" in source
 
 
 def test_normalization_preserves_ordered_required_rows(tmp_path: Path) -> None:

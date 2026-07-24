@@ -111,6 +111,19 @@ one-step preregistration can name those normalized artifact hashes. This is a
 data-locality compatibility repair, not a semantic dataset or objective
 change; the failed job remains immutable.
 
+Job `132150` is sealed by a read-only terminal-failure receipt with SHA-256
+`5798e721ff7a805311907d0f1d5ef336a9d85e7fd8f51804f878658d7facaa1b`.
+Normalization job `134970` and independent pinned-runtime audit job `134971`
+then reconstructed all 29,434 ordered pairs. Both source and normalized views
+have ordered-pair digest
+`70c846e88711954db47176e133aae7b938f28eeed0f5beac07ab5681ddf9df77`;
+the audit loaded all rows with `datasets==3.6.0` and `pyarrow==25.0.0`. The
+normalized manifest and audit hashes are, respectively,
+`a46726161fb7edfe5a1c2cab90fbb8b2f5e4187ae00e4de96205f61aaebf5408`
+and `b59ad7d806d6aa38f11b1cc51f00bec1f4996a887078d8c71286966c2a93afb6`.
+These receipts authorize only a newly hash-bound one-step retry; 100-step
+training remains blocked.
+
 ## Links
 
 [[opd-teacher-evaluator-baseline-qualification-2026-07-22]] ·

@@ -9,11 +9,11 @@ BRANCH="codex/opd_identifiability_v1"
 test "$(git -C "$REPO" branch --show-current)" = "$BRANCH"
 test -z "$(git -C "$REPO" status --porcelain=v1)"
 COMMIT="$(git -C "$REPO" rev-parse HEAD)"
-CONFIG="$REPO/configs/opd_math/identifiability_v1_one_step.json"
+CONFIG="${OPD_IDENT_ONE_STEP_CONFIG:-$REPO/configs/opd_math/identifiability_v1_one_step_retry1.json}"
 test -f "$CONFIG"
 
 JOB_ID="$(sbatch --parsable \
-  --export="ALL,OPD_IDENT_EXPECTED_COMMIT=$COMMIT" \
+  --export="ALL,OPD_IDENT_EXPECTED_COMMIT=$COMMIT,OPD_IDENT_ONE_STEP_CONFIG=$CONFIG" \
   "$REPO/scripts/hpc/slurm_opd_positive_control_one_step.sh")"
 case "$JOB_ID" in
   *';'*) JOB_ID="${JOB_ID%%;*}" ;;
