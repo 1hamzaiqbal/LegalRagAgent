@@ -13,6 +13,7 @@ from scripts.opd import positive_control_one_step as one_step
 from scripts.opd import positive_control_one_step_terminal_audit as terminal_audit
 from scripts.opd import prepare_opsd_execution_tree as execution_tree
 from scripts.opd import seal_positive_control_one_step_cache_failure as cache_failure
+from scripts.opd import seal_positive_control_one_step_oom_failure as oom_failure
 from scripts.opd import verify_positive_control_environment as verify_environment
 
 
@@ -609,6 +610,39 @@ def test_cache_quota_failure_sealer_requires_exact_preoptimization_evidence(
         assert "registered signatures" in str(error)
     else:
         raise AssertionError("cache failure was sealed without its registered paths")
+
+
+def test_full_vocab_oom_sealer_proves_generation_but_no_backward(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "job_135079"
+    run_dir.mkdir()
+    (run_dir / "custody_start.json").write_text(
+        json.dumps(
+            {
+                "slurm_job_id": "135079",
+                "runtime_cache": {
+                    "decision": "PER_JOB_EIT_RUNTIME_CACHE_PATHS_VALIDATED"
+                },
+            }
+        )
+    )
+    (run_dir / "training_exit.json").write_text(
+        json.dumps({"slurm_job_id": "135079", "returncode": 1})
+    )
+    log = tmp_path / "opsd_pc_1step_135079.out"
+    log.write_text("\n".join(oom_failure.SIGNATURES))
+    receipt = oom_failure.build_receipt(
+        job_id="135079",
+        run_dir=run_dir,
+        slurm_log=log,
+        auditor_commit="audit-commit",
+        accounting={"job_id": "135079", "state": "FAILED", "exit_code": "1:0"},
+    )
+    assert receipt["decision"] == "A6000_FULL_VOCAB_MICROBATCH4_OOM"
+    assert receipt["student_generation_completed"] is True
+    assert receipt["backward_completed"] is False
+    assert receipt["optimizer_steps"] == 0
 
 
 def test_one_step_submission_has_no_dependency() -> None:
