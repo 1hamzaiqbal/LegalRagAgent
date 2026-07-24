@@ -17,8 +17,32 @@ ENV_DIR="${OPD_POSITIVE_ENV:-/engrfs/project/jacobsn/hiqbal/envs/opd_positive_co
 DATA_ROOT="${OPD_IDENT_DATA_ROOT:-/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_identifiability_v1}"
 RUN_ROOT="${OPD_IDENT_RUN_ROOT:-/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_identifiability_v1}"
 HF_HOME="${OPD_IDENT_HF_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache}"
+CACHE_ROOT="${OPD_IDENT_CACHE_ROOT:-/engrfs/tmp/jacobsn/hiqbal_legalrag/runtime_caches/opd_identifiability_v1}"
 EXPECTED_COMMIT="${OPD_IDENT_EXPECTED_COMMIT:?set OPD_IDENT_EXPECTED_COMMIT at submission}"
-CONFIG="${OPD_IDENT_ONE_STEP_CONFIG:-$REPO/configs/opd_math/identifiability_v1_one_step_retry2.json}"
+CONFIG="${OPD_IDENT_ONE_STEP_CONFIG:-$REPO/configs/opd_math/identifiability_v1_one_step_retry3.json}"
+
+JOB_CACHE="$CACHE_ROOT/job_${SLURM_JOB_ID:?missing Slurm job id}"
+export XDG_CACHE_HOME="$JOB_CACHE/xdg"
+export VLLM_CACHE_ROOT="$JOB_CACHE/vllm"
+export TORCHINDUCTOR_CACHE_DIR="$JOB_CACHE/torchinductor"
+export TRITON_CACHE_DIR="$JOB_CACHE/triton"
+export CUDA_CACHE_PATH="$JOB_CACHE/cuda"
+export TORCH_HOME="$JOB_CACHE/torch"
+export TORCH_EXTENSIONS_DIR="$JOB_CACHE/torch_extensions"
+export TMPDIR="$JOB_CACHE/tmp"
+mkdir -p \
+  "$XDG_CACHE_HOME" \
+  "$VLLM_CACHE_ROOT" \
+  "$TORCHINDUCTOR_CACHE_DIR" \
+  "$TRITON_CACHE_DIR" \
+  "$CUDA_CACHE_PATH" \
+  "$TORCH_HOME" \
+  "$TORCH_EXTENSIONS_DIR" \
+  "$TMPDIR"
+case "$JOB_CACHE" in
+  /engrfs/tmp/jacobsn/hiqbal_legalrag/runtime_caches/opd_identifiability_v1/job_*) ;;
+  *) echo "invalid per-job runtime-cache root: $JOB_CACHE" >&2; exit 1 ;;
+esac
 
 test -z "$(git -C "$REPO" status --porcelain=v1)"
 test "$(git -C "$REPO" rev-parse HEAD)" = "$EXPECTED_COMMIT"

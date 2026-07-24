@@ -151,6 +151,26 @@ and `9c93c6e4ced4196a6a2f89fbbf76675e5af7a59b6a69e6f32fd5b72c1eba8203`.
 Only a new hash-bound one-step retry is authorized; 100-step training remains
 blocked.
 
+## Third one-step training incident
+
+Retry job `135015` preserved the audited trainer projection and progressed
+through all-rank model loading into vLLM/TorchInductor profile compilation. It
+then failed before optimizer creation because vLLM and Triton resolved compile
+caches under the quota-full login home (`/home/compute/hiqbal`). No optimizer
+step, checkpoint, in-job pass gate, or OPD result was created. The failure is
+sealed by terminal-failure receipt SHA-256
+`c7b871ed33961faba68f5cc659b7ddd18d3fad5779267d4d12d325392bbcc09a`.
+
+Retry 3 is deliberately narrower than a training change. It preserves the
+model revision, upstream objective, audited ordered data, hardware, and exact
+one-step recipe. It only binds XDG, vLLM, TorchInductor, Triton, CUDA, Torch,
+extension, and temporary caches to distinct directories beneath a per-Slurm-job
+EIT scratch namespace. The training process validates and records every
+resolved directory, rejects paths under the login home, and performs a write
+probe before launching the trainer. This retry still cannot release 100-step
+training without both the original in-job parameter-update gate and an
+independent terminal audit.
+
 ## Links
 
 [[opd-teacher-evaluator-baseline-qualification-2026-07-22]] ·

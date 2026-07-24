@@ -14,6 +14,16 @@ from pathlib import Path
 
 
 RUN_CONFIG = "one_step_upstream_opsd"
+RUNTIME_CACHE_VARIABLES = (
+    "XDG_CACHE_HOME",
+    "VLLM_CACHE_ROOT",
+    "TORCHINDUCTOR_CACHE_DIR",
+    "TRITON_CACHE_DIR",
+    "CUDA_CACHE_PATH",
+    "TORCH_HOME",
+    "TORCH_EXTENSIONS_DIR",
+    "TMPDIR",
+)
 
 
 def sha256(path: Path) -> str:
@@ -48,6 +58,67 @@ def require_hash(path: Path, expected: str, label: str) -> str:
     return observed
 
 
+def validate_runtime_cache_environment(config: dict, slurm_job_id: str) -> dict:
+    policy = config.get("runtime_cache_policy")
+    if not isinstance(policy, dict):
+        raise RuntimeError("runtime-cache policy is missing")
+    if policy.get("per_job_namespace") != "job_${SLURM_JOB_ID}":
+        raise RuntimeError("runtime-cache namespace is not bound to the Slurm job")
+    if policy.get("require_existing_writable_directories") is not True:
+        raise RuntimeError("runtime-cache directories are not required to be writable")
+    if policy.get("record_in_custody_start") is not True:
+        raise RuntimeError("runtime-cache paths are not required in custody")
+
+    root = Path(policy["root"]).resolve()
+    job_root = (root / f"job_{slurm_job_id}").resolve()
+    environment = policy.get("environment")
+    if not isinstance(environment, dict) or tuple(environment) != RUNTIME_CACHE_VARIABLES:
+        raise RuntimeError("runtime-cache environment keys or order drifted")
+    forbidden = tuple(Path(value).resolve() for value in policy["forbidden_prefixes"])
+
+    records = {}
+    for variable in RUNTIME_CACHE_VARIABLES:
+        suffix = environment[variable]
+        if Path(suffix).is_absolute() or Path(suffix).parts != (suffix,):
+            raise RuntimeError(f"{variable} cache suffix must be one relative component")
+        expected = (job_root / suffix).resolve()
+        observed_raw = os.environ.get(variable)
+        if not observed_raw:
+            raise RuntimeError(f"{variable} is not exported")
+        observed = Path(observed_raw).resolve()
+        if observed != expected:
+            raise RuntimeError(
+                f"{variable} path drifted: expected {expected}, observed {observed}"
+            )
+        try:
+            observed.relative_to(job_root)
+        except ValueError as error:
+            raise RuntimeError(f"{variable} escaped the per-job cache root") from error
+        for prefix in forbidden:
+            try:
+                observed.relative_to(prefix)
+            except ValueError:
+                continue
+            raise RuntimeError(f"{variable} resolves under forbidden prefix {prefix}")
+        if not observed.is_dir() or not os.access(observed, os.W_OK | os.X_OK):
+            raise RuntimeError(f"{variable} cache directory is not writable: {observed}")
+        records[variable] = str(observed)
+
+    probe = job_root / ".legalrag_cache_write_probe"
+    descriptor = os.open(probe, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    os.close(descriptor)
+    probe.unlink()
+    return {
+        "status": "passed",
+        "decision": "PER_JOB_EIT_RUNTIME_CACHE_PATHS_VALIDATED",
+        "root": str(root),
+        "job_root": str(job_root),
+        "environment": records,
+        "forbidden_prefixes": [str(path) for path in forbidden],
+        "write_probe_passed": True,
+    }
+
+
 def validate_prerequisites(config: dict, repository_commit: str) -> dict:
     if config.get("status") != "preregistered_diagnostic_only_100_step_training_blocked":
         raise RuntimeError("one-step diagnostic is not preregistered")
@@ -74,17 +145,26 @@ def validate_prerequisites(config: dict, repository_commit: str) -> dict:
         }
 
     retry = config.get("retry")
-    if retry is not None and retry.get("attempt_id") == "trainer_data_retry_2":
-        if retry.get("allowed_change") != "restore_pinned_trl_conversations_field_only":
-            raise RuntimeError("retry 2 changes more than the trainer-data schema")
+    trainer_retry_ids = {"trainer_data_retry_2", "runtime_cache_retry_3"}
+    if retry is not None and retry.get("attempt_id") in trainer_retry_ids:
+        retry_id = retry.get("attempt_id")
+        allowed_change = {
+            "trainer_data_retry_2": "restore_pinned_trl_conversations_field_only",
+            "runtime_cache_retry_3": "runtime_cache_placement_only",
+        }[retry_id]
+        if retry.get("allowed_change") != allowed_change:
+            raise RuntimeError(f"{retry_id} changes more than its registered boundary")
         if retry.get("model_recipe_and_ordered_rows_unchanged") is not True:
-            raise RuntimeError("retry 2 does not preserve model, recipe, and row order")
-        for key in (
+            raise RuntimeError(f"{retry_id} does not preserve model, recipe, and row order")
+        prerequisite_keys = [
             "metadata_failure",
             "trainer_schema_failure",
             "trainer_data_manifest",
             "trainer_data_audit",
-        ):
+        ]
+        if retry_id == "runtime_cache_retry_3":
+            prerequisite_keys.append("runtime_cache_failure")
+        for key in prerequisite_keys:
             path = Path(prereq[key]).resolve()
             records[key] = {
                 "path": str(path),
@@ -124,6 +204,27 @@ def validate_prerequisites(config: dict, repository_commit: str) -> dict:
                 )
             ):
                 raise RuntimeError(f"predecessor {job_id} produced a training result")
+
+        if retry_id == "runtime_cache_retry_3":
+            if retry.get("predecessor_job_ids") != ["132150", "135003", "135015"]:
+                raise RuntimeError("runtime-cache retry predecessor order drifted")
+            cache_failure = load_object(
+                Path(prereq["runtime_cache_failure"]), "runtime-cache failure"
+            )
+            if cache_failure.get("status") != "failed_before_optimization" or cache_failure.get(
+                "decision"
+            ) != "RUNTIME_COMPILE_CACHE_HOME_QUOTA_EXCEEDED":
+                raise RuntimeError("job 135015 is not the sealed runtime-cache failure")
+            if cache_failure.get("slurm", {}).get("job_id") != "135015":
+                raise RuntimeError("runtime-cache predecessor identity drifted")
+            if any(
+                (
+                    cache_failure.get("optimizer_steps") != 0,
+                    cache_failure.get("checkpoint_created") is not False,
+                    cache_failure.get("opd_result_created") is not False,
+                )
+            ):
+                raise RuntimeError("runtime-cache predecessor produced a training result")
 
         manifest = load_object(
             Path(prereq["trainer_data_manifest"]), "trainer-data manifest"
@@ -475,6 +576,9 @@ def run_diagnostic(args: argparse.Namespace) -> int:
     model_dir = args.model_dir.resolve()
     if model_dir.name != config["upstream"]["model_revision"]:
         raise RuntimeError("resolved model snapshot revision drifted")
+    runtime_cache = None
+    if config.get("retry", {}).get("attempt_id") == "runtime_cache_retry_3":
+        runtime_cache = validate_runtime_cache_environment(config, args.slurm_job_id)
 
     command = training_command(
         args.env_dir.resolve(),
@@ -497,6 +601,7 @@ def run_diagnostic(args: argparse.Namespace) -> int:
         "execution_manifest_sha256": sha256(execution_manifest),
         "model_dir": str(model_dir),
         "command": command,
+        "runtime_cache": runtime_cache,
         **custody,
     }
     custody_path = args.output_root / "custody_start.json"

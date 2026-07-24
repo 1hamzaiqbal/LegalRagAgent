@@ -186,6 +186,27 @@ def test_one_step_retry_is_bound_to_the_audited_normalized_data() -> None:
     for key in ("upstream", "hardware", "recipe", "pass_gate"):
         assert retry2[key] == original[key]
 
+    retry3 = json.loads(
+        (
+            root
+            / "configs/opd_math/identifiability_v1_one_step_retry3.json"
+        ).read_text()
+    )
+    assert retry3["retry"] == {
+        "attempt_id": "runtime_cache_retry_3",
+        "predecessor_job_ids": ["132150", "135003", "135015"],
+        "allowed_change": "runtime_cache_placement_only",
+        "model_recipe_and_ordered_rows_unchanged": True,
+    }
+    assert retry3["prerequisites"]["runtime_cache_failure_sha256"] == (
+        "c7b871ed33961faba68f5cc659b7ddd18d3fad5779267d4d12d325392bbcc09a"
+    )
+    assert tuple(retry3["runtime_cache_policy"]["environment"]) == (
+        one_step.RUNTIME_CACHE_VARIABLES
+    )
+    for key in ("upstream", "training_data", "hardware", "recipe", "pass_gate"):
+        assert retry3[key] == retry2[key]
+
 
 def test_one_step_command_is_exactly_one_step(tmp_path: Path) -> None:
     command = one_step.training_command(
@@ -400,6 +421,82 @@ def test_retry_prerequisites_require_sealed_failure_and_normalized_audit(
     assert retry2_custody["repository_commit"] == "retry2-commit"
     assert "trainer_data_audit" in retry2_custody["prerequisite_files"]
 
+    runtime_failure = record(
+        "runtime_failure.json",
+        {
+            "status": "failed_before_optimization",
+            "decision": "RUNTIME_COMPILE_CACHE_HOME_QUOTA_EXCEEDED",
+            "slurm": {"job_id": "135015"},
+            "optimizer_steps": 0,
+            "checkpoint_created": False,
+            "opd_result_created": False,
+        },
+    )
+    retry3_prereq = dict(retry2_prereq)
+    retry3_prereq["runtime_cache_failure"] = runtime_failure[0]
+    retry3_prereq["runtime_cache_failure_sha256"] = runtime_failure[1]
+    retry3 = dict(retry2)
+    retry3["retry"] = {
+        "attempt_id": "runtime_cache_retry_3",
+        "predecessor_job_ids": ["132150", "135003", "135015"],
+        "allowed_change": "runtime_cache_placement_only",
+        "model_recipe_and_ordered_rows_unchanged": True,
+    }
+    retry3["prerequisites"] = retry3_prereq
+    retry3_custody = one_step.validate_prerequisites(retry3, "retry3-commit")
+    assert retry3_custody["repository_commit"] == "retry3-commit"
+    assert "runtime_cache_failure" in retry3_custody["prerequisite_files"]
+
+
+def test_runtime_cache_environment_is_job_scoped_and_rejects_home(
+    tmp_path: Path, monkeypatch
+) -> None:
+    root = tmp_path / "runtime_caches"
+    job_root = root / "job_9876"
+    environment = {
+        variable: suffix
+        for variable, suffix in zip(
+            one_step.RUNTIME_CACHE_VARIABLES,
+            (
+                "xdg",
+                "vllm",
+                "torchinductor",
+                "triton",
+                "cuda",
+                "torch",
+                "torch_extensions",
+                "tmp",
+            ),
+            strict=True,
+        )
+    }
+    for variable, suffix in environment.items():
+        path = job_root / suffix
+        path.mkdir(parents=True)
+        monkeypatch.setenv(variable, str(path))
+    config = {
+        "runtime_cache_policy": {
+            "root": str(root),
+            "per_job_namespace": "job_${SLURM_JOB_ID}",
+            "forbidden_prefixes": ["/home/compute/hiqbal"],
+            "environment": environment,
+            "require_existing_writable_directories": True,
+            "record_in_custody_start": True,
+        }
+    }
+    receipt = one_step.validate_runtime_cache_environment(config, "9876")
+    assert receipt["decision"] == "PER_JOB_EIT_RUNTIME_CACHE_PATHS_VALIDATED"
+    assert receipt["write_probe_passed"] is True
+    assert receipt["job_root"] == str(job_root.resolve())
+
+    monkeypatch.setenv("VLLM_CACHE_ROOT", "/home/compute/hiqbal/.cache/vllm")
+    try:
+        one_step.validate_runtime_cache_environment(config, "9876")
+    except RuntimeError as error:
+        assert "VLLM_CACHE_ROOT path drifted" in str(error)
+    else:
+        raise AssertionError("a home-scoped vLLM cache was accepted")
+
 
 def test_one_step_audit_proves_nonzero_lora_b_update(tmp_path: Path) -> None:
     import torch
@@ -447,9 +544,12 @@ def test_one_step_job_is_single_node_four_a6000s() -> None:
     assert "#SBATCH --nodes=1" in source
     assert "#SBATCH --ntasks=1" in source
     assert "#SBATCH --gpus=a6000:4" in source
-    assert "identifiability_v1_one_step_retry2.json" in source
+    assert "identifiability_v1_one_step_retry3.json" in source
     assert "OPD_IDENT_ONE_STEP_CONFIG" in source
     assert 'export LEGALRAG_OPSD_TRAIN_PARQUET' in source
+    for variable in one_step.RUNTIME_CACHE_VARIABLES:
+        assert f"export {variable}=" in source
+    assert "/runtime_caches/opd_identifiability_v1/job_*" in source
 
 
 def test_terminal_accounting_parser_requires_exact_job(monkeypatch) -> None:
@@ -519,7 +619,7 @@ def test_one_step_submission_has_no_dependency() -> None:
     assert "--dependency" not in source
     assert '"dependent_jobs": []' in source
     assert '"full_training_queued": False' in source
-    assert "identifiability_v1_one_step_retry2.json" in source
+    assert "identifiability_v1_one_step_retry3.json" in source
     assert "OPD_IDENT_ONE_STEP_CONFIG=$CONFIG" in source
 
 
