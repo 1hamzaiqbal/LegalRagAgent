@@ -136,6 +136,21 @@ exact ordered `(problem, solution, conversations)` fields, independently run
 all rows through pinned ChatML conversion and tokenization plus the upstream
 custom collator on CPU, and bind those receipts before another one-step retry.
 
+Job `135003` is sealed by terminal-failure receipt SHA-256
+`259c197755dd1cdd325c2a2995376736a61c3474ff4eae4f864e6a72c23aadea`.
+Trainer-data projection job `135009` and independent audit job `135010` then
+passed. The audit converted and tokenized all 29,434 rows under
+`datasets==3.6.0`, `transformers==4.57.1`, and `trl==0.26.0`, observed
+94,142,111 tokens with maximum sequence length 7,066, and successfully ran a
+four-example batch through the pinned upstream custom collator. The trainer
+field sequence digest is
+`6e89aa72cab0c23513c9cbb578412a65c159e8dd6052b06d287c4234aa545c35`;
+the manifest and audit hashes are
+`305d1b60260efb2ec3faca92fc8c4177dce82a6091662937dcf9e94c63b47978`
+and `9c93c6e4ced4196a6a2f89fbbf76675e5af7a59b6a69e6f32fd5b72c1eba8203`.
+Only a new hash-bound one-step retry is authorized; 100-step training remains
+blocked.
+
 ## Links
 
 [[opd-teacher-evaluator-baseline-qualification-2026-07-22]] ·

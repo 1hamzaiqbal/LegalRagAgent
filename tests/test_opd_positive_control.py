@@ -167,6 +167,24 @@ def test_one_step_retry_is_bound_to_the_audited_normalized_data() -> None:
         "one_hundred_step_training_is_not_automatically_authorized"
     ]
 
+    retry2 = json.loads(
+        (
+            root
+            / "configs/opd_math/identifiability_v1_one_step_retry2.json"
+        ).read_text()
+    )
+    assert retry2["retry"]["attempt_id"] == "trainer_data_retry_2"
+    assert retry2["retry"]["predecessor_job_ids"] == ["132150", "135003"]
+    assert retry2["training_data"]["required_columns"] == [
+        "problem",
+        "solution",
+        "conversations",
+    ]
+    assert retry2["training_data"]["rows"] == 29_434
+    assert retry2["training_data"]["pretruncate_sequences_over_20000"] == 0
+    for key in ("upstream", "hardware", "recipe", "pass_gate"):
+        assert retry2[key] == original[key]
+
 
 def test_one_step_command_is_exactly_one_step(tmp_path: Path) -> None:
     command = one_step.training_command(
@@ -304,6 +322,83 @@ def test_retry_prerequisites_require_sealed_failure_and_normalized_audit(
     assert custody["repository_commit"] == "launch-commit"
     assert "normalized_data_audit" in custody["prerequisite_files"]
 
+    trainer_failure = record(
+        "trainer_failure.json",
+        {
+            "status": "failed_before_optimization",
+            "decision": "TRAINER_CHATML_SOURCE_FIELD_MISSING",
+            "slurm": {"job_id": "135003"},
+            "optimizer_steps": 0,
+            "checkpoint_created": False,
+            "opd_result_created": False,
+        },
+    )
+    trainer_manifest = record(
+        "trainer_manifest.json",
+        {
+            "artifact_type": "opd_positive_control_trainer_data",
+            "rows": 29_434,
+            "trainer_field_sequence_sha256": "trainer-row-digest",
+            "trainer_shards": [{"sha256": shard_digest}],
+        },
+    )
+    trainer_audit = record(
+        "trainer_audit.json",
+        {
+            "status": "passed",
+            "decision": "PINNED_TRL026_TRAINER_DATA_COMPATIBLE",
+            "datasets_version": "3.6.0",
+            "transformers_version": "4.57.1",
+            "trl_version": "0.26.0",
+            "upstream_commit": "upstream-commit",
+            "rows": 29_434,
+            "trainer_field_sequence_sha256": "trainer-row-digest",
+            "columns": ["problem", "solution", "conversations"],
+            "token_sequence_sha256": "token-digest",
+            "tokenized_sequences": 29_434,
+            "collator_batch_size": 4,
+            "manifest_sha256": trainer_manifest[1],
+            "trainer_shard_sha256": [shard_digest],
+            "trainer_root": str(normalized_root),
+        },
+    )
+    retry2_prereq = {
+        key: value
+        for key, value in prereq.items()
+        if not key.startswith("terminal_failure")
+        and not key.startswith("normalized_data_")
+    }
+    for key, value in {
+        "metadata_failure": failure,
+        "trainer_schema_failure": trainer_failure,
+        "trainer_data_manifest": trainer_manifest,
+        "trainer_data_audit": trainer_audit,
+    }.items():
+        retry2_prereq[key], retry2_prereq[f"{key}_sha256"] = value
+    retry2 = {
+        "status": "preregistered_diagnostic_only_100_step_training_blocked",
+        "stage_id": "one_step_real_model_update_diagnostic",
+        "immutable_boundaries": {"closed": True},
+        "retry": {
+            "attempt_id": "trainer_data_retry_2",
+            "allowed_change": "restore_pinned_trl_conversations_field_only",
+            "model_recipe_and_ordered_rows_unchanged": True,
+        },
+        "upstream": {"repository_commit": "upstream-commit"},
+        "prerequisites": retry2_prereq,
+        "training_data": {
+            "parquet_glob": parquet_glob,
+            "rows": 29_434,
+            "required_columns": ["problem", "solution", "conversations"],
+            "trainer_field_sequence_sha256": "trainer-row-digest",
+            "trainer_shard_sha256": [shard_digest],
+            "token_sequence_sha256": "token-digest",
+        },
+    }
+    retry2_custody = one_step.validate_prerequisites(retry2, "retry2-commit")
+    assert retry2_custody["repository_commit"] == "retry2-commit"
+    assert "trainer_data_audit" in retry2_custody["prerequisite_files"]
+
 
 def test_one_step_audit_proves_nonzero_lora_b_update(tmp_path: Path) -> None:
     import torch
@@ -351,7 +446,7 @@ def test_one_step_job_is_single_node_four_a6000s() -> None:
     assert "#SBATCH --nodes=1" in source
     assert "#SBATCH --ntasks=1" in source
     assert "#SBATCH --gpus=a6000:4" in source
-    assert "identifiability_v1_one_step_retry1.json" in source
+    assert "identifiability_v1_one_step_retry2.json" in source
     assert "OPD_IDENT_ONE_STEP_CONFIG" in source
     assert 'export LEGALRAG_OPSD_TRAIN_PARQUET' in source
 
@@ -381,7 +476,7 @@ def test_one_step_submission_has_no_dependency() -> None:
     assert "--dependency" not in source
     assert '"dependent_jobs": []' in source
     assert '"full_training_queued": False' in source
-    assert "identifiability_v1_one_step_retry1.json" in source
+    assert "identifiability_v1_one_step_retry2.json" in source
     assert "OPD_IDENT_ONE_STEP_CONFIG=$CONFIG" in source
 
 

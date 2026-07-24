@@ -74,7 +74,115 @@ def validate_prerequisites(config: dict, repository_commit: str) -> dict:
         }
 
     retry = config.get("retry")
-    if retry is not None:
+    if retry is not None and retry.get("attempt_id") == "trainer_data_retry_2":
+        if retry.get("allowed_change") != "restore_pinned_trl_conversations_field_only":
+            raise RuntimeError("retry 2 changes more than the trainer-data schema")
+        if retry.get("model_recipe_and_ordered_rows_unchanged") is not True:
+            raise RuntimeError("retry 2 does not preserve model, recipe, and row order")
+        for key in (
+            "metadata_failure",
+            "trainer_schema_failure",
+            "trainer_data_manifest",
+            "trainer_data_audit",
+        ):
+            path = Path(prereq[key]).resolve()
+            records[key] = {
+                "path": str(path),
+                "sha256": require_hash(path, prereq[f"{key}_sha256"], key),
+            }
+
+        metadata_failure = load_object(
+            Path(prereq["metadata_failure"]), "metadata failure"
+        )
+        trainer_failure = load_object(
+            Path(prereq["trainer_schema_failure"]), "trainer-schema failure"
+        )
+        expected_failures = (
+            (
+                metadata_failure,
+                "132150",
+                "failed_before_training",
+                "PARQUET_FEATURE_METADATA_INCOMPATIBLE",
+            ),
+            (
+                trainer_failure,
+                "135003",
+                "failed_before_optimization",
+                "TRAINER_CHATML_SOURCE_FIELD_MISSING",
+            ),
+        )
+        for failure, job_id, status, decision in expected_failures:
+            if failure.get("status") != status or failure.get("decision") != decision:
+                raise RuntimeError(f"predecessor {job_id} failure custody drifted")
+            if failure.get("slurm", {}).get("job_id") != job_id:
+                raise RuntimeError(f"predecessor {job_id} identity drifted")
+            if any(
+                (
+                    failure.get("optimizer_steps") != 0,
+                    failure.get("checkpoint_created") is not False,
+                    failure.get("opd_result_created") is not False,
+                )
+            ):
+                raise RuntimeError(f"predecessor {job_id} produced a training result")
+
+        manifest = load_object(
+            Path(prereq["trainer_data_manifest"]), "trainer-data manifest"
+        )
+        trainer_audit = load_object(
+            Path(prereq["trainer_data_audit"]), "trainer-data audit"
+        )
+        training_data = config.get("training_data", {})
+        if manifest.get("artifact_type") != "opd_positive_control_trainer_data":
+            raise RuntimeError("unexpected trainer-data manifest type")
+        if trainer_audit.get("status") != "passed" or trainer_audit.get(
+            "decision"
+        ) != "PINNED_TRL026_TRAINER_DATA_COMPATIBLE":
+            raise RuntimeError("trainer-data audit is not passing")
+        expected_versions = {
+            "datasets_version": "3.6.0",
+            "transformers_version": "4.57.1",
+            "trl_version": "0.26.0",
+        }
+        if any(trainer_audit.get(key) != value for key, value in expected_versions.items()):
+            raise RuntimeError("trainer-data audit did not use the pinned runtime")
+        if trainer_audit.get("upstream_commit") != config["upstream"][
+            "repository_commit"
+        ]:
+            raise RuntimeError("trainer-data audit used the wrong upstream checkout")
+        for key in ("rows", "trainer_field_sequence_sha256"):
+            expected = training_data.get(key)
+            if manifest.get(key) != expected or trainer_audit.get(key) != expected:
+                raise RuntimeError(f"trainer-data {key} custody drifted")
+        if trainer_audit.get("columns") != training_data.get("required_columns"):
+            raise RuntimeError("trainer-data column custody drifted")
+        if trainer_audit.get("token_sequence_sha256") != training_data.get(
+            "token_sequence_sha256"
+        ):
+            raise RuntimeError("trainer-data token sequence custody drifted")
+        if trainer_audit.get("tokenized_sequences") != training_data.get("rows"):
+            raise RuntimeError("trainer-data audit did not tokenize every row")
+        if trainer_audit.get("collator_batch_size") != 4:
+            raise RuntimeError("trainer-data audit did not exercise the custom collator")
+        if trainer_audit.get("manifest_sha256") != prereq[
+            "trainer_data_manifest_sha256"
+        ]:
+            raise RuntimeError("trainer-data audit names the wrong manifest")
+        manifest_shards = [row["sha256"] for row in manifest["trainer_shards"]]
+        if trainer_audit.get("trainer_shard_sha256") != manifest_shards:
+            raise RuntimeError("trainer-data shard hashes disagree")
+        if training_data.get("trainer_shard_sha256") != manifest_shards:
+            raise RuntimeError("preregistered trainer-data shard hashes disagree")
+        train_glob = training_data.get("parquet_glob")
+        trainer_root = Path(trainer_audit["trainer_root"]).resolve()
+        if train_glob != str(trainer_root / "*.parquet"):
+            raise RuntimeError("training Parquet path is not the audited trainer namespace")
+        live_shards = sorted(trainer_root.glob("*.parquet"))
+        if [sha256(path) for path in live_shards] != manifest_shards:
+            raise RuntimeError("trainer-data shards changed after their audit")
+        if os.environ.get("LEGALRAG_OPSD_TRAIN_PARQUET") != train_glob:
+            raise RuntimeError("training Parquet environment is not preregistered")
+
+    elif retry is not None:
         if retry.get("attempt_id") != "normalized_data_retry_1":
             raise RuntimeError("unexpected one-step retry identity")
         if retry.get("allowed_change") != "training_parquet_serialization_only":
