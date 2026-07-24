@@ -24,6 +24,8 @@ The SCOPE method is historical ([[scope-old]]). Start with
 - [[opd-distillation]] — gated skill-distillation track
 - [[opd-math-source-transfer]] — M/O teacher-training versus student-rollout
   source matrix with task reward and an exact-token sampled reverse-KL path
+- [[opd-data-value-design-2026-07-24]] — gated study of which data is worth
+  distilling, with observer-conditioned and epiplexity-compatible diagnostics
 - [[opd-math-eit-handoff-2026-07-18]] — exact EIT commits, environments,
   bounded smoke evidence, custody correction, scientific blockers, and gates
 - [[opd-math-verifier-recovery-2026-07-20]] — current O-only recovery

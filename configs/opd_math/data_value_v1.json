@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "campaign_id": "opd_data_value_v1",
+  "status": "design_and_analysis_plumbing_only_blocked_on_positive_control_task_gain",
+  "research_question": "Can pretraining or early-training measurements predict the causal cross-benchmark value of a data source for a specified student, teacher, and compute budget?",
+  "immutable_boundaries": {
+    "positive_control_one_step_is_plumbing_only": true,
+    "positive_control_100_step_task_gain_required": true,
+    "failed_M_teacher_is_never_retrained_merged_or_used": true,
+    "M_M_and_M_O_are_forbidden": true,
+    "DeepMath_negative_qualification_is_not_reopened": true,
+    "AIME24_is_not_an_untouched_final_holdout": true,
+    "no_new_teacher_or_training_launch_authorized": true
+  },
+  "unit": [
+    "source",
+    "student_checkpoint",
+    "teacher_checkpoint",
+    "objective",
+    "seed",
+    "budget",
+    "target"
+  ],
+  "outcome": {
+    "id": "paired_difference_in_differences",
+    "formula": "(opd_post-opd_pre)-(matched_control_post-matched_control_pre)",
+    "required_costs": [
+      "prompt_tokens",
+      "teacher_reasoning_tokens",
+      "student_completion_tokens",
+      "teacher_scored_tokens",
+      "latency_seconds",
+      "gpu_hours",
+      "peak_vram_bytes"
+    ],
+    "forbidden_substitutes": [
+      "scheduler_completion",
+      "finite_loss",
+      "checkpoint_creation",
+      "parameter_update_without_task_evaluation"
+    ]
+  },
+  "stages": [
+    {
+      "id": "P0_upstream_positive_control",
+      "status": "active_elsewhere",
+      "release_gate": "existing independently audited 100-step AIME24 positive-control gain gate"
+    },
+    {
+      "id": "P1_measurement_fidelity",
+      "status": "analysis_plumbing_authorized_training_blocked",
+      "release_gate": "analytic reconstruction plus observation-only one-step objective and gradient agreement"
+    },
+    {
+      "id": "P2_within_O_block_pilot",
+      "status": "blocked_on_P0_and_P1",
+      "release_gate": "stable leave-one-block-out signal across at least three seeds on development targets"
+    },
+    {
+      "id": "P3_cross_source_confirmation",
+      "status": "blocked_on_P2_and_new_source_qualification",
+      "release_gate": "frozen source-target matrix and prediction rule before confirmatory outcomes"
+    }
+  ],
+  "measurement_contract": {
+    "prequential": {
+      "label": "prequential_structural_information_proxy_bits",
+      "required_sampling": "teacher_forced_likelihood_on_fixed_source_records",
+      "required_fields": [
+        "checkpoint_step",
+        "cumulative_training_tokens",
+        "source_nll_nats_per_token"
+      ],
+      "aggregate": "trapezoid integral over cumulative_training_tokens of (source_nll-terminal_nll)/ln(2)",
+      "signed_and_positive_part_both_reported": true
+    },
+    "requential": {
+      "label": "requential_teacher_student_code_bits",
+      "required_sampling": "teacher_generated_paths",
+      "required_direction": "KL(teacher||student)",
+      "full_vocabulary_required": true,
+      "unclipped_required": true,
+      "required_fields": [
+        "optimizer_step",
+        "response_token_count",
+        "teacher_student_kl_nats_per_token"
+      ],
+      "aggregate": "sum(response_token_count*teacher_student_kl_nats_per_token)/ln(2)"
+    },
+    "opd_state_proxy": {
+      "label": "student_path_teacher_student_divergence_proxy",
+      "required_sampling": "student_generated_paths",
+      "never_label_as_epiplexity_or_requential_code": true,
+      "retain_unclipped_and_executed_values": true
+    }
+  },
+  "P2_design": {
+    "source": "audited_O_corpus_only",
+    "block_construction": "hash_seeded_disjoint_equal_prompt_approximately_equal_token",
+    "minimum_blocks": 8,
+    "minimum_seeds": 3,
+    "heldout_outcomes_may_not_influence_blocks": true,
+    "matched_controls": [
+      "no_training_checkpoint",
+      "same_initialized_adapter_and_budget_without_teacher_auxiliary",
+      "random_block_mean"
+    ],
+    "role": "exploratory_feature_and_stability_screen_not_cross_dataset_claim"
+  },
+  "P3_design": {
+    "current_allowed_training_sources": [
+      "O"
+    ],
+    "requires_new_source_qualification": true,
+    "current_allowed_targets": [
+      "MATH_external_transfer",
+      "O_frozen_source_holdout",
+      "AIME24_control_surface"
+    ],
+    "additional_target_registry_required_before_launch": true,
+    "evaluate_every_checkpoint_on_every_registered_target": true,
+    "minimum_seeds": 3
+  },
+  "predictors_to_collect": [
+    "prequential_structural_information_proxy_bits",
+    "requential_teacher_student_code_bits",
+    "student_path_teacher_student_divergence_proxy",
+    "teacher_task_accuracy",
+    "student_task_accuracy",
+    "student_pass_at_k",
+    "mixed_reward_group_fraction",
+    "source_nll",
+    "source_target_alignment_features",
+    "prompt_and_completion_lengths",
+    "optimizer_and_compute_budget"
+  ],
+  "prediction_baselines": [
+    "mean_only",
+    "teacher_accuracy_only",
+    "source_nll_only",
+    "divergence_only",
+    "random_block"
+  ],
+  "analysis": {
+    "P2": "leave_one_block_out_exploratory",
+    "P3": "leave_one_source_out_or_frozen_confirmatory_rule",
+    "task_uncertainty": "paired_record_bootstrap_with_seed_level_reporting",
+    "independent_unit": "seed_not_individual_generation",
+    "primary_shape_hypothesis": "non_monotonic_in_divergence_modulated_by_student_support_and_target_alignment",
+    "null_policy": "preserve_null_and_do_not_scale_predictive_claim_if_P2_is_unstable"
+  },
+  "primary_sources": {
+    "epiplexity_paper": "https://arxiv.org/abs/2601.03220",
+    "epiplexity_code_commit": "3aa12a1be6a413fe9eaa41374a6a46a4a0d4e100",
+    "epiplexity_pdf_sha256": "8c67d250b0507f341bf3bd91961c28ebde33290c8548f4af48d0e5683699488c"
+  }
+}
