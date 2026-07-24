@@ -12,6 +12,7 @@ from scripts.opd import positive_control_gate as gate
 from scripts.opd import positive_control_one_step as one_step
 from scripts.opd import positive_control_one_step_terminal_audit as terminal_audit
 from scripts.opd import prepare_opsd_execution_tree as execution_tree
+from scripts.opd import seal_positive_control_one_step_cache_failure as cache_failure
 from scripts.opd import verify_positive_control_environment as verify_environment
 
 
@@ -466,6 +467,48 @@ def test_terminal_accounting_parser_requires_exact_job(monkeypatch) -> None:
         "state": "COMPLETED",
         "exit_code": "0:0",
     }
+
+
+def test_cache_quota_failure_sealer_requires_exact_preoptimization_evidence(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "job_135015"
+    run_dir.mkdir()
+    (run_dir / "custody_start.json").write_text(
+        json.dumps({"slurm_job_id": "135015"})
+    )
+    (run_dir / "training_exit.json").write_text(
+        json.dumps({"slurm_job_id": "135015", "returncode": 1})
+    )
+    log = tmp_path / "opsd_pc_1step_135015.out"
+    log.write_text("\n".join(cache_failure.SIGNATURES))
+
+    receipt = cache_failure.build_receipt(
+        job_id="135015",
+        run_dir=run_dir,
+        slurm_log=log,
+        auditor_commit="audit-commit",
+        accounting={"job_id": "135015", "state": "FAILED", "exit_code": "1:0"},
+    )
+    assert receipt["status"] == "failed_before_optimization"
+    assert receipt["decision"] == "RUNTIME_COMPILE_CACHE_HOME_QUOTA_EXCEEDED"
+    assert receipt["optimizer_steps"] == 0
+    assert receipt["checkpoint_created"] is False
+    assert receipt["opd_result_created"] is False
+
+    log.write_text("Disk quota exceeded\n")
+    try:
+        cache_failure.build_receipt(
+            job_id="135015",
+            run_dir=run_dir,
+            slurm_log=log,
+            auditor_commit="audit-commit",
+            accounting={"job_id": "135015", "state": "FAILED", "exit_code": "1:0"},
+        )
+    except RuntimeError as error:
+        assert "registered signatures" in str(error)
+    else:
+        raise AssertionError("cache failure was sealed without its registered paths")
 
 
 def test_one_step_submission_has_no_dependency() -> None:
