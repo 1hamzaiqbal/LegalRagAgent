@@ -437,6 +437,11 @@ def training_command(
     port: int,
     per_device_train_batch_size: int = 4,
     gradient_accumulation_steps: int = 2,
+    max_steps: int = 1,
+    save_steps: int = 1,
+    logging_steps: int = 1,
+    run_config: str = RUN_CONFIG,
+    max_completion_tokens: int = 1024,
 ) -> list[str]:
     return [
         str(env_dir / "bin" / "accelerate"),
@@ -464,19 +469,19 @@ def training_command(
         "--output_dir",
         str(output_root / "training"),
         "--run_config",
-        RUN_CONFIG,
+        run_config,
         "--num_train_epochs",
         "30",
         "--max_steps",
-        "1",
+        str(max_steps),
         "--max_completion_length",
-        "1024",
+        str(max_completion_tokens),
         "--save_strategy",
         "steps",
         "--save_steps",
-        "1",
+        str(save_steps),
         "--logging_steps",
-        "1",
+        str(logging_steps),
         "--attn_implementation",
         "flash_attention_2",
         "--torch_dtype",
@@ -545,11 +550,13 @@ def hash_tree(root: Path) -> list[dict]:
     return records
 
 
-def audit_training(output_root: Path, config: dict) -> dict:
+def audit_training(
+    output_root: Path, config: dict, *, run_config: str = RUN_CONFIG
+) -> dict:
     import torch
     from safetensors.torch import load_file
 
-    run_dir = output_root / "training" / RUN_CONFIG
+    run_dir = output_root / "training" / run_config
     checkpoint = run_dir / "checkpoint-1"
     state_path = checkpoint / "trainer_state.json"
     adapter_path = checkpoint / "adapter_model.safetensors"

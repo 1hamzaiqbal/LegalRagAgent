@@ -1,7 +1,7 @@
 ---
 title: OPD Identifiability Campaign v1
 date: 2026-07-23
-status: base reproduced; one-step diagnostic preregistered; full training blocked
+status: base and 1024-token one-step passed; 4096-token diagnostic preregistered; full training blocked
 tags: [opd, positive-control, identifiability, opsd, math, eit]
 ---
 
@@ -192,6 +192,44 @@ activation peak without shortening student solutions or changing the number
 of examples per optimizer update. It remains a one-step plumbing diagnostic
 and cannot release full training without its original parameter-update and
 terminal-audit gates.
+
+### Passing 1,024-token update and its boundary
+
+Retry 4, job `135083`, completed on one node with four A6000 GPUs in 7 minutes
+33 seconds. It returned finite loss `0.0114`, finite positive gradient norm
+`0.06874745339155197`, and checkpoint 1. Independent inspection found 196
+LoRA-B tensors containing 36,678,164 nonzero parameters; the adapter SHA-256 is
+`d2472343d712d0bd1f2bd4010b109552bf4fd1a836250ca8d11d81dd22d8e50c`.
+The independent terminal receipt is
+`one_step/job_135083/terminal_audit.json` under the EIT campaign artifact root,
+with SHA-256
+`9bcaea19dc41ca906d9b320586b091f08181e7511e86129b53342f24a33c46bf`.
+
+This proves that the pinned upstream full-vocabulary objective can make a real
+parameter update in the qualified geometry. It does not show task improvement,
+and its 1,024-token cap is not qualified for the project's scientific arms.
+The separate audited length calibration had already found 16/128 raw-student
+samples capped at 2,048 tokens but 0/128 capped at 4,096, selecting 4,096 as
+the smallest passing student cap. Therefore the pending 1,024-token 100-step
+launch was withdrawn before submission rather than treating upstream
+reproduction settings as a no-truncation result.
+
+## Length-qualified one-step successor
+
+`configs/opd_math/identifiability_v1_one_step_long4096.json` preregisters a new
+one-step diagnostic at the calibrated 4,096-token cap. It uses four
+A100-SXM4-80GB GPUs, microbatch one, and gradient accumulation eight, preserving
+effective batch 32. Model, data order, seeds, optimizer, full-vocabulary
+`KL(teacher || student)`, and pointwise divergence clip remain unchanged.
+
+The copied upstream harness receives two audited, objective-preserving changes.
+It pads a rank only to that microbatch's longest observed completion instead of
+materializing cap-length masked padding, and it writes every trajectory to a
+rank-specific exclusive JSON file with prompt, completion, exact token count,
+cap flag, rank, and local sequence. The final partial trajectory buffer is
+flushed. A pass requires all 32 expected trajectories, at most one trajectory
+at the 4,096 cap, a real finite update, a complete hash-bound tree, and an
+independent terminal audit. Any failure stops before 100-step training.
 
 ## Links
 

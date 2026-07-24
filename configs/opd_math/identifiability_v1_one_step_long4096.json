@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "campaign_id": "opd_identifiability_v1",
+  "stage_id": "one_step_length_qualified_update_diagnostic",
+  "status": "preregistered_diagnostic_only_100_step_training_blocked",
+  "scientific_role": "long_context_memory_trajectory_and_parameter_update_custody_only_not_task_improvement",
+  "immutable_boundaries": {
+    "terminal_v2_is_not_reopened": true,
+    "failed_M_teacher_is_never_retrained_merged_or_used": true,
+    "M_M_and_M_O_are_forbidden": true,
+    "DeepMath_negative_qualification_is_not_reopened": true,
+    "one_hundred_step_training_is_not_automatically_authorized": true,
+    "cap_is_not_lowered_after_observing_trajectories": true,
+    "at_cap_trajectories_are_not_recovered_or_relabelled": true
+  },
+  "release_prerequisite": {
+    "upstream_one_step_job_id": "135083",
+    "upstream_one_step_repository_commit": "d51bb7e08b2cb8f85280541b24eb73b36a61185a",
+    "upstream_one_step_preregistration": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math/configs/opd_math/identifiability_v1_one_step_retry4.json",
+    "upstream_one_step_preregistration_sha256": "20abf66c996a6805df27c5b96cfa583771d1cd1aeaa5e5d1a44aad43829211a6",
+    "upstream_one_step_in_job_gate": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_identifiability_v1/one_step/job_135083/in_job_gate.json",
+    "upstream_one_step_in_job_gate_sha256": "4055fbd48303ba93b1f8117ab1b0f08c222c2aff0ada1cbb2a6f743cfd0cb6d6",
+    "upstream_one_step_terminal_audit": "/engrfs/project/jacobsn/hiqbal/artifacts/legalrag/opd_identifiability_v1/one_step/job_135083/terminal_audit.json",
+    "upstream_one_step_terminal_audit_sha256": "9bcaea19dc41ca906d9b320586b091f08181e7511e86129b53342f24a33c46bf",
+    "student_length_calibration": "/engrfs/project/jacobsn/hiqbal/src/LegalRagAgent-opd-math/evidence/july_2026/opd_length_calibration_terminal_6d3be08_v1.json",
+    "student_length_calibration_sha256": "eca9c8d21784f934849bd7ef7c2f011a1c99e0eff6a6d6bc85641d634925add8",
+    "calibrated_student_cap": 4096,
+    "calibration_samples_at_4096": 128,
+    "calibration_at_cap_at_4096": 0
+  },
+  "upstream": {
+    "repository_commit": "7448751f307a9cdbcc1246dd1565a1a605b443df",
+    "model_id": "Qwen/Qwen3-1.7B",
+    "model_revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e"
+  },
+  "training_data": {
+    "parquet_glob": "/engrfs/project/jacobsn/hiqbal/data/legalrag/opd_identifiability_v1_trainer_data/05fc73ba57679c8e6eb733f74aa6d656a9c3169c/*.parquet",
+    "rows": 29434,
+    "required_columns": [
+      "problem",
+      "solution",
+      "conversations"
+    ],
+    "trainer_field_sequence_sha256": "6e89aa72cab0c23513c9cbb578412a65c159e8dd6052b06d287c4234aa545c35",
+    "trainer_shard_sha256": [
+      "f325f1db4879111e7ef09df3d039ac401204f236707b65b8340d7256b696ad61",
+      "91a388a9d3131ace7094c05664600866e354800e4885bee885eaadc186f58966"
+    ],
+    "tokenized_tokens": 94142111,
+    "token_sequence_sha256": "e726ff94519673e3db4e615230b83ca9322a7075b098267e5d2b50ec35dbe403",
+    "maximum_tokenized_length": 7066,
+    "pretruncate_sequences_over_20000": 0
+  },
+  "hardware": {
+    "partition": "general-gpu",
+    "gpu_type": "a100-sxm4",
+    "gpu_count": 4,
+    "minimum_vram_mib_per_gpu": 81000,
+    "single_node_required": true,
+    "purpose": "one-step 4096-token full-vocabulary memory and update gate"
+  },
+  "recipe": {
+    "launcher": "accelerate_deepspeed_zero2",
+    "world_size": 4,
+    "seed": 42,
+    "data_seed": 42,
+    "max_steps": 1,
+    "num_train_epochs": 30,
+    "per_device_train_batch_size": 1,
+    "gradient_accumulation_steps": 8,
+    "effective_batch_size": 32,
+    "learning_rate": 0.000005,
+    "max_grad_norm": 0.1,
+    "max_completion_tokens": 4096,
+    "max_length": 20000,
+    "temperature": 1.1,
+    "top_p": 0.95,
+    "top_k": 20,
+    "student_thinking": false,
+    "teacher_thinking": true,
+    "fixed_teacher": true,
+    "full_vocabulary_beta": 0.0,
+    "pointwise_divergence_clip": 0.05,
+    "lora_rank": 64,
+    "lora_alpha": 128,
+    "save_strategy": "steps",
+    "save_steps": 1,
+    "logging_steps": 1,
+    "run_config": "one_step_length_qualified_4096"
+  },
+  "runtime_cache_policy": {
+    "root": "/engrfs/tmp/jacobsn/hiqbal_legalrag/runtime_caches/opd_identifiability_v1",
+    "per_job_namespace": "job_${SLURM_JOB_ID}",
+    "forbidden_prefixes": [
+      "/home/compute/hiqbal"
+    ],
+    "environment": {
+      "XDG_CACHE_HOME": "xdg",
+      "VLLM_CACHE_ROOT": "vllm",
+      "TORCHINDUCTOR_CACHE_DIR": "torchinductor",
+      "TRITON_CACHE_DIR": "triton",
+      "CUDA_CACHE_PATH": "cuda",
+      "TORCH_HOME": "torch",
+      "TORCH_EXTENSIONS_DIR": "torch_extensions",
+      "TMPDIR": "tmp"
+    },
+    "require_existing_writable_directories": true,
+    "record_in_custody_start": true
+  },
+  "execution_tree_contract": {
+    "objective_code": "pinned upstream full-vocabulary KL(teacher||student) with beta=0 and pointwise clip=0.05",
+    "dynamic_padding": "pad each rank only to the longest generated completion in that microbatch; preserve every generated token and every active-token loss term",
+    "trajectory_storage": "store prompt, completion, token count, cap flag, rank, and local sequence for every trajectory",
+    "periodic_files": "rank-specific exclusive JSON files plus final partial-buffer flush"
+  },
+  "pass_gate": {
+    "training_exit_code": 0,
+    "global_step": 1,
+    "checkpoint_step": 1,
+    "expected_trajectory_count": 32,
+    "maximum_at_cap_trajectory_count": 1,
+    "maximum_at_cap_fraction": 0.05,
+    "all_trajectories_stored_required": true,
+    "all_completion_lengths_within_cap_required": true,
+    "finite_loss_required": true,
+    "finite_positive_gradient_norm_required": true,
+    "nonzero_lora_B_required": true,
+    "all_training_artifacts_hash_bound": true,
+    "terminal_slurm_state": "COMPLETED",
+    "terminal_exit_code": "0:0",
+    "terminal_log_hash_required": true
+  },
+  "failure_rule": "Any OOM, missing trajectory, more than one of 32 trajectories at cap, non-finite loss or gradient, missing update, or custody mismatch stops this branch. Do not launch 100-step training.",
+  "release_rule": "A passing in-job gate plus an independent terminal audit authorizes only preregistration of 4096-token 100-step training. It does not authorize evaluation or a task-improvement claim."
+}

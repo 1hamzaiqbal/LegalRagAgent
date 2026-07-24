@@ -14,10 +14,12 @@ Start with:
 5. `wiki/tracks/opd-math-source-transfer.md`
 6. `scripts/opd_math/README.md`
 
-Current gate: reproduce the upstream Qwen3-1.7B base AIME24 average@12, pass a
-real one-step parameter-update diagnostic, then run the explicit 100-step OPSD
-control and evaluate every registered checkpoint. Only a positive result after
-independent reconstruction permits a separately preregistered raw-8B to 1.7B
-O-only pilot. M's failed teacher gate and DeepMath's failed qualification stay
-immutable. No finite loss, checkpoint, or scheduler success is a performance
-result.
+Current gate: the upstream Qwen3-1.7B base AIME24 Average@12 and a real
+1,024-token one-step parameter update have passed independent audit. Because
+1,024 is an upstream reproduction setting rather than a qualified no-truncation
+cap, run and independently audit the preregistered 4,096-token one-step
+trajectory/update diagnostic next. Do not launch 100-step training until it
+passes. Only a positive checkpoint result after independent reconstruction may
+release a separately preregistered raw-8B to 1.7B O-only pilot. M's failed
+teacher gate and DeepMath's failed qualification stay immutable. No finite
+loss, checkpoint, or scheduler success is a performance result.
