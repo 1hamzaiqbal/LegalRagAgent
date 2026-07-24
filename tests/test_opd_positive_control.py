@@ -208,6 +208,39 @@ def test_one_step_retry_is_bound_to_the_audited_normalized_data() -> None:
     for key in ("upstream", "training_data", "hardware", "recipe", "pass_gate"):
         assert retry3[key] == retry2[key]
 
+    retry4 = json.loads(
+        (
+            root
+            / "configs/opd_math/identifiability_v1_one_step_retry4.json"
+        ).read_text()
+    )
+    assert retry4["retry"] == {
+        "attempt_id": "microbatch_memory_retry_4",
+        "predecessor_job_ids": ["132150", "135003", "135015", "135079"],
+        "allowed_change": "per_device_microbatch_and_gradient_accumulation_only",
+        "model_recipe_and_ordered_rows_unchanged": True,
+        "effective_batch_size_unchanged": True,
+        "completion_cap_unchanged": True,
+    }
+    assert retry4["prerequisites"]["full_vocab_oom_failure_sha256"] == (
+        "9ad342a0dbd86b5d152f7e39ca5279a5b0307ca98143ab9cb8e4ce836163b2d2"
+    )
+    for key in ("upstream", "training_data", "hardware", "pass_gate"):
+        assert retry4[key] == retry3[key]
+    changed_recipe_keys = {
+        key
+        for key in retry3["recipe"]
+        if retry3["recipe"][key] != retry4["recipe"][key]
+    }
+    assert changed_recipe_keys == {
+        "per_device_train_batch_size",
+        "gradient_accumulation_steps",
+    }
+    assert retry4["recipe"]["per_device_train_batch_size"] == 2
+    assert retry4["recipe"]["gradient_accumulation_steps"] == 4
+    assert retry4["recipe"]["effective_batch_size"] == 32
+    assert retry4["recipe"]["max_completion_tokens"] == 1024
+
 
 def test_one_step_command_is_exactly_one_step(tmp_path: Path) -> None:
     command = one_step.training_command(
@@ -224,6 +257,24 @@ def test_one_step_command_is_exactly_one_step(tmp_path: Path) -> None:
     assert "--fixed_teacher" in command
     assert "--use_peft" in command
     assert "--use_tinker_loss" not in command
+
+    memory_command = one_step.training_command(
+        tmp_path / "env",
+        tmp_path / "execution",
+        tmp_path / "model",
+        tmp_path / "output",
+        12345,
+        per_device_train_batch_size=2,
+        gradient_accumulation_steps=4,
+    )
+    assert memory_command[memory_command.index("--per_device_train_batch_size") + 1] == "2"
+    accumulation_values = [
+        memory_command[index + 1]
+        for index, value in enumerate(memory_command)
+        if value == "--gradient_accumulation_steps"
+    ]
+    assert accumulation_values == ["4", "4"]
+    assert memory_command[memory_command.index("--max_completion_length") + 1] == "1024"
 
 
 def test_retry_prerequisites_require_sealed_failure_and_normalized_audit(
@@ -448,6 +499,41 @@ def test_retry_prerequisites_require_sealed_failure_and_normalized_audit(
     assert retry3_custody["repository_commit"] == "retry3-commit"
     assert "runtime_cache_failure" in retry3_custody["prerequisite_files"]
 
+    oom = record(
+        "oom_failure.json",
+        {
+            "status": "failed_before_backward_or_optimization",
+            "decision": "A6000_FULL_VOCAB_MICROBATCH4_OOM",
+            "slurm": {"job_id": "135079"},
+            "backward_completed": False,
+            "optimizer_steps": 0,
+            "checkpoint_created": False,
+            "opd_result_created": False,
+        },
+    )
+    retry4_prereq = dict(retry3_prereq)
+    retry4_prereq["full_vocab_oom_failure"] = oom[0]
+    retry4_prereq["full_vocab_oom_failure_sha256"] = oom[1]
+    retry4 = dict(retry3)
+    retry4["retry"] = {
+        "attempt_id": "microbatch_memory_retry_4",
+        "predecessor_job_ids": ["132150", "135003", "135015", "135079"],
+        "allowed_change": "per_device_microbatch_and_gradient_accumulation_only",
+        "model_recipe_and_ordered_rows_unchanged": True,
+        "effective_batch_size_unchanged": True,
+        "completion_cap_unchanged": True,
+    }
+    retry4["prerequisites"] = retry4_prereq
+    retry4["recipe"] = {
+        "effective_batch_size": 32,
+        "max_completion_tokens": 1024,
+        "per_device_train_batch_size": 2,
+        "gradient_accumulation_steps": 4,
+    }
+    retry4_custody = one_step.validate_prerequisites(retry4, "retry4-commit")
+    assert retry4_custody["repository_commit"] == "retry4-commit"
+    assert "full_vocab_oom_failure" in retry4_custody["prerequisite_files"]
+
 
 def test_runtime_cache_environment_is_job_scoped_and_rejects_home(
     tmp_path: Path, monkeypatch
@@ -545,7 +631,7 @@ def test_one_step_job_is_single_node_four_a6000s() -> None:
     assert "#SBATCH --nodes=1" in source
     assert "#SBATCH --ntasks=1" in source
     assert "#SBATCH --gpus=a6000:4" in source
-    assert "identifiability_v1_one_step_retry3.json" in source
+    assert "identifiability_v1_one_step_retry4.json" in source
     assert "OPD_IDENT_ONE_STEP_CONFIG" in source
     assert 'export LEGALRAG_OPSD_TRAIN_PARQUET' in source
     for variable in one_step.RUNTIME_CACHE_VARIABLES:
@@ -653,7 +739,7 @@ def test_one_step_submission_has_no_dependency() -> None:
     assert "--dependency" not in source
     assert '"dependent_jobs": []' in source
     assert '"full_training_queued": False' in source
-    assert "identifiability_v1_one_step_retry3.json" in source
+    assert "identifiability_v1_one_step_retry4.json" in source
     assert "OPD_IDENT_ONE_STEP_CONFIG=$CONFIG" in source
 
 

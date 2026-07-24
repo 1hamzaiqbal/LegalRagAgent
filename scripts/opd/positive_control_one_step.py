@@ -145,12 +145,19 @@ def validate_prerequisites(config: dict, repository_commit: str) -> dict:
         }
 
     retry = config.get("retry")
-    trainer_retry_ids = {"trainer_data_retry_2", "runtime_cache_retry_3"}
+    trainer_retry_ids = {
+        "trainer_data_retry_2",
+        "runtime_cache_retry_3",
+        "microbatch_memory_retry_4",
+    }
     if retry is not None and retry.get("attempt_id") in trainer_retry_ids:
         retry_id = retry.get("attempt_id")
         allowed_change = {
             "trainer_data_retry_2": "restore_pinned_trl_conversations_field_only",
             "runtime_cache_retry_3": "runtime_cache_placement_only",
+            "microbatch_memory_retry_4": (
+                "per_device_microbatch_and_gradient_accumulation_only"
+            ),
         }[retry_id]
         if retry.get("allowed_change") != allowed_change:
             raise RuntimeError(f"{retry_id} changes more than its registered boundary")
@@ -162,8 +169,10 @@ def validate_prerequisites(config: dict, repository_commit: str) -> dict:
             "trainer_data_manifest",
             "trainer_data_audit",
         ]
-        if retry_id == "runtime_cache_retry_3":
+        if retry_id in {"runtime_cache_retry_3", "microbatch_memory_retry_4"}:
             prerequisite_keys.append("runtime_cache_failure")
+        if retry_id == "microbatch_memory_retry_4":
+            prerequisite_keys.append("full_vocab_oom_failure")
         for key in prerequisite_keys:
             path = Path(prereq[key]).resolve()
             records[key] = {
@@ -205,8 +214,11 @@ def validate_prerequisites(config: dict, repository_commit: str) -> dict:
             ):
                 raise RuntimeError(f"predecessor {job_id} produced a training result")
 
-        if retry_id == "runtime_cache_retry_3":
-            if retry.get("predecessor_job_ids") != ["132150", "135003", "135015"]:
+        if retry_id in {"runtime_cache_retry_3", "microbatch_memory_retry_4"}:
+            expected_predecessors = ["132150", "135003", "135015"]
+            if retry_id == "microbatch_memory_retry_4":
+                expected_predecessors.append("135079")
+            if retry.get("predecessor_job_ids") != expected_predecessors:
                 raise RuntimeError("runtime-cache retry predecessor order drifted")
             cache_failure = load_object(
                 Path(prereq["runtime_cache_failure"]), "runtime-cache failure"
@@ -225,6 +237,39 @@ def validate_prerequisites(config: dict, repository_commit: str) -> dict:
                 )
             ):
                 raise RuntimeError("runtime-cache predecessor produced a training result")
+
+        if retry_id == "microbatch_memory_retry_4":
+            oom_failure = load_object(
+                Path(prereq["full_vocab_oom_failure"]), "full-vocabulary OOM failure"
+            )
+            if oom_failure.get("status") != "failed_before_backward_or_optimization" or oom_failure.get(
+                "decision"
+            ) != "A6000_FULL_VOCAB_MICROBATCH4_OOM":
+                raise RuntimeError("job 135079 is not the sealed full-vocabulary OOM")
+            if oom_failure.get("slurm", {}).get("job_id") != "135079":
+                raise RuntimeError("full-vocabulary OOM predecessor identity drifted")
+            if any(
+                (
+                    oom_failure.get("backward_completed") is not False,
+                    oom_failure.get("optimizer_steps") != 0,
+                    oom_failure.get("checkpoint_created") is not False,
+                    oom_failure.get("opd_result_created") is not False,
+                )
+            ):
+                raise RuntimeError("full-vocabulary OOM predecessor produced an update")
+            recipe = config.get("recipe", {})
+            if retry.get("effective_batch_size_unchanged") is not True or recipe.get(
+                "effective_batch_size"
+            ) != 32:
+                raise RuntimeError("memory retry changed the effective batch size")
+            if retry.get("completion_cap_unchanged") is not True or recipe.get(
+                "max_completion_tokens"
+            ) != 1024:
+                raise RuntimeError("memory retry changed the completion cap")
+            if recipe.get("per_device_train_batch_size") != 2 or recipe.get(
+                "gradient_accumulation_steps"
+            ) != 4:
+                raise RuntimeError("memory retry does not use the preregistered 2x4 geometry")
 
         manifest = load_object(
             Path(prereq["trainer_data_manifest"]), "trainer-data manifest"
@@ -390,6 +435,8 @@ def training_command(
     model_dir: Path,
     output_root: Path,
     port: int,
+    per_device_train_batch_size: int = 4,
+    gradient_accumulation_steps: int = 2,
 ) -> list[str]:
     return [
         str(env_dir / "bin" / "accelerate"),
@@ -399,7 +446,7 @@ def training_command(
         "--num_processes",
         "4",
         "--gradient_accumulation_steps",
-        "2",
+        str(gradient_accumulation_steps),
         "--main_process_port",
         str(port),
         "opsd_train.py",
@@ -410,10 +457,10 @@ def training_command(
         "--max_grad_norm",
         "0.1",
         "--per_device_train_batch_size",
-        "4",
+        str(per_device_train_batch_size),
         "--gradient_checkpointing",
         "--gradient_accumulation_steps",
-        "2",
+        str(gradient_accumulation_steps),
         "--output_dir",
         str(output_root / "training"),
         "--run_config",
@@ -577,8 +624,13 @@ def run_diagnostic(args: argparse.Namespace) -> int:
     if model_dir.name != config["upstream"]["model_revision"]:
         raise RuntimeError("resolved model snapshot revision drifted")
     runtime_cache = None
-    if config.get("retry", {}).get("attempt_id") == "runtime_cache_retry_3":
+    if config.get("retry", {}).get("attempt_id") in {
+        "runtime_cache_retry_3",
+        "microbatch_memory_retry_4",
+    }:
         runtime_cache = validate_runtime_cache_environment(config, args.slurm_job_id)
+
+    recipe = config["recipe"]
 
     command = training_command(
         args.env_dir.resolve(),
@@ -586,6 +638,8 @@ def run_diagnostic(args: argparse.Namespace) -> int:
         model_dir,
         args.output_root.resolve(),
         args.port,
+        per_device_train_batch_size=recipe["per_device_train_batch_size"],
+        gradient_accumulation_steps=recipe["gradient_accumulation_steps"],
     )
     start = {
         "schema_version": 1,

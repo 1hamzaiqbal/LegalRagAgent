@@ -19,7 +19,7 @@ RUN_ROOT="${OPD_IDENT_RUN_ROOT:-/engrfs/project/jacobsn/hiqbal/artifacts/legalra
 HF_HOME="${OPD_IDENT_HF_HOME:-/engrfs/tmp/jacobsn/hiqbal_legalrag/hf_cache}"
 CACHE_ROOT="${OPD_IDENT_CACHE_ROOT:-/engrfs/tmp/jacobsn/hiqbal_legalrag/runtime_caches/opd_identifiability_v1}"
 EXPECTED_COMMIT="${OPD_IDENT_EXPECTED_COMMIT:?set OPD_IDENT_EXPECTED_COMMIT at submission}"
-CONFIG="${OPD_IDENT_ONE_STEP_CONFIG:-$REPO/configs/opd_math/identifiability_v1_one_step_retry3.json}"
+CONFIG="${OPD_IDENT_ONE_STEP_CONFIG:-$REPO/configs/opd_math/identifiability_v1_one_step_retry4.json}"
 
 JOB_CACHE="$CACHE_ROOT/job_${SLURM_JOB_ID:?missing Slurm job id}"
 export XDG_CACHE_HOME="$JOB_CACHE/xdg"

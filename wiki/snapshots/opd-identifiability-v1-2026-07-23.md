@@ -171,6 +171,28 @@ probe before launching the trainer. This retry still cannot release 100-step
 training without both the original in-job parameter-update gate and an
 independent terminal audit.
 
+## Fourth one-step training incident
+
+Cache-corrected job `135079` passed every per-job EIT cache check, loaded the
+model on all four A6000 ranks, generated the first four student continuations
+(3,356 tokens total), and entered the exact full-vocabulary
+`KL(teacher || student)` calculation. It then exhausted 48 GB device memory
+while materializing the full-vocabulary divergence, before the loss returned
+to the trainer for backward. No backward pass, optimizer step, checkpoint,
+in-job pass gate, or OPD result was created. The failure is sealed by
+terminal-failure receipt SHA-256
+`9ad342a0dbd86b5d152f7e39ca5279a5b0307ca98143ab9cb8e4ce836163b2d2`.
+
+The upstream 1.7B launch geometry is documented for four H100s and uses
+microbatch four, gradient accumulation two, effective batch 32, and 1,024
+completion tokens. Retry 4 keeps four A6000s, effective batch 32, and the full
+1,024-token cap. Its only training-geometry change is microbatch `4 -> 2` and
+gradient accumulation `2 -> 4`. This reduces the per-rank full-vocabulary
+activation peak without shortening student solutions or changing the number
+of examples per optimizer update. It remains a one-step plumbing diagnostic
+and cannot release full training without its original parameter-update and
+terminal-audit gates.
+
 ## Links
 
 [[opd-teacher-evaluator-baseline-qualification-2026-07-22]] ·

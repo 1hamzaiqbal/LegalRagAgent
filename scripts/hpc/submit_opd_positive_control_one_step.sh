@@ -9,7 +9,7 @@ BRANCH="codex/opd_identifiability_v1"
 test "$(git -C "$REPO" branch --show-current)" = "$BRANCH"
 test -z "$(git -C "$REPO" status --porcelain=v1)"
 COMMIT="$(git -C "$REPO" rev-parse HEAD)"
-CONFIG="${OPD_IDENT_ONE_STEP_CONFIG:-$REPO/configs/opd_math/identifiability_v1_one_step_retry3.json}"
+CONFIG="${OPD_IDENT_ONE_STEP_CONFIG:-$REPO/configs/opd_math/identifiability_v1_one_step_retry4.json}"
 test -f "$CONFIG"
 
 JOB_ID="$(sbatch --parsable \
