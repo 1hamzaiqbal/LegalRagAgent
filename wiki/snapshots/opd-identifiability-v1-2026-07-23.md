@@ -124,6 +124,18 @@ and `b59ad7d806d6aa38f11b1cc51f00bec1f4996a887078d8c71286966c2a93afb6`.
 These receipts authorize only a newly hash-bound one-step retry; 100-step
 training remains blocked.
 
+That retry, job `135003`, verified that the metadata repair worked: pinned
+`datasets` loaded all 29,434 rows, all four ranks loaded the model, and TRL
+entered preprocessing. It then failed before optimizer creation with
+`KeyError: 'text'`. The first projection had removed both conversational
+columns, but pinned TRL 0.26 uses source `conversations` to identify the dataset
+as conversational and convert it to ChatML `messages`; without that field it
+falls through to its default `text` column. No checkpoint, in-job pass gate,
+or OPD result exists. A second compatibility correction must therefore retain
+exact ordered `(problem, solution, conversations)` fields, independently run
+all rows through pinned ChatML conversion and tokenization plus the upstream
+custom collator on CPU, and bind those receipts before another one-step retry.
+
 ## Links
 
 [[opd-teacher-evaluator-baseline-qualification-2026-07-22]] ·

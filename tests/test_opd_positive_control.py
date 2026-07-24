@@ -7,6 +7,7 @@ from pathlib import Path
 from scripts.opd import audit_positive_control_normalized_data as audit_data
 from scripts.opd import materialize_positive_control as materialize
 from scripts.opd import normalize_positive_control_data as normalize_data
+from scripts.opd import normalize_positive_control_trainer_data as normalize_trainer_data
 from scripts.opd import positive_control_gate as gate
 from scripts.opd import positive_control_one_step as one_step
 from scripts.opd import positive_control_one_step_terminal_audit as terminal_audit
@@ -397,6 +398,13 @@ def test_normalization_preserves_ordered_required_rows(tmp_path: Path) -> None:
             "problem": [f"p{index}" for index in range(rows)],
             "solution": [f"s{index}" for index in range(rows)],
             "messages": [[{"role": "user", "content": "x"}]] * rows,
+            "conversations": [
+                [
+                    {"from": "user", "value": f"p{index}"},
+                    {"from": "assistant", "value": f"s{index}"},
+                ]
+                for index in range(rows)
+            ],
         }
     )
     metadata = {
@@ -434,6 +442,24 @@ def test_normalization_preserves_ordered_required_rows(tmp_path: Path) -> None:
         path.chmod(0o644)
     output.chmod(0o755)
 
+    trainer_output = tmp_path / "trainer_normalized"
+    trainer_manifest = normalize_trainer_data.normalize(
+        source, trainer_output, "c" * 40
+    )
+    assert trainer_manifest["rows"] == normalize_trainer_data.EXPECTED_ROWS
+    assert trainer_manifest["required_columns"] == [
+        "problem",
+        "solution",
+        "conversations",
+    ]
+    for path in sorted(trainer_output.glob("*.parquet")):
+        schema = pq.read_schema(path)
+        assert schema.names == ["problem", "solution", "conversations"]
+        assert schema.metadata is None
+    for path in trainer_output.iterdir():
+        path.chmod(0o644)
+    trainer_output.chmod(0o755)
+
 
 def test_normalization_ladder_never_queues_training() -> None:
     root = Path(__file__).resolve().parents[1]
@@ -444,3 +470,11 @@ def test_normalization_ladder_never_queues_training() -> None:
     assert "slurm_opd_positive_control_normalized_audit.sh" in source
     assert '"training_queued": False' in source
     assert "one_step" not in source
+
+    trainer_source = (
+        root / "scripts/hpc/submit_opd_positive_control_trainer_data.sh"
+    ).read_text()
+    assert "slurm_opd_positive_control_trainer_data.sh" in trainer_source
+    assert "slurm_opd_positive_control_trainer_data_audit.sh" in trainer_source
+    assert '"training_queued": False' in trainer_source
+    assert "one_step" not in trainer_source
