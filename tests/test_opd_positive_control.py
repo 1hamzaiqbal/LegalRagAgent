@@ -4,7 +4,9 @@ import hashlib
 import json
 from pathlib import Path
 
+from scripts.opd import audit_positive_control_normalized_data as audit_data
 from scripts.opd import materialize_positive_control as materialize
+from scripts.opd import normalize_positive_control_data as normalize_data
 from scripts.opd import positive_control_gate as gate
 from scripts.opd import positive_control_one_step as one_step
 from scripts.opd import positive_control_one_step_terminal_audit as terminal_audit
@@ -223,3 +225,65 @@ def test_one_step_submission_has_no_dependency() -> None:
     assert "--dependency" not in source
     assert '"dependent_jobs": []' in source
     assert '"full_training_queued": False' in source
+
+
+def test_normalization_preserves_ordered_required_rows(tmp_path: Path) -> None:
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    source = tmp_path / "source"
+    data = source / "data"
+    data.mkdir(parents=True)
+    rows = normalize_data.EXPECTED_ROWS
+    table = pa.table(
+        {
+            "problem": [f"p{index}" for index in range(rows)],
+            "solution": [f"s{index}" for index in range(rows)],
+            "messages": [[{"role": "user", "content": "x"}]] * rows,
+        }
+    )
+    metadata = {
+        b"huggingface": json.dumps(
+            {
+                "info": {
+                    "features": {
+                        "messages": {"_type": "List", "feature": {}}
+                    }
+                }
+            }
+        ).encode()
+    }
+    table = table.replace_schema_metadata(metadata)
+    midpoint = rows // 2
+    pq.write_table(table.slice(0, midpoint), data / "part0.parquet")
+    pq.write_table(table.slice(midpoint), data / "part1.parquet")
+    output = tmp_path / "normalized"
+    manifest = normalize_data.normalize(source, output, "a" * 40)
+    assert manifest["rows"] == normalize_data.EXPECTED_ROWS
+    assert len(manifest["normalized_shards"]) == 2
+    for path in sorted(output.glob("*.parquet")):
+        schema = pq.read_schema(path)
+        assert schema.names == ["problem", "solution"]
+        assert schema.metadata is None
+    receipt = audit_data.audit(
+        output,
+        "a" * 40,
+        "b" * 40,
+        tmp_path / "audit.json",
+    )
+    assert receipt["decision"] == "NORMALIZED_DATA_LOAD_COMPATIBLE"
+    assert receipt["row_sequence_sha256"] == manifest["row_sequence_sha256"]
+    for path in output.iterdir():
+        path.chmod(0o644)
+    output.chmod(0o755)
+
+
+def test_normalization_ladder_never_queues_training() -> None:
+    root = Path(__file__).resolve().parents[1]
+    source = (
+        root / "scripts/hpc/submit_opd_positive_control_normalization.sh"
+    ).read_text()
+    assert "slurm_opd_positive_control_normalize.sh" in source
+    assert "slurm_opd_positive_control_normalized_audit.sh" in source
+    assert '"training_queued": False' in source
+    assert "one_step" not in source

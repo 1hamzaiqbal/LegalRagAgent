@@ -94,6 +94,23 @@ and checkpoint evaluation may therefore use either four A100-SXM4 GPUs or four
 A6000 GPUs, always on one node and always the same type for the base and every
 checkpoint. Training hardware remains a separate memory-gated decision.
 
+## First one-step training incident
+
+One-step job `132150` passed launch custody and reached the pinned local
+training-data loader, then failed before model loading or optimization. The
+downloaded Parquet rows are physically readable, but their embedded Hugging
+Face feature metadata uses `_type: List` for unused list-valued columns. The
+pinned upstream `datasets==3.6.0` runtime does not recognize that serialized
+feature name. No optimizer step, checkpoint, or OPD result was created.
+
+The correction preserves every raw byte and projects only the upstream
+trainer's required ordered `(problem, solution)` columns into a fresh
+metadata-free Parquet namespace. A separate process must rehash all 29,434
+ordered pairs and load every row with the exact pinned runtime before a new
+one-step preregistration can name those normalized artifact hashes. This is a
+data-locality compatibility repair, not a semantic dataset or objective
+change; the failed job remains immutable.
+
 ## Links
 
 [[opd-teacher-evaluator-baseline-qualification-2026-07-22]] ·
